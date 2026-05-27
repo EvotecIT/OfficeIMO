@@ -18,8 +18,20 @@ namespace OfficeIMO.Excel {
         }
 
         private ColumnStyleByHeaderBuilder ApplyFormat(string numberFormat) {
-            for (int r = _startRow; r <= _endRow; r++)
-                _sheet.FormatCell(r, _colIndex, numberFormat);
+            if (_colIndex <= 0 || _startRow > _endRow) {
+                return this;
+            }
+
+            if (_startRow > 1
+                && _sheet.Document.TrySetDirectTabularSaveCandidateColumnNumberFormat(_sheet, _colIndex, numberFormat)) {
+                return this;
+            }
+
+            string column = A1.ColumnIndexToLetters(_colIndex);
+            _sheet.FormatRange(
+                column + _startRow.ToString(CultureInfo.InvariantCulture) + ":" +
+                column + _endRow.ToString(CultureInfo.InvariantCulture),
+                numberFormat);
             return this;
         }
 

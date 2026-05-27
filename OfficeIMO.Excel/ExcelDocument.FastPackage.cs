@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
 using System.Threading;
@@ -71,7 +72,713 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private bool TryWriteExtendedWorkbookPackage(Stream destination, ExcelSaveOptions? options, bool updateDocumentState, out string? skipReason, CancellationToken ct = default) {
+            skipReason = null;
+
+            if (destination == null || !destination.CanWrite) {
+                skipReason = "Destination stream must be writable.";
+                return false;
+            }
+
+            ct.ThrowIfCancellationRequested();
+
+            if (options?.DisableFastPackageWriter == true) {
+                skipReason = "Fast package writer was disabled by save options.";
+                return false;
+            }
+
+            if (options?.ValidateOpenXml == true) {
+                skipReason = "Open XML validation requires the standard package finalization path.";
+                return false;
+            }
+
+            if (_packagePropertiesDirty) {
+                skipReason = "Package properties changed.";
+                return false;
+            }
+
+            if (_unchangedPackageBytes != null) {
+                skipReason = "An unchanged package payload is already available.";
+                return false;
+            }
+
+            if (_packageContentTypesKnownNormalized && !_simplePackageContentKnown) {
+                skipReason = "Workbook was loaded or previously finalized; standard save preserves package metadata and relationships.";
+                return false;
+            }
+
+            if (HasCalculationSaveWork(options)) {
+                skipReason = "Calculation save work is pending.";
+                return false;
+            }
+
+            Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
+            if (!TryRefreshMaterializedDirectDataSetFastSaveModel(out string? directModelSkipReason)) {
+                skipReason = directModelSkipReason ?? "Direct worksheet metadata could not be refreshed.";
+                return false;
+            }
+
+            if (!ExtendedWorkbookPackageModel.TryCreate(_spreadSheetDocument, _materializedDirectDataSetFastSaveModel, out var model, out string? modelSkipReason)) {
+                skipReason = modelSkipReason ?? "Workbook contains parts outside the extended package writer surface.";
+                return false;
+            }
+            ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.CreateModel");
+
+            if (ShouldMaterializeMixedDirectWorkbookGlobalParts(model)
+                && _materializedDirectDataSetFastSaveModel != null) {
+                _materializingDeferredDataSetImport = true;
+                try {
+                    MaterializeDirectDataSetModel(_materializedDirectDataSetFastSaveModel);
+                } finally {
+                    _materializingDeferredDataSetImport = false;
+                }
+
+                _materializedDirectDataSetFastSaveModel = null;
+                if (!ExtendedWorkbookPackageModel.TryCreate(_spreadSheetDocument, directDataSetModel: null, out model, out modelSkipReason)) {
+                    skipReason = modelSkipReason ?? "Workbook contains parts outside the extended package writer surface after materializing direct data.";
+                    return false;
+                }
+
+                ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.MaterializeMixedWorkbookDirectData");
+            }
+
+            ct.ThrowIfCancellationRequested();
+            MemoryStream? nonSeekableBuffer = null;
+            Stream writeTarget = destination;
+            if (!destination.CanSeek) {
+                nonSeekableBuffer = new MemoryStream();
+                writeTarget = nonSeekableBuffer;
+            }
+
+            PrepareDestinationStreamForWrite(writeTarget);
+            ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.PrepareDestination");
+            ExtendedWorkbookPackageWriter.Write(writeTarget, model, ct, Execution);
+            ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.WritePackage");
+
+            writeTarget.Flush();
+            if (nonSeekableBuffer != null) {
+                nonSeekableBuffer.Position = 0;
+                nonSeekableBuffer.CopyTo(destination);
+                destination.Flush();
+                nonSeekableBuffer.Dispose();
+            } else {
+                destination.Seek(0, SeekOrigin.Begin);
+            }
+
+            ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.FlushAndSeek");
+            if (updateDocumentState) {
+                _packageDirty = false;
+                _packagePropertiesDirty = false;
+                _requiresSavePreflight = false;
+                _unchangedPackageBytes = null;
+                _packageContentTypesKnownNormalized = true;
+                _simplePackageContentKnown = true;
+            }
+
+            return true;
+        }
+
+        private void ReportExtendedPackageTiming(Stopwatch? stopwatch, string operation) {
+            if (stopwatch == null) {
+                return;
+            }
+
+            Execution.ReportTiming(operation, stopwatch.Elapsed);
+            stopwatch.Restart();
+        }
+
+        private static bool ShouldMaterializeMixedDirectWorkbookGlobalParts(ExtendedWorkbookPackageModel model) {
+            if (model.DirectDataSetModel == null || model.DirectWorksheetModels.Count == 0) {
+                return false;
+            }
+
+            int worksheetPartCount = 0;
+            bool hasWorkbookGlobalPart = false;
+            foreach (var part in model.Parts) {
+                if (part.Part is WorksheetPart) {
+                    worksheetPartCount++;
+                } else if (part.Part is WorkbookStylesPart || part.Part is SharedStringTablePart) {
+                    hasWorkbookGlobalPart = true;
+                }
+            }
+
+            return hasWorkbookGlobalPart
+                   && model.DirectWorksheetModels.Count < worksheetPartCount;
+        }
+
         private static readonly System.Text.UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
+
+        private sealed class ExtendedWorkbookPackageModel {
+            private ExtendedWorkbookPackageModel(
+                string workbookRelationshipId,
+                IReadOnlyList<ExtendedPartModel> parts,
+                IReadOnlyDictionary<OpenXmlPart, ExtendedPartModel> partMap,
+                IReadOnlyList<ExtendedRelationshipModel> packageRelationships,
+                string corePropertiesXml,
+                string appPropertiesXml,
+                DirectDataSetWorkbookModel? directDataSetModel,
+                IReadOnlyDictionary<OpenXmlPart, DirectDataSetSheetModel> directWorksheetModels) {
+                WorkbookRelationshipId = workbookRelationshipId;
+                Parts = parts;
+                PartMap = partMap;
+                PackageRelationships = packageRelationships;
+                CorePropertiesXml = corePropertiesXml;
+                AppPropertiesXml = appPropertiesXml;
+                DirectDataSetModel = directDataSetModel;
+                DirectWorksheetModels = directWorksheetModels;
+            }
+
+            internal string WorkbookRelationshipId { get; }
+
+            internal IReadOnlyList<ExtendedPartModel> Parts { get; }
+
+            internal IReadOnlyDictionary<OpenXmlPart, ExtendedPartModel> PartMap { get; }
+
+            internal IReadOnlyList<ExtendedRelationshipModel> PackageRelationships { get; }
+
+            internal string CorePropertiesXml { get; }
+
+            internal string AppPropertiesXml { get; }
+
+            internal DirectDataSetWorkbookModel? DirectDataSetModel { get; }
+
+            internal IReadOnlyDictionary<OpenXmlPart, DirectDataSetSheetModel> DirectWorksheetModels { get; }
+
+            internal static bool TryCreate(SpreadsheetDocument document, DirectDataSetWorkbookModel? directDataSetModel, out ExtendedWorkbookPackageModel model, out string? skipReason) {
+                model = null!;
+                skipReason = null;
+
+                var workbookPart = document.WorkbookPart;
+                if (workbookPart?.Workbook == null) {
+                    skipReason = "Workbook is missing workbook XML.";
+                    return false;
+                }
+
+                string workbookRelationshipId = document.GetIdOfPart(workbookPart);
+                var parts = new List<ExtendedPartModel>();
+                var partMap = new Dictionary<OpenXmlPart, ExtendedPartModel>();
+                if (!TryCollectPart(workbookPart, parts, partMap, out skipReason)) {
+                    return false;
+                }
+
+                var packageRelationships = new List<ExtendedRelationshipModel> {
+                    new ExtendedRelationshipModel(
+                        workbookRelationshipId,
+                        workbookPart.RelationshipType,
+                        NormalizePackagePartPath(workbookPart.Uri),
+                        isExternal: false)
+                };
+
+                foreach (var child in document.Parts) {
+                    var rootPart = child.OpenXmlPart;
+                    if (ReferenceEquals(rootPart, workbookPart) || rootPart is ExtendedFilePropertiesPart) {
+                        continue;
+                    }
+
+                    if (!TryCollectPart(rootPart, parts, partMap, out skipReason)) {
+                        return false;
+                    }
+
+                    packageRelationships.Add(new ExtendedRelationshipModel(
+                        child.RelationshipId,
+                        rootPart.RelationshipType,
+                        NormalizePackagePartPath(rootPart.Uri),
+                        isExternal: false));
+                }
+
+                foreach (var external in document.ExternalRelationships) {
+                    packageRelationships.Add(new ExtendedRelationshipModel(
+                        external.Id,
+                        external.RelationshipType,
+                        external.Uri.ToString(),
+                        isExternal: true));
+                }
+
+                if (!packageRelationships.Any(static relationship => string.Equals(
+                    relationship.RelationshipType,
+                    "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+                    StringComparison.Ordinal))) {
+                    packageRelationships.Add(new ExtendedRelationshipModel(
+                        CreateRelationshipId(packageRelationships),
+                        "http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties",
+                        "docProps/core.xml",
+                        isExternal: false));
+                }
+
+                if (!packageRelationships.Any(static relationship => string.Equals(
+                    relationship.RelationshipType,
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+                    StringComparison.Ordinal))) {
+                    packageRelationships.Add(new ExtendedRelationshipModel(
+                        CreateRelationshipId(packageRelationships),
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties",
+                        "docProps/app.xml",
+                        isExternal: false));
+                }
+
+                var directWorksheetModels = directDataSetModel == null
+                    ? new Dictionary<OpenXmlPart, DirectDataSetSheetModel>(0)
+                    : BuildDirectWorksheetModelMap(workbookPart, directDataSetModel);
+
+                string corePropertiesXml = CreateCorePropertiesXml(document);
+                string appPropertiesXml = document.ExtendedFilePropertiesPart?.Properties != null
+                    ? "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + document.ExtendedFilePropertiesPart.Properties.OuterXml
+                    : CreateAppPropertiesXml();
+
+                model = new ExtendedWorkbookPackageModel(
+                    workbookRelationshipId,
+                    parts,
+                    partMap,
+                    packageRelationships,
+                    corePropertiesXml,
+                    appPropertiesXml,
+                    directDataSetModel,
+                    directWorksheetModels);
+                return true;
+            }
+
+            private static IReadOnlyDictionary<OpenXmlPart, DirectDataSetSheetModel> BuildDirectWorksheetModelMap(WorkbookPart workbookPart, DirectDataSetWorkbookModel directDataSetModel) {
+                var workbook = workbookPart.Workbook;
+                if (directDataSetModel.Sheets.Count == 0 || workbook?.Sheets == null) {
+                    return new Dictionary<OpenXmlPart, DirectDataSetSheetModel>(0);
+                }
+
+                var directSheetsByName = new Dictionary<string, DirectDataSetSheetModel>(StringComparer.Ordinal);
+                for (int i = 0; i < directDataSetModel.Sheets.Count; i++) {
+                    DirectDataSetSheetModel sheetModel = directDataSetModel.Sheets[i];
+                    directSheetsByName[sheetModel.SheetName] = sheetModel;
+                }
+
+                var map = new Dictionary<OpenXmlPart, DirectDataSetSheetModel>();
+                foreach (Sheet sheet in workbook.Sheets.Elements<Sheet>()) {
+                    if (sheet.Name == null || sheet.Id == null) {
+                        continue;
+                    }
+
+                    if (!directSheetsByName.TryGetValue(sheet.Name.Value ?? string.Empty, out DirectDataSetSheetModel? sheetModel)) {
+                        continue;
+                    }
+
+                    if (workbookPart.GetPartById(sheet.Id!) is WorksheetPart worksheetPart) {
+                        map[worksheetPart] = sheetModel;
+                    }
+                }
+
+                return map;
+            }
+
+            private static string CreateRelationshipId(IReadOnlyList<ExtendedRelationshipModel> relationships) {
+                for (int i = 1; ; i++) {
+                    string id = "rId" + InvariantNumberText.Get(i);
+                    if (!relationships.Any(relationship => string.Equals(relationship.Id, id, StringComparison.Ordinal))) {
+                        return id;
+                    }
+                }
+            }
+
+            private static bool TryCollectPart(
+                OpenXmlPart part,
+                List<ExtendedPartModel> parts,
+                Dictionary<OpenXmlPart, ExtendedPartModel> partMap,
+                out string? skipReason) {
+                skipReason = null;
+
+                if (partMap.ContainsKey(part)) {
+                    return true;
+                }
+
+                string path = NormalizePackagePartPath(part.Uri);
+                ExtendedPartModel model;
+                if (TryCopyRawSupportedPart(part, path, out var rawModel)) {
+                    model = rawModel;
+                } else {
+                    if (!TryGetSupportedRootElement(part, out var rootElement, out skipReason)) {
+                        return false;
+                    }
+
+                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, rawBytes: null);
+                }
+
+                parts.Add(model);
+                partMap[part] = model;
+
+                foreach (var child in part.Parts) {
+                    if (!TryCollectPart(child.OpenXmlPart, parts, partMap, out skipReason)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+        }
+
+        private sealed class ExtendedPartModel {
+            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, byte[]? rawBytes) {
+                Part = part;
+                Path = path;
+                ContentType = contentType;
+                RootElement = rootElement;
+                RawBytes = rawBytes;
+            }
+
+            internal OpenXmlPart Part { get; }
+
+            internal string Path { get; }
+
+            internal string ContentType { get; }
+
+            internal OpenXmlElement? RootElement { get; }
+
+            internal byte[]? RawBytes { get; }
+        }
+
+        private sealed class ExtendedRelationshipModel {
+            internal ExtendedRelationshipModel(string id, string relationshipType, string target, bool isExternal) {
+                Id = id;
+                RelationshipType = relationshipType;
+                Target = target;
+                IsExternal = isExternal;
+            }
+
+            internal string Id { get; }
+
+            internal string RelationshipType { get; }
+
+            internal string Target { get; }
+
+            internal bool IsExternal { get; }
+        }
+
+        private static bool TryGetSupportedRootElement(OpenXmlPart part, out OpenXmlElement rootElement, out string? skipReason) {
+            skipReason = null;
+            rootElement = part switch {
+                WorkbookPart workbookPart when workbookPart.Workbook != null => workbookPart.Workbook,
+                WorksheetPart worksheetPart when worksheetPart.Worksheet != null => worksheetPart.Worksheet,
+                WorkbookStylesPart stylesPart when stylesPart.Stylesheet != null => stylesPart.Stylesheet,
+                SharedStringTablePart sharedStringPart when sharedStringPart.SharedStringTable != null => sharedStringPart.SharedStringTable,
+                CustomFilePropertiesPart customPropertiesPart when customPropertiesPart.Properties != null => customPropertiesPart.Properties,
+                ThemePart themePart when themePart.Theme != null => themePart.Theme,
+                DrawingsPart drawingsPart when drawingsPart.WorksheetDrawing != null => drawingsPart.WorksheetDrawing,
+                ChartPart chartPart when chartPart.ChartSpace != null => chartPart.ChartSpace,
+                TableDefinitionPart tablePart when tablePart.Table != null => tablePart.Table,
+                PivotTablePart pivotTablePart when pivotTablePart.PivotTableDefinition != null => pivotTablePart.PivotTableDefinition,
+                PivotTableCacheDefinitionPart cacheDefinitionPart when cacheDefinitionPart.PivotCacheDefinition != null => cacheDefinitionPart.PivotCacheDefinition,
+                PivotTableCacheRecordsPart cacheRecordsPart when cacheRecordsPart.PivotCacheRecords != null => cacheRecordsPart.PivotCacheRecords,
+                _ => null!
+            };
+
+            if (rootElement == null) {
+                skipReason = "Part '" + part.Uri + "' is outside the extended package writer surface.";
+                return false;
+            }
+
+            if (rootElement.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>().Any()) {
+                skipReason = "Part '" + part.Uri + "' contains unknown Open XML elements.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryCopyRawSupportedPart(OpenXmlPart part, string path, out ExtendedPartModel model) {
+            model = null!;
+            if (part is not ChartStylePart && part is not ChartColorStylePart) {
+                return false;
+            }
+
+            using var source = part.GetStream();
+            using var memory = new MemoryStream();
+            source.CopyTo(memory);
+            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, memory.ToArray());
+            return true;
+        }
+
+        private static string NormalizePackagePartPath(Uri uri) {
+            string path = uri.OriginalString.Replace('\\', '/');
+            if (path.StartsWith("/", StringComparison.Ordinal)) {
+                path = path.Substring(1);
+            }
+
+            return path;
+        }
+
+        private static string GetRelationshipsPath(string partPath) {
+            int slash = partPath.LastIndexOf('/');
+            if (slash < 0) {
+                return "_rels/" + partPath + ".rels";
+            }
+
+            return partPath.Substring(0, slash + 1) + "_rels/" + partPath.Substring(slash + 1) + ".rels";
+        }
+
+        private static string GetRelativeTargetPath(string sourcePath, string targetPath) {
+            int slash = sourcePath.LastIndexOf('/');
+            string sourceDirectory = slash < 0 ? string.Empty : sourcePath.Substring(0, slash + 1);
+            var sourceUri = new Uri("x:///" + sourceDirectory, UriKind.Absolute);
+            var targetUri = new Uri("x:///" + targetPath, UriKind.Absolute);
+            return Uri.UnescapeDataString(sourceUri.MakeRelativeUri(targetUri).ToString());
+        }
+
+        private static void WriteExtendedContentTypesEntry(ZipArchive archive, IReadOnlyList<ExtendedPartModel> parts, bool includeDirectStyles, bool includeDirectSharedStrings) {
+            var builder = new System.Text.StringBuilder(768 + parts.Count * 180);
+            builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+            builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
+            builder.Append("<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>");
+            builder.Append("<Default Extension=\"xml\" ContentType=\"application/xml\"/>");
+            builder.Append("<Override PartName=\"/docProps/core.xml\" ContentType=\"application/vnd.openxmlformats-package.core-properties+xml\"/>");
+            builder.Append("<Override PartName=\"/docProps/app.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.extended-properties+xml\"/>");
+            if (includeDirectStyles && !parts.Any(static part => string.Equals(part.Path, "xl/styles.xml", StringComparison.Ordinal))) {
+                builder.Append("<Override PartName=\"/xl/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\"/>");
+            }
+
+            if (includeDirectSharedStrings && !parts.Any(static part => string.Equals(part.Path, "xl/sharedStrings.xml", StringComparison.Ordinal))) {
+                builder.Append("<Override PartName=\"/xl/sharedStrings.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml\"/>");
+            }
+
+            foreach (var part in parts.OrderBy(static item => item.Path, StringComparer.Ordinal)) {
+                builder.Append("<Override PartName=\"/");
+                AppendXmlEscaped(builder, part.Path);
+                builder.Append("\" ContentType=\"");
+                AppendXmlEscaped(builder, part.ContentType);
+                builder.Append("\"/>");
+            }
+
+            builder.Append("</Types>");
+            WriteTextEntry(archive, "[Content_Types].xml", builder.ToString());
+        }
+
+        private static void WriteExtendedRelationshipsEntry(ZipArchive archive, string path, IReadOnlyList<ExtendedRelationshipModel> relationships) {
+            var builder = new System.Text.StringBuilder(160 + relationships.Count * 220);
+            builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+            builder.Append("<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">");
+            foreach (var relationship in relationships.OrderBy(static item => item.Id, StringComparer.Ordinal)) {
+                builder.Append("<Relationship Id=\"");
+                AppendXmlEscaped(builder, relationship.Id);
+                builder.Append("\" Type=\"");
+                AppendXmlEscaped(builder, relationship.RelationshipType);
+                builder.Append("\" Target=\"");
+                AppendXmlEscaped(builder, relationship.Target);
+                builder.Append('"');
+                if (relationship.IsExternal) {
+                    builder.Append(" TargetMode=\"External\"");
+                }
+
+                builder.Append("/>");
+            }
+
+            builder.Append("</Relationships>");
+            WriteTextEntry(archive, path, builder.ToString());
+        }
+
+        private static class ExtendedWorkbookPackageWriter {
+            internal static void Write(Stream destination, ExtendedWorkbookPackageModel model, CancellationToken ct, ExecutionPolicy? execution = null) {
+                Stopwatch? stageWatch = execution?.OnTiming == null ? null : Stopwatch.StartNew();
+                void ReportTiming(string operation) {
+                    if (stageWatch == null || execution == null) {
+                        return;
+                    }
+
+                    execution.ReportTiming(operation, stageWatch.Elapsed);
+                    stageWatch.Restart();
+                }
+
+                using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
+                DirectDataSetWorkbookWriter.ExtendedDirectWritePlan? directWritePlan = null;
+                if (CanUseDirectWorksheetEntries(model)
+                    && DirectDataSetWorkbookWriter.TryCreateExtendedWritePlan(model.DirectDataSetModel!, ct, out var candidateDirectWritePlan)) {
+                    directWritePlan = candidateDirectWritePlan;
+                }
+                ReportTiming("Save.ExtendedPackage.CreateDirectWritePlan");
+
+                WriteExtendedContentTypesEntry(archive, model.Parts, directWritePlan != null, directWritePlan?.HasSharedStrings == true);
+                WriteExtendedRelationshipsEntry(archive, "_rels/.rels", model.PackageRelationships);
+                WriteTextEntry(archive, "docProps/core.xml", model.CorePropertiesXml);
+                WriteTextEntry(archive, "docProps/app.xml", model.AppPropertiesXml);
+                ReportTiming("Save.ExtendedPackage.WriteFixedEntries");
+
+                bool wroteDirectStyles = false;
+                bool wroteDirectSharedStrings = false;
+                foreach (var part in model.Parts) {
+                    ct.ThrowIfCancellationRequested();
+                    if (directWritePlan != null && part.Part is WorkbookStylesPart) {
+                        DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
+                        wroteDirectStyles = true;
+                        ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
+                    } else if (directWritePlan?.HasSharedStrings == true && part.Part is SharedStringTablePart) {
+                        DirectDataSetWorkbookWriter.WriteExtendedSharedStrings(archive, directWritePlan);
+                        wroteDirectSharedStrings = true;
+                        ReportTiming("Save.ExtendedPackage.WriteDirectSharedStrings");
+                    } else if (directWritePlan != null
+                        && part.Part is WorksheetPart directWorksheetPart
+                        && model.DirectWorksheetModels.TryGetValue(directWorksheetPart, out DirectDataSetSheetModel? directSheetModel)) {
+                        string? tableRelationshipId = null;
+                        if (directSheetModel.HasTable) {
+                            var tablePart = directWorksheetPart.TableDefinitionParts.FirstOrDefault();
+                            if (tablePart != null) {
+                                tableRelationshipId = directWorksheetPart.GetIdOfPart(tablePart);
+                            }
+                        }
+
+                        DirectDataSetWorkbookWriter.WriteExtendedWorksheet(archive, directWritePlan, directSheetModel, part.Path, tableRelationshipId, ct);
+                        ReportTiming("Save.ExtendedPackage.WriteDirectWorksheet");
+                    } else if (part.Part is WorksheetPart worksheetPart
+                        && CanWriteSimpleWorksheet(worksheetPart, worksheetPart.Worksheet!, out _, allowDrawings: true, allowPivotTables: true)) {
+                        var tablePartIds = worksheetPart.TableDefinitionParts
+                            .Select(worksheetPart.GetIdOfPart)
+                            .ToDictionary(static id => id, static id => string.Empty, StringComparer.Ordinal);
+                        var hyperlinkRelationships = worksheetPart.HyperlinkRelationships
+                            .Select(static relationship => new FastHyperlinkRelationshipModel(
+                                relationship.Id,
+                                relationship.Uri.ToString(),
+                                relationship.IsExternal))
+                            .ToList();
+                        var worksheetModel = new FastWorksheetPackageModel(
+                            string.Empty,
+                            0U,
+                            null,
+                            string.Empty,
+                            part.Path,
+                            GetRelationshipsPath(part.Path),
+                            worksheetPart.Worksheet!,
+                            tablePartIds,
+                            hyperlinkRelationships);
+                        WriteWorksheetEntry(archive, worksheetModel);
+                        ReportTiming("Save.ExtendedPackage.WriteSimpleWorksheet");
+                    } else if (part.RawBytes != null) {
+                        WriteBinaryEntry(archive, part.Path, part.RawBytes);
+                        ReportTiming("Save.ExtendedPackage.WriteRawPart");
+                    } else {
+                        WriteOpenXmlElementEntry(archive, part.Path, part.RootElement!);
+                        ReportTiming("Save.ExtendedPackage.WriteOpenXmlPart");
+                    }
+
+                    var relationships = CreateRelationships(part.Part, part.Path, model.PartMap, directWritePlan);
+                    if (relationships.Count != 0) {
+                        WriteExtendedRelationshipsEntry(archive, GetRelationshipsPath(part.Path), relationships);
+                        ReportTiming("Save.ExtendedPackage.WriteRelationships");
+                    }
+                }
+
+                if (directWritePlan != null && !wroteDirectStyles) {
+                    DirectDataSetWorkbookWriter.WriteExtendedStyles(archive, directWritePlan);
+                    ReportTiming("Save.ExtendedPackage.WriteDirectStyles");
+                }
+
+                if (directWritePlan?.HasSharedStrings == true && !wroteDirectSharedStrings) {
+                    DirectDataSetWorkbookWriter.WriteExtendedSharedStrings(archive, directWritePlan);
+                    ReportTiming("Save.ExtendedPackage.WriteDirectSharedStrings");
+                }
+            }
+
+            private static bool CanUseDirectWorksheetEntries(ExtendedWorkbookPackageModel model) {
+                if (model.DirectDataSetModel == null
+                    || model.DirectDataSetModel.Sheets.Count == 0
+                    || model.DirectWorksheetModels.Count != model.DirectDataSetModel.Sheets.Count) {
+                    return false;
+                }
+
+                int worksheetPartCount = 0;
+                foreach (var part in model.Parts) {
+                    if (part.Part is WorksheetPart) {
+                        worksheetPartCount++;
+                    }
+                }
+
+                if (model.DirectWorksheetModels.Count != worksheetPartCount) {
+                    return false;
+                }
+
+                foreach (var pair in model.DirectWorksheetModels) {
+                    if (pair.Key is not WorksheetPart worksheetPart) {
+                        return false;
+                    }
+
+                    DirectDataSetSheetModel sheetModel = pair.Value;
+                    if (!sheetModel.HasTable) {
+                        continue;
+                    }
+
+                    var tablePart = worksheetPart.TableDefinitionParts.FirstOrDefault();
+                    if (tablePart == null) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            private static IReadOnlyList<ExtendedRelationshipModel> CreateRelationships(
+                OpenXmlPartContainer container,
+                string sourcePath,
+                IReadOnlyDictionary<OpenXmlPart, ExtendedPartModel> partMap,
+                DirectDataSetWorkbookWriter.ExtendedDirectWritePlan? directWritePlan) {
+                var relationships = new List<ExtendedRelationshipModel>();
+                foreach (var child in container.Parts) {
+                    if (!partMap.TryGetValue(child.OpenXmlPart, out var targetPart)) {
+                        continue;
+                    }
+
+                    relationships.Add(new ExtendedRelationshipModel(
+                        child.RelationshipId,
+                        child.OpenXmlPart.RelationshipType,
+                        GetRelativeTargetPath(sourcePath, targetPart.Path),
+                        isExternal: false));
+                }
+
+                foreach (var hyperlink in container.HyperlinkRelationships) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        hyperlink.Id,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+                        hyperlink.Uri.ToString(),
+                        hyperlink.IsExternal));
+                }
+
+                foreach (var external in container.ExternalRelationships) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        external.Id,
+                        external.RelationshipType,
+                        external.Uri.ToString(),
+                        isExternal: true));
+                }
+
+                if (directWritePlan != null
+                    && container is WorkbookPart
+                    && !relationships.Any(static relationship => string.Equals(
+                        relationship.RelationshipType,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+                        StringComparison.Ordinal))) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        CreateRelationshipId(relationships),
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
+                        "styles.xml",
+                        isExternal: false));
+                }
+
+                if (directWritePlan?.HasSharedStrings == true
+                    && container is WorkbookPart
+                    && !relationships.Any(static relationship => string.Equals(
+                        relationship.RelationshipType,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings",
+                        StringComparison.Ordinal))) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        CreateRelationshipId(relationships),
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings",
+                        "sharedStrings.xml",
+                        isExternal: false));
+                }
+
+                return relationships;
+            }
+
+            private static string CreateRelationshipId(IReadOnlyList<ExtendedRelationshipModel> relationships) {
+                for (int i = 1; ; i++) {
+                    string id = "rId" + InvariantNumberText.Get(i);
+                    if (!relationships.Any(relationship => string.Equals(relationship.Id, id, StringComparison.Ordinal))) {
+                        return id;
+                    }
+                }
+            }
+        }
 
         private static class FastWorkbookPackageWriter {
             internal static void Write(Stream destination, FastWorkbookPackageModel model, CancellationToken ct) {
@@ -359,6 +1066,9 @@ namespace OfficeIMO.Excel {
             internal IReadOnlyList<FastHyperlinkRelationshipModel> HyperlinkRelationships { get; }
 
             internal bool HasRelationships => TablePartPaths.Count > 0 || HyperlinkRelationships.Count > 0;
+
+            internal bool RequiresRelationshipNamespace
+                => HasRelationships || Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>()?.Id != null;
         }
 
         private sealed class FastHyperlinkRelationshipModel {
@@ -375,16 +1085,21 @@ namespace OfficeIMO.Excel {
             internal bool IsExternal { get; }
         }
 
-        private static bool CanWriteSimpleWorksheet(WorksheetPart worksheetPart, Worksheet worksheet, out string? skipReason) {
+        private static bool CanWriteSimpleWorksheet(WorksheetPart worksheetPart, Worksheet worksheet, out string? skipReason, bool allowDrawings = false, bool allowPivotTables = false) {
             skipReason = null;
 
-            if (worksheetPart.DrawingsPart != null) {
+            if (worksheetPart.WorksheetCommentsPart != null) {
+                skipReason = "Worksheet contains comments.";
+                return false;
+            }
+
+            if (!allowDrawings && worksheetPart.DrawingsPart != null) {
                 skipReason = "Worksheet contains drawings.";
                 return false;
             }
 
-            if (worksheetPart.WorksheetCommentsPart != null) {
-                skipReason = "Worksheet contains comments.";
+            if (!allowPivotTables && worksheetPart.PivotTableParts.Any()) {
+                skipReason = "Worksheet contains pivot tables.";
                 return false;
             }
 
@@ -419,6 +1134,7 @@ namespace OfficeIMO.Excel {
                     && child is not ColumnBreaks
                     && child is not CellWatches
                     && child is not DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors
+                    && (!allowDrawings || child is not DocumentFormat.OpenXml.Spreadsheet.Drawing)
                     && child is not TableParts) {
                     skipReason = "Worksheet contains unsupported element '" + child.LocalName + "'.";
                     return false;
@@ -680,22 +1396,90 @@ namespace OfficeIMO.Excel {
         }
 
         private static void WriteCorePropertiesEntry(ZipArchive archive) {
-            WriteTextEntry(archive, "docProps/core.xml",
-                "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+            WriteTextEntry(archive, "docProps/core.xml", CreateCorePropertiesXml());
+        }
+
+        private static string CreateCorePropertiesXml() {
+            return "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                 "<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" " +
                 "xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " +
                 "xmlns:dcterms=\"http://purl.org/dc/terms/\" " +
                 "xmlns:dcmitype=\"http://purl.org/dc/dcmitype/\" " +
-                "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"/>");
+                "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"/>";
+        }
+
+        private static string CreateCorePropertiesXml(SpreadsheetDocument document) {
+            var properties = document.PackageProperties;
+            var builder = new System.Text.StringBuilder(512);
+            builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+            builder.Append("<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" ");
+            builder.Append("xmlns:dc=\"http://purl.org/dc/elements/1.1/\" ");
+            builder.Append("xmlns:dcterms=\"http://purl.org/dc/terms/\" ");
+            builder.Append("xmlns:dcmitype=\"http://purl.org/dc/dcmitype/\" ");
+            builder.Append("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+
+            AppendCoreProperty(builder, "dc:title", properties.Title);
+            AppendCoreProperty(builder, "dc:subject", properties.Subject);
+            AppendCoreProperty(builder, "dc:creator", properties.Creator);
+            AppendCoreProperty(builder, "cp:keywords", properties.Keywords);
+            AppendCoreProperty(builder, "dc:description", properties.Description);
+            AppendCoreProperty(builder, "cp:lastModifiedBy", properties.LastModifiedBy);
+            AppendCoreProperty(builder, "cp:revision", properties.Revision);
+            AppendCoreProperty(builder, "cp:category", properties.Category);
+            AppendCoreProperty(builder, "cp:version", properties.Version);
+            AppendCoreProperty(builder, "cp:contentStatus", properties.ContentStatus);
+            AppendCoreProperty(builder, "dc:identifier", properties.Identifier);
+            AppendCoreProperty(builder, "dc:language", properties.Language);
+            AppendCoreDateProperty(builder, "cp:lastPrinted", properties.LastPrinted, includeW3CType: false);
+            AppendCoreDateProperty(builder, "dcterms:created", properties.Created, includeW3CType: true);
+            AppendCoreDateProperty(builder, "dcterms:modified", properties.Modified, includeW3CType: true);
+
+            builder.Append("</cp:coreProperties>");
+            return builder.ToString();
         }
 
         private static void WriteAppPropertiesEntry(ZipArchive archive) {
-            WriteTextEntry(archive, "docProps/app.xml",
-                "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+            WriteTextEntry(archive, "docProps/app.xml", CreateAppPropertiesXml());
+        }
+
+        private static string CreateAppPropertiesXml() {
+            return "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                 "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" " +
                 "xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">" +
                 "<Application>OfficeIMO.Excel</Application>" +
-                "</Properties>");
+                "</Properties>";
+        }
+
+        private static void AppendCoreProperty(System.Text.StringBuilder builder, string elementName, string? value) {
+            if (string.IsNullOrEmpty(value)) {
+                return;
+            }
+
+            builder.Append('<');
+            builder.Append(elementName);
+            builder.Append('>');
+            AppendXmlEscaped(builder, value!);
+            builder.Append("</");
+            builder.Append(elementName);
+            builder.Append('>');
+        }
+
+        private static void AppendCoreDateProperty(System.Text.StringBuilder builder, string elementName, DateTime? value, bool includeW3CType) {
+            if (!value.HasValue) {
+                return;
+            }
+
+            builder.Append('<');
+            builder.Append(elementName);
+            if (includeW3CType) {
+                builder.Append(" xsi:type=\"dcterms:W3CDTF\"");
+            }
+
+            builder.Append('>');
+            AppendXmlEscaped(builder, value.Value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture));
+            builder.Append("</");
+            builder.Append(elementName);
+            builder.Append('>');
         }
 
         private static void WriteSharedStringsEntry(ZipArchive archive, SharedStringTable sharedStrings) {
@@ -708,6 +1492,12 @@ namespace OfficeIMO.Excel {
             using var writer = CreateFastXmlWriter(stream);
             writer.WriteStartDocument();
             element.WriteTo(writer);
+        }
+
+        private static void WriteBinaryEntry(ZipArchive archive, string path, byte[] bytes) {
+            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
+            using var stream = entry.Open();
+            stream.Write(bytes, 0, bytes.Length);
         }
 
         private static void WriteWorksheetRelationshipsEntry(ZipArchive archive, FastWorksheetPackageModel worksheet) {
@@ -749,7 +1539,7 @@ namespace OfficeIMO.Excel {
 
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"");
-            if (model.HasRelationships) {
+            if (model.RequiresRelationshipNamespace) {
                 builder.Append(" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"");
             }
 
@@ -812,6 +1602,7 @@ namespace OfficeIMO.Excel {
             WriteOptionalElement(writer, worksheet.GetFirstChild<ColumnBreaks>());
             WriteOptionalElement(writer, worksheet.GetFirstChild<CellWatches>());
             WriteOptionalElement(writer, worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors>());
+            WriteOptionalElement(writer, worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>());
 
             var tableParts = worksheet.GetFirstChild<TableParts>();
             if (tableParts != null && model.TablePartPaths.Count > 0) {
@@ -933,6 +1724,10 @@ namespace OfficeIMO.Excel {
                 builder.Append(" t=\"str\"");
             } else if (dataType == CellValues.Boolean) {
                 builder.Append(" t=\"b\"");
+            } else if (dataType == CellValues.Error) {
+                builder.Append(" t=\"e\"");
+            } else if (dataType == CellValues.Date) {
+                builder.Append(" t=\"d\"");
             }
 
             builder.Append('>');

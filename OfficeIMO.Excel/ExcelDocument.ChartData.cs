@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Linq;
 using DocumentFormat.OpenXml.Spreadsheet;
 
@@ -43,21 +44,46 @@ namespace OfficeIMO.Excel {
                 return _chartDataSheet;
             }
 
+            Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
             var sheets = WorkbookRoot.Sheets?.OfType<Sheet>() ?? Enumerable.Empty<Sheet>();
+            ReportChartDataTiming(stageWatch, "ChartData.GetSheets");
+
+            stageWatch?.Restart();
             var existing = sheets.FirstOrDefault(s => string.Equals(s.Name?.Value, ChartDataSheetName, StringComparison.OrdinalIgnoreCase));
+            ReportChartDataTiming(stageWatch, "ChartData.FindExistingSheet");
             if (existing != null) {
+                stageWatch?.Restart();
                 _chartDataSheet = new ExcelSheet(this, _spreadSheetDocument, existing);
+                ReportChartDataTiming(stageWatch, "ChartData.WrapExistingSheet");
                 return _chartDataSheet;
             }
 
+            stageWatch?.Restart();
             var created = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, ChartDataSheetName);
-            using (created.BeginNoLock()) {
-                created.SetHiddenWithoutSavingWorkbook(true);
+            ReportChartDataTiming(stageWatch, "ChartData.CreateWorksheet");
+
+            stageWatch?.Restart();
+            using (PreserveDirectDataSetFastSaveStateDuringDirtyMarks()) {
+                using (created.BeginNoLock()) {
+                    created.SetHiddenWithoutSavingWorkbook(true);
+                }
             }
-            MarkSheetCacheDirty();
+            ReportChartDataTiming(stageWatch, "ChartData.HideWorksheet");
+
+            stageWatch?.Restart();
+            using (PreserveDirectDataSetFastSaveStateDuringDirtyMarks()) {
+                MarkSheetCacheDirty();
+            }
+            ReportChartDataTiming(stageWatch, "ChartData.MarkSheetCacheDirty");
             _chartDataSheet = created;
             _chartDataNextRow = 1;
             return created;
+        }
+
+        private void ReportChartDataTiming(Stopwatch? stopwatch, string operation) {
+            if (stopwatch != null) {
+                Execution.ReportTiming(operation, stopwatch.Elapsed);
+            }
         }
 
         private static int CalculateInitialChartDataRow(ExcelSheet sheet) {

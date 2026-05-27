@@ -13,6 +13,12 @@ namespace OfficeIMO.Excel {
         }
 
         internal void SetHiddenWithoutSavingWorkbook(bool hidden) {
+            if (Locking.IsNoLock) {
+                SetHiddenCore(hidden);
+                MarkRequiresSavePreparation();
+                return;
+            }
+
             WriteLockConditional(() => SetHiddenCore(hidden));
         }
 

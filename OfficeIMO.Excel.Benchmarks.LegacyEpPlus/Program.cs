@@ -10,8 +10,8 @@ using OfficeOpenXml.Table.PivotTable;
 
 const int DefaultRowCount = 2500;
 const int SparseLastRow = 100_001;
-const int WarmupIterations = 1;
-const int MeasuredIterations = 3;
+const int WarmupIterations = 3;
+const int MeasuredIterations = 5;
 const string LibraryName = "EPPlus 4.5.3.3";
 
 string outputPath = ParseOutputPath(args)
@@ -27,11 +27,44 @@ var scenarioFilter = BuildScenarioFilter(ParseOptionValues(args, "--scenario", "
 var rows = CreateSalesRecords(rowCount);
 var salesDataTable = CreateSalesDataTableFromRows(rows, "SalesData");
 var salesDataSet = CreateSalesDataSet(rows);
+var powerShellMixedRows = CreatePowerShellMixedRows(rowCount);
+var powerShellMixedDataTable = CreatePowerShellMixedDataTable(powerShellMixedRows, "PowerShellMixed");
 int topDataRows = Math.Min(rowCount, 100);
 byte[] workbookBytes = CreateWorkbookBytes(rows);
 byte[] formulaWorkbookBytes = CreateFormulaWorkbookBytes(rowCount);
 byte[] sharedStringWorkbookBytes = CreateSharedStringWorkbookBytes(rowCount);
 byte[] sparseWorkbookBytes = CreateSparseWorkbookBytes(SparseLastRow);
+RealWorldColumnSpec[] RealWorldDefaultColumns = [
+    new("Id", static item => item.Id),
+    new("Region", static item => item.Region),
+    new("Owner", static item => item.Owner),
+    new("CreatedOn", static item => item.CreatedOn),
+    new("Amount", static item => item.Amount),
+    new("Units", static item => item.Units),
+    new("Active", static item => item.Active),
+    new("Notes", static item => item.Notes)
+];
+RealWorldColumnSpec[] RealWorldShuffledColumns = [
+    new("Owner", static item => item.Owner),
+    new("Region", static item => item.Region),
+    new("Id", static item => item.Id),
+    new("Amount", static item => item.Amount),
+    new("CreatedOn", static item => item.CreatedOn),
+    new("Units", static item => item.Units),
+    new("Notes", static item => item.Notes),
+    new("Active", static item => item.Active)
+];
+RealWorldColumnSpec[] RealWorldExtraColumns = [
+    new("Id", static item => item.Id),
+    new("Region", static item => item.Region),
+    new("Owner", static item => item.Owner),
+    new("CreatedOn", static item => item.CreatedOn),
+    new("Amount", static item => item.Amount),
+    new("Units", static item => item.Units),
+    new("Active", static item => item.Active),
+    new("Notes", static item => item.Notes),
+    new("AmountBand", static item => item.Amount >= 3000 ? "High" : item.Amount >= 1000 ? "Medium" : "Low")
+];
 var scenarios = new List<LegacyComparisonScenario>();
 
 AddScenario(scenarios, scenarioFilter, "write-bulk-report", LibraryName, "EPPlus 4.x manual row population, add table, autofit, save.", () => WriteBulkReport(rows), warmupIterations, measuredIterations);
@@ -62,6 +95,11 @@ AddScenario(scenarios, scenarioFilter, "read-objects", LibraryName, "EPPlus 4.x 
 AddScenario(scenarios, scenarioFilter, "read-objects-stream", LibraryName, "EPPlus 4.x manual typed materialization from worksheet rows.", () => ReadObjects(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "autofit-existing", LibraryName, "EPPlus 4.x load existing workbook, autofit columns, save.", () => AutoFitExisting(workbookBytes), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "realworld-report-all-in-one", LibraryName, "EPPlus 4.x create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, data validation, pivot table, chart, and save.", () => WriteRealWorldReport(rows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "realworld-report-no-autofit", LibraryName, "EPPlus 4.x create the real-world report workbook without AutoFit.", () => WriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(AutoFit: false)), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "realworld-report-chart-first", LibraryName, "EPPlus 4.x create the real-world report workbook with chart creation before pivot creation.", () => WriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(ChartBeforePivot: true)), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "realworld-report-shuffled-columns", LibraryName, "EPPlus 4.x create the real-world report workbook with the same fields in a different column order.", () => WriteRealWorldVariant(rows, RealWorldShuffledColumns, RealWorldVariantOptions.Default), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "realworld-report-extra-column", LibraryName, "EPPlus 4.x create the real-world report workbook with an extra derived column.", () => WriteRealWorldVariant(rows, RealWorldExtraColumns, RealWorldVariantOptions.Default), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "realworld-report-post-mutation", LibraryName, "EPPlus 4.x create the real-world report workbook and then make a normal cell edit after report features are added.", () => WriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(PostMutation: true)), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "realworld-report-core", LibraryName, "EPPlus 4.x create a sales workbook with table, AutoFit, frozen header, AutoFilter, conditional formatting, data validation, and save.", () => WriteRealWorldCoreReport(rows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "realworld-freeze-panes", LibraryName, "EPPlus 4.x write a sales table, freeze the header row and first column, and save.", () => WriteRealWorldFreezePanes(rows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "realworld-autofilter", LibraryName, "EPPlus 4.x write a sales table, add worksheet-level AutoFilter, and save.", () => WriteRealWorldAutoFilter(rows), warmupIterations, measuredIterations);
@@ -69,6 +107,10 @@ AddScenario(scenarios, scenarioFilter, "realworld-conditional-formatting", Libra
 AddScenario(scenarios, scenarioFilter, "realworld-data-validation", LibraryName, "EPPlus 4.x write a sales table, add whole-number data validation to the Units column, and save.", () => WriteRealWorldDataValidation(rows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "realworld-charts", LibraryName, "EPPlus 4.x write sales data, add a clustered column chart over regional totals, and save.", () => WriteRealWorldCharts(rows), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "realworld-pivot-table", LibraryName, "EPPlus 4.x write sales data, add a pivot table with row, column, and sum data fields, and save.", () => WriteRealWorldPivotTable(rows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "report-workbook", LibraryName, "EPPlus 4.x create the PSWriteOffice report workbook shape from the same mixed object rows with table, AutoFit, freeze top row, conditional formatting, list validation, number formats, clustered column chart, pivot table, and save.", () => WriteReportWorkbook(powerShellMixedRows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "report-workbook-core", LibraryName, "EPPlus 4.x create the report workbook table/core formatting shape from the same mixed object rows without chart or pivot table.", () => WriteReportWorkbookCore(powerShellMixedRows), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "report-workbook-datatable", LibraryName, "EPPlus 4.x create the report workbook shape from the same typed DataTable with table, AutoFit, freeze top row, conditional formatting, list validation, number formats, clustered column chart, pivot table, and save.", () => WriteReportWorkbookDataTable(powerShellMixedDataTable), warmupIterations, measuredIterations);
+AddScenario(scenarios, scenarioFilter, "report-workbook-datatable-core", LibraryName, "EPPlus 4.x create the report workbook table/core formatting shape from the same typed DataTable without chart or pivot table.", () => WriteReportWorkbookDataTableCore(powerShellMixedDataTable), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "large-shared-strings", LibraryName, "EPPlus 4.x write repeated and distinct text-heavy cells.", () => WriteSharedStrings(rowCount), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "formula-heavy-read", LibraryName, "EPPlus 4.x read formula text from formula cells.", () => ReadFormulaText(formulaWorkbookBytes, rowCount), warmupIterations, measuredIterations);
 AddScenario(scenarios, scenarioFilter, "shared-string-read", LibraryName, "EPPlus 4.x read repeated shared string payload.", () => ReadSharedStrings(sharedStringWorkbookBytes, rowCount), warmupIterations, measuredIterations);
@@ -447,6 +489,89 @@ static int WriteRealWorldPivotTable(IReadOnlyList<SalesRecord> rows) {
     return checked((int)stream.Length);
 }
 
+static int WriteRealWorldVariant(
+    IReadOnlyList<SalesRecord> rows,
+    IReadOnlyList<RealWorldColumnSpec> columns,
+    RealWorldVariantOptions options) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Data");
+        WriteVariantRows(worksheet, rows, columns);
+        ApplyVariantTable(worksheet, rows.Count, columns.Count, options.AutoFit);
+        ApplyVariantNavigation(worksheet, rows.Count, columns.Count);
+        ApplyVariantConditionalFormatting(worksheet, rows.Count, columns);
+        ApplyVariantDataValidation(worksheet, rows.Count, columns);
+
+        if (options.ChartBeforePivot) {
+            AddRegionalChart(package, rows);
+            AddVariantPivotTable(package, worksheet, rows.Count, columns.Count);
+        } else {
+            AddVariantPivotTable(package, worksheet, rows.Count, columns.Count);
+            AddRegionalChart(package, rows);
+        }
+
+        if (options.PostMutation) {
+            worksheet.Cells[rows.Count + 4, 1].Value = "Manual note after report features";
+        }
+
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteReportWorkbook(IReadOnlyList<Dictionary<string, object?>> rows) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Data");
+        PopulateReportWorkbookData(worksheet, rows);
+        ApplyReportWorkbookCore(worksheet, rows.Count);
+        AddReportWorkbookChart(worksheet, rows.Count);
+        AddReportWorkbookPivotTable(worksheet, rows.Count);
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteReportWorkbookCore(IReadOnlyList<Dictionary<string, object?>> rows) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Data");
+        PopulateReportWorkbookData(worksheet, rows);
+        ApplyReportWorkbookCore(worksheet, rows.Count);
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteReportWorkbookDataTable(DataTable dataTable) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Data");
+        PopulateReportWorkbookDataTable(worksheet, dataTable);
+        ApplyReportWorkbookCore(worksheet, dataTable.Rows.Count);
+        AddReportWorkbookChart(worksheet, dataTable.Rows.Count);
+        AddReportWorkbookPivotTable(worksheet, dataTable.Rows.Count);
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
+static int WriteReportWorkbookDataTableCore(DataTable dataTable) {
+    using var stream = new MemoryStream();
+    using (var package = new ExcelPackage(stream)) {
+        var worksheet = package.Workbook.Worksheets.Add("Data");
+        PopulateReportWorkbookDataTable(worksheet, dataTable);
+        ApplyReportWorkbookCore(worksheet, dataTable.Rows.Count);
+        package.Save();
+    }
+
+    return checked((int)stream.Length);
+}
+
 static int WriteSharedStrings(int rowCount) {
     using var stream = new MemoryStream();
     using (var package = new ExcelPackage(stream)) {
@@ -689,6 +814,96 @@ static void ApplyDataValidation(ExcelWorksheet worksheet, int rowCount) {
     validation.Formula2.Value = 24;
 }
 
+static void WriteVariantRows(ExcelWorksheet worksheet, IReadOnlyList<SalesRecord> rows, IReadOnlyList<RealWorldColumnSpec> columns) {
+    for (int column = 0; column < columns.Count; column++) {
+        worksheet.Cells[1, column + 1].Value = columns[column].Header;
+    }
+
+    for (int row = 0; row < rows.Count; row++) {
+        var source = rows[row];
+        for (int column = 0; column < columns.Count; column++) {
+            worksheet.Cells[row + 2, column + 1].Value = columns[column].Selector(source);
+        }
+    }
+}
+
+static void ApplyVariantTable(ExcelWorksheet worksheet, int rowCount, int columnCount, bool autoFit) {
+    var table = worksheet.Tables.Add(worksheet.Cells[1, 1, rowCount + 1, columnCount], "SalesData");
+    table.TableStyle = TableStyles.Medium2;
+    if (autoFit) {
+        worksheet.Cells[1, 1, rowCount + 1, columnCount].AutoFitColumns();
+    }
+}
+
+static void ApplyVariantNavigation(ExcelWorksheet worksheet, int rowCount, int columnCount) {
+    worksheet.View.FreezePanes(2, 2);
+    worksheet.Cells[1, 1, rowCount + 1, columnCount].AutoFilter = true;
+}
+
+static void ApplyVariantConditionalFormatting(ExcelWorksheet worksheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
+    int amountColumn = GetColumnIndex(columns, "Amount");
+    int unitsColumn = GetColumnIndex(columns, "Units");
+    int lastRow = rowCount + 1;
+
+    var highAmount = worksheet.ConditionalFormatting.AddGreaterThan(worksheet.Cells[2, amountColumn, lastRow, amountColumn]);
+    highAmount.Formula = "3000";
+    highAmount.Style.Fill.PatternType = ExcelFillStyle.Solid;
+    highAmount.Style.Fill.BackgroundColor.Color = System.Drawing.Color.LightGreen;
+
+    var lowUnits = worksheet.ConditionalFormatting.AddLessThan(worksheet.Cells[2, unitsColumn, lastRow, unitsColumn]);
+    lowUnits.Formula = "5";
+    lowUnits.Style.Fill.PatternType = ExcelFillStyle.Solid;
+    lowUnits.Style.Fill.BackgroundColor.Color = System.Drawing.Color.LightPink;
+}
+
+static void ApplyVariantDataValidation(ExcelWorksheet worksheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
+    int unitsColumn = GetColumnIndex(columns, "Units");
+    int lastRow = rowCount + 1;
+    var validation = worksheet.DataValidations.AddIntegerValidation(BuildColumnRange(unitsColumn, 2, lastRow));
+    validation.Operator = OfficeOpenXml.DataValidation.ExcelDataValidationOperator.between;
+    validation.Formula.Value = 1;
+    validation.Formula2.Value = 24;
+}
+
+static void AddVariantPivotTable(ExcelPackage package, ExcelWorksheet dataWorksheet, int rowCount, int columnCount) {
+    var pivotSheet = package.Workbook.Worksheets.Add("Pivot");
+    var source = dataWorksheet.Cells[1, 1, rowCount + 1, columnCount];
+    var pivot = pivotSheet.PivotTables.Add(pivotSheet.Cells["A3"], source, "SalesPivot");
+    pivot.RowFields.Add(pivot.Fields["Region"]);
+    pivot.ColumnFields.Add(pivot.Fields["Owner"]);
+    var amount = pivot.DataFields.Add(pivot.Fields["Amount"]);
+    amount.Function = DataFieldFunctions.Sum;
+    amount.Name = "Total Amount";
+}
+
+static string BuildColumnRange(int columnIndex, int firstRow, int lastRow) {
+    string column = GetColumnLetter(columnIndex);
+    return column + firstRow.ToString(CultureInfo.InvariantCulture) + ":" + column + lastRow.ToString(CultureInfo.InvariantCulture);
+}
+
+static int GetColumnIndex(IReadOnlyList<RealWorldColumnSpec> columns, string header) {
+    for (int i = 0; i < columns.Count; i++) {
+        if (string.Equals(columns[i].Header, header, StringComparison.OrdinalIgnoreCase)) {
+            return i + 1;
+        }
+    }
+
+    throw new InvalidOperationException($"Column '{header}' was not found in the benchmark variant.");
+}
+
+static string GetColumnLetter(int columnIndex) {
+    Span<char> buffer = stackalloc char[8];
+    int position = buffer.Length;
+    int value = columnIndex;
+    while (value > 0) {
+        value--;
+        buffer[--position] = (char)('A' + (value % 26));
+        value /= 26;
+    }
+
+    return new string(buffer[position..]);
+}
+
 static void AddPivotTable(ExcelPackage package, ExcelWorksheet dataWorksheet, int rowCount) {
     var pivotSheet = package.Workbook.Worksheets.Add("Pivot");
     var source = dataWorksheet.Cells[1, 1, rowCount + 1, 8];
@@ -719,6 +934,81 @@ static void AddRegionalChart(ExcelPackage package, IReadOnlyList<SalesRecord> ro
     chart.SetSize(720, 360);
     chart.Series.Add(chartSheet.Cells[2, 2, summaries.Count + 1, 2], chartSheet.Cells[2, 1, summaries.Count + 1, 1]);
     chart.Series.Add(chartSheet.Cells[2, 3, summaries.Count + 1, 3], chartSheet.Cells[2, 1, summaries.Count + 1, 1]);
+}
+
+static void PopulateReportWorkbookData(ExcelWorksheet worksheet, IReadOnlyList<Dictionary<string, object?>> rows) {
+    WriteReportWorkbookRows(worksheet, rows);
+    var table = worksheet.Tables.Add(worksheet.Cells[1, 1, rows.Count + 1, 10], "Data");
+    table.TableStyle = TableStyles.Medium2;
+    if (worksheet.Dimension != null) {
+        worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+    }
+}
+
+static void PopulateReportWorkbookDataTable(ExcelWorksheet worksheet, DataTable dataTable) {
+    worksheet.Cells["A1"].LoadFromDataTable(dataTable, true);
+    var table = worksheet.Tables.Add(worksheet.Cells[1, 1, dataTable.Rows.Count + 1, dataTable.Columns.Count], "Data");
+    table.TableStyle = TableStyles.Medium2;
+    if (worksheet.Dimension != null) {
+        worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
+    }
+}
+
+static void ApplyReportWorkbookCore(ExcelWorksheet worksheet, int rowCount) {
+    int lastRow = rowCount + 1;
+    worksheet.View.FreezePanes(2, 1);
+    var highScore = worksheet.ConditionalFormatting.AddGreaterThan(worksheet.Cells[2, 7, lastRow, 7]);
+    highScore.Formula = "700";
+    highScore.Style.Fill.PatternType = ExcelFillStyle.Solid;
+    highScore.Style.Fill.BackgroundColor.Color = System.Drawing.Color.LightGreen;
+    worksheet.ConditionalFormatting.AddDatabar(worksheet.Cells[2, 7, lastRow, 7], System.Drawing.Color.SteelBlue);
+    worksheet.ConditionalFormatting.AddTwoColorScale(worksheet.Cells[2, 9, lastRow, 9]);
+    worksheet.ConditionalFormatting.AddThreeIconSet(worksheet.Cells[2, 9, lastRow, 9], OfficeOpenXml.ConditionalFormatting.eExcelconditionalFormatting3IconsSetType.TrafficLights1);
+    var validation = worksheet.DataValidations.AddListValidation($"D2:D{lastRow.ToString(CultureInfo.InvariantCulture)}");
+    validation.Formula.Values.Add("NA");
+    validation.Formula.Values.Add("EU");
+    validation.Formula.Values.Add("APAC");
+    validation.Formula.Values.Add("LATAM");
+    worksheet.Cells[2, 7, lastRow, 7].Style.Numberformat.Format = "#,##0.000";
+    worksheet.Cells[2, 6, lastRow, 6].Style.Numberformat.Format = "yyyy-mm-dd hh:mm";
+}
+
+static void AddReportWorkbookChart(ExcelWorksheet worksheet, int rowCount) {
+    int lastRow = rowCount + 1;
+    var chart = worksheet.Drawings.AddChart("ReportScoreChart", eChartType.ColumnClustered);
+    chart.Title.Text = "Score by Created";
+    chart.SetPosition(1, 0, 11, 0);
+    chart.SetSize(720, 320);
+    chart.Series.Add(worksheet.Cells[2, 7, lastRow, 7], worksheet.Cells[2, 6, lastRow, 6]);
+}
+
+static void AddReportWorkbookPivotTable(ExcelWorksheet worksheet, int rowCount) {
+    var source = worksheet.Cells[1, 1, rowCount + 1, 10];
+    var pivot = worksheet.PivotTables.Add(worksheet.Cells["L24"], source, "ReportPivot");
+    pivot.RowFields.Add(pivot.Fields["Region"]);
+    pivot.ColumnFields.Add(pivot.Fields["Department"]);
+    var score = pivot.DataFields.Add(pivot.Fields["Score"]);
+    score.Function = DataFieldFunctions.Average;
+    score.Name = "Average Score";
+    var tickets = pivot.DataFields.Add(pivot.Fields["TicketCount"]);
+    tickets.Function = DataFieldFunctions.Sum;
+    tickets.Name = "Sum TicketCount";
+}
+
+static void WriteReportWorkbookRows(ExcelWorksheet worksheet, IReadOnlyList<Dictionary<string, object?>> rows) {
+    string[] columns = ["Id", "Name", "Department", "Region", "IsEnabled", "Created", "Score", "Owner", "TicketCount", "Notes"];
+    for (int i = 0; i < columns.Length; i++) {
+        worksheet.Cells[1, i + 1].Value = columns[i];
+    }
+
+    for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+        Dictionary<string, object?> row = rows[rowIndex];
+        int targetRow = rowIndex + 2;
+        for (int columnIndex = 0; columnIndex < columns.Length; columnIndex++) {
+            row.TryGetValue(columns[columnIndex], out object? value);
+            worksheet.Cells[targetRow, columnIndex + 1].Value = value;
+        }
+    }
 }
 
 static IReadOnlyList<RegionSummary> BuildRegionSummaries(IReadOnlyList<SalesRecord> rows)
@@ -769,6 +1059,57 @@ static IReadOnlyList<SalesRecord> CreateSalesRecords(int count) {
     }
 
     return records;
+}
+
+static IReadOnlyList<Dictionary<string, object?>> CreatePowerShellMixedRows(int count) {
+    string[] regions = ["NA", "EU", "APAC", "LATAM"];
+    var result = new List<Dictionary<string, object?>>(count);
+    var start = new DateTime(2024, 1, 1, 8, 0, 0, DateTimeKind.Unspecified);
+    for (int i = 0; i < count; i++) {
+        int id = i + 1;
+        result.Add(new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) {
+            ["Id"] = id,
+            ["Name"] = "Server-" + id.ToString("D6", CultureInfo.InvariantCulture),
+            ["Department"] = "Department-" + (id % 12 + 1).ToString(CultureInfo.InvariantCulture),
+            ["Region"] = regions[i % regions.Length],
+            ["IsEnabled"] = id % 4 != 0,
+            ["Created"] = start.AddDays(i % 365).AddMinutes(i % 240),
+            ["Score"] = Math.Round(100D + ((id * 17.456D) % 900D), 3),
+            ["Owner"] = "owner" + (id % 128).ToString(CultureInfo.InvariantCulture) + "@example.test",
+            ["TicketCount"] = id % 17,
+            ["Notes"] = "Benchmark row " + id.ToString(CultureInfo.InvariantCulture)
+        });
+    }
+
+    return result;
+}
+
+static DataTable CreatePowerShellMixedDataTable(IEnumerable<IReadOnlyDictionary<string, object?>> rows, string tableName) {
+    string[] columns = ["Id", "Name", "Department", "Region", "IsEnabled", "Created", "Score", "Owner", "TicketCount", "Notes"];
+    var table = new DataTable(tableName) { Locale = CultureInfo.InvariantCulture };
+    table.Columns.Add("Id", typeof(int));
+    table.Columns.Add("Name", typeof(string));
+    table.Columns.Add("Department", typeof(string));
+    table.Columns.Add("Region", typeof(string));
+    table.Columns.Add("IsEnabled", typeof(bool));
+    table.Columns.Add("Created", typeof(DateTime));
+    table.Columns.Add("Score", typeof(double));
+    table.Columns.Add("Owner", typeof(string));
+    table.Columns.Add("TicketCount", typeof(int));
+    table.Columns.Add("Notes", typeof(string));
+
+    foreach (IReadOnlyDictionary<string, object?> sourceRow in rows) {
+        object?[] values = new object?[columns.Length];
+        for (int i = 0; i < values.Length; i++) {
+            values[i] = sourceRow.TryGetValue(columns[i], out object? value)
+                ? value
+                : DBNull.Value;
+        }
+
+        table.Rows.Add(values);
+    }
+
+    return table;
 }
 
 static DateTime ReadDateCell(object? value)
@@ -1080,6 +1421,12 @@ internal sealed class SalesRecord {
 }
 
 internal sealed record RegionSummary(string Region, double Amount, int Units);
+
+internal sealed record RealWorldColumnSpec(string Header, Func<SalesRecord, object?> Selector);
+
+internal sealed record RealWorldVariantOptions(bool AutoFit = true, bool ChartBeforePivot = false, bool PostMutation = false) {
+    public static readonly RealWorldVariantOptions Default = new();
+}
 
 internal sealed class ReadSalesRecord {
     public int Id { get; set; }

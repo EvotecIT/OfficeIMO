@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedUtc": "2026-05-24T11:44:30.9671195Z",
+  "generatedUtc": "2026-05-26T16:45:00.1417439Z",
   "runMode": "quick",
   "publish": false,
   "framework": ".NET 8.0.27",
   "meta": {
-    "commit": "e1d2dec305036e5c4adb0f1a2d08d642b4715b09",
-    "branch": "codex/excel-perf-competition-loop-next",
+    "commit": "9b6409fe3d6861ae958f93cd7258103bdbf9007e",
+    "branch": "codex/report-workbook-performance",
     "dotnetSdk": "10.0.300",
     "runtime": ".NET 9.0.14",
     "osDescription": "Microsoft Windows 10.0.26200",
@@ -18,10 +18,7 @@
   "source": {
     "summaryPath": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-summary.json",
     "manifestPath": ".\\Docs\\benchmarks\\comparison-current\\officeimo.excel.comparison-suite-manifest.json",
-    "packageProfilePaths": [
-      ".\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-10k-current.json",
-      ".\\Docs\\benchmarks\\officeimo.excel.package-profile-blog-2023-20-string-columns-300k-current.json"
-    ]
+    "packageProfilePaths": []
   },
   "howToRead": [
     "Mean: average elapsed time for the measured operation. Lower is better.",
@@ -46,20 +43,20 @@
       "officeImoLosses": 2,
       "biggestLossScenario": "dense-helloworld-read-range",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 1.5127913084632227,
-      "biggestLossRatioToBestText": "1.51x"
+      "biggestLossRatioToBest": 1.5188702597445458,
+      "biggestLossRatioToBestText": "1.52x"
     },
     {
       "rowCount": 2500,
       "artifactKind": "package-profile",
       "workload": "package",
       "category": "Package size",
-      "officeImoWins": 27,
-      "officeImoLosses": 8,
-      "biggestLossScenario": "write-cellvalues-rectangle-direct",
+      "officeImoWins": 37,
+      "officeImoLosses": 12,
+      "biggestLossScenario": "write-datatable-direct",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.5690429697920332,
-      "biggestLossRatioToBestText": "1.57x"
+      "biggestLossRatioToBest": 2.0254483395877725,
+      "biggestLossRatioToBestText": "2.03x"
     },
     {
       "rowCount": 2500,
@@ -89,7 +86,31 @@
       "rowCount": 2500,
       "artifactKind": "speed-comparison",
       "workload": "other",
+      "category": "Other",
+      "officeImoWins": 8,
+      "officeImoLosses": 0,
+      "biggestLossScenario": null,
+      "biggestLossBestLibrary": null,
+      "biggestLossRatioToBest": null,
+      "biggestLossRatioToBestText": null
+    },
+    {
+      "rowCount": 2500,
+      "artifactKind": "speed-comparison",
+      "workload": "other",
       "category": "Range and table read",
+      "officeImoWins": 4,
+      "officeImoLosses": 0,
+      "biggestLossScenario": null,
+      "biggestLossBestLibrary": null,
+      "biggestLossRatioToBest": null,
+      "biggestLossRatioToBestText": null
+    },
+    {
+      "rowCount": 2500,
+      "artifactKind": "speed-comparison",
+      "workload": "other",
+      "category": "Report workbook",
       "officeImoWins": 4,
       "officeImoLosses": 0,
       "biggestLossScenario": null,
@@ -118,8 +139,8 @@
       "officeImoLosses": 3,
       "biggestLossScenario": "large-sparse-row-read",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 2.6546946640972826,
-      "biggestLossRatioToBestText": "2.65x"
+      "biggestLossRatioToBest": 2.3963813034009047,
+      "biggestLossRatioToBestText": "2.40x"
     },
     {
       "rowCount": 2500,
@@ -130,8 +151,8 @@
       "officeImoLosses": 6,
       "biggestLossScenario": "read-top-range",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 4.228043261486539,
-      "biggestLossRatioToBestText": "4.23x"
+      "biggestLossRatioToBest": 3.018512545958846,
+      "biggestLossRatioToBestText": "3.02x"
     },
     {
       "rowCount": 2500,
@@ -142,8 +163,8 @@
       "officeImoLosses": 4,
       "biggestLossScenario": "read-top-range-stream-small-chunks",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 3.7970524281227354,
-      "biggestLossRatioToBestText": "3.80x"
+      "biggestLossRatioToBest": 3.4931804991294246,
+      "biggestLossRatioToBestText": "3.49x"
     },
     {
       "rowCount": 2500,
@@ -154,8 +175,8 @@
       "officeImoLosses": 2,
       "biggestLossScenario": "read-objects-stream",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 1.2860829517482333,
-      "biggestLossRatioToBestText": "1.29x"
+      "biggestLossRatioToBest": 1.1775632152864521,
+      "biggestLossRatioToBestText": "1.18x"
     },
     {
       "rowCount": 2500,
@@ -234,12 +255,12 @@
       "artifactKind": "speed-comparison",
       "workload": "write",
       "category": "Other",
-      "officeImoWins": 1,
-      "officeImoLosses": 1,
-      "biggestLossScenario": "write-powershell-mixed-objects-direct",
+      "officeImoWins": 2,
+      "officeImoLosses": 2,
+      "biggestLossScenario": "write-powershell-psobject-mixed-direct",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.0804008445567677,
-      "biggestLossRatioToBestText": "1.08x"
+      "biggestLossRatioToBest": 1.243376961135092,
+      "biggestLossRatioToBestText": "1.24x"
     },
     {
       "rowCount": 2500,
@@ -248,34 +269,34 @@
       "category": "Plain cell export",
       "officeImoWins": 1,
       "officeImoLosses": 3,
-      "biggestLossScenario": "write-cellvalues-headerless-rectangle-direct",
+      "biggestLossScenario": "append-plain-rows",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 2.538026421429093,
-      "biggestLossRatioToBestText": "2.54x"
+      "biggestLossRatioToBest": 1.8058843587120659,
+      "biggestLossRatioToBestText": "1.81x"
     },
     {
       "rowCount": 2500,
       "artifactKind": "speed-comparison",
       "workload": "write",
       "category": "Plain streaming export",
-      "officeImoWins": 1,
-      "officeImoLosses": 1,
-      "biggestLossScenario": "write-datareader-plain",
-      "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 1.370425314443088,
-      "biggestLossRatioToBestText": "1.37x"
+      "officeImoWins": 2,
+      "officeImoLosses": 0,
+      "biggestLossScenario": null,
+      "biggestLossBestLibrary": null,
+      "biggestLossRatioToBest": null,
+      "biggestLossRatioToBestText": null
     },
     {
       "rowCount": 2500,
       "artifactKind": "speed-comparison",
       "workload": "write",
       "category": "Plain string export",
-      "officeImoWins": 0,
-      "officeImoLosses": 1,
-      "biggestLossScenario": "write-blog-2023-20-string-columns",
-      "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.1324656005950167,
-      "biggestLossRatioToBestText": "1.13x"
+      "officeImoWins": 1,
+      "officeImoLosses": 0,
+      "biggestLossScenario": null,
+      "biggestLossBestLibrary": null,
+      "biggestLossRatioToBest": null,
+      "biggestLossRatioToBestText": null
     },
     {
       "rowCount": 2500,
@@ -298,44 +319,32 @@
       "officeImoLosses": 3,
       "biggestLossScenario": "write-insertobjects-flat-dictionaries-direct",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.3474642002285182,
-      "biggestLossRatioToBestText": "1.35x"
-    },
-    {
-      "rowCount": 10000,
-      "artifactKind": "focused-package-profile",
-      "workload": "package",
-      "category": "Package size",
-      "officeImoWins": 1,
-      "officeImoLosses": 0,
-      "biggestLossScenario": null,
-      "biggestLossBestLibrary": null,
-      "biggestLossRatioToBest": null,
-      "biggestLossRatioToBestText": null
+      "biggestLossRatioToBest": 1.4782884377608927,
+      "biggestLossRatioToBestText": "1.48x"
     },
     {
       "rowCount": 25000,
       "artifactKind": "dense-helloworld-comparison",
       "workload": "read",
       "category": "Other",
-      "officeImoWins": 0,
-      "officeImoLosses": 2,
-      "biggestLossScenario": "dense-helloworld-read-range",
+      "officeImoWins": 1,
+      "officeImoLosses": 1,
+      "biggestLossScenario": "dense-helloworld-read-stream",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 1.2436770416277516,
-      "biggestLossRatioToBestText": "1.24x"
+      "biggestLossRatioToBest": 1.2293247172405066,
+      "biggestLossRatioToBestText": "1.23x"
     },
     {
       "rowCount": 25000,
       "artifactKind": "package-profile",
       "workload": "package",
       "category": "Package size",
-      "officeImoWins": 24,
-      "officeImoLosses": 11,
-      "biggestLossScenario": "append-plain-rows",
+      "officeImoWins": 37,
+      "officeImoLosses": 12,
+      "biggestLossScenario": "write-insertobjects-legacy-dictionaries-direct",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.523652763056716,
-      "biggestLossRatioToBestText": "1.52x"
+      "biggestLossRatioToBest": 1.6558282397828437,
+      "biggestLossRatioToBestText": "1.66x"
     },
     {
       "rowCount": 25000,
@@ -365,7 +374,31 @@
       "rowCount": 25000,
       "artifactKind": "speed-comparison",
       "workload": "other",
+      "category": "Other",
+      "officeImoWins": 8,
+      "officeImoLosses": 0,
+      "biggestLossScenario": null,
+      "biggestLossBestLibrary": null,
+      "biggestLossRatioToBest": null,
+      "biggestLossRatioToBestText": null
+    },
+    {
+      "rowCount": 25000,
+      "artifactKind": "speed-comparison",
+      "workload": "other",
       "category": "Range and table read",
+      "officeImoWins": 4,
+      "officeImoLosses": 0,
+      "biggestLossScenario": null,
+      "biggestLossBestLibrary": null,
+      "biggestLossRatioToBest": null,
+      "biggestLossRatioToBestText": null
+    },
+    {
+      "rowCount": 25000,
+      "artifactKind": "speed-comparison",
+      "workload": "other",
+      "category": "Report workbook",
       "officeImoWins": 4,
       "officeImoLosses": 0,
       "biggestLossScenario": null,
@@ -392,34 +425,34 @@
       "category": "Other",
       "officeImoWins": 0,
       "officeImoLosses": 3,
-      "biggestLossScenario": "large-sparse-column-read",
+      "biggestLossScenario": "large-sparse-row-read",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 1.7236684757611995,
-      "biggestLossRatioToBestText": "1.72x"
+      "biggestLossRatioToBest": 1.7432836859688194,
+      "biggestLossRatioToBestText": "1.74x"
     },
     {
       "rowCount": 25000,
       "artifactKind": "speed-comparison",
       "workload": "read",
       "category": "Range and table read",
-      "officeImoWins": 2,
-      "officeImoLosses": 5,
+      "officeImoWins": 4,
+      "officeImoLosses": 3,
       "biggestLossScenario": "read-top-range",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 4.424456022065583,
-      "biggestLossRatioToBestText": "4.42x"
+      "biggestLossRatioToBest": 4.198322172345279,
+      "biggestLossRatioToBestText": "4.20x"
     },
     {
       "rowCount": 25000,
       "artifactKind": "speed-comparison",
       "workload": "read",
       "category": "Streaming read",
-      "officeImoWins": 1,
-      "officeImoLosses": 3,
+      "officeImoWins": 2,
+      "officeImoLosses": 2,
       "biggestLossScenario": "read-top-range-stream",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 4.530068546392481,
-      "biggestLossRatioToBestText": "4.53x"
+      "biggestLossRatioToBest": 4.131657142857143,
+      "biggestLossRatioToBestText": "4.13x"
     },
     {
       "rowCount": 25000,
@@ -428,10 +461,10 @@
       "category": "Typed object read",
       "officeImoWins": 0,
       "officeImoLosses": 2,
-      "biggestLossScenario": "read-objects-stream",
+      "biggestLossScenario": "read-objects",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 1.132636100232266,
-      "biggestLossRatioToBestText": "1.13x"
+      "biggestLossRatioToBest": 1.0526499809578385,
+      "biggestLossRatioToBestText": "1.05x"
     },
     {
       "rowCount": 25000,
@@ -478,8 +511,8 @@
       "officeImoLosses": 1,
       "biggestLossScenario": "write-datatable-direct",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.066286660430103,
-      "biggestLossRatioToBestText": "1.07x"
+      "biggestLossRatioToBest": 1.1568700739559181,
+      "biggestLossRatioToBestText": "1.16x"
     },
     {
       "rowCount": 25000,
@@ -510,24 +543,24 @@
       "artifactKind": "speed-comparison",
       "workload": "write",
       "category": "Other",
-      "officeImoWins": 1,
-      "officeImoLosses": 1,
+      "officeImoWins": 2,
+      "officeImoLosses": 2,
       "biggestLossScenario": "write-powershell-mixed-objects-direct",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.1831500208147314,
-      "biggestLossRatioToBestText": "1.18x"
+      "biggestLossRatioToBest": 1.1678730232206205,
+      "biggestLossRatioToBestText": "1.17x"
     },
     {
       "rowCount": 25000,
       "artifactKind": "speed-comparison",
       "workload": "write",
       "category": "Plain cell export",
-      "officeImoWins": 1,
-      "officeImoLosses": 3,
+      "officeImoWins": 2,
+      "officeImoLosses": 2,
       "biggestLossScenario": "append-plain-rows",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.5588273781260633,
-      "biggestLossRatioToBestText": "1.56x"
+      "biggestLossRatioToBest": 1.513830671919494,
+      "biggestLossRatioToBestText": "1.51x"
     },
     {
       "rowCount": 25000,
@@ -538,8 +571,8 @@
       "officeImoLosses": 1,
       "biggestLossScenario": "write-datareader-plain",
       "biggestLossBestLibrary": "Sylvan.Data.Excel",
-      "biggestLossRatioToBest": 1.2888663362981714,
-      "biggestLossRatioToBestText": "1.29x"
+      "biggestLossRatioToBest": 1.2751023243361883,
+      "biggestLossRatioToBestText": "1.28x"
     },
     {
       "rowCount": 25000,
@@ -550,8 +583,8 @@
       "officeImoLosses": 1,
       "biggestLossScenario": "write-blog-2023-20-string-columns",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.1049359165720103,
-      "biggestLossRatioToBestText": "1.10x"
+      "biggestLossRatioToBest": 1.065267696478815,
+      "biggestLossRatioToBestText": "1.07x"
     },
     {
       "rowCount": 25000,
@@ -574,20 +607,8 @@
       "officeImoLosses": 3,
       "biggestLossScenario": "write-insertobjects-flat-dictionaries-direct",
       "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.3151487636130121,
-      "biggestLossRatioToBestText": "1.32x"
-    },
-    {
-      "rowCount": 300000,
-      "artifactKind": "focused-package-profile",
-      "workload": "package",
-      "category": "Package size",
-      "officeImoWins": 0,
-      "officeImoLosses": 1,
-      "biggestLossScenario": "write-blog-2023-20-string-columns",
-      "biggestLossBestLibrary": "LargeXlsx",
-      "biggestLossRatioToBest": 1.1024,
-      "biggestLossRatioToBestText": "1.10x"
+      "biggestLossRatioToBest": 1.3571461946224526,
+      "biggestLossRatioToBestText": "1.36x"
     }
   ]
 }

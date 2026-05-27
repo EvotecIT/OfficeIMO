@@ -721,6 +721,12 @@ namespace OfficeIMO.Excel {
         }
 
         private void MaterializeDeferredDataSetImportIfNeeded() {
+            if (_excelDocument.IsPreservingDirectDataSetExternalCellMutation
+                && _excelDocument.HasDeferredDirectDataSetImport
+                && !_excelDocument.HasPendingDirectCellValues) {
+                return;
+            }
+
             if (_excelDocument.HasDeferredDirectDataSetImport || _excelDocument.HasPendingDirectCellValues) {
                 _excelDocument.MaterializeDeferredDataSetImport();
             }

@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace OfficeIMO.Excel {
@@ -38,6 +39,8 @@ namespace OfficeIMO.Excel {
 
         private static readonly IReadOnlyDictionary<int, IReadOnlyList<int>> EmptyGeneratedPivotGroupingFieldMap =
             new Dictionary<int, IReadOnlyList<int>>(0);
+
+        private const int EmbeddedPivotCacheRecordRowLimit = 4096;
 
         private StylesCache? _pivotStylesCache;
 
@@ -268,12 +271,23 @@ namespace OfficeIMO.Excel {
             _excelDocument.TryGetDeferredDirectTabularPivotSource(this, r1, c1, r2, c2, out var deferredPivotSource);
 
             WriteLockWorksheetPreparationOnly(() => {
+                Stopwatch? pivotWatch = EffectiveExecution.OnTiming == null ? null : Stopwatch.StartNew();
+                void ReportPivotTiming(string operation) {
+                    if (pivotWatch == null) {
+                        return;
+                    }
+
+                    EffectiveExecution.ReportTiming(operation, pivotWatch.Elapsed);
+                    pivotWatch.Restart();
+                }
+
                 var headers = deferredPivotSource != null
                     ? BuildPivotHeaders(deferredPivotSource, c1, c2)
                     : BuildPivotHeaders(r1, c1, c2);
                 if (headers.Count == 0) {
                     throw new InvalidOperationException("Pivot source range must include at least one header column.");
                 }
+                ReportPivotTiming("AddPivotTable.BuildHeaders");
 
                 var calculatedFieldList = NormalizeCalculatedFields(calculatedFields, headers);
                 var sourceHeaderIndex = BuildFieldIndex(headers);
@@ -331,6 +345,7 @@ namespace OfficeIMO.Excel {
                         pageFieldIndices,
                         generatedFieldsBySource);
                 }
+                ReportPivotTiming("AddPivotTable.ResolveFields");
 
                 var dataFieldIndices = new HashSet<int>();
                 foreach (var df in dataFieldList) {
@@ -360,18 +375,28 @@ namespace OfficeIMO.Excel {
                 }
 
                 var fieldValueMap = canUseDeferredPivotValues
-                    ? BuildPivotFieldValueMap(deferredPivotSource!, headers.Count, r1 + 1, r2, c1)
-                    : BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap);
+                    ? BuildPivotFieldValueMap(deferredPivotSource!, headers.Count, r1 + 1, r2, c1, sourceSharedItemRequirements)
+                    : BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap, sourceSharedItemRequirements);
                 var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
+                ReportPivotTiming("AddPivotTable.BuildFieldValueMap");
                 if (deferredPivotSource != null && canUseDeferredPivotValues) {
-                    _excelDocument.MaterializeDeferredDataSetImport();
+                    _excelDocument.MaterializeDeferredDataSetImportPreservingFastSaveModel();
                 }
+                ReportPivotTiming("AddPivotTable.PreserveFastSaveModel");
 
                 var allFieldValueMap = BuildPivotTextValueMap(fieldValueMap, generatedFieldValueMap, calculatedFieldList.Count, allFields.Count);
                 ExpandGeneratedGroupingFieldOptions(fieldOptionMap, generatedFieldsBySource, allFields, allFieldValueMap);
                 uint cacheId = NextPivotCacheId(workbookPart);
+                ReportPivotTiming("AddPivotTable.PrepareCacheMetadata");
 
                 int sourceRecordCount = Math.Max(0, r2 - r1);
+                bool savePivotCacheRecords = ShouldEmbedPivotCacheRecords(
+                    sourceRecordCount,
+                    groupingMap,
+                    generatedGroupingFields,
+                    calculatedFieldList,
+                    pivotFilterList,
+                    fieldOptionMap);
                 var cacheDefPart = workbookPart.AddNewPart<PivotTableCacheDefinitionPart>();
                 var cacheDef = new PivotCacheDefinition {
                     CacheSource = new CacheSource {
@@ -383,7 +408,8 @@ namespace OfficeIMO.Excel {
                     },
                     CacheFields = new CacheFields { Count = (uint)allFields.Count },
                     RecordCount = (uint)sourceRecordCount,
-                    SaveData = true
+                    SaveData = savePivotCacheRecords,
+                    RefreshOnLoad = !savePivotCacheRecords
                 };
 
                 for (int i = 0; i < headers.Count; i++) {
@@ -423,11 +449,14 @@ namespace OfficeIMO.Excel {
                     if (numberFormatId.HasValue) cacheField.NumberFormatId = numberFormatId.Value;
                     cacheDef.CacheFields.Append(cacheField);
                 }
+                ReportPivotTiming("AddPivotTable.BuildCacheFields");
 
                 cacheDefPart.PivotCacheDefinition = cacheDef;
-                cacheDefPart.PivotCacheDefinition.Save();
+                ReportPivotTiming("AddPivotTable.SaveCacheDefinition");
                 var cacheRecordsPart = cacheDefPart.AddNewPart<PivotTableCacheRecordsPart>();
-                cacheRecordsPart.PivotCacheRecords = canUseDeferredPivotValues
+                cacheRecordsPart.PivotCacheRecords = !savePivotCacheRecords
+                    ? new PivotCacheRecords { Count = 0U }
+                    : canUseDeferredPivotValues
                     ? BuildPivotCacheRecords(
                         deferredPivotSource!,
                         headers.Count,
@@ -450,7 +479,7 @@ namespace OfficeIMO.Excel {
                         generatedGroupingFields,
                         generatedFieldValueMap,
                         calculatedFieldList.Count);
-                cacheRecordsPart.PivotCacheRecords.Save();
+                ReportPivotTiming("AddPivotTable.BuildAndSaveCacheRecords");
 
                 var pivotCaches = workbook.PivotCaches ?? workbook.AppendChild(new PivotCaches());
                 pivotCaches.Append(new PivotCache {
@@ -480,6 +509,7 @@ namespace OfficeIMO.Excel {
                     ApplyPivotFieldOptions(pivotField, options, workbookPart, values);
                     pivotFields.Append(pivotField);
                 }
+                ReportPivotTiming("AddPivotTable.BuildPivotFields");
 
                 var rowFieldsElement = rowFieldIndices.Count > 0 ? new RowFields { Count = (uint)rowFieldIndices.Count } : null;
                 if (rowFieldsElement != null) {
@@ -588,10 +618,7 @@ namespace OfficeIMO.Excel {
                 if (customListSort.HasValue) pivotDefinition.CustomListSort = customListSort.Value;
 
                 pivotPart.PivotTableDefinition = pivotDefinition;
-                pivotPart.PivotTableDefinition.Save();
-
-                WorksheetRoot.Save();
-                workbook.Save();
+                ReportPivotTiming("AddPivotTable.BuildAndSavePivotDefinition");
             });
         }
 
@@ -1053,6 +1080,15 @@ namespace OfficeIMO.Excel {
 
         private static bool ShouldCollectPivotSharedItems(int fieldIndex, IReadOnlyList<bool>? collectFieldValues)
             => collectFieldValues == null || fieldIndex < 0 || fieldIndex >= collectFieldValues.Count || collectFieldValues[fieldIndex];
+
+        private static bool ShouldEmbedPivotCacheRecords(
+            int sourceRecordCount,
+            IReadOnlyDictionary<int, ExcelPivotGrouping> groupingMap,
+            IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
+            IReadOnlyList<ExcelPivotCalculatedField> calculatedFields,
+            IReadOnlyList<ExcelPivotFilter> pivotFilters,
+            IReadOnlyDictionary<int, ExcelPivotFieldOptions>? fieldOptionMap)
+            => true;
 
         private List<PivotFieldValues> BuildGeneratedPivotFieldValueMap(
             IReadOnlyList<GeneratedPivotGroupingField> generatedFields,

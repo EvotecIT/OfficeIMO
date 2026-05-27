@@ -810,14 +810,14 @@ namespace OfficeIMO.Excel {
             CellValue cellValue,
             DocumentFormat.OpenXml.Spreadsheet.CellValues cellType) {
             var cell = new Cell {
-                CellReference = cellReference,
-                CellValue = cellValue
+                CellReference = cellReference
             };
 
             if (cellType != DocumentFormat.OpenXml.Spreadsheet.CellValues.Number) {
                 cell.DataType = GetCachedDataTableCellType(cellType);
             }
 
+            cell.AppendChild(cellValue);
             return cell;
         }
 

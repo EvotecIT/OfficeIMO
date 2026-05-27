@@ -23,6 +23,13 @@ namespace OfficeIMO.Tests {
             return (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
         }
 
+        private static WorksheetPart GetWorksheetPartWithCharts(SpreadsheetDocument spreadsheet) {
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts
+                .FirstOrDefault(part => part.DrawingsPart?.ChartParts.Any() == true);
+            Assert.NotNull(worksheetPart);
+            return worksheetPart!;
+        }
+
         [Fact]
         public void Test_ExcelChartData_From_ReadOnlyListUsesIndexerWithoutSnapshotEnumeration() {
             var items = new ThrowOnEnumerateReadOnlyList<ChartProjectionRow>(
@@ -93,7 +100,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 Assert.NotNull(wsPart.DrawingsPart);
                 Assert.True(wsPart.DrawingsPart!.ChartParts.Any());
 
@@ -167,7 +174,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 Assert.Equal("Quarterly", chart.Title!.Descendants<A.Text>().First().Text);
@@ -217,7 +224,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
@@ -298,7 +305,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
@@ -372,7 +379,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
@@ -457,7 +464,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(3, chartParts.Count);
 
@@ -538,7 +545,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
@@ -610,7 +617,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(2, chartParts.Count);
 
@@ -696,7 +703,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(2, chartParts.Count);
 
@@ -790,7 +797,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(4, chartParts.Count);
 
@@ -897,7 +904,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(2, chartParts.Count);
 
@@ -1005,7 +1012,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.Single();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var lineChart = plotArea.GetFirstChild<C.Line3DChart>();
@@ -1082,7 +1089,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(2, chartParts.Count);
 
@@ -1169,7 +1176,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartParts = wsPart.DrawingsPart!.ChartParts.ToList();
                 Assert.Equal(3, chartParts.Count);
 
@@ -1249,7 +1256,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var charts = wsPart.DrawingsPart!.ChartParts
                     .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!)
                     .ToList();
@@ -1303,7 +1310,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var charts = wsPart.DrawingsPart!.ChartParts
                     .Select(part => part.ChartSpace.GetFirstChild<C.Chart>()!)
                     .ToList();
@@ -1335,7 +1342,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var barSeries = chartPart.ChartSpace.Descendants<C.BarChartSeries>().First();
                 var children = barSeries.ChildElements.Select(child => child.GetType()).ToList();
@@ -1373,7 +1380,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
                 var plotArea = chart.GetFirstChild<C.PlotArea>()!;
@@ -1419,7 +1426,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 Assert.Equal("sentinel", GetCellValue(spreadsheet, wsPart, "A9"));
                 Assert.Equal("sentinel", GetCellValue(spreadsheet, wsPart, "B9"));
                 Assert.Equal("D", GetCellValue(spreadsheet, wsPart, "A10"));
@@ -1504,7 +1511,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
 
@@ -1682,7 +1689,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 Assert.NotNull(wsPart.DrawingsPart);
                 Assert.Single(wsPart.DrawingsPart!.ChartParts);
                 Assert.Single(wsPart.DrawingsPart.WorksheetDrawing!.Elements<Xdr.OneCellAnchor>());
@@ -1708,7 +1715,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
 
@@ -1745,7 +1752,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
 
@@ -1859,7 +1866,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 Assert.NotNull(chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault());
                 Assert.NotNull(chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault());
@@ -1884,7 +1891,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var series = plotArea.GetFirstChild<C.BarChart>()!.Elements<C.BarChartSeries>().First();
@@ -1920,7 +1927,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var series = plotArea.GetFirstChild<C.BarChart>()!.Elements<C.BarChartSeries>().First();
@@ -1953,7 +1960,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var series = plotArea.GetFirstChild<C.PieChart>()!.Elements<C.PieChartSeries>().First();
@@ -1987,7 +1994,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var chart = chartPart.ChartSpace.GetFirstChild<C.Chart>()!;
 
@@ -2041,7 +2048,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
 
@@ -2107,7 +2114,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
 
@@ -2153,7 +2160,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
 
@@ -2188,7 +2195,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
 
@@ -2215,7 +2222,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var valueAxis = plotArea.Elements<C.ValueAxis>().First();
@@ -2246,7 +2253,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var xAxis = plotArea.Elements<C.ValueAxis>()
@@ -2277,7 +2284,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var yAxis = plotArea.Elements<C.ValueAxis>()
@@ -2326,7 +2333,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var yAxis = plotArea.Elements<C.ValueAxis>()
@@ -2371,7 +2378,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var series = plotArea.GetFirstChild<C.BarChart>()!.Elements<C.BarChartSeries>().First();
@@ -2420,7 +2427,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var plotArea = chartPart.ChartSpace.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotArea>()!;
                 var series = plotArea.GetFirstChild<C.LineChart>()!.Elements<C.LineChartSeries>().First();
@@ -2458,7 +2465,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
                 var chartPart = wsPart.DrawingsPart!.ChartParts.First();
                 var chartSpace = chartPart.ChartSpace;
 

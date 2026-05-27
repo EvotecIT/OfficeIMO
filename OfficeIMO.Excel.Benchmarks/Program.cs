@@ -50,6 +50,36 @@ if (IsCommand(args, "--profile-read", "profile-read", "read-profile")) {
     return;
 }
 
+if (IsCommand(args, "--profile-chart", "profile-chart", "chart-profile")) {
+    bool hasOutputPath = HasOutputPath(args);
+    int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
+    int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelChartProfileRunner.DefaultWarmupIterations;
+    int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelChartProfileRunner.DefaultMeasuredIterations;
+    string? outputPathOverride = ParseOutputPath(args);
+    string outputPath = ExcelChartProfileRunner.WriteProfile(
+        outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.chart-profile", rowCount),
+        rowCount,
+        warmupIterations,
+        measuredIterations);
+    Console.WriteLine($"Excel chart profile written to '{outputPath}'.");
+    return;
+}
+
+if (IsCommand(args, "--profile-realworld", "profile-realworld", "realworld-profile")) {
+    bool hasOutputPath = HasOutputPath(args);
+    int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
+    int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelRealWorldProfileRunner.DefaultWarmupIterations;
+    int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelRealWorldProfileRunner.DefaultMeasuredIterations;
+    string? outputPathOverride = ParseOutputPath(args);
+    string outputPath = ExcelRealWorldProfileRunner.WriteProfile(
+        outputPathOverride ?? BuildDefaultOutputPath("officeimo.excel.realworld-profile", rowCount),
+        rowCount,
+        warmupIterations,
+        measuredIterations);
+    Console.WriteLine($"Excel real-world profile written to '{outputPath}'.");
+    return;
+}
+
 if (IsCommand(args, "--compare-libraries", "compare-libraries", "compare")) {
     bool hasOutputPath = HasOutputPath(args);
     int rowCount = ParseRowCount(args, startIndex: hasOutputPath ? 2 : 1);
@@ -83,6 +113,76 @@ if (IsCommand(args, "--package-profile", "package-profile", "profile-package")) 
         warmupIterations,
         measuredIterations);
     Console.WriteLine($"Excel package profile written to '{outputPath}'.");
+    return;
+}
+
+if (IsCommand(args, "--anti-cheat-suite", "anti-cheat-suite", "robustness-suite", "variant-suite")) {
+    bool hasOutputPath = HasOutputPath(args);
+    string outputDirectory = ParseOptionValue(args, "--out-dir", "--output-dir", "--directory")
+        ?? (hasOutputPath ? args[1] : Path.Combine("Docs", "benchmarks", "anti-cheat-current"));
+    int[] rowCounts = ParseRowCountsOrDefault(args, startIndex: hasOutputPath ? 2 : 1, [100, 2500, 25000]);
+    bool includeLegacyEpPlus = !HasSwitch(args, "--skip-legacy-epplus");
+    bool includePackageProfile = !HasSwitch(args, "--skip-package-profile");
+    string[] requestedScenarios = NormalizeScenarioFilters(ParseOptionValues(args, "--scenario", "--scenarios"));
+    string[] scenarioFilters = requestedScenarios.Length == 0 ? GetAntiCheatScenarios() : requestedScenarios;
+    string[] packageScenarioFilters = FilterPackageProfileScenarios(scenarioFilters);
+    int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelLibraryComparisonRunner.DefaultWarmupIterations;
+    int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelLibraryComparisonRunner.DefaultMeasuredIterations;
+
+    Directory.CreateDirectory(outputDirectory);
+    var artifacts = new List<ComparisonSuiteArtifact>();
+    foreach (int rowCount in rowCounts) {
+        string suffix = rowCount.ToString(CultureInfo.InvariantCulture);
+        string comparisonPath = Path.Combine(outputDirectory, $"officeimo.excel.anti-cheat-speed-{suffix}.json");
+        string writtenComparisonPath = ExcelLibraryComparisonRunner.WriteComparison(
+            comparisonPath,
+            rowCount,
+            includeLegacyEpPlus,
+            scenarioFilters,
+            warmupIterations,
+            measuredIterations);
+        artifacts.Add(new ComparisonSuiteArtifact("speed-comparison", rowCount, writtenComparisonPath));
+        Console.WriteLine($"Anti-cheat speed comparison written to '{writtenComparisonPath}'.");
+
+        if (includePackageProfile && packageScenarioFilters.Length > 0) {
+            string packagePath = Path.Combine(outputDirectory, $"officeimo.excel.anti-cheat-package-{suffix}.json");
+            string writtenPackagePath = ExcelLibraryComparisonRunner.WritePackageProfile(
+                packagePath,
+                rowCount,
+                packageScenarioFilters,
+                warmupIterations,
+                measuredIterations);
+            artifacts.Add(new ComparisonSuiteArtifact("package-profile", rowCount, writtenPackagePath));
+            Console.WriteLine($"Anti-cheat package profile written to '{writtenPackagePath}'.");
+        }
+    }
+
+    var summary = ExcelComparisonSummaryWriter.WriteSummary(
+        outputDirectory,
+        artifacts.Select(artifact => new ExcelComparisonSummaryInput(artifact.Kind, artifact.RowCount, artifact.Path)));
+    artifacts.Add(new ComparisonSuiteArtifact("summary-markdown", 0, summary.MarkdownPath));
+    artifacts.Add(new ComparisonSuiteArtifact("summary-csv", 0, summary.CsvPath));
+    artifacts.Add(new ComparisonSuiteArtifact("summary-json", 0, summary.JsonPath));
+    Console.WriteLine($"Anti-cheat suite summary written to '{summary.MarkdownPath}'.");
+
+    string manifestPath = Path.Combine(outputDirectory, "officeimo.excel.anti-cheat-suite-manifest.json");
+    var manifest = new ComparisonSuiteManifest {
+        GeneratedAtUtc = DateTime.UtcNow,
+        Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+        MachineName = Environment.MachineName,
+        RowCounts = rowCounts,
+        WarmupIterations = warmupIterations,
+        MeasuredIterations = measuredIterations,
+        IncludeLegacyEpPlus = includeLegacyEpPlus,
+        IncludePackageProfile = includePackageProfile,
+        IncludeDenseHelloWorld = false,
+        ScenarioFilters = scenarioFilters,
+        PackageScenarioFilters = packageScenarioFilters,
+        DenseHelloWorldScenarios = [],
+        Artifacts = artifacts
+    };
+    File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
+    Console.WriteLine($"Anti-cheat suite manifest written to '{manifestPath}'.");
     return;
 }
 
@@ -182,8 +282,10 @@ static void WriteUsage() {
     Console.WriteLine("  snapshot [output] [--rows N] [--website-data path]");
     Console.WriteLine("  write-profile [output] [--rows N]");
     Console.WriteLine("  read-profile [output] [--rows N] [--warmup N] [--iterations N]");
+    Console.WriteLine("  chart-profile [output] [--rows N] [--warmup N] [--iterations N]");
     Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--skip-legacy-epplus] [--warmup N] [--iterations N]");
     Console.WriteLine("  package-profile [output] [--rows N] [--scenario name] [--warmup N] [--iterations N]");
+    Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
     Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N]");
     Console.WriteLine();
     Console.WriteLine("Example:");
@@ -265,6 +367,18 @@ static int[] ParseRowCounts(string[] args, int startIndex) {
     return rowCounts.ToArray();
 }
 
+static int[] ParseRowCountsOrDefault(string[] args, int startIndex, int[] defaultRowCounts) {
+    if (!HasAnyOption(args, "--row-set", "--rows", "--row-counts")) {
+        return defaultRowCounts
+            .Where(rowCount => rowCount > 0)
+            .Distinct()
+            .Order()
+            .ToArray();
+    }
+
+    return ParseRowCounts(args, startIndex);
+}
+
 static string? ParseOptionValue(string[] args, params string[] optionNames) {
     for (int i = 0; i < args.Length; i++) {
         if (!optionNames.Any(name => string.Equals(args[i], name, StringComparison.OrdinalIgnoreCase))) {
@@ -325,6 +439,9 @@ static int? ParsePositiveOption(string[] args, params string[] optionNames) {
 static bool HasSwitch(string[] args, string optionName)
     => args.Any(arg => string.Equals(arg, optionName, StringComparison.OrdinalIgnoreCase));
 
+static bool HasAnyOption(string[] args, params string[] optionNames)
+    => args.Any(arg => optionNames.Any(option => string.Equals(arg, option, StringComparison.OrdinalIgnoreCase)));
+
 static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenarioFilters) {
     if (scenarioFilters.Count == 0) {
         return [];
@@ -365,6 +482,10 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "write-fluent-rowsfrom-direct",
         "append-plain-rows",
         "autofit-existing",
+        "report-workbook",
+        "report-workbook-core",
+        "report-workbook-datatable",
+        "report-workbook-datatable-core",
         "realworld-report-all-in-one",
         "realworld-report-core",
         "realworld-freeze-panes",
@@ -373,6 +494,11 @@ static string[] FilterPackageProfileScenarios(IReadOnlyCollection<string> scenar
         "realworld-data-validation",
         "realworld-charts",
         "realworld-pivot-table",
+        "realworld-report-no-autofit",
+        "realworld-report-chart-first",
+        "realworld-report-shuffled-columns",
+        "realworld-report-extra-column",
+        "realworld-report-post-mutation",
         "large-shared-strings"
     };
 
@@ -401,6 +527,16 @@ static string[] GetDenseHelloWorldScenarios()
     => [
         "dense-helloworld-read-range",
         "dense-helloworld-read-stream"
+    ];
+
+static string[] GetAntiCheatScenarios()
+    => [
+        "realworld-report-all-in-one",
+        "realworld-report-no-autofit",
+        "realworld-report-chart-first",
+        "realworld-report-shuffled-columns",
+        "realworld-report-extra-column",
+        "realworld-report-post-mutation"
     ];
 
 internal sealed class ComparisonSuiteManifest {

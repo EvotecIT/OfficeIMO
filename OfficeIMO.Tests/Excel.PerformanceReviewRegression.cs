@@ -16,6 +16,7 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using Xunit;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+using Vt = DocumentFormat.OpenXml.VariantTypes;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -2746,7 +2747,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_CellValuesHeaderThenAppend_WorkbookMutationInvalidatesDirectPackageCandidate() {
+        public void PerformanceReview_CellValuesHeaderThenAppend_ExternalMutationPreservesDirectPackageCandidate() {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
@@ -2763,7 +2764,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -2825,7 +2827,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_CellValuesRectangle_WorkbookMutationInvalidatesDirectPackageCandidate() {
+        public void PerformanceReview_CellValuesRectangle_ExternalMutationPreservesDirectPackageCandidate() {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
@@ -2840,7 +2842,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -3416,7 +3419,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_WorkbookMutationInvalidatesDirectPackageCandidate() {
+        public void PerformanceReview_InsertObjects_ExternalMutationPreservesDirectPackageCandidate() {
             using var memory = new MemoryStream();
             var rows = new[] {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19))
@@ -3432,7 +3435,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -3985,7 +3989,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_ChartWorkbookPreservesChartAfterDeferredMaterialization() {
+        public void PerformanceReview_InsertObjects_ChartWorkbookPreservesChartAndDeferredDataFastPath() {
             using var memory = new MemoryStream();
             var rows = new[] {
                 new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
@@ -4006,6 +4010,9 @@ namespace OfficeIMO.Tests {
                 sheet.AddChart(chartData, row: 6, column: 5, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
 
                 document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -4020,7 +4027,832 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_ReportMetadataPersistsFeaturesAfterDeferredMaterialization() {
+        public void PerformanceReview_InsertObjects_RangeChartBeforePivotPreservesDeferredDataAndDrawing() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddChartFromRange("A1:B4", row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores", includeCachedData: false);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var workbookPart = spreadsheet.WorkbookPart!;
+            var worksheetPart = workbookPart.WorksheetParts.First();
+            Assert.Single(worksheetPart.PivotTableParts);
+            Assert.Single(worksheetPart.DrawingsPart!.ChartParts);
+            Assert.Single(worksheetPart.DrawingsPart!.WorksheetDrawing!.Elements<Xdr.OneCellAnchor>());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("30", GetSpreadsheetCellText(spreadsheet, cells["B4"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_IndependentChartBeforePivotResolvesDeferredHeaders() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                var chartData = new ExcelChartData(
+                    rows.Select(row => row.Name),
+                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var workbookPart = spreadsheet.WorkbookPart!;
+            var dataPart = workbookPart.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            Assert.Single(dataPart.PivotTableParts);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PostFeatureExternalCellMutationKeepsExtendedFastPath() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                var chartData = new ExcelChartData(
+                    rows.Select(row => row.Name),
+                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+                sheet.CellValue(rows.Length + 4, 1, "Manual note after report features");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.True(cells.ContainsKey("A7"), "Saved cells: " + string.Join(", ", cells.Keys.OrderBy(static key => key, StringComparer.Ordinal)));
+            Assert.Equal("Manual note after report features", GetSpreadsheetCellText(spreadsheet, cells["A7"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ChartKeepsDeferredRowsWhenFastSaveModelUnavailable() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+
+                var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/deferred"), true);
+                var hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                if (hyperlinks == null) {
+                    hyperlinks = new Hyperlinks();
+                    var tableParts = sheet.WorksheetPart.Worksheet.Elements<TableParts>().FirstOrDefault();
+                    if (tableParts == null) {
+                        sheet.WorksheetPart.Worksheet.Append(hyperlinks);
+                    } else {
+                        sheet.WorksheetPart.Worksheet.InsertBefore(hyperlinks, tableParts);
+                    }
+                }
+
+                hyperlinks.Append(new Hyperlink { Reference = "D7", Id = relationship.Id });
+
+                var chartData = new ExcelChartData(
+                    rows.Select(row => row.Name),
+                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart != null);
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("East", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Single(worksheetPart.HyperlinkRelationships);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PostFeatureSideColumnMutationKeepsExtendedFastPath() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var links = document.AddWorkSheet("Links");
+                links.SetHyperlink(1, 1, "https://example.org/review", display: "Review link", style: false);
+
+                var customPart = document._spreadSheetDocument.AddCustomFilePropertiesPart();
+                customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(
+                    new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(
+                        new Vt.VTLPWSTR("preserved")) {
+                            FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
+                            PropertyId = 2,
+                            Name = "OfficeIMOReview"
+                        });
+
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                sheet.CellValue(2, 4, 123.45d);
+                sheet.CellAt(2, 4).SetNumberFormat("0.00");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("123.45", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Equal("0.00", GetCellNumberFormatCode(spreadsheet, cells["D2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ExternalCellMutationDoesNotMaterializeDeferredRows() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+
+                Assert.True(document.HasDeferredDirectDataSetImport);
+
+                sheet.CellValue(2, 4, "Manual side note");
+
+                Assert.True(document.HasDeferredDirectDataSetImport);
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                Assert.Equal("Manual side note", GetSpreadsheetCellText(document._spreadSheetDocument, sourceCells["D2"]));
+
+                document.Save(memory);
+
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Manual side note", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_DirectOverlayNumberFormatRemapsIntoDirectStyles() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.CellValue(2, 4, 123.45d);
+                sheet.CellAt(2, 4).SetNumberFormat("0.00");
+                sheet.CellValue(2, 5, 45000d);
+                sheet.CellValue(2, 6, 30d);
+
+                var stylesheet = document._spreadSheetDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                stylesheet.CellFormats ??= new CellFormats();
+                uint builtInDateStyleIndex = (uint)stylesheet.CellFormats.Elements<CellFormat>().Count();
+                stylesheet.CellFormats.Append(new CellFormat { NumberFormatId = 14U, ApplyNumberFormat = true });
+                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Elements<CellFormat>().Count();
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                sourceCells["E2"].StyleIndex = builtInDateStyleIndex;
+                sourceCells["F2"].CellFormula = new CellFormula("B2*3");
+                sourceCells["F2"].CellValue = new CellValue("30");
+                sourceCells["F2"].DataType = null;
+
+                document.Save(memory);
+
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("123.45", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Equal("0.00", GetCellNumberFormatCode(spreadsheet, cells["D2"]));
+            Assert.Equal("45000", GetSpreadsheetCellText(spreadsheet, cells["E2"]));
+            Assert.Equal("mm-dd-yy", GetCellNumberFormatCode(spreadsheet, cells["E2"]));
+            Assert.Equal("B2*3", cells["F2"].CellFormula!.Text);
+            Assert.Equal("30", cells["F2"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_DirectOverlayClearRemovesPreservedCell() {
+            using var firstMemory = new MemoryStream();
+            using var secondMemory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.CellValue(2, 4, "Manual");
+
+                document.Save(firstMemory);
+
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                sourceCells["D2"].CellFormula = null;
+                sourceCells["D2"].CellValue = null;
+                sourceCells["D2"].DataType = null;
+                sourceCells["D2"].InlineString = null;
+
+                document.Save(secondMemory);
+            }
+
+            secondMemory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(secondMemory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.True(!cells.ContainsKey("D2") || string.IsNullOrEmpty(GetSpreadsheetCellText(spreadsheet, cells["D2"])));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PathSaveUsesExtendedFastSaveModel() {
+            var path = Path.Combine(Path.GetTempPath(), "officeimo-path-extended-" + Guid.NewGuid().ToString("N") + ".xlsx");
+            try {
+                var rows = new[] {
+                    new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                    new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                    new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+                };
+
+                using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.InsertObjects(rows,
+                        ("Name", row => row.Name),
+                        ("Score", row => row.Score),
+                        ("Created", row => row.Created));
+                    sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                    sheet.AddPivotTable(
+                        "A1:C4",
+                        "F20",
+                        rowFields: new[] { "Name" },
+                        dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                    document.Save(path, openExcel: false, options: null);
+
+                    Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                    Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+                }
+
+                using var spreadsheet = SpreadsheetDocument.Open(path, false);
+                var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+                Assert.Equal("30", GetSpreadsheetCellText(spreadsheet, cells["B4"]));
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+            } finally {
+                if (File.Exists(path)) {
+                    File.Delete(path);
+                }
+            }
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_NonSeekableStreamSaveUsesExtendedFastSaveModel() {
+            using var stream = new NonSeekableWriteStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(stream);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            using var memory = new MemoryStream(stream.ToArray());
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("East", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ExtendedSimpleDrawingSheetDeclaresRelationshipNamespace() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var chartSheet = document.AddWorkSheet("ChartOnly");
+                chartSheet.CellValue(1, 1, "Name");
+                chartSheet.CellValue(1, 2, "Score");
+                chartSheet.CellValue(2, 1, "North");
+                chartSheet.CellValue(2, 2, 10);
+                chartSheet.CellValue(3, 1, "South");
+                chartSheet.CellValue(3, 2, 20);
+                chartSheet.CellValue(4, 1, "East");
+                chartSheet.CellValue(4, 2, 30);
+                chartSheet.AddChartFromRange("A1:B4", row: 2, column: 5, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores", includeCachedData: false);
+
+                var dataSheet = document.AddWorkSheet("Data");
+                dataSheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                dataSheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                dataSheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var chartHostPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart?.ChartParts.Any() == true);
+            using (var reader = new StreamReader(chartHostPart.GetStream(FileMode.Open, FileAccess.Read))) {
+                string xml = reader.ReadToEnd();
+                Assert.Contains("xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"", xml);
+                Assert.Contains("r:id=", xml);
+            }
+
+            Assert.Single(chartHostPart.DrawingsPart!.ChartParts);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_OverlaySharedFormulaMetadataIsPreserved() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                var row2 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 2U)
+                           ?? sheetData.AppendChild(new Row { RowIndex = 2U });
+                row2.Append(new Cell {
+                    CellReference = "D2",
+                    CellFormula = new CellFormula("B2*2") {
+                        FormulaType = CellFormulaValues.Shared,
+                        SharedIndex = 0U,
+                        Reference = "D2:D3"
+                    },
+                    CellValue = new CellValue("20")
+                });
+                var row3 = sheetData.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 3U)
+                           ?? sheetData.AppendChild(new Row { RowIndex = 3U });
+                row3.Append(new Cell {
+                    CellReference = "D3",
+                    CellFormula = new CellFormula {
+                        FormulaType = CellFormulaValues.Shared,
+                        SharedIndex = 0U
+                    },
+                    CellValue = new CellValue("40")
+                });
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal(CellFormulaValues.Shared, cells["D2"].CellFormula!.FormulaType!.Value);
+            Assert.Equal(0U, cells["D2"].CellFormula!.SharedIndex!.Value);
+            Assert.Equal("D2:D3", cells["D2"].CellFormula!.Reference!.Value);
+            Assert.Equal("B2*2", cells["D2"].CellFormula!.Text);
+            Assert.Equal(CellFormulaValues.Shared, cells["D3"].CellFormula!.FormulaType!.Value);
+            Assert.Equal(0U, cells["D3"].CellFormula!.SharedIndex!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_OverlayTypedCellsPreserveDataTypes() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                var row2 = sheetData.Elements<Row>().First(row => row.RowIndex?.Value == 2U);
+                row2.Append(
+                    new Cell {
+                        CellReference = "D2",
+                        DataType = CellValues.Error,
+                        CellValue = new CellValue("#DIV/0!")
+                    },
+                    new Cell {
+                        CellReference = "E2",
+                        DataType = CellValues.Date,
+                        CellValue = new CellValue("2026-05-19")
+                    });
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal(CellValues.Error, cells["D2"].DataType!.Value);
+            Assert.Equal("#DIV/0!", cells["D2"].CellValue!.Text);
+            Assert.Equal(CellValues.Date, cells["E2"].DataType!.Value);
+            Assert.Equal("2026-05-19", cells["E2"].CellValue!.Text);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_CompactOverlayCellReferencesKeepSideColumnMutation() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                sheet.CellValue(2, 4, "Compact side note");
+
+                var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                sheetData.RemoveAllChildren<Row>();
+                sheetData.Append(new Row());
+                sheetData.Append(new Row(
+                    new Cell(),
+                    new Cell(),
+                    new Cell(),
+                    new Cell {
+                        DataType = CellValues.String,
+                        CellValue = new CellValue("Compact side note")
+                    }));
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Compact side note", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PostFeatureInRangeMutationMaterializesSourceRows() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                sheet.CellValue(2, 2, 42);
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.PivotTableParts.Any());
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("42", cells["B2"].CellValue!.Text);
+            Assert.Equal("East", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataSet_ExtendedPackagePreservesSharedStringsStylesHyperlinksAndRootParts() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Columns.Add("Created", typeof(DateTime));
+            for (int index = 0; index < 600; index++) {
+                table.Rows.Add(
+                    index % 2 == 0 ? "North Region Repeated" : "South Region Repeated",
+                    index,
+                    new DateTime(2026, 5, 19).AddDays(index % 7));
+            }
+
+            dataSet.Tables.Add(table);
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document._spreadSheetDocument.PackageProperties.Title = "Review Metadata";
+                document._spreadSheetDocument.PackageProperties.Creator = "OfficeIMO Tests";
+                document._spreadSheetDocument.PackageProperties.LastModifiedBy = "Reviewer";
+                document._spreadSheetDocument.PackageProperties.Created = new DateTime(2026, 5, 26, 12, 0, 0, DateTimeKind.Utc);
+                document._spreadSheetDocument.PackageProperties.Modified = new DateTime(2026, 5, 26, 13, 0, 0, DateTimeKind.Utc);
+
+                var appPart = document._spreadSheetDocument.ExtendedFilePropertiesPart
+                              ?? document._spreadSheetDocument.AddExtendedFilePropertiesPart();
+                appPart.Properties = new DocumentFormat.OpenXml.ExtendedProperties.Properties {
+                    Application = new DocumentFormat.OpenXml.ExtendedProperties.Application { Text = "OfficeIMO Review App" },
+                    Company = new DocumentFormat.OpenXml.ExtendedProperties.Company { Text = "Evotec" },
+                    Manager = new DocumentFormat.OpenXml.ExtendedProperties.Manager { Text = "OfficeIMO" }
+                };
+
+                var links = document.AddWorkSheet("Links");
+                links.SetHyperlink(1, 1, "https://example.org/review", display: "Review link", style: false);
+                links.CellValue(2, 1, 123.45d);
+                links.CellAt(2, 1).SetNumberFormat("0.00");
+                links.CellValue(3, 1, "#DIV/0!");
+                var linkSourceCells = links.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                linkSourceCells["A3"].DataType = CellValues.Error;
+                linkSourceCells["A3"].CellValue = new CellValue("#DIV/0!");
+
+                var customPart = document._spreadSheetDocument.AddCustomFilePropertiesPart();
+                customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(
+                    new DocumentFormat.OpenXml.CustomProperties.CustomDocumentProperty(
+                        new Vt.VTLPWSTR("preserved")) {
+                            FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}",
+                            PropertyId = 2,
+                            Name = "OfficeIMOReview"
+                        });
+                document._spreadSheetDocument.AddExternalRelationship(
+                    "https://schemas.example.org/officeimo/review",
+                    new Uri("https://example.org/package-root"),
+                    "rIdCore");
+
+                document.InsertDataSet(dataSet);
+                var sheet = document.Sheets.First(item => string.Equals(item.Name, "Items", StringComparison.Ordinal));
+                sheet.AddPivotTable(
+                    "A1:C601",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            Assert.Equal("Review Metadata", spreadsheet.PackageProperties.Title);
+            Assert.Equal("OfficeIMO Tests", spreadsheet.PackageProperties.Creator);
+            Assert.Equal("Reviewer", spreadsheet.PackageProperties.LastModifiedBy);
+            Assert.Equal("OfficeIMO Review App", spreadsheet.ExtendedFilePropertiesPart!.Properties!.Application!.Text);
+            Assert.Equal("Evotec", spreadsheet.ExtendedFilePropertiesPart.Properties.Company!.Text);
+            Assert.Equal("OfficeIMO", spreadsheet.ExtendedFilePropertiesPart.Properties.Manager!.Text);
+            Assert.NotNull(spreadsheet.WorkbookPart!.SharedStringTablePart);
+            Assert.NotNull(spreadsheet.CustomFilePropertiesPart);
+            var packageRelationship = Assert.Single(spreadsheet.ExternalRelationships);
+            Assert.Equal("rIdCore", packageRelationship.Id);
+            Assert.Equal("https://schemas.example.org/officeimo/review", packageRelationship.RelationshipType);
+            Assert.Equal("https://example.org/package-root", packageRelationship.Uri.ToString());
+
+            var sheets = spreadsheet.WorkbookPart.Workbook.Sheets!.Elements<Sheet>().ToDictionary(sheet => sheet.Name!.Value!);
+            var dataPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheets["Items"].Id!);
+            var dataCells = dataPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North Region Repeated", GetSpreadsheetCellText(spreadsheet, dataCells["A2"]));
+            Assert.Equal("South Region Repeated", GetSpreadsheetCellText(spreadsheet, dataCells["A601"]));
+
+            var linksPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheets["Links"].Id!);
+            var linkCells = linksPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Review link", GetSpreadsheetCellText(spreadsheet, linkCells["A1"]));
+            Assert.Equal("0.00", GetCellNumberFormatCode(spreadsheet, linkCells["A2"]));
+            Assert.Equal(CellValues.Error, linkCells["A3"].DataType!.Value);
+            Assert.Equal("#DIV/0!", linkCells["A3"].CellValue!.Text);
+            Assert.Contains("xmlns:r=", linksPart.Worksheet.OuterXml, StringComparison.Ordinal);
+            var relationship = Assert.Single(linksPart.HyperlinkRelationships);
+            Assert.Equal("https://example.org/review", relationship.Uri.ToString());
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_StyledChartPreservesDeferredRowsInExtendedPackage() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                var chartData = new ExcelChartData(
+                    rows.Select(row => row.Name),
+                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+
+                sheet.AddChart(chartData, row: 1, column: 6, widthPixels: 360, heightPixels: 240, type: ExcelChartType.ColumnClustered, title: "Styled");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var dataSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>()
+                .Single(sheet => string.Equals(sheet.Name?.Value, "Data", StringComparison.Ordinal));
+            var dataPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(dataSheet.Id!);
+            var cells = dataPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("20", cells["B3"].CellValue!.Text);
+
+            var chartPart = dataPart.DrawingsPart!.ChartParts.Single();
+            Assert.NotNull(chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault());
+            Assert.NotNull(chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault());
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ReportMetadataPersistsFeaturesWithDirectPackage() {
             using var memory = new MemoryStream();
             var rows = new[] {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
@@ -4043,7 +4875,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.Equal(ExcelSavePackageWriter.SimplePackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
                 Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
@@ -4111,6 +4943,233 @@ namespace OfficeIMO.Tests {
             Assert.Equal("A1:C3", tablePart.Table!.Reference!.Value);
             Assert.Equal("ReportData", tablePart.Table.Name!.Value);
             Assert.Equal("A1:C3", tablePart.Table.GetFirstChild<AutoFilter>()!.Reference!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_HeaderNumberFormatsUseDirectPackageWhenColumnsAreDeferred() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19, 8, 30, 0)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20, 9, 45, 0))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AutoFitColumns();
+                sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
+                sheet.ColumnStyleByHeader("Created").NumberFormat("yyyy-mm-dd hh:mm");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B2"]));
+            Assert.Equal("yyyy-mm-dd hh:mm", GetCellNumberFormatCode(spreadsheet, cells["C2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_HeaderNumberFormatSurvivesDeferredModelClones() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19, 8, 30, 0)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20, 9, 45, 0))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
+                sheet.AddTable("A1:C3", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AutoFitColumns();
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B2"]));
+            Assert.Equal("ReportData", worksheetPart.TableDefinitionParts.Single().Table!.Name!.Value);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_HeaderNumberFormatUsesNormalizedDirectHeader() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows, ("Total   Amount ", row => row.Score));
+                sheet.ColumnStyleByHeader("Total Amount").NumberFormat("0.00");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("0.00", GetCellNumberFormatCode(spreadsheet, cells["A2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataSet_HeaderNumberFormatMatchesDirectSheetInMultiSheetModel() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var north = new DataTable("North");
+            north.Columns.Add("Name", typeof(string));
+            north.Columns.Add("Score", typeof(int));
+            north.Rows.Add("Alpha", 10);
+            var south = new DataTable("South");
+            south.Columns.Add("Name", typeof(string));
+            south.Columns.Add("Score", typeof(int));
+            south.Rows.Add("Beta", 20);
+            dataSet.Tables.Add(north);
+            dataSet.Tables.Add(south);
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.InsertDataSet(dataSet);
+                var sheet = CreateDeferredSheetHandle(document, "South");
+                sheet.ColumnStyleByHeader("Score").NumberFormat("0.00");
+                typeof(ExcelDocument).GetField("_directDataSetMetadataSourceSheet", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(document, null);
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var workbookSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>()
+                .Single(sheet => string.Equals(sheet.Name?.Value, "South", StringComparison.Ordinal));
+            var worksheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(workbookSheet.Id!);
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Beta", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("0.00", GetCellNumberFormatCode(spreadsheet, cells["B2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_HeaderNumberFormatIncludeHeaderFormatsHeaderCell() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19, 8, 30, 0)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20, 9, 45, 0))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.ColumnStyleByHeader("Score", includeHeader: true).NumberFormat("#,##0.000");
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B1"]));
+            Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B2"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_HeaderNumberFormatWorksAfterChartPreservesFastSaveModel() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                var chartData = new ExcelChartData(
+                    rows.Select(row => row.Name),
+                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+                sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single(part => part.DrawingsPart != null);
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B2"]));
+            Assert.Equal("#,##0.000", GetCellNumberFormatCode(spreadsheet, cells["B4"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertDataSet_HeaderNumberFormatPreservesSourceInvalidationSubscription() {
+            using var memory = new MemoryStream();
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Rows.Add("Original", 10);
+            dataSet.Tables.Add(table);
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.InsertDataSet(dataSet);
+                var sheet = document.Sheets.First(item => string.Equals(item.Name, "Items", StringComparison.Ordinal));
+                sheet.ColumnStyleByHeader("Score").NumberFormat("0.00");
+                table.Rows.Add("Late", 20);
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Original", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.False(cells.ContainsKey("A3"));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -4293,6 +5352,97 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_LargeSimplePivotEmbedsCacheRecords() {
+            using var memory = new MemoryStream();
+            var rows = Enumerable.Range(1, 5000)
+                .Select(index => new PerformanceObjectExportRow(
+                    index % 2 == 0 ? "Alpha" : "Beta",
+                    index,
+                    new DateTime(2026, 5, 1).AddDays(index % 28)))
+                .ToArray();
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C5001",
+                    destinationCell: "E2",
+                    name: "ScorePivot",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A3"]));
+            Assert.Equal("5000", cells["B5001"].CellValue!.Text);
+
+            var pivotPart = Assert.Single(worksheetPart.PivotTableParts);
+            var cacheDefinition = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
+            Assert.True(cacheDefinition.SaveData!.Value);
+            Assert.False(cacheDefinition.RefreshOnLoad!.Value);
+            var cacheRecordsPart = Assert.Single(pivotPart.PivotTableCacheDefinitionPart!.GetPartsOfType<PivotTableCacheRecordsPart>());
+            Assert.Equal(5000U, cacheRecordsPart.PivotCacheRecords!.Count!.Value);
+            var cacheFields = cacheDefinition.CacheFields!.Elements<CacheField>().ToList();
+            var nameItems = cacheFields[0].SharedItems!.Elements<StringItem>().Select(item => item.Val!.Value).ToList();
+            Assert.Equal(new[] { "Beta", "Alpha" }, nameItems);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_OverlayNumericValuesPreserveLexicalText() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.CellValue(2, 4, 0);
+                sheet.CellValue(2, 5, 0);
+
+                var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                cells["D2"].DataType = CellValues.Number;
+                cells["D2"].CellValue = new CellValue("1234567890123456789");
+                cells["E2"].DataType = null;
+                cells["E2"].CellValue = new CellValue("1234567890.123456789");
+
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C3",
+                    destinationCell: "G2",
+                    name: "ScorePivot",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.MaterializeDeferredDataSetImport();
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("1234567890123456789", savedCells["D2"].CellValue!.Text);
+            Assert.Equal(CellValues.Number, savedCells["D2"].DataType!.Value);
+            Assert.Equal("1234567890.123456789", savedCells["E2"].CellValue!.Text);
+            Assert.True(savedCells["E2"].DataType == null || savedCells["E2"].DataType!.Value == CellValues.Number);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_PivotTableDeferredSharedItemsPreserveNativeTypes() {
             using var memory = new MemoryStream();
             var rows = new[] {
@@ -4468,7 +5618,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjectsThenAddTable_LaterMutationInvalidatesDirectPackageCandidate() {
+        public void PerformanceReview_InsertObjectsThenAddTable_ExternalMutationPreservesDirectPackageCandidate() {
             using var memory = new MemoryStream();
             var rows = new[] {
                 new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19))
@@ -4485,7 +5635,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -4755,7 +5906,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataTable_ObjectColumnDateAndTimeValuesKeepStylesAfterFallback() {
+        public void PerformanceReview_InsertDataTable_ObjectColumnDateAndTimeValuesKeepStylesWithDirectPackage() {
             using var memory = new MemoryStream();
             var table = new DataTable("Mixed");
             table.Columns.Add("Kind", typeof(string));
@@ -4770,7 +5921,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -4869,7 +6021,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataTable_WorkbookMutationInvalidatesDirectPackageCandidate() {
+        public void PerformanceReview_InsertDataTable_ExternalMutationPreservesDirectPackageCandidate() {
             using var memory = new MemoryStream();
             var table = new DataTable("Sales");
             table.Columns.Add("Name", typeof(string));
@@ -4883,7 +6035,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -5017,7 +6170,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataTableAsTable_WorkbookMutationInvalidatesDirectPackageCandidate() {
+        public void PerformanceReview_InsertDataTableAsTable_ExternalMutationPreservesDirectPackageCandidate() {
             using var memory = new MemoryStream();
             var table = new DataTable("Sales");
             table.Columns.Add("Name", typeof(string));
@@ -5031,7 +6184,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -5136,7 +6290,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertDataReader_WorkbookMutationInvalidatesDirectPackageCandidate() {
+        public void PerformanceReview_InsertDataReader_ExternalMutationPreservesDirectPackageCandidate() {
             using var memory = new MemoryStream();
             var table = new DataTable("ReaderData");
             table.Columns.Add("Name", typeof(string));
@@ -5151,7 +6305,8 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
@@ -5491,6 +6646,17 @@ namespace OfficeIMO.Tests {
             return table;
         }
 
+        private static ExcelSheet CreateDeferredSheetHandle(ExcelDocument document, string sheetName) {
+            var workbookPart = document._spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null.");
+            var worksheetPart = workbookPart.AddNewPart<WorksheetPart>();
+            worksheetPart.Worksheet = new Worksheet(new SheetData());
+            string relationshipId = workbookPart.GetIdOfPart(worksheetPart);
+            return new ExcelSheet(
+                document,
+                document._spreadSheetDocument,
+                new Sheet { Name = sheetName, Id = relationshipId, SheetId = 9999U });
+        }
+
         private static string? GetCellNumberFormatCode(SpreadsheetDocument spreadsheet, Cell cell) {
             if (cell.StyleIndex == null) {
                 return null;
@@ -5503,10 +6669,40 @@ namespace OfficeIMO.Tests {
             }
 
             uint numberFormatId = cellFormat.NumberFormatId.Value;
-            return stylesheet.NumberingFormats?.Elements<NumberingFormat>()
+            string? customFormat = stylesheet.NumberingFormats?.Elements<NumberingFormat>()
                 .FirstOrDefault(format => format.NumberFormatId?.Value == numberFormatId)
                 ?.FormatCode
                 ?.Value;
+            return customFormat ?? numberFormatId switch {
+                1U => "0",
+                2U => "0.00",
+                3U => "#,##0",
+                4U => "#,##0.00",
+                9U => "0%",
+                10U => "0.00%",
+                11U => "0.00E+00",
+                12U => "# ?/?",
+                13U => "# ??/??",
+                14U => "mm-dd-yy",
+                15U => "d-mmm-yy",
+                16U => "d-mmm",
+                17U => "mmm-yy",
+                18U => "h:mm AM/PM",
+                19U => "h:mm:ss AM/PM",
+                20U => "h:mm",
+                21U => "h:mm:ss",
+                22U => "m/d/yy h:mm",
+                37U => "#,##0 ;(#,##0)",
+                38U => "#,##0 ;[Red](#,##0)",
+                39U => "#,##0.00;(#,##0.00)",
+                40U => "#,##0.00;[Red](#,##0.00)",
+                45U => "mm:ss",
+                46U => "[h]:mm:ss",
+                47U => "mmss.0",
+                48U => "##0.0E+0",
+                49U => "@",
+                _ => null
+            };
         }
 
         private static string? GetSpreadsheetCellText(SpreadsheetDocument spreadsheet, Cell cell) {
@@ -5517,6 +6713,35 @@ namespace OfficeIMO.Tests {
             }
 
             return value;
+        }
+
+        private sealed class NonSeekableWriteStream : Stream {
+            private readonly MemoryStream _inner = new();
+
+            public override bool CanRead => false;
+
+            public override bool CanSeek => false;
+
+            public override bool CanWrite => true;
+
+            public override long Length => throw new NotSupportedException();
+
+            public override long Position {
+                get => throw new NotSupportedException();
+                set => throw new NotSupportedException();
+            }
+
+            public byte[] ToArray() => _inner.ToArray();
+
+            public override void Flush() => _inner.Flush();
+
+            public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+            public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+
+            public override void SetLength(long value) => throw new NotSupportedException();
+
+            public override void Write(byte[] buffer, int offset, int count) => _inner.Write(buffer, offset, count);
         }
     }
 }

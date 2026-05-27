@@ -18,6 +18,11 @@ internal static partial class ExcelLibraryComparisonRunner {
     private const string RealWorldDataValidationScenario = "realworld-data-validation";
     private const string RealWorldChartsScenario = "realworld-charts";
     private const string RealWorldPivotTableScenario = "realworld-pivot-table";
+    private const string RealWorldReportNoAutoFitScenario = "realworld-report-no-autofit";
+    private const string RealWorldReportChartFirstScenario = "realworld-report-chart-first";
+    private const string RealWorldReportShuffledColumnsScenario = "realworld-report-shuffled-columns";
+    private const string RealWorldReportExtraColumnScenario = "realworld-report-extra-column";
+    private const string RealWorldReportPostMutationScenario = "realworld-report-post-mutation";
 
     private static void AddRealWorldScenarioGroups(
         List<ExcelLibraryComparisonScenario> scenarios,
@@ -29,6 +34,8 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("OfficeIMO.Excel", "Create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, pivot table, chart, and save.", () => OfficeImoWriteRealWorldReport(rows)),
             new LibraryComparisonCase("EPPlus", "Create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, pivot table, chart, and save.", () => EpPlusWriteRealWorldReport(rows))
         ]);
+
+        AddRealWorldVariantScenarioGroups(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
 
         AddScenarioGroup(scenarios, scenarioFilter, RealWorldReportCoreScenario, warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Create a sales workbook with table, AutoFit, frozen header, AutoFilter, conditional formatting, data validation, and save.", () => OfficeImoWriteRealWorldCoreReport(rows)),
@@ -81,6 +88,8 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("OfficeIMO.Excel", "Create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, pivot table, chart, and save.", () => OfficeImoWriteRealWorldReportBytes(rows)),
             new PackageProfileCase("EPPlus", "Create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, pivot table, chart, and save.", () => EpPlusWriteRealWorldReportBytes(rows))
         ]);
+
+        AddRealWorldVariantPackageProfileGroups(scenarios, scenarioFilter, rows, warmupIterations, measuredIterations);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, RealWorldReportCoreScenario, warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Create a sales workbook with table, AutoFit, frozen header, AutoFilter, conditional formatting, data validation, and save.", () => OfficeImoWriteRealWorldCoreReportBytes(rows)),
@@ -456,6 +465,335 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         return stream.ToArray();
+    }
+
+    private static void AddRealWorldVariantScenarioGroups(
+        List<ExcelLibraryComparisonScenario> scenarios,
+        IReadOnlySet<string>? scenarioFilter,
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows,
+        int warmupIterations,
+        int measuredIterations) {
+        AddScenarioGroup(scenarios, scenarioFilter, RealWorldReportNoAutoFitScenario, warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Create the real-world report workbook without AutoFit to check the fast path is not tied to width measurement.", () => OfficeImoWriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(AutoFit: false))),
+            new LibraryComparisonCase("EPPlus", "Create the equivalent real-world report workbook without AutoFit.", () => EpPlusWriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(AutoFit: false)))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, RealWorldReportChartFirstScenario, warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Create the real-world report workbook with chart creation before pivot creation.", () => OfficeImoWriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(ChartBeforePivot: true))),
+            new LibraryComparisonCase("EPPlus", "Create the equivalent real-world report workbook with chart creation before pivot creation.", () => EpPlusWriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(ChartBeforePivot: true)))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, RealWorldReportShuffledColumnsScenario, warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Create the real-world report workbook with the same fields in a different column order.", () => OfficeImoWriteRealWorldVariant(rows, RealWorldShuffledColumns, RealWorldVariantOptions.Default)),
+            new LibraryComparisonCase("EPPlus", "Create the equivalent real-world report workbook with the same fields in a different column order.", () => EpPlusWriteRealWorldVariant(rows, RealWorldShuffledColumns, RealWorldVariantOptions.Default))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, RealWorldReportExtraColumnScenario, warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Create the real-world report workbook with an extra derived column.", () => OfficeImoWriteRealWorldVariant(rows, RealWorldExtraColumns, RealWorldVariantOptions.Default)),
+            new LibraryComparisonCase("EPPlus", "Create the equivalent real-world report workbook with an extra derived column.", () => EpPlusWriteRealWorldVariant(rows, RealWorldExtraColumns, RealWorldVariantOptions.Default))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, RealWorldReportPostMutationScenario, warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Create the real-world report workbook and then make a normal cell edit after report features are added.", () => OfficeImoWriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(PostMutation: true))),
+            new LibraryComparisonCase("EPPlus", "Create the equivalent real-world report workbook and then make a normal cell edit after report features are added.", () => EpPlusWriteRealWorldVariant(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(PostMutation: true)))
+        ]);
+    }
+
+    private static void AddRealWorldVariantPackageProfileGroups(
+        List<ExcelPackageProfileScenario> scenarios,
+        IReadOnlySet<string>? scenarioFilter,
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows,
+        int warmupIterations,
+        int measuredIterations) {
+        AddPackageProfileGroup(scenarios, scenarioFilter, RealWorldReportNoAutoFitScenario, warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Create the real-world report workbook without AutoFit to check the fast path is not tied to width measurement.", () => OfficeImoWriteRealWorldVariantBytes(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(AutoFit: false))),
+            new PackageProfileCase("EPPlus", "Create the equivalent real-world report workbook without AutoFit.", () => EpPlusWriteRealWorldVariantBytes(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(AutoFit: false)))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, RealWorldReportChartFirstScenario, warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Create the real-world report workbook with chart creation before pivot creation.", () => OfficeImoWriteRealWorldVariantBytes(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(ChartBeforePivot: true))),
+            new PackageProfileCase("EPPlus", "Create the equivalent real-world report workbook with chart creation before pivot creation.", () => EpPlusWriteRealWorldVariantBytes(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(ChartBeforePivot: true)))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, RealWorldReportShuffledColumnsScenario, warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Create the real-world report workbook with the same fields in a different column order.", () => OfficeImoWriteRealWorldVariantBytes(rows, RealWorldShuffledColumns, RealWorldVariantOptions.Default)),
+            new PackageProfileCase("EPPlus", "Create the equivalent real-world report workbook with the same fields in a different column order.", () => EpPlusWriteRealWorldVariantBytes(rows, RealWorldShuffledColumns, RealWorldVariantOptions.Default))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, RealWorldReportExtraColumnScenario, warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Create the real-world report workbook with an extra derived column.", () => OfficeImoWriteRealWorldVariantBytes(rows, RealWorldExtraColumns, RealWorldVariantOptions.Default)),
+            new PackageProfileCase("EPPlus", "Create the equivalent real-world report workbook with an extra derived column.", () => EpPlusWriteRealWorldVariantBytes(rows, RealWorldExtraColumns, RealWorldVariantOptions.Default))
+        ]);
+
+        AddPackageProfileGroup(scenarios, scenarioFilter, RealWorldReportPostMutationScenario, warmupIterations, measuredIterations, [
+            new PackageProfileCase("OfficeIMO.Excel", "Create the real-world report workbook and then make a normal cell edit after report features are added.", () => OfficeImoWriteRealWorldVariantBytes(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(PostMutation: true))),
+            new PackageProfileCase("EPPlus", "Create the equivalent real-world report workbook and then make a normal cell edit after report features are added.", () => EpPlusWriteRealWorldVariantBytes(rows, RealWorldDefaultColumns, new RealWorldVariantOptions(PostMutation: true)))
+        ]);
+    }
+
+    private static int OfficeImoWriteRealWorldVariant(
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows,
+        IReadOnlyList<RealWorldColumnSpec> columns,
+        RealWorldVariantOptions options)
+        => ByteCount(OfficeImoWriteRealWorldVariantBytes(rows, columns, options));
+
+    private static byte[] OfficeImoWriteRealWorldVariantBytes(
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows,
+        IReadOnlyList<RealWorldColumnSpec> columns,
+        RealWorldVariantOptions options) {
+        using var stream = new MemoryStream();
+        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
+            var sheet = document.AddWorkSheet("Data");
+            InsertOfficeImoVariantRows(sheet, rows, columns);
+            string range = BuildVariantRange(rows.Count, columns.Count);
+            ApplyOfficeImoVariantTable(sheet, range, options.AutoFit);
+            ApplyOfficeImoNavigation(sheet, range);
+            ApplyOfficeImoVariantConditionalFormatting(sheet, rows.Count, columns);
+            ApplyOfficeImoVariantDataValidation(sheet, rows.Count, columns);
+
+            if (options.ChartBeforePivot) {
+                AddOfficeImoRegionalChart(sheet, rows);
+                AddOfficeImoVariantPivotTable(sheet, range);
+            } else {
+                AddOfficeImoVariantPivotTable(sheet, range);
+                AddOfficeImoRegionalChart(sheet, rows);
+            }
+
+            if (options.PostMutation) {
+                sheet.CellValue(rows.Count + 4, 1, "Manual note after report features");
+            }
+
+            document.Save(stream);
+        }
+
+        return stream.ToArray();
+    }
+
+    private static int EpPlusWriteRealWorldVariant(
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows,
+        IReadOnlyList<RealWorldColumnSpec> columns,
+        RealWorldVariantOptions options)
+        => ByteCount(EpPlusWriteRealWorldVariantBytes(rows, columns, options));
+
+    private static byte[] EpPlusWriteRealWorldVariantBytes(
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows,
+        IReadOnlyList<RealWorldColumnSpec> columns,
+        RealWorldVariantOptions options) {
+        using var stream = new MemoryStream();
+        using (var package = new ExcelPackage(stream)) {
+            var worksheet = package.Workbook.Worksheets.Add("Data");
+            WriteEpPlusVariantRows(worksheet, rows, columns);
+            ApplyEpPlusVariantTable(worksheet, rows.Count, columns.Count, options.AutoFit);
+            ApplyEpPlusNavigation(worksheet, rows.Count, columns.Count);
+            ApplyEpPlusVariantConditionalFormatting(worksheet, rows.Count, columns);
+            ApplyEpPlusVariantDataValidation(worksheet, rows.Count, columns);
+
+            if (options.ChartBeforePivot) {
+                AddEpPlusRegionalChart(package, rows);
+                AddEpPlusVariantPivotTable(package, worksheet, rows.Count, columns.Count);
+            } else {
+                AddEpPlusVariantPivotTable(package, worksheet, rows.Count, columns.Count);
+                AddEpPlusRegionalChart(package, rows);
+            }
+
+            if (options.PostMutation) {
+                worksheet.Cells[rows.Count + 4, 1].Value = "Manual note after report features";
+            }
+
+            package.Save();
+        }
+
+        return stream.ToArray();
+    }
+
+    private static void InsertOfficeImoVariantRows(
+        ExcelSheet sheet,
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows,
+        IReadOnlyList<RealWorldColumnSpec> columns) {
+        var selectors = new (string Header, Func<ExcelBenchmarkScenarioFactory.SalesRecord, object?> Selector)[columns.Count];
+        for (int i = 0; i < columns.Count; i++) {
+            selectors[i] = (columns[i].Header, columns[i].Selector);
+        }
+
+        sheet.InsertObjects(rows, selectors);
+    }
+
+    private static void WriteEpPlusVariantRows(
+        ExcelWorksheet worksheet,
+        IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows,
+        IReadOnlyList<RealWorldColumnSpec> columns) {
+        for (int column = 0; column < columns.Count; column++) {
+            worksheet.Cells[1, column + 1].Value = columns[column].Header;
+        }
+
+        for (int row = 0; row < rows.Count; row++) {
+            var source = rows[row];
+            for (int column = 0; column < columns.Count; column++) {
+                worksheet.Cells[row + 2, column + 1].Value = columns[column].Selector(source);
+            }
+        }
+    }
+
+    private static void ApplyOfficeImoVariantTable(ExcelSheet sheet, string range, bool autoFit) {
+        sheet.AddTable(range, hasHeader: true, name: "SalesData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+        if (autoFit) {
+            sheet.AutoFitColumns();
+        }
+    }
+
+    private static void ApplyEpPlusVariantTable(ExcelWorksheet worksheet, int rowCount, int columnCount, bool autoFit) {
+        var table = worksheet.Tables.Add(worksheet.Cells[1, 1, rowCount + 1, columnCount], "SalesData");
+        table.TableStyle = OfficeOpenXml.Table.TableStyles.Medium2;
+        if (autoFit) {
+            worksheet.Cells[1, 1, rowCount + 1, columnCount].AutoFitColumns();
+        }
+    }
+
+    private static void ApplyOfficeImoNavigation(ExcelSheet sheet, string range) {
+        sheet.Freeze(topRows: 1, leftCols: 1);
+        sheet.AddAutoFilter(range);
+    }
+
+    private static void ApplyEpPlusNavigation(ExcelWorksheet worksheet, int rowCount, int columnCount) {
+        worksheet.View.FreezePanes(2, 2);
+        worksheet.Cells[1, 1, rowCount + 1, columnCount].AutoFilter = true;
+    }
+
+    private static void ApplyOfficeImoVariantConditionalFormatting(ExcelSheet sheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
+        int amountColumn = GetColumnIndex(columns, "Amount");
+        int unitsColumn = GetColumnIndex(columns, "Units");
+        int lastRow = rowCount + 1;
+        string amountRange = BuildColumnRange(amountColumn, 2, lastRow);
+        string unitsRange = BuildColumnRange(unitsColumn, 2, lastRow);
+
+        sheet.AddConditionalRule(amountRange, ConditionalFormattingOperatorValues.GreaterThan, "3000");
+        sheet.AddConditionalRule(unitsRange, ConditionalFormattingOperatorValues.LessThan, "5");
+        sheet.AddConditionalColorScale(amountRange, OfficeColor.LightPink, OfficeColor.LightGreen);
+        sheet.AddConditionalDataBar(unitsRange, OfficeColor.SteelBlue);
+    }
+
+    private static void ApplyEpPlusVariantConditionalFormatting(ExcelWorksheet worksheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
+        int amountColumn = GetColumnIndex(columns, "Amount");
+        int unitsColumn = GetColumnIndex(columns, "Units");
+        int lastRow = rowCount + 1;
+
+        var highAmount = worksheet.ConditionalFormatting.AddGreaterThan(worksheet.Cells[2, amountColumn, lastRow, amountColumn]);
+        highAmount.Formula = "3000";
+        highAmount.Style.Fill.PatternType = ExcelFillStyle.Solid;
+        highAmount.Style.Fill.BackgroundColor.Color = System.Drawing.Color.LightGreen;
+
+        var lowUnits = worksheet.ConditionalFormatting.AddLessThan(worksheet.Cells[2, unitsColumn, lastRow, unitsColumn]);
+        lowUnits.Formula = "5";
+        lowUnits.Style.Fill.PatternType = ExcelFillStyle.Solid;
+        lowUnits.Style.Fill.BackgroundColor.Color = System.Drawing.Color.LightPink;
+    }
+
+    private static void ApplyOfficeImoVariantDataValidation(ExcelSheet sheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
+        int unitsColumn = GetColumnIndex(columns, "Units");
+        int lastRow = rowCount + 1;
+        sheet.ValidationWholeNumber(BuildColumnRange(unitsColumn, 2, lastRow), DataValidationOperatorValues.Between, 1, 24);
+    }
+
+    private static void ApplyEpPlusVariantDataValidation(ExcelWorksheet worksheet, int rowCount, IReadOnlyList<RealWorldColumnSpec> columns) {
+        int unitsColumn = GetColumnIndex(columns, "Units");
+        int lastRow = rowCount + 1;
+        var validation = worksheet.DataValidations.AddIntegerValidation(BuildColumnRange(unitsColumn, 2, lastRow));
+        validation.Operator = OfficeOpenXml.DataValidation.ExcelDataValidationOperator.between;
+        validation.Formula.Value = 1;
+        validation.Formula2.Value = 24;
+    }
+
+    private static void AddOfficeImoVariantPivotTable(ExcelSheet sheet, string range) {
+        sheet.AddPivotTable(
+            sourceRange: range,
+            destinationCell: "J3",
+            name: "SalesPivot",
+            rowFields: new[] { "Region" },
+            columnFields: new[] { "Owner" },
+            dataFields: new[] { new ExcelPivotDataField("Amount", DataConsolidateFunctionValues.Sum, "Total Amount") },
+            pivotStyleName: "PivotStyleMedium9");
+    }
+
+    private static void AddEpPlusVariantPivotTable(ExcelPackage package, ExcelWorksheet dataWorksheet, int rowCount, int columnCount) {
+        var pivotSheet = package.Workbook.Worksheets.Add("Pivot");
+        var source = dataWorksheet.Cells[1, 1, rowCount + 1, columnCount];
+        var pivot = pivotSheet.PivotTables.Add(pivotSheet.Cells["A3"], source, "SalesPivot");
+        pivot.RowFields.Add(pivot.Fields["Region"]);
+        pivot.ColumnFields.Add(pivot.Fields["Owner"]);
+        var amount = pivot.DataFields.Add(pivot.Fields["Amount"]);
+        amount.Function = DataFieldFunctions.Sum;
+        amount.Name = "Total Amount";
+    }
+
+    private static string BuildVariantRange(int rowCount, int columnCount)
+        => "A1:" + GetColumnLetter(columnCount) + (rowCount + 1).ToString(CultureInfo.InvariantCulture);
+
+    private static string BuildColumnRange(int columnIndex, int firstRow, int lastRow) {
+        string column = GetColumnLetter(columnIndex);
+        return column + firstRow.ToString(CultureInfo.InvariantCulture) + ":" + column + lastRow.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static int GetColumnIndex(IReadOnlyList<RealWorldColumnSpec> columns, string header) {
+        for (int i = 0; i < columns.Count; i++) {
+            if (string.Equals(columns[i].Header, header, StringComparison.OrdinalIgnoreCase)) {
+                return i + 1;
+            }
+        }
+
+        throw new InvalidOperationException($"Column '{header}' was not found in the benchmark variant.");
+    }
+
+    private static string GetColumnLetter(int columnIndex) {
+        Span<char> buffer = stackalloc char[8];
+        int position = buffer.Length;
+        int value = columnIndex;
+        while (value > 0) {
+            value--;
+            buffer[--position] = (char)('A' + (value % 26));
+            value /= 26;
+        }
+
+        return new string(buffer[position..]);
+    }
+
+    private static readonly RealWorldColumnSpec[] RealWorldDefaultColumns = [
+        new("Id", static item => item.Id),
+        new("Region", static item => item.Region),
+        new("Owner", static item => item.Owner),
+        new("CreatedOn", static item => item.CreatedOn),
+        new("Amount", static item => item.Amount),
+        new("Units", static item => item.Units),
+        new("Active", static item => item.Active),
+        new("Notes", static item => item.Notes)
+    ];
+
+    private static readonly RealWorldColumnSpec[] RealWorldShuffledColumns = [
+        new("Owner", static item => item.Owner),
+        new("Region", static item => item.Region),
+        new("Id", static item => item.Id),
+        new("Amount", static item => item.Amount),
+        new("CreatedOn", static item => item.CreatedOn),
+        new("Units", static item => item.Units),
+        new("Notes", static item => item.Notes),
+        new("Active", static item => item.Active)
+    ];
+
+    private static readonly RealWorldColumnSpec[] RealWorldExtraColumns = [
+        new("Id", static item => item.Id),
+        new("Region", static item => item.Region),
+        new("Owner", static item => item.Owner),
+        new("CreatedOn", static item => item.CreatedOn),
+        new("Amount", static item => item.Amount),
+        new("Units", static item => item.Units),
+        new("Active", static item => item.Active),
+        new("Notes", static item => item.Notes),
+        new("AmountBand", static item => item.Amount >= 3000 ? "High" : item.Amount >= 1000 ? "Medium" : "Low")
+    ];
+
+    private sealed record RealWorldColumnSpec(string Header, Func<ExcelBenchmarkScenarioFactory.SalesRecord, object?> Selector);
+
+    private sealed record RealWorldVariantOptions(bool AutoFit = true, bool ChartBeforePivot = false, bool PostMutation = false) {
+        public static readonly RealWorldVariantOptions Default = new();
     }
 
     private static void ApplyOfficeImoTable(ExcelSheet sheet, int rowCount) {
