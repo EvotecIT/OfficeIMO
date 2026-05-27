@@ -179,8 +179,10 @@ namespace OfficeIMO.Tests {
                 .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Gallery", 5, 4);
-            VisioShape left = page.AddRectangle("left", 0.8, 0.8, 0.5, 0.5, "L");
-            VisioShape right = page.AddRectangle("right", 1.8, 0.8, 0.5, 0.5, "R");
+            VisioShape left = new VisioShape("left", 0.8, 0.8, 0.5, 0.5, "L");
+            VisioShape right = new VisioShape("right", 1.8, 0.8, 0.5, 0.5, "R");
+            page.Shapes.Add(left);
+            page.Shapes.Add(right);
             page.AddConnector("gallery-title", left, right, ConnectorKind.Dynamic);
 
             page.AddStencilGallery(catalog, new VisioStencilGalleryOptions {

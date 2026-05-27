@@ -337,10 +337,12 @@ namespace OfficeIMO.Visio {
 
             CopyStringSet(source.LayerNames, clone.LayerNames);
             CopyHyperlinks(source.Hyperlinks, clone.Hyperlinks);
+            CopyShapeData(source.ShapeData, clone.ShapeData, clone.Data);
             CopyProtection(source.Protection, clone.Protection);
             CopyElements(source.PreservedGeometrySections, clone.PreservedGeometrySections);
             CopyElements(source.PreservedCellElements, clone.PreservedCellElements);
             CopyElements(source.PreservedNonGeometrySections, clone.PreservedNonGeometrySections);
+            CopyElements(source.PreservedDataRows, clone.PreservedDataRows);
             CopyConnectorPreservation(source, clone);
             return clone;
         }

@@ -169,10 +169,14 @@ VisioDocument.Create("graph.vsdx")
         .Zone("runtime", "Runtime", "gateway", "events", "worker")
         .Root("gateway")
         .ControlEdge("gateway-publishes-events", "gateway", "events", "publish")
+        .EdgeShapeData("gateway-publishes-events", "Protocol", "HTTPS",
+            "Protocol", VisioShapeDataType.String)
         .EdgeHyperlink("gateway-publishes-events",
             "https://learn.microsoft.com/azure/event-grid/", "Event docs")
         .Edge("events", "worker", "trigger")
         .DataEdge("worker-writes-database", "worker", "database", "write")
+        .EdgeShapeData("worker-writes-database", "Port", "1433",
+            "Port", VisioShapeDataType.Number)
         .EdgeHyperlink("worker-writes-database",
             "https://example.org/contracts/write-model", "Write contract")
         .EdgeStyle("worker-writes-database", style => {
@@ -190,10 +194,10 @@ nodes; and source-aware `VisioStencilShape` nodes loaded from installed Visio
 or external `.vssx`/`.vstx` packages. Use `NodeShapeData` and `NodeHyperlink`
 to keep generated graph nodes searchable, inspectable, and linked to runbooks,
 dashboards, API docs, or data catalogs inside Visio. Named edges can also carry
-connector hyperlinks with `EdgeHyperlink`, which is useful for API contracts,
-message schemas, queries, and relationship-specific runbooks. Use `NodeStyle`
-and `EdgeStyle` for local visual emphasis without cloning or forking a whole
-theme.
+connector Shape Data with `EdgeShapeData` and hyperlinks with `EdgeHyperlink`,
+which is useful for protocols, ports, trust levels, API contracts, message
+schemas, queries, and relationship-specific runbooks. Use `NodeStyle` and
+`EdgeStyle` for local visual emphasis without cloning or forking a whole theme.
 
 ## Quick sample (architecture diagram builder)
 

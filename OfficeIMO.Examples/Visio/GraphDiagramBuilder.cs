@@ -54,12 +54,15 @@ namespace OfficeIMO.Examples.Visio {
                         .Zone("data", "Data", "sql")
                         .Edge("users", "gateway", "HTTPS")
                         .ControlEdge("gateway-publishes-events", "gateway", "events", "publish")
+                        .EdgeShapeData("gateway-publishes-events", "Protocol", "HTTPS", "Protocol", VisioShapeDataType.String)
                         .EdgeHyperlink("gateway-publishes-events", "https://learn.microsoft.com/azure/event-grid/", "Event Grid docs")
                         .ControlEdge("events-trigger-function", "events", "function", "trigger")
+                        .EdgeShapeData("events-trigger-function", "Trigger", "EventGrid", "Trigger", VisioShapeDataType.String)
                         .EdgeHyperlink("events-trigger-function", "https://learn.microsoft.com/azure/azure-functions/functions-bindings-event-grid", "Function trigger docs")
                         .Edge("function", "worker", "dispatch")
                         .ControlEdge("worker", "batch", "schedule")
                         .DataEdge("worker-writes-sql", "worker", "sql", "write")
+                        .EdgeShapeData("worker-writes-sql", "Port", "1433", "Port", VisioShapeDataType.Number)
                         .EdgeHyperlink("worker-writes-sql", "https://learn.microsoft.com/azure/azure-sql/database/connect-query-dotnet-core", "SQL client docs")
                         .EdgeStyle("worker-writes-sql", style => {
                             style.LineColor = Color.FromRgb(0, 102, 204);

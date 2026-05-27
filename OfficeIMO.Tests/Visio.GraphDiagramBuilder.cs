@@ -138,6 +138,8 @@ namespace OfficeIMO.Tests {
                     .NodeHyperlink("api", "https://example.org/runbook", "Runbook")
                     .NodeHyperlink("database", new Uri("https://example.org/data-catalog"), "Data catalog")
                     .DataEdge("api-reads-database", "api", "database", "reads")
+                    .EdgeShapeData("api-reads-database", "Protocol", "HTTPS", "Protocol", VisioShapeDataType.String)
+                    .EdgeShapeData("api-reads-database", "Port", "443", "Port", VisioShapeDataType.Number)
                     .EdgeHyperlink("api-reads-database", "https://example.org/openapi.json", "API contract"));
 
             VisioPage page = Assert.Single(document.Pages);
@@ -150,6 +152,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains(api.ShapeData, row => row.Name == "Owner" && row.Label == "Owner" && row.Prompt == "Owning team");
             Assert.Contains(api.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
             Assert.Contains(database.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/data-catalog" && hyperlink.Description == "Data catalog");
+            Assert.Equal("HTTPS", connector.GetShapeDataValue("Protocol"));
+            Assert.Equal("443", connector.GetShapeDataValue("Port"));
+            Assert.Contains(connector.ShapeData, row => row.Name == "Protocol" && row.Label == "Protocol" && row.Type == VisioShapeDataType.String);
             Assert.Contains(connector.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/openapi.json" && hyperlink.Description == "API contract");
 
             document.Save();
@@ -160,6 +165,8 @@ namespace OfficeIMO.Tests {
             VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single(edge => edge.Id == "api-reads-database");
             Assert.Equal("Platform", loadedApi.GetShapeDataValue("Owner"));
             Assert.Contains(loadedApi.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
+            Assert.Equal("HTTPS", loadedConnector.GetShapeDataValue("Protocol"));
+            Assert.Equal("443", loadedConnector.GetShapeDataValue("Port"));
             Assert.Contains(loadedConnector.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/openapi.json" && hyperlink.Description == "API contract");
         }
 

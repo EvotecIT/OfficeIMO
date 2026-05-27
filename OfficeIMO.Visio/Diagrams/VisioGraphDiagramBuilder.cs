@@ -89,6 +89,8 @@ namespace OfficeIMO.Visio.Diagrams {
 
             public VisioConnectorStyle? StyleOverride { get; set; }
 
+            public List<NodeShapeDataItem> ShapeData { get; } = new();
+
             public List<VisioHyperlink> Hyperlinks { get; } = new();
         }
 
@@ -430,6 +432,20 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return EdgeHyperlink(edgeId, address.ToString(), description, subAddress);
+        }
+
+        /// <summary>Adds or replaces Shape Data on a named graph edge connector.</summary>
+        public VisioGraphDiagramBuilder EdgeShapeData(string edgeId, string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
+            string normalizedEdgeId = RequireId(edgeId, nameof(edgeId), "Edge id");
+            EdgeItem edge = GetKnownEdge(normalizedEdgeId, nameof(edgeId));
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Shape data name cannot be null or whitespace.", nameof(name));
+            }
+
+            string normalizedName = name.Trim();
+            edge.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.Ordinal));
+            edge.ShapeData.Add(new NodeShapeDataItem(normalizedName, value, label, type, prompt, format));
+            return this;
         }
 
         /// <summary>Overrides the visual style for a named graph edge connector.</summary>
@@ -781,6 +797,10 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static void ApplyEdgeMetadata(VisioConnector connector, EdgeItem edge) {
+            foreach (NodeShapeDataItem data in edge.ShapeData) {
+                connector.SetShapeData(data.Name, data.Value, data.Label, data.Type, data.Prompt, data.Format);
+            }
+
             foreach (VisioHyperlink hyperlink in edge.Hyperlinks) {
                 VisioHyperlink target = connector.AddHyperlink(hyperlink.Address ?? string.Empty, hyperlink.Description, hyperlink.SubAddress);
                 CopyHyperlinkSettings(hyperlink, target);
