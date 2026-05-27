@@ -1208,6 +1208,9 @@ public class PdfInspectorTests {
         PdfFormField field = Assert.Single(info.FormFields);
         Assert.Equal("AcceptTerms", field.Name);
         Assert.True(field.HasWidgets);
+        Assert.True(field.HasPageNumbers);
+        Assert.Equal(1, field.PageNumberCount);
+        Assert.Equal(new[] { 1 }, field.PageNumbers);
         Assert.True(info.HasFormWidgets);
         Assert.Equal(1, info.FormWidgetCount);
         Assert.True(info.Pages[0].HasFormWidgets);

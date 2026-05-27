@@ -54,6 +54,7 @@ public sealed class PdfFormField {
     private const int CommitOnSelectionChangeFlag = 67108864;
     private IReadOnlyList<PdfFormFieldOption>? _selectedOptions;
     private IReadOnlyList<PdfFormFieldOption>? _defaultSelectedOptions;
+    private IReadOnlyList<int>? _pageNumbers;
 
     internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, string? defaultValue = null, IReadOnlyList<string>? defaultValues = null, string? defaultAppearance = null, int? quadding = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
         ObjectNumber = objectNumber;
@@ -292,6 +293,39 @@ public sealed class PdfFormField {
 
     /// <summary>True when at least one widget annotation was associated with this field.</summary>
     public bool HasWidgets => Widgets.Count > 0;
+
+    /// <summary>Distinct one-based page numbers where this field has readable widget annotations.</summary>
+    public IReadOnlyList<int> PageNumbers {
+        get {
+            if (_pageNumbers is not null) {
+                return _pageNumbers;
+            }
+
+            if (Widgets.Count == 0) {
+                _pageNumbers = Array.Empty<int>();
+                return _pageNumbers;
+            }
+
+            var pages = new List<int>();
+            for (int i = 0; i < Widgets.Count; i++) {
+                int? pageNumber = Widgets[i].PageNumber;
+                if (!pageNumber.HasValue || pages.Contains(pageNumber.Value)) {
+                    continue;
+                }
+
+                pages.Add(pageNumber.Value);
+            }
+
+            _pageNumbers = pages.Count == 0 ? Array.Empty<int>() : pages.AsReadOnly();
+            return _pageNumbers;
+        }
+    }
+
+    /// <summary>Number of distinct readable page numbers where this field has widgets.</summary>
+    public int PageNumberCount => PageNumbers.Count;
+
+    /// <summary>True when at least one widget for this field has a readable page number.</summary>
+    public bool HasPageNumbers => PageNumberCount > 0;
 
     private bool HasFlag(int flag) {
         return Flags.HasValue && (Flags.Value & flag) != 0;
