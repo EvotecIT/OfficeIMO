@@ -365,6 +365,7 @@ public class PdfDocVisualQualityTests {
             LeftIndent = 8,
             FirstLineIndent = 4,
             SpacingAfter = 9,
+            DefaultTabStopWidth = 72,
             WidowControl = true
         };
         var options = new PdfOptions {
@@ -375,6 +376,7 @@ public class PdfDocVisualQualityTests {
         style.LeftIndent = 20;
         style.FirstLineIndent = 21;
         style.SpacingAfter = 22;
+        style.DefaultTabStopWidth = 18;
         style.WidowControl = false;
 
         PdfParagraphStyle readback = options.DefaultParagraphStyle!;
@@ -386,8 +388,10 @@ public class PdfDocVisualQualityTests {
         Assert.Equal(8, options.DefaultParagraphStyle.LeftIndent);
         Assert.Equal(4, options.DefaultParagraphStyle.FirstLineIndent);
         Assert.Equal(9, options.DefaultParagraphStyle.SpacingAfter);
+        Assert.Equal(72, options.DefaultParagraphStyle.DefaultTabStopWidth);
         Assert.True(options.DefaultParagraphStyle.WidowControl);
         Assert.Equal(8, clone.DefaultParagraphStyle!.LeftIndent);
+        Assert.Equal(72, clone.DefaultParagraphStyle.DefaultTabStopWidth);
     }
 
     [Fact]
@@ -5429,6 +5433,13 @@ public class PdfDocVisualQualityTests {
             });
 
         Assert.Contains("Paragraph first line indent must be a finite value.", firstLineIndentException.Message, StringComparison.Ordinal);
+
+        var tabStopException = Assert.Throws<ArgumentException>(() =>
+            new PdfParagraphStyle {
+                DefaultTabStopWidth = double.NaN
+            });
+
+        Assert.Contains("Paragraph default tab stop width must be a positive finite value.", tabStopException.Message, StringComparison.Ordinal);
 
         var hangingOutsideFrameException = Assert.Throws<ArgumentException>(() =>
             PdfDoc.Create(new PdfOptions {

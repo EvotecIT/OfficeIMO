@@ -174,16 +174,17 @@ internal static partial class PdfWriter {
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline) =>
         EstimateSimpleTextWidth(text, font, EffectiveRichFontSize(fontSize, baseline));
 
-    private static double CalculateDefaultTabAdvance(double lineWidth, double spaceWidth) {
-        if (lineWidth < 0 || double.IsNaN(lineWidth) || double.IsInfinity(lineWidth)) {
+    private static double CalculateDefaultTabAdvance(double lineWidth, double spaceWidth, double tabStopWidth = DefaultParagraphTabStopWidth) {
+        if (lineWidth < 0 || double.IsNaN(lineWidth) || double.IsInfinity(lineWidth) ||
+            tabStopWidth <= 0 || double.IsNaN(tabStopWidth) || double.IsInfinity(tabStopWidth)) {
             return spaceWidth;
         }
 
-        double nextStop = (Math.Floor(lineWidth / DefaultParagraphTabStopWidth) + 1D) * DefaultParagraphTabStopWidth;
+        double nextStop = (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;
         return Math.Max(spaceWidth, nextStop - lineWidth);
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null) {
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null, double tabStopWidth = DefaultParagraphTabStopWidth) {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
@@ -271,7 +272,7 @@ internal static partial class PdfWriter {
                         pendingLeadingIsExpandable = true;
                     } else if (nextWs != -1) {
                         bool hadTab = text[nextWs] == '\t';
-                        pendingLeadingAdvance = hadTab ? CalculateDefaultTabAdvance(lineWidth, spaceW) : spaceW;
+                        pendingLeadingAdvance = hadTab ? CalculateDefaultTabAdvance(lineWidth, spaceW, tabStopWidth) : spaceW;
                         pendingLeadingIsExpandable = !hadTab;
                     }
                     continue;
@@ -300,7 +301,7 @@ internal static partial class PdfWriter {
                     pendingLeadingIsExpandable = true;
                 } else if (nextWs != -1) {
                     bool hadTab = text[nextWs] == '\t';
-                    pendingLeadingAdvance = hadTab ? CalculateDefaultTabAdvance(lineWidth, spaceW) : spaceW;
+                    pendingLeadingAdvance = hadTab ? CalculateDefaultTabAdvance(lineWidth, spaceW, tabStopWidth) : spaceW;
                     pendingLeadingIsExpandable = !hadTab;
                 }
             }

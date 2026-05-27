@@ -64,6 +64,15 @@ internal static partial class PdfWriter {
         return spacingAfter;
     }
 
+    private static double GetParagraphTabStopWidth(PdfParagraphStyle? style) {
+        double tabStopWidth = style?.DefaultTabStopWidth ?? DefaultParagraphTabStopWidth;
+        if (tabStopWidth <= 0 || double.IsNaN(tabStopWidth) || double.IsInfinity(tabStopWidth)) {
+            throw new ArgumentException("Paragraph default tab stop width must be a positive finite value.");
+        }
+
+        return tabStopWidth;
+    }
+
     private static PdfHeadingStyle? ResolveHeadingStyle(HeadingBlock block, PdfOptions options) {
         return block.Style ?? options.DefaultHeadingStylesSnapshot?.GetSnapshot(block.Level);
     }
@@ -1817,7 +1826,7 @@ internal static partial class PdfWriter {
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRuns(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth);
+            var wrap = WrapRichRuns(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, GetParagraphTabStopWidth(paragraphStyle));
             return wrap.LineHeights.Count == 0 ? spacingBefore : spacingBefore + wrap.LineHeights[0];
         }
 
@@ -2054,7 +2063,7 @@ internal static partial class PdfWriter {
                     double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
                     double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
                     var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
-                    var (lines, lineHeights) = WrapRichRuns(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth);
+                    var (lines, lineHeights) = WrapRichRuns(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, GetParagraphTabStopWidth(paragraphStyle));
                     if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0) {
                         double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
                         double keepHeight = spacingBefore + lineHeights.Sum() + spacingAfter + nextHeight;
@@ -2903,7 +2912,7 @@ internal static partial class PdfWriter {
                                 PdfParagraphStyle? paragraphStyle = EffectiveParagraphStyle(rpb2);
                                 double leading = GetParagraphLeading(paragraphStyle, size);
                                 var textFrame = GetParagraphTextFrame(paragraphStyle, 0, colWs[i]);
-                                var wrap = WrapRichRuns(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth);
+                                var wrap = WrapRichRuns(rpb2.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, GetParagraphTabStopWidth(paragraphStyle));
                                 items.Add(new ColPar { Block = rpb2, Lines = wrap.Lines, Heights = wrap.LineHeights, Leading = leading, Size = size, XOffset = textFrame.X, TextWidth = textFrame.Width, FirstLineXOffset = textFrame.FirstLineX, FirstLineTextWidth = textFrame.FirstLineWidth });
                             } else if (cb is BulletListBlock bl2) {
                                 PdfListStyle? listStyle = ResolveListStyle(bl2, currentOpts);

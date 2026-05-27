@@ -9,10 +9,10 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf {
     public class RichParagraphWrappingTests {
-        private static object InvokeWrapRichRuns(IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont) {
+        private static object InvokeWrapRichRuns(IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double? tabStopWidth = null) {
             var method = typeof(PdfWriter).GetMethod("WrapRichRuns", BindingFlags.NonPublic | BindingFlags.Static);
             Assert.NotNull(method);
-            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null })!;
+            return method!.Invoke(null, new object?[] { runs, maxWidthPts, fontSize, baseFont, fontSize * 1.4, null, tabStopWidth ?? 36.0 })!;
         }
 
         private static T InvokePrivateFontMethod<T>(string methodName, params object[] parameters) {
@@ -407,6 +407,17 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_UsesConfiguredDefaultTabStopWidth() {
+            var result = InvokeWrapRichRuns(new[] {
+                new TextRun("A\tB")
+            }, 200, 12, PdfStandardFont.Helvetica, tabStopWidth: 72);
+
+            var line = Assert.Single(ExtractLines(result));
+            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.InRange(ExtractLeadingAdvance(line[1]), 63, 65);
+        }
+
+        [Fact]
         public void ParagraphTabs_RenderAsVisibleDefaultTabStopGap() {
             byte[] bytes = PdfDoc.Create(new PdfOptions {
                     DefaultFontSize = 12
@@ -435,6 +446,30 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Equal(2, lineGaps.Length);
             Assert.True(lineGaps[1] > lineGaps[0] + 10, $"Expected a default tab-stop gap rather than a collapsed single space. Plain gap: {lineGaps[0]:0.##}, tab gap: {lineGaps[1]:0.##}.");
+        }
+
+        [Fact]
+        public void ParagraphTabs_UseDefaultParagraphStyleTabStopWidth() {
+            byte[] bytes = PdfDoc.Create(new PdfOptions {
+                    DefaultFontSize = 12,
+                    DefaultParagraphStyle = new PdfParagraphStyle {
+                        DefaultTabStopWidth = 72,
+                        SpacingAfter = 0
+                    }
+                })
+                .Paragraph(p => p.Text("A\tB"))
+                .ToBytes();
+
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(new MemoryStream(bytes));
+            var letters = pdf.GetPage(1).Letters
+                .Where(letter => letter.Value == "A" || letter.Value == "B")
+                .OrderBy(letter => letter.StartBaseLine.X)
+                .ToList();
+            var a = Assert.Single(letters, letter => letter.Value == "A");
+            var b = Assert.Single(letters, letter => letter.Value == "B");
+            double gap = b.StartBaseLine.X - a.EndBaseLine.X;
+
+            Assert.True(gap > 50, $"Expected custom 72pt tab stop to create a wide visible gap. Gap: {gap:0.##}.");
         }
 
         [Fact]
