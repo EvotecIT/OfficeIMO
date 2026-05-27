@@ -199,12 +199,16 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<ExtendedPartModel> parts,
                 IReadOnlyDictionary<OpenXmlPart, ExtendedPartModel> partMap,
                 IReadOnlyList<ExtendedRelationshipModel> packageRelationships,
+                string corePropertiesXml,
+                string appPropertiesXml,
                 DirectDataSetWorkbookModel? directDataSetModel,
                 IReadOnlyDictionary<OpenXmlPart, DirectDataSetSheetModel> directWorksheetModels) {
                 WorkbookRelationshipId = workbookRelationshipId;
                 Parts = parts;
                 PartMap = partMap;
                 PackageRelationships = packageRelationships;
+                CorePropertiesXml = corePropertiesXml;
+                AppPropertiesXml = appPropertiesXml;
                 DirectDataSetModel = directDataSetModel;
                 DirectWorksheetModels = directWorksheetModels;
             }
@@ -216,6 +220,10 @@ namespace OfficeIMO.Excel {
             internal IReadOnlyDictionary<OpenXmlPart, ExtendedPartModel> PartMap { get; }
 
             internal IReadOnlyList<ExtendedRelationshipModel> PackageRelationships { get; }
+
+            internal string CorePropertiesXml { get; }
+
+            internal string AppPropertiesXml { get; }
 
             internal DirectDataSetWorkbookModel? DirectDataSetModel { get; }
 
@@ -285,7 +293,20 @@ namespace OfficeIMO.Excel {
                     ? new Dictionary<OpenXmlPart, DirectDataSetSheetModel>(0)
                     : BuildDirectWorksheetModelMap(workbookPart, directDataSetModel);
 
-                model = new ExtendedWorkbookPackageModel(workbookRelationshipId, parts, partMap, packageRelationships, directDataSetModel, directWorksheetModels);
+                string corePropertiesXml = CreateCorePropertiesXml(document);
+                string appPropertiesXml = document.ExtendedFilePropertiesPart?.Properties != null
+                    ? "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + document.ExtendedFilePropertiesPart.Properties.OuterXml
+                    : CreateAppPropertiesXml();
+
+                model = new ExtendedWorkbookPackageModel(
+                    workbookRelationshipId,
+                    parts,
+                    partMap,
+                    packageRelationships,
+                    corePropertiesXml,
+                    appPropertiesXml,
+                    directDataSetModel,
+                    directWorksheetModels);
                 return true;
             }
 
@@ -330,12 +351,18 @@ namespace OfficeIMO.Excel {
                     return true;
                 }
 
-                if (!TryGetSupportedRootElement(part, out var rootElement, out skipReason)) {
-                    return false;
+                string path = NormalizePackagePartPath(part.Uri);
+                ExtendedPartModel model;
+                if (TryCopyRawSupportedPart(part, path, out var rawModel)) {
+                    model = rawModel;
+                } else {
+                    if (!TryGetSupportedRootElement(part, out var rootElement, out skipReason)) {
+                        return false;
+                    }
+
+                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, rawBytes: null);
                 }
 
-                string path = NormalizePackagePartPath(part.Uri);
-                var model = new ExtendedPartModel(part, path, part.ContentType, rootElement);
                 parts.Add(model);
                 partMap[part] = model;
 
@@ -350,11 +377,12 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class ExtendedPartModel {
-            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement rootElement) {
+            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, byte[]? rawBytes) {
                 Part = part;
                 Path = path;
                 ContentType = contentType;
                 RootElement = rootElement;
+                RawBytes = rawBytes;
             }
 
             internal OpenXmlPart Part { get; }
@@ -363,7 +391,9 @@ namespace OfficeIMO.Excel {
 
             internal string ContentType { get; }
 
-            internal OpenXmlElement RootElement { get; }
+            internal OpenXmlElement? RootElement { get; }
+
+            internal byte[]? RawBytes { get; }
         }
 
         private sealed class ExtendedRelationshipModel {
@@ -411,6 +441,19 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            return true;
+        }
+
+        private static bool TryCopyRawSupportedPart(OpenXmlPart part, string path, out ExtendedPartModel model) {
+            model = null!;
+            if (part is not ChartStylePart && part is not ChartColorStylePart) {
+                return false;
+            }
+
+            using var source = part.GetStream();
+            using var memory = new MemoryStream();
+            source.CopyTo(memory);
+            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, memory.ToArray());
             return true;
         }
 
@@ -513,8 +556,8 @@ namespace OfficeIMO.Excel {
 
                 WriteExtendedContentTypesEntry(archive, model.Parts, directWritePlan != null, directWritePlan?.HasSharedStrings == true);
                 WriteExtendedRelationshipsEntry(archive, "_rels/.rels", model.PackageRelationships);
-                WriteCorePropertiesEntry(archive);
-                WriteAppPropertiesEntry(archive);
+                WriteTextEntry(archive, "docProps/core.xml", model.CorePropertiesXml);
+                WriteTextEntry(archive, "docProps/app.xml", model.AppPropertiesXml);
                 ReportTiming("Save.ExtendedPackage.WriteFixedEntries");
 
                 bool wroteDirectStyles = false;
@@ -547,6 +590,12 @@ namespace OfficeIMO.Excel {
                         var tablePartIds = worksheetPart.TableDefinitionParts
                             .Select(worksheetPart.GetIdOfPart)
                             .ToDictionary(static id => id, static id => string.Empty, StringComparer.Ordinal);
+                        var hyperlinkRelationships = worksheetPart.HyperlinkRelationships
+                            .Select(static relationship => new FastHyperlinkRelationshipModel(
+                                relationship.Id,
+                                relationship.Uri.ToString(),
+                                relationship.IsExternal))
+                            .ToList();
                         var worksheetModel = new FastWorksheetPackageModel(
                             string.Empty,
                             0U,
@@ -556,11 +605,14 @@ namespace OfficeIMO.Excel {
                             GetRelationshipsPath(part.Path),
                             worksheetPart.Worksheet!,
                             tablePartIds,
-                            Array.Empty<FastHyperlinkRelationshipModel>());
+                            hyperlinkRelationships);
                         WriteWorksheetEntry(archive, worksheetModel);
                         ReportTiming("Save.ExtendedPackage.WriteSimpleWorksheet");
+                    } else if (part.RawBytes != null) {
+                        WriteBinaryEntry(archive, part.Path, part.RawBytes);
+                        ReportTiming("Save.ExtendedPackage.WriteRawPart");
                     } else {
-                        WriteOpenXmlElementEntry(archive, part.Path, part.RootElement);
+                        WriteOpenXmlElementEntry(archive, part.Path, part.RootElement!);
                         ReportTiming("Save.ExtendedPackage.WriteOpenXmlPart");
                     }
 
@@ -637,6 +689,22 @@ namespace OfficeIMO.Excel {
                         isExternal: false));
                 }
 
+                foreach (var hyperlink in container.HyperlinkRelationships) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        hyperlink.Id,
+                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+                        hyperlink.Uri.ToString(),
+                        hyperlink.IsExternal));
+                }
+
+                foreach (var external in container.ExternalRelationships) {
+                    relationships.Add(new ExtendedRelationshipModel(
+                        external.Id,
+                        external.RelationshipType,
+                        external.Uri.ToString(),
+                        isExternal: true));
+                }
+
                 if (directWritePlan != null
                     && container is WorkbookPart
                     && !relationships.Any(static relationship => string.Equals(
@@ -661,22 +729,6 @@ namespace OfficeIMO.Excel {
                         "http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings",
                         "sharedStrings.xml",
                         isExternal: false));
-                }
-
-                foreach (var hyperlink in container.HyperlinkRelationships) {
-                    relationships.Add(new ExtendedRelationshipModel(
-                        hyperlink.Id,
-                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
-                        hyperlink.Uri.ToString(),
-                        hyperlink.IsExternal));
-                }
-
-                foreach (var external in container.ExternalRelationships) {
-                    relationships.Add(new ExtendedRelationshipModel(
-                        external.Id,
-                        external.RelationshipType,
-                        external.Uri.ToString(),
-                        isExternal: true));
                 }
 
                 return relationships;
@@ -1308,22 +1360,90 @@ namespace OfficeIMO.Excel {
         }
 
         private static void WriteCorePropertiesEntry(ZipArchive archive) {
-            WriteTextEntry(archive, "docProps/core.xml",
-                "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+            WriteTextEntry(archive, "docProps/core.xml", CreateCorePropertiesXml());
+        }
+
+        private static string CreateCorePropertiesXml() {
+            return "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                 "<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" " +
                 "xmlns:dc=\"http://purl.org/dc/elements/1.1/\" " +
                 "xmlns:dcterms=\"http://purl.org/dc/terms/\" " +
                 "xmlns:dcmitype=\"http://purl.org/dc/dcmitype/\" " +
-                "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"/>");
+                "xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"/>";
+        }
+
+        private static string CreateCorePropertiesXml(SpreadsheetDocument document) {
+            var properties = document.PackageProperties;
+            var builder = new System.Text.StringBuilder(512);
+            builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+            builder.Append("<cp:coreProperties xmlns:cp=\"http://schemas.openxmlformats.org/package/2006/metadata/core-properties\" ");
+            builder.Append("xmlns:dc=\"http://purl.org/dc/elements/1.1/\" ");
+            builder.Append("xmlns:dcterms=\"http://purl.org/dc/terms/\" ");
+            builder.Append("xmlns:dcmitype=\"http://purl.org/dc/dcmitype/\" ");
+            builder.Append("xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">");
+
+            AppendCoreProperty(builder, "dc:title", properties.Title);
+            AppendCoreProperty(builder, "dc:subject", properties.Subject);
+            AppendCoreProperty(builder, "dc:creator", properties.Creator);
+            AppendCoreProperty(builder, "cp:keywords", properties.Keywords);
+            AppendCoreProperty(builder, "dc:description", properties.Description);
+            AppendCoreProperty(builder, "cp:lastModifiedBy", properties.LastModifiedBy);
+            AppendCoreProperty(builder, "cp:revision", properties.Revision);
+            AppendCoreProperty(builder, "cp:category", properties.Category);
+            AppendCoreProperty(builder, "cp:version", properties.Version);
+            AppendCoreProperty(builder, "cp:contentStatus", properties.ContentStatus);
+            AppendCoreProperty(builder, "dc:identifier", properties.Identifier);
+            AppendCoreProperty(builder, "dc:language", properties.Language);
+            AppendCoreDateProperty(builder, "cp:lastPrinted", properties.LastPrinted, includeW3CType: false);
+            AppendCoreDateProperty(builder, "dcterms:created", properties.Created, includeW3CType: true);
+            AppendCoreDateProperty(builder, "dcterms:modified", properties.Modified, includeW3CType: true);
+
+            builder.Append("</cp:coreProperties>");
+            return builder.ToString();
         }
 
         private static void WriteAppPropertiesEntry(ZipArchive archive) {
-            WriteTextEntry(archive, "docProps/app.xml",
-                "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+            WriteTextEntry(archive, "docProps/app.xml", CreateAppPropertiesXml());
+        }
+
+        private static string CreateAppPropertiesXml() {
+            return "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                 "<Properties xmlns=\"http://schemas.openxmlformats.org/officeDocument/2006/extended-properties\" " +
                 "xmlns:vt=\"http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes\">" +
                 "<Application>OfficeIMO.Excel</Application>" +
-                "</Properties>");
+                "</Properties>";
+        }
+
+        private static void AppendCoreProperty(System.Text.StringBuilder builder, string elementName, string? value) {
+            if (string.IsNullOrEmpty(value)) {
+                return;
+            }
+
+            builder.Append('<');
+            builder.Append(elementName);
+            builder.Append('>');
+            AppendXmlEscaped(builder, value!);
+            builder.Append("</");
+            builder.Append(elementName);
+            builder.Append('>');
+        }
+
+        private static void AppendCoreDateProperty(System.Text.StringBuilder builder, string elementName, DateTime? value, bool includeW3CType) {
+            if (!value.HasValue) {
+                return;
+            }
+
+            builder.Append('<');
+            builder.Append(elementName);
+            if (includeW3CType) {
+                builder.Append(" xsi:type=\"dcterms:W3CDTF\"");
+            }
+
+            builder.Append('>');
+            AppendXmlEscaped(builder, value.Value.ToUniversalTime().ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture));
+            builder.Append("</");
+            builder.Append(elementName);
+            builder.Append('>');
         }
 
         private static void WriteSharedStringsEntry(ZipArchive archive, SharedStringTable sharedStrings) {
@@ -1336,6 +1456,12 @@ namespace OfficeIMO.Excel {
             using var writer = CreateFastXmlWriter(stream);
             writer.WriteStartDocument();
             element.WriteTo(writer);
+        }
+
+        private static void WriteBinaryEntry(ZipArchive archive, string path, byte[] bytes) {
+            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
+            using var stream = entry.Open();
+            stream.Write(bytes, 0, bytes.Length);
         }
 
         private static void WriteWorksheetRelationshipsEntry(ZipArchive archive, FastWorksheetPackageModel worksheet) {
@@ -1562,6 +1688,10 @@ namespace OfficeIMO.Excel {
                 builder.Append(" t=\"str\"");
             } else if (dataType == CellValues.Boolean) {
                 builder.Append(" t=\"b\"");
+            } else if (dataType == CellValues.Error) {
+                builder.Append(" t=\"e\"");
+            } else if (dataType == CellValues.Date) {
+                builder.Append(" t=\"d\"");
             }
 
             builder.Append('>');

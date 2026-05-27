@@ -4264,6 +4264,19 @@ namespace OfficeIMO.Tests {
                     ("Created", row => row.Created));
                 sheet.CellValue(2, 4, 123.45d);
                 sheet.CellAt(2, 4).SetNumberFormat("0.00");
+                sheet.CellValue(2, 5, 45000d);
+                sheet.CellValue(2, 6, 30d);
+
+                var stylesheet = document._spreadSheetDocument.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+                stylesheet.CellFormats ??= new CellFormats();
+                uint builtInDateStyleIndex = (uint)stylesheet.CellFormats.Elements<CellFormat>().Count();
+                stylesheet.CellFormats.Append(new CellFormat { NumberFormatId = 14U, ApplyNumberFormat = true });
+                stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Elements<CellFormat>().Count();
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                sourceCells["E2"].StyleIndex = builtInDateStyleIndex;
+                sourceCells["F2"].CellFormula = new CellFormula("B2*3");
+                sourceCells["F2"].CellValue = new CellValue("30");
+                sourceCells["F2"].DataType = null;
 
                 document.Save(memory);
 
@@ -4277,6 +4290,47 @@ namespace OfficeIMO.Tests {
             Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("123.45", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
             Assert.Equal("0.00", GetCellNumberFormatCode(spreadsheet, cells["D2"]));
+            Assert.Equal("45000", GetSpreadsheetCellText(spreadsheet, cells["E2"]));
+            Assert.Equal("mm-dd-yy", GetCellNumberFormatCode(spreadsheet, cells["E2"]));
+            Assert.Equal("B2*3", cells["F2"].CellFormula!.Text);
+            Assert.Equal("30", cells["F2"].CellValue!.Text);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_DirectOverlayClearRemovesPreservedCell() {
+            using var firstMemory = new MemoryStream();
+            using var secondMemory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.CellValue(2, 4, "Manual");
+
+                document.Save(firstMemory);
+
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                sourceCells["D2"].CellFormula = null;
+                sourceCells["D2"].CellValue = null;
+                sourceCells["D2"].DataType = null;
+                sourceCells["D2"].InlineString = null;
+
+                document.Save(secondMemory);
+            }
+
+            secondMemory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(secondMemory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.True(!cells.ContainsKey("D2") || string.IsNullOrEmpty(GetSpreadsheetCellText(spreadsheet, cells["D2"])));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -4594,10 +4648,28 @@ namespace OfficeIMO.Tests {
             dataSet.Tables.Add(table);
 
             using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document._spreadSheetDocument.PackageProperties.Title = "Review Metadata";
+                document._spreadSheetDocument.PackageProperties.Creator = "OfficeIMO Tests";
+                document._spreadSheetDocument.PackageProperties.LastModifiedBy = "Reviewer";
+                document._spreadSheetDocument.PackageProperties.Created = new DateTime(2026, 5, 26, 12, 0, 0, DateTimeKind.Utc);
+                document._spreadSheetDocument.PackageProperties.Modified = new DateTime(2026, 5, 26, 13, 0, 0, DateTimeKind.Utc);
+
+                var appPart = document._spreadSheetDocument.ExtendedFilePropertiesPart
+                              ?? document._spreadSheetDocument.AddExtendedFilePropertiesPart();
+                appPart.Properties = new DocumentFormat.OpenXml.ExtendedProperties.Properties {
+                    Application = new DocumentFormat.OpenXml.ExtendedProperties.Application { Text = "OfficeIMO Review App" },
+                    Company = new DocumentFormat.OpenXml.ExtendedProperties.Company { Text = "Evotec" },
+                    Manager = new DocumentFormat.OpenXml.ExtendedProperties.Manager { Text = "OfficeIMO" }
+                };
+
                 var links = document.AddWorkSheet("Links");
                 links.SetHyperlink(1, 1, "https://example.org/review", display: "Review link", style: false);
                 links.CellValue(2, 1, 123.45d);
                 links.CellAt(2, 1).SetNumberFormat("0.00");
+                links.CellValue(3, 1, "#DIV/0!");
+                var linkSourceCells = links.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                linkSourceCells["A3"].DataType = CellValues.Error;
+                linkSourceCells["A3"].CellValue = new CellValue("#DIV/0!");
 
                 var customPart = document._spreadSheetDocument.AddCustomFilePropertiesPart();
                 customPart.Properties = new DocumentFormat.OpenXml.CustomProperties.Properties(
@@ -4627,6 +4699,12 @@ namespace OfficeIMO.Tests {
 
             memory.Position = 0;
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            Assert.Equal("Review Metadata", spreadsheet.PackageProperties.Title);
+            Assert.Equal("OfficeIMO Tests", spreadsheet.PackageProperties.Creator);
+            Assert.Equal("Reviewer", spreadsheet.PackageProperties.LastModifiedBy);
+            Assert.Equal("OfficeIMO Review App", spreadsheet.ExtendedFilePropertiesPart!.Properties!.Application!.Text);
+            Assert.Equal("Evotec", spreadsheet.ExtendedFilePropertiesPart.Properties.Company!.Text);
+            Assert.Equal("OfficeIMO", spreadsheet.ExtendedFilePropertiesPart.Properties.Manager!.Text);
             Assert.NotNull(spreadsheet.WorkbookPart!.SharedStringTablePart);
             Assert.NotNull(spreadsheet.CustomFilePropertiesPart);
             var packageRelationship = Assert.Single(spreadsheet.ExternalRelationships);
@@ -4643,8 +4721,53 @@ namespace OfficeIMO.Tests {
             var linkCells = linksPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.Equal("Review link", GetSpreadsheetCellText(spreadsheet, linkCells["A1"]));
             Assert.Equal("0.00", GetCellNumberFormatCode(spreadsheet, linkCells["A2"]));
+            Assert.Equal(CellValues.Error, linkCells["A3"].DataType!.Value);
+            Assert.Equal("#DIV/0!", linkCells["A3"].CellValue!.Text);
+            Assert.Contains("xmlns:r=", linksPart.Worksheet.OuterXml, StringComparison.Ordinal);
             var relationship = Assert.Single(linksPart.HyperlinkRelationships);
             Assert.Equal("https://example.org/review", relationship.Uri.ToString());
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_StyledChartPreservesDeferredRowsInExtendedPackage() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                var chartData = new ExcelChartData(
+                    rows.Select(row => row.Name),
+                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+
+                sheet.AddChart(chartData, row: 1, column: 6, widthPixels: 360, heightPixels: 240, type: ExcelChartType.ColumnClustered, title: "Styled");
+
+                document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var dataSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>()
+                .Single(sheet => string.Equals(sheet.Name?.Value, "Data", StringComparison.Ordinal));
+            var dataPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(dataSheet.Id!);
+            var cells = dataPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("20", cells["B3"].CellValue!.Text);
+
+            var chartPart = dataPart.DrawingsPart!.ChartParts.Single();
+            Assert.NotNull(chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault());
+            Assert.NotNull(chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault());
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -5023,7 +5146,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_InsertObjects_LargeSimplePivotUsesRefreshableCacheRecords() {
+        public void PerformanceReview_InsertObjects_LargeSimplePivotEmbedsCacheRecords() {
             using var memory = new MemoryStream();
             var rows = Enumerable.Range(1, 5000)
                 .Select(index => new PerformanceObjectExportRow(
@@ -5057,13 +5180,59 @@ namespace OfficeIMO.Tests {
 
             var pivotPart = Assert.Single(worksheetPart.PivotTableParts);
             var cacheDefinition = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
-            Assert.False(cacheDefinition.SaveData!.Value);
-            Assert.True(cacheDefinition.RefreshOnLoad!.Value);
+            Assert.True(cacheDefinition.SaveData!.Value);
+            Assert.False(cacheDefinition.RefreshOnLoad!.Value);
             var cacheRecordsPart = Assert.Single(pivotPart.PivotTableCacheDefinitionPart!.GetPartsOfType<PivotTableCacheRecordsPart>());
-            Assert.Equal(0U, cacheRecordsPart.PivotCacheRecords!.Count!.Value);
+            Assert.Equal(5000U, cacheRecordsPart.PivotCacheRecords!.Count!.Value);
             var cacheFields = cacheDefinition.CacheFields!.Elements<CacheField>().ToList();
             var nameItems = cacheFields[0].SharedItems!.Elements<StringItem>().Select(item => item.Val!.Value).ToList();
             Assert.Equal(new[] { "Beta", "Alpha" }, nameItems);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_OverlayNumericValuesPreserveLexicalText() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.CellValue(2, 4, 0);
+                sheet.CellValue(2, 5, 0);
+
+                var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                cells["D2"].DataType = CellValues.Number;
+                cells["D2"].CellValue = new CellValue("1234567890123456789");
+                cells["E2"].DataType = null;
+                cells["E2"].CellValue = new CellValue("1234567890.123456789");
+
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C3",
+                    destinationCell: "G2",
+                    name: "ScorePivot",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.MaterializeDeferredDataSetImport();
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+            Assert.Equal("1234567890123456789", savedCells["D2"].CellValue!.Text);
+            Assert.Equal(CellValues.Number, savedCells["D2"].DataType!.Value);
+            Assert.Equal("1234567890.123456789", savedCells["E2"].CellValue!.Text);
+            Assert.True(savedCells["E2"].DataType == null || savedCells["E2"].DataType!.Value == CellValues.Number);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -6278,10 +6447,40 @@ namespace OfficeIMO.Tests {
             }
 
             uint numberFormatId = cellFormat.NumberFormatId.Value;
-            return stylesheet.NumberingFormats?.Elements<NumberingFormat>()
+            string? customFormat = stylesheet.NumberingFormats?.Elements<NumberingFormat>()
                 .FirstOrDefault(format => format.NumberFormatId?.Value == numberFormatId)
                 ?.FormatCode
                 ?.Value;
+            return customFormat ?? numberFormatId switch {
+                1U => "0",
+                2U => "0.00",
+                3U => "#,##0",
+                4U => "#,##0.00",
+                9U => "0%",
+                10U => "0.00%",
+                11U => "0.00E+00",
+                12U => "# ?/?",
+                13U => "# ??/??",
+                14U => "mm-dd-yy",
+                15U => "d-mmm-yy",
+                16U => "d-mmm",
+                17U => "mmm-yy",
+                18U => "h:mm AM/PM",
+                19U => "h:mm:ss AM/PM",
+                20U => "h:mm",
+                21U => "h:mm:ss",
+                22U => "m/d/yy h:mm",
+                37U => "#,##0 ;(#,##0)",
+                38U => "#,##0 ;[Red](#,##0)",
+                39U => "#,##0.00;(#,##0.00)",
+                40U => "#,##0.00;[Red](#,##0.00)",
+                45U => "mm:ss",
+                46U => "[h]:mm:ss",
+                47U => "mmss.0",
+                48U => "##0.0E+0",
+                49U => "@",
+                _ => null
+            };
         }
 
         private static string? GetSpreadsheetCellText(SpreadsheetDocument spreadsheet, Cell cell) {

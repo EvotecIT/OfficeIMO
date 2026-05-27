@@ -910,6 +910,10 @@ namespace OfficeIMO.Excel {
                 string rowReference = InvariantNumberText.Get(row);
                 for (int i = 0; i < rowOverlayCells.Count; i++) {
                     var cell = rowOverlayCells[i];
+                    if (cell.IsDeleted) {
+                        continue;
+                    }
+
                     WriteCell(
                         writer,
                         rowReference,
@@ -2515,6 +2519,12 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrEmpty(formula.FormulaXml)) {
                     writer.Write('>');
                     writer.Write(formula.FormulaXml);
+                    if (formula.CachedValue != null) {
+                        writer.Write("<v>");
+                        WriteEscaped(writer, formula.CachedValue);
+                        writer.Write("</v>");
+                    }
+
                     writer.Write("</c>");
                     return;
                 }

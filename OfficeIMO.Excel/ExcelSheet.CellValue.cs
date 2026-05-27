@@ -5,14 +5,17 @@ using System.Globalization;
 
 namespace OfficeIMO.Excel {
     internal readonly struct DirectFormulaCellValue {
-        internal DirectFormulaCellValue(string formula, string? formulaXml = null) {
+        internal DirectFormulaCellValue(string formula, string? formulaXml = null, string? cachedValue = null) {
             Formula = formula;
             FormulaXml = formulaXml;
+            CachedValue = cachedValue;
         }
 
         internal string Formula { get; }
 
         internal string? FormulaXml { get; }
+
+        internal string? CachedValue { get; }
 
         public override string ToString() => Formula;
     }

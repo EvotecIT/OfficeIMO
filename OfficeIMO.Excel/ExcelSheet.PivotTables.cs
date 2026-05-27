@@ -1087,17 +1087,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<GeneratedPivotGroupingField> generatedFields,
             IReadOnlyList<ExcelPivotCalculatedField> calculatedFields,
             IReadOnlyList<ExcelPivotFilter> pivotFilters,
-            IReadOnlyDictionary<int, ExcelPivotFieldOptions>? fieldOptionMap) {
-            if (sourceRecordCount <= EmbeddedPivotCacheRecordRowLimit) {
-                return true;
-            }
-
-            return groupingMap.Count != 0
-                || generatedFields.Count != 0
-                || calculatedFields.Count != 0
-                || pivotFilters.Count != 0
-                || fieldOptionMap?.Count > 0;
-        }
+            IReadOnlyDictionary<int, ExcelPivotFieldOptions>? fieldOptionMap)
+            => true;
 
         private List<PivotFieldValues> BuildGeneratedPivotFieldValueMap(
             IReadOnlyList<GeneratedPivotGroupingField> generatedFields,

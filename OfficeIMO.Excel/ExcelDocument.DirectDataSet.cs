@@ -1449,6 +1449,10 @@ namespace OfficeIMO.Excel {
 
             SheetData sheetData = worksheet.GetFirstChild<SheetData>() ?? worksheet.AppendChild(new SheetData());
             foreach (var overlayCell in overlayCells.OrderBy(static cell => cell.Row).ThenBy(static cell => cell.Column)) {
+                if (overlayCell.IsDeleted) {
+                    continue;
+                }
+
                 Row row = GetOrCreateDirectOverlayRow(sheetData, overlayCell.Row);
                 Cell cell = GetOrCreateDirectOverlayCell(row, overlayCell.Row, overlayCell.Column);
                 cell.StyleIndex = overlayCell.StyleIndex.HasValue ? overlayCell.StyleIndex.Value : null;
@@ -1536,7 +1540,7 @@ namespace OfficeIMO.Excel {
                     cell.CellFormula = !string.IsNullOrEmpty(formula.FormulaXml)
                         ? CreateCellFormulaFromXml(formula.FormulaXml!)
                         : new CellFormula(formula.Formula);
-                    cell.CellValue = null;
+                    cell.CellValue = formula.CachedValue != null ? new CellValue(formula.CachedValue) : null;
                     cell.DataType = null;
                     break;
                 case DirectTypedCellValue typed:
@@ -1783,6 +1787,7 @@ namespace OfficeIMO.Excel {
                 "d" => CellValues.Date,
                 "e" => CellValues.Error,
                 "inlineStr" => CellValues.InlineString,
+                "n" => CellValues.Number,
                 "s" => CellValues.SharedString,
                 "str" => CellValues.String,
                 _ => CellValues.String
@@ -2040,7 +2045,11 @@ namespace OfficeIMO.Excel {
                 combined[(second[i].Row, second[i].Column)] = second[i];
             }
 
-            return combined.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray();
+            return combined.Values
+                .Where(static cell => !cell.IsDeleted)
+                .OrderBy(cell => cell.Row)
+                .ThenBy(cell => cell.Column)
+                .ToArray();
         }
 
         private bool TryCaptureDirectWorksheetMetadata(DirectDataSetSheetModel sheetModel, out DirectWorksheetMetadata? metadata, out string? skipReason, bool allowDrawings = false) {
@@ -2298,6 +2307,8 @@ namespace OfficeIMO.Excel {
 
                     object? value = ReadDirectOverlayCellValue(sheet, cell);
                     if (value == null || value == DBNull.Value) {
+                        cells ??= new List<DirectOverlayCell>();
+                        cells.Add(new DirectOverlayCell(cellRow, cellColumn, null, null, null, isDeleted: true));
                         continue;
                     }
 
@@ -2319,10 +2330,44 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            return stylesheet?.NumberingFormats?.Elements<NumberingFormat>()
+            string? customFormat = stylesheet?.NumberingFormats?.Elements<NumberingFormat>()
                 .FirstOrDefault(format => format.NumberFormatId?.Value == numberFormatId)
                 ?.FormatCode
                 ?.Value;
+            return customFormat ?? ResolveBuiltInNumberFormatCode(numberFormatId);
+        }
+
+        private static string? ResolveBuiltInNumberFormatCode(uint numberFormatId) {
+            return numberFormatId switch {
+                1U => "0",
+                2U => "0.00",
+                3U => "#,##0",
+                4U => "#,##0.00",
+                9U => "0%",
+                10U => "0.00%",
+                11U => "0.00E+00",
+                12U => "# ?/?",
+                13U => "# ??/??",
+                14U => "mm-dd-yy",
+                15U => "d-mmm-yy",
+                16U => "d-mmm",
+                17U => "mmm-yy",
+                18U => "h:mm AM/PM",
+                19U => "h:mm:ss AM/PM",
+                20U => "h:mm",
+                21U => "h:mm:ss",
+                22U => "m/d/yy h:mm",
+                37U => "#,##0 ;(#,##0)",
+                38U => "#,##0 ;[Red](#,##0)",
+                39U => "#,##0.00;(#,##0.00)",
+                40U => "#,##0.00;[Red](#,##0.00)",
+                45U => "mm:ss",
+                46U => "[h]:mm:ss",
+                47U => "mmss.0",
+                48U => "##0.0E+0",
+                49U => "@",
+                _ => null
+            };
         }
 
         private static bool TryGetCellCoordinates(Cell cell, int fallbackRow, int fallbackColumn, out int row, out int column) {
@@ -2345,7 +2390,7 @@ namespace OfficeIMO.Excel {
 
         private static object? ReadDirectOverlayCellValue(ExcelSheet sheet, Cell cell) {
             if (cell.CellFormula != null) {
-                return new DirectFormulaCellValue(cell.CellFormula.Text ?? string.Empty, cell.CellFormula.OuterXml);
+                return new DirectFormulaCellValue(cell.CellFormula.Text ?? string.Empty, cell.CellFormula.OuterXml, cell.CellValue?.Text);
             }
 
             string? text = cell.CellValue?.Text;
@@ -2356,9 +2401,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (dataType == null || dataType == CellValues.Number) {
-                if (!string.IsNullOrWhiteSpace(text)
-                    && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
-                    return number;
+                if (!string.IsNullOrWhiteSpace(text)) {
+                    return new DirectTypedCellValue(cell.DataType?.InnerText ?? "n", text);
                 }
 
                 return text;
@@ -3035,12 +3079,13 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct DirectOverlayCell {
-            internal DirectOverlayCell(int row, int column, object? value, uint? styleIndex, string? numberFormat) {
+            internal DirectOverlayCell(int row, int column, object? value, uint? styleIndex, string? numberFormat, bool isDeleted = false) {
                 Row = row;
                 Column = column;
                 Value = value;
                 StyleIndex = styleIndex;
                 NumberFormat = numberFormat;
+                IsDeleted = isDeleted;
             }
 
             internal int Row { get; }
@@ -3052,6 +3097,8 @@ namespace OfficeIMO.Excel {
             internal uint? StyleIndex { get; }
 
             internal string? NumberFormat { get; }
+
+            internal bool IsDeleted { get; }
         }
 
         private readonly struct DirectBufferedRows {
