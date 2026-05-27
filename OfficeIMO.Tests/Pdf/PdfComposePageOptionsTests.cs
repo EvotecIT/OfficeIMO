@@ -2088,7 +2088,7 @@ namespace OfficeIMO.Tests.Pdf {
             double pageOneY = FindWordStartY(pdf.GetPage(1), "PageOneImage");
             double pageTwoY = FindWordStartY(pdf.GetPage(2), "PageTwoImage");
 
-            Assert.Contains("q\n24 0 0 24 108 132 cm\n/Im1 Do\nQ", rawPdf);
+            Assert.Contains("q\n24 0 0 24 108 136 cm\n/Im1 Do\nQ", rawPdf);
             Assert.Contains("q\n24 0 0 24 20 136 cm\n/Im", rawPdf);
             Assert.True(pageTwoY - pageOneY >= 10, $"Expected the page-scoped image spacing to push only page-one content down. Page one y: {pageOneY:0.##}, page two y: {pageTwoY:0.##}.");
         }
@@ -2139,7 +2139,7 @@ namespace OfficeIMO.Tests.Pdf {
             double pageOneY = FindWordStartY(pdf.GetPage(1), "PageOneDrawing");
             double pageTwoY = FindWordStartY(pdf.GetPage(2), "PageTwoDrawing");
 
-            Assert.Contains("100 136 40 20 re f", rawPdf, StringComparison.Ordinal);
+            Assert.Contains("100 140 40 20 re f", rawPdf, StringComparison.Ordinal);
             Assert.Contains("20 140 40 20 re f", rawPdf, StringComparison.Ordinal);
             Assert.True(pageTwoY - pageOneY >= 10, $"Expected the page-scoped drawing spacing to push only page-one content down. Page one y: {pageOneY:0.##}, page two y: {pageTwoY:0.##}.");
         }

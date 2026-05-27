@@ -175,7 +175,7 @@ public class PdfDrawingInteropTests {
         style.SpacingBefore = 0;
 
         string pdfContent = Encoding.ASCII.GetString(bytes);
-        Assert.True(CountOccurrences(pdfContent, "100 136 40 20 re f") >= 2, "Expected top-level and row-column shapes to inherit centered drawing placement and spacing.");
+        Assert.True(CountOccurrences(pdfContent, "100 140 40 20 re f") >= 2, "Expected top-level and row-column shapes to inherit centered drawing placement while suppressing spacing-before at fresh flow starts.");
         Assert.DoesNotContain("20 140 40 20 re f", pdfContent, StringComparison.Ordinal);
     }
 
@@ -208,7 +208,7 @@ public class PdfDrawingInteropTests {
 
         string pdfContent = Encoding.ASCII.GetString(bytes);
         Assert.Contains("0.961 0.961 0.961 rg", pdfContent, StringComparison.Ordinal);
-        Assert.Contains("60 96 120 60 re f", pdfContent, StringComparison.Ordinal);
+        Assert.Contains("60 100 120 60 re f", pdfContent, StringComparison.Ordinal);
         Assert.DoesNotContain("1 0 0 rg", pdfContent, StringComparison.Ordinal);
         Assert.DoesNotContain("0 0 0 rg", pdfContent, StringComparison.Ordinal);
         Assert.DoesNotContain("60 136 20 60 re f", pdfContent, StringComparison.Ordinal);
