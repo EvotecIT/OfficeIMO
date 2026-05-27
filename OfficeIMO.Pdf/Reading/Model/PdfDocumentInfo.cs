@@ -10,7 +10,7 @@ public sealed class PdfDocumentInfo {
     private IReadOnlyList<string>? _namedDestinationNames;
     private IReadOnlyList<string>? _formFieldNames;
 
-    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
+    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
         Pages = pages;
         Metadata = metadata;
         Outlines = outlines;
@@ -19,6 +19,7 @@ public sealed class PdfDocumentInfo {
         OpenAction = openAction;
         ViewerPreferences = viewerPreferences;
         FormFields = formFields;
+        AcroFormDefaultAppearance = acroFormDefaultAppearance;
         AcroFormNeedAppearances = acroFormNeedAppearances;
         AcroFormSignatureFlags = acroFormSignatureFlags;
         HeaderVersion = headerVersion;
@@ -188,6 +189,12 @@ public sealed class PdfDocumentInfo {
 
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
     public bool HasReadableFormFields => FormFieldCount > 0;
+
+    /// <summary>AcroForm default appearance string from /DA, when present.</summary>
+    public string? AcroFormDefaultAppearance { get; }
+
+    /// <summary>True when an AcroForm default appearance string was readable.</summary>
+    public bool HasAcroFormDefaultAppearance => !string.IsNullOrEmpty(AcroFormDefaultAppearance);
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
     public bool? AcroFormNeedAppearances { get; }

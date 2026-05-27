@@ -62,6 +62,7 @@ public sealed class PdfLogicalDocument {
         PdfDocumentOpenAction? openAction,
         PdfViewerPreferences? viewerPreferences,
         IReadOnlyList<PdfFormField> formFields,
+        string? acroFormDefaultAppearance,
         bool? acroFormNeedAppearances,
         int? acroFormSignatureFlags,
         string? catalogPageMode,
@@ -76,6 +77,7 @@ public sealed class PdfLogicalDocument {
         OpenAction = openAction;
         ViewerPreferences = viewerPreferences;
         FormFields = formFields;
+        AcroFormDefaultAppearance = acroFormDefaultAppearance;
         AcroFormNeedAppearances = acroFormNeedAppearances;
         AcroFormSignatureFlags = acroFormSignatureFlags;
         CatalogPageMode = catalogPageMode;
@@ -107,6 +109,12 @@ public sealed class PdfLogicalDocument {
 
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
     public IReadOnlyList<PdfFormField> FormFields { get; }
+
+    /// <summary>AcroForm default appearance string from /DA, when present.</summary>
+    public string? AcroFormDefaultAppearance { get; }
+
+    /// <summary>True when an AcroForm default appearance string was readable.</summary>
+    public bool HasAcroFormDefaultAppearance => !string.IsNullOrEmpty(AcroFormDefaultAppearance);
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
     public bool? AcroFormNeedAppearances { get; }
@@ -505,6 +513,7 @@ public sealed class PdfLogicalDocument {
             document.OpenAction,
             document.ViewerPreferences,
             document.FormFields,
+            document.AcroFormDefaultAppearance,
             document.AcroFormNeedAppearances,
             document.AcroFormSignatureFlags,
             document.CatalogPageMode,

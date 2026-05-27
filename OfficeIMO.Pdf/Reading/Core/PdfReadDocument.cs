@@ -20,6 +20,7 @@ public sealed class PdfReadDocument {
         Outlines = ExtractOutlines();
         OpenAction = ExtractOpenAction();
         ViewerPreferences = ExtractViewerPreferences();
+        AcroFormDefaultAppearance = ExtractAcroFormText("DA");
         FormFields = ExtractFormFields();
         AcroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
         AcroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
@@ -52,6 +53,9 @@ public sealed class PdfReadDocument {
 
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
     public IReadOnlyList<PdfFormField> FormFields { get; }
+
+    /// <summary>AcroForm default appearance string from /DA, when present.</summary>
+    public string? AcroFormDefaultAppearance { get; }
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
     public bool? AcroFormNeedAppearances { get; }
@@ -319,11 +323,24 @@ public sealed class PdfReadDocument {
         var result = new List<PdfFormField>();
         var visited = new HashSet<int>();
         var widgetPageNumbers = BuildWidgetPageNumberLookup();
+        PdfFormFieldInheritedState inherited = PdfFormFieldInheritedState.FromAcroForm(AcroFormDefaultAppearance);
         for (int i = 0; i < fields.Items.Count; i++) {
-            ReadFormField(fields.Items[i], null, PdfFormFieldInheritedState.Empty, result, visited, widgetPageNumbers);
+            ReadFormField(fields.Items[i], null, inherited, result, visited, widgetPageNumbers);
         }
 
         return result.Count == 0 ? Array.Empty<PdfFormField>() : result.AsReadOnly();
+    }
+
+    private string? ExtractAcroFormText(string key) {
+        PdfDictionary? acroForm = GetAcroFormDictionary();
+        if (acroForm is null ||
+            !acroForm.Items.TryGetValue(key, out var value) ||
+            ResolveObject(value) is not PdfStringObj text ||
+            string.IsNullOrEmpty(text.Value)) {
+            return null;
+        }
+
+        return text.Value;
     }
 
     private bool? ExtractAcroFormBoolean(string key) {
@@ -471,6 +488,12 @@ public sealed class PdfReadDocument {
 
     private sealed class PdfFormFieldInheritedState {
         internal static readonly PdfFormFieldInheritedState Empty = new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, null, null, Array.Empty<PdfFormFieldOption>());
+
+        internal static PdfFormFieldInheritedState FromAcroForm(string? defaultAppearance) {
+            return string.IsNullOrEmpty(defaultAppearance)
+                ? Empty
+                : new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, defaultAppearance, null, Array.Empty<PdfFormFieldOption>());
+        }
 
         internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, string? defaultValue, IReadOnlyList<string> defaultValues, int? flags, int? maxLength, string? defaultAppearance, int? quadding, IReadOnlyList<PdfFormFieldOption> options) {
             FieldType = fieldType;
