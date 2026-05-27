@@ -127,6 +127,36 @@ public class PdfLogicalDocumentTests {
         Assert.Contains(logical.Pages[0].TextBlocks, block => block.Text.Contains("Logical stream marker", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Load_ExposesLinkAnnotationsAsLogicalElements() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 240,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .H1("Linked heading", linkUri: "https://evotec.xyz/logical-link", linkContents: "Logical link metadata")
+            .ToBytes();
+
+        PdfLogicalPage page = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }).Pages);
+
+        PdfLogicalLinkAnnotation link = Assert.Single(page.Links);
+        Assert.Equal(1, link.PageNumber);
+        Assert.True(link.IsUriLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.Equal("https://evotec.xyz/logical-link", link.Uri);
+        Assert.Equal("Logical link metadata", link.Contents);
+        Assert.True(link.Width > 0);
+        Assert.True(link.Height > 0);
+        Assert.Equal(1, link.SourceLink.PageNumber);
+        Assert.Contains(page.Elements, element => element.Kind == PdfLogicalElementKind.LinkAnnotation);
+        Assert.Contains(PdfLogicalDocument.Load(pdf).Elements, element => element.Kind == PdfLogicalElementKind.LinkAnnotation);
+    }
+
     private static string Normalize(string text) {
         return new string(text.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
     }

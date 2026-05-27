@@ -15,7 +15,9 @@ public enum PdfLogicalElementKind {
     /// <summary>Detected table-like region.</summary>
     Table,
     /// <summary>Image XObject referenced by the page.</summary>
-    Image
+    Image,
+    /// <summary>URI or named-destination link annotation on the page.</summary>
+    LinkAnnotation
 }
 
 /// <summary>
@@ -120,6 +122,7 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalListItem> listItems,
         IReadOnlyList<PdfLogicalTable> tables,
         IReadOnlyList<PdfLogicalImage> images,
+        IReadOnlyList<PdfLogicalLinkAnnotation> links,
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations) {
         PageNumber = pageNumber;
         Width = width;
@@ -132,6 +135,7 @@ public sealed class PdfLogicalPage {
         ListItems = listItems;
         Tables = tables;
         Images = images;
+        Links = links;
         LinkAnnotations = linkAnnotations;
     }
 
@@ -168,6 +172,9 @@ public sealed class PdfLogicalPage {
     /// <summary>Image XObjects referenced by the page.</summary>
     public IReadOnlyList<PdfLogicalImage> Images { get; }
 
+    /// <summary>URI and named-destination link annotations on the page.</summary>
+    public IReadOnlyList<PdfLogicalLinkAnnotation> Links { get; }
+
     /// <summary>Simple link annotations read from the page.</summary>
     public IReadOnlyList<PdfLinkAnnotation> LinkAnnotations { get; }
 
@@ -178,6 +185,7 @@ public sealed class PdfLogicalPage {
         var textBlocks = new List<PdfLogicalTextBlock>();
         var tables = new List<PdfLogicalTable>();
         var images = new List<PdfLogicalImage>();
+        var links = new List<PdfLogicalLinkAnnotation>();
         var listLines = new HashSet<string>(structured.ListItems.Select(NormalizeForKindComparison), StringComparer.Ordinal);
 
         foreach (var line in structured.LinesDetailed) {
@@ -217,6 +225,13 @@ public sealed class PdfLogicalPage {
             elements.Add(logicalImage);
         }
 
+        IReadOnlyList<PdfLinkAnnotation> linkAnnotations = page.GetLinkAnnotations();
+        for (int i = 0; i < linkAnnotations.Count; i++) {
+            var logicalLink = new PdfLogicalLinkAnnotation(pageNumber, linkAnnotations[i]);
+            links.Add(logicalLink);
+            elements.Add(logicalLink);
+        }
+
         return new PdfLogicalPage(
             pageNumber,
             size.Width,
@@ -229,7 +244,8 @@ public sealed class PdfLogicalPage {
             BuildListItems(pageNumber, structured.ListNodes, textBlocks),
             tables.AsReadOnly(),
             images.AsReadOnly(),
-            page.GetLinkAnnotations());
+            links.AsReadOnly(),
+            linkAnnotations);
     }
 
     private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<StructuredParagraph> paragraphs, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
@@ -629,4 +645,56 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
 
     /// <summary>Suggested MIME type when bytes are a complete image file.</summary>
     public string? MimeType => SourceImage.MimeType;
+}
+
+/// <summary>
+/// Link annotation entry in the logical page model.
+/// </summary>
+public sealed class PdfLogicalLinkAnnotation : IPdfLogicalElement {
+    internal PdfLogicalLinkAnnotation(int pageNumber, PdfLinkAnnotation link) {
+        PageNumber = pageNumber;
+        SourceLink = link.PageNumber == pageNumber ? link : link.WithPageNumber(pageNumber);
+    }
+
+    /// <inheritdoc />
+    public int PageNumber { get; }
+
+    /// <inheritdoc />
+    public PdfLogicalElementKind Kind => PdfLogicalElementKind.LinkAnnotation;
+
+    /// <summary>Underlying parsed link annotation.</summary>
+    public PdfLinkAnnotation SourceLink { get; }
+
+    /// <summary>Absolute URI opened by the link annotation, or null for an internal named-destination link.</summary>
+    public string? Uri => SourceLink.Uri;
+
+    /// <summary>Named destination opened by the link annotation, or null for a URI link.</summary>
+    public string? DestinationName => SourceLink.DestinationName;
+
+    /// <summary>True when the link annotation opens an absolute URI.</summary>
+    public bool IsUriLink => SourceLink.IsUriLink;
+
+    /// <summary>True when the link annotation opens an internal named destination.</summary>
+    public bool IsNamedDestinationLink => SourceLink.IsNamedDestinationLink;
+
+    /// <summary>Optional annotation contents metadata.</summary>
+    public string? Contents => SourceLink.Contents;
+
+    /// <summary>Left edge of the annotation rectangle in PDF points.</summary>
+    public double X1 => SourceLink.X1;
+
+    /// <summary>Bottom edge of the annotation rectangle in PDF points.</summary>
+    public double Y1 => SourceLink.Y1;
+
+    /// <summary>Right edge of the annotation rectangle in PDF points.</summary>
+    public double X2 => SourceLink.X2;
+
+    /// <summary>Top edge of the annotation rectangle in PDF points.</summary>
+    public double Y2 => SourceLink.Y2;
+
+    /// <summary>Rectangle width in PDF points.</summary>
+    public double Width => SourceLink.Width;
+
+    /// <summary>Rectangle height in PDF points.</summary>
+    public double Height => SourceLink.Height;
 }
