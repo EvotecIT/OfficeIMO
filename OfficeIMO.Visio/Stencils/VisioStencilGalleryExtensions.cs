@@ -30,6 +30,7 @@ namespace OfficeIMO.Visio.Stencils {
                 return Array.Empty<VisioShape>();
             }
 
+            HashSet<string> reservedIds = new(page.Shapes.Select(shape => shape.Id), StringComparer.Ordinal);
             int columns = Math.Min(effectiveOptions.Columns, stencils.Count);
             int rows = (int)Math.Ceiling(stencils.Count / (double)columns);
             double titleHeight = 0.46D;
@@ -49,7 +50,7 @@ namespace OfficeIMO.Visio.Stencils {
 
             string title = string.IsNullOrWhiteSpace(effectiveOptions.Title) ? catalog.Name : effectiveOptions.Title!;
             VisioShape titleShape = page.AddTextBox(
-                SafeId(effectiveOptions.IdPrefix, "title"),
+                ReserveId(reservedIds, effectiveOptions.IdPrefix, "title"),
                 page.Width / 2D,
                 page.Height - effectiveOptions.Top - (titleHeight / 2D),
                 Math.Max(1D, page.Width - (effectiveOptions.Left * 2D)),
@@ -78,7 +79,7 @@ namespace OfficeIMO.Visio.Stencils {
                 string itemPrefix = SafeId(effectiveOptions.IdPrefix, i.ToString(CultureInfo.InvariantCulture));
 
                 VisioShape cell = new VisioShape(
-                    SafeId(itemPrefix, "cell"),
+                    ReserveId(reservedIds, itemPrefix, "cell"),
                     centerX,
                     centerY,
                     effectiveOptions.CellWidth,
@@ -91,11 +92,11 @@ namespace OfficeIMO.Visio.Stencils {
                 cell.LineWeight = 0.01D;
                 page.Shapes.Add(cell);
 
-                FitStencil(stencil, effectiveOptions, page.DefaultUnit, out double iconWidth, out double iconHeight);
+                FitStencil(stencil, effectiveOptions, out double iconWidth, out double iconHeight);
                 double iconY = cellTop - 0.44D;
                 VisioShape icon = page.AddStencilShape(
                     stencil,
-                    SafeId(itemPrefix, "shape"),
+                    ReserveId(reservedIds, itemPrefix, "shape"),
                     centerX,
                     iconY,
                     iconWidth,
@@ -104,9 +105,9 @@ namespace OfficeIMO.Visio.Stencils {
                     VisioMeasurementUnit.Inches);
                 placed.Add(icon);
 
-                AddLabel(page, SafeId(itemPrefix, "name"), centerX, cellTop - 1.05D, effectiveOptions.CellWidth - 0.22D, 0.3D, stencil.Name, 9.2D, true, OfficeColor.FromRgb(28, 38, 48));
+                AddLabel(page, ReserveId(reservedIds, itemPrefix, "name"), centerX, cellTop - 1.05D, effectiveOptions.CellWidth - 0.22D, 0.3D, stencil.Name, 9.2D, true, OfficeColor.FromRgb(28, 38, 48));
                 if (effectiveOptions.ShowCategory) {
-                    AddLabel(page, SafeId(itemPrefix, "category"), centerX, cellTop - 1.27D, effectiveOptions.CellWidth - 0.22D, 0.22D, stencil.Category, 7.5D, false, OfficeColor.FromRgb(88, 102, 116));
+                    AddLabel(page, ReserveId(reservedIds, itemPrefix, "category"), centerX, cellTop - 1.27D, effectiveOptions.CellWidth - 0.22D, 0.22D, stencil.Category, 7.5D, false, OfficeColor.FromRgb(88, 102, 116));
                 }
             }
 
@@ -127,8 +128,8 @@ namespace OfficeIMO.Visio.Stencils {
             };
         }
 
-        private static void FitStencil(VisioStencilShape stencil, VisioStencilGalleryOptions options, VisioMeasurementUnit pageDefaultUnit, out double width, out double height) {
-            VisioMeasurementUnit sourceUnit = stencil.DefaultUnit ?? pageDefaultUnit;
+        private static void FitStencil(VisioStencilShape stencil, VisioStencilGalleryOptions options, out double width, out double height) {
+            VisioMeasurementUnit sourceUnit = stencil.DefaultUnit ?? VisioMeasurementUnit.Inches;
             width = stencil.DefaultWidth.ToInches(sourceUnit);
             height = stencil.DefaultHeight.ToInches(sourceUnit);
             double scale = Math.Min(options.IconMaxWidth / width, options.IconMaxHeight / height);
@@ -141,6 +142,19 @@ namespace OfficeIMO.Visio.Stencils {
         private static string SafeId(string prefix, string suffix) {
             string value = prefix + "-" + suffix;
             return string.Concat(value.Select(ch => char.IsLetterOrDigit(ch) || ch == '-' || ch == '_' ? ch : '-'));
+        }
+
+        private static string ReserveId(HashSet<string> reservedIds, string prefix, string suffix) {
+            string baseId = SafeId(prefix, suffix);
+            string id = baseId;
+            int index = 2;
+            while (reservedIds.Contains(id)) {
+                id = baseId + "-" + index.ToString(CultureInfo.InvariantCulture);
+                index++;
+            }
+
+            reservedIds.Add(id);
+            return id;
         }
 
         private static void ValidateOptions(VisioStencilGalleryOptions options) {

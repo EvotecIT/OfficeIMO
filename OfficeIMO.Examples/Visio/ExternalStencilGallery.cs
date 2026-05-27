@@ -85,7 +85,16 @@ namespace OfficeIMO.Examples.Visio {
                 return false;
             }
 
-            return File.Exists(pathOrDirectory) || Directory.Exists(pathOrDirectory);
+            if (File.Exists(pathOrDirectory)) {
+                string fullPath = Path.GetFullPath(pathOrDirectory);
+                string? directory = Path.GetDirectoryName(fullPath);
+                return !string.IsNullOrWhiteSpace(directory) &&
+                    VisioStencilPackageCatalog.EnumeratePackageFiles(directory, recursive: false)
+                        .Contains(fullPath, StringComparer.OrdinalIgnoreCase);
+            }
+
+            return Directory.Exists(pathOrDirectory) &&
+                VisioStencilPackageCatalog.EnumeratePackageFiles(pathOrDirectory, recursive: true).Count > 0;
         }
 
         private static IEnumerable<string> ResolvePackagePaths(string pathOrDirectory) {

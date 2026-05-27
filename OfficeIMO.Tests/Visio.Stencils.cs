@@ -143,6 +143,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilCatalogGalleryReservesIdsAndKeepsUnitlessStencilSizesInInches() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Metric Gallery Catalog", builder => builder
+                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Metric Gallery", 29.7, 21, VisioMeasurementUnit.Centimeters);
+            VisioStencilGalleryOptions options = new() {
+                IdPrefix = "gallery",
+                Columns = 1,
+                MaxShapes = 1,
+                Title = "Reusable palette",
+                AutoResizePage = false,
+                IconMaxWidth = 1D,
+                IconMaxHeight = 0.8D
+            };
+
+            page.AddStencilGallery(catalog, options);
+            page.AddStencilGallery(catalog, options);
+
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title");
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title-2");
+            Assert.Equal(page.Shapes.Count, page.Shapes.Select(shape => shape.Id).Distinct(StringComparer.Ordinal).Count());
+            Assert.Equal(1D, page.Shapes.Single(shape => shape.Id == "gallery-0-shape").Width, 6);
+            Assert.Equal(0.5D, page.Shapes.Single(shape => shape.Id == "gallery-0-shape").Height, 6);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void CustomStencilCatalogBuilderCreatesSearchablePaletteAndPlaceableShapes() {
             VisioStencilCatalog catalog = VisioStencilCatalog.Create("Custom Infrastructure", builder => builder
                 .Add("custom.cache", "Cache", "Process", "Infrastructure", 1.8, 0.9, "redis", "memory-store")
