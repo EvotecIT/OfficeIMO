@@ -514,6 +514,15 @@ internal static class TextContentParser {
                 return builder.ToString();
             }
 
+            if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) {
+                var builder = new StringBuilder((bytes.Length - 2) / 2);
+                for (int k = 2; k + 1 < bytes.Length; k += 2) {
+                    builder.Append((char)(bytes[k] | (bytes[k + 1] << 8)));
+                }
+
+                return builder.ToString();
+            }
+
             return PdfWinAnsiEncoding.Decode(bytes);
         }
 
