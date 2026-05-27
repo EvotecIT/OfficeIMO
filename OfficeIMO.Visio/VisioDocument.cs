@@ -396,11 +396,10 @@ namespace OfficeIMO.Visio {
                 AddMissingAttribute(PreservedColorsAttributes, attribute);
             }
 
-            HashSet<string> existingColorIndexes = PreservedColorsElements
+            HashSet<string> existingColorIndexes = new HashSet<string>(PreservedColorsElements
                 .Where(element => string.Equals(element.Name.LocalName, "ColorEntry", StringComparison.OrdinalIgnoreCase))
                 .Select(element => element.Attribute("IX")?.Value ?? string.Empty)
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                .Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.OrdinalIgnoreCase);
             foreach (XElement element in colors.Elements().Where(ShouldPreserveColorsElement)) {
                 string? colorIndex = element.Attribute("IX")?.Value;
                 if (!string.IsNullOrWhiteSpace(colorIndex) && !existingColorIndexes.Add(colorIndex!)) {
@@ -420,11 +419,10 @@ namespace OfficeIMO.Visio {
                 AddMissingAttribute(PreservedFaceNamesAttributes, attribute);
             }
 
-            HashSet<string> existingFaces = PreservedFaceNamesElements
+            HashSet<string> existingFaces = new HashSet<string>(PreservedFaceNamesElements
                 .Where(element => string.Equals(element.Name.LocalName, "FaceName", StringComparison.OrdinalIgnoreCase))
                 .Select(element => element.Attribute("NameU")?.Value ?? element.Attribute("Name")?.Value ?? element.Attribute("ID")?.Value ?? string.Empty)
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                .Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.OrdinalIgnoreCase);
             foreach (XElement element in faceNames.Elements().Where(ShouldPreserveFaceNamesElement)) {
                 string faceKey = element.Attribute("NameU")?.Value ?? element.Attribute("Name")?.Value ?? element.Attribute("ID")?.Value ?? Guid.NewGuid().ToString("N");
                 if (!existingFaces.Add(faceKey)) {
@@ -450,10 +448,9 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            HashSet<string> existingAdditionalStyleIds = PreservedAdditionalStyleSheets
+            HashSet<string> existingAdditionalStyleIds = new HashSet<string>(PreservedAdditionalStyleSheets
                 .Select(styleSheet => styleSheet.Attribute("ID")?.Value ?? string.Empty)
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .ToHashSet(StringComparer.Ordinal);
+                .Where(value => !string.IsNullOrWhiteSpace(value)), StringComparer.Ordinal);
             foreach (XElement styleSheet in styleSheets.Elements(ns + "StyleSheet")) {
                 string id = styleSheet.Attribute("ID")?.Value ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(id)) {
