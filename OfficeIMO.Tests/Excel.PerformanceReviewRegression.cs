@@ -1397,6 +1397,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertDataSet_DisposedCandidateUnsubscribesRemovedSourceTable() {
+            var dataSet = new DataSet("Export");
+            var table = new DataTable("Items");
+            table.Columns.Add("Name", typeof(string));
+            table.Rows.Add("Original");
+            dataSet.Tables.Add(table);
+
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            typeof(ExcelDocument).GetMethod("RegisterDirectDataSetSaveCandidate", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(
+                document,
+                new object[] {
+                    dataSet,
+                    true,
+                    OfficeIMO.Excel.TableStyle.TableStyleMedium2,
+                    true,
+                    true,
+                    false,
+                    Array.Empty<ExcelDataSetImportResult>()
+                });
+
+            var candidateField = typeof(ExcelDocument).GetField("_directDataSetSaveCandidate", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            object? candidate = candidateField.GetValue(document);
+            Assert.NotNull(candidate);
+            var subscribeTableMethod = candidate.GetType()
+                .GetMethods(BindingFlags.Instance | BindingFlags.NonPublic)
+                .Single(method => method.Name == "Subscribe"
+                    && method.GetParameters() is { Length: 1 } parameters
+                    && parameters[0].ParameterType == typeof(DataTable));
+            subscribeTableMethod.Invoke(candidate, new object[] { table });
+            var subscribedTablesField = candidate.GetType().GetField("_subscribedTables", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var subscribedTables = Assert.IsAssignableFrom<ICollection<DataTable>>(subscribedTablesField.GetValue(candidate));
+            Assert.Contains(table, subscribedTables);
+
+            dataSet.Tables.Remove(table);
+
+            ((IDisposable)candidate).Dispose();
+
+            Assert.Empty(subscribedTables);
+            table.Rows.Add("Late");
+        }
+
+        [Fact]
         public void PerformanceReview_InsertDataSet_WorkbookMutationInvalidatesDirectDataSetPackageCandidate() {
             string filePath = Path.Combine(_directoryWithFiles, "PerformanceReview.InsertDataSetDirectSaveWorkbookMutation.xlsx");
             var dataSet = new DataSet("Export");
@@ -4339,6 +4381,95 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_DirectOverlayRichStyleFallsBackAndPersists() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.CellValue(2, 4, "Styled side note");
+
+                uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                sourceCells["D2"].StyleIndex = styleIndex;
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            AssertRichOverlayStylePersisted(memory);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_MaterializationPreservesRichOverlayStyle() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.CellValue(2, 4, "Styled side note");
+
+                uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                sourceCells["D2"].StyleIndex = styleIndex;
+
+                document.MaterializeDeferredDataSetImport();
+                document.Save(memory);
+            }
+
+            AssertRichOverlayStylePersisted(memory);
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_ChartFallbackPreservesRichOverlayStyle() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.CellValue(2, 4, "Styled side note");
+
+                uint styleIndex = AddBoldCellStyle(document._spreadSheetDocument);
+                var sourceCells = sheet.WorksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+                sourceCells["D2"].StyleIndex = styleIndex;
+
+                var chartData = new ExcelChartData(
+                    rows.Select(row => row.Name),
+                    new[] { new ExcelChartSeries("Score", rows.Select(row => (double)row.Score)) });
+                sheet.AddChart(chartData, row: 2, column: 6, widthPixels: 480, heightPixels: 280, type: ExcelChartType.ColumnClustered, title: "Scores");
+
+                document.Save(memory);
+            }
+
+            AssertRichOverlayStylePersisted(memory);
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_DirectOverlayClearRemovesPreservedCell() {
             using var firstMemory = new MemoryStream();
             using var secondMemory = new MemoryStream();
@@ -4372,6 +4503,48 @@ namespace OfficeIMO.Tests {
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             Assert.True(!cells.ContainsKey("D2") || string.IsNullOrEmpty(GetSpreadsheetCellText(spreadsheet, cells["D2"])));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_DirectOverlayClearBeyondTableDoesNotPreserveStaleValue() {
+            using var firstMemory = new MemoryStream();
+            using var secondMemory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("North", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("South", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("East", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddTable("A1:C4", hasHeader: true, name: "ReportData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4, includeAutoFilter: true);
+                sheet.AddPivotTable(
+                    "A1:C4",
+                    "F20",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                sheet.CellValue(10, 4, "Manual");
+
+                document.Save(firstMemory);
+
+                sheet.CellValue(10, 4, (object?)null);
+
+                document.Save(secondMemory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            secondMemory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(secondMemory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet!;
+            var cells = worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.True(!cells.ContainsKey("D10") || string.IsNullOrEmpty(GetSpreadsheetCellText(spreadsheet, cells["D10"])));
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -6655,6 +6828,58 @@ namespace OfficeIMO.Tests {
                 document,
                 document._spreadSheetDocument,
                 new Sheet { Name = sheetName, Id = relationshipId, SheetId = 9999U });
+        }
+
+        private static uint AddBoldCellStyle(SpreadsheetDocument document) {
+            var stylesPart = document.WorkbookPart!.WorkbookStylesPart ?? document.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+            stylesPart.Stylesheet ??= new Stylesheet(
+                new Fonts(new Font()),
+                new Fills(
+                    new Fill(new PatternFill { PatternType = PatternValues.None }),
+                    new Fill(new PatternFill { PatternType = PatternValues.Gray125 })),
+                new Borders(new Border()),
+                new CellFormats(new CellFormat()));
+
+            var stylesheet = stylesPart.Stylesheet;
+            stylesheet.Fonts ??= new Fonts(new Font());
+            stylesheet.Fills ??= new Fills(
+                new Fill(new PatternFill { PatternType = PatternValues.None }),
+                new Fill(new PatternFill { PatternType = PatternValues.Gray125 }));
+            stylesheet.Borders ??= new Borders(new Border());
+            stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+
+            uint fontId = (uint)stylesheet.Fonts.Elements<Font>().Count();
+            stylesheet.Fonts.Append(new Font(new Bold()));
+            stylesheet.Fonts.Count = (uint)stylesheet.Fonts.Elements<Font>().Count();
+
+            uint styleIndex = (uint)stylesheet.CellFormats.Elements<CellFormat>().Count();
+            stylesheet.CellFormats.Append(new CellFormat {
+                FontId = fontId,
+                FillId = 0U,
+                BorderId = 0U,
+                ApplyFont = true
+            });
+            stylesheet.CellFormats.Count = (uint)stylesheet.CellFormats.Elements<CellFormat>().Count();
+            stylesheet.Save();
+            return styleIndex;
+        }
+
+        private static void AssertRichOverlayStylePersisted(MemoryStream memory) {
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts
+                .Single(part => part.Worksheet.Descendants<Cell>().Any(cell => string.Equals(cell.CellReference?.Value, "D2", StringComparison.Ordinal)));
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("North", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Styled side note", GetSpreadsheetCellText(spreadsheet, cells["D2"]));
+            Assert.NotNull(cells["D2"].StyleIndex);
+            var stylesheet = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
+            var cellFormat = stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)cells["D2"].StyleIndex!.Value);
+            Assert.NotNull(cellFormat.FontId);
+            Assert.NotEqual(0U, cellFormat.FontId!.Value);
+            var font = stylesheet.Fonts!.Elements<Font>().ElementAt((int)cellFormat.FontId.Value);
+            Assert.NotNull(font.Bold);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
         private static string? GetCellNumberFormatCode(SpreadsheetDocument spreadsheet, Cell cell) {

@@ -597,7 +597,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                baseMetadata = MergeDirectWorksheetMetadata(baseMetadata, capturedMetadata);
+                baseMetadata = MergeDirectWorksheetMetadata(baseMetadata, capturedMetadata, replaceOverlayCells: true);
             }
 
             DirectWorksheetMetadata? updatedMetadata = updateMetadata(baseMetadata);
@@ -1044,13 +1044,12 @@ namespace OfficeIMO.Excel {
                         candidate.IsDeferred,
                         candidate.SubscribesToSourceChanges);
                     candidate.Dispose();
+                    if (_materializedDirectDataSetFastSaveModel != null) {
+                        _materializedDirectDataSetFastSaveModel = _materializedDirectDataSetFastSaveModel.WithColumnNumberFormat(sheet.Name, columnIndex, numberFormat);
+                        _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
+                    }
                 } else {
                     _materializedDirectDataSetFastSaveModel = model;
-                    _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
-                }
-
-                if (_materializedDirectDataSetFastSaveModel != null) {
-                    _materializedDirectDataSetFastSaveModel = _materializedDirectDataSetFastSaveModel.WithColumnNumberFormat(sheet.Name, columnIndex, numberFormat);
                     _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
                 }
 
@@ -1341,8 +1340,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 DirectWorksheetMetadata? preservedMetadata = null;
-                if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true)) {
-                    preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata);
+                if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true, allowUnsupportedOverlayStyles: true)) {
+                    preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
                 }
 
                 ResetWorksheetForDirectDataSetMaterialization(sheet.WorksheetPart);
@@ -1668,11 +1667,11 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (!CanCreateDirectPackageModel(candidate.Model, out _, allowDrawings: true)) {
+            if (!TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel packageModel, out _, allowDrawings: true)) {
                 return;
             }
 
-            _materializedDirectDataSetFastSaveModel = candidate.Model;
+            _materializedDirectDataSetFastSaveModel = packageModel;
             _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
             _directDataSetSaveCandidate = null;
             candidate.Dispose();
@@ -1957,7 +1956,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                sheetMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata);
+                sheetMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
                 if (sheetMetadata?.IsEmpty == false) {
                     metadata ??= new DirectWorksheetMetadata?[sourceModel.Sheets.Count];
                     metadata[i] = sheetMetadata;
@@ -1965,17 +1964,6 @@ namespace OfficeIMO.Excel {
             }
 
             model = metadata != null ? sourceModel.WithWorksheetMetadata(metadata) : sourceModel;
-            skipReason = null;
-            return true;
-        }
-
-        private bool CanCreateDirectPackageModel(DirectDataSetWorkbookModel sourceModel, out string? skipReason, bool allowDrawings = false) {
-            for (int i = 0; i < sourceModel.Sheets.Count; i++) {
-                if (!CanCaptureDirectWorksheetMetadata(sourceModel.Sheets[i], out skipReason, allowDrawings)) {
-                    return false;
-                }
-            }
-
             skipReason = null;
             return true;
         }
@@ -1995,16 +1983,32 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static DirectWorksheetMetadata? MergeDirectWorksheetMetadata(DirectWorksheetMetadata? existing, DirectWorksheetMetadata? captured) {
+        private static DirectWorksheetMetadata? MergeDirectWorksheetMetadata(DirectWorksheetMetadata? existing, DirectWorksheetMetadata? captured, bool replaceOverlayCells = false) {
             if (existing == null || existing.IsEmpty) {
-                return captured?.IsEmpty == true ? null : captured;
+                return NormalizeDirectWorksheetMetadata(captured);
             }
 
             if (captured == null || captured.IsEmpty) {
-                return existing;
+                if (replaceOverlayCells && existing.OverlayCells.Count > 0) {
+                    return NormalizeDirectWorksheetMetadata(new DirectWorksheetMetadata(
+                        existing.SheetPropertiesXml,
+                        existing.SheetViewsXml,
+                        existing.SheetFormatPropertiesXml,
+                        existing.AutoFilterXml,
+                        existing.ConditionalFormattingXml,
+                        existing.DataValidationsXml,
+                        existing.DrawingXml,
+                        existing.PostDataValidationXml,
+                        Array.Empty<DirectOverlayCell>()));
+                }
+
+                return NormalizeDirectWorksheetMetadata(existing);
             }
 
-            return new DirectWorksheetMetadata(
+            IReadOnlyList<DirectOverlayCell> overlayCells = replaceOverlayCells
+                ? captured.OverlayCells
+                : CombineOverlayCells(existing.OverlayCells, captured.OverlayCells);
+            return NormalizeDirectWorksheetMetadata(new DirectWorksheetMetadata(
                 existing.SheetPropertiesXml ?? captured.SheetPropertiesXml,
                 existing.SheetViewsXml ?? captured.SheetViewsXml,
                 existing.SheetFormatPropertiesXml ?? captured.SheetFormatPropertiesXml,
@@ -2013,7 +2017,45 @@ namespace OfficeIMO.Excel {
                 existing.DataValidationsXml ?? captured.DataValidationsXml,
                 existing.DrawingXml ?? captured.DrawingXml,
                 CombineMetadataXmlLists(existing.PostDataValidationXml, captured.PostDataValidationXml),
-                CombineOverlayCells(existing.OverlayCells, captured.OverlayCells));
+                overlayCells));
+        }
+
+        private static DirectWorksheetMetadata? NormalizeDirectWorksheetMetadata(DirectWorksheetMetadata? metadata) {
+            if (metadata == null) {
+                return null;
+            }
+
+            IReadOnlyList<DirectOverlayCell> overlayCells = metadata.OverlayCells;
+            if (overlayCells.Count > 0) {
+                List<DirectOverlayCell>? retainedOverlayCells = null;
+                for (int i = 0; i < overlayCells.Count; i++) {
+                    if (overlayCells[i].IsDeleted) {
+                        retainedOverlayCells ??= new List<DirectOverlayCell>(overlayCells.Count);
+                        for (int previous = 0; previous < i; previous++) {
+                            retainedOverlayCells.Add(overlayCells[previous]);
+                        }
+
+                        continue;
+                    }
+
+                    retainedOverlayCells?.Add(overlayCells[i]);
+                }
+
+                if (retainedOverlayCells != null) {
+                    metadata = new DirectWorksheetMetadata(
+                        metadata.SheetPropertiesXml,
+                        metadata.SheetViewsXml,
+                        metadata.SheetFormatPropertiesXml,
+                        metadata.AutoFilterXml,
+                        metadata.ConditionalFormattingXml,
+                        metadata.DataValidationsXml,
+                        metadata.DrawingXml,
+                        metadata.PostDataValidationXml,
+                        retainedOverlayCells.Count == 0 ? Array.Empty<DirectOverlayCell>() : retainedOverlayCells.ToArray());
+                }
+            }
+
+            return metadata.IsEmpty ? null : metadata;
         }
 
         private static IReadOnlyList<string> CombineMetadataXmlLists(IReadOnlyList<string> first, IReadOnlyList<string> second) {
@@ -2057,7 +2099,12 @@ namespace OfficeIMO.Excel {
                 .ToArray();
         }
 
-        private bool TryCaptureDirectWorksheetMetadata(DirectDataSetSheetModel sheetModel, out DirectWorksheetMetadata? metadata, out string? skipReason, bool allowDrawings = false) {
+        private bool TryCaptureDirectWorksheetMetadata(
+            DirectDataSetSheetModel sheetModel,
+            out DirectWorksheetMetadata? metadata,
+            out string? skipReason,
+            bool allowDrawings = false,
+            bool allowUnsupportedOverlayStyles = false) {
             metadata = null;
             skipReason = null;
 
@@ -2130,7 +2177,9 @@ namespace OfficeIMO.Excel {
                     case SheetDimension:
                         break;
                     case SheetData sheetData:
-                        overlayCells = CaptureDirectWorksheetOverlayCells(sheet, sheetModel, sheetData, _spreadSheetDocument.WorkbookPart?.WorkbookStylesPart?.Stylesheet);
+                        if (!TryCaptureDirectWorksheetOverlayCells(sheet, sheetModel, sheetData, _spreadSheetDocument.WorkbookPart?.WorkbookStylesPart?.Stylesheet, allowUnsupportedOverlayStyles, out overlayCells, out skipReason)) {
+                            return false;
+                        }
                         break;
                     case SheetViews sheetViews when sheetViewsXml == null:
                         sheetViewsXml = sheetViews.OuterXml;
@@ -2200,101 +2249,19 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool CanCaptureDirectWorksheetMetadata(DirectDataSetSheetModel sheetModel, out string? skipReason, bool allowDrawings = false) {
+        private static bool TryCaptureDirectWorksheetOverlayCells(
+            ExcelSheet sheet,
+            DirectDataSetSheetModel sheetModel,
+            SheetData sheetData,
+            Stylesheet? stylesheet,
+            bool allowUnsupportedOverlayStyles,
+            out IReadOnlyList<DirectOverlayCell> overlayCells,
+            out string? skipReason) {
+            overlayCells = Array.Empty<DirectOverlayCell>();
             skipReason = null;
-
-            ExcelSheet? sheet = null;
-            var metadataSourceSheet = _directDataSetMetadataSourceSheet;
-            if (metadataSourceSheet != null
-                && ReferenceEquals(metadataSourceSheet.Document, this)
-                && string.Equals(metadataSourceSheet.Name, sheetModel.SheetName, StringComparison.Ordinal)) {
-                sheet = metadataSourceSheet;
-            }
-
-            sheet ??= TryGetExistingSheet(sheetModel.SheetName);
-            if (sheet == null) {
-                return true;
-            }
-
-            var worksheetPart = sheet.DeferredMetadataWorksheetPart;
-            if (worksheetPart.DrawingsPart != null && !allowDrawings) {
-                skipReason = "Worksheet contains drawings.";
-                return false;
-            }
-
-            if (worksheetPart.WorksheetCommentsPart != null) {
-                skipReason = "Worksheet contains comments.";
-                return false;
-            }
-
-            if (worksheetPart.ExternalRelationships.Any()) {
-                skipReason = "Worksheet contains external relationships.";
-                return false;
-            }
-
-            if (worksheetPart.HyperlinkRelationships.Any()) {
-                skipReason = "Worksheet contains hyperlink relationships.";
-                return false;
-            }
-
-            foreach (var tableDefinitionPart in worksheetPart.TableDefinitionParts) {
-                if (!sheetModel.HasTable) {
-                    skipReason = "Worksheet contains table metadata outside the direct table model.";
-                    return false;
-                }
-
-                var tableAutoFilter = tableDefinitionPart.Table?.Elements<AutoFilter>().FirstOrDefault();
-                if (tableAutoFilter != null && tableAutoFilter.HasChildren) {
-                    skipReason = "Worksheet contains table AutoFilter criteria outside the direct table model.";
-                    return false;
-                }
-            }
-
-            var worksheet = worksheetPart.Worksheet;
-            if (worksheet == null) {
-                return true;
-            }
-
-            foreach (var child in worksheet.ChildElements) {
-                switch (child) {
-                    case SheetProperties:
-                    case SheetDimension:
-                    case SheetData:
-                    case SheetViews:
-                    case SheetFormatProperties:
-                    case AutoFilter:
-                    case DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting:
-                    case DataValidations:
-                    case PrintOptions:
-                    case PageMargins:
-                    case PageSetup:
-                    case HeaderFooter:
-                    case RowBreaks:
-                    case ColumnBreaks:
-                    case CellWatches:
-                    case DocumentFormat.OpenXml.Spreadsheet.IgnoredErrors:
-                        break;
-                    case Columns when sheetModel.ColumnWidths is { Length: > 0 }:
-                        break;
-                    case Columns:
-                        skipReason = "Worksheet contains column metadata outside the direct DataSet column width model.";
-                        return false;
-                    case DocumentFormat.OpenXml.Spreadsheet.Drawing when allowDrawings:
-                        break;
-                    case TableParts when sheetModel.HasTable:
-                        break;
-                    default:
-                        skipReason = "Worksheet contains unsupported element '" + child.LocalName + "' for the direct DataSet package writer.";
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
-        private static IReadOnlyList<DirectOverlayCell> CaptureDirectWorksheetOverlayCells(ExcelSheet sheet, DirectDataSetSheetModel sheetModel, SheetData sheetData, Stylesheet? stylesheet) {
             int directLastRow = sheetModel.Table.RowCount + (sheetModel.IncludeHeaders ? 1 : 0);
             List<DirectOverlayCell>? cells = null;
+            Dictionary<uint, DirectOverlayStyleResolution>? styleResolutionCache = null;
             int nextRowIndex = 1;
             foreach (var row in sheetData.Elements<Row>()) {
                 int rowIndex = row.RowIndex?.Value is uint explicitRow ? checked((int)explicitRow) : nextRowIndex;
@@ -2317,29 +2284,90 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
+                    if (!TryResolveDirectOverlayNumberFormat(stylesheet, cell, allowUnsupportedOverlayStyles, ref styleResolutionCache, out string? numberFormat)) {
+                        skipReason = "Worksheet contains overlay cell style metadata outside the direct DataSet style model.";
+                        return false;
+                    }
+
                     cells ??= new List<DirectOverlayCell>();
-                    cells.Add(new DirectOverlayCell(cellRow, cellColumn, value, cell.StyleIndex?.Value, ResolveDirectOverlayNumberFormat(stylesheet, cell)));
+                    cells.Add(new DirectOverlayCell(cellRow, cellColumn, value, cell.StyleIndex?.Value, numberFormat));
                 }
             }
 
-            return cells ?? (IReadOnlyList<DirectOverlayCell>)Array.Empty<DirectOverlayCell>();
+            overlayCells = cells ?? (IReadOnlyList<DirectOverlayCell>)Array.Empty<DirectOverlayCell>();
+            return true;
         }
 
-        private static string? ResolveDirectOverlayNumberFormat(Stylesheet? stylesheet, Cell cell) {
+        private static bool TryResolveDirectOverlayNumberFormat(
+            Stylesheet? stylesheet,
+            Cell cell,
+            bool allowUnsupportedOverlayStyles,
+            ref Dictionary<uint, DirectOverlayStyleResolution>? styleResolutionCache,
+            out string? numberFormat) {
+            numberFormat = null;
             if (cell.StyleIndex?.Value is not uint styleIndex) {
-                return null;
+                return true;
+            }
+
+            styleResolutionCache ??= new Dictionary<uint, DirectOverlayStyleResolution>();
+            if (!styleResolutionCache.TryGetValue(styleIndex, out var resolution)) {
+                bool supported = TryResolveDirectOverlayStyle(stylesheet, styleIndex, allowUnsupportedOverlayStyles, out string? resolvedNumberFormat);
+                resolution = new DirectOverlayStyleResolution(supported, resolvedNumberFormat);
+                styleResolutionCache.Add(styleIndex, resolution);
+            }
+
+            numberFormat = resolution.NumberFormat;
+            return resolution.Supported;
+        }
+
+        private static bool TryResolveDirectOverlayStyle(Stylesheet? stylesheet, uint styleIndex, bool allowUnsupportedOverlayStyles, out string? numberFormat) {
+            numberFormat = null;
+            if (styleIndex == 0U) {
+                return true;
+            }
+
+            if (stylesheet == null) {
+                return false;
             }
 
             var cellFormat = stylesheet?.CellFormats?.Elements<CellFormat>().ElementAtOrDefault((int)styleIndex);
-            if (cellFormat?.NumberFormatId?.Value is not uint numberFormatId || numberFormatId == 0U) {
-                return null;
+            if (cellFormat == null) {
+                return allowUnsupportedOverlayStyles;
+            }
+
+            if (HasUnsupportedDirectOverlayStyle(cellFormat)) {
+                return allowUnsupportedOverlayStyles;
+            }
+
+            if (cellFormat.NumberFormatId?.Value is not uint numberFormatId || numberFormatId == 0U) {
+                return true;
             }
 
             string? customFormat = stylesheet?.NumberingFormats?.Elements<NumberingFormat>()
                 .FirstOrDefault(format => format.NumberFormatId?.Value == numberFormatId)
                 ?.FormatCode
                 ?.Value;
-            return customFormat ?? ResolveBuiltInNumberFormatCode(numberFormatId);
+            numberFormat = customFormat ?? ResolveBuiltInNumberFormatCode(numberFormatId);
+            return numberFormat != null;
+        }
+
+        private static bool HasUnsupportedDirectOverlayStyle(CellFormat cellFormat) {
+            if ((cellFormat.FontId?.Value ?? 0U) != 0U
+                || (cellFormat.FillId?.Value ?? 0U) != 0U
+                || (cellFormat.BorderId?.Value ?? 0U) != 0U
+                || (cellFormat.ApplyFont?.Value ?? false)
+                || (cellFormat.ApplyFill?.Value ?? false)
+                || (cellFormat.ApplyBorder?.Value ?? false)
+                || (cellFormat.ApplyAlignment?.Value ?? false)
+                || (cellFormat.ApplyProtection?.Value ?? false)
+                || (cellFormat.QuotePrefix?.Value ?? false)
+                || (cellFormat.PivotButton?.Value ?? false)
+                || cellFormat.Alignment != null
+                || cellFormat.Protection != null) {
+                return true;
+            }
+
+            return false;
         }
 
         private static string? ResolveBuiltInNumberFormatCode(uint numberFormatId) {
@@ -3108,6 +3136,17 @@ namespace OfficeIMO.Excel {
             internal string? NumberFormat { get; }
 
             internal bool IsDeleted { get; }
+        }
+
+        private readonly struct DirectOverlayStyleResolution {
+            internal DirectOverlayStyleResolution(bool supported, string? numberFormat) {
+                Supported = supported;
+                NumberFormat = numberFormat;
+            }
+
+            internal bool Supported { get; }
+
+            internal string? NumberFormat { get; }
         }
 
         private readonly struct DirectBufferedRows {
@@ -4234,6 +4273,7 @@ namespace OfficeIMO.Excel {
             private readonly DataSet _dataSet;
             private readonly Action _invalidate;
             private readonly bool _subscribed;
+            private readonly HashSet<DataTable> _subscribedTables = new();
             private bool _disposed;
 
             internal DirectDataSetSaveCandidate(DataSet dataSet, DirectDataSetWorkbookModel model, Action invalidate, bool isDeferred, bool subscribeToSourceChanges) {
@@ -4267,6 +4307,10 @@ namespace OfficeIMO.Excel {
             }
 
             private void Subscribe(DataTable table) {
+                if (!_subscribedTables.Add(table)) {
+                    return;
+                }
+
                 table.Columns.CollectionChanged += OnCollectionChanged;
                 table.RowChanged += OnDataChanged;
                 table.RowChanging += OnDataChanging;
@@ -4280,12 +4324,16 @@ namespace OfficeIMO.Excel {
 
             private void Unsubscribe(DataSet dataSet) {
                 dataSet.Tables.CollectionChanged -= OnCollectionChanged;
-                foreach (DataTable table in dataSet.Tables) {
+                foreach (DataTable table in _subscribedTables.ToArray()) {
                     Unsubscribe(table);
                 }
             }
 
             private void Unsubscribe(DataTable table) {
+                if (!_subscribedTables.Remove(table)) {
+                    return;
+                }
+
                 table.Columns.CollectionChanged -= OnCollectionChanged;
                 table.RowChanged -= OnDataChanged;
                 table.RowChanging -= OnDataChanging;
