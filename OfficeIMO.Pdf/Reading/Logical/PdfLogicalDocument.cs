@@ -38,6 +38,12 @@ public interface IPdfLogicalElement {
 /// </summary>
 public sealed class PdfLogicalDocument {
     private IReadOnlyList<IPdfLogicalElement>? _elements;
+    private IReadOnlyList<PdfLogicalTextBlock>? _textBlocks;
+    private IReadOnlyList<PdfLogicalHeading>? _headings;
+    private IReadOnlyList<PdfLogicalParagraph>? _paragraphs;
+    private IReadOnlyList<PdfLogicalListItem>? _listItems;
+    private IReadOnlyList<PdfLogicalTable>? _tables;
+    private IReadOnlyList<PdfLogicalImage>? _images;
     private IReadOnlyList<PdfLogicalLinkAnnotation>? _links;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByUri;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByDestinationName;
@@ -127,6 +133,54 @@ public sealed class PdfLogicalDocument {
 
             _formFieldNames = FormFieldsByName.Keys.ToArray();
             return _formFieldNames;
+        }
+    }
+
+    /// <summary>All line-level text blocks flattened in page order.</summary>
+    public IReadOnlyList<PdfLogicalTextBlock> TextBlocks {
+        get {
+            _textBlocks ??= FlattenPageItems(Pages, page => page.TextBlocks);
+            return _textBlocks;
+        }
+    }
+
+    /// <summary>All heuristic heading objects flattened in page order.</summary>
+    public IReadOnlyList<PdfLogicalHeading> Headings {
+        get {
+            _headings ??= FlattenPageItems(Pages, page => page.Headings);
+            return _headings;
+        }
+    }
+
+    /// <summary>All heuristic paragraph objects flattened in page order.</summary>
+    public IReadOnlyList<PdfLogicalParagraph> Paragraphs {
+        get {
+            _paragraphs ??= FlattenPageItems(Pages, page => page.Paragraphs);
+            return _paragraphs;
+        }
+    }
+
+    /// <summary>All detected list item objects flattened in page order.</summary>
+    public IReadOnlyList<PdfLogicalListItem> ListItems {
+        get {
+            _listItems ??= FlattenPageItems(Pages, page => page.ListItems);
+            return _listItems;
+        }
+    }
+
+    /// <summary>All detected table objects flattened in page order.</summary>
+    public IReadOnlyList<PdfLogicalTable> Tables {
+        get {
+            _tables ??= FlattenPageItems(Pages, page => page.Tables);
+            return _tables;
+        }
+    }
+
+    /// <summary>All image XObject entries flattened in page order.</summary>
+    public IReadOnlyList<PdfLogicalImage> Images {
+        get {
+            _images ??= FlattenPageItems(Pages, page => page.Images);
+            return _images;
         }
     }
 
@@ -349,6 +403,15 @@ public sealed class PdfLogicalDocument {
         }
 
         return new System.Collections.ObjectModel.ReadOnlyDictionary<string, IReadOnlyList<T>>(result);
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<T> FlattenPageItems<T>(IReadOnlyList<PdfLogicalPage> pages, Func<PdfLogicalPage, IReadOnlyList<T>> selector) {
+        var items = new List<T>();
+        for (int i = 0; i < pages.Count; i++) {
+            items.AddRange(selector(pages[i]));
+        }
+
+        return items.AsReadOnly();
     }
 
     /// <summary>Loads a PDF from bytes and returns the logical read model.</summary>
