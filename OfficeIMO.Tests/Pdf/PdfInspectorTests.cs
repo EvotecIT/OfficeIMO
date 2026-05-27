@@ -1070,6 +1070,8 @@ public class PdfInspectorTests {
         Assert.True(report.DocumentInfo.HasForms);
         Assert.True(report.DocumentInfo.HasAcroFormSignatureFlags);
         Assert.Equal(3, report.DocumentInfo.AcroFormSignatureFlags);
+        Assert.True(report.DocumentInfo.AcroFormSignaturesExist);
+        Assert.True(report.DocumentInfo.AcroFormAppendOnly);
         Assert.Empty(report.ReadBlockers);
         Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", report.Diagnostics);
         AssertRewriteBlocker(report, PdfRewriteBlockerKind.Signatures, "Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.");
@@ -1090,6 +1092,8 @@ public class PdfInspectorTests {
         Assert.Equal(true, report.DocumentInfo.AcroFormNeedAppearances);
         Assert.True(report.DocumentInfo.RequiresAcroFormAppearanceRegeneration);
         Assert.False(report.DocumentInfo.HasAcroFormSignatureFlags);
+        Assert.False(report.DocumentInfo.AcroFormSignaturesExist);
+        Assert.False(report.DocumentInfo.AcroFormAppendOnly);
         Assert.True(report.DocumentInfo.HasAcroFormDefaultAppearance);
         Assert.Equal("/Helv 11 Tf 0 g", report.DocumentInfo.AcroFormDefaultAppearance);
         Assert.True(report.DocumentInfo.HasReadableFormFields);
@@ -1113,6 +1117,9 @@ public class PdfInspectorTests {
         Assert.True(info.HasAcroFormNeedAppearances);
         Assert.Equal(false, info.AcroFormNeedAppearances);
         Assert.False(info.RequiresAcroFormAppearanceRegeneration);
+        Assert.False(info.HasAcroFormSignatureFlags);
+        Assert.False(info.AcroFormSignaturesExist);
+        Assert.False(info.AcroFormAppendOnly);
         Assert.True(info.HasAcroFormDefaultAppearance);
         Assert.Equal("/Helv 7 Tf 0.5 g", info.AcroFormDefaultAppearance);
         Assert.Equal(3, info.FormFieldCount);

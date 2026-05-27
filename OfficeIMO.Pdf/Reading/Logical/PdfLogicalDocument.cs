@@ -37,6 +37,8 @@ public interface IPdfLogicalElement {
 /// First-party logical read model for a parser-supported PDF.
 /// </summary>
 public sealed class PdfLogicalDocument {
+    private const int AcroFormSignaturesExistFlag = 1;
+    private const int AcroFormAppendOnlyFlag = 2;
     private IReadOnlyList<IPdfLogicalElement>? _elements;
     private IReadOnlyList<PdfLogicalTextBlock>? _textBlocks;
     private IReadOnlyList<PdfLogicalHeading>? _headings;
@@ -132,6 +134,12 @@ public sealed class PdfLogicalDocument {
 
     /// <summary>True when AcroForm signature flags were readable.</summary>
     public bool HasAcroFormSignatureFlags => AcroFormSignatureFlags.HasValue;
+
+    /// <summary>True when AcroForm /SigFlags indicates that the document contains signatures.</summary>
+    public bool AcroFormSignaturesExist => HasAcroFormSignatureFlag(AcroFormSignaturesExistFlag);
+
+    /// <summary>True when AcroForm /SigFlags indicates that the document should only be saved by appending changes.</summary>
+    public bool AcroFormAppendOnly => HasAcroFormSignatureFlag(AcroFormAppendOnlyFlag);
 
     /// <summary>Named simple AcroForm fields keyed by fully qualified field name.</summary>
     public IReadOnlyDictionary<string, PdfFormField> FormFieldsByName {
@@ -562,6 +570,10 @@ public sealed class PdfLogicalDocument {
         }
 
         return items.AsReadOnly();
+    }
+
+    private bool HasAcroFormSignatureFlag(int flag) {
+        return AcroFormSignatureFlags.HasValue && (AcroFormSignatureFlags.Value & flag) != 0;
     }
 
     /// <summary>Loads a PDF from bytes and returns the logical read model.</summary>

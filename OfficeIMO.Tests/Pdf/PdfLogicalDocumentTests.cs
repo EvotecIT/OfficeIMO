@@ -129,6 +129,8 @@ public class PdfLogicalDocumentTests {
         Assert.True(logical.RequiresAcroFormAppearanceRegeneration);
         Assert.True(logical.HasAcroFormSignatureFlags);
         Assert.Equal(1, logical.AcroFormSignatureFlags);
+        Assert.True(logical.AcroFormSignaturesExist);
+        Assert.False(logical.AcroFormAppendOnly);
         Assert.True(logical.HasAcroFormDefaultAppearance);
         Assert.Equal("/Helv 7 Tf 0.5 g", logical.AcroFormDefaultAppearance);
         Assert.Equal(new[] { "Person.Name", "AcceptTerms", "Selection.Country" }, logical.FormFields.Select(field => field.Name).ToArray());

@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf;
 /// Basic document-level information useful for inspection and automation scenarios.
 /// </summary>
 public sealed class PdfDocumentInfo {
+    private const int AcroFormSignaturesExistFlag = 1;
+    private const int AcroFormAppendOnlyFlag = 2;
     private IReadOnlyList<PdfLinkAnnotation>? _linkAnnotations;
     private IReadOnlyList<string>? _linkUris;
     private IReadOnlyList<string>? _linkDestinationNames;
@@ -427,6 +429,12 @@ public sealed class PdfDocumentInfo {
     /// <summary>True when AcroForm signature flags were readable.</summary>
     public bool HasAcroFormSignatureFlags => AcroFormSignatureFlags.HasValue;
 
+    /// <summary>True when AcroForm /SigFlags indicates that the document contains signatures.</summary>
+    public bool AcroFormSignaturesExist => HasAcroFormSignatureFlag(AcroFormSignaturesExistFlag);
+
+    /// <summary>True when AcroForm /SigFlags indicates that the document should only be saved by appending changes.</summary>
+    public bool AcroFormAppendOnly => HasAcroFormSignatureFlag(AcroFormAppendOnlyFlag);
+
     /// <summary>Simple document open action read from the document catalog, when supported.</summary>
     public PdfDocumentOpenAction? OpenAction { get; }
 
@@ -504,4 +512,8 @@ public sealed class PdfDocumentInfo {
 
     /// <summary>True when the document contains active content markers such as JavaScript actions.</summary>
     public bool HasActiveContent { get; }
+
+    private bool HasAcroFormSignatureFlag(int flag) {
+        return AcroFormSignatureFlags.HasValue && (AcroFormSignatureFlags.Value & flag) != 0;
+    }
 }
