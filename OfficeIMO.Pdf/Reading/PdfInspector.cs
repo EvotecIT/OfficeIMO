@@ -277,6 +277,7 @@ public static class PdfInspector {
 
     private static PdfDocumentInfo FromReadDocument(PdfReadDocument document, PdfDocumentProbe probe) {
         var pages = new List<PdfPageInfo>(document.Pages.Count);
+        var widgetsByPage = BuildFormWidgetsByPage(document.FormFields);
         for (int i = 0; i < document.Pages.Count; i++) {
             var (width, height) = document.Pages[i].GetPageSize();
             int rotation = document.Pages[i].GetRotationDegrees();
@@ -287,9 +288,37 @@ public static class PdfInspector {
                 links.Add(pageLinks[j].WithPageNumber(pageNumber));
             }
 
-            pages.Add(new PdfPageInfo(pageNumber, width, height, rotation, links));
+            widgetsByPage.TryGetValue(pageNumber, out IReadOnlyList<PdfFormWidget>? formWidgets);
+            pages.Add(new PdfPageInfo(pageNumber, width, height, rotation, links, formWidgets));
         }
 
         return new PdfDocumentInfo(pages.AsReadOnly(), document.Metadata, document.Outlines, document.PageLabels, document.NamedDestinations, document.OpenAction, document.ViewerPreferences, document.FormFields, document.AcroFormDefaultAppearance, document.AcroFormNeedAppearances, document.AcroFormSignatureFlags, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, probe.HasSignatures, probe.HasForms, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent);
+    }
+
+    private static Dictionary<int, IReadOnlyList<PdfFormWidget>> BuildFormWidgetsByPage(IReadOnlyList<PdfFormField> fields) {
+        var grouped = new Dictionary<int, List<PdfFormWidget>>();
+        for (int i = 0; i < fields.Count; i++) {
+            IReadOnlyList<PdfFormWidget> widgets = fields[i].Widgets;
+            for (int j = 0; j < widgets.Count; j++) {
+                PdfFormWidget widget = widgets[j];
+                if (!widget.PageNumber.HasValue) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(widget.PageNumber.Value, out List<PdfFormWidget>? pageWidgets)) {
+                    pageWidgets = new List<PdfFormWidget>();
+                    grouped.Add(widget.PageNumber.Value, pageWidgets);
+                }
+
+                pageWidgets.Add(widget);
+            }
+        }
+
+        var result = new Dictionary<int, IReadOnlyList<PdfFormWidget>>();
+        foreach (var item in grouped) {
+            result.Add(item.Key, item.Value.AsReadOnly());
+        }
+
+        return result;
     }
 }

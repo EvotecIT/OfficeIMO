@@ -1210,9 +1210,11 @@ public class PdfInspectorTests {
         Assert.True(field.HasWidgets);
         Assert.True(info.HasFormWidgets);
         Assert.Equal(1, info.FormWidgetCount);
+        Assert.True(info.Pages[0].HasFormWidgets);
 
         PdfFormWidget widget = Assert.Single(field.Widgets);
         Assert.Same(widget, Assert.Single(info.FormWidgets));
+        Assert.Same(widget, Assert.Single(info.Pages[0].FormWidgets));
         Assert.Same(widget, Assert.Single(info.FormWidgetsByFieldName["AcceptTerms"]));
         Assert.Same(widget, Assert.Single(info.GetFormWidgets("AcceptTerms")));
         Assert.Empty(info.GetFormWidgets("Missing"));
