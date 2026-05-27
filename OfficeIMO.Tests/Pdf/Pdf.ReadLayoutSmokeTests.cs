@@ -275,6 +275,64 @@ public sealed class PdfReadLayoutSmokeTests {
     }
 
     [Fact]
+    public void PdfTextExtractor_ExtractStructuredByPage_DetectsListItems() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Bullets(new[] { "First bullet", "Second bullet" })
+            .Numbered(new[] { "First numbered", "Second numbered" }, startNumber: 3)
+            .ToBytes();
+
+        StructuredPage page = Assert.Single(PdfTextExtractor.ExtractStructuredByPage(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+
+        Assert.Contains(page.ListNodes, item => item.Marker == "3" && item.Text == "First numbered" && item.Level == 1);
+        Assert.Contains(page.ListNodes, item => item.Marker.Length > 0 && item.Text == "First bullet" && item.Level == 1);
+
+        StructuredListItemPage listPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPage(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+        Assert.Equal(1, listPage.PageNumber);
+        Assert.Contains(listPage.ListItems, item => item.Text == "Second bullet");
+        Assert.Contains(listPage.ListItems, item => item.Marker == "4" && item.Text == "Second numbered");
+
+        using var stream = new MemoryStream(bytes);
+        StructuredListItemPage streamListPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPage(stream, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }));
+        Assert.Contains(streamListPage.ListItems, item => item.Text == "First bullet");
+
+        var rangeListPages = PdfTextExtractor.ExtractListItemsByPageRanges(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }, PdfPageRange.ParseMany("1,1"));
+        Assert.Equal(2, rangeListPages.Count);
+        Assert.All(rangeListPages, item => Assert.Contains(item.ListItems, listItem => listItem.Text == "First numbered"));
+
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-list-ranges-" + Guid.NewGuid().ToString("N"));
+        string inputPath = Path.Combine(directory, "lists.pdf");
+        try {
+            Directory.CreateDirectory(directory);
+            File.WriteAllBytes(inputPath, bytes);
+
+            StructuredListItemPage pathListPage = Assert.Single(PdfTextExtractor.ExtractListItemsByPageRanges(inputPath, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }, PdfPageRange.ParseMany("1")));
+            Assert.Contains(pathListPage.ListItems, item => item.Marker == "3" && item.Text == "First numbered");
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractStructuredAndTablesByPageRanges_UsesSelectedSourcePages() {
         byte[] bytes = BuildThreePageTablePdf();
 
@@ -415,6 +473,13 @@ public sealed class PdfReadLayoutSmokeTests {
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, default(PdfPageRange)));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractStructuredByPageRanges(bytes, PdfPageRange.From(4, 4)));
+
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractListItemsByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractListItemsByPageRanges(bytes, (PdfPageRange[])null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractListItemsByPageRanges(bytes));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractListItemsByPageRanges(bytes, default(PdfPageRange)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractListItemsByPageRanges(bytes, PdfPageRange.From(4, 4)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractListItemsByPageRanges((string)null!, PdfPageRange.From(1, 1)));
 
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractHeadingsByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractHeadingsByPageRanges(bytes, (PdfPageRange[])null!));

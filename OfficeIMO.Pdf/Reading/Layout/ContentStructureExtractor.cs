@@ -139,6 +139,25 @@ public sealed class StructuredHeadingPage {
     public List<StructuredHeading> Headings { get; } = new();
 }
 
+/// <summary>Detected list items for a single document page.</summary>
+public sealed class StructuredListItemPage {
+    /// <summary>Creates a page list-item result.</summary>
+    public StructuredListItemPage(int pageNumber, IEnumerable<StructuredListItem> listItems) {
+        if (pageNumber < 1) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        PageNumber = pageNumber;
+        ListItems.AddRange(listItems ?? throw new ArgumentNullException(nameof(listItems)));
+    }
+
+    /// <summary>1-based page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Detected list items on this page.</summary>
+    public List<StructuredListItem> ListItems { get; } = new();
+}
+
 /// <summary>Heuristic heading line inferred from font size and geometry.</summary>
 public sealed class StructuredHeading {
     /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
@@ -186,9 +205,9 @@ public sealed class StructuredLine {
 internal static class ContentStructureExtractor {
     private static readonly Regex TocRegex = new Regex(@"^(?<label>.+?)\s*\.{3,}\s+(?<num>\d{1,5})\s*$", RegexOptions.Compiled);
     private static readonly Regex LeaderRowRegex = new Regex(@"^(?<label>.+?)(?:\.{3,}|-{3,}|_{3,})\s*(?<value>[$€£]?\s*[A-Za-z0-9][A-Za-z0-9\s.,'/%+\-()]*)\s*$", RegexOptions.Compiled);
-    private static readonly Regex ListRegex = new Regex(@"^\s*(?:[\u2022\-\*\u25CF]|\d+(?:\.\d+)*[\.)]|\([A-Za-z0-9]+\))\s+", RegexOptions.Compiled);
-    private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)+)[\.)]?\s+(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex BulletRegex = new Regex(@"^\s*(?<mark>[\u2022\-\*\u25CF])\s+(?<text>.+)$", RegexOptions.Compiled);
+    private static readonly Regex ListRegex = new Regex(@"^\s*(?:[\u2022\u25CF]\s*|[\-\*]\s+|\d+(?:\.\d+)*[\.)]\s*|\([A-Za-z0-9]+\)\s*).+", RegexOptions.Compiled);
+    private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)*)[\.)]\s*(?<text>.+)$", RegexOptions.Compiled);
+    private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u25CF])\s*|(?<mark>[\-\*])\s+)(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex ParenRegex = new Regex(@"^\s*\((?<mark>[A-Za-z0-9]+)\)\s+(?<text>.+)$", RegexOptions.Compiled);
     private static readonly HashSet<string> CommonSuffixes = new(StringComparer.OrdinalIgnoreCase) {
         "ion", "ions", "ing", "ment", "tion", "sion", "iation", "ization",

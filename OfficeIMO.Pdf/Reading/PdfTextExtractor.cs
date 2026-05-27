@@ -143,6 +143,23 @@ public static class PdfTextExtractor {
         return ExtractHeadingsByPageRanges(PdfReadDocument.Load(path), options, pageRanges);
     }
 
+    /// <summary>Extracts detected list items grouped by page while preserving marker and nesting hints.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPage(string path, PdfTextLayoutOptions? options = null) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return PdfReadDocument.Load(path).ExtractListItemsByPage(options);
+    }
+
+    /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(string path, params PdfPageRange[] pageRanges) {
+        return ExtractListItemsByPageRanges(path, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractListItemsByPageRanges(PdfReadDocument.Load(path), options, pageRanges);
+    }
+
     /// <summary>Extracts detected tables grouped by page while preserving table geometry.</summary>
     public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
@@ -613,6 +630,21 @@ public static class PdfTextExtractor {
         return ExtractHeadingsByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
     }
 
+    /// <summary>Extracts detected list items grouped by page from the current stream position.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPage(Stream stream, PdfTextLayoutOptions? options = null) {
+        return PdfReadDocument.Load(stream).ExtractListItemsByPage(options);
+    }
+
+    /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges from the current stream position.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+        return ExtractListItemsByPageRanges(stream, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges from the current stream position.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        return ExtractListItemsByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+    }
+
     /// <summary>Extracts detected tables grouped by page from the current stream position.</summary>
     public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(Stream stream, PdfTextLayoutOptions? options = null) {
         return PdfReadDocument.Load(stream).ExtractTablesByPage(options);
@@ -817,6 +849,23 @@ public static class PdfTextExtractor {
         return ExtractHeadingsByPageRanges(PdfReadDocument.Load(pdf), options, pageRanges);
     }
 
+    /// <summary>Extracts detected list items grouped by page while preserving marker and nesting hints.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPage(byte[] pdf, PdfTextLayoutOptions? options = null) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return PdfReadDocument.Load(pdf).ExtractListItemsByPage(options);
+    }
+
+    /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+        return ExtractListItemsByPageRanges(pdf, (PdfTextLayoutOptions?)null, pageRanges);
+    }
+
+    /// <summary>Extracts detected list items from the supplied inclusive one-based page ranges in caller order.</summary>
+    public static IReadOnlyList<StructuredListItemPage> ExtractListItemsByPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractListItemsByPageRanges(PdfReadDocument.Load(pdf), options, pageRanges);
+    }
+
     /// <summary>Extracts detected tables grouped by page while preserving table geometry.</summary>
     public static IReadOnlyList<StructuredTablePage> ExtractTablesByPage(byte[] pdf, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -918,6 +967,20 @@ public static class PdfTextExtractor {
             int pageNumber = pageNumbers[i];
             var structuredPage = document.Pages[pageNumber - 1].ExtractStructured(options);
             pages.Add(new StructuredHeadingPage(pageNumber, structuredPage.Headings));
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyCollection<StructuredListItemPage> ExtractListItemsByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        int[] pageNumbers = ExpandPageRanges(pageRanges, document.Pages.Count, nameof(pageRanges));
+
+        var pages = new List<StructuredListItemPage>(pageNumbers.Length);
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            int pageNumber = pageNumbers[i];
+            var structuredPage = document.Pages[pageNumber - 1].ExtractStructured(options);
+            pages.Add(new StructuredListItemPage(pageNumber, structuredPage.ListNodes));
         }
 
         return pages.AsReadOnly();
