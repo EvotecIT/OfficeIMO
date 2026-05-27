@@ -58,6 +58,8 @@ public sealed class StructuredListItem {
     public string Marker { get; init; } = string.Empty;
     /// <summary>Normalized text of the list item.</summary>
     public string Text { get; init; } = string.Empty;
+    /// <summary>Line geometry for the source list item.</summary>
+    public StructuredLine Line { get; init; } = new();
 }
 
 /// <summary>Table model with column geometry and extracted rows.</summary>
@@ -223,14 +225,7 @@ internal static class ContentStructureExtractor {
         var bands = TextLayoutEngine.BandLines(nonEmpty, opts);
         // Fill detailed geometry first
         foreach (var ln in lines) {
-            page.LinesDetailed.Add(new StructuredLine {
-                Y = ln.Y,
-                XStart = ln.XStart,
-                XEnd = ln.XEnd,
-                Text = ln.Text,
-                FontSize = GetLineFontSize(ln),
-                SpanCount = ln.Spans.Count
-            });
+            page.LinesDetailed.Add(ToStructuredLine(ln));
         }
         // Then semantic classification
         foreach (var ln in lines) {
@@ -250,13 +245,13 @@ internal static class ContentStructureExtractor {
                 if (mNum.Success) {
                     string mark = mNum.Groups["mark"].Value;
                     int level = Math.Max(1, mark.Count(c => c == '.') + 1);
-                    page.ListNodes.Add(new StructuredListItem { Level = level, Marker = mark, Text = mNum.Groups["text"].Value.Trim() });
+                    page.ListNodes.Add(new StructuredListItem { Level = level, Marker = mark, Text = mNum.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
                 } else {
                     var mBul = BulletRegex.Match(t);
-                    if (mBul.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = mBul.Groups["mark"].Value, Text = mBul.Groups["text"].Value.Trim() });
+                    if (mBul.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = mBul.Groups["mark"].Value, Text = mBul.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
                     else {
                         var mPar = ParenRegex.Match(t);
-                        if (mPar.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = "(" + mPar.Groups["mark"].Value + ")", Text = mPar.Groups["text"].Value.Trim() });
+                        if (mPar.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = "(" + mPar.Groups["mark"].Value + ")", Text = mPar.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
                     }
                 }
             }
@@ -502,6 +497,17 @@ internal static class ContentStructureExtractor {
         }
 
         return fontSize;
+    }
+
+    private static StructuredLine ToStructuredLine(TextLayoutEngine.TextLine line) {
+        return new StructuredLine {
+            Y = line.Y,
+            XStart = line.XStart,
+            XEnd = line.XEnd,
+            Text = line.Text,
+            FontSize = GetLineFontSize(line),
+            SpanCount = line.Spans.Count
+        };
     }
 
     private static bool IsInsideTable(TextLayoutEngine.TextLine line, List<StructuredTable> tables) {

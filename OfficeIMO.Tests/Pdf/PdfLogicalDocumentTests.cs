@@ -47,6 +47,11 @@ public class PdfLogicalDocumentTests {
         Assert.Contains(page.TextBlocks, block =>
             block.Kind == PdfLogicalElementKind.ListItem &&
             Normalize(block.Text).Contains("Detectedlogicalbullet", StringComparison.Ordinal));
+        PdfLogicalListItem listItem = Assert.Single(page.ListItems);
+        Assert.Equal("Detected logical bullet", listItem.Text);
+        Assert.Equal(1, listItem.Level);
+        Assert.NotEmpty(listItem.Marker);
+        Assert.Equal(PdfLogicalElementKind.ListItem, listItem.Line.Kind);
         Assert.Contains(page.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("Logicalreadbackmarker", StringComparison.Ordinal));
         Assert.DoesNotContain(page.Paragraphs, paragraph => Normalize(paragraph.Text).Contains("A-100", StringComparison.Ordinal));
 

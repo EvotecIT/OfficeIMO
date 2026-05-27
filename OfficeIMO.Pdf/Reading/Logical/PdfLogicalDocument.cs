@@ -117,6 +117,7 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalTextBlock> textBlocks,
         IReadOnlyList<PdfLogicalHeading> headings,
         IReadOnlyList<PdfLogicalParagraph> paragraphs,
+        IReadOnlyList<PdfLogicalListItem> listItems,
         IReadOnlyList<PdfLogicalTable> tables,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations) {
@@ -128,6 +129,7 @@ public sealed class PdfLogicalPage {
         TextBlocks = textBlocks;
         Headings = headings;
         Paragraphs = paragraphs;
+        ListItems = listItems;
         Tables = tables;
         Images = images;
         LinkAnnotations = linkAnnotations;
@@ -156,6 +158,9 @@ public sealed class PdfLogicalPage {
 
     /// <summary>Heuristic paragraph groups built from non-table, non-list text lines.</summary>
     public IReadOnlyList<PdfLogicalParagraph> Paragraphs { get; }
+
+    /// <summary>Detected bullet and numbered list items with marker and level hints.</summary>
+    public IReadOnlyList<PdfLogicalListItem> ListItems { get; }
 
     /// <summary>Detected table-like regions.</summary>
     public IReadOnlyList<PdfLogicalTable> Tables { get; }
@@ -221,6 +226,7 @@ public sealed class PdfLogicalPage {
             textBlocks.AsReadOnly(),
             BuildHeadings(pageNumber, structured.Headings, textBlocks),
             BuildParagraphs(pageNumber, structured.Paragraphs, textBlocks),
+            BuildListItems(pageNumber, structured.ListNodes, textBlocks),
             tables.AsReadOnly(),
             images.AsReadOnly(),
             page.GetLinkAnnotations());
@@ -245,6 +251,23 @@ public sealed class PdfLogicalPage {
 
             if (lines.Count > 0) {
                 result.Add(PdfLogicalParagraph.From(pageNumber, paragraph, lines));
+            }
+        }
+
+        return result.AsReadOnly();
+    }
+
+    private static IReadOnlyList<PdfLogicalListItem> BuildListItems(int pageNumber, List<StructuredListItem> listItems, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {
+        if (listItems.Count == 0) {
+            return Array.Empty<PdfLogicalListItem>();
+        }
+
+        var result = new List<PdfLogicalListItem>(listItems.Count);
+        for (int i = 0; i < listItems.Count; i++) {
+            var item = listItems[i];
+            PdfLogicalTextBlock? block = FindTextBlock(item.Line, textBlocks, PdfLogicalElementKind.ListItem);
+            if (block is not null) {
+                result.Add(new PdfLogicalListItem(pageNumber, item.Level, item.Marker, item.Text, block));
             }
         }
 
@@ -393,6 +416,34 @@ public sealed class PdfLogicalHeading {
     public double FontSize { get; }
 
     /// <summary>Line-level text block that produced the heading.</summary>
+    public PdfLogicalTextBlock Line { get; }
+}
+
+/// <summary>
+/// Detected bullet or numbered list item.
+/// </summary>
+public sealed class PdfLogicalListItem {
+    internal PdfLogicalListItem(int pageNumber, int level, string marker, string text, PdfLogicalTextBlock line) {
+        PageNumber = pageNumber;
+        Level = level;
+        Marker = marker;
+        Text = text;
+        Line = line;
+    }
+
+    /// <summary>One-based source page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Best-effort nesting level, where 1 is the outermost list level.</summary>
+    public int Level { get; }
+
+    /// <summary>List marker such as "1", "1.2", "-", "•", or "(a)".</summary>
+    public string Marker { get; }
+
+    /// <summary>List item text without the marker.</summary>
+    public string Text { get; }
+
+    /// <summary>Line-level text block that produced the list item.</summary>
     public PdfLogicalTextBlock Line { get; }
 }
 
