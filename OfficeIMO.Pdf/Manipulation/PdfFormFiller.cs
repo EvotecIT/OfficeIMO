@@ -533,11 +533,15 @@ public static class PdfFormFiller {
             return;
         }
 
+        if (string.Equals(fieldType, "Ch", StringComparison.Ordinal) &&
+            TryResolveChoiceFillValue(objects, field, value, out string? exportValue, out string? displayValue)) {
+            field.Items["V"] = new PdfStringObj(exportValue);
+            SetTextWidgetAppearances(objects, field, displayValue, new HashSet<int>(), ref nextObjectNumber);
+            return;
+        }
+
         field.Items["V"] = new PdfStringObj(value);
-        string appearanceValue = string.Equals(fieldType, "Ch", StringComparison.Ordinal)
-            ? TryResolveChoiceDisplayValue(objects, field, new[] { value }) ?? value
-            : value;
-        SetTextWidgetAppearances(objects, field, appearanceValue, new HashSet<int>(), ref nextObjectNumber);
+        SetTextWidgetAppearances(objects, field, value, new HashSet<int>(), ref nextObjectNumber);
     }
 
     private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, HashSet<int> visited, ref int nextObjectNumber) {
@@ -902,6 +906,44 @@ public static class PdfFormFiller {
         }
 
         return null;
+    }
+
+    private static bool TryResolveChoiceFillValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string value, out string exportValue, out string displayValue) {
+        exportValue = value;
+        displayValue = value;
+
+        if (!dictionary.Items.TryGetValue("Opt", out var optionsObject) ||
+            ResolveObject(objects, optionsObject) is not PdfArray options ||
+            options.Items.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
+                pairExportValue is not null &&
+                TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
+                pairDisplayText is not null &&
+                (string.Equals(pairExportValue, value, StringComparison.Ordinal) ||
+                 string.Equals(pairDisplayText, value, StringComparison.Ordinal))) {
+                exportValue = pairExportValue;
+                displayValue = pairDisplayText;
+                return true;
+            }
+
+            if (optionObject is not null &&
+                TryReadOptionText(objects, optionObject, out string? singleValue) &&
+                singleValue is not null &&
+                string.Equals(singleValue, value, StringComparison.Ordinal)) {
+                exportValue = singleValue;
+                displayValue = singleValue;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool TryReadOptionText(Dictionary<int, PdfIndirectObject> objects, PdfObject value, out string? text) {

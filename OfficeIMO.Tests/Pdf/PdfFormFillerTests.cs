@@ -224,6 +224,21 @@ public class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_ChoiceDisplayTextStoresExportValueAndPaintsDisplayText() {
+        byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
+            ["Country"] = "United States"
+        });
+
+        PdfDocumentInfo filledInfo = PdfInspector.Inspect(filled);
+
+        Assert.True(filledInfo.HasReadableFormFields);
+        PdfFormField filledField = Assert.Single(filledInfo.FormFields);
+        Assert.Equal("US", filledField.Value);
+        Assert.Equal("United States", Assert.Single(filledField.SelectedOptions).DisplayText);
+        Assert.Contains("(United States) Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FlattenFields_PaintsMultiSelectChoiceOptionDisplayText() {
         byte[] source = BuildMultiSelectChoiceWidgetFormPdf();
         PdfDocumentInfo sourceInfo = PdfInspector.Inspect(source);
