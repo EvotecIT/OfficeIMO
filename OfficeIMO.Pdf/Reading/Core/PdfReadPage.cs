@@ -121,6 +121,31 @@ public sealed class PdfReadPage {
         return result.AsReadOnly();
     }
 
+    internal IReadOnlyList<int> GetAnnotationObjectNumbers(string subtypeName) {
+        if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
+            return Array.Empty<int>();
+        }
+
+        var annotations = ResolveArray(annotsObject);
+        if (annotations is null) {
+            return Array.Empty<int>();
+        }
+
+        var result = new List<int>();
+        foreach (var item in annotations.Items) {
+            if (item is not PdfReference reference) {
+                continue;
+            }
+
+            var annotation = ResolveDictionary(reference);
+            if (annotation?.Get<PdfName>("Subtype")?.Name == subtypeName) {
+                result.Add(reference.ObjectNumber);
+            }
+        }
+
+        return result.Count == 0 ? Array.Empty<int>() : result.AsReadOnly();
+    }
+
     /// <summary>Extracts image XObjects referenced by this page.</summary>
     public IReadOnlyList<PdfExtractedImage> GetImages() => GetImages(0);
 

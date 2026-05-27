@@ -1116,6 +1116,25 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_ReadsAcroFormWidgetGeometryForWrappers() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildWidgetFormPdf());
+
+        PdfFormField field = Assert.Single(info.FormFields);
+        Assert.Equal("AcceptTerms", field.Name);
+        Assert.True(field.HasWidgets);
+
+        PdfFormWidget widget = Assert.Single(field.Widgets);
+        Assert.Equal(8, widget.ObjectNumber);
+        Assert.Equal(1, widget.PageNumber);
+        Assert.Equal(20, widget.X1);
+        Assert.Equal(100, widget.Y1);
+        Assert.Equal(36, widget.X2);
+        Assert.Equal(116, widget.Y2);
+        Assert.Equal("Yes", widget.AppearanceState);
+        Assert.Equal(4, widget.Flags);
+    }
+
+    [Fact]
     public void Preflight_ReportsInvalidHeaderWithoutParserException() {
         PdfDocumentPreflight report = PdfInspector.Preflight(System.Text.Encoding.ASCII.GetBytes("not a pdf"));
 
@@ -1687,6 +1706,41 @@ public class PdfInspectorTests {
             "endobj",
             "8 0 obj",
             "<< /FT /Btn /T (AcceptTerms) /V /Yes >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildWidgetFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Btn /T (AcceptTerms) /V /Yes /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 36 116] /F 4 /AS /Yes >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",

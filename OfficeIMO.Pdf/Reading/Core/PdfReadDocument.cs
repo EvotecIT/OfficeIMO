@@ -312,14 +312,29 @@ public sealed class PdfReadDocument {
 
         var result = new List<PdfFormField>();
         var visited = new HashSet<int>();
+        var widgetPageNumbers = BuildWidgetPageNumberLookup();
         for (int i = 0; i < fields.Items.Count; i++) {
-            ReadFormField(fields.Items[i], null, null, result, visited);
+            ReadFormField(fields.Items[i], null, null, result, visited, widgetPageNumbers);
         }
 
         return result.Count == 0 ? Array.Empty<PdfFormField>() : result.AsReadOnly();
     }
 
-    private void ReadFormField(PdfObject fieldObject, string? parentName, string? inheritedFieldType, List<PdfFormField> result, HashSet<int> visited) {
+    private Dictionary<int, int> BuildWidgetPageNumberLookup() {
+        var widgetPageNumbers = new Dictionary<int, int>();
+        for (int i = 0; i < Pages.Count; i++) {
+            IReadOnlyList<int> annotationObjectNumbers = Pages[i].GetAnnotationObjectNumbers("Widget");
+            for (int j = 0; j < annotationObjectNumbers.Count; j++) {
+                if (!widgetPageNumbers.ContainsKey(annotationObjectNumbers[j])) {
+                    widgetPageNumbers.Add(annotationObjectNumbers[j], i + 1);
+                }
+            }
+        }
+
+        return widgetPageNumbers;
+    }
+
+    private void ReadFormField(PdfObject fieldObject, string? parentName, string? inheritedFieldType, List<PdfFormField> result, HashSet<int> visited, IReadOnlyDictionary<int, int> widgetPageNumbers) {
         PdfObject? resolved = ResolveObject(fieldObject);
         if (resolved is not PdfDictionary field) {
             return;
@@ -348,21 +363,118 @@ public sealed class PdfReadDocument {
         string? alternateName = TryReadText(field, "TU");
         string? mappingName = TryReadText(field, "TM");
         int? flags = TryReadInteger(field, "Ff");
+        bool isWidget = IsWidget(field);
+        var widgets = new List<PdfFormWidget>();
+        if (TryReadFormWidget(field, objectNumber, widgetPageNumbers, out PdfFormWidget? widget) && widget is not null) {
+            widgets.Add(widget);
+        }
 
         PdfArray? kids = field.Items.TryGetValue("Kids", out var kidsObject) ? ResolveArray(kidsObject) : null;
         bool hasReadableFieldState = fieldType != null || value != null || flags.HasValue;
-        bool hasTerminalShape = kids is null || hasReadableFieldState;
-        if (hasTerminalShape && (fullName != null || hasReadableFieldState || alternateName != null || mappingName != null)) {
-            result.Add(new PdfFormField(objectNumber, fullName, partialName, fieldType, value, alternateName, mappingName, flags));
+        bool hasTerminalShape = isWidget || kids is null || hasReadableFieldState;
+        var fieldKids = new List<PdfObject>();
+        if (kids is not null) {
+            for (int i = 0; i < kids.Items.Count; i++) {
+                PdfObject kidObject = kids.Items[i];
+                PdfDictionary? kid = ResolveObject(kidObject) as PdfDictionary;
+                if (kid is not null && IsWidget(kid) && !HasOwnFieldName(kid)) {
+                    int? kidObjectNumber = TryGetObjectNumber(kidObject, kid);
+                    if (TryReadFormWidget(kid, kidObjectNumber, widgetPageNumbers, out PdfFormWidget? kidWidget) && kidWidget is not null) {
+                        widgets.Add(kidWidget);
+                    }
+
+                    continue;
+                }
+
+                fieldKids.Add(kidObject);
+            }
         }
 
-        if (kids is null) {
+        if (hasTerminalShape && (fullName != null || hasReadableFieldState || alternateName != null || mappingName != null)) {
+            result.Add(new PdfFormField(objectNumber, fullName, partialName, fieldType, value, alternateName, mappingName, flags, widgets.Count == 0 ? null : widgets.AsReadOnly()));
+        }
+
+        if (fieldKids.Count == 0) {
             return;
         }
 
-        for (int i = 0; i < kids.Items.Count; i++) {
-            ReadFormField(kids.Items[i], fullName, fieldType, result, visited);
+        for (int i = 0; i < fieldKids.Count; i++) {
+            ReadFormField(fieldKids[i], fullName, fieldType, result, visited, widgetPageNumbers);
         }
+    }
+
+    private int? TryGetObjectNumber(PdfObject sourceObject, PdfDictionary resolvedDictionary) {
+        if (sourceObject is PdfReference reference) {
+            return reference.ObjectNumber;
+        }
+
+        int foundObjectNumber = FindExactObjectNumberFor(resolvedDictionary);
+        return foundObjectNumber > 0 ? foundObjectNumber : null;
+    }
+
+    private bool TryReadFormWidget(PdfDictionary dictionary, int? objectNumber, IReadOnlyDictionary<int, int> widgetPageNumbers, out PdfFormWidget? widget) {
+        widget = null;
+        if (!IsWidget(dictionary) ||
+            !TryReadRectangle(dictionary.Items.TryGetValue("Rect", out var rectObject) ? rectObject : null, out var rect)) {
+            return false;
+        }
+
+        int? pageNumber = null;
+        if (objectNumber.HasValue && widgetPageNumbers.TryGetValue(objectNumber.Value, out int foundPageNumber)) {
+            pageNumber = foundPageNumber;
+        }
+
+        widget = new PdfFormWidget(
+            objectNumber,
+            pageNumber,
+            rect.X1,
+            rect.Y1,
+            rect.X2,
+            rect.Y2,
+            TryReadName(dictionary, "AS"),
+            TryReadInteger(dictionary, "F"));
+        return true;
+    }
+
+    private static bool IsWidget(PdfDictionary dictionary) {
+        return dictionary.Items.TryGetValue("Subtype", out var subtype) &&
+            subtype is PdfName name &&
+            string.Equals(name.Name, "Widget", StringComparison.Ordinal);
+    }
+
+    private bool HasOwnFieldName(PdfDictionary dictionary) {
+        return TryReadText(dictionary, "T") is not null;
+    }
+
+    private bool TryReadRectangle(PdfObject? obj, out (double X1, double Y1, double X2, double Y2) rect) {
+        rect = default;
+        var array = ResolveArray(obj);
+        if (array is null || array.Items.Count < 4) {
+            return false;
+        }
+
+        if (ResolveObject(array.Items[0]) is not PdfNumber x1 ||
+            ResolveObject(array.Items[1]) is not PdfNumber y1 ||
+            ResolveObject(array.Items[2]) is not PdfNumber x2 ||
+            ResolveObject(array.Items[3]) is not PdfNumber y2) {
+            return false;
+        }
+
+        double left = Math.Min(x1.Value, x2.Value);
+        double right = Math.Max(x1.Value, x2.Value);
+        double bottom = Math.Min(y1.Value, y2.Value);
+        double top = Math.Max(y1.Value, y2.Value);
+        if (double.IsNaN(left) || double.IsInfinity(left) ||
+            double.IsNaN(right) || double.IsInfinity(right) ||
+            double.IsNaN(bottom) || double.IsInfinity(bottom) ||
+            double.IsNaN(top) || double.IsInfinity(top) ||
+            right <= left ||
+            top <= bottom) {
+            return false;
+        }
+
+        rect = (left, bottom, right, top);
+        return true;
     }
 
     private static string? CombineFieldName(string? parentName, string? partialName) {
