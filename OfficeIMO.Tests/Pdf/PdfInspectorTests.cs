@@ -1227,6 +1227,16 @@ public class PdfInspectorTests {
         Assert.Equal(116, widget.Y2);
         Assert.Equal("Yes", widget.AppearanceState);
         Assert.Equal(4, widget.Flags);
+        Assert.False(widget.IsInvisible);
+        Assert.False(widget.IsHidden);
+        Assert.True(widget.IsPrint);
+        Assert.False(widget.IsNoZoom);
+        Assert.False(widget.IsNoRotate);
+        Assert.False(widget.IsNoView);
+        Assert.False(widget.IsReadOnly);
+        Assert.False(widget.IsLocked);
+        Assert.False(widget.IsToggleNoView);
+        Assert.False(widget.IsLockedContents);
         Assert.True(widget.HasNormalAppearanceStates);
         Assert.Equal(2, widget.NormalAppearanceStateCount);
         Assert.Equal(new[] { "Off", "Yes" }, widget.NormalAppearanceStates);

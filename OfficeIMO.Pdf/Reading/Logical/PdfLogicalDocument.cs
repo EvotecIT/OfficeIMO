@@ -1235,6 +1235,36 @@ public sealed class PdfLogicalFormWidget : IPdfLogicalElement {
     /// <summary>Raw widget annotation flags from /F, when present.</summary>
     public int? Flags => SourceWidget.Flags;
 
+    /// <summary>True when the widget has the PDF annotation Invisible flag.</summary>
+    public bool IsInvisible => SourceWidget.IsInvisible;
+
+    /// <summary>True when the widget has the PDF annotation Hidden flag.</summary>
+    public bool IsHidden => SourceWidget.IsHidden;
+
+    /// <summary>True when the widget has the PDF annotation Print flag.</summary>
+    public bool IsPrint => SourceWidget.IsPrint;
+
+    /// <summary>True when the widget has the PDF annotation NoZoom flag.</summary>
+    public bool IsNoZoom => SourceWidget.IsNoZoom;
+
+    /// <summary>True when the widget has the PDF annotation NoRotate flag.</summary>
+    public bool IsNoRotate => SourceWidget.IsNoRotate;
+
+    /// <summary>True when the widget has the PDF annotation NoView flag.</summary>
+    public bool IsNoView => SourceWidget.IsNoView;
+
+    /// <summary>True when the widget has the PDF annotation ReadOnly flag.</summary>
+    public bool IsReadOnly => SourceWidget.IsReadOnly;
+
+    /// <summary>True when the widget has the PDF annotation Locked flag.</summary>
+    public bool IsLocked => SourceWidget.IsLocked;
+
+    /// <summary>True when the widget has the PDF annotation ToggleNoView flag.</summary>
+    public bool IsToggleNoView => SourceWidget.IsToggleNoView;
+
+    /// <summary>True when the widget has the PDF annotation LockedContents flag.</summary>
+    public bool IsLockedContents => SourceWidget.IsLockedContents;
+
     /// <summary>Normal appearance state names from /AP /N, when the widget exposes named appearance streams.</summary>
     public IReadOnlyList<string> NormalAppearanceStates => SourceWidget.NormalAppearanceStates;
 

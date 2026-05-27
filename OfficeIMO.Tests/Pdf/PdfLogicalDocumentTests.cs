@@ -287,6 +287,10 @@ public class PdfLogicalDocumentTests {
         Assert.Equal(100, logicalWidget.Y1);
         Assert.Equal(36, logicalWidget.X2);
         Assert.Equal(116, logicalWidget.Y2);
+        Assert.True(logicalWidget.IsPrint);
+        Assert.False(logicalWidget.IsHidden);
+        Assert.False(logicalWidget.IsNoView);
+        Assert.False(logicalWidget.IsLocked);
         Assert.True(logicalWidget.HasNormalAppearanceStates);
         Assert.Equal(2, logicalWidget.NormalAppearanceStateCount);
         Assert.Equal(new[] { "Off", "Yes" }, logicalWidget.NormalAppearanceStates);

@@ -340,6 +340,17 @@ public sealed class PdfFormFieldOption {
 /// Simple AcroForm widget annotation geometry read from a PDF document.
 /// </summary>
 public sealed class PdfFormWidget {
+    private const int InvisibleFlag = 1;
+    private const int HiddenFlag = 2;
+    private const int PrintFlag = 4;
+    private const int NoZoomFlag = 8;
+    private const int NoRotateFlag = 16;
+    private const int NoViewFlag = 32;
+    private const int ReadOnlyFlag = 64;
+    private const int LockedFlag = 128;
+    private const int ToggleNoViewFlag = 256;
+    private const int LockedContentsFlag = 512;
+
     internal PdfFormWidget(int? objectNumber, string? fieldName, int? pageNumber, double x1, double y1, double x2, double y2, string? appearanceState, int? flags, IReadOnlyList<string>? normalAppearanceStates = null) {
         ObjectNumber = objectNumber;
         FieldName = fieldName;
@@ -386,6 +397,36 @@ public sealed class PdfFormWidget {
     /// <summary>Raw widget annotation flags from /F, when present.</summary>
     public int? Flags { get; }
 
+    /// <summary>True when the widget has the PDF annotation Invisible flag.</summary>
+    public bool IsInvisible => HasFlag(InvisibleFlag);
+
+    /// <summary>True when the widget has the PDF annotation Hidden flag.</summary>
+    public bool IsHidden => HasFlag(HiddenFlag);
+
+    /// <summary>True when the widget has the PDF annotation Print flag.</summary>
+    public bool IsPrint => HasFlag(PrintFlag);
+
+    /// <summary>True when the widget has the PDF annotation NoZoom flag.</summary>
+    public bool IsNoZoom => HasFlag(NoZoomFlag);
+
+    /// <summary>True when the widget has the PDF annotation NoRotate flag.</summary>
+    public bool IsNoRotate => HasFlag(NoRotateFlag);
+
+    /// <summary>True when the widget has the PDF annotation NoView flag.</summary>
+    public bool IsNoView => HasFlag(NoViewFlag);
+
+    /// <summary>True when the widget has the PDF annotation ReadOnly flag.</summary>
+    public bool IsReadOnly => HasFlag(ReadOnlyFlag);
+
+    /// <summary>True when the widget has the PDF annotation Locked flag.</summary>
+    public bool IsLocked => HasFlag(LockedFlag);
+
+    /// <summary>True when the widget has the PDF annotation ToggleNoView flag.</summary>
+    public bool IsToggleNoView => HasFlag(ToggleNoViewFlag);
+
+    /// <summary>True when the widget has the PDF annotation LockedContents flag.</summary>
+    public bool IsLockedContents => HasFlag(LockedContentsFlag);
+
     /// <summary>Normal appearance state names from /AP /N, when the widget exposes named appearance streams.</summary>
     public IReadOnlyList<string> NormalAppearanceStates { get; }
 
@@ -408,5 +449,9 @@ public sealed class PdfFormWidget {
         }
 
         return false;
+    }
+
+    private bool HasFlag(int flag) {
+        return Flags.HasValue && (Flags.Value & flag) != 0;
     }
 }
