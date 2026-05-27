@@ -88,9 +88,7 @@ public static class TableStyles {
             return style!;
         }
 
-        throw new ArgumentException(
-            $"Unsupported Word table style '{styleName}'. Supported styles: {string.Join(", ", SupportedWordStyleNames)}.",
-            nameof(styleName));
+        throw CreateUnsupportedWordTableStyleException(styleName);
     }
 
     /// <summary>
@@ -100,39 +98,63 @@ public static class TableStyles {
         Guard.NotNull(styleName, nameof(styleName));
 
         string normalized = NormalizeWordTableStyleName(styleName);
-        if (string.Equals(normalized, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+        if (!TryGetCanonicalWordStyleNameFromNormalized(normalized, out string? canonicalStyleName)) {
+            style = null;
+            return false;
+        }
+
+        if (string.Equals(canonicalStyleName, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
             style = TableGrid();
             return true;
         }
 
-        if (string.Equals(normalized, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(normalized, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(canonicalStyleName, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(canonicalStyleName, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
             style = PlainTable1();
             return true;
         }
 
-        if (string.Equals(normalized, "GridTable1Light", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(canonicalStyleName, "GridTable1Light", StringComparison.OrdinalIgnoreCase)) {
             style = GridTable1Light();
             return true;
         }
 
-        if (TryGetAccentNumber(normalized, "GridTable1LightAccent", out int gridAccent)) {
+        if (TryGetAccentNumber(canonicalStyleName!, "GridTable1LightAccent", out int gridAccent)) {
             style = GridTable1LightAccent(gridAccent);
             return true;
         }
 
-        if (string.Equals(normalized, "ListTable1Light", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(canonicalStyleName, "ListTable1Light", StringComparison.OrdinalIgnoreCase)) {
             style = ListTable1Light();
             return true;
         }
 
-        if (TryGetAccentNumber(normalized, "ListTable1LightAccent", out int listAccent)) {
+        if (TryGetAccentNumber(canonicalStyleName!, "ListTable1LightAccent", out int listAccent)) {
             style = ListTable1LightAccent(listAccent);
             return true;
         }
 
         style = null;
         return false;
+    }
+
+    /// <summary>
+    /// Returns the canonical Word table style name for a supported style name or alias.
+    /// </summary>
+    public static string GetCanonicalWordStyleName(string styleName) {
+        if (TryGetCanonicalWordStyleName(styleName, out string? canonicalStyleName)) {
+            return canonicalStyleName!;
+        }
+
+        throw CreateUnsupportedWordTableStyleException(styleName);
+    }
+
+    /// <summary>
+    /// Tries to return the canonical Word table style name for a supported style name or alias.
+    /// </summary>
+    public static bool TryGetCanonicalWordStyleName(string styleName, out string? canonicalStyleName) {
+        Guard.NotNull(styleName, nameof(styleName));
+        return TryGetCanonicalWordStyleNameFromNormalized(NormalizeWordTableStyleName(styleName), out canonicalStyleName);
     }
 
     /// <summary>
@@ -259,6 +281,51 @@ public static class TableStyles {
         Array.Copy(WordStyleAliasNameValues, 0, names, CanonicalWordStyleNameValues.Length, WordStyleAliasNameValues.Length);
         return names;
     }
+
+    private static bool TryGetCanonicalWordStyleNameFromNormalized(string normalized, out string? canonicalStyleName) {
+        if (string.Equals(normalized, "TableNormal", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "TableNormal";
+            return true;
+        }
+
+        if (string.Equals(normalized, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "TableGrid";
+            return true;
+        }
+
+        if (string.Equals(normalized, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "PlainTable1";
+            return true;
+        }
+
+        if (string.Equals(normalized, "GridTable1Light", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "GridTable1Light";
+            return true;
+        }
+
+        if (TryGetAccentNumber(normalized, "GridTable1LightAccent", out int gridAccent)) {
+            canonicalStyleName = "GridTable1LightAccent" + gridAccent.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        if (string.Equals(normalized, "ListTable1Light", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "ListTable1Light";
+            return true;
+        }
+
+        if (TryGetAccentNumber(normalized, "ListTable1LightAccent", out int listAccent)) {
+            canonicalStyleName = "ListTable1LightAccent" + listAccent.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        canonicalStyleName = null;
+        return false;
+    }
+
+    private static ArgumentException CreateUnsupportedWordTableStyleException(string styleName) =>
+        new ArgumentException(
+            $"Unsupported Word table style '{styleName}'. Supported styles: {string.Join(", ", SupportedWordStyleNames)}.",
+            nameof(styleName));
 
     private static string NormalizeWordTableStyleName(string styleName) {
         string trimmed = styleName.Trim();

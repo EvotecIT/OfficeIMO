@@ -7934,6 +7934,34 @@ public class PdfDocVisualQualityTests {
     }
 
     [Theory]
+    [InlineData("Table Normal", "TableNormal")]
+    [InlineData("table-grid", "TableGrid")]
+    [InlineData("plain_table_1", "PlainTable1")]
+    [InlineData("grid-table-1-light", "GridTable1Light")]
+    [InlineData("GridTable1Light-Accent2", "GridTable1LightAccent2")]
+    [InlineData("grid table 1 light accent 6", "GridTable1LightAccent6")]
+    [InlineData("ListTable1Light-Accent5", "ListTable1LightAccent5")]
+    [InlineData(" list table 1 light accent 3 ", "ListTable1LightAccent3")]
+    public void TableStyles_NormalizeSupportedWordStyleNamesToCanonicalNames(string input, string expectedCanonicalName) {
+        Assert.True(TableStyles.TryGetCanonicalWordStyleName(input, out string? canonicalName));
+        Assert.Equal(expectedCanonicalName, canonicalName);
+        Assert.Equal(expectedCanonicalName, TableStyles.GetCanonicalWordStyleName(input));
+    }
+
+    [Fact]
+    public void TableStyles_CanonicalWordStyleNameRejectsUnsupportedInputs() {
+        Assert.False(TableStyles.TryGetCanonicalWordStyleName("GridTable7Colorful", out string? missingStyle));
+        Assert.Null(missingStyle);
+
+        var exception = Assert.Throws<ArgumentException>(() => TableStyles.GetCanonicalWordStyleName("GridTable7Colorful"));
+        Assert.Equal("styleName", exception.ParamName);
+        Assert.Contains("Unsupported Word table style 'GridTable7Colorful'.", exception.Message, StringComparison.Ordinal);
+
+        Assert.Throws<ArgumentNullException>(() => TableStyles.GetCanonicalWordStyleName(null!));
+        Assert.Throws<ArgumentNullException>(() => TableStyles.TryGetCanonicalWordStyleName(null!, out _));
+    }
+
+    [Theory]
     [InlineData(1, 180, 198, 231, 142, 170, 219, 217, 226, 243)]
     [InlineData(2, 247, 202, 172, 244, 176, 131, 251, 228, 213)]
     [InlineData(3, 219, 219, 219, 201, 201, 201, 237, 237, 237)]
