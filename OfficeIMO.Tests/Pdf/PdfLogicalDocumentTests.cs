@@ -124,17 +124,29 @@ public class PdfLogicalDocumentTests {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildHierarchicalFormPdf());
 
         Assert.True(logical.HasFormFields);
-        Assert.Equal(new[] { "Person.Name", "AcceptTerms" }, logical.FormFields.Select(field => field.Name).ToArray());
+        Assert.Equal(new[] { "Person.Name", "AcceptTerms", "Selection.Country" }, logical.FormFields.Select(field => field.Name).ToArray());
         Assert.Equal("OfficeIMO", logical.FormFields[0].Value);
+        Assert.Equal("InheritedDraft", logical.FormFields[0].DefaultValue);
+        Assert.Equal(64, logical.FormFields[0].MaxLength);
+        Assert.True(logical.FormFields[0].IsReadOnly);
         Assert.Equal("Yes", logical.FormFields[1].Value);
-        Assert.Equal(2, logical.FormFieldsByName.Count);
+        Assert.Equal("DE", logical.FormFields[2].Value);
+        Assert.Equal("PL", logical.FormFields[2].DefaultValue);
+        Assert.Equal(2, logical.FormFields[2].OptionCount);
+        Assert.Equal(new[] { "DE" }, logical.FormFields[2].SelectedOptions.Select(option => option.ExportValue).ToArray());
+        Assert.Equal(new[] { "PL" }, logical.FormFields[2].DefaultSelectedOptions.Select(option => option.ExportValue).ToArray());
+        Assert.Equal(3, logical.FormFieldsByName.Count);
         Assert.Contains("Person.Name", logical.FormFieldNames);
         Assert.Contains("AcceptTerms", logical.FormFieldNames);
+        Assert.Contains("Selection.Country", logical.FormFieldNames);
 
         Assert.True(logical.TryGetFormField("Person.Name", out PdfFormField? nameField));
         Assert.Equal("OfficeIMO", nameField!.Value);
+        Assert.Equal(new[] { "InheritedDraft" }, nameField.DefaultValues);
         Assert.True(logical.TryGetFormField("AcceptTerms", out PdfFormField? acceptField));
         Assert.Equal("Yes", acceptField!.Value);
+        Assert.True(logical.TryGetFormField("Selection.Country", out PdfFormField? countryField));
+        Assert.True(countryField!.IsChoiceField);
         Assert.False(logical.TryGetFormField("Missing", out PdfFormField? missingField));
         Assert.Null(missingField);
     }
@@ -375,19 +387,25 @@ public class PdfLogicalDocumentTests {
             "endstream",
             "endobj",
             "5 0 obj",
-            "<< /Fields [6 0 R 8 0 R] >>",
+            "<< /Fields [6 0 R 8 0 R 9 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /T (Person) /Kids [7 0 R] >>",
+            "<< /FT /Tx /T (Person) /Ff 1 /MaxLen 64 /DV (InheritedDraft) /Kids [7 0 R] >>",
             "endobj",
             "7 0 obj",
-            "<< /FT /Tx /T (Name) /TU (Display name) /TM (ExportName) /V (OfficeIMO) /Ff 1 >>",
+            "<< /T (Name) /TU (Display name) /TM (ExportName) /V (OfficeIMO) >>",
             "endobj",
             "8 0 obj",
             "<< /FT /Btn /T (AcceptTerms) /V /Yes >>",
             "endobj",
+            "9 0 obj",
+            "<< /FT /Ch /T (Selection) /V /DE /DV (PL) /Opt [[(PL) (Poland)] (DE)] /Kids [10 0 R] >>",
+            "endobj",
+            "10 0 obj",
+            "<< /T (Country) >>",
+            "endobj",
             "trailer",
-            "<< /Root 1 0 R /Size 9 >>",
+            "<< /Root 1 0 R /Size 11 >>",
             "%%EOF"
         });
 

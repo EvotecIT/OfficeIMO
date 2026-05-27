@@ -1101,8 +1101,8 @@ public class PdfInspectorTests {
 
         Assert.True(info.HasForms);
         Assert.True(info.HasReadableFormFields);
-        Assert.Equal(2, info.FormFieldCount);
-        Assert.Equal(new[] { "Person.Name", "AcceptTerms" }, info.FormFieldNames);
+        Assert.Equal(3, info.FormFieldCount);
+        Assert.Equal(new[] { "Person.Name", "AcceptTerms", "Selection.Country" }, info.FormFieldNames);
         Assert.Equal("Person.Name", info.FormFields[0].Name);
         Assert.Equal("Name", info.FormFields[0].PartialName);
         Assert.Equal("Tx", info.FormFields[0].FieldType);
@@ -1110,9 +1110,21 @@ public class PdfInspectorTests {
         Assert.Equal("Display name", info.FormFields[0].AlternateName);
         Assert.Equal("ExportName", info.FormFields[0].MappingName);
         Assert.Equal(1, info.FormFields[0].Flags);
+        Assert.Equal(64, info.FormFields[0].MaxLength);
+        Assert.Equal("InheritedDraft", info.FormFields[0].DefaultValue);
+        Assert.Equal(new[] { "InheritedDraft" }, info.FormFields[0].DefaultValues);
         Assert.Equal("AcceptTerms", info.FormFields[1].Name);
         Assert.Equal("Btn", info.FormFields[1].FieldType);
         Assert.Equal("Yes", info.FormFields[1].Value);
+        Assert.Equal("Selection.Country", info.FormFields[2].Name);
+        Assert.Equal("Ch", info.FormFields[2].FieldType);
+        Assert.Equal("DE", info.FormFields[2].Value);
+        Assert.Equal("PL", info.FormFields[2].DefaultValue);
+        Assert.Equal(new[] { "DE" }, info.FormFields[2].Values);
+        Assert.Equal(new[] { "PL" }, info.FormFields[2].DefaultValues);
+        Assert.Equal(2, info.FormFields[2].OptionCount);
+        Assert.Equal(new[] { "DE" }, info.FormFields[2].SelectedOptions.Select(option => option.ExportValue).ToArray());
+        Assert.Equal(new[] { "PL" }, info.FormFields[2].DefaultSelectedOptions.Select(option => option.ExportValue).ToArray());
     }
 
     [Fact]
@@ -1732,19 +1744,25 @@ public class PdfInspectorTests {
             "endstream",
             "endobj",
             "5 0 obj",
-            "<< /Fields [6 0 R 8 0 R] >>",
+            "<< /Fields [6 0 R 8 0 R 9 0 R] >>",
             "endobj",
             "6 0 obj",
-            "<< /T (Person) /Kids [7 0 R] >>",
+            "<< /FT /Tx /T (Person) /Ff 1 /MaxLen 64 /DV (InheritedDraft) /Kids [7 0 R] >>",
             "endobj",
             "7 0 obj",
-            "<< /FT /Tx /T (Name) /TU (Display name) /TM (ExportName) /V (OfficeIMO) /Ff 1 >>",
+            "<< /T (Name) /TU (Display name) /TM (ExportName) /V (OfficeIMO) >>",
             "endobj",
             "8 0 obj",
             "<< /FT /Btn /T (AcceptTerms) /V /Yes >>",
             "endobj",
+            "9 0 obj",
+            "<< /FT /Ch /T (Selection) /V /DE /DV (PL) /Opt [[(PL) (Poland)] (DE)] /Kids [10 0 R] >>",
+            "endobj",
+            "10 0 obj",
+            "<< /T (Country) >>",
+            "endobj",
             "trailer",
-            "<< /Root 1 0 R /Size 9 >>",
+            "<< /Root 1 0 R /Size 11 >>",
             "%%EOF"
         });
 

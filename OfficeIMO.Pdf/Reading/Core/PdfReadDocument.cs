@@ -314,7 +314,7 @@ public sealed class PdfReadDocument {
         var visited = new HashSet<int>();
         var widgetPageNumbers = BuildWidgetPageNumberLookup();
         for (int i = 0; i < fields.Items.Count; i++) {
-            ReadFormField(fields.Items[i], null, null, result, visited, widgetPageNumbers);
+            ReadFormField(fields.Items[i], null, PdfFormFieldInheritedState.Empty, result, visited, widgetPageNumbers);
         }
 
         return result.Count == 0 ? Array.Empty<PdfFormField>() : result.AsReadOnly();
@@ -334,7 +334,7 @@ public sealed class PdfReadDocument {
         return widgetPageNumbers;
     }
 
-    private void ReadFormField(PdfObject fieldObject, string? parentName, string? inheritedFieldType, List<PdfFormField> result, HashSet<int> visited, IReadOnlyDictionary<int, int> widgetPageNumbers) {
+    private void ReadFormField(PdfObject fieldObject, string? parentName, PdfFormFieldInheritedState inherited, List<PdfFormField> result, HashSet<int> visited, IReadOnlyDictionary<int, int> widgetPageNumbers) {
         PdfObject? resolved = ResolveObject(fieldObject);
         if (resolved is not PdfDictionary field) {
             return;
@@ -358,16 +358,16 @@ public sealed class PdfReadDocument {
 
         string? partialName = TryReadText(field, "T");
         string? fullName = CombineFieldName(parentName, partialName);
-        string? fieldType = TryReadName(field, "FT") ?? inheritedFieldType;
-        string? value = TryReadSimpleFieldValue(field, "V");
-        IReadOnlyList<string> values = ReadSimpleFieldValues(field, "V");
-        string? defaultValue = TryReadSimpleFieldValue(field, "DV");
-        IReadOnlyList<string> defaultValues = ReadSimpleFieldValues(field, "DV");
+        string? fieldType = TryReadName(field, "FT") ?? inherited.FieldType;
+        string? value = field.Items.ContainsKey("V") ? TryReadSimpleFieldValue(field, "V") : inherited.Value;
+        IReadOnlyList<string> values = field.Items.ContainsKey("V") ? ReadSimpleFieldValues(field, "V") : inherited.Values;
+        string? defaultValue = field.Items.ContainsKey("DV") ? TryReadSimpleFieldValue(field, "DV") : inherited.DefaultValue;
+        IReadOnlyList<string> defaultValues = field.Items.ContainsKey("DV") ? ReadSimpleFieldValues(field, "DV") : inherited.DefaultValues;
         string? alternateName = TryReadText(field, "TU");
         string? mappingName = TryReadText(field, "TM");
-        int? flags = TryReadInteger(field, "Ff");
-        int? maxLength = TryReadPositiveInteger(field, "MaxLen");
-        IReadOnlyList<PdfFormFieldOption> options = ReadFormFieldOptions(field);
+        int? flags = field.Items.ContainsKey("Ff") ? TryReadInteger(field, "Ff") : inherited.Flags;
+        int? maxLength = field.Items.ContainsKey("MaxLen") ? TryReadPositiveInteger(field, "MaxLen") : inherited.MaxLength;
+        IReadOnlyList<PdfFormFieldOption> options = field.Items.ContainsKey("Opt") ? ReadFormFieldOptions(field) : inherited.Options;
         bool isWidget = IsWidget(field);
         var widgets = new List<PdfFormWidget>();
         if (TryReadFormWidget(field, objectNumber, widgetPageNumbers, out PdfFormWidget? widget) && widget is not null) {
@@ -376,7 +376,6 @@ public sealed class PdfReadDocument {
 
         PdfArray? kids = field.Items.TryGetValue("Kids", out var kidsObject) ? ResolveArray(kidsObject) : null;
         bool hasReadableFieldState = fieldType != null || value != null || defaultValue != null || flags.HasValue;
-        bool hasTerminalShape = isWidget || kids is null || hasReadableFieldState;
         var fieldKids = new List<PdfObject>();
         if (kids is not null) {
             for (int i = 0; i < kids.Items.Count; i++) {
@@ -395,6 +394,7 @@ public sealed class PdfReadDocument {
             }
         }
 
+        bool hasTerminalShape = isWidget || fieldKids.Count == 0;
         if (hasTerminalShape && (fullName != null || hasReadableFieldState || defaultValues.Count > 0 || alternateName != null || mappingName != null || maxLength.HasValue || options.Count > 0)) {
             result.Add(new PdfFormField(
                 objectNumber: objectNumber,
@@ -417,9 +417,41 @@ public sealed class PdfReadDocument {
             return;
         }
 
+        var childInherited = new PdfFormFieldInheritedState(fieldType, value, values, defaultValue, defaultValues, flags, maxLength, options);
         for (int i = 0; i < fieldKids.Count; i++) {
-            ReadFormField(fieldKids[i], fullName, fieldType, result, visited, widgetPageNumbers);
+            ReadFormField(fieldKids[i], fullName, childInherited, result, visited, widgetPageNumbers);
         }
+    }
+
+    private sealed class PdfFormFieldInheritedState {
+        internal static readonly PdfFormFieldInheritedState Empty = new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, Array.Empty<PdfFormFieldOption>());
+
+        internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, string? defaultValue, IReadOnlyList<string> defaultValues, int? flags, int? maxLength, IReadOnlyList<PdfFormFieldOption> options) {
+            FieldType = fieldType;
+            Value = value;
+            Values = values;
+            DefaultValue = defaultValue;
+            DefaultValues = defaultValues;
+            Flags = flags;
+            MaxLength = maxLength;
+            Options = options;
+        }
+
+        internal string? FieldType { get; }
+
+        internal string? Value { get; }
+
+        internal IReadOnlyList<string> Values { get; }
+
+        internal string? DefaultValue { get; }
+
+        internal IReadOnlyList<string> DefaultValues { get; }
+
+        internal int? Flags { get; }
+
+        internal int? MaxLength { get; }
+
+        internal IReadOnlyList<PdfFormFieldOption> Options { get; }
     }
 
     private int? TryGetObjectNumber(PdfObject sourceObject, PdfDictionary resolvedDictionary) {
