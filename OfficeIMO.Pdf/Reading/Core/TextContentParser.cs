@@ -28,7 +28,7 @@ internal static class TextContentParser {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
-        string font = "F1"; double size = 12; double x = 0, y = 0; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
+        string font = "F1"; double size = 12; double x = 0, y = 0; double lineX = 0, lineY = 0; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
         // Graphics state (CTM) and stack
         Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<Matrix2D>();
         // Operand buffer (tokens collected since last operator)
@@ -58,14 +58,14 @@ internal static class TextContentParser {
             if (op.Length == 0) { i++; continue; }
 
             switch (op) {
-                case "BT": inText = true; pendingGapPt = 0; args.Clear(); break;
+                case "BT": inText = true; x = 0; y = 0; lineX = 0; lineY = 0; pendingGapPt = 0; args.Clear(); break;
                 case "ET": inText = false; pendingGapPt = 0; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
-                case "Tm": if (args.Count >= 6) { x = ToDouble(args[args.Count - 2]); y = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "Td": if (args.Count >= 2) { x += ToDouble(args[args.Count - 2]); y += ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "TD": if (args.Count >= 2) { double tx = ToDouble(args[args.Count - 2]); double ty = ToDouble(args[args.Count - 1]); x += tx; y += ty; leading = -ty; args.Clear(); } break;
+                case "Tm": if (args.Count >= 6) { x = ToDouble(args[args.Count - 2]); y = ToDouble(args[args.Count - 1]); lineX = x; lineY = y; pendingGapPt = 0; args.Clear(); } break;
+                case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
+                case "TD": if (args.Count >= 2) { double tx = ToDouble(args[args.Count - 2]); double ty = ToDouble(args[args.Count - 1]); leading = -ty; MoveTextLine(tx, ty); args.Clear(); } break;
                 case "TL": if (args.Count >= 1) { leading = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "T*": y -= leading; args.Clear(); break;
+                case "T*": MoveToNextTextLine(); args.Clear(); break;
                 case "Tc": if (args.Count >= 1) { charSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tw": if (args.Count >= 1) { wordSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tz": if (args.Count >= 1) { hScale = ToDouble(args[args.Count - 1]) / 100.0; args.Clear(); } break;
@@ -74,11 +74,11 @@ internal static class TextContentParser {
                 case "Q": ctm = gstack.Count > 0 ? gstack.Pop() : Matrix2D.Identity; args.Clear(); break;
                 case "cm": if (args.Count >= 6) { var m2 = new Matrix2D(ToDouble(args[args.Count - 6]), ToDouble(args[args.Count - 5]), ToDouble(args[args.Count - 4]), ToDouble(args[args.Count - 3]), ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); ctm = Matrix2D.Multiply(ctm, m2); args.Clear(); } break;
                 case "'": // move to next line and show text
-                    if (args.Count >= 1) { y -= leading; ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); y -= leading; ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; args.Clear(); } break;
@@ -89,6 +89,21 @@ internal static class TextContentParser {
         return spans;
 
         // Helpers
+        void MoveTextLine(double tx, double ty) {
+            lineX += tx;
+            lineY += ty;
+            x = lineX;
+            y = lineY;
+            pendingGapPt = 0;
+        }
+
+        void MoveToNextTextLine() {
+            lineY -= leading;
+            x = lineX;
+            y = lineY;
+            pendingGapPt = 0;
+        }
+
         void MaybeInsertSpaceBeforeRun() {
             // Insert a space depending on kerning gap accumulated from TJ array numbers
             if (pendingGapPt <= 0) return;

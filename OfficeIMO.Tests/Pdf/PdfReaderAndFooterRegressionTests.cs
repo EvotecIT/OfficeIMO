@@ -347,6 +347,19 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_ResetsXForLineAdvanceOperators() {
+        byte[] tStar = BuildSingleStreamPdf("BT\n/F1 12 Tf\n14 TL\n72 720 Td\n(First) Tj\nT*\n(Second) Tj\nET\n");
+        byte[] td = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n0 -14 Td\n(Second) Tj\nET\n");
+        byte[] singleQuote = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n(Second) '\nET\n");
+        byte[] doubleQuote = BuildPdfWithDoubleQuoteLineAdvanceOperator();
+
+        AssertSecondLineStartsAtFirstLineX(tStar);
+        AssertSecondLineStartsAtFirstLineX(td);
+        AssertSecondLineStartsAtFirstLineX(singleQuote);
+        AssertSecondLineStartsAtFirstLineX(doubleQuote);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsTDTextPositioningAsLineAdvance() {
         byte[] bytes = BuildPdfWithTDTextPositioning();
 
@@ -1415,6 +1428,15 @@ public class PdfReaderAndFooterRegressionTests {
         }) + "\n";
 
         return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static void AssertSecondLineStartsAtFirstLineX(byte[] bytes) {
+        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan first = Assert.Single(spans, span => span.Text == "First");
+        PdfTextSpan second = Assert.Single(spans, span => span.Text == "Second");
+
+        Assert.Equal(first.X, second.X, 2);
+        Assert.True(second.Y < first.Y, $"Expected second line Y {second.Y} to be below first line Y {first.Y}.");
     }
 
     private static byte[] BuildPdfWithSingleQuoteOperator() {
