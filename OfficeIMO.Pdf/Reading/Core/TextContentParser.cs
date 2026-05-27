@@ -38,10 +38,12 @@ internal static class TextContentParser {
 
     private sealed class MarkedContentState {
         public string? ActualText { get; }
+        public bool IsArtifact { get; }
         public bool ActualTextEmitted { get; set; }
 
-        public MarkedContentState(string? actualText) {
+        public MarkedContentState(string? actualText, bool isArtifact) {
             ActualText = actualText;
+            IsArtifact = isArtifact;
         }
     }
 
@@ -141,11 +143,13 @@ internal static class TextContentParser {
                 case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; args.Clear(); } break;
                 case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1]); args.Clear(); } break;
                 case "BDC":
-                    markedContentStack.Push(new MarkedContentState(GetActualText(args.Count > 0 ? args[args.Count - 1] : null)));
+                    markedContentStack.Push(new MarkedContentState(
+                        GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
+                        IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null)));
                     args.Clear();
                     break;
                 case "BMC":
-                    markedContentStack.Push(new MarkedContentState(null));
+                    markedContentStack.Push(new MarkedContentState(null, IsArtifactTag(args.Count > 0 ? args[args.Count - 1] : null)));
                     args.Clear();
                     break;
                 case "EMC":
@@ -250,14 +254,17 @@ internal static class TextContentParser {
                 idx += step;
             }
             var actualTextState = GetActiveActualTextState();
-            if (sbOut.Length == 0 && actualTextState is null) return;
+            bool isArtifact = HasActiveArtifact();
+            if (sbOut.Length == 0 && actualTextState is null && !isArtifact) return;
             string textOut = NormalizeShatteredSpan(sbOut.ToString());
             var textOrigin = textMatrix.Transform(0, textRise);
             var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
             var textEnd = textMatrix.Transform(advTotal, textRise);
             var (endX, endY) = ctm.Transform(textEnd.X, textEnd.Y);
             double transformedAdvance = Math.Sqrt(((endX - dx) * (endX - dx)) + ((endY - dy) * (endY - dy)));
-            if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
+            if (isArtifact) {
+                // Artifact content is visual decoration, not logical page text.
+            } else if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
                 textOut = actualTextState.ActualText!;
                 actualTextState.ActualTextEmitted = true;
                 spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
@@ -280,6 +287,16 @@ internal static class TextContentParser {
             return null;
         }
 
+        bool HasActiveArtifact() {
+            foreach (var state in markedContentStack) {
+                if (state.IsArtifact) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         string? GetActualText(object? propertyObject) {
             if (propertyObject is string propertyName) {
                 return actualTextForProperty?.Invoke(propertyName);
@@ -293,6 +310,9 @@ internal static class TextContentParser {
 
             return null;
         }
+
+        static bool IsArtifactTag(object? tag) =>
+            tag is string name && string.Equals(name, "Artifact", StringComparison.Ordinal);
 
         void ShowTextArray(object arrObj) {
             if (!inText || arrObj == null) return;

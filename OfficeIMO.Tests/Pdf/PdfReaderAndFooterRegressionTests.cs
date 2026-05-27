@@ -312,6 +312,23 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetTextSpans_IgnoresArtifactMarkedContent() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Artifact BMC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Decorative header) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
+
+        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var span = Assert.Single(page.GetTextSpans());
+
+        Assert.Equal("Body text", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.DoesNotContain("Decorative header", page.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_ReadsSimpleFontEncodingDifferences() {
         byte[] bytes = BuildPdfWithFontEncodingDifferences();
 
