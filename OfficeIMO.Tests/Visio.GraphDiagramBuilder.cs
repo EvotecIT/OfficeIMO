@@ -37,6 +37,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "online" && shape.IsBackgroundSurface);
             Assert.Contains(page.Shapes, shape => shape.Id == "offline" && shape.IsBackgroundSurface);
             Assert.Contains(page.Shapes, shape => shape.Id == "online-label" && shape.Text == "Online path");
+            Assert.Contains(page.Shapes, shape => shape.Id == "web-label" && shape.Text == "Web");
+            Assert.True(string.IsNullOrEmpty(page.Shapes.Single(shape => shape.Id == "web").Text));
             Assert.Equal(serverStencil.MasterNameU, page.Shapes.Single(shape => shape.Id == "web").MasterNameU);
             Assert.True(page.Shapes.Single(shape => shape.Id == "users").PinX < page.Shapes.Single(shape => shape.Id == "web").PinX);
             Assert.True(page.Shapes.Single(shape => shape.Id == "web").PinX < page.Shapes.Single(shape => shape.Id == "api").PinX);
@@ -49,7 +51,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(11, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(12, loaded.Pages[0].Shapes.Count);
             Assert.Equal(6, loaded.Pages[0].Connectors.Count);
         }
 

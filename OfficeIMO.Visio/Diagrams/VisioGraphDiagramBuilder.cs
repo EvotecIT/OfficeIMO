@@ -502,7 +502,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetNodeShape(node, out string masterNameU, out double width, out double height);
                 VisioShape shape;
                 if (node.Stencil != null) {
-                    shape = page.AddStencilShape(node.Stencil, node.Id, node.PinX, node.PinY, width, height, node.Text);
+                    shape = page.AddStencilShape(node.Stencil, node.Id, node.PinX, node.PinY, width, height, string.Empty);
                 } else {
                     shape = new VisioShape(node.Id, node.PinX, node.PinY, width, height, node.Text) {
                         NameU = masterNameU,
@@ -512,7 +512,29 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 node.Shape = shape;
+                if (node.Stencil != null && !string.IsNullOrWhiteSpace(node.Text)) {
+                    AddStencilNodeCaption(page, node, width, height);
+                }
             }
+        }
+
+        private static void AddStencilNodeCaption(VisioPage page, NodeItem node, double width, double height) {
+            VisioShape label = page.AddTextBox(
+                node.Id + "-label",
+                node.PinX,
+                node.PinY - (height / 2D) - 0.26D,
+                Math.Max(1.15D, width + 0.55D),
+                0.34D,
+                node.Text);
+            label.TextStyle = new VisioTextStyle {
+                FontFamily = "Aptos",
+                Size = 9.5D,
+                Color = Color.FromRgb(25, 35, 45),
+                BackgroundColor = Color.White,
+                BackgroundTransparency = 0,
+                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                VerticalAlignment = VisioTextVerticalAlignment.Middle
+            };
         }
 
         private void AddEdges(VisioPage page) {
@@ -578,6 +600,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 bottom = Math.Min(bottom, node.PinY - height / 2D);
                 right = Math.Max(right, node.PinX + width / 2D);
                 top = Math.Max(top, node.PinY + height / 2D);
+                if (node.Stencil != null && !string.IsNullOrWhiteSpace(node.Text)) {
+                    bottom = Math.Min(bottom, node.PinY - height / 2D - 0.52D);
+                }
             }
 
             left -= horizontalPadding;

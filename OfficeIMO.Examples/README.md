@@ -8,4 +8,5 @@ This project contains small, focused samples that demonstrate usage across Word,
 - PowerPoint examples include direct slide building plus designer decks, design-brief recommendations, and semantic deck-plan scoring.
 - Run `dotnet run --project OfficeIMO.Examples --framework net8.0 -- --visio-showcase` to generate a curated Visio set from basic fluent shapes through advanced flowchart, block, swimlane, sequence, network, architecture, editing, and quality-gallery diagrams.
 - Add `--visio-export` when Microsoft Visio desktop is installed to export first-page `.png` and `.svg` previews plus a browseable `index.html` into `Documents/Visio Showcase/Preview`.
+- Run `dotnet run --project OfficeIMO.Examples --framework net8.0 -- --visio-integration-stencils C:\StencilPacks\Microsoft-Integration-and-Azure-Stencils-Pack-for-Visio` to generate a real graph from an external multi-`.vssx` Microsoft Integration/Azure stencil pack. The same example can be included in the Visio showcase by setting `OFFICEIMO_VISIO_INTEGRATION_STENCILS` to that pack root before running `--visio-showcase`.
 

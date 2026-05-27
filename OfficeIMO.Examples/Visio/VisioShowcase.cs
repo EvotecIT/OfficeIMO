@@ -29,8 +29,12 @@ namespace OfficeIMO.Examples.Visio {
             if (!string.IsNullOrWhiteSpace(externalStencilPack) && File.Exists(externalStencilPack)) {
                 examples.Add(new VisioShowcaseExample("12 External VSSX stencil pack", () => ExternalStencilPack.Example_ExternalStencilPack(showcasePath, false, externalStencilPack)));
             }
+            string? integrationStencilPack = MicrosoftIntegrationAzureStencils.ResolveConfiguredPackPath(Array.Empty<string>());
+            if (MicrosoftIntegrationAzureStencils.IsConfigured(integrationStencilPack)) {
+                examples.Add(new VisioShowcaseExample("13 Microsoft Integration/Azure stencil graph", () => MicrosoftIntegrationAzureStencils.Example_MicrosoftIntegrationAzureStencils(showcasePath, false, integrationStencilPack!)));
+            }
             if (global::OfficeIMO.Visio.Stencils.VisioStencilPackageCatalog.DiscoverInstalledVisioPackages().Count > 0) {
-                examples.Add(new VisioShowcaseExample("13 Installed Visio stencil packages", () => InstalledVisioStencils.Example_InstalledVisioStencils(showcasePath, false)));
+                examples.Add(new VisioShowcaseExample("14 Installed Visio stencil packages", () => InstalledVisioStencils.Example_InstalledVisioStencils(showcasePath, false)));
             }
 
             foreach (VisioShowcaseExample example in examples) {

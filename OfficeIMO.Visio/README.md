@@ -628,6 +628,24 @@ doc.Save();
 ```
 
 Use `LoadMany(...)` or `LoadDirectory(...)` to compose a palette from many packs.
+That is the preferred model for repository-style stencil packs, such as the
+Microsoft Integration and Azure community pack, where the useful masters are
+spread across multiple `.vssx` files:
+
+```csharp
+var packages = VisioStencilPackageCatalog.EnumeratePackageFiles(
+    @"C:\StencilPacks\Microsoft-Integration-and-Azure-Stencils-Pack-for-Visio",
+    recursive: true);
+var integration = VisioStencilPackageCatalog.LoadMany(packages,
+    new VisioStencilPackageLoadOptions {
+        CatalogName = "Microsoft Integration and Azure",
+        IncludeUnsupportedMasters = true
+    });
+
+var apim = integration.Search("API Management").First();
+var serviceBus = integration.Search("Service Bus").First();
+```
+
 `DiscoverInstalledVisioPackages()` finds the local Microsoft Visio `.vssx` and
 `.vstx` content folders without automating Visio, letting you build diagrams from
 installed Visio stencils while keeping OfficeIMO itself dependency-free:
