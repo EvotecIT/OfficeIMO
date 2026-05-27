@@ -16,6 +16,18 @@ namespace OfficeIMO.Examples.Visio {
             "MIS Infrastructure and Networking Stencils.vssx"
         };
 
+        private static readonly IReadOnlyDictionary<string, string[]> RequiredStencilSelectors = new Dictionary<string, string[]> {
+            ["client"] = new[] { "API", "Application", "3rd Party Integration" },
+            ["apim"] = new[] { "API Management Services", "Azure: API Management Services" },
+            ["servicebus"] = new[] { "Service Bus", "Azure: Service Bus" },
+            ["eventgrid"] = new[] { "Event Grid", "Azure: Event Grid Topics", "Event Grid Topics" },
+            ["logic"] = new[] { "Logic Apps", "Azure: Logic AppsLogic Apps", "Logic Apps Service" },
+            ["function"] = new[] { "Function App", "Function" },
+            ["sql"] = new[] { "SQL Databases", "Database", "Cloud Database" },
+            ["storage"] = new[] { "Storage Accounts", "Azure: Storage Accounts", "Azure Blob Storage" },
+            ["insights"] = new[] { "Application Insights", "Azure: Application Insights" }
+        };
+
         public static void Example_MicrosoftIntegrationAzureStencils(string folderPath, bool openVisio, string stencilPackPathOrDirectory) {
             if (string.IsNullOrWhiteSpace(stencilPackPathOrDirectory)) throw new ArgumentException("Stencil pack path cannot be null or whitespace.", nameof(stencilPackPathOrDirectory));
 
@@ -32,17 +44,7 @@ namespace OfficeIMO.Examples.Visio {
                 IncludeUnsupportedMasters = true
             });
 
-            Dictionary<string, VisioStencilShape> stencils = PickRequired(catalog, new Dictionary<string, string[]> {
-                ["client"] = new[] { "API", "Application", "3rd Party Integration" },
-                ["apim"] = new[] { "API Management Services", "Azure: API Management Services" },
-                ["servicebus"] = new[] { "Service Bus", "Azure: Service Bus" },
-                ["eventgrid"] = new[] { "Event Grid", "Azure: Event Grid Topics", "Event Grid Topics" },
-                ["logic"] = new[] { "Logic Apps", "Azure: Logic AppsLogic Apps", "Logic Apps Service" },
-                ["function"] = new[] { "Function App", "Function" },
-                ["sql"] = new[] { "SQL Databases", "Database", "Cloud Database" },
-                ["storage"] = new[] { "Storage Accounts", "Azure: Storage Accounts", "Azure Blob Storage" },
-                ["insights"] = new[] { "Application Insights", "Azure: Application Insights" }
-            }).ToDictionary(
+            Dictionary<string, VisioStencilShape> stencils = PickRequired(catalog, RequiredStencilSelectors).ToDictionary(
                 pair => pair.Key,
                 pair => AsDiagramIcon(pair.Value),
                 StringComparer.Ordinal);
@@ -117,8 +119,11 @@ namespace OfficeIMO.Examples.Visio {
             }
 
             if (File.Exists(pathOrDirectory)) {
-                return VisioStencilPackageCatalog.EnumeratePackageFiles(Path.GetDirectoryName(Path.GetFullPath(pathOrDirectory)) ?? ".", recursive: false)
-                    .Contains(Path.GetFullPath(pathOrDirectory), StringComparer.OrdinalIgnoreCase);
+                string fullPath = Path.GetFullPath(pathOrDirectory);
+                string directory = Path.GetDirectoryName(fullPath) ?? ".";
+                bool supportedPackage = VisioStencilPackageCatalog.EnumeratePackageFiles(directory, recursive: false)
+                    .Contains(fullPath, StringComparer.OrdinalIgnoreCase);
+                return supportedPackage && HasRequiredStencils(new[] { fullPath });
             }
 
             if (!Directory.Exists(pathOrDirectory)) {
@@ -126,7 +131,8 @@ namespace OfficeIMO.Examples.Visio {
             }
 
             IReadOnlyList<string> packages = VisioStencilPackageCatalog.EnumeratePackageFiles(pathOrDirectory, recursive: true);
-            return packages.Any(IsPreferredPackage);
+            string[] selectedPackages = packages.Where(IsPreferredPackage).ToArray();
+            return selectedPackages.Length > 0 && HasRequiredStencils(selectedPackages);
         }
 
         private static IEnumerable<string> ResolvePackagePaths(string pathOrDirectory) {
@@ -155,6 +161,25 @@ namespace OfficeIMO.Examples.Visio {
 
         private static bool IsPreferredPackage(string packagePath) {
             return PreferredPackageNames.Contains(Path.GetFileName(packagePath), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static bool HasRequiredStencils(IEnumerable<string> packagePaths) {
+            try {
+                VisioStencilCatalog catalog = VisioStencilPackageCatalog.LoadMany(packagePaths, new VisioStencilPackageLoadOptions {
+                    CatalogName = "Microsoft Integration and Azure Stencils",
+                    Category = "Microsoft Integration and Azure",
+                    IncludeUnsupportedMasters = true
+                });
+                foreach (string[] selectors in RequiredStencilSelectors.Values) {
+                    if (!catalog.TryFindBest(selectors, out VisioStencilShape? stencil) || stencil == null) {
+                        return false;
+                    }
+                }
+
+                return true;
+            } catch {
+                return false;
+            }
         }
 
         private static Dictionary<string, VisioStencilShape> PickRequired(VisioStencilCatalog catalog, IReadOnlyDictionary<string, string[]> selectors) {
