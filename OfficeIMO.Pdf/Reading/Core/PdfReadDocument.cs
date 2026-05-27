@@ -360,6 +360,7 @@ public sealed class PdfReadDocument {
         string? fullName = CombineFieldName(parentName, partialName);
         string? fieldType = TryReadName(field, "FT") ?? inheritedFieldType;
         string? value = TryReadSimpleFieldValue(field, "V");
+        IReadOnlyList<string> values = ReadSimpleFieldValues(field, "V");
         string? alternateName = TryReadText(field, "TU");
         string? mappingName = TryReadText(field, "TM");
         int? flags = TryReadInteger(field, "Ff");
@@ -403,6 +404,7 @@ public sealed class PdfReadDocument {
                 mappingName,
                 flags,
                 maxLength,
+                values.Count == 0 ? null : values,
                 options.Count == 0 ? null : options,
                 widgets.Count == 0 ? null : widgets.AsReadOnly()));
         }
@@ -520,6 +522,30 @@ public sealed class PdfReadDocument {
         }
 
         return text;
+    }
+
+    private IReadOnlyList<string> ReadSimpleFieldValues(PdfDictionary dictionary, string key) {
+        if (!dictionary.Items.TryGetValue(key, out var value)) {
+            return Array.Empty<string>();
+        }
+
+        PdfObject? resolved = ResolveObject(value);
+        if (resolved is PdfArray array) {
+            var values = new List<string>();
+            for (int i = 0; i < array.Items.Count; i++) {
+                if (TryFormatSimpleValue(array.Items[i], out string? itemText)) {
+                    values.Add(itemText!);
+                }
+            }
+
+            return values.Count == 0 ? Array.Empty<string>() : values.AsReadOnly();
+        }
+
+        if (resolved is not null && TryFormatSimpleValue(resolved, out string? text)) {
+            return new[] { text! };
+        }
+
+        return Array.Empty<string>();
     }
 
     private IReadOnlyList<PdfFormFieldOption> ReadFormFieldOptions(PdfDictionary dictionary) {

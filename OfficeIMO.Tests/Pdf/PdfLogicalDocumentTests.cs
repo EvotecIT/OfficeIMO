@@ -152,6 +152,7 @@ public class PdfLogicalDocumentTests {
         Assert.True(text.IsMultiline);
         Assert.True(text.IsPassword);
         Assert.Equal(42, text.MaxLength);
+        Assert.Equal(new[] { "Secret" }, text.Values);
         Assert.False(text.HasOptions);
         Assert.False(text.IsButtonField);
         Assert.False(text.IsChoiceField);
@@ -174,6 +175,8 @@ public class PdfLogicalDocumentTests {
 
         PdfFormField choice = logical.FormFieldsByName["Country"];
         Assert.Equal(PdfFormFieldKind.Choice, choice.Kind);
+        Assert.Equal("[PL US]", choice.Value);
+        Assert.Equal(new[] { "PL", "US" }, choice.Values);
         Assert.True(choice.IsChoiceField);
         Assert.True(choice.IsCombo);
         Assert.True(choice.IsEditableChoice);
@@ -191,6 +194,9 @@ public class PdfLogicalDocumentTests {
         Assert.False(choice.Options[1].HasSeparateDisplayText);
         Assert.Equal("US", choice.Options[2].ExportValue);
         Assert.Equal("United States", choice.Options[2].DisplayText);
+        Assert.True(choice.HasSelectedOptions);
+        Assert.Equal(2, choice.SelectedOptionCount);
+        Assert.Equal(new[] { "PL", "US" }, choice.SelectedOptions.Select(option => option.ExportValue).ToArray());
 
         PdfFormField signature = logical.FormFieldsByName["Approval"];
         Assert.Equal(PdfFormFieldKind.Signature, signature.Kind);
@@ -413,7 +419,7 @@ public class PdfLogicalDocumentTests {
             "<< /FT /Btn /T (Submit) /Ff 65536 >>",
             "endobj",
             "10 0 obj",
-            "<< /FT /Ch /T (Country) /V (PL) /Ff 74317826 /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
+            "<< /FT /Ch /T (Country) /V [(PL) /US] /Ff 74317826 /Opt [[(PL) (Poland)] (DE) [/US (United States)]] >>",
             "endobj",
             "11 0 obj",
             "<< /FT /Sig /T (Approval) >>",

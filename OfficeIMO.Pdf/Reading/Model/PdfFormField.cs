@@ -38,8 +38,9 @@ public sealed class PdfFormField {
     private const int CombFlag = 16777216;
     private const int RichTextFlag = 33554432;
     private const int CommitOnSelectionChangeFlag = 67108864;
+    private IReadOnlyList<PdfFormFieldOption>? _selectedOptions;
 
-    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
+    internal PdfFormField(int? objectNumber, string? name, string? partialName, string? fieldType, string? value, string? alternateName, string? mappingName, int? flags, int? maxLength = null, IReadOnlyList<string>? values = null, IReadOnlyList<PdfFormFieldOption>? options = null, IReadOnlyList<PdfFormWidget>? widgets = null) {
         ObjectNumber = objectNumber;
         Name = name;
         PartialName = partialName;
@@ -49,6 +50,7 @@ public sealed class PdfFormField {
         MappingName = mappingName;
         Flags = flags;
         MaxLength = maxLength;
+        Values = values ?? Array.Empty<string>();
         Options = options ?? Array.Empty<PdfFormFieldOption>();
         Widgets = widgets ?? Array.Empty<PdfFormWidget>();
     }
@@ -91,6 +93,15 @@ public sealed class PdfFormField {
     /// <summary>Simple field value formatted for wrapper display, when present.</summary>
     public string? Value { get; }
 
+    /// <summary>Simple field values from /V, preserving array values for multi-select choice fields.</summary>
+    public IReadOnlyList<string> Values { get; }
+
+    /// <summary>Number of readable field values.</summary>
+    public int ValueCount => Values.Count;
+
+    /// <summary>True when at least one simple field value was readable.</summary>
+    public bool HasValues => Values.Count > 0;
+
     /// <summary>Alternate field name used as a user-facing label, when present.</summary>
     public string? AlternateName { get; }
 
@@ -111,6 +122,40 @@ public sealed class PdfFormField {
 
     /// <summary>True when at least one choice option was readable.</summary>
     public bool HasOptions => Options.Count > 0;
+
+    /// <summary>Readable choice options whose export value matches the field value list.</summary>
+    public IReadOnlyList<PdfFormFieldOption> SelectedOptions {
+        get {
+            if (_selectedOptions is not null) {
+                return _selectedOptions;
+            }
+
+            if (Values.Count == 0 || Options.Count == 0) {
+                _selectedOptions = Array.Empty<PdfFormFieldOption>();
+                return _selectedOptions;
+            }
+
+            var selected = new List<PdfFormFieldOption>();
+            for (int i = 0; i < Options.Count; i++) {
+                PdfFormFieldOption option = Options[i];
+                for (int j = 0; j < Values.Count; j++) {
+                    if (string.Equals(option.ExportValue, Values[j], StringComparison.Ordinal)) {
+                        selected.Add(option);
+                        break;
+                    }
+                }
+            }
+
+            _selectedOptions = selected.Count == 0 ? Array.Empty<PdfFormFieldOption>() : selected.AsReadOnly();
+            return _selectedOptions;
+        }
+    }
+
+    /// <summary>Number of readable choice options whose export value matches the field value list.</summary>
+    public int SelectedOptionCount => SelectedOptions.Count;
+
+    /// <summary>True when at least one readable choice option matches the field value list.</summary>
+    public bool HasSelectedOptions => SelectedOptions.Count > 0;
 
     /// <summary>True when the common read-only field flag is set.</summary>
     public bool IsReadOnly => HasFlag(ReadOnlyFlag);
