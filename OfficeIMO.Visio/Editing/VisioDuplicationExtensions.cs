@@ -337,6 +337,7 @@ namespace OfficeIMO.Visio {
 
             CopyStringSet(source.LayerNames, clone.LayerNames);
             CopyHyperlinks(source.Hyperlinks, clone.Hyperlinks);
+            CopyDictionary(source.Data, clone.Data);
             CopyShapeData(source.ShapeData, clone.ShapeData, clone.Data);
             CopyProtection(source.Protection, clone.Protection);
             CopyElements(source.PreservedGeometrySections, clone.PreservedGeometrySections);

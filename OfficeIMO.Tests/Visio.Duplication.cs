@@ -48,6 +48,7 @@ namespace OfficeIMO.Tests {
             internalConnector.Waypoints.Add(VisioConnectorWaypoint.At(3.2, 6.7));
             internalConnector.LabelPlacement = VisioConnectorLabelPlacement.At(3.5, 6.9);
             internalConnector.AddHyperlink("https://example.org/route", "Route docs");
+            internalConnector.Data["Protocol"] = "HTTPS";
             internalConnector.Protection.Endpoints();
 
             VisioConnector externalConnector = page.AddConnector(source, external, ConnectorKind.Dynamic, VisioSide.Bottom, VisioSide.Left);
@@ -100,6 +101,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(5.0, connectorCopy.LabelPlacement!.AbsolutePinX!.Value, 6);
             Assert.Equal(6.15, connectorCopy.LabelPlacement.AbsolutePinY!.Value, 6);
             Assert.Equal("https://example.org/route", connectorCopy.Hyperlinks.Single().Address);
+            Assert.Equal("HTTPS", connectorCopy.Data["Protocol"]);
             Assert.True(connectorCopy.Protection.LockBegin);
             Assert.True(connectorCopy.Protection.LockEnd);
             Assert.NotSame(internalConnector.FromConnectionPoint, connectorCopy.FromConnectionPoint);
@@ -112,6 +114,8 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Equal(4, loaded.Pages[0].ShapesWithShapeData("Owner", "Operations").Count);
             Assert.Equal(2, loaded.Pages[0].Connectors.Count(connector => connector.Label == "approved"));
+            Assert.All(loaded.Pages[0].Connectors.Where(connector => connector.Label == "approved"),
+                connector => Assert.Equal("HTTPS", connector.GetShapeDataValue("Protocol")));
             Assert.Single(loaded.Pages[0].Connectors, connector => connector.Label == "external");
         }
 
