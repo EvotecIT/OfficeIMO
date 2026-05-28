@@ -1,6 +1,6 @@
 ---
 title: Visio Diagrams
-description: Overview of the OfficeIMO.Visio package for generating VSDX diagrams with pages, shapes, and connectors.
+description: Generate VSDX diagrams with builders, pages, shapes, connectors, stencils, and graph layouts.
 order: 52
 ---
 
@@ -12,40 +12,46 @@ order: 52
 
 - Infrastructure and architecture diagrams generated from configuration or inventory data.
 - Network maps, dependency graphs, and deployment flows.
-- Org charts or process diagrams produced from business system exports.
+- Org charts, timelines, sequences, swimlanes, or process diagrams produced from business system exports.
+- Native or external stencil-pack diagrams generated from installed Visio stencils or `.vssx` repositories.
 - Report pipelines that need a diagram artifact alongside Word, Excel, or PowerPoint output.
 
 ## Building blocks
 
-- **Diagrams and pages** to organize one or more related views.
-- **Shapes** with text, size, fill color, and placement.
-- **Connectors** for relationships and directional flows between shapes.
-- **Measurement helpers** so positioning can stay readable in code.
+- **Documents and pages** to organize one or more related views.
+- **Shapes, masters, stencils, and catalogs** for generated, native, and external-pack visuals.
+- **Connectors** for relationships, directional flows, labels, Shape Data, and hyperlinks.
+- **Diagram builders** for flowcharts, architecture, networks, dependencies, swimlanes, org charts, timelines, sequences, and generic graphs.
+- **Quality and polish helpers** for page fitting, text sizing, connector labels, and visual validation.
 
 ## Quick start
 
 ```csharp
 using OfficeIMO.Visio;
+using OfficeIMO.Visio.Diagrams;
 
-using var diagram = VisioDiagram.Create("topology.vsdx");
-var page = diagram.AddPage("System Overview");
-
-var frontend = page.AddShape("Frontend", 2.0, 8.0);
-var api = page.AddShape("API", 5.0, 8.0);
-var database = page.AddShape("Database", 8.0, 8.0);
-
-page.AddConnector(frontend, api, "HTTPS");
-page.AddConnector(api, database, "SQL");
-
-diagram.Save();
+VisioDocument.Create("topology.vsdx")
+    .ArchitectureDiagram("System Overview", diagram => diagram
+        .Title()
+        .Legend()
+        .Theme(VisioStyleTheme.Technical())
+        .Actor("users", "Users", 0, 1)
+        .Gateway("gateway", "Gateway", 1, 1)
+        .Service("api", "API", 2, 1)
+        .Database("database", "Database", 3, 1)
+        .DataFlow("users", "gateway", "HTTPS")
+        .ControlFlow("gateway", "api", "route")
+        .DataFlow("api", "database", "SQL"))
+    .Save();
 ```
 
 ## Recommended workflow
 
-1. Define the nodes you want to visualize from your source data.
-2. Map each node to a stable shape position and visual style.
-3. Add connectors that represent traffic, dependency, or process flow.
-4. Save the `.vsdx` output as a build artifact or generated report attachment.
+1. Define the nodes and relationships you want to visualize from your source data.
+2. Choose a domain builder, such as architecture, network, flowchart, dependency, swimlane, timeline, or graph.
+3. Use generated catalogs, installed Visio stencils, or external `.vssx` packs when real domain symbols matter.
+4. Attach Shape Data, hyperlinks, and stable IDs so regenerated diagrams remain searchable and diff-friendly.
+5. Save the `.vsdx` output as a build artifact or generated report attachment.
 
 ## Related packages
 
