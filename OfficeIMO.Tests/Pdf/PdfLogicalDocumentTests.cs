@@ -138,6 +138,51 @@ public class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void LoadPageRanges_FiltersAcroFormFieldsToSelectedSourcePages() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .TextField("First.Page", width: 120, height: 20, value: "one")
+            .PageBreak()
+            .TextField("Second.Page", width: 120, height: 20, value: "two")
+            .PageBreak()
+            .TextField("Third.Page", width: 120, height: 20, value: "three")
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
+
+        Assert.Equal(new[] { 2, 1, 2 }, logical.Pages.Select(page => page.PageNumber).ToArray());
+        Assert.Equal(2, logical.FormFields.Count);
+        Assert.Contains("First.Page", logical.FormFieldNames);
+        Assert.Contains("Second.Page", logical.FormFieldNames);
+        Assert.DoesNotContain("Third.Page", logical.FormFieldNames);
+        Assert.True(logical.TryGetFormField("Second.Page", out PdfFormField? secondField));
+        Assert.Equal(new[] { 2 }, secondField!.PageNumbers);
+        Assert.Equal(new[] { "two" }, secondField.Values);
+        Assert.Same(secondField, Assert.Single(logical.GetFormFields(2)));
+        Assert.Empty(logical.GetFormFields(3));
+        Assert.Equal(2, logical.GetFormWidgets("Second.Page").Count);
+        Assert.All(logical.GetFormWidgets("Second.Page"), widget => Assert.Equal(2, widget.PageNumber));
+        Assert.Single(logical.GetFormWidgets("First.Page"));
+        Assert.Empty(logical.GetFormWidgets("Third.Page"));
+        Assert.Equal(3, logical.FormWidgets.Count);
+        Assert.Equal(new[] { "Second.Page", "First.Page", "Second.Page" }, logical.FormWidgets.Select(widget => widget.FieldName).ToArray());
+        Assert.Equal(3, logical.GetElements(PdfLogicalElementKind.FormWidget).Count);
+        Assert.Contains(logical.Pages[0].Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
+        Assert.Contains(logical.Pages[1].Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
+        Assert.Contains(logical.Pages[2].Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
+
+        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+        Assert.Contains("Third.Page", full.FormFieldNames);
+        Assert.Equal(3, full.FormFields.Count);
+    }
+
+    [Fact]
     public void LoadPageRanges_ReadsPathAndStreamFromCurrentPosition() {
         byte[] pdf = BuildThreePageLogicalPdf();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-logical-ranges-" + Guid.NewGuid().ToString("N") + ".pdf");

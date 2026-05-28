@@ -778,10 +778,14 @@ public sealed class PdfLogicalDocument {
     }
 
     private static PdfLogicalDocument FromPageNumbers(PdfReadDocument document, PdfTextLayoutOptions? options, int[] pageNumbers) {
+        IReadOnlyList<PdfFormField> formFields = ShouldUseDocumentFormFields(document.Pages.Count, pageNumbers)
+            ? document.FormFields
+            : FilterFormFieldsByPageNumbers(document.FormFields, pageNumbers);
+
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
-            pages.Add(PdfLogicalPage.From(document.Pages[pageNumber - 1], pageNumber, options, document.FormFields));
+            pages.Add(PdfLogicalPage.From(document.Pages[pageNumber - 1], pageNumber, options, formFields));
         }
 
         return new PdfLogicalDocument(
@@ -792,7 +796,7 @@ public sealed class PdfLogicalDocument {
             document.NamedDestinations,
             document.OpenAction,
             document.ViewerPreferences,
-            document.FormFields,
+            formFields,
             document.AcroFormDefaultAppearance,
             document.AcroFormNeedAppearances,
             document.AcroFormSignatureFlags,
@@ -800,6 +804,65 @@ public sealed class PdfLogicalDocument {
             document.CatalogPageLayout,
             document.CatalogVersion,
             document.CatalogLanguage);
+    }
+
+    private static bool ShouldUseDocumentFormFields(int pageCount, int[] pageNumbers) {
+        if (pageNumbers.Length != pageCount) {
+            return false;
+        }
+
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            if (pageNumbers[i] != i + 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static IReadOnlyList<PdfFormField> FilterFormFieldsByPageNumbers(IReadOnlyList<PdfFormField> formFields, int[] pageNumbers) {
+        if (formFields.Count == 0) {
+            return formFields;
+        }
+
+        var selectedPageNumbers = new HashSet<int>(pageNumbers);
+        var selectedFields = new List<PdfFormField>();
+
+        for (int i = 0; i < formFields.Count; i++) {
+            PdfFormField field = formFields[i];
+            var selectedWidgets = new List<PdfFormWidget>();
+
+            for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
+                PdfFormWidget widget = field.Widgets[widgetIndex];
+                if (widget.PageNumber.HasValue && selectedPageNumbers.Contains(widget.PageNumber.Value)) {
+                    selectedWidgets.Add(widget);
+                }
+            }
+
+            if (selectedWidgets.Count == 0) {
+                continue;
+            }
+
+            selectedFields.Add(new PdfFormField(
+                field.ObjectNumber,
+                field.Name,
+                field.PartialName,
+                field.FieldType,
+                field.Value,
+                field.AlternateName,
+                field.MappingName,
+                field.Flags,
+                field.MaxLength,
+                field.Values,
+                field.DefaultValue,
+                field.DefaultValues,
+                field.DefaultAppearance,
+                field.Quadding,
+                field.Options,
+                selectedWidgets.AsReadOnly()));
+        }
+
+        return selectedFields.Count == 0 ? Array.Empty<PdfFormField>() : selectedFields.AsReadOnly();
     }
 }
 
