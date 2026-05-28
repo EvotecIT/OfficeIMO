@@ -181,6 +181,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderBudgetsLayoutFromActualStencilDimensions() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilShape largeStencil = new("large-device", "Large Device", "Process", "Custom", 4.2, 1.8);
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Large Stencil Graph", graph => graph
+                    .PageSize(4.5, 3.2)
+                    .StencilNode("left", "Left", largeStencil)
+                    .StencilNode("right", "Right", largeStencil)
+                    .Edge("left", "right"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape left = page.Shapes.Single(shape => shape.Id == "left");
+            VisioShape right = page.Shapes.Single(shape => shape.Id == "right");
+            Assert.True(page.Width >= 10D);
+            Assert.True(right.PinX - left.PinX > largeStencil.DefaultWidth);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderCanAttachShapeDataAndHyperlinksToNodes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
@@ -189,12 +211,14 @@ namespace OfficeIMO.Tests {
                     .Node("api", "API", VisioGraphNodeKind.Emphasis)
                     .Node("database", "Database", VisioGraphNodeKind.Data)
                     .NodeShapeData("api", "Owner", "Platform", "Owner", VisioShapeDataType.String, "Owning team")
+                    .NodeShapeData("api", "owner", "Platform Team", "Owner", VisioShapeDataType.String, "Owning team")
                     .NodeShapeData("api", "Tier", "Public", "Service tier", VisioShapeDataType.String)
                     .NodeShapeData("database", "Classification", "Confidential", "Data classification", VisioShapeDataType.String)
                     .NodeHyperlink("api", "https://example.org/runbook", "Runbook")
                     .NodeHyperlink("database", new Uri("https://example.org/data-catalog"), "Data catalog")
-                    .DataEdge("api-reads-database", "api", "database", "reads")
-                    .EdgeShapeData("api-reads-database", "Protocol", "HTTPS", "Protocol", VisioShapeDataType.String)
+                    .NamedDataEdge("api-reads-database", "api", "database")
+                    .EdgeShapeData("api-reads-database", "Protocol", "HTTP", "Protocol", VisioShapeDataType.String)
+                    .EdgeShapeData("api-reads-database", "protocol", "HTTPS", "Protocol", VisioShapeDataType.String)
                     .EdgeShapeData("api-reads-database", "Port", "443", "Port", VisioShapeDataType.Number)
                     .EdgeHyperlink("api-reads-database", "https://example.org/openapi.json", "API contract"));
 
@@ -202,15 +226,18 @@ namespace OfficeIMO.Tests {
             VisioShape api = page.Shapes.Single(shape => shape.Id == "api");
             VisioShape database = page.Shapes.Single(shape => shape.Id == "database");
             VisioConnector connector = page.Connectors.Single(edge => edge.Id == "api-reads-database");
-            Assert.Equal("Platform", api.GetShapeDataValue("Owner"));
+            Assert.Equal("Platform Team", api.GetShapeDataValue("Owner"));
             Assert.Equal("Public", api.GetShapeDataValue("Tier"));
             Assert.Equal("Confidential", database.GetShapeDataValue("Classification"));
-            Assert.Contains(api.ShapeData, row => row.Name == "Owner" && row.Label == "Owner" && row.Prompt == "Owning team");
+            Assert.Single(api.ShapeData, row => string.Equals(row.Name, "owner", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(api.ShapeData, row => row.Name == "owner" && row.Label == "Owner" && row.Prompt == "Owning team");
             Assert.Contains(api.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
             Assert.Contains(database.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/data-catalog" && hyperlink.Description == "Data catalog");
+            Assert.True(string.IsNullOrEmpty(connector.Label));
             Assert.Equal("HTTPS", connector.GetShapeDataValue("Protocol"));
             Assert.Equal("443", connector.GetShapeDataValue("Port"));
-            Assert.Contains(connector.ShapeData, row => row.Name == "Protocol" && row.Label == "Protocol" && row.Type == VisioShapeDataType.String);
+            Assert.Single(connector.ShapeData, row => string.Equals(row.Name, "protocol", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(connector.ShapeData, row => row.Name == "protocol" && row.Label == "Protocol" && row.Type == VisioShapeDataType.String);
             Assert.Contains(connector.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/openapi.json" && hyperlink.Description == "API contract");
 
             document.Save();
@@ -219,7 +246,7 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioShape loadedApi = loaded.Pages[0].Shapes.Single(shape => shape.Id == "api");
             VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single(edge => edge.Id == "api-reads-database");
-            Assert.Equal("Platform", loadedApi.GetShapeDataValue("Owner"));
+            Assert.Equal("Platform Team", loadedApi.GetShapeDataValue("Owner"));
             Assert.Contains(loadedApi.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runbook" && hyperlink.Description == "Runbook");
             Assert.Equal("HTTPS", loadedConnector.GetShapeDataValue("Protocol"));
             Assert.Equal("443", loadedConnector.GetShapeDataValue("Port"));

@@ -305,6 +305,11 @@ namespace OfficeIMO.Visio {
             }
 
             row.Value = value ?? string.Empty;
+            row.ValueFormula = null;
+            if (row.PreservedKnownCells.TryGetValue("Value", out XElement? valueCell)) {
+                valueCell.Attribute("F")?.Remove();
+            }
+
             if (label != null) row.Label = label;
             if (type.HasValue) row.Type = type.Value;
             if (prompt != null) row.Prompt = prompt;

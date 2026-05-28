@@ -311,7 +311,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             string normalizedName = name.Trim();
-            node.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.Ordinal));
+            node.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
             node.ShapeData.Add(new NodeShapeDataItem(normalizedName, value, label, type, prompt, format));
             return this;
         }
@@ -365,12 +365,28 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder Edge(string edgeId, string fromId, string toId, string? label) =>
             Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Standard, label, directed: true);
 
+        /// <summary>Adds an unlabeled named standard directed graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedEdge(string edgeId, string fromId, string toId) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Standard, label: null, directed: true);
+
+        /// <summary>Adds a named standard directed graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedEdge(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Standard, label, directed: true);
+
         /// <summary>Adds a data-flow graph edge.</summary>
         public VisioGraphDiagramBuilder DataEdge(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Data, label, directed: true);
 
         /// <summary>Adds a named data-flow graph edge.</summary>
         public VisioGraphDiagramBuilder DataEdge(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Data, label, directed: true);
+
+        /// <summary>Adds an unlabeled named data-flow graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedDataEdge(string edgeId, string fromId, string toId) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Data, label: null, directed: true);
+
+        /// <summary>Adds a named data-flow graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedDataEdge(string edgeId, string fromId, string toId, string? label) =>
             Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Data, label, directed: true);
 
         /// <summary>Adds a control-flow graph edge.</summary>
@@ -381,6 +397,14 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder ControlEdge(string edgeId, string fromId, string toId, string? label) =>
             Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Control, label, directed: true);
 
+        /// <summary>Adds an unlabeled named control-flow graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedControlEdge(string edgeId, string fromId, string toId) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Control, label: null, directed: true);
+
+        /// <summary>Adds a named control-flow graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedControlEdge(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Control, label, directed: true);
+
         /// <summary>Adds an emphasized graph edge.</summary>
         public VisioGraphDiagramBuilder EmphasisEdge(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Emphasis, label, directed: true);
@@ -389,12 +413,28 @@ namespace OfficeIMO.Visio.Diagrams {
         public VisioGraphDiagramBuilder EmphasisEdge(string edgeId, string fromId, string toId, string? label) =>
             Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Emphasis, label, directed: true);
 
+        /// <summary>Adds an unlabeled named emphasized graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedEmphasisEdge(string edgeId, string fromId, string toId) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Emphasis, label: null, directed: true);
+
+        /// <summary>Adds a named emphasized graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedEmphasisEdge(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Emphasis, label, directed: true);
+
         /// <summary>Adds an undirected graph edge.</summary>
         public VisioGraphDiagramBuilder Relationship(string fromId, string toId, string? label = null) =>
             Edge(fromId, toId, VisioGraphConnectorKind.Standard, label, directed: false);
 
         /// <summary>Adds a named undirected graph edge.</summary>
         public VisioGraphDiagramBuilder Relationship(string edgeId, string fromId, string toId, string? label) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Standard, label, directed: false);
+
+        /// <summary>Adds an unlabeled named undirected graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedRelationship(string edgeId, string fromId, string toId) =>
+            Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Standard, label: null, directed: false);
+
+        /// <summary>Adds a named undirected graph edge.</summary>
+        public VisioGraphDiagramBuilder NamedRelationship(string edgeId, string fromId, string toId, string? label) =>
             Edge(edgeId, fromId, toId, VisioGraphConnectorKind.Standard, label, directed: false);
 
         /// <summary>Adds a graph edge between two known nodes.</summary>
@@ -444,7 +484,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             string normalizedName = name.Trim();
-            edge.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.Ordinal));
+            edge.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
             edge.ShapeData.Add(new NodeShapeDataItem(normalizedName, value, label, type, prompt, format));
             return this;
         }
@@ -618,18 +658,20 @@ namespace OfficeIMO.Visio.Diagrams {
 
             int layerCount = Math.Max(1, _nodes.Max(node => node.Layer) + 1);
             int rowCount = Math.Max(1, _nodes.GroupBy(node => node.Layer).Max(group => group.Count()));
+            double layoutNodeWidth = LayoutNodeWidth();
+            double layoutNodeHeight = LayoutNodeHeight();
             double requiredWidth;
             double requiredHeight;
             if (_layout == VisioGraphLayout.Radial) {
-                double radius = Math.Max(1D, _nodes.Max(node => node.Layer)) * Math.Max(_nodeWidth + _columnGap, _nodeHeight + _rowGap);
-                requiredWidth = _leftMargin + _rightMargin + (radius * 2D) + _nodeWidth * 2D;
-                requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (radius * 2D) + _nodeHeight * 2D;
+                double radius = Math.Max(1D, _nodes.Max(node => node.Layer)) * Math.Max(layoutNodeWidth + _columnGap, layoutNodeHeight + _rowGap);
+                requiredWidth = _leftMargin + _rightMargin + (radius * 2D) + layoutNodeWidth * 2D;
+                requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (radius * 2D) + layoutNodeHeight * 2D;
             } else if (_direction == VisioGraphDirection.TopToBottom) {
-                requiredWidth = _leftMargin + _rightMargin + (rowCount * _nodeWidth) + Math.Max(0, rowCount - 1) * _columnGap;
-                requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (layerCount * _nodeHeight) + Math.Max(0, layerCount - 1) * _rowGap;
+                requiredWidth = _leftMargin + _rightMargin + (rowCount * layoutNodeWidth) + Math.Max(0, rowCount - 1) * _columnGap;
+                requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (layerCount * layoutNodeHeight) + Math.Max(0, layerCount - 1) * _rowGap;
             } else {
-                requiredWidth = _leftMargin + _rightMargin + (layerCount * _nodeWidth) + Math.Max(0, layerCount - 1) * _columnGap;
-                requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (rowCount * _nodeHeight) + Math.Max(0, rowCount - 1) * _rowGap;
+                requiredWidth = _leftMargin + _rightMargin + (layerCount * layoutNodeWidth) + Math.Max(0, layerCount - 1) * _columnGap;
+                requiredHeight = _topMargin + _bottomMargin + HeaderHeight + (rowCount * layoutNodeHeight) + Math.Max(0, rowCount - 1) * _rowGap;
             }
 
             if (_nodes.Any(HasStencilCaption)) {
@@ -661,7 +703,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double contentHeight = _pageHeight - _topMargin - _bottomMargin - HeaderHeight;
             double centerX = _leftMargin + ((_pageWidth - _leftMargin - _rightMargin) / 2D);
             double centerY = _bottomMargin + (contentHeight / 2D);
-            double ringGap = Math.Max(_nodeWidth + _columnGap, _nodeHeight + _rowGap);
+            double ringGap = Math.Max(LayoutNodeWidth() + _columnGap, LayoutNodeHeight() + _rowGap);
             foreach (IGrouping<int, NodeItem> layer in _nodes.GroupBy(node => node.Layer).OrderBy(group => group.Key)) {
                 NodeItem[] layerNodes = layer.OrderBy(node => _nodes.IndexOf(node)).ToArray();
                 double radius = layer.Key == 0 && layerNodes.Length == 1 ? 0D : Math.Max(0.9D, layer.Key) * ringGap;
@@ -892,27 +934,51 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private double XForLayer(int layer) {
-            return _leftMargin + (_nodeWidth / 2D) + layer * (_nodeWidth + _columnGap);
+            double width = LayoutNodeWidth();
+            return _leftMargin + (width / 2D) + layer * (width + _columnGap);
         }
 
         private double XForRow(int row) {
-            double contentWidth = _maximumRows * _nodeWidth + Math.Max(0, _maximumRows - 1) * _columnGap;
+            double width = LayoutNodeWidth();
+            double contentWidth = _maximumRows * width + Math.Max(0, _maximumRows - 1) * _columnGap;
             double availableWidth = _pageWidth - _leftMargin - _rightMargin;
             double start = _leftMargin + Math.Max(0D, (availableWidth - contentWidth) / 2D);
-            return start + (_nodeWidth / 2D) + row * (_nodeWidth + _columnGap);
+            return start + (width / 2D) + row * (width + _columnGap);
         }
 
         private double YForLayer(int layer) {
+            double height = LayoutNodeHeight();
             double top = _pageHeight - _topMargin - HeaderHeight;
-            return top - (_nodeHeight / 2D) - layer * (_nodeHeight + _rowGap);
+            return top - (height / 2D) - layer * (height + _rowGap);
         }
 
         private double YForRow(int row) {
-            double contentHeight = _maximumRows * _nodeHeight + Math.Max(0, _maximumRows - 1) * _rowGap;
+            double height = LayoutNodeHeight();
+            double contentHeight = _maximumRows * height + Math.Max(0, _maximumRows - 1) * _rowGap;
             double top = _pageHeight - _topMargin - HeaderHeight;
             double availableHeight = _pageHeight - _topMargin - _bottomMargin - HeaderHeight;
             double layerTop = top - Math.Max(0D, (availableHeight - contentHeight) / 2D);
-            return layerTop - (_nodeHeight / 2D) - row * (_nodeHeight + _rowGap);
+            return layerTop - (height / 2D) - row * (height + _rowGap);
+        }
+
+        private double LayoutNodeWidth() {
+            double width = _nodeWidth;
+            foreach (NodeItem node in _nodes) {
+                GetNodeShape(node, out _, out double nodeWidth, out _);
+                width = Math.Max(width, nodeWidth);
+            }
+
+            return width;
+        }
+
+        private double LayoutNodeHeight() {
+            double height = _nodeHeight;
+            foreach (NodeItem node in _nodes) {
+                GetNodeShape(node, out _, out _, out double nodeHeight);
+                height = Math.Max(height, nodeHeight);
+            }
+
+            return height;
         }
 
         private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
