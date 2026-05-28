@@ -347,7 +347,7 @@ public static class PdfInspector {
             : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(document.OpenAction, pageNumbers);
 
         var pages = new List<PdfPageInfo>(pageNumbers.Length);
-        var widgetsByPage = BuildFormWidgetsByPage(formFields);
+        var widgetsByPage = BuildFormWidgetsByPage(document.FormFields);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
             PdfReadPage page = document.Pages[pageNumber - 1];

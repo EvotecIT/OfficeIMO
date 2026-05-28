@@ -160,6 +160,9 @@ public class PdfInspectorTests {
         Assert.DoesNotContain("Third.Page", info.FormFieldNames);
         Assert.Equal(2, info.GetFormWidgets("Second.Page").Count);
         Assert.All(info.GetFormWidgets("Second.Page"), widget => Assert.Equal(2, widget.PageNumber));
+        Assert.Equal(new[] { 1, 1, 1 }, info.Pages.Select(page => page.FormWidgets.Count).ToArray());
+        Assert.Equal(new[] { "Second.Page", "First.Page", "Second.Page" }, info.Pages.Select(page => Assert.Single(page.FormWidgets).FieldName).ToArray());
+        Assert.Equal(2, info.GetFormWidgets(2).Count);
         Assert.Empty(info.GetFormWidgets("Third.Page"));
         Assert.Equal(3, info.FormWidgetCount);
     }
