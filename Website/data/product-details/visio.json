@@ -7,11 +7,11 @@
   "docsUrl": "/docs/visio/",
   "apiUrl": "/api/visio/",
   "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
-  "dependencies": ["System.IO.Packaging", "SixLabors.ImageSharp"],
+  "dependencies": ["OfficeIMO.Drawing", "System.IO.Packaging"],
   "features": [
-    { "title": "Pages & Shapes", "description": "Create multi-page diagrams with shapes, text, and positioning.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z'/></svg>" },
-    { "title": "Connectors", "description": "Connect shapes with auto-glue connectors and connection points.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1'/></svg>" },
-    { "title": "Fluent Builder", "description": "Build diagrams programmatically with a clean, chainable API.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'/></svg>" }
+    { "title": "Diagram Builders", "description": "Create flowcharts, architecture diagrams, networks, timelines, swimlanes, org charts, and generic graphs.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z'/><path d='M7 8v4h10V8M12 12v4M8 20h8M8 16h8'/></svg>" },
+    { "title": "Stencils & Catalogs", "description": "Use generated catalogs, installed Visio stencils, or external .vssx and .vstx packs.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'/></svg>" },
+    { "title": "Connectors & Metadata", "description": "Connect shapes with labels, hyperlinks, Shape Data, waypoints, and routing hints.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1'/></svg>" }
   ],
   "relatedPackages": [
     { "name": "OfficeIMO.Word", "description": "Pair diagrams with generated reports", "install": "dotnet add package OfficeIMO.Word" },

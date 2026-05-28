@@ -1,6 +1,6 @@
 ---
 title: "OfficeIMO.Visio"
-description: "Create Visio diagrams with shapes, connectors, and pages. No Visio installation required."
+description: "Create Visio diagrams with builders, stencils, graph layouts, shapes, connectors, and pages. No Visio installation required."
 layout: product
 product_color: "#ea580c"
 install: "dotnet add package OfficeIMO.Visio"
@@ -12,14 +12,15 @@ preview_id: "visio"
 
 ## Why OfficeIMO.Visio?
 
-OfficeIMO.Visio lets you generate and modify `.vsdx` diagrams from pure .NET code. Build network topologies, org charts, flowcharts, and architecture diagrams without requiring Visio on the machine. The fluent builder API keeps diagram construction concise and readable.
+OfficeIMO.Visio lets you generate and modify `.vsdx` diagrams from pure .NET code. Build network topologies, org charts, flowcharts, timelines, swimlanes, dependency graphs, and architecture diagrams without requiring Visio on the machine. Builder APIs keep common diagrams concise, while lower-level pages, shapes, connectors, masters, and stencil catalogs remain available when you need precision.
 
 ## Features
 
 - **Create, load & save .vsdx files** -- full round-trip support for the Visio Open XML format
-- **Pages & shapes** -- add pages, drop shapes from stencils, and set position, size, text, and fill color
-- **Connectors with auto-glue** -- connect shapes with dynamic connectors that route automatically
-- **Fluent builder API** -- chain calls to construct diagrams in a single expression
+- **Diagram builders** -- create flowcharts, architecture diagrams, networks, dependencies, swimlanes, org charts, timelines, sequences, and generic graphs
+- **Stencils and catalogs** -- use generated catalogs, installed Visio stencils, or external `.vssx` / `.vstx` packs
+- **Connectors with metadata** -- connect shapes with labels, hyperlinks, Shape Data, waypoints, and routing hints
+- **Fluent and low-level APIs** -- chain common diagrams or edit individual pages, shapes, connectors, and masters
 - **Multiple measurement units** -- work in inches, millimeters, centimeters, or points
 - **Connection points** -- define and target specific connection points on shapes for precise routing
 
@@ -45,33 +46,22 @@ OfficeIMO.Visio lets you generate and modify `.vsdx` diagrams from pure .NET cod
 
 ```csharp
 using OfficeIMO.Visio;
+using OfficeIMO.Visio.Diagrams;
 
-using var diagram = VisioDiagram.Create("Architecture.vsdx");
-var page = diagram.AddPage("System Overview");
-
-// Add shapes
-var webServer = page.AddShape("Web Server", 2.0, 8.0);
-webServer.FillColor = "#2563eb";
-webServer.TextColor = "#ffffff";
-
-var appServer = page.AddShape("App Server", 5.0, 8.0);
-appServer.FillColor = "#059669";
-appServer.TextColor = "#ffffff";
-
-var database = page.AddShape("Database", 8.0, 8.0);
-database.FillColor = "#7c3aed";
-database.TextColor = "#ffffff";
-
-var cache = page.AddShape("Cache", 5.0, 5.5);
-cache.FillColor = "#dc2626";
-cache.TextColor = "#ffffff";
-
-// Connect shapes
-page.AddConnector(webServer, appServer, "HTTPS");
-page.AddConnector(appServer, database, "TCP/IP");
-page.AddConnector(appServer, cache, "Redis");
-
-diagram.Save();
+VisioDocument.Create("Architecture.vsdx")
+    .ArchitectureDiagram("System Overview", diagram => diagram
+        .Title()
+        .Legend()
+        .Theme(VisioStyleTheme.Technical())
+        .Region("vnet", "Virtual Network", 1, 0, 3, 2)
+        .Actor("users", "Users", 0, 1)
+        .Gateway("gateway", "Gateway", 1, 1)
+        .Service("api", "API", 2, 1)
+        .Database("database", "Database", 3, 1)
+        .DataFlow("users", "gateway", "HTTPS")
+        .ControlFlow("gateway", "api", "route")
+        .DataFlow("api", "database", "SQL"))
+    .Save();
 ```
 
 ## Repeatable modeling flow

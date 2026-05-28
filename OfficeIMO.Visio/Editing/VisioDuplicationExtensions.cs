@@ -337,10 +337,13 @@ namespace OfficeIMO.Visio {
 
             CopyStringSet(source.LayerNames, clone.LayerNames);
             CopyHyperlinks(source.Hyperlinks, clone.Hyperlinks);
+            CopyDictionary(source.Data, clone.Data);
+            CopyShapeData(source.ShapeData, clone.ShapeData, clone.Data);
             CopyProtection(source.Protection, clone.Protection);
             CopyElements(source.PreservedGeometrySections, clone.PreservedGeometrySections);
             CopyElements(source.PreservedCellElements, clone.PreservedCellElements);
             CopyElements(source.PreservedNonGeometrySections, clone.PreservedNonGeometrySections);
+            CopyElements(source.PreservedDataRows, clone.PreservedDataRows);
             CopyConnectorPreservation(source, clone);
             return clone;
         }
@@ -453,6 +456,7 @@ namespace OfficeIMO.Visio {
                     LangId = row.LangId,
                     LangIdFormula = row.LangIdFormula,
                     LoadedValue = row.LoadedValue,
+                    MirroredDataValue = row.MirroredDataValue,
                     RowIndex = row.RowIndex
                 };
                 CopyAttributes(row.PreservedRowAttributes, clone.PreservedRowAttributes);
@@ -466,7 +470,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 target.Add(clone);
-                if (clone.Value != null) {
+                if (clone.Value != null && !data.ContainsKey(clone.Name)) {
                     data[clone.Name] = clone.Value;
                 }
             }

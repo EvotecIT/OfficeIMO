@@ -797,7 +797,7 @@ namespace OfficeIMO.Visio {
             WriteTextStyleSections(writer, ns, connector.TextStyle);
             WriteHyperlinkSection(writer, ns, connector.Hyperlinks);
             WriteConnectorGeometry(writer, ns, connector, startX, startY, endX, endY);
-            WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
+            WriteDataSection(writer, ns, connector.Data, connector.PreservedDataRows, connectorOriginalId, connector.ShapeData);
             WriteTextElement(writer, ns, connector.Label, connector.PreservedTextElement, connector.PreservedTextValue);
         }
 
@@ -864,7 +864,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (string.Equals(token, "Section:Prop", StringComparison.OrdinalIgnoreCase)) {
-                WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
+                WriteDataSection(writer, ns, connector.Data, connector.PreservedDataRows, connectorOriginalId, connector.ShapeData);
                 return true;
             }
 
@@ -914,7 +914,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (emittedTokens.Add("Section:Prop")) {
-                WriteDataSection(writer, ns, new Dictionary<string, string>(), null, connectorOriginalId);
+                WriteDataSection(writer, ns, connector.Data, connector.PreservedDataRows, connectorOriginalId, connector.ShapeData);
             }
 
             if (emittedTokens.Add("Text")) {

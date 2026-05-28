@@ -54,6 +54,97 @@ namespace OfficeIMO.Tests {
             AssertShapeDataXml(updatedPath, "Platform", "Yes");
         }
 
+        [Fact]
+        public void ConnectorShapeDataSetReusesExistingRowNameCasing() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
+            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
+            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
+            connector.Label = "route";
+            connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single();
+            loadedConnector.SetShapeData("owner", "Platform");
+            Assert.Equal("Platform", loadedConnector.Data["Owner"]);
+            Assert.False(loadedConnector.Data.ContainsKey("owner"));
+            loaded.Save(updatedPath);
+
+            Assert.Empty(VisioValidator.Validate(updatedPath));
+            AssertConnectorShapeDataXml(updatedPath, "Owner", "Platform");
+        }
+
+        [Fact]
+        public void ConnectorShapeDataClearOverridesPreservedLoadedValue() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
+            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
+            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
+            connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single();
+            loadedConnector.SetShapeData("Owner", null);
+            Assert.Equal(string.Empty, loadedConnector.GetShapeDataValue("Owner"));
+            Assert.False(loadedConnector.Data.ContainsKey("Owner"));
+            loaded.Save(updatedPath);
+
+            Assert.Empty(VisioValidator.Validate(updatedPath));
+            AssertConnectorShapeDataXml(updatedPath, "Owner", string.Empty);
+        }
+
+        [Fact]
+        public void ConnectorShapeDataRowValueEditWinsOverStaleDictionaryMirror() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
+            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
+            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
+            VisioShapeDataRow owner = connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
+            owner.Value = "Platform";
+
+            Assert.Equal("Platform", connector.GetShapeDataValue("Owner"));
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            AssertConnectorShapeDataXml(filePath, "Owner", "Platform");
+        }
+
+        [Fact]
+        public void ConnectorShapeDataSetClearsLoadedValueFormula() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
+            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
+            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
+            connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
+            document.Save();
+            SetConnectorValueCellToFormulaOnly(filePath, "Owner", "\"Operations\"");
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single();
+            loadedConnector.SetShapeData("Owner", "Platform");
+            loaded.Save(updatedPath);
+
+            Assert.Empty(VisioValidator.Validate(updatedPath));
+            AssertConnectorShapeDataValueHasNoFormula(updatedPath, "Owner", "Platform");
+        }
+
         private static void AssertShapeDataXml(string filePath, string ownerValue, string reviewedValue) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
@@ -81,6 +172,39 @@ namespace OfficeIMO.Tests {
             Assert.Equal(((int)VisioShapeDataType.Boolean).ToString(), CellValue(reviewed, ns, "Type"));
         }
 
+        private static void AssertConnectorShapeDataXml(string filePath, string rowName, string ownerValue) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument page = ReadXml(archive, "visio/pages/page1.xml");
+            XElement connector = page.Descendants(ns + "Shape")
+                .Single(shape => shape.Elements(ns + "Section")
+                    .Any(section => (string?)section.Attribute("N") == "Prop" &&
+                        section.Elements(ns + "Row")
+                            .Any(row => string.Equals((string?)row.Attribute("N"), rowName, StringComparison.Ordinal))));
+            XElement propSection = connector.Elements(ns + "Section")
+                .Single(section => (string?)section.Attribute("N") == "Prop");
+
+            Assert.Single(propSection.Elements(ns + "Row"),
+                row => string.Equals((string?)row.Attribute("N"), rowName, StringComparison.Ordinal));
+            Assert.DoesNotContain(propSection.Elements(ns + "Row"),
+                row => string.Equals((string?)row.Attribute("N"), rowName.ToLowerInvariant(), StringComparison.Ordinal));
+            Assert.Equal(ownerValue, CellValue(Row(propSection, ns, rowName), ns, "Value"));
+        }
+
+        private static void AssertConnectorShapeDataValueHasNoFormula(string filePath, string rowName, string ownerValue) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument page = ReadXml(archive, "visio/pages/page1.xml");
+            XElement propSection = page.Descendants(ns + "Section")
+                .Single(section => (string?)section.Attribute("N") == "Prop" &&
+                    section.Elements(ns + "Row").Any(row => (string?)row.Attribute("N") == rowName));
+            XElement valueCell = Row(propSection, ns, rowName).Elements(ns + "Cell")
+                .Single(cell => (string?)cell.Attribute("N") == "Value");
+
+            Assert.Equal(ownerValue, valueCell.Attribute("V")?.Value);
+            Assert.Null(valueCell.Attribute("F"));
+        }
+
         private static XElement Row(XElement section, XNamespace ns, string name) {
             return section.Elements(ns + "Row")
                 .Single(row => (string?)row.Attribute("N") == name);
@@ -91,6 +215,29 @@ namespace OfficeIMO.Tests {
                 .Single(cell => (string?)cell.Attribute("N") == cellName)
                 .Attribute("V")!
                 .Value;
+        }
+
+        private static void SetConnectorValueCellToFormulaOnly(string filePath, string rowName, string formula) {
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            using ZipArchive archive = ZipFile.Open(filePath, ZipArchiveMode.Update);
+            ZipArchiveEntry entry = archive.GetEntry("visio/pages/page1.xml") ?? throw new InvalidOperationException("Missing visio/pages/page1.xml");
+            XDocument page;
+            using (Stream stream = entry.Open()) {
+                page = XDocument.Load(stream);
+            }
+
+            XElement propSection = page.Descendants(ns + "Section")
+                .Single(section => (string?)section.Attribute("N") == "Prop" &&
+                    section.Elements(ns + "Row").Any(row => (string?)row.Attribute("N") == rowName));
+            XElement valueCell = Row(propSection, ns, rowName).Elements(ns + "Cell")
+                .Single(cell => (string?)cell.Attribute("N") == "Value");
+            valueCell.Attribute("V")?.Remove();
+            valueCell.SetAttributeValue("F", formula);
+
+            entry.Delete();
+            ZipArchiveEntry updated = archive.CreateEntry("visio/pages/page1.xml");
+            using Stream output = updated.Open();
+            page.Save(output);
         }
 
         private static XDocument ReadXml(ZipArchive archive, string entryName) {
