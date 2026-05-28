@@ -181,6 +181,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderUsesPageUnitForNullUnitStencilDefaults() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilShape stencil = new("custom-device", "Custom Device", "Process", "Custom", 2, 1);
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Metric Custom Stencil Graph", graph => graph
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .StencilNode("device", "Device", stencil));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape shape = page.Shapes.Single(current => current.Id == "device");
+            Assert.Equal(ToInches(2, VisioMeasurementUnit.Centimeters), shape.Width, 3);
+            Assert.Equal(ToInches(1, VisioMeasurementUnit.Centimeters), shape.Height, 3);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderBudgetsLayoutFromActualStencilDimensions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioStencilShape largeStencil = new("large-device", "Large Device", "Process", "Custom", 4.2, 1.8);

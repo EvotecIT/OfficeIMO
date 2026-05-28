@@ -181,7 +181,7 @@ namespace OfficeIMO.Visio.Stencils {
                 .Concat(new[] { localId, name.Replace(" ", "-") })
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            return new VisioStencilShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, masterNameU);
+            return new VisioStencilShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, masterNameU, VisioMeasurementUnit.Inches);
         }
     }
 }

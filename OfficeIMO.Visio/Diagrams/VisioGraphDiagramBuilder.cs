@@ -992,7 +992,7 @@ namespace OfficeIMO.Visio.Diagrams {
             height = node.Stencil?.DefaultHeight ?? _nodeHeight;
             if (node.Stencil != null) {
                 masterNameU = node.Stencil.MasterNameU;
-                VisioMeasurementUnit sourceUnit = node.Stencil.DefaultUnit ?? VisioMeasurementUnit.Inches;
+                VisioMeasurementUnit sourceUnit = node.Stencil.DefaultUnit ?? _unit;
                 width = width.ToInches(sourceUnit).FromInches(_unit);
                 height = height.ToInches(sourceUnit).FromInches(_unit);
                 return;
