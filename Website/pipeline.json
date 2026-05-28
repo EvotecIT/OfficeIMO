@@ -275,6 +275,21 @@
     },
     {
       "task": "exec",
+      "id": "verify-excel-benchmark-page",
+      "dependsOn": ["build-site"],
+      "command": "pwsh",
+      "argsList": [
+        "-NoLogo",
+        "-NoProfile",
+        "-File",
+        "./scripts/Test-BenchmarkPage.ps1",
+        "-SiteRoot",
+        "./_site"
+      ],
+      "workingDirectory": "."
+    },
+    {
+      "task": "exec",
       "id": "sync-pswriteoffice-apidocs",
       "dependsOn": ["sync-sources"],
       "command": "pwsh",
@@ -291,7 +306,7 @@
     {
       "task": "verify",
       "id": "verify-site",
-      "dependsOn": "build-site",
+      "dependsOn": ["build-site", "verify-excel-benchmark-page"],
       "config": "./site.json"
     },
     {

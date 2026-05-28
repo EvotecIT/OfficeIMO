@@ -7,6 +7,7 @@ param(
     [string] $WebsiteIndexPath = ".\Website\data\benchmarks-excel-index.json",
     [string] $StaticDataDirectory = ".\Website\static\data",
     [string] $MarkdownPath = ".\Docs\benchmarks\officeimo.excel.comparison-report.md",
+    [string] $MatrixPartialPath = ".\Website\themes\officeimo\partials\generated\benchmarks-excel.html",
     [ValidateSet("quick", "full")]
     [string] $RunMode = "quick",
     [switch] $Publish,
@@ -58,6 +59,29 @@ function Format-Bytes([Nullable[double]] $Value) {
 function Format-Ratio([Nullable[double]] $Value) {
     if ($null -eq $Value) { return $null }
     return [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "{0:N2}x", $Value)
+}
+
+function Encode-Html([object] $Value) {
+    if ($null -eq $Value) { return "" }
+    return [System.Net.WebUtility]::HtmlEncode([string] $Value)
+}
+
+function Format-MatrixRatio([Nullable[double]] $Value) {
+    if ($null -eq $Value) { return $null }
+    if ([math]::Abs($Value - 1.0) -lt 0.005) { return "1x" }
+    if ($Value -ge 100.0) {
+        return [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "{0:N0}x", $Value)
+    }
+    if ($Value -ge 10.0) {
+        return [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "{0:N1}x", $Value)
+    }
+
+    return [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "{0:N2}x", $Value)
+}
+
+function Format-SortNumber([Nullable[double]] $Value) {
+    if ($null -eq $Value) { return "" }
+    return [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "{0:R}", [double] $Value)
 }
 
 function Get-ScenarioCategory([string] $Scenario, [string] $ArtifactKind) {
@@ -257,6 +281,85 @@ function Build-Summary([object[]] $Rows) {
     return @($summary | Sort-Object { $_["rowCount"] }, { $_["artifactKind"] }, { $_["workload"] }, { $_["category"] })
 }
 
+function Build-Matrix([object[]] $Rows, [string[]] $LibraryNames) {
+    $matrixRows = @()
+    $groups = @{}
+    foreach ($row in ($Rows | Where-Object { $null -ne $_["meanMilliseconds"] })) {
+        $key = "$($row["rowCount"])|$($row["workload"])|$($row["category"])|$($row["scenario"])"
+        if (-not $groups.ContainsKey($key)) { $groups[$key] = New-Object System.Collections.Generic.List[object] }
+        $groups[$key].Add($row)
+    }
+
+    foreach ($group in $groups.Values) {
+        $orderedRows = @($group | Sort-Object { $_["meanMilliseconds"] })
+        if ($orderedRows.Count -eq 0) { continue }
+
+        $first = $orderedRows[0]
+        $fastest = $orderedRows[0]
+        $artifactKinds = @($group | ForEach-Object { $_["artifactKind"] } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+        $cells = @()
+
+        foreach ($library in $LibraryNames) {
+            $libraryRow = @($group | Where-Object { $_["library"] -eq $library } | Sort-Object { $_["meanMilliseconds"] } | Select-Object -First 1)
+            if ($libraryRow.Count -eq 0 -or $null -eq $libraryRow[0]) {
+                $cells += [ordered]@{
+                    library = $library
+                    measured = $false
+                style = "missing"
+                meanMilliseconds = $null
+                meanText = $null
+                allocatedText = $null
+                packageText = $null
+                    ratioToFastest = $null
+                    ratioToFastestText = $null
+                    allocatedRatioToFastestText = $null
+                    packageRatioToFastestText = $null
+                }
+                continue
+            }
+
+            $row = $libraryRow[0]
+            $ratio = if ($fastest["meanMilliseconds"] -gt 0) { [double] $row["meanMilliseconds"] / [double] $fastest["meanMilliseconds"] } else { $null }
+            $allocatedRatio = if ($row["meanAllocatedBytes"] -and $fastest["meanAllocatedBytes"]) { [double] $row["meanAllocatedBytes"] / [double] $fastest["meanAllocatedBytes"] } else { $null }
+            $packageRatio = if ($row["packageBytes"] -and $fastest["packageBytes"]) { [double] $row["packageBytes"] / [double] $fastest["packageBytes"] } else { $null }
+            $style = if ($row["library"] -eq $fastest["library"]) { "fastest" } elseif ($ratio -le 1.10) { "near" } elseif ($ratio -le 2.0) { "mid" } else { "slow" }
+
+            $cells += [ordered]@{
+                library = $library
+                measured = $true
+                style = $style
+                meanMilliseconds = $row["meanMilliseconds"]
+                meanText = $row["meanText"]
+                allocatedText = $row["meanAllocatedText"]
+                packageText = $row["packageText"]
+                ratioToFastest = if ($null -ne $ratio) { [math]::Round($ratio, 4) } else { $null }
+                ratioToFastestText = Format-MatrixRatio $ratio
+                allocatedRatioToFastestText = Format-MatrixRatio $allocatedRatio
+                packageRatioToFastestText = Format-MatrixRatio $packageRatio
+            }
+        }
+
+        $matrixRows += [ordered]@{
+            rowCount = $first["rowCount"]
+            workload = $first["workload"]
+            category = $first["category"]
+            scenario = $first["scenario"]
+            artifactKind = ($artifactKinds -join ", ")
+            fastestLibrary = $fastest["library"]
+            fastestMeanMilliseconds = $fastest["meanMilliseconds"]
+            fastestMeanText = $fastest["meanText"]
+            fastestAllocatedText = $fastest["meanAllocatedText"]
+            fastestPackageText = $fastest["packageText"]
+            cells = $cells
+        }
+    }
+
+    return [ordered]@{
+        libraries = $LibraryNames
+        rows = @($matrixRows | Sort-Object { $_["rowCount"] }, { $_["workload"] }, { $_["category"] }, { $_["scenario"] })
+    }
+}
+
 function Write-MarkdownReport([object] $Document, [string] $Path) {
     $lines = New-Object System.Collections.Generic.List[string]
     $lines.Add("# OfficeIMO.Excel Benchmark Report")
@@ -291,6 +394,120 @@ function Write-MarkdownReport([object] $Document, [string] $Path) {
     Write-TextUtf8NoBom $Path (($lines -join "`n") + "`n")
 }
 
+function Write-MatrixPartial([object] $Document, [string] $Path) {
+    $lines = New-Object System.Collections.Generic.List[string]
+    $metrics = $Document.metrics
+    $matrix = $Document.matrix
+    $meta = $Document.meta
+    $source = $Document.source
+
+    $lines.Add('<section class="imo-benchmark-dashboard" data-excel-benchmarks>')
+    $lines.Add('<div class="imo-benchmark-hero">')
+    $lines.Add('<div class="imo-benchmark-hero__copy">')
+    $lines.Add('<p class="imo-benchmark-eyebrow">OfficeIMO Benchmarks</p>')
+    $lines.Add('<h2>Autogenerated benchmark matrix</h2>')
+    $lines.Add('<p>Each row is a scenario group. Library cells show mean time, relative time versus the fastest library in that row, and allocation or package size when available.</p>')
+    $lines.Add('</div>')
+    $lines.Add('</div>')
+    $lines.Add('<div class="imo-benchmark-meta" data-benchmark-meta>')
+    $lines.Add('<span>Generated ' + (Encode-Html $Document.generatedUtc) + '</span>')
+    $lines.Add('<span>' + (Encode-Html $Document.runMode) + '</span>')
+    $publishText = if ($Document.publish) { 'publishable' } else { 'local quick' }
+    $lines.Add('<span>' + (Encode-Html $publishText) + '</span>')
+    $lines.Add('<span>' + (Encode-Html $Document.framework) + '</span>')
+    if ($meta -and $meta.dotnetSdk) {
+        $lines.Add('<span>SDK ' + (Encode-Html $meta.dotnetSdk) + '</span>')
+    }
+    if ($source -and $source.summaryPath) {
+        $lines.Add('<span>Source: ' + (Encode-Html $source.summaryPath) + '</span>')
+    }
+    $lines.Add('</div>')
+    $lines.Add('<div class="imo-benchmark-kpis" data-benchmark-kpis>')
+    $lines.Add('<article><strong>' + (Encode-Html $metrics.matrixRows) + '</strong><span>scenario rows</span></article>')
+    $lines.Add('<article><strong>' + (Encode-Html $metrics.measurementRows) + '</strong><span>measurements</span></article>')
+    $lines.Add('<article><strong>' + (Encode-Html $metrics.libraryCount) + '</strong><span>libraries</span></article>')
+    $lines.Add('<article><strong>' + (Encode-Html @($metrics.rowCounts).Count) + '</strong><span>row tiers: ' + (Encode-Html (@($metrics.rowCounts) -join ', ')) + '</span></article>')
+    $lines.Add('<article><strong>' + (Encode-Html $metrics.artifactKindCount) + '</strong><span>artifact types</span></article>')
+    $lines.Add('<article><strong>' + (Encode-Html $metrics.focusedProfileCount) + '</strong><span>focused profiles</span></article>')
+    $lines.Add('</div>')
+    $lines.Add('<section class="imo-benchmark-matrix">')
+    $lines.Add('<div class="imo-benchmark-matrix__header">')
+    $lines.Add('<div>')
+    $lines.Add('<h3>Comparison Matrix</h3>')
+    $lines.Add('<p>Ratios are relative to the fastest measured library in the same scenario row. Lower is better.</p>')
+    $lines.Add('</div>')
+    $lines.Add('</div>')
+    $lines.Add('<div class="imo-benchmark-tools" data-benchmark-controls>')
+    $lines.Add('<label><span>Search</span><input type="search" data-benchmark-filter="search" placeholder="Scenario, category, library"></label>')
+    $lines.Add('<label><span>Rows</span><select data-benchmark-filter="rowCount"><option value="">All rows</option>')
+    foreach ($rowCount in (@($matrix.rows | ForEach-Object { $_.rowCount }) | Sort-Object -Unique)) {
+        $lines.Add('<option value="' + (Encode-Html $rowCount) + '">' + (Encode-Html $rowCount) + '</option>')
+    }
+    $lines.Add('</select></label>')
+    $lines.Add('<label><span>Workload</span><select data-benchmark-filter="workload"><option value="">All workloads</option>')
+    foreach ($workload in (@($matrix.rows | ForEach-Object { $_.workload } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) | Sort-Object -Unique)) {
+        $lines.Add('<option value="' + (Encode-Html $workload) + '">' + (Encode-Html $workload) + '</option>')
+    }
+    $lines.Add('</select></label>')
+    $lines.Add('<label><span>Category</span><select data-benchmark-filter="category"><option value="">All categories</option>')
+    foreach ($category in (@($matrix.rows | ForEach-Object { $_.category } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) | Sort-Object -Unique)) {
+        $lines.Add('<option value="' + (Encode-Html $category) + '">' + (Encode-Html $category) + '</option>')
+    }
+    $lines.Add('</select></label>')
+    $lines.Add('<label><span>Library</span><select data-benchmark-filter="library"><option value="">Any library</option>')
+    foreach ($library in $matrix.libraries) {
+        $lines.Add('<option value="' + (Encode-Html $library) + '">' + (Encode-Html $library) + '</option>')
+    }
+    $lines.Add('</select></label>')
+    $lines.Add('<button type="button" class="imo-benchmark-reset" data-benchmark-reset>Reset</button>')
+    $lines.Add('<p class="imo-benchmark-count" data-benchmark-count>Showing ' + (Encode-Html @($matrix.rows).Count) + ' of ' + (Encode-Html @($matrix.rows).Count) + ' rows</p>')
+    $lines.Add('</div>')
+    $lines.Add('<div class="imo-benchmark-table-wrap">')
+    $lines.Add('<table class="imo-benchmark-table imo-benchmark-table--matrix">')
+    $lines.Add('<thead>')
+    $lines.Add('<tr>')
+    $lines.Add('<th aria-sort="none"><button type="button" data-benchmark-sort="scenario" data-sort-type="text">Scenario</button></th>')
+    $lines.Add('<th aria-sort="none"><button type="button" data-benchmark-sort="fastest" data-sort-type="number">Fastest</button></th>')
+    foreach ($library in $matrix.libraries) {
+        $lines.Add('<th aria-sort="none"><button type="button" data-benchmark-sort="library:' + (Encode-Html $library) + '" data-sort-type="number">' + (Encode-Html $library) + '</button></th>')
+    }
+    $lines.Add('</tr>')
+    $lines.Add('</thead>')
+    $lines.Add('<tbody data-benchmark-matrix>')
+    $rowIndex = 0
+    foreach ($row in $matrix.rows) {
+        $lines.Add('<tr data-benchmark-row data-original-index="' + (Encode-Html $rowIndex) + '" data-row-count="' + (Encode-Html $row.rowCount) + '" data-workload="' + (Encode-Html $row.workload) + '" data-category="' + (Encode-Html $row.category) + '" data-scenario="' + (Encode-Html $row.scenario) + '" data-fastest-library="' + (Encode-Html $row.fastestLibrary) + '" data-fastest-ms="' + (Encode-Html (Format-SortNumber $row.fastestMeanMilliseconds)) + '">')
+        $scenarioMeta = ([string] $row.rowCount) + ' rows - ' + ([string] $row.workload) + ' - ' + ([string] $row.category) + ' - ' + ([string] $row.artifactKind)
+        $lines.Add('<td class="imo-benchmark-scenario"><strong>' + (Encode-Html $row.scenario) + '</strong><small>' + (Encode-Html $scenarioMeta) + '</small></td>')
+        $lines.Add('<td class="imo-benchmark-fastest"><strong>' + (Encode-Html $row.fastestLibrary) + '</strong><small>' + (Encode-Html $row.fastestMeanText) + '</small></td>')
+        foreach ($cell in $row.cells) {
+            $lines.Add('<td class="imo-benchmark-value imo-benchmark-value--' + (Encode-Html $cell.style) + '" data-library="' + (Encode-Html $cell.library) + '">')
+            if ($cell.measured) {
+                $lines.Add('<strong>' + (Encode-Html $cell.meanText) + '</strong>')
+                $lines.Add('<span>' + (Encode-Html $cell.ratioToFastestText) + '</span>')
+                if ($cell.packageText) {
+                    $lines.Add('<small>' + (Encode-Html $cell.packageText) + '</small>')
+                } elseif ($cell.allocatedText) {
+                    $lines.Add('<small>' + (Encode-Html $cell.allocatedText) + '</small>')
+                }
+            } else {
+                $lines.Add('<span class="imo-benchmark-missing">-</span>')
+            }
+            $lines.Add('</td>')
+        }
+        $lines.Add('</tr>')
+        $rowIndex++
+    }
+    $lines.Add('</tbody>')
+    $lines.Add('</table>')
+    $lines.Add('</div>')
+    $lines.Add('<script src="/js/benchmarks.js" data-cfasync="false"></script>')
+    $lines.Add('</section>')
+    $lines.Add('</section>')
+
+    Write-TextUtf8NoBom $Path (($lines -join "`n") + "`n")
+}
+
 $summaryInput = Read-JsonFile $SummaryPath
 $manifest = if (Test-Path $ManifestPath) { Read-JsonFile $ManifestPath } else { $null }
 $publishValue = if ($Publish) { $true } elseif ($NoPublish) { $false } else { $RunMode -eq "full" }
@@ -321,6 +538,22 @@ foreach ($path in $packageProfilePaths) {
 $allRows = [object[]] $rows.ToArray()
 $focusedPackageRows = [object[]] @($allRows | Where-Object { $_["artifactKind"] -eq "focused-package-profile" })
 Add-PackageProfileRatios -Rows $focusedPackageRows
+$scenarioGroupCount = @($allRows | Group-Object { "$($_["artifactKind"])|$($_["rowCount"])|$($_["scenario"])" }).Count
+$libraryNames = @($allRows | ForEach-Object { $_["library"] } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+$rowCounts = @($allRows | ForEach-Object { $_["rowCount"] } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
+$artifactKinds = @($allRows | ForEach-Object { $_["artifactKind"] } | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Sort-Object -Unique)
+$matrix = Build-Matrix -Rows $allRows -LibraryNames $libraryNames
+$metrics = [ordered]@{
+    scenarioGroups = $scenarioGroupCount
+    matrixRows = @($matrix.rows).Count
+    measurementRows = $allRows.Count
+    libraries = $libraryNames
+    libraryCount = $libraryNames.Count
+    rowCounts = $rowCounts
+    artifactKinds = $artifactKinds
+    artifactKindCount = $artifactKinds.Count
+    focusedProfileCount = $packageProfilePaths.Count
+}
 
 $document = [ordered]@{
     schemaVersion = 1
@@ -349,6 +582,8 @@ $document = [ordered]@{
         "Website consumers should read this generated JSON instead of hand-maintained benchmark rows."
     )
     manifest = $manifest
+    metrics = $metrics
+    matrix = $matrix
     summary = Build-Summary -Rows $allRows
     rows = @($allRows | Sort-Object { $_["rowCount"] }, { $_["artifactKind"] }, { $_["scenario"] }, { $_["library"] })
 }
@@ -363,6 +598,8 @@ $summaryDocument = [ordered]@{
     source = $document.source
     howToRead = $document.howToRead
     notes = $document.notes
+    metrics = $document.metrics
+    matrix = $document.matrix
     summary = $document.summary
 }
 
@@ -386,6 +623,7 @@ Write-TextUtf8NoBom $WebsiteDataPath (($document | ConvertTo-Json -Depth 20) + "
 Write-TextUtf8NoBom $WebsiteSummaryPath (($summaryDocument | ConvertTo-Json -Depth 16) + "`n")
 Write-TextUtf8NoBom $WebsiteIndexPath (($indexDocument | ConvertTo-Json -Depth 10) + "`n")
 Write-MarkdownReport $document $MarkdownPath
+Write-MatrixPartial $document $MatrixPartialPath
 
 if (-not [string]::IsNullOrWhiteSpace($StaticDataDirectory)) {
     if (-not (Test-Path $StaticDataDirectory)) {
@@ -404,3 +642,4 @@ if (-not [string]::IsNullOrWhiteSpace($StaticDataDirectory)) {
     Write-Host "Excel benchmark static data copied to '$StaticDataDirectory'."
 }
 Write-Host "Excel benchmark markdown report written to '$MarkdownPath'."
+Write-Host "Excel benchmark matrix partial written to '$MatrixPartialPath'."
