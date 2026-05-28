@@ -785,6 +785,9 @@ public sealed class PdfLogicalDocument {
         IReadOnlyList<PdfOutlineItem> outlines = useDocumentWideObjects
             ? document.Outlines
             : FilterOutlinesByPageNumbers(document.Outlines, pageNumbers);
+        IReadOnlyList<PdfPageLabel> pageLabels = useDocumentWideObjects
+            ? document.PageLabels
+            : FilterPageLabelsByPageNumbers(document.PageLabels, pageNumbers);
         IReadOnlyList<PdfNamedDestination> namedDestinations = useDocumentWideObjects
             ? document.NamedDestinations
             : FilterNamedDestinationsByPageNumbers(document.NamedDestinations, pageNumbers);
@@ -802,7 +805,7 @@ public sealed class PdfLogicalDocument {
             document.Metadata,
             pages.AsReadOnly(),
             outlines,
-            document.PageLabels,
+            pageLabels,
             namedDestinations,
             openAction,
             document.ViewerPreferences,
@@ -828,6 +831,77 @@ public sealed class PdfLogicalDocument {
         }
 
         return true;
+    }
+
+    private static IReadOnlyList<PdfPageLabel> FilterPageLabelsByPageNumbers(IReadOnlyList<PdfPageLabel> pageLabels, int[] pageNumbers) {
+        if (pageLabels.Count == 0) {
+            return pageLabels;
+        }
+
+        var selectedSourceIndexes = new SortedSet<int>();
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            selectedSourceIndexes.Add(pageNumbers[i] - 1);
+        }
+
+        if (selectedSourceIndexes.Count == 0) {
+            return Array.Empty<PdfPageLabel>();
+        }
+
+        var selectedLabels = new List<PdfPageLabel>();
+        PdfPageLabel? previousSourceLabel = null;
+        int previousSourceIndex = -1;
+        foreach (int sourcePageIndex in selectedSourceIndexes) {
+            PdfPageLabel? sourceLabel = FindPageLabelForSourceIndex(pageLabels, sourcePageIndex);
+            if (sourceLabel is null) {
+                continue;
+            }
+
+            bool continuesPreviousRun = previousSourceLabel is not null &&
+                LabelsBelongToSameRule(previousSourceLabel, sourceLabel) &&
+                sourcePageIndex == previousSourceIndex + 1;
+
+            if (!continuesPreviousRun) {
+                selectedLabels.Add(new PdfPageLabel(
+                    sourcePageIndex,
+                    sourceLabel.Style,
+                    sourceLabel.Prefix,
+                    GetAdjustedPageLabelStartNumber(sourceLabel, sourcePageIndex)));
+            }
+
+            previousSourceLabel = sourceLabel;
+            previousSourceIndex = sourcePageIndex;
+        }
+
+        return selectedLabels.Count == 0 ? Array.Empty<PdfPageLabel>() : selectedLabels.AsReadOnly();
+    }
+
+    private static PdfPageLabel? FindPageLabelForSourceIndex(IReadOnlyList<PdfPageLabel> pageLabels, int sourcePageIndex) {
+        PdfPageLabel? selected = null;
+        for (int i = 0; i < pageLabels.Count; i++) {
+            if (pageLabels[i].StartPageIndex > sourcePageIndex) {
+                break;
+            }
+
+            selected = pageLabels[i];
+        }
+
+        return selected;
+    }
+
+    private static bool LabelsBelongToSameRule(PdfPageLabel left, PdfPageLabel right) {
+        return left.StartPageIndex == right.StartPageIndex &&
+            string.Equals(left.Style, right.Style, StringComparison.Ordinal) &&
+            string.Equals(left.Prefix, right.Prefix, StringComparison.Ordinal) &&
+            left.StartNumber == right.StartNumber;
+    }
+
+    private static int? GetAdjustedPageLabelStartNumber(PdfPageLabel sourceLabel, int sourcePageIndex) {
+        if (sourceLabel.Style is null) {
+            return sourceLabel.StartNumber;
+        }
+
+        int startNumber = sourceLabel.StartNumber ?? 1;
+        return startNumber + sourcePageIndex - sourceLabel.StartPageIndex;
     }
 
     private static IReadOnlyList<PdfOutlineItem> FilterOutlinesByPageNumbers(IReadOnlyList<PdfOutlineItem> outlines, int[] pageNumbers) {

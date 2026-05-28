@@ -215,6 +215,34 @@ public class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void LoadPageRanges_FiltersPageLabelsToSelectedSourcePages() {
+        byte[] pdf = BuildThreePageLabelPdf();
+
+        PdfLogicalDocument pageTwo = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.From(2, 2));
+
+        PdfPageLabel inheritedLabel = Assert.Single(pageTwo.PageLabels);
+        Assert.Equal(1, inheritedLabel.StartPageIndex);
+        Assert.Equal(2, inheritedLabel.StartPageNumber);
+        Assert.Equal("D", inheritedLabel.Style);
+        Assert.Equal("A-", inheritedLabel.Prefix);
+        Assert.Equal(11, inheritedLabel.StartNumber);
+
+        PdfLogicalDocument selected = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("3,1,3"));
+
+        Assert.Equal(new[] { 3, 1, 3 }, selected.Pages.Select(page => page.PageNumber).ToArray());
+        Assert.Equal(2, selected.PageLabels.Count);
+        Assert.Equal(new[] { 0, 2 }, selected.PageLabels.Select(label => label.StartPageIndex).ToArray());
+        Assert.Equal(new[] { "A-", "B-" }, selected.PageLabels.Select(label => label.Prefix).ToArray());
+        Assert.Equal(new[] { 10, 3 }, selected.PageLabels.Select(label => label.StartNumber!.Value).ToArray());
+
+        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+
+        Assert.Equal(2, full.PageLabels.Count);
+        Assert.Equal(new[] { 0, 2 }, full.PageLabels.Select(label => label.StartPageIndex).ToArray());
+        Assert.Equal(new[] { 10, 3 }, full.PageLabels.Select(label => label.StartNumber!.Value).ToArray());
+    }
+
+    [Fact]
     public void LoadPageRanges_ReadsPathAndStreamFromCurrentPosition() {
         byte[] pdf = BuildThreePageLogicalPdf();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-logical-ranges-" + Guid.NewGuid().ToString("N") + ".pdf");
@@ -870,6 +898,53 @@ public class PdfLogicalDocumentTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 14 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildThreePageLabelPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /PageLabels 9 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 5 0 R 7 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 8 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "9 0 obj",
+            "<< /Nums [0 << /S /D /P (A-) /St 10 >> 2 << /S /r /P (B-) /St 3 >>] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 10 >>",
             "%%EOF"
         });
 
