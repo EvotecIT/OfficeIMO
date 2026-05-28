@@ -78,6 +78,93 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void InspectPageRanges_ReturnsSelectedPagesInCallerOrder() {
+        byte[] bytes = BuildTwoPagePdf();
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-inspect-ranges-" + Guid.NewGuid().ToString("N") + ".pdf");
+        byte[] prefix = System.Text.Encoding.ASCII.GetBytes("prefix");
+
+        try {
+            File.WriteAllBytes(path, bytes);
+
+            PdfDocumentInfo selected = PdfInspector.InspectPageRanges(bytes, PdfPageRange.ParseMany("2,1,2"));
+            PdfDocumentInfo fromPath = PdfInspector.InspectPageRanges(path, PdfPageRange.From(2, 2));
+            using var stream = new MemoryStream(prefix.Concat(bytes).ToArray());
+            stream.Position = prefix.Length;
+            PdfDocumentInfo fromStream = PdfInspector.InspectPageRanges(stream, PdfPageRange.From(1, 1));
+
+            Assert.Equal(3, selected.PageCount);
+            Assert.Equal(new[] { 2, 1, 2 }, selected.Pages.Select(page => page.PageNumber).ToArray());
+            Assert.Equal(new[] { 792d, 595d, 792d }, selected.Pages.Select(page => page.Width).ToArray());
+            Assert.Equal(2, Assert.Single(fromPath.Pages).PageNumber);
+            Assert.Equal(1, Assert.Single(fromStream.Pages).PageNumber);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void InspectPageRanges_FiltersPageScopedObjectsToSelectedSourcePages() {
+        byte[] pdf = BuildThreePageInspectMetadataPdf();
+
+        PdfDocumentInfo selected = PdfInspector.InspectPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
+
+        Assert.Equal(new[] { 2, 1, 2 }, selected.Pages.Select(page => page.PageNumber).ToArray());
+        Assert.Equal(new[] { "First", "Second" }, selected.NamedDestinationNames.OrderBy(name => name).ToArray());
+        Assert.Equal(new[] { 1, 2 }, selected.NamedDestinations.Select(destination => destination.PageNumber!.Value).OrderBy(pageNumber => pageNumber).ToArray());
+        Assert.Equal(new[] { "First outline", "Second outline" }, selected.Outlines.Select(outline => outline.Title).OrderBy(title => title).ToArray());
+        Assert.Equal(new[] { 1, 2 }, selected.Outlines.Select(outline => outline.PageNumber!.Value).OrderBy(pageNumber => pageNumber).ToArray());
+        Assert.Single(selected.PageLabels);
+        Assert.Equal(0, selected.PageLabels[0].StartPageIndex);
+        Assert.Equal("A-", selected.PageLabels[0].Prefix);
+        Assert.Equal(10, selected.PageLabels[0].StartNumber);
+        Assert.False(selected.HasReadableOpenAction);
+        Assert.Null(selected.OpenAction);
+
+        PdfDocumentInfo third = PdfInspector.InspectPageRanges(pdf, PdfPageRange.From(3, 3));
+
+        PdfNamedDestination thirdDestination = Assert.Single(third.NamedDestinations);
+        Assert.Equal("Third", thirdDestination.Name);
+        Assert.Equal(3, thirdDestination.PageNumber);
+        Assert.Equal("Third outline", Assert.Single(third.Outlines).Title);
+        Assert.Equal(3, third.OpenAction!.PageNumber);
+        PdfPageLabel thirdLabel = Assert.Single(third.PageLabels);
+        Assert.Equal(2, thirdLabel.StartPageIndex);
+        Assert.Equal("B-", thirdLabel.Prefix);
+        Assert.Equal(3, thirdLabel.StartNumber);
+    }
+
+    [Fact]
+    public void InspectPageRanges_FiltersAcroFormFieldsToSelectedSourcePages() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .TextField("First.Page", width: 120, height: 20, value: "one")
+            .PageBreak()
+            .TextField("Second.Page", width: 120, height: 20, value: "two")
+            .PageBreak()
+            .TextField("Third.Page", width: 120, height: 20, value: "three")
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.InspectPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
+
+        Assert.Equal(2, info.FormFields.Count);
+        Assert.Contains("First.Page", info.FormFieldNames);
+        Assert.Contains("Second.Page", info.FormFieldNames);
+        Assert.DoesNotContain("Third.Page", info.FormFieldNames);
+        Assert.Equal(2, info.GetFormWidgets("Second.Page").Count);
+        Assert.All(info.GetFormWidgets("Second.Page"), widget => Assert.Equal(2, widget.PageNumber));
+        Assert.Empty(info.GetFormWidgets("Third.Page"));
+        Assert.Equal(3, info.FormWidgetCount);
+    }
+
+    [Fact]
     public void Inspect_ReportsSignatureMarkersWithoutFailingRead() {
         PdfDocumentInfo info = PdfInspector.Inspect(BuildSignedPdfMarker());
 
@@ -2961,6 +3048,68 @@ public class PdfInspectorTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildThreePageInspectMetadataPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /PageLabels 9 0 R /Dests 10 0 R /OpenAction [7 0 R /Fit] /Outlines 11 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 5 0 R 7 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 220 200] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 8 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "9 0 obj",
+            "<< /Nums [0 << /S /D /P (A-) /St 10 >> 2 << /S /r /P (B-) /St 3 >>] >>",
+            "endobj",
+            "10 0 obj",
+            "<< /First [3 0 R /XYZ 0 200 0] /Second [5 0 R /XYZ 0 200 0] /Third [7 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "11 0 obj",
+            "<< /Type /Outlines /First 12 0 R /Last 14 0 R /Count 3 >>",
+            "endobj",
+            "12 0 obj",
+            "<< /Title (First outline) /Parent 11 0 R /Next 13 0 R /Dest [3 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "13 0 obj",
+            "<< /Title (Second outline) /Parent 11 0 R /Prev 12 0 R /Next 14 0 R /Dest [5 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "14 0 obj",
+            "<< /Title (Third outline) /Parent 11 0 R /Prev 13 0 R /Dest [7 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 15 >>",
             "%%EOF"
         });
 

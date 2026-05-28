@@ -14,11 +14,44 @@ public static class PdfInspector {
     }
 
     /// <summary>
+    /// Inspects selected source page ranges from a PDF byte array, preserving caller order and overlaps.
+    /// </summary>
+    public static PdfDocumentInfo InspectPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+        return InspectPageRanges(pdf, null, pageRanges);
+    }
+
+    /// <summary>
+    /// Inspects selected source page ranges from a PDF byte array, preserving caller order and overlaps.
+    /// </summary>
+    public static PdfDocumentInfo InspectPageRanges(byte[] pdf, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        PdfDocumentProbe probe = Probe(pdf);
+        var document = PdfReadDocument.Load(pdf, options);
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
+        return FromReadDocument(document, probe, pageNumbers);
+    }
+
+    /// <summary>
     /// Inspects a PDF from a file path.
     /// </summary>
     public static PdfDocumentInfo Inspect(string path, PdfReadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return Inspect(File.ReadAllBytes(path), options);
+    }
+
+    /// <summary>
+    /// Inspects selected source page ranges from a PDF file path, preserving caller order and overlaps.
+    /// </summary>
+    public static PdfDocumentInfo InspectPageRanges(string path, params PdfPageRange[] pageRanges) {
+        return InspectPageRanges(path, null, pageRanges);
+    }
+
+    /// <summary>
+    /// Inspects selected source page ranges from a PDF file path, preserving caller order and overlaps.
+    /// </summary>
+    public static PdfDocumentInfo InspectPageRanges(string path, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return InspectPageRanges(File.ReadAllBytes(path), options, pageRanges);
     }
 
     /// <summary>
@@ -31,6 +64,25 @@ public static class PdfInspector {
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer);
         return Inspect(buffer.ToArray(), options);
+    }
+
+    /// <summary>
+    /// Inspects selected source page ranges from the current position of a readable stream, preserving caller order and overlaps.
+    /// </summary>
+    public static PdfDocumentInfo InspectPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+        return InspectPageRanges(stream, null, pageRanges);
+    }
+
+    /// <summary>
+    /// Inspects selected source page ranges from the current position of a readable stream, preserving caller order and overlaps.
+    /// </summary>
+    public static PdfDocumentInfo InspectPageRanges(Stream stream, PdfReadOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(stream, nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return InspectPageRanges(buffer.ToArray(), options, pageRanges);
     }
 
     /// <summary>
@@ -275,14 +327,33 @@ public static class PdfInspector {
         return Probe(buffer.ToArray());
     }
 
-    private static PdfDocumentInfo FromReadDocument(PdfReadDocument document, PdfDocumentProbe probe) {
-        var pages = new List<PdfPageInfo>(document.Pages.Count);
-        var widgetsByPage = BuildFormWidgetsByPage(document.FormFields);
-        for (int i = 0; i < document.Pages.Count; i++) {
-            var (width, height) = document.Pages[i].GetPageSize();
-            int rotation = document.Pages[i].GetRotationDegrees();
-            int pageNumber = i + 1;
-            var pageLinks = document.Pages[i].GetLinkAnnotations();
+    private static PdfDocumentInfo FromReadDocument(PdfReadDocument document, PdfDocumentProbe probe, int[]? pageNumbers = null) {
+        pageNumbers ??= PdfPageRangeObjectFilter.GetAllPageNumbers(document.Pages.Count);
+        bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
+        IReadOnlyList<PdfFormField> formFields = useDocumentWideObjects
+            ? document.FormFields
+            : PdfPageRangeObjectFilter.FilterFormFieldsByPageNumbers(document.FormFields, pageNumbers, preservePageDuplicates: true);
+        IReadOnlyList<PdfOutlineItem> outlines = useDocumentWideObjects
+            ? document.Outlines
+            : PdfPageRangeObjectFilter.FilterOutlinesByPageNumbers(document.Outlines, pageNumbers);
+        IReadOnlyList<PdfPageLabel> pageLabels = useDocumentWideObjects
+            ? document.PageLabels
+            : PdfPageRangeObjectFilter.FilterPageLabelsByPageNumbers(document.PageLabels, pageNumbers);
+        IReadOnlyList<PdfNamedDestination> namedDestinations = useDocumentWideObjects
+            ? document.NamedDestinations
+            : PdfPageRangeObjectFilter.FilterNamedDestinationsByPageNumbers(document.NamedDestinations, pageNumbers);
+        PdfDocumentOpenAction? openAction = useDocumentWideObjects
+            ? document.OpenAction
+            : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(document.OpenAction, pageNumbers);
+
+        var pages = new List<PdfPageInfo>(pageNumbers.Length);
+        var widgetsByPage = BuildFormWidgetsByPage(formFields);
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            int pageNumber = pageNumbers[i];
+            PdfReadPage page = document.Pages[pageNumber - 1];
+            var (width, height) = page.GetPageSize();
+            int rotation = page.GetRotationDegrees();
+            var pageLinks = page.GetLinkAnnotations();
             var links = new List<PdfLinkAnnotation>(pageLinks.Count);
             for (int j = 0; j < pageLinks.Count; j++) {
                 links.Add(pageLinks[j].WithPageNumber(pageNumber));
@@ -292,7 +363,7 @@ public static class PdfInspector {
             pages.Add(new PdfPageInfo(pageNumber, width, height, rotation, links, formWidgets));
         }
 
-        return new PdfDocumentInfo(pages.AsReadOnly(), document.Metadata, document.Outlines, document.PageLabels, document.NamedDestinations, document.OpenAction, document.ViewerPreferences, document.FormFields, document.AcroFormDefaultAppearance, document.AcroFormNeedAppearances, document.AcroFormSignatureFlags, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, probe.HasSignatures, probe.HasForms, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent);
+        return new PdfDocumentInfo(pages.AsReadOnly(), document.Metadata, outlines, pageLabels, namedDestinations, openAction, document.ViewerPreferences, formFields, document.AcroFormDefaultAppearance, document.AcroFormNeedAppearances, document.AcroFormSignatureFlags, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, probe.HasSignatures, probe.HasForms, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent);
     }
 
     private static Dictionary<int, IReadOnlyList<PdfFormWidget>> BuildFormWidgetsByPage(IReadOnlyList<PdfFormField> fields) {
