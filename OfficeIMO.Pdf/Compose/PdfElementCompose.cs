@@ -80,6 +80,14 @@ public class PdfElementCompose {
     public PdfElementCompose TableWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableWithLinks(rows, links, align, style); return this; }
     /// <summary>Adds a named bookmark at the current nested element flow position.</summary>
     public PdfElementCompose Bookmark(string name) { _doc.Bookmark(name); return this; }
+    /// <summary>Adds a simple AcroForm text field at the current nested element flow position.</summary>
+    public PdfElementCompose TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) { _doc.TextField(name, width, height, value, align, fontSize, spacingBefore, spacingAfter); return this; }
+    /// <summary>Adds a simple AcroForm check box at the current nested element flow position.</summary>
+    public PdfElementCompose CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes") { _doc.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName); return this; }
+    /// <summary>Adds a simple AcroForm choice field at the current nested element flow position.</summary>
+    public PdfElementCompose ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true) { _doc.ChoiceField(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox); return this; }
+    /// <summary>Adds a simple AcroForm multi-select choice field at the current nested element flow position.</summary>
+    public PdfElementCompose MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) { _doc.MultiSelectChoiceField(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing shape.</summary>
     public PdfElementCompose Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing scene.</summary>

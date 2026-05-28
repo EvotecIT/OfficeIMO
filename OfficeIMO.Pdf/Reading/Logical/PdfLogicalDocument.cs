@@ -778,21 +778,38 @@ public sealed class PdfLogicalDocument {
     }
 
     private static PdfLogicalDocument FromPageNumbers(PdfReadDocument document, PdfTextLayoutOptions? options, int[] pageNumbers) {
+        bool useDocumentWideObjects = PdfPageRangeObjectFilter.ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
+        IReadOnlyList<PdfFormField> formFields = useDocumentWideObjects
+            ? document.FormFields
+            : PdfPageRangeObjectFilter.FilterFormFieldsByPageNumbers(document.FormFields, pageNumbers, preservePageDuplicates: false);
+        IReadOnlyList<PdfOutlineItem> outlines = useDocumentWideObjects
+            ? document.Outlines
+            : PdfPageRangeObjectFilter.FilterOutlinesByPageNumbers(document.Outlines, pageNumbers);
+        IReadOnlyList<PdfPageLabel> pageLabels = useDocumentWideObjects
+            ? document.PageLabels
+            : PdfPageRangeObjectFilter.FilterPageLabelsByPageNumbers(document.PageLabels, pageNumbers);
+        IReadOnlyList<PdfNamedDestination> namedDestinations = useDocumentWideObjects
+            ? document.NamedDestinations
+            : PdfPageRangeObjectFilter.FilterNamedDestinationsByPageNumbers(document.NamedDestinations, pageNumbers);
+        PdfDocumentOpenAction? openAction = useDocumentWideObjects
+            ? document.OpenAction
+            : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(document.OpenAction, pageNumbers);
+
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
-            pages.Add(PdfLogicalPage.From(document.Pages[pageNumber - 1], pageNumber, options, document.FormFields));
+            pages.Add(PdfLogicalPage.From(document.Pages[pageNumber - 1], pageNumber, options, formFields));
         }
 
         return new PdfLogicalDocument(
             document.Metadata,
             pages.AsReadOnly(),
-            document.Outlines,
-            document.PageLabels,
-            document.NamedDestinations,
-            document.OpenAction,
+            outlines,
+            pageLabels,
+            namedDestinations,
+            openAction,
             document.ViewerPreferences,
-            document.FormFields,
+            formFields,
             document.AcroFormDefaultAppearance,
             document.AcroFormNeedAppearances,
             document.AcroFormSignatureFlags,

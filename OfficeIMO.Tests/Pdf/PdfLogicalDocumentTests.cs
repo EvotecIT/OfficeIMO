@@ -138,6 +138,111 @@ public class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void LoadPageRanges_FiltersAcroFormFieldsToSelectedSourcePages() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .TextField("First.Page", width: 120, height: 20, value: "one")
+            .PageBreak()
+            .TextField("Second.Page", width: 120, height: 20, value: "two")
+            .PageBreak()
+            .TextField("Third.Page", width: 120, height: 20, value: "three")
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
+
+        Assert.Equal(new[] { 2, 1, 2 }, logical.Pages.Select(page => page.PageNumber).ToArray());
+        Assert.Equal(2, logical.FormFields.Count);
+        Assert.Contains("First.Page", logical.FormFieldNames);
+        Assert.Contains("Second.Page", logical.FormFieldNames);
+        Assert.DoesNotContain("Third.Page", logical.FormFieldNames);
+        Assert.True(logical.TryGetFormField("Second.Page", out PdfFormField? secondField));
+        Assert.Equal(new[] { 2 }, secondField!.PageNumbers);
+        Assert.Equal(new[] { "two" }, secondField.Values);
+        Assert.Same(secondField, Assert.Single(logical.GetFormFields(2)));
+        Assert.Empty(logical.GetFormFields(3));
+        Assert.Equal(2, logical.GetFormWidgets("Second.Page").Count);
+        Assert.All(logical.GetFormWidgets("Second.Page"), widget => Assert.Equal(2, widget.PageNumber));
+        Assert.Single(logical.GetFormWidgets("First.Page"));
+        Assert.Empty(logical.GetFormWidgets("Third.Page"));
+        Assert.Equal(3, logical.FormWidgets.Count);
+        Assert.Equal(new[] { "Second.Page", "First.Page", "Second.Page" }, logical.FormWidgets.Select(widget => widget.FieldName).ToArray());
+        Assert.Equal(3, logical.GetElements(PdfLogicalElementKind.FormWidget).Count);
+        Assert.Contains(logical.Pages[0].Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
+        Assert.Contains(logical.Pages[1].Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
+        Assert.Contains(logical.Pages[2].Elements, element => element.Kind == PdfLogicalElementKind.FormWidget);
+
+        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+        Assert.Contains("Third.Page", full.FormFieldNames);
+        Assert.Equal(3, full.FormFields.Count);
+    }
+
+    [Fact]
+    public void LoadPageRanges_FiltersNavigationObjectsToSelectedSourcePages() {
+        byte[] pdf = BuildThreePageNavigationPdf();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
+
+        Assert.Equal(new[] { 2, 1, 2 }, logical.Pages.Select(page => page.PageNumber).ToArray());
+        Assert.Equal(new[] { "First", "Second" }, logical.NamedDestinations.Select(destination => destination.Name).OrderBy(name => name).ToArray());
+        Assert.Equal(new[] { 1, 2 }, logical.NamedDestinations.Select(destination => destination.PageNumber!.Value).OrderBy(pageNumber => pageNumber).ToArray());
+        Assert.Equal(new[] { "First outline", "Second outline" }, logical.Outlines.Select(outline => outline.Title).OrderBy(title => title).ToArray());
+        Assert.Equal(new[] { 1, 2 }, logical.Outlines.Select(outline => outline.PageNumber!.Value).OrderBy(pageNumber => pageNumber).ToArray());
+        Assert.False(logical.HasReadableOpenAction);
+        Assert.Null(logical.OpenAction);
+
+        PdfLogicalDocument thirdPage = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.From(3, 3));
+
+        PdfNamedDestination thirdDestination = Assert.Single(thirdPage.NamedDestinations);
+        Assert.Equal("Third", thirdDestination.Name);
+        Assert.Equal(3, thirdDestination.PageNumber);
+        PdfOutlineItem thirdOutline = Assert.Single(thirdPage.Outlines);
+        Assert.Equal("Third outline", thirdOutline.Title);
+        Assert.Equal(3, thirdOutline.PageNumber);
+        Assert.True(thirdPage.HasReadableOpenAction);
+        Assert.Equal(3, thirdPage.OpenAction!.PageNumber);
+
+        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+
+        Assert.Equal(3, full.NamedDestinations.Count);
+        Assert.Equal(3, full.Outlines.Count);
+        Assert.Equal(3, full.OpenAction!.PageNumber);
+    }
+
+    [Fact]
+    public void LoadPageRanges_FiltersPageLabelsToSelectedSourcePages() {
+        byte[] pdf = BuildThreePageLabelPdf();
+
+        PdfLogicalDocument pageTwo = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.From(2, 2));
+
+        PdfPageLabel inheritedLabel = Assert.Single(pageTwo.PageLabels);
+        Assert.Equal(1, inheritedLabel.StartPageIndex);
+        Assert.Equal(2, inheritedLabel.StartPageNumber);
+        Assert.Equal("D", inheritedLabel.Style);
+        Assert.Equal("A-", inheritedLabel.Prefix);
+        Assert.Equal(11, inheritedLabel.StartNumber);
+
+        PdfLogicalDocument selected = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("3,1,3"));
+
+        Assert.Equal(new[] { 3, 1, 3 }, selected.Pages.Select(page => page.PageNumber).ToArray());
+        Assert.Equal(2, selected.PageLabels.Count);
+        Assert.Equal(new[] { 0, 2 }, selected.PageLabels.Select(label => label.StartPageIndex).ToArray());
+        Assert.Equal(new[] { "A-", "B-" }, selected.PageLabels.Select(label => label.Prefix).ToArray());
+        Assert.Equal(new[] { 10, 3 }, selected.PageLabels.Select(label => label.StartNumber!.Value).ToArray());
+
+        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+
+        Assert.Equal(2, full.PageLabels.Count);
+        Assert.Equal(new[] { 0, 2 }, full.PageLabels.Select(label => label.StartPageIndex).ToArray());
+        Assert.Equal(new[] { 10, 3 }, full.PageLabels.Select(label => label.StartNumber!.Value).ToArray());
+    }
+
+    [Fact]
     public void LoadPageRanges_ReadsPathAndStreamFromCurrentPosition() {
         byte[] pdf = BuildThreePageLogicalPdf();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-logical-ranges-" + Guid.NewGuid().ToString("N") + ".pdf");
@@ -731,6 +836,112 @@ public class PdfLogicalDocumentTests {
             "endobj",
             "9 0 obj",
             "<< /Title (Logical outline) /Parent 8 0 R /Dest [3 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildThreePageNavigationPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Dests 9 0 R /OpenAction [7 0 R /Fit] /Outlines 10 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 5 0 R 7 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 8 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "9 0 obj",
+            "<< /First [3 0 R /XYZ 0 200 0] /Second [5 0 R /XYZ 0 200 0] /Third [7 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "10 0 obj",
+            "<< /Type /Outlines /First 11 0 R /Last 13 0 R /Count 3 >>",
+            "endobj",
+            "11 0 obj",
+            "<< /Title (First outline) /Parent 10 0 R /Next 12 0 R /Dest [3 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "12 0 obj",
+            "<< /Title (Second outline) /Parent 10 0 R /Prev 11 0 R /Next 13 0 R /Dest [5 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "13 0 obj",
+            "<< /Title (Third outline) /Parent 10 0 R /Prev 12 0 R /Dest [7 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 14 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildThreePageLabelPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /PageLabels 9 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 5 0 R 7 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 8 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "9 0 obj",
+            "<< /Nums [0 << /S /D /P (A-) /St 10 >> 2 << /S /r /P (B-) /St 3 >>] >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 10 >>",
