@@ -469,7 +469,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 target.Add(clone);
-                if (clone.Value != null) {
+                if (clone.Value != null && !data.ContainsKey(clone.Name)) {
                     data[clone.Name] = clone.Value;
                 }
             }

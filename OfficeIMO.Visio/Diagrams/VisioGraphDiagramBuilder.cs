@@ -766,6 +766,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddEdges(VisioPage page) {
             int routeIndex = 0;
+            HashSet<string> reservedConnectorIds = BuildReservedConnectorIds(page);
             foreach (EdgeItem edge in _edges) {
                 NodeItem from = _nodesById[edge.FromId];
                 NodeItem to = _nodesById[edge.ToId];
@@ -775,10 +776,8 @@ namespace OfficeIMO.Visio.Diagrams {
 
                 VisioNetworkDiagramVisuals.ResolveSides(from.Shape, to.Shape, out VisioSide fromSide, out VisioSide toSide);
                 ConnectorKind connectorKind = _layout == VisioGraphLayout.Radial ? ConnectorKind.Straight : ConnectorKind.RightAngle;
-                VisioConnector connector = page.AddConnector(from.Shape, to.Shape, connectorKind, fromSide, toSide);
-                if (edge.Id != null) {
-                    connector.Id = edge.Id;
-                }
+                string connectorId = edge.Id ?? ReserveGeneratedConnectorId(reservedConnectorIds);
+                VisioConnector connector = page.AddConnector(connectorId, from.Shape, to.Shape, connectorKind, fromSide, toSide);
 
                 (edge.StyleOverride ?? GetConnectorStyle(edge.Kind, edge.Directed)).ApplyTo(connector);
                 connector.Label = edge.Label;
@@ -798,6 +797,44 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 routeIndex++;
+            }
+        }
+
+        private HashSet<string> BuildReservedConnectorIds(VisioPage page) {
+            HashSet<string> ids = new(StringComparer.OrdinalIgnoreCase);
+            foreach (VisioShape shape in page.Shapes) {
+                ReserveShapeIds(shape, ids);
+            }
+
+            foreach (VisioConnector connector in page.Connectors) {
+                ids.Add(connector.Id);
+            }
+
+            foreach (EdgeItem edge in _edges) {
+                if (edge.Id != null) {
+                    ids.Add(edge.Id);
+                }
+            }
+
+            return ids;
+        }
+
+        private static void ReserveShapeIds(VisioShape shape, HashSet<string> ids) {
+            ids.Add(shape.Id);
+            foreach (VisioShape child in shape.Children) {
+                ReserveShapeIds(child, ids);
+            }
+        }
+
+        private static string ReserveGeneratedConnectorId(HashSet<string> reservedIds) {
+            int nextId = 1;
+            while (true) {
+                string candidate = nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (reservedIds.Add(candidate)) {
+                    return candidate;
+                }
+
+                nextId++;
             }
         }
 

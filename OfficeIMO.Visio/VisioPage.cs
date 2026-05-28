@@ -1635,7 +1635,11 @@ namespace OfficeIMO.Visio {
         /// <param name="toSide">Preferred side on the target shape.</param>
         /// <returns>The created connector.</returns>
         public VisioConnector AddConnector(VisioShape from, VisioShape to, ConnectorKind kind = ConnectorKind.Dynamic, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
-            var conn = new VisioConnector(NextId(), from, to) { Kind = kind };
+            return AddConnectorCore(NextId(), from, to, kind, fromSide, toSide);
+        }
+
+        private VisioConnector AddConnectorCore(string id, VisioShape from, VisioShape to, ConnectorKind kind, VisioSide fromSide, VisioSide toSide) {
+            var conn = new VisioConnector(id, from, to) { Kind = kind };
             if (fromSide != VisioSide.Auto) conn.FromConnectionPoint = from.EnsureSideConnectionPoint(fromSide);
             if (toSide != VisioSide.Auto) conn.ToConnectionPoint = to.EnsureSideConnectionPoint(toSide);
             Connectors.Add(conn);
@@ -2064,11 +2068,11 @@ namespace OfficeIMO.Visio {
         /// <param name="from">Shape from which the connector starts.</param>
         /// <param name="to">Shape to which the connector ends.</param>
         /// <param name="kind">Type of connector.</param>
+        /// <param name="fromSide">Preferred side on the source shape.</param>
+        /// <param name="toSide">Preferred side on the target shape.</param>
         /// <returns>The created connector.</returns>
-        public VisioConnector AddConnector(string id, VisioShape from, VisioShape to, ConnectorKind kind) {
-            VisioConnector connector = new VisioConnector(id, from, to) { Kind = kind };
-            Connectors.Add(connector);
-            return connector;
+        public VisioConnector AddConnector(string id, VisioShape from, VisioShape to, ConnectorKind kind, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
+            return AddConnectorCore(id, from, to, kind, fromSide, toSide);
         }
 
         private sealed class ConnectorCollection : IList<VisioConnector> {

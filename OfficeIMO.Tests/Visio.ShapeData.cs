@@ -79,6 +79,30 @@ namespace OfficeIMO.Tests {
             AssertConnectorShapeDataXml(updatedPath, "Owner", "Platform");
         }
 
+        [Fact]
+        public void ConnectorShapeDataClearOverridesPreservedLoadedValue() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
+            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
+            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
+            connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single();
+            loadedConnector.SetShapeData("Owner", null);
+            Assert.Equal(string.Empty, loadedConnector.GetShapeDataValue("Owner"));
+            Assert.False(loadedConnector.Data.ContainsKey("Owner"));
+            loaded.Save(updatedPath);
+
+            Assert.Empty(VisioValidator.Validate(updatedPath));
+            AssertConnectorShapeDataXml(updatedPath, "Owner", string.Empty);
+        }
+
         private static void AssertShapeDataXml(string filePath, string ownerValue, string reviewedValue) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";

@@ -277,8 +277,6 @@ namespace OfficeIMO.Visio {
             VisioShapeDataRow? row = FindShapeData(name);
             if (row != null) {
                 if (Data.TryGetValue(row.Name, out string? current) &&
-                    row.LoadedValue != null &&
-                    string.Equals(row.Value, row.LoadedValue, StringComparison.Ordinal) &&
                     !string.Equals(current, row.Value, StringComparison.Ordinal)) {
                     return current;
                 }
@@ -305,7 +303,7 @@ namespace OfficeIMO.Visio {
                 ShapeData.Add(row);
             }
 
-            row.Value = value;
+            row.Value = value ?? string.Empty;
             if (label != null) row.Label = label;
             if (type.HasValue) row.Type = type.Value;
             if (prompt != null) row.Prompt = prompt;

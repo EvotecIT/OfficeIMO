@@ -106,6 +106,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderAvoidsNamedNumericEdgeIdCollisions() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Numeric Edge Ids", graph => graph
+                    .Node("source", "Source")
+                    .Node("middle", "Middle")
+                    .Node("target", "Target")
+                    .Edge("source", "middle")
+                    .DataEdge("1", "middle", "target", "uses"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal(page.Connectors.Count, page.Connectors.Select(connector => connector.Id).Distinct().Count());
+            Assert.Contains(page.Connectors, connector => connector.Id == "1" && connector.Label == "uses");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderCanSelectStencilNodesFromCatalogQueries() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
