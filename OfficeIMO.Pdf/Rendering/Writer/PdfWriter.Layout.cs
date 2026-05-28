@@ -14,6 +14,7 @@ internal static partial class PdfWriter {
     private sealed class ColImg : ColItem { public ImageBlock Block = null!; public ColImg() { Kind = "I"; } }
     private sealed class ColShape : ColItem { public ShapeBlock Block = null!; public ColShape() { Kind = "S"; } }
     private sealed class ColDrawing : ColItem { public DrawingBlock Block = null!; public ColDrawing() { Kind = "D"; } }
+    private sealed class ColForm : ColItem { public IPdfBlock Block = null!; public ColForm() { Kind = "FORM"; } }
     private sealed class ColBookmark : ColItem { public BookmarkBlock Block = null!; public ColBookmark() { Kind = "B"; } }
     private sealed class ColSpacer : ColItem { public SpacerBlock Block = null!; public ColSpacer() { Kind = "SPACE"; } }
     private sealed class ColListItem : ColItem { public System.Collections.Generic.List<string> Lines = null!; public string Marker = string.Empty; public double MarkerXOffset; public double MarkerWidth; public PdfAlign MarkerAlign; public double TextXOffset; public double TextWidth; public PdfAlign TextAlign; public PdfColor? Color; public double Leading; public double Size; public double SpacingBefore; public double SpacingAfter; public bool KeepTogether; public bool IsFirstInKeepGroup; public double KeepGroupHeight; public bool KeepWithNext; public bool IsFirstInKeepWithNextGroup; public int KeepWithNextGroupItemCount; public double KeepWithNextGroupHeight; public ColListItem() { Kind = "L"; } }
@@ -1808,6 +1809,125 @@ internal static partial class PdfWriter {
             y -= block.Height + block.SpacingAfter;
         }
 
+        static string GetFormFieldBlockName(IPdfBlock block) {
+            if (block is TextFieldBlock) {
+                return "Text field";
+            }
+
+            if (block is CheckBoxBlock) {
+                return "Check box";
+            }
+
+            return "Choice field";
+        }
+
+        static double GetFormFieldWidth(IPdfBlock block) {
+            if (block is TextFieldBlock textField) {
+                return textField.Width;
+            }
+
+            if (block is CheckBoxBlock checkBox) {
+                return checkBox.Size;
+            }
+
+            return ((ChoiceFieldBlock)block).Width;
+        }
+
+        static double GetFormFieldHeight(IPdfBlock block) {
+            if (block is TextFieldBlock textField) {
+                return textField.Height;
+            }
+
+            if (block is CheckBoxBlock checkBox) {
+                return checkBox.Size;
+            }
+
+            return ((ChoiceFieldBlock)block).Height;
+        }
+
+        static double GetFormFieldSpacingBefore(IPdfBlock block) {
+            if (block is TextFieldBlock textField) {
+                return textField.SpacingBefore;
+            }
+
+            if (block is CheckBoxBlock checkBox) {
+                return checkBox.SpacingBefore;
+            }
+
+            return ((ChoiceFieldBlock)block).SpacingBefore;
+        }
+
+        static double GetFormFieldSpacingAfter(IPdfBlock block) {
+            if (block is TextFieldBlock textField) {
+                return textField.SpacingAfter;
+            }
+
+            if (block is CheckBoxBlock checkBox) {
+                return checkBox.SpacingAfter;
+            }
+
+            return ((ChoiceFieldBlock)block).SpacingAfter;
+        }
+
+        static PdfAlign GetFormFieldAlign(IPdfBlock block) {
+            if (block is TextFieldBlock textField) {
+                return textField.Align;
+            }
+
+            if (block is CheckBoxBlock checkBox) {
+                return checkBox.Align;
+            }
+
+            return ((ChoiceFieldBlock)block).Align;
+        }
+
+        void AddFormFieldAnnotation(IPdfBlock block, double x, double topY) {
+            if (block is TextFieldBlock textField) {
+                currentPage!.FormFields.Add(new FormFieldAnnotation {
+                    X1 = x,
+                    Y1 = topY - textField.Height,
+                    X2 = x + textField.Width,
+                    Y2 = topY,
+                    Kind = FormFieldAnnotationKind.Text,
+                    Name = textField.Name,
+                    Value = textField.Value,
+                    FontSize = textField.FontSize
+                });
+                return;
+            }
+
+            if (block is CheckBoxBlock checkBox) {
+                currentPage!.FormFields.Add(new FormFieldAnnotation {
+                    X1 = x,
+                    Y1 = topY - checkBox.Size,
+                    X2 = x + checkBox.Size,
+                    Y2 = topY,
+                    Kind = FormFieldAnnotationKind.CheckBox,
+                    Name = checkBox.Name,
+                    Value = checkBox.IsChecked ? checkBox.CheckedValueName : "Off",
+                    IsChecked = checkBox.IsChecked,
+                    CheckedValueName = checkBox.CheckedValueName
+                });
+                return;
+            }
+
+            ChoiceFieldBlock choice = (ChoiceFieldBlock)block;
+            currentPage!.FormFields.Add(new FormFieldAnnotation {
+                X1 = x,
+                Y1 = topY - choice.Height,
+                X2 = x + choice.Width,
+                Y2 = topY,
+                Kind = FormFieldAnnotationKind.Choice,
+                Name = choice.Name,
+                Value = choice.Value,
+                Values = choice.Values,
+                FontSize = choice.FontSize,
+                Options = choice.Options,
+                IsComboBox = choice.IsComboBox,
+                AllowsMultipleSelection = choice.AllowsMultipleSelection
+            });
+        }
+
         void EnsureFixedFlowBlockFits(string blockName, double blockWidth, double blockHeight, double availableWidth) {
             if (blockWidth > availableWidth + 0.001) {
                 throw new ArgumentException(blockName + " width exceeds the available page content width.");
@@ -3347,6 +3467,8 @@ internal static partial class PdfWriter {
                                 items.Add(new ColShape { Block = sb2 });
                             } else if (cb is DrawingBlock db2) {
                                 items.Add(new ColDrawing { Block = db2 });
+                            } else if (cb is TextFieldBlock || cb is CheckBoxBlock || cb is ChoiceFieldBlock) {
+                                items.Add(new ColForm { Block = cb });
                             } else if (cb is BookmarkBlock bookmark2) {
                                 items.Add(new ColBookmark { Block = bookmark2 });
                             } else if (cb is SpacerBlock spacer2) {
@@ -3383,6 +3505,8 @@ internal static partial class PdfWriter {
                             } else if (item is ColDrawing drawing) {
                                 PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
                                 total += ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, total) + drawing.Block.Drawing.Height + drawingStyle.SpacingAfter;
+                            } else if (item is ColForm form) {
+                                total += ResolveColumnSpacingBefore(GetFormFieldSpacingBefore(form.Block), total) + GetFormFieldHeight(form.Block) + GetFormFieldSpacingAfter(form.Block);
                             } else if (item is ColSpacer spacerItem) {
                                 total += spacerItem.Block.Height;
                             }
@@ -3432,6 +3556,10 @@ internal static partial class PdfWriter {
                         if (item is ColDrawing drawing) {
                             PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing.Block, currentOpts);
                             return drawingStyle.SpacingBefore + drawing.Block.Drawing.Height + drawingStyle.SpacingAfter;
+                        }
+
+                        if (item is ColForm form) {
+                            return GetFormFieldSpacingBefore(form.Block) + GetFormFieldHeight(form.Block) + GetFormFieldSpacingAfter(form.Block);
                         }
 
                         if (item is ColSpacer spacerItem) {
@@ -4275,6 +4403,23 @@ internal static partial class PdfWriter {
                                     DrawDrawingAt(drawing, drawingStyle, xCol, wCol, yCol);
                                     AddDrawingLinkAnnotation(drawing, drawingStyle, xCol, wCol, yCol);
                                     yCol -= drawing.Drawing.Height + drawingStyle.SpacingAfter;
+                                    remain -= needed;
+                                    consumed += needed;
+                                    idx++;
+                                } else if (it is ColForm form) {
+                                    double spacingBefore = ResolveColumnSpacingBefore(GetFormFieldSpacingBefore(form.Block), consumed);
+                                    double fieldWidth = GetFormFieldWidth(form.Block);
+                                    double fieldHeight = GetFormFieldHeight(form.Block);
+                                    double spacingAfter = GetFormFieldSpacingAfter(form.Block);
+                                    double needed = spacingBefore + fieldHeight + spacingAfter;
+                                    EnsureFixedFlowBlockFits(GetFormFieldBlockName(form.Block), fieldWidth, needed, wCol);
+                                    if (needed > remain && consumed > 0) break;
+                                    if (needed > remain && consumed == 0) { remain = 0; break; }
+                                    if (spacingBefore > 0) yCol -= spacingBefore;
+                                    double xField = GetAlignedObjectX(xCol, wCol, fieldWidth, GetFormFieldAlign(form.Block));
+                                    AddFormFieldAnnotation(form.Block, xField, yCol);
+                                    pageDirty = true;
+                                    yCol -= fieldHeight + spacingAfter;
                                     remain -= needed;
                                     consumed += needed;
                                     idx++;

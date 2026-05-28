@@ -78,6 +78,26 @@ public class PdfRowColumnCompose {
     }
     /// <summary>Adds a named bookmark at the current column flow position.</summary>
     public PdfRowColumnCompose Bookmark(string name) { _col.AddBlock(new BookmarkBlock(name)); return this; }
+    /// <summary>Adds a simple AcroForm text field in the column.</summary>
+    public PdfRowColumnCompose TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
+        _col.AddBlock(new TextFieldBlock(name, width, height, value, align, fontSize, spacingBefore, spacingAfter));
+        return this;
+    }
+    /// <summary>Adds a simple AcroForm check box in the column.</summary>
+    public PdfRowColumnCompose CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes") {
+        _col.AddBlock(new CheckBoxBlock(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName));
+        return this;
+    }
+    /// <summary>Adds a simple AcroForm choice field in the column.</summary>
+    public PdfRowColumnCompose ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true) {
+        _col.AddBlock(new ChoiceFieldBlock(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox));
+        return this;
+    }
+    /// <summary>Adds a simple AcroForm multi-select choice field in the column.</summary>
+    public PdfRowColumnCompose MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
+        _col.AddBlock(new ChoiceFieldBlock(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox: false, allowsMultipleSelection: true));
+        return this;
+    }
     /// <summary>Adds a shared OfficeIMO.Drawing shape in the column.</summary>
     public PdfRowColumnCompose Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(PdfDoc.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents)); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing scene in the column.</summary>

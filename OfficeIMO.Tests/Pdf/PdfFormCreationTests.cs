@@ -248,6 +248,69 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void ComposeRowsAndItems_CanPlaceGeneratedFormFields() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 320,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Compose(document => document.Page(page => page.Content(content => {
+                content.Item(item => item
+                    .TextField("Item.Name", width: 120, height: 20, value: "Ada", spacingAfter: 8)
+                    .Element(element => element.CheckBox("Element.Accept", isChecked: true, size: 14, spacingAfter: 10)));
+
+                content.Row(row => row
+                    .Gap(24)
+                    .Column(50, column => column
+                        .Paragraph(p => p.Text("Left column"))
+                        .TextField("Left.Email", width: 120, height: 20, value: "left@example.com", spacingAfter: 8)
+                        .ChoiceField("Left.Country", new[] { "Poland", "Germany" }, value: "Poland", width: 120, height: 20))
+                    .Column(50, column => column
+                        .Paragraph(p => p.Text("Right column"))
+                        .CheckBox("Right.Enabled", isChecked: true, size: 14, align: PdfAlign.Center, spacingAfter: 8)
+                        .MultiSelectChoiceField("Right.Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Germany" }, width: 120, height: 44)));
+            })))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+
+        Assert.Equal(6, info.FormFields.Count);
+        Assert.Contains(info.FormFields, field => field.Name == "Item.Name" && field.IsTextField && field.Value == "Ada");
+        Assert.Contains(info.FormFields, field => field.Name == "Element.Accept" && field.IsCheckBox && field.Value == "Yes");
+        Assert.Contains(info.FormFields, field => field.Name == "Left.Email" && field.IsTextField && field.Value == "left@example.com");
+        Assert.Contains(info.FormFields, field => field.Name == "Left.Country" && field.IsChoiceField && field.Value == "Poland");
+        Assert.Contains(info.FormFields, field => field.Name == "Right.Enabled" && field.IsCheckBox && field.Value == "Yes");
+        Assert.Contains(info.FormFields, field => field.Name == "Right.Countries" && field.IsChoiceField && field.AllowsMultipleSelection && field.Values.SequenceEqual(new[] { "Germany" }));
+
+        PdfFormWidget leftEmail = Assert.Single(info.GetFormWidgets("Left.Email"));
+        PdfFormWidget rightEnabled = Assert.Single(info.GetFormWidgets("Right.Enabled"));
+        PdfFormWidget rightCountries = Assert.Single(info.GetFormWidgets("Right.Countries"));
+
+        Assert.Equal(1, leftEmail.PageNumber);
+        Assert.Equal(1, rightEnabled.PageNumber);
+        Assert.True(leftEmail.X1 < rightEnabled.X1);
+        Assert.True(rightCountries.X1 > leftEmail.X1);
+        Assert.True(leftEmail.Width > 110);
+        Assert.True(rightCountries.Height > 40);
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(pdf, new Dictionary<string, PdfFormFieldValue> {
+            ["Left.Email"] = PdfFormFieldValue.From("filled@example.com"),
+            ["Right.Countries"] = PdfFormFieldValue.FromValues("Poland", "United States")
+        });
+
+        PdfDocumentInfo flattenedInfo = PdfInspector.Inspect(flattened);
+        string raw = Encoding.ASCII.GetString(flattened);
+
+        Assert.False(flattenedInfo.HasReadableFormFields);
+        Assert.DoesNotContain("/AcroForm", raw);
+        Assert.Contains("<66696C6C6564406578616D706C652E636F6D> Tj", raw);
+        Assert.Contains("/OfficeIMOForm", raw);
+    }
+
+    [Fact]
     public void GeneratedFields_ValidateFlowGeometry() {
         Assert.Throws<ArgumentException>(() => PdfDoc.Create().TextField(" "));
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().TextField("Name", width: 0));
