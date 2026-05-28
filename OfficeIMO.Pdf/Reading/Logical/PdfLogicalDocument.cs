@@ -778,9 +778,19 @@ public sealed class PdfLogicalDocument {
     }
 
     private static PdfLogicalDocument FromPageNumbers(PdfReadDocument document, PdfTextLayoutOptions? options, int[] pageNumbers) {
-        IReadOnlyList<PdfFormField> formFields = ShouldUseDocumentFormFields(document.Pages.Count, pageNumbers)
+        bool useDocumentWideObjects = ShouldUseDocumentWideObjects(document.Pages.Count, pageNumbers);
+        IReadOnlyList<PdfFormField> formFields = useDocumentWideObjects
             ? document.FormFields
             : FilterFormFieldsByPageNumbers(document.FormFields, pageNumbers);
+        IReadOnlyList<PdfOutlineItem> outlines = useDocumentWideObjects
+            ? document.Outlines
+            : FilterOutlinesByPageNumbers(document.Outlines, pageNumbers);
+        IReadOnlyList<PdfNamedDestination> namedDestinations = useDocumentWideObjects
+            ? document.NamedDestinations
+            : FilterNamedDestinationsByPageNumbers(document.NamedDestinations, pageNumbers);
+        PdfDocumentOpenAction? openAction = useDocumentWideObjects
+            ? document.OpenAction
+            : FilterOpenActionByPageNumbers(document.OpenAction, pageNumbers);
 
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
@@ -791,10 +801,10 @@ public sealed class PdfLogicalDocument {
         return new PdfLogicalDocument(
             document.Metadata,
             pages.AsReadOnly(),
-            document.Outlines,
+            outlines,
             document.PageLabels,
-            document.NamedDestinations,
-            document.OpenAction,
+            namedDestinations,
+            openAction,
             document.ViewerPreferences,
             formFields,
             document.AcroFormDefaultAppearance,
@@ -806,7 +816,7 @@ public sealed class PdfLogicalDocument {
             document.CatalogLanguage);
     }
 
-    private static bool ShouldUseDocumentFormFields(int pageCount, int[] pageNumbers) {
+    private static bool ShouldUseDocumentWideObjects(int pageCount, int[] pageNumbers) {
         if (pageNumbers.Length != pageCount) {
             return false;
         }
@@ -818,6 +828,71 @@ public sealed class PdfLogicalDocument {
         }
 
         return true;
+    }
+
+    private static IReadOnlyList<PdfOutlineItem> FilterOutlinesByPageNumbers(IReadOnlyList<PdfOutlineItem> outlines, int[] pageNumbers) {
+        if (outlines.Count == 0) {
+            return outlines;
+        }
+
+        var selectedPageNumbers = new HashSet<int>(pageNumbers);
+        var selectedOutlines = new List<PdfOutlineItem>();
+        for (int i = 0; i < outlines.Count; i++) {
+            PdfOutlineItem? selected = FilterOutlineByPageNumbers(outlines[i], selectedPageNumbers);
+            if (selected is not null) {
+                selectedOutlines.Add(selected);
+            }
+        }
+
+        return selectedOutlines.Count == 0 ? Array.Empty<PdfOutlineItem>() : selectedOutlines.AsReadOnly();
+    }
+
+    private static PdfOutlineItem? FilterOutlineByPageNumbers(PdfOutlineItem outline, HashSet<int> selectedPageNumbers) {
+        var selectedChildren = new List<PdfOutlineItem>();
+        for (int i = 0; i < outline.Children.Count; i++) {
+            PdfOutlineItem? selectedChild = FilterOutlineByPageNumbers(outline.Children[i], selectedPageNumbers);
+            if (selectedChild is not null) {
+                selectedChildren.Add(selectedChild);
+            }
+        }
+
+        bool keepOwnDestination = !outline.PageNumber.HasValue || selectedPageNumbers.Contains(outline.PageNumber.Value);
+        if (!keepOwnDestination && selectedChildren.Count == 0) {
+            return null;
+        }
+
+        return new PdfOutlineItem(
+            outline.Title,
+            outline.Level,
+            keepOwnDestination ? outline.PageNumber : null,
+            keepOwnDestination ? outline.DestinationTop : null,
+            selectedChildren.Count == 0 ? Array.Empty<PdfOutlineItem>() : selectedChildren.AsReadOnly());
+    }
+
+    private static IReadOnlyList<PdfNamedDestination> FilterNamedDestinationsByPageNumbers(IReadOnlyList<PdfNamedDestination> namedDestinations, int[] pageNumbers) {
+        if (namedDestinations.Count == 0) {
+            return namedDestinations;
+        }
+
+        var selectedPageNumbers = new HashSet<int>(pageNumbers);
+        var selectedDestinations = new List<PdfNamedDestination>();
+        for (int i = 0; i < namedDestinations.Count; i++) {
+            PdfNamedDestination destination = namedDestinations[i];
+            if (!destination.PageNumber.HasValue || selectedPageNumbers.Contains(destination.PageNumber.Value)) {
+                selectedDestinations.Add(destination);
+            }
+        }
+
+        return selectedDestinations.Count == 0 ? Array.Empty<PdfNamedDestination>() : selectedDestinations.AsReadOnly();
+    }
+
+    private static PdfDocumentOpenAction? FilterOpenActionByPageNumbers(PdfDocumentOpenAction? openAction, int[] pageNumbers) {
+        if (openAction is null || !openAction.PageNumber.HasValue) {
+            return openAction;
+        }
+
+        var selectedPageNumbers = new HashSet<int>(pageNumbers);
+        return selectedPageNumbers.Contains(openAction.PageNumber.Value) ? openAction : null;
     }
 
     private static IReadOnlyList<PdfFormField> FilterFormFieldsByPageNumbers(IReadOnlyList<PdfFormField> formFields, int[] pageNumbers) {

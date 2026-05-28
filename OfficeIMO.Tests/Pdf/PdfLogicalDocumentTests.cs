@@ -183,6 +183,38 @@ public class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void LoadPageRanges_FiltersNavigationObjectsToSelectedSourcePages() {
+        byte[] pdf = BuildThreePageNavigationPdf();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.ParseMany("2,1,2"));
+
+        Assert.Equal(new[] { 2, 1, 2 }, logical.Pages.Select(page => page.PageNumber).ToArray());
+        Assert.Equal(new[] { "First", "Second" }, logical.NamedDestinations.Select(destination => destination.Name).OrderBy(name => name).ToArray());
+        Assert.Equal(new[] { 1, 2 }, logical.NamedDestinations.Select(destination => destination.PageNumber!.Value).OrderBy(pageNumber => pageNumber).ToArray());
+        Assert.Equal(new[] { "First outline", "Second outline" }, logical.Outlines.Select(outline => outline.Title).OrderBy(title => title).ToArray());
+        Assert.Equal(new[] { 1, 2 }, logical.Outlines.Select(outline => outline.PageNumber!.Value).OrderBy(pageNumber => pageNumber).ToArray());
+        Assert.False(logical.HasReadableOpenAction);
+        Assert.Null(logical.OpenAction);
+
+        PdfLogicalDocument thirdPage = PdfLogicalDocument.LoadPageRanges(pdf, PdfPageRange.From(3, 3));
+
+        PdfNamedDestination thirdDestination = Assert.Single(thirdPage.NamedDestinations);
+        Assert.Equal("Third", thirdDestination.Name);
+        Assert.Equal(3, thirdDestination.PageNumber);
+        PdfOutlineItem thirdOutline = Assert.Single(thirdPage.Outlines);
+        Assert.Equal("Third outline", thirdOutline.Title);
+        Assert.Equal(3, thirdOutline.PageNumber);
+        Assert.True(thirdPage.HasReadableOpenAction);
+        Assert.Equal(3, thirdPage.OpenAction!.PageNumber);
+
+        PdfLogicalDocument full = PdfLogicalDocument.Load(pdf);
+
+        Assert.Equal(3, full.NamedDestinations.Count);
+        Assert.Equal(3, full.Outlines.Count);
+        Assert.Equal(3, full.OpenAction!.PageNumber);
+    }
+
+    [Fact]
     public void LoadPageRanges_ReadsPathAndStreamFromCurrentPosition() {
         byte[] pdf = BuildThreePageLogicalPdf();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-logical-ranges-" + Guid.NewGuid().ToString("N") + ".pdf");
@@ -779,6 +811,65 @@ public class PdfLogicalDocumentTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildThreePageNavigationPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Dests 9 0 R /OpenAction [7 0 R /Fit] /Outlines 10 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 3 /Kids [3 0 R 5 0 R 7 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 8 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "9 0 obj",
+            "<< /First [3 0 R /XYZ 0 200 0] /Second [5 0 R /XYZ 0 200 0] /Third [7 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "10 0 obj",
+            "<< /Type /Outlines /First 11 0 R /Last 13 0 R /Count 3 >>",
+            "endobj",
+            "11 0 obj",
+            "<< /Title (First outline) /Parent 10 0 R /Next 12 0 R /Dest [3 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "12 0 obj",
+            "<< /Title (Second outline) /Parent 10 0 R /Prev 11 0 R /Next 13 0 R /Dest [5 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "13 0 obj",
+            "<< /Title (Third outline) /Parent 10 0 R /Prev 12 0 R /Dest [7 0 R /XYZ 0 200 0] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 14 >>",
             "%%EOF"
         });
 
