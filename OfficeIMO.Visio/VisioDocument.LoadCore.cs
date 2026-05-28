@@ -1365,6 +1365,7 @@ namespace OfficeIMO.Visio {
                 dataRow.LoadedValue = dataRow.Value;
                 if (dataRow.Value != null) {
                     data[dataRow.Name] = dataRow.Value;
+                    dataRow.MirroredDataValue = dataRow.Value;
                 }
 
                 shapeData.Add(dataRow);

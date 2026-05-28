@@ -456,6 +456,7 @@ namespace OfficeIMO.Visio {
                     LangId = row.LangId,
                     LangIdFormula = row.LangIdFormula,
                     LoadedValue = row.LoadedValue,
+                    MirroredDataValue = row.MirroredDataValue,
                     RowIndex = row.RowIndex
                 };
                 CopyAttributes(row.PreservedRowAttributes, clone.PreservedRowAttributes);

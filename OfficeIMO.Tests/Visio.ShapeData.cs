@@ -103,6 +103,25 @@ namespace OfficeIMO.Tests {
             AssertConnectorShapeDataXml(updatedPath, "Owner", string.Empty);
         }
 
+        [Fact]
+        public void ConnectorShapeDataRowValueEditWinsOverStaleDictionaryMirror() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Connector Data", 8.5, 6);
+            VisioShape source = page.AddRectangle(2, 4, 1.5, 0.75, "Source");
+            VisioShape target = page.AddRectangle(5, 4, 1.5, 0.75, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Dynamic);
+            VisioShapeDataRow owner = connector.SetShapeData("Owner", "Operations", "Owner", VisioShapeDataType.String);
+            owner.Value = "Platform";
+
+            Assert.Equal("Platform", connector.GetShapeDataValue("Owner"));
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            AssertConnectorShapeDataXml(filePath, "Owner", "Platform");
+        }
+
         private static void AssertShapeDataXml(string filePath, string ownerValue, string reviewedValue) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";

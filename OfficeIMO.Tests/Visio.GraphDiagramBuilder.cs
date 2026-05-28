@@ -162,6 +162,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderPreservesStencilDefaultSizeOnMetricPages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilShape stencil = VisioStencils.Network.Get("server");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Metric Stencil Graph", graph => graph
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .StencilNode("server", "Server", stencil));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape shape = page.Shapes.Single(current => current.Id == "server");
+            Assert.Equal(ToInches(stencil.DefaultWidth, stencil.DefaultUnit ?? VisioMeasurementUnit.Inches), shape.Width, 3);
+            Assert.Equal(ToInches(stencil.DefaultHeight, stencil.DefaultUnit ?? VisioMeasurementUnit.Inches), shape.Height, 3);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderCanAttachShapeDataAndHyperlinksToNodes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
@@ -280,6 +299,17 @@ namespace OfficeIMO.Tests {
                         .DataEdge("api", "api", "database", "reads")));
 
             Assert.Contains("already exists", duplicate.Message);
+        }
+
+        private static double ToInches(double value, VisioMeasurementUnit unit) {
+            switch (unit) {
+                case VisioMeasurementUnit.Centimeters:
+                    return value / 2.54D;
+                case VisioMeasurementUnit.Millimeters:
+                    return value / 25.4D;
+                default:
+                    return value;
+            }
         }
     }
 }

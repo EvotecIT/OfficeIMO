@@ -440,6 +440,7 @@ namespace OfficeIMO.Visio {
             VisioShapeDataRow? row = FindShapeData(name);
             if (row != null) {
                 if (Data.TryGetValue(row.Name, out string? current) &&
+                    !string.Equals(current, row.MirroredDataValue, StringComparison.Ordinal) &&
                     !string.Equals(current, row.Value, StringComparison.Ordinal)) {
                     return current;
                 }
@@ -475,8 +476,10 @@ namespace OfficeIMO.Visio {
             string dataKey = row.Name;
             if (value != null) {
                 Data[dataKey] = value;
+                row.MirroredDataValue = value;
             } else {
                 Data.Remove(dataKey);
+                row.MirroredDataValue = null;
             }
 
             if (!string.Equals(dataKey, name, StringComparison.Ordinal)) {
