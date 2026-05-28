@@ -92,6 +92,44 @@ public static class PdfTextExtractor {
         return ExtractTextByPageRanges(PdfReadDocument.Load(path), pageRanges);
     }
 
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and concatenates selected pages with blank lines.</summary>
+    public static string ExtractAllTextByPageRanges(string path, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractAllTextByPageRanges(PdfReadDocument.Load(path), null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges with layout options and concatenates selected pages with blank lines.</summary>
+    public static string ExtractAllTextByPageRanges(string path, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractAllTextByPageRanges(PdfReadDocument.Load(path), options, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and writes one UTF-8 text result to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllTextByPageRanges(string inputPath, Stream outputStream, params PdfPageRange[] pageRanges) {
+        ExtractAllTextByPageRanges(inputPath, outputStream, null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges with layout options and writes one UTF-8 text result to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllTextByPageRanges(string inputPath, Stream outputStream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        ValidateWritableOutputStream(outputStream);
+
+        WriteTextOutput(outputStream, ExtractAllTextByPageRanges(inputPath, options, pageRanges));
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and writes one UTF-8 text result to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllTextByPageRanges(string inputPath, string outputPath, params PdfPageRange[] pageRanges) {
+        ExtractAllTextByPageRanges(inputPath, outputPath, null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges with layout options and writes one UTF-8 text result to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllTextByPageRanges(string inputPath, string outputPath, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        string fullOutputPath = ValidateOutputPath(outputPath);
+
+        WriteTextOutput(fullOutputPath, ExtractAllTextByPageRanges(inputPath, options, pageRanges));
+    }
+
     /// <summary>Extracts structured content for each page, including detected lines, lists, leader rows, and simple tables.</summary>
     public static IReadOnlyList<StructuredPage> ExtractStructuredByPage(string path, PdfTextLayoutOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
@@ -528,6 +566,38 @@ public static class PdfTextExtractor {
         return ExtractTextByPageRanges(PdfReadDocument.Load(stream), pageRanges);
     }
 
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream and concatenates selected pages with blank lines.</summary>
+    public static string ExtractAllTextByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+        return ExtractAllTextByPageRanges(PdfReadDocument.Load(stream), null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream with layout options and concatenates selected pages with blank lines.</summary>
+    public static string ExtractAllTextByPageRanges(Stream stream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        return ExtractAllTextByPageRanges(PdfReadDocument.Load(stream), options, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream and writes one UTF-8 text result to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllTextByPageRanges(Stream inputStream, Stream outputStream, params PdfPageRange[] pageRanges) {
+        ExtractAllTextByPageRanges(inputStream, outputStream, null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream with layout options and writes one UTF-8 text result to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllTextByPageRanges(Stream inputStream, Stream outputStream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        ValidateWritableOutputStream(outputStream);
+        WriteTextOutput(outputStream, ExtractAllTextByPageRanges(inputStream, options, pageRanges));
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream and writes one UTF-8 text result to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllTextByPageRanges(Stream inputStream, string outputPath, params PdfPageRange[] pageRanges) {
+        ExtractAllTextByPageRanges(inputStream, outputPath, null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges from the current position of a readable stream with layout options and writes one UTF-8 text result to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllTextByPageRanges(Stream inputStream, string outputPath, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        string fullOutputPath = ValidateOutputPath(outputPath);
+        WriteTextOutput(fullOutputPath, ExtractAllTextByPageRanges(inputStream, options, pageRanges));
+    }
+
     /// <summary>Extracts plain text from each page from the current stream position and writes one UTF-8 text file per page.</summary>
     public static IReadOnlyList<string> ExtractTextByPage(Stream stream, string outputDirectory, string baseName = "page", PdfTextLayoutOptions? options = null) {
         Guard.NotNull(outputDirectory, nameof(outputDirectory));
@@ -798,6 +868,44 @@ public static class PdfTextExtractor {
         return ExtractTextByPageRanges(PdfReadDocument.Load(pdf), pageRanges);
     }
 
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and concatenates selected pages with blank lines.</summary>
+    public static string ExtractAllTextByPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractAllTextByPageRanges(PdfReadDocument.Load(pdf), null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges with layout options and concatenates selected pages with blank lines.</summary>
+    public static string ExtractAllTextByPageRanges(byte[] pdf, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractAllTextByPageRanges(PdfReadDocument.Load(pdf), options, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and writes one UTF-8 text result to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllTextByPageRanges(byte[] pdf, Stream outputStream, params PdfPageRange[] pageRanges) {
+        ExtractAllTextByPageRanges(pdf, outputStream, null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges with layout options and writes one UTF-8 text result to <paramref name="outputStream"/>.</summary>
+    public static void ExtractAllTextByPageRanges(byte[] pdf, Stream outputStream, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        ValidateWritableOutputStream(outputStream);
+
+        WriteTextOutput(outputStream, ExtractAllTextByPageRanges(pdf, options, pageRanges));
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges and writes one UTF-8 text result to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllTextByPageRanges(byte[] pdf, string outputPath, params PdfPageRange[] pageRanges) {
+        ExtractAllTextByPageRanges(pdf, outputPath, null, pageRanges);
+    }
+
+    /// <summary>Extracts plain text from the supplied inclusive one-based page ranges with layout options and writes one UTF-8 text result to <paramref name="outputPath"/>.</summary>
+    public static void ExtractAllTextByPageRanges(byte[] pdf, string outputPath, PdfTextLayoutOptions? options, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        string fullOutputPath = ValidateOutputPath(outputPath);
+
+        WriteTextOutput(fullOutputPath, ExtractAllTextByPageRanges(pdf, options, pageRanges));
+    }
+
     /// <summary>Extracts structured content for each page, including detected lines, lists, leader rows, and simple tables.</summary>
     public static IReadOnlyList<StructuredPage> ExtractStructuredByPage(byte[] pdf, PdfTextLayoutOptions? options = null) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -910,6 +1018,20 @@ public static class PdfTextExtractor {
         }
 
         return pages.AsReadOnly();
+    }
+
+    private static string ExtractAllTextByPageRanges(PdfReadDocument document, PdfTextLayoutOptions? options, PdfPageRange[] pageRanges) {
+        var selected = ExtractSelectedTextPages(document, options, pageRanges);
+        var sb = new StringBuilder();
+        for (int i = 0; i < selected.Count; i++) {
+            if (i > 0) {
+                sb.AppendLine();
+            }
+
+            sb.Append(selected[i].Text);
+        }
+
+        return sb.ToString();
     }
 
     private static System.Collections.ObjectModel.ReadOnlyCollection<SelectedTextPage> ExtractSelectedTextPages(PdfReadDocument document, PdfPageRange[] pageRanges) {
