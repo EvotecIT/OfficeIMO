@@ -37,6 +37,118 @@ public class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_UsesExternalThreeByteToUnicodeCMap() {
+        byte[] pdf = BuildExternalThreeByteToUnicodePdf();
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("Z", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontMacRomanEncoding() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<4361668E> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /MacRomanEncoding >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("Caf\u00E9", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithMacRomanBase() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<8E20C8> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /MacRomanEncoding /Differences [ 200 /Euro ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("\u00E9 \u20AC", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontStandardEncoding() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<27206020A920AEAFE1F1> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /StandardEncoding >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+        string normalized = Normalize(pageText);
+
+        Assert.Contains("\u2019 \u2018 '", normalized, StringComparison.Ordinal);
+        Assert.Contains("fifl\u00C6\u00E6", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithStandardBase() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<2720AE20AF> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /StandardEncoding /Differences [ 174 /Euro ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("\u2019 \u20AC fl", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithLatinGlyphNames() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<414243444546474849> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [ 65 /Agrave /eacute /ccedilla /ntilde /germandbls /Oslash /questiondown /Aacute.alt /ydieresis ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("\u00C0\u00E9\u00E7\u00F1\u00DF\u00D8\u00BF\u00C1\u00FF", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithCompositeGlyphNames() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<414243> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [ 65 /f_f_i /A_uni0301 /f_f_l.alt ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("ffiA\u0301ffl", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesSimpleFontEncodingDifferencesWithCommonWinAnsiGlyphNames() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<4142434445464748494A4B4C4D4E4F> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [ 65 /OE /oe /Scaron /scaron /Zcaron /zcaron /Ydieresis /florin /perthousand /quotesinglbase /quotedblbase /guilsinglleft /guilsinglright /dagger /circumflex ] >> >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("\u0152\u0153\u0160\u0161\u017D\u017E\u0178\u0192\u2030\u201A\u201E\u2039\u203A\u2020\u02C6", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_UsesBuiltInStandardEncodingForStandardType1Font() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<2720AEAFE1F1> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+        string normalized = Normalize(pageText);
+
+        Assert.Contains("\u2019", normalized, StringComparison.Ordinal);
+        Assert.Contains("fifl\u00C6\u00E6", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractTextByPage_KeepsWinAnsiFallbackForUnknownSimpleFontWithoutEncoding() {
+        byte[] pdf = BuildExternalSinglePagePdf(
+            "BT\n/F13 12 Tf\n72 720 Td\n<436166E9> Tj\nET\n",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /CustomSans >>");
+
+        string pageText = Assert.Single(PdfTextExtractor.ExtractTextByPage(pdf));
+
+        Assert.Contains("Caf\u00E9", Normalize(pageText), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SplitPages_ReadsExternalProducerPdfWithInheritedResourcesAndContentArrays() {
         byte[] pdf = BuildExternalTwoPagePdf();
 
@@ -325,13 +437,16 @@ public class PdfExternalDocumentCompatibilityTests {
         Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
     }
 
-    private static byte[] BuildExternalSinglePagePdf(string content) {
+    private static byte[] BuildExternalSinglePagePdf(string content) =>
+        BuildExternalSinglePagePdf(content, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+
+    private static byte[] BuildExternalSinglePagePdf(string content, string fontObjectBody) {
         byte[] streamBytes = Encoding.ASCII.GetBytes(content.TrimEnd('\n'));
         var objects = new[] {
             "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
             "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>\nendobj",
             "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents [5 0 R] >>\nendobj",
-            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj",
+            "4 0 obj\n" + fontObjectBody + "\nendobj",
             BuildStreamObject(5, streamBytes)
         };
 
@@ -392,6 +507,31 @@ public class PdfExternalDocumentCompatibilityTests {
             "1 beginbfrange\n" +
             "<01> <03> [<005A> <0066 0069> <0021>]\n" +
             "endbfrange\n" +
+            "endcmap\n" +
+            "CMapName currentdict /CMap defineresource pop\n" +
+            "end\n" +
+            "end\n";
+
+        var objects = new[] {
+            "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj",
+            "2 0 obj\n<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources << /Font << /F13 4 0 R >> >> >>\nendobj",
+            "3 0 obj\n<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>\nendobj",
+            "4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /AAAAAA+Helvetica /Encoding /WinAnsiEncoding /ToUnicode 6 0 R >>\nendobj",
+            BuildStreamObject(5, content),
+            BuildStreamObject(6, Encoding.ASCII.GetBytes(cmap))
+        };
+
+        return BuildPdf(objects, rootObjectNumber: 1);
+    }
+
+    private static byte[] BuildExternalThreeByteToUnicodePdf() {
+        byte[] content = Encoding.ASCII.GetBytes("BT\n/F13 12 Tf\n72 720 Td\n<010203> Tj\nET\n");
+        const string cmap = "/CIDInit /ProcSet findresource begin\n" +
+            "12 dict begin\n" +
+            "begincmap\n" +
+            "1 beginbfchar\n" +
+            "<010203> <005A>\n" +
+            "endbfchar\n" +
             "endcmap\n" +
             "CMapName currentdict /CMap defineresource pop\n" +
             "end\n" +

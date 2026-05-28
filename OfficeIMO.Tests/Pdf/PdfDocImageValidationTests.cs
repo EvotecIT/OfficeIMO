@@ -557,11 +557,11 @@ public class PdfDocImageValidationTests {
 
         string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
         using var pdf = PdfDocument.Open(new MemoryStream(bytes));
-        double imageBottomY = 56;
+        double imageBottomY = 60;
         double paragraphTopY = FindWordStartY(pdf.GetPage(1), "AfterDefaultImage") + 10 * 0.74;
         double clearance = imageBottomY - paragraphTopY;
 
-        Assert.Contains("q\n100 0 0 50 70 81 cm\n/Im1 Do\nQ", pdfContent);
+        Assert.Contains("q\n100 0 0 50 70 85 cm\n/Im1 Do\nQ", pdfContent);
         Assert.True(clearance >= 11, $"Expected default image spacing to leave visible rhythm. Clearance: {clearance:0.##}pt.");
     }
 
@@ -593,7 +593,7 @@ public class PdfDocImageValidationTests {
 
         string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("q\n24 0 0 24 108 132 cm\n/Im1 Do\nQ", pdfContent);
+        Assert.Contains("q\n24 0 0 24 108 136 cm\n/Im1 Do\nQ", pdfContent);
     }
 
     [Fact]

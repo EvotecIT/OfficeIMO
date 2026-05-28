@@ -4,13 +4,21 @@ namespace OfficeIMO.Pdf;
 /// Basic document-level information useful for inspection and automation scenarios.
 /// </summary>
 public sealed class PdfDocumentInfo {
+    private const int AcroFormSignaturesExistFlag = 1;
+    private const int AcroFormAppendOnlyFlag = 2;
     private IReadOnlyList<PdfLinkAnnotation>? _linkAnnotations;
     private IReadOnlyList<string>? _linkUris;
     private IReadOnlyList<string>? _linkDestinationNames;
     private IReadOnlyList<string>? _namedDestinationNames;
     private IReadOnlyList<string>? _formFieldNames;
+    private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
+    private IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>? _formFieldsByKind;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfFormField>>? _formFieldsByPageNumber;
+    private IReadOnlyList<PdfFormWidget>? _formWidgets;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfFormWidget>>? _formWidgetsByFieldName;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _formWidgetsByPageNumber;
 
-    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
+    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
         Pages = pages;
         Metadata = metadata;
         Outlines = outlines;
@@ -19,6 +27,9 @@ public sealed class PdfDocumentInfo {
         OpenAction = openAction;
         ViewerPreferences = viewerPreferences;
         FormFields = formFields;
+        AcroFormDefaultAppearance = acroFormDefaultAppearance;
+        AcroFormNeedAppearances = acroFormNeedAppearances;
+        AcroFormSignatureFlags = acroFormSignatureFlags;
         HeaderVersion = headerVersion;
         CatalogPageMode = catalogPageMode;
         CatalogPageLayout = catalogPageLayout;
@@ -63,6 +74,9 @@ public sealed class PdfDocumentInfo {
 
     /// <summary>Number of simple AcroForm fields read from the document catalog.</summary>
     public int FormFieldCount => FormFields.Count;
+
+    /// <summary>Number of simple AcroForm widget annotations read from the document catalog fields.</summary>
+    public int FormWidgetCount => FormWidgets.Count;
 
     /// <summary>Number of page-label rules read from the document catalog.</summary>
     public int PageLabelCount => PageLabels.Count;
@@ -151,15 +165,176 @@ public sealed class PdfDocumentInfo {
                 return _formFieldNames;
             }
 
-            var names = new List<string>();
+            _formFieldNames = FormFieldsByName.Keys.ToArray();
+            return _formFieldNames;
+        }
+    }
+
+    /// <summary>Named simple AcroForm fields keyed by fully qualified field name.</summary>
+    public IReadOnlyDictionary<string, PdfFormField> FormFieldsByName {
+        get {
+            if (_formFieldsByName is not null) {
+                return _formFieldsByName;
+            }
+
+            var fields = new Dictionary<string, PdfFormField>(StringComparer.Ordinal);
             for (int i = 0; i < FormFields.Count; i++) {
-                if (!string.IsNullOrEmpty(FormFields[i].Name)) {
-                    names.Add(FormFields[i].Name!);
+                PdfFormField formField = FormFields[i];
+                string? name = formField.Name;
+                if (name is not null && name.Length > 0 && !fields.ContainsKey(name)) {
+                    fields.Add(name, formField);
                 }
             }
 
-            _formFieldNames = names.AsReadOnly();
-            return _formFieldNames;
+            _formFieldsByName = new System.Collections.ObjectModel.ReadOnlyDictionary<string, PdfFormField>(fields);
+            return _formFieldsByName;
+        }
+    }
+
+    /// <summary>Simple AcroForm fields grouped by common field kind.</summary>
+    public IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>> FormFieldsByKind {
+        get {
+            if (_formFieldsByKind is not null) {
+                return _formFieldsByKind;
+            }
+
+            var grouped = new Dictionary<PdfFormFieldKind, List<PdfFormField>>();
+            for (int i = 0; i < FormFields.Count; i++) {
+                PdfFormField formField = FormFields[i];
+                if (!grouped.TryGetValue(formField.Kind, out List<PdfFormField>? fields)) {
+                    fields = new List<PdfFormField>();
+                    grouped.Add(formField.Kind, fields);
+                }
+
+                fields.Add(formField);
+            }
+
+            var result = new Dictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formFieldsByKind = new System.Collections.ObjectModel.ReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>(result);
+            return _formFieldsByKind;
+        }
+    }
+
+    /// <summary>Simple AcroForm fields grouped by one-based page number for fields that have readable widgets.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfFormField>> FormFieldsByPageNumber {
+        get {
+            if (_formFieldsByPageNumber is not null) {
+                return _formFieldsByPageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfFormField>>();
+            for (int i = 0; i < FormFields.Count; i++) {
+                PdfFormField formField = FormFields[i];
+                for (int j = 0; j < formField.Widgets.Count; j++) {
+                    int? pageNumber = formField.Widgets[j].PageNumber;
+                    if (!pageNumber.HasValue) {
+                        continue;
+                    }
+
+                    if (!grouped.TryGetValue(pageNumber.Value, out List<PdfFormField>? fields)) {
+                        fields = new List<PdfFormField>();
+                        grouped.Add(pageNumber.Value, fields);
+                    }
+
+                    if (!fields.Contains(formField)) {
+                        fields.Add(formField);
+                    }
+                }
+            }
+
+            var result = new Dictionary<int, IReadOnlyList<PdfFormField>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formFieldsByPageNumber = new System.Collections.ObjectModel.ReadOnlyDictionary<int, IReadOnlyList<PdfFormField>>(result);
+            return _formFieldsByPageNumber;
+        }
+    }
+
+    /// <summary>Simple AcroForm widget annotations flattened in field and widget order.</summary>
+    public IReadOnlyList<PdfFormWidget> FormWidgets {
+        get {
+            if (_formWidgets is not null) {
+                return _formWidgets;
+            }
+
+            var widgets = new List<PdfFormWidget>();
+            for (int i = 0; i < FormFields.Count; i++) {
+                widgets.AddRange(FormFields[i].Widgets);
+            }
+
+            _formWidgets = widgets.AsReadOnly();
+            return _formWidgets;
+        }
+    }
+
+    /// <summary>Simple AcroForm widget annotations grouped by fully qualified field name.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfFormWidget>> FormWidgetsByFieldName {
+        get {
+            if (_formWidgetsByFieldName is not null) {
+                return _formWidgetsByFieldName;
+            }
+
+            var grouped = new Dictionary<string, List<PdfFormWidget>>(StringComparer.Ordinal);
+            for (int i = 0; i < FormFields.Count; i++) {
+                PdfFormField formField = FormFields[i];
+                string? name = formField.Name;
+                if (name is null || name.Length == 0 || formField.Widgets.Count == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(name, out List<PdfFormWidget>? widgets)) {
+                    widgets = new List<PdfFormWidget>();
+                    grouped.Add(name, widgets);
+                }
+
+                widgets.AddRange(formField.Widgets);
+            }
+
+            var result = new Dictionary<string, IReadOnlyList<PdfFormWidget>>(StringComparer.Ordinal);
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formWidgetsByFieldName = new System.Collections.ObjectModel.ReadOnlyDictionary<string, IReadOnlyList<PdfFormWidget>>(result);
+            return _formWidgetsByFieldName;
+        }
+    }
+
+    /// <summary>Simple AcroForm widget annotations grouped by one-based page number.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>> FormWidgetsByPageNumber {
+        get {
+            if (_formWidgetsByPageNumber is not null) {
+                return _formWidgetsByPageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfFormWidget>>();
+            for (int i = 0; i < Pages.Count; i++) {
+                PdfPageInfo page = Pages[i];
+                if (page.FormWidgets.Count == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(page.PageNumber, out List<PdfFormWidget>? widgets)) {
+                    widgets = new List<PdfFormWidget>();
+                    grouped.Add(page.PageNumber, widgets);
+                }
+
+                widgets.AddRange(page.FormWidgets);
+            }
+
+            var result = new Dictionary<int, IReadOnlyList<PdfFormWidget>>();
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _formWidgetsByPageNumber = new System.Collections.ObjectModel.ReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>(result);
+            return _formWidgetsByPageNumber;
         }
     }
 
@@ -186,6 +361,79 @@ public sealed class PdfDocumentInfo {
 
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
     public bool HasReadableFormFields => FormFieldCount > 0;
+
+    /// <summary>True when at least one simple AcroForm widget annotation was read from the document catalog fields.</summary>
+    public bool HasFormWidgets => FormWidgetCount > 0;
+
+    /// <summary>Attempts to get a simple AcroForm field by its fully qualified field name.</summary>
+    public bool TryGetFormField(string name, out PdfFormField? field) {
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        return FormFieldsByName.TryGetValue(name, out field);
+    }
+
+    /// <summary>Returns simple AcroForm fields for the requested common field kind.</summary>
+    public IReadOnlyList<PdfFormField> GetFormFields(PdfFormFieldKind kind) {
+        return FormFieldsByKind.TryGetValue(kind, out IReadOnlyList<PdfFormField>? fields)
+            ? fields
+            : Array.Empty<PdfFormField>();
+    }
+
+    /// <summary>Returns simple AcroForm fields represented by widgets on a one-based page number.</summary>
+    public IReadOnlyList<PdfFormField> GetFormFields(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return FormFieldsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfFormField>? fields)
+            ? fields
+            : Array.Empty<PdfFormField>();
+    }
+
+    /// <summary>Returns simple widget annotations for a fully qualified form field name.</summary>
+    public IReadOnlyList<PdfFormWidget> GetFormWidgets(string fieldName) {
+        Guard.NotNullOrWhiteSpace(fieldName, nameof(fieldName));
+        return FormWidgetsByFieldName.TryGetValue(fieldName, out IReadOnlyList<PdfFormWidget>? widgets)
+            ? widgets
+            : Array.Empty<PdfFormWidget>();
+    }
+
+    /// <summary>Returns simple widget annotations for a one-based page number.</summary>
+    public IReadOnlyList<PdfFormWidget> GetFormWidgets(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return FormWidgetsByPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfFormWidget>? widgets)
+            ? widgets
+            : Array.Empty<PdfFormWidget>();
+    }
+
+    /// <summary>AcroForm default appearance string from /DA, when present.</summary>
+    public string? AcroFormDefaultAppearance { get; }
+
+    /// <summary>True when an AcroForm default appearance string was readable.</summary>
+    public bool HasAcroFormDefaultAppearance => !string.IsNullOrEmpty(AcroFormDefaultAppearance);
+
+    /// <summary>AcroForm NeedAppearances flag, when present.</summary>
+    public bool? AcroFormNeedAppearances { get; }
+
+    /// <summary>True when the AcroForm requests viewer-side appearance regeneration.</summary>
+    public bool RequiresAcroFormAppearanceRegeneration => AcroFormNeedAppearances == true;
+
+    /// <summary>True when an AcroForm NeedAppearances flag was readable.</summary>
+    public bool HasAcroFormNeedAppearances => AcroFormNeedAppearances.HasValue;
+
+    /// <summary>Raw AcroForm signature flags from /SigFlags, when present.</summary>
+    public int? AcroFormSignatureFlags { get; }
+
+    /// <summary>True when AcroForm signature flags were readable.</summary>
+    public bool HasAcroFormSignatureFlags => AcroFormSignatureFlags.HasValue;
+
+    /// <summary>True when AcroForm /SigFlags indicates that the document contains signatures.</summary>
+    public bool AcroFormSignaturesExist => HasAcroFormSignatureFlag(AcroFormSignaturesExistFlag);
+
+    /// <summary>True when AcroForm /SigFlags indicates that the document should only be saved by appending changes.</summary>
+    public bool AcroFormAppendOnly => HasAcroFormSignatureFlag(AcroFormAppendOnlyFlag);
 
     /// <summary>Simple document open action read from the document catalog, when supported.</summary>
     public PdfDocumentOpenAction? OpenAction { get; }
@@ -264,4 +512,8 @@ public sealed class PdfDocumentInfo {
 
     /// <summary>True when the document contains active content markers such as JavaScript actions.</summary>
     public bool HasActiveContent { get; }
+
+    private bool HasAcroFormSignatureFlag(int flag) {
+        return AcroFormSignatureFlags.HasValue && (AcroFormSignatureFlags.Value & flag) != 0;
+    }
 }

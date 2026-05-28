@@ -258,8 +258,7 @@ internal static class TextLayoutEngine {
                 // fallback to em threshold when prevAvg unavailable
                 double emThreshold = (options?.GapSpaceThresholdEm ?? 0.25) * s.FontSize;
                 double threshold = Math.Max(emThreshold, glyphThreshold);
-                bool isLeader = IsDotLeader(s.Text);
-                bool prevLeader = IsDotLeader(prev.Text);
+                bool isLeader = IsLeaderRun(s.Text);
                 // Tight word-join rule: letters adjacent use stricter threshold (slightly more permissive)
                 if (IsWordJoin(prev.Text, s.Text)) {
                     // be less aggressive: add space whenever gap exceeds ~0.65x glyph-advance or 0.30em
@@ -291,12 +290,12 @@ internal static class TextLayoutEngine {
             }
             text.Append(s.Text);
             // if leader followed by number, ensure a single space
-            if (IsDotLeader(s.Text) && i + 1 < spans.Count && IsAllDigits(spans[i + 1].Text)) {
+            if (IsLeaderRun(s.Text) && i + 1 < spans.Count && ContainsDigit(spans[i + 1].Text)) {
                 if (text.Length > 0 && text[text.Length - 1] != ' ') text.Append(' ');
             }
         }
         string outText = text.ToString();
-        if (!IsDotLeader(outText)) outText = NormalizeLineText(outText);
+        if (!IsLeaderRun(outText)) outText = NormalizeLineText(outText);
         return new TextLine(spans[0].Y, xs, xe, outText, new List<PdfTextSpan>(spans));
     }
 
@@ -336,9 +335,11 @@ internal static class TextLayoutEngine {
         return result;
     }
 
-    private static bool IsDotLeader(string s) {
-        if (string.IsNullOrEmpty(s)) return false;
-        for (int i = 0; i < s.Length; i++) if (s[i] != '.') return false; return true;
+    private static bool IsLeaderRun(string s) {
+        if (string.IsNullOrEmpty(s) || s.Length < 3) return false;
+        char c = s[0];
+        if (c != '.' && c != '-' && c != '_') return false;
+        for (int i = 1; i < s.Length; i++) if (s[i] != c) return false; return true;
     }
     private static bool IsWordJoin(string left, string right) {
         if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
@@ -351,9 +352,9 @@ internal static class TextLayoutEngine {
         if (string.IsNullOrEmpty(s)) return false; int len = s.Length; if (sb.Length < len) return false;
         for (int i = 0; i < len; i++) if (sb[sb.Length - len + i] != s[i]) return false; return true;
     }
-    private static bool IsAllDigits(string s) {
+    private static bool ContainsDigit(string s) {
         if (string.IsNullOrEmpty(s)) return false;
-        for (int i = 0; i < s.Length; i++) if (!char.IsDigit(s[i])) return false; return true;
+        for (int i = 0; i < s.Length; i++) if (char.IsDigit(s[i])) return true; return false;
     }
     private static bool IsWordish(char c) => char.IsLetter(c) || c == '\'' || c == '-' || c == '/';
     private static bool AllWordish(string s) { if (string.IsNullOrEmpty(s)) return false; for (int i = 0; i < s.Length; i++) if (!IsWordish(s[i])) return false; return true; }
@@ -444,6 +445,14 @@ public static class PdfReadPageExtensions {
     /// <param name="options">Optional layout options.</param>
     public static StructuredPage ExtractStructured(this PdfReadPage page, PdfTextLayoutOptions? options = null) {
         var spans = page.GetTextSpans();
+        if (options is not null && (options.IgnoreHeaderHeight > 0 || options.IgnoreFooterHeight > 0)) {
+            var (_, h) = page.GetPageSize();
+            double topCut = h - options.IgnoreHeaderHeight;
+            double bottomCut = options.IgnoreFooterHeight;
+            spans = spans.Where(span => (options.IgnoreHeaderHeight <= 0 || span.Y < topCut)
+                                     && (options.IgnoreFooterHeight <= 0 || span.Y > bottomCut)).ToList();
+        }
+
         var engineOpts = options?.ToEngineOptions();
         return ContentStructureExtractor.Extract(spans, engineOpts ?? new TextLayoutEngine.Options());
     }

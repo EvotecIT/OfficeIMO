@@ -10,6 +10,7 @@ public class PdfParagraphStyle {
     private double _firstLineIndent;
     private double _spacingBefore;
     private double? _spacingAfter;
+    private double? _defaultTabStopWidth;
 
     /// <summary>Line advance multiplier relative to the paragraph font size. When null the writer uses the default line height.</summary>
     public double? LineHeight {
@@ -59,6 +60,14 @@ public class PdfParagraphStyle {
             _spacingAfter = value;
         }
     }
+    /// <summary>Default paragraph tab-stop width, in points. When null the writer uses the Word-compatible half-inch default.</summary>
+    public double? DefaultTabStopWidth {
+        get => _defaultTabStopWidth;
+        set {
+            ValidateOptionalPositiveFiniteValue(value, nameof(DefaultTabStopWidth), "Paragraph default tab stop width must be a positive finite value.");
+            _defaultTabStopWidth = value;
+        }
+    }
     /// <summary>When true, the paragraph starts on a new page instead of splitting across pages.</summary>
     public bool KeepTogether { get; set; }
     /// <summary>When true, the paragraph moves to the next page when it would otherwise be separated from the following paragraph.</summary>
@@ -75,6 +84,7 @@ public class PdfParagraphStyle {
             FirstLineIndent = FirstLineIndent,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
+            DefaultTabStopWidth = DefaultTabStopWidth,
             KeepTogether = KeepTogether,
             KeepWithNext = KeepWithNext,
             WidowControl = WidowControl

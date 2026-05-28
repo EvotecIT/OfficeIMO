@@ -33,6 +33,27 @@ public sealed class PdfDocumentPreflight {
     /// <summary>True when OfficeIMO.Pdf can attempt rewrite-style manipulation without known security blockers.</summary>
     public bool CanRewrite { get; }
 
+    /// <summary>True when OfficeIMO.Pdf can attempt text and structured text readback operations for this PDF.</summary>
+    public bool CanExtractText => CanRead;
+
+    /// <summary>True when OfficeIMO.Pdf can attempt image XObject extraction for this PDF.</summary>
+    public bool CanExtractImages => DocumentInfo is not null && !HasImageExtractionBlocker();
+
+    /// <summary>True when OfficeIMO.Pdf can attempt logical object readback through PdfLogicalDocument for this PDF.</summary>
+    public bool CanReadLogicalObjects => CanRead;
+
+    /// <summary>True when OfficeIMO.Pdf can attempt page-level rewrite operations such as extract, split, merge, import, edit, stamp, and metadata updates.</summary>
+    public bool CanManipulatePages => CanRewrite;
+
+    /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates for named text, choice, or button fields.</summary>
+    public bool CanFillSimpleFormFields => CanRead && !HasFormMutationBlocker() && HasSimpleFillableFormFields();
+
+    /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm flattening for text, choice, or button widgets with page-backed rectangles.</summary>
+    public bool CanFlattenSimpleFormFields => CanRead && !HasFormMutationBlocker() && HasSimpleFlattenableFormFields();
+
+    /// <summary>True when OfficeIMO.Pdf can attempt simple AcroForm value updates followed by simple widget flattening.</summary>
+    public bool CanFillAndFlattenSimpleFormFields => CanFillSimpleFormFields && CanFlattenSimpleFormFields;
+
     /// <summary>Human-readable diagnostics explaining blocked or risky operations.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
 
@@ -62,5 +83,223 @@ public sealed class PdfDocumentPreflight {
         }
 
         return false;
+    }
+
+    /// <summary>Returns true when the requested wrapper-facing capability can be attempted for this PDF.</summary>
+    public bool Can(PdfPreflightCapability capability) {
+        switch (capability) {
+            case PdfPreflightCapability.ExtractText:
+                return CanExtractText;
+            case PdfPreflightCapability.ExtractImages:
+                return CanExtractImages;
+            case PdfPreflightCapability.ReadLogicalObjects:
+                return CanReadLogicalObjects;
+            case PdfPreflightCapability.ManipulatePages:
+                return CanManipulatePages;
+            case PdfPreflightCapability.FillSimpleFormFields:
+                return CanFillSimpleFormFields;
+            case PdfPreflightCapability.FlattenSimpleFormFields:
+                return CanFlattenSimpleFormFields;
+            case PdfPreflightCapability.FillAndFlattenSimpleFormFields:
+                return CanFillAndFlattenSimpleFormFields;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(capability), capability, "Unsupported PDF preflight capability.");
+        }
+    }
+
+    /// <summary>Returns operation-specific diagnostics explaining why a wrapper-facing capability is blocked, or an empty list when it can be attempted.</summary>
+    public IReadOnlyList<string> GetCapabilityDiagnostics(PdfPreflightCapability capability) {
+        if (Can(capability)) {
+            return Array.Empty<string>();
+        }
+
+        switch (capability) {
+            case PdfPreflightCapability.ExtractText:
+                return GetReadCapabilityDiagnostics("PDF text extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
+            case PdfPreflightCapability.ExtractImages:
+                return GetImageExtractionDiagnostics();
+            case PdfPreflightCapability.ReadLogicalObjects:
+                return GetReadCapabilityDiagnostics("PDF logical object extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
+            case PdfPreflightCapability.ManipulatePages:
+                return GetPageManipulationDiagnostics();
+            case PdfPreflightCapability.FillSimpleFormFields:
+                return GetSimpleFormCapabilityDiagnostics(requireFillableField: true, requireFlattenableWidget: false);
+            case PdfPreflightCapability.FlattenSimpleFormFields:
+                return GetSimpleFormCapabilityDiagnostics(requireFillableField: false, requireFlattenableWidget: true);
+            case PdfPreflightCapability.FillAndFlattenSimpleFormFields:
+                return GetSimpleFormCapabilityDiagnostics(requireFillableField: true, requireFlattenableWidget: true);
+            default:
+                throw new ArgumentOutOfRangeException(nameof(capability), capability, "Unsupported PDF preflight capability.");
+        }
+    }
+
+    private bool HasFormMutationBlocker() {
+        return Probe.HasSignatures ||
+            Probe.HasActiveContent ||
+            DocumentInfo?.AcroFormSignaturesExist == true ||
+            DocumentInfo?.HasActiveContent == true;
+    }
+
+    private bool HasImageExtractionBlocker() {
+        return HasReadBlocker(PdfReadBlockerKind.MissingHeader) ||
+            HasReadBlocker(PdfReadBlockerKind.Encryption) ||
+            HasReadBlocker(PdfReadBlockerKind.NoPages) ||
+            HasReadBlocker(PdfReadBlockerKind.ParserUnsupported);
+    }
+
+    private bool HasSimpleFillableFormFields() {
+        if (DocumentInfo is null || DocumentInfo.FormFields.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < DocumentInfo.FormFields.Count; i++) {
+            PdfFormField field = DocumentInfo.FormFields[i];
+            if (IsNamedSimpleFillField(field)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool HasSimpleFlattenableFormFields() {
+        if (DocumentInfo is null || DocumentInfo.FormFields.Count == 0) {
+            return false;
+        }
+
+        bool hasFlattenableWidget = false;
+        for (int i = 0; i < DocumentInfo.FormFields.Count; i++) {
+            PdfFormField field = DocumentInfo.FormFields[i];
+            if (!IsNamedSimpleFlattenField(field) || field.Widgets.Count == 0) {
+                return false;
+            }
+
+            for (int j = 0; j < field.Widgets.Count; j++) {
+                PdfFormWidget widget = field.Widgets[j];
+                if (!widget.ObjectNumber.HasValue ||
+                    !widget.PageNumber.HasValue ||
+                    widget.Width <= 0D ||
+                    widget.Height <= 0D) {
+                    return false;
+                }
+
+                hasFlattenableWidget = true;
+            }
+        }
+
+        return hasFlattenableWidget;
+    }
+
+    private static bool IsNamedSimpleFillField(PdfFormField field) {
+        return !string.IsNullOrEmpty(field.Name) &&
+            (field.Kind == PdfFormFieldKind.Text ||
+            field.Kind == PdfFormFieldKind.Choice ||
+            field.Kind == PdfFormFieldKind.Button);
+    }
+
+    private static bool IsNamedSimpleFlattenField(PdfFormField field) {
+        return !string.IsNullOrEmpty(field.Name) &&
+            (field.Kind == PdfFormFieldKind.Text ||
+            field.Kind == PdfFormFieldKind.Choice ||
+            field.Kind == PdfFormFieldKind.Button);
+    }
+
+    private IReadOnlyList<string> GetReadCapabilityDiagnostics(string fallbackMessage) {
+        if (ReadBlockers.Count == 0) {
+            return new[] { fallbackMessage };
+        }
+
+        var messages = new List<string>(ReadBlockers.Count);
+        for (int i = 0; i < ReadBlockers.Count; i++) {
+            AddDistinct(messages, ReadBlockers[i].Message);
+        }
+
+        return messages.AsReadOnly();
+    }
+
+    private IReadOnlyList<string> GetImageExtractionDiagnostics() {
+        if (ReadBlockers.Count == 0) {
+            return new[] { "PDF image extraction is not available because OfficeIMO.Pdf cannot inspect this PDF." };
+        }
+
+        var messages = new List<string>(ReadBlockers.Count);
+        for (int i = 0; i < ReadBlockers.Count; i++) {
+            if (ReadBlockers[i].Kind != PdfReadBlockerKind.UnsupportedContentStreamFilter) {
+                AddDistinct(messages, ReadBlockers[i].Message);
+            }
+        }
+
+        if (messages.Count == 0) {
+            AddDistinct(messages, "PDF image extraction is not available for this PDF.");
+        }
+
+        return messages.AsReadOnly();
+    }
+
+    private System.Collections.ObjectModel.ReadOnlyCollection<string> GetPageManipulationDiagnostics() {
+        var messages = new List<string>(ReadBlockers.Count + RewriteBlockers.Count);
+        for (int i = 0; i < ReadBlockers.Count; i++) {
+            AddDistinct(messages, ReadBlockers[i].Message);
+        }
+
+        for (int i = 0; i < RewriteBlockers.Count; i++) {
+            AddDistinct(messages, RewriteBlockers[i].Message);
+        }
+
+        if (messages.Count == 0) {
+            AddDistinct(messages, "PDF page manipulation is not available for this PDF.");
+        }
+
+        return messages.AsReadOnly();
+    }
+
+    private System.Collections.ObjectModel.ReadOnlyCollection<string> GetSimpleFormCapabilityDiagnostics(bool requireFillableField, bool requireFlattenableWidget) {
+        var messages = new List<string>();
+        if (!CanRead) {
+            AddRange(messages, GetReadCapabilityDiagnostics("PDF form operations are not available because OfficeIMO.Pdf cannot read this PDF."));
+            return messages.AsReadOnly();
+        }
+
+        if (Probe.HasSignatures || DocumentInfo?.AcroFormSignaturesExist == true) {
+            AddDistinct(messages, "Signed PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
+        }
+
+        if (Probe.HasActiveContent || DocumentInfo?.HasActiveContent == true) {
+            AddDistinct(messages, "PDF active content is not supported for form filling or flattening by OfficeIMO.Pdf yet.");
+        }
+
+        if (requireFillableField && !HasSimpleFillableFormFields()) {
+            AddDistinct(messages, "PDF does not contain named text, choice, or button AcroForm fields supported for simple form filling by OfficeIMO.Pdf.");
+        }
+
+        if (requireFlattenableWidget && !HasSimpleFlattenableFormFields()) {
+            AddDistinct(messages, "PDF does not contain named text, choice, or button AcroForm widgets with readable page-backed rectangles supported for simple form flattening by OfficeIMO.Pdf.");
+        }
+
+        if (messages.Count == 0) {
+            AddDistinct(messages, "PDF simple form operation is not available for this PDF.");
+        }
+
+        return messages.AsReadOnly();
+    }
+
+    private static void AddRange(List<string> messages, IReadOnlyList<string> values) {
+        for (int i = 0; i < values.Count; i++) {
+            AddDistinct(messages, values[i]);
+        }
+    }
+
+    private static void AddDistinct(List<string> messages, string message) {
+        if (string.IsNullOrWhiteSpace(message)) {
+            return;
+        }
+
+        for (int i = 0; i < messages.Count; i++) {
+            if (string.Equals(messages[i], message, StringComparison.Ordinal)) {
+                return;
+            }
+        }
+
+        messages.Add(message);
     }
 }

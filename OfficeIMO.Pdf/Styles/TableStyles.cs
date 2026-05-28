@@ -4,15 +4,52 @@ namespace OfficeIMO.Pdf;
 /// Friendly presets for common table appearances.
 /// </summary>
 public static class TableStyles {
-    /// <summary>
-    /// Word table style names currently mapped to PDF presets.
-    /// </summary>
-    public static IReadOnlyList<string> SupportedWordStyleNames { get; } = Array.AsReadOnly(new[] {
+    private static readonly string[] CanonicalWordStyleNameValues = {
+        "TableNormal",
         "TableGrid",
+        "TableGridLight",
         "PlainTable1",
         "GridTable1Light",
-        "ListTable1Light"
-    });
+        "GridTable1LightAccent1",
+        "GridTable1LightAccent2",
+        "GridTable1LightAccent3",
+        "GridTable1LightAccent4",
+        "GridTable1LightAccent5",
+        "GridTable1LightAccent6",
+        "ListTable1Light",
+        "ListTable1LightAccent1",
+        "ListTable1LightAccent2",
+        "ListTable1LightAccent3",
+        "ListTable1LightAccent4",
+        "ListTable1LightAccent5",
+        "ListTable1LightAccent6"
+    };
+
+    private static readonly string[] WordStyleAliasNameValues = {
+        "GridTableLight",
+        "GridTable1Light-Accent1",
+        "GridTable1Light-Accent2",
+        "GridTable1Light-Accent3",
+        "GridTable1Light-Accent4",
+        "GridTable1Light-Accent5",
+        "GridTable1Light-Accent6",
+        "ListTable1Light-Accent1",
+        "ListTable1Light-Accent2",
+        "ListTable1Light-Accent3",
+        "ListTable1Light-Accent4",
+        "ListTable1Light-Accent5",
+        "ListTable1Light-Accent6"
+    };
+
+    /// <summary>
+    /// Canonical Word table style names callers can present without duplicate alias spellings.
+    /// </summary>
+    public static IReadOnlyList<string> CanonicalWordStyleNames { get; } = Array.AsReadOnly(CanonicalWordStyleNameValues);
+
+    /// <summary>
+    /// Word table style names and aliases currently mapped to PDF presets.
+    /// </summary>
+    public static IReadOnlyList<string> SupportedWordStyleNames { get; } = Array.AsReadOnly(CreateSupportedWordStyleNames());
 
     /// <summary>
     /// Light preset: report-friendly header fill, soft grid, comfortable padding, and gentle row striping.
@@ -53,9 +90,7 @@ public static class TableStyles {
             return style!;
         }
 
-        throw new ArgumentException(
-            $"Unsupported Word table style '{styleName}'. Supported styles: {string.Join(", ", SupportedWordStyleNames)}.",
-            nameof(styleName));
+        throw CreateUnsupportedWordTableStyleException(styleName);
     }
 
     /// <summary>
@@ -65,23 +100,44 @@ public static class TableStyles {
         Guard.NotNull(styleName, nameof(styleName));
 
         string normalized = NormalizeWordTableStyleName(styleName);
-        if (string.Equals(normalized, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+        if (!TryGetCanonicalWordStyleNameFromNormalized(normalized, out string? canonicalStyleName)) {
+            style = null;
+            return false;
+        }
+
+        if (string.Equals(canonicalStyleName, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
             style = TableGrid();
             return true;
         }
 
-        if (string.Equals(normalized, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(canonicalStyleName, "TableGridLight", StringComparison.OrdinalIgnoreCase)) {
+            style = TableGridLight();
+            return true;
+        }
+
+        if (string.Equals(canonicalStyleName, "TableNormal", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(canonicalStyleName, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
             style = PlainTable1();
             return true;
         }
 
-        if (string.Equals(normalized, "GridTable1Light", StringComparison.OrdinalIgnoreCase)) {
+        if (string.Equals(canonicalStyleName, "GridTable1Light", StringComparison.OrdinalIgnoreCase)) {
             style = GridTable1Light();
             return true;
         }
 
-        if (string.Equals(normalized, "ListTable1Light", StringComparison.OrdinalIgnoreCase)) {
+        if (TryGetAccentNumber(canonicalStyleName!, "GridTable1LightAccent", out int gridAccent)) {
+            style = GridTable1LightAccent(gridAccent);
+            return true;
+        }
+
+        if (string.Equals(canonicalStyleName, "ListTable1Light", StringComparison.OrdinalIgnoreCase)) {
             style = ListTable1Light();
+            return true;
+        }
+
+        if (TryGetAccentNumber(canonicalStyleName!, "ListTable1LightAccent", out int listAccent)) {
+            style = ListTable1LightAccent(listAccent);
             return true;
         }
 
@@ -90,9 +146,45 @@ public static class TableStyles {
     }
 
     /// <summary>
-    /// Word-like Table Grid preset: a plain neutral grid with no shading.
+    /// Returns the canonical Word table style name for a supported style name or alias.
+    /// </summary>
+    public static string GetCanonicalWordStyleName(string styleName) {
+        if (TryGetCanonicalWordStyleName(styleName, out string? canonicalStyleName)) {
+            return canonicalStyleName!;
+        }
+
+        throw CreateUnsupportedWordTableStyleException(styleName);
+    }
+
+    /// <summary>
+    /// Tries to return the canonical Word table style name for a supported style name or alias.
+    /// </summary>
+    public static bool TryGetCanonicalWordStyleName(string styleName, out string? canonicalStyleName) {
+        Guard.NotNull(styleName, nameof(styleName));
+        return TryGetCanonicalWordStyleNameFromNormalized(NormalizeWordTableStyleName(styleName), out canonicalStyleName);
+    }
+
+    /// <summary>
+    /// Word-like Table Grid preset: a plain automatic-color grid with no shading.
     /// </summary>
     public static PdfTableStyle TableGrid() => new PdfTableStyle {
+        HeaderFill = null,
+        HeaderTextColor = PdfColor.Black,
+        TextColor = PdfColor.FromRgb(25, 25, 25),
+        FooterFill = null,
+        RowStripeFill = null,
+        BorderColor = PdfColor.Black,
+        BorderWidth = 0.5,
+        CellPaddingX = 5,
+        CellPaddingY = 4,
+        HeaderRowCount = 1,
+        FooterRowCount = 0
+    };
+
+    /// <summary>
+    /// Word-like Table Grid Light preset: a light neutral grid matching Word's built-in Grid Table Light style.
+    /// </summary>
+    public static PdfTableStyle TableGridLight() => new PdfTableStyle {
         HeaderFill = null,
         HeaderTextColor = PdfColor.Black,
         TextColor = PdfColor.FromRgb(25, 25, 25),
@@ -167,6 +259,104 @@ public static class TableStyles {
         FooterRowCount = 0
     };
 
+    private static PdfTableStyle GridTable1LightAccent(int accentNumber) {
+        PdfTableStyle style = GridTable1Light();
+        WordAccentColors colors = GetWordTableAccentColors(accentNumber);
+        style.BorderColor = colors.Light;
+        style.HeaderSeparatorColor = colors.Strong;
+        style.FooterSeparatorColor = colors.Strong;
+        return style;
+    }
+
+    private static PdfTableStyle ListTable1LightAccent(int accentNumber) {
+        PdfTableStyle style = ListTable1Light();
+        WordAccentColors colors = GetWordTableAccentColors(accentNumber);
+        style.RowStripeFill = colors.Pale;
+        style.HeaderSeparatorColor = colors.Strong;
+        style.FooterSeparatorColor = colors.Strong;
+        return style;
+    }
+
+    private readonly struct WordAccentColors {
+        public WordAccentColors(PdfColor light, PdfColor strong, PdfColor pale) {
+            Light = light;
+            Strong = strong;
+            Pale = pale;
+        }
+
+        public PdfColor Light { get; }
+        public PdfColor Strong { get; }
+        public PdfColor Pale { get; }
+    }
+
+    private static WordAccentColors GetWordTableAccentColors(int accentNumber) => accentNumber switch {
+        1 => new WordAccentColors(PdfColor.FromRgb(180, 198, 231), PdfColor.FromRgb(142, 170, 219), PdfColor.FromRgb(217, 226, 243)),
+        2 => new WordAccentColors(PdfColor.FromRgb(247, 202, 172), PdfColor.FromRgb(244, 176, 131), PdfColor.FromRgb(251, 228, 213)),
+        3 => new WordAccentColors(PdfColor.FromRgb(219, 219, 219), PdfColor.FromRgb(201, 201, 201), PdfColor.FromRgb(237, 237, 237)),
+        4 => new WordAccentColors(PdfColor.FromRgb(255, 229, 153), PdfColor.FromRgb(255, 217, 102), PdfColor.FromRgb(255, 242, 204)),
+        5 => new WordAccentColors(PdfColor.FromRgb(189, 214, 238), PdfColor.FromRgb(156, 194, 229), PdfColor.FromRgb(222, 234, 246)),
+        6 => new WordAccentColors(PdfColor.FromRgb(197, 224, 179), PdfColor.FromRgb(168, 208, 141), PdfColor.FromRgb(226, 239, 217)),
+        _ => throw new ArgumentOutOfRangeException(nameof(accentNumber), "Word table accent number must be between 1 and 6.")
+    };
+
+    private static string[] CreateSupportedWordStyleNames() {
+        string[] names = new string[CanonicalWordStyleNameValues.Length + WordStyleAliasNameValues.Length];
+        Array.Copy(CanonicalWordStyleNameValues, names, CanonicalWordStyleNameValues.Length);
+        Array.Copy(WordStyleAliasNameValues, 0, names, CanonicalWordStyleNameValues.Length, WordStyleAliasNameValues.Length);
+        return names;
+    }
+
+    private static bool TryGetCanonicalWordStyleNameFromNormalized(string normalized, out string? canonicalStyleName) {
+        if (string.Equals(normalized, "TableNormal", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "TableNormal";
+            return true;
+        }
+
+        if (string.Equals(normalized, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "TableGrid";
+            return true;
+        }
+
+        if (string.Equals(normalized, "TableGridLight", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(normalized, "GridTableLight", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "TableGridLight";
+            return true;
+        }
+
+        if (string.Equals(normalized, "PlainTable1", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "PlainTable1";
+            return true;
+        }
+
+        if (string.Equals(normalized, "GridTable1Light", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "GridTable1Light";
+            return true;
+        }
+
+        if (TryGetAccentNumber(normalized, "GridTable1LightAccent", out int gridAccent)) {
+            canonicalStyleName = "GridTable1LightAccent" + gridAccent.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        if (string.Equals(normalized, "ListTable1Light", StringComparison.OrdinalIgnoreCase)) {
+            canonicalStyleName = "ListTable1Light";
+            return true;
+        }
+
+        if (TryGetAccentNumber(normalized, "ListTable1LightAccent", out int listAccent)) {
+            canonicalStyleName = "ListTable1LightAccent" + listAccent.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            return true;
+        }
+
+        canonicalStyleName = null;
+        return false;
+    }
+
+    private static ArgumentException CreateUnsupportedWordTableStyleException(string styleName) =>
+        new ArgumentException(
+            $"Unsupported Word table style '{styleName}'. Supported styles: {string.Join(", ", SupportedWordStyleNames)}.",
+            nameof(styleName));
+
     private static string NormalizeWordTableStyleName(string styleName) {
         string trimmed = styleName.Trim();
         if (trimmed.Length == 0) {
@@ -184,5 +374,20 @@ public static class TableStyles {
         }
 
         return sb.ToString();
+    }
+
+    private static bool TryGetAccentNumber(string normalized, string prefix, out int accentNumber) {
+        accentNumber = 0;
+        if (!normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        string suffix = normalized.Substring(prefix.Length);
+        if (suffix.Length != 1 || suffix[0] < '1' || suffix[0] > '6') {
+            return false;
+        }
+
+        accentNumber = suffix[0] - '0';
+        return true;
     }
 }

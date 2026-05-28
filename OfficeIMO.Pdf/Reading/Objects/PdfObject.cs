@@ -26,7 +26,12 @@ internal sealed class PdfName : PdfObject {
 /// <summary>PDF literal string object (..).</summary>
 internal sealed class PdfStringObj : PdfObject {
     public string Value { get; }
-    public PdfStringObj(string value) { Value = value; }
+    public bool UseTextStringEncoding { get; }
+    public PdfStringObj(string value, bool useTextStringEncoding = false) {
+        Value = value;
+        UseTextStringEncoding = useTextStringEncoding;
+    }
+
     public override string ToString() => Value;
 }
 

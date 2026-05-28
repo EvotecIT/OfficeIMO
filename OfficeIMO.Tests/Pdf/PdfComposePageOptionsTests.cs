@@ -472,6 +472,10 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines /Names << /Dests 7 0 R >> >>\n",
                 PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 5, 7));
 
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 8));
+
             var sb = new StringBuilder();
             PdfCatalogDictionaryBuilder.AppendCatalogStart(sb, 3);
             PdfCatalogDictionaryBuilder.AppendNameEntry(sb, "PageLayout", "TwoColumnLeft");
@@ -482,6 +486,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(0, 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, -1));
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, -1));
         }
 
         [Fact]
@@ -525,6 +530,24 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (Jump metadata) /Rect [10 20.5 110 44.25] /A << /S /GoTo /D (Intro\\(A\\)) >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20.5, 110, 44.25, "Intro(A)", "Jump metadata"));
 
+            Assert.Equal(
+                "<< /Type /Annot /Subtype /Widget /FT /Tx /T <506572736F6E2E4E616D65> /V <416461> /DV <416461> /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
+                PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Person.Name", "Ada", 10, 12));
+
+            Assert.Equal(
+                "<< /Type /Annot /Subtype /Widget /FT /Btn /T <4163636570745465726D73> /V /Yes /DV /Yes /Rect [10 20.5 26 36.5] /F 4 /AS /Yes /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N << /Off 12 0 R /Yes 13 0 R >> >> >>\n",
+                PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(10, 20.5, 26, 36.5, "AcceptTerms", true, "Yes", 12, 13));
+
+            Assert.Equal(
+                "<< /Type /Annot /Subtype /Widget /FT /Ch /T <436F756E747279> /V <506F6C616E64> /DV <506F6C616E64> /Opt [ <506F6C616E64> <556E6974656420537461746573> ] /Ff 131072 /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Country", new[] { "Poland", "United States" }, "Poland", 10, 12, isComboBox: true));
+
+            Assert.Equal(
+                "<< /Type /Annot /Subtype /Widget /FT /Ch /T <436F756E7472696573> /V [<506F6C616E64> <556E6974656420537461746573>] /DV [<506F6C616E64> <556E6974656420537461746573>] /Opt [ <506F6C616E64> <4765726D616E79> <556E6974656420537461746573> ] /Ff 2097152 /Rect [10 20.5 110 70] /F 4 /DA (/Helv 10 Tf 0 g) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20.5, 110, 70, "Countries", new[] { "Poland", "Germany", "United States" }, new[] { "Poland", "United States" }, 10, 12, isComboBox: false, allowsMultipleSelection: true));
+
+            Assert.Contains("/T <FEFF540D>", PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(10, 20, 110, 44, "名", "Ada", 10, 12), StringComparison.Ordinal);
+
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20, 110, 44, "not-a-uri"));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -533,6 +556,47 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20, 110, double.NaN, "https://evotec.xyz"));
             Assert.Throws<ArgumentException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20, 110, 44, " "));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(10, 20, 26, 36, "AcceptTerms", true, "Off", 12, 13));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(10, 20, 26, 36, "AcceptTerms", true, "Y\u2713", 12, 13));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Country", Array.Empty<string>(), "Poland", 10, 12, isComboBox: true));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Country", new[] { "Poland" }, "Germany", 10, 12, isComboBox: true));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Countries", new[] { "Poland" }, Array.Empty<string>(), 10, 12, isComboBox: false, allowsMultipleSelection: true));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Countries", new[] { "Poland" }, new[] { "Poland", "Poland" }, 10, 12, isComboBox: false, allowsMultipleSelection: true));
+            Assert.Throws<ArgumentException>(() =>
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20, 110, 44, "Countries", new[] { "Poland", "Germany" }, new[] { "Poland", "Germany" }, 10, 12, isComboBox: true, allowsMultipleSelection: true));
+        }
+
+        [Fact]
+        public void AcroFormDictionaryBuilder_EmitsFieldsAndTextAppearance() {
+            Assert.Equal(
+                "<< /Fields [ 4 0 R 5 0 R ] /NeedAppearances true /DR << /Font << /Helv 3 0 R >> >> /DA (/Helv 10 Tf 0 g) >>\n",
+                PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(new[] { 4, 5 }, 3));
+
+            string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(120, 20, "Ada", 10);
+            Assert.Contains("<416461> Tj", content);
+
+            string dictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(120, 20, 3, Encoding.ASCII.GetByteCount(content));
+            Assert.Equal(
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 120 20] /Resources << /Font << /Helv 3 0 R >> >> /Length " + Encoding.ASCII.GetByteCount(content) + " >>",
+                dictionary);
+
+            string checkedContent = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(16, 16, selected: true);
+            Assert.Contains(" l S", checkedContent);
+
+            string checkBoxDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(16, 16, Encoding.ASCII.GetByteCount(checkedContent));
+            Assert.Equal(
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 16 16] /Length " + Encoding.ASCII.GetByteCount(checkedContent) + " >>",
+                checkBoxDictionary);
+
+            Assert.Throws<ArgumentException>(() => PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(Array.Empty<int>(), 3));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(120, 20, 3, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(16, 16, -1));
         }
 
         [Fact]
@@ -2088,7 +2152,7 @@ namespace OfficeIMO.Tests.Pdf {
             double pageOneY = FindWordStartY(pdf.GetPage(1), "PageOneImage");
             double pageTwoY = FindWordStartY(pdf.GetPage(2), "PageTwoImage");
 
-            Assert.Contains("q\n24 0 0 24 108 132 cm\n/Im1 Do\nQ", rawPdf);
+            Assert.Contains("q\n24 0 0 24 108 136 cm\n/Im1 Do\nQ", rawPdf);
             Assert.Contains("q\n24 0 0 24 20 136 cm\n/Im", rawPdf);
             Assert.True(pageTwoY - pageOneY >= 10, $"Expected the page-scoped image spacing to push only page-one content down. Page one y: {pageOneY:0.##}, page two y: {pageTwoY:0.##}.");
         }
@@ -2139,7 +2203,7 @@ namespace OfficeIMO.Tests.Pdf {
             double pageOneY = FindWordStartY(pdf.GetPage(1), "PageOneDrawing");
             double pageTwoY = FindWordStartY(pdf.GetPage(2), "PageTwoDrawing");
 
-            Assert.Contains("100 136 40 20 re f", rawPdf, StringComparison.Ordinal);
+            Assert.Contains("100 140 40 20 re f", rawPdf, StringComparison.Ordinal);
             Assert.Contains("20 140 40 20 re f", rawPdf, StringComparison.Ordinal);
             Assert.True(pageTwoY - pageOneY >= 10, $"Expected the page-scoped drawing spacing to push only page-one content down. Page one y: {pageOneY:0.##}, page two y: {pageTwoY:0.##}.");
         }

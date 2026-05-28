@@ -10,6 +10,53 @@ internal static class TextContentParser {
         "er", "ers", "ed", "ly", "ology", "ologies"
     };
 
+    private readonly struct TextGraphicsState {
+        public Matrix2D Ctm { get; }
+        public string Font { get; }
+        public double Size { get; }
+        public double Leading { get; }
+        public double CharSpacing { get; }
+        public double WordSpacing { get; }
+        public double HScale { get; }
+        public double TextRise { get; }
+
+        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise) {
+            Ctm = ctm;
+            Font = font;
+            Size = size;
+            Leading = leading;
+            CharSpacing = charSpacing;
+            WordSpacing = wordSpacing;
+            HScale = hScale;
+            TextRise = textRise;
+        }
+    }
+
+    private sealed class InlineDictionary {
+        public Dictionary<string, object> Items { get; } = new(StringComparer.Ordinal);
+    }
+
+    private readonly struct ActualTextValue {
+        public string Text { get; }
+
+        public ActualTextValue(string text) {
+            Text = text;
+        }
+    }
+
+    private sealed class MarkedContentState {
+        public string ActualText { get; }
+        public bool HasActualText { get; }
+        public bool IsArtifact { get; }
+        public bool ActualTextEmitted { get; set; }
+
+        public MarkedContentState(ActualTextValue? actualText, bool isArtifact) {
+            ActualText = actualText?.Text ?? string.Empty;
+            HasActualText = actualText.HasValue;
+            IsArtifact = isArtifact;
+        }
+    }
+
     internal readonly struct FormInvocation {
         public string Name { get; }
         public Matrix2D Transform { get; }
@@ -24,19 +71,23 @@ internal static class TextContentParser {
         string content,
         System.Func<string, byte[], string> decodeWithFont,
         System.Func<string, byte[], double> sumWidth1000ForFont,
-        bool adjustKerningFromTJ = true) {
+        bool adjustKerningFromTJ = true,
+        System.Func<string, string?>? actualTextForProperty = null) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
-        string font = "F1"; double size = 12; double x = 0, y = 0; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
+        string font = "F1"; double size = 12; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
+        Matrix2D textMatrix = Matrix2D.Identity;
+        Matrix2D lineMatrix = Matrix2D.Identity;
         // Graphics state (CTM) and stack
-        Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<Matrix2D>();
+        Matrix2D ctm = Matrix2D.Identity; var gstack = new System.Collections.Generic.Stack<TextGraphicsState>();
         // Operand buffer (tokens collected since last operator)
         var args = new List<object>(8);
         int i = 0; int n = content.Length;
         // Kerning state between text runs in TJ arrays (points) and rolling output buffer for gap checks
         double pendingGapPt = 0;
         var sbOutGlobal = new StringBuilder();
+        var markedContentStack = new Stack<MarkedContentState>();
         while (i < n) {
             SkipWs(); if (i >= n) break;
             char c = content[i];
@@ -47,7 +98,7 @@ internal static class TextContentParser {
             if (c == '/') { args.Add(ReadName()); continue; }
             if (c == '(') { args.Add(ReadLiteralStringBytes()); continue; }
             if (c == '<') {
-                if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; } // ignore dictionaries in content streams
+                if (i + 1 < n && content[i + 1] == '<') { args.Add(ReadInlineDictionary()); continue; }
                 args.Add(ReadHexStringBytes()); continue;
             }
             if (c == '[') { args.Add(ReadArray()); continue; }
@@ -58,37 +109,96 @@ internal static class TextContentParser {
             if (op.Length == 0) { i++; continue; }
 
             switch (op) {
-                case "BT": inText = true; pendingGapPt = 0; args.Clear(); break;
+                case "BT": inText = true; textMatrix = Matrix2D.Identity; lineMatrix = Matrix2D.Identity; pendingGapPt = 0; args.Clear(); break;
                 case "ET": inText = false; pendingGapPt = 0; args.Clear(); break;
                 case "Tf": if (args.Count >= 2) { size = ToDouble(args[args.Count - 1]); font = ToName(args[args.Count - 2]); args.Clear(); } break;
-                case "Tm": if (args.Count >= 6) { x = ToDouble(args[args.Count - 2]); y = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "Td": if (args.Count >= 2) { x += ToDouble(args[args.Count - 2]); y += ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "TD": if (args.Count >= 2) { double tx = ToDouble(args[args.Count - 2]); double ty = ToDouble(args[args.Count - 1]); x += tx; y += ty; leading = -ty; args.Clear(); } break;
+                case "Tm": if (args.Count >= 6) { SetTextMatrix(args); args.Clear(); } break;
+                case "Td": if (args.Count >= 2) { MoveTextLine(ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); args.Clear(); } break;
+                case "TD": if (args.Count >= 2) { double tx = ToDouble(args[args.Count - 2]); double ty = ToDouble(args[args.Count - 1]); leading = -ty; MoveTextLine(tx, ty); args.Clear(); } break;
                 case "TL": if (args.Count >= 1) { leading = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "T*": y -= leading; args.Clear(); break;
+                case "T*": MoveToNextTextLine(); args.Clear(); break;
                 case "Tc": if (args.Count >= 1) { charSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tw": if (args.Count >= 1) { wordSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tz": if (args.Count >= 1) { hScale = ToDouble(args[args.Count - 1]) / 100.0; args.Clear(); } break;
                 case "Ts": if (args.Count >= 1) { textRise = ToDouble(args[args.Count - 1]); args.Clear(); } break;
-                case "q": gstack.Push(ctm); args.Clear(); break;
-                case "Q": ctm = gstack.Count > 0 ? gstack.Pop() : Matrix2D.Identity; args.Clear(); break;
+                case "q":
+                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise));
+                    args.Clear();
+                    break;
+                case "Q":
+                    if (gstack.Count > 0) {
+                        var state = gstack.Pop();
+                        ctm = state.Ctm;
+                        font = state.Font;
+                        size = state.Size;
+                        leading = state.Leading;
+                        charSpacing = state.CharSpacing;
+                        wordSpacing = state.WordSpacing;
+                        hScale = state.HScale;
+                        textRise = state.TextRise;
+                    } else {
+                        ctm = Matrix2D.Identity;
+                    }
+                    args.Clear();
+                    break;
                 case "cm": if (args.Count >= 6) { var m2 = new Matrix2D(ToDouble(args[args.Count - 6]), ToDouble(args[args.Count - 5]), ToDouble(args[args.Count - 4]), ToDouble(args[args.Count - 3]), ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); ctm = Matrix2D.Multiply(ctm, m2); args.Clear(); } break;
                 case "'": // move to next line and show text
-                    if (args.Count >= 1) { y -= leading; ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; args.Clear(); } break;
                 case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1]); args.Clear(); } break;
+                case "BDC":
+                    markedContentStack.Push(new MarkedContentState(
+                        GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
+                        IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null)));
+                    args.Clear();
+                    break;
+                case "BMC":
+                    markedContentStack.Push(new MarkedContentState(null, IsArtifactTag(args.Count > 0 ? args[args.Count - 1] : null)));
+                    args.Clear();
+                    break;
+                case "EMC":
+                    if (markedContentStack.Count > 0) {
+                        markedContentStack.Pop();
+                    }
+
+                    args.Clear();
+                    break;
                 default: args.Clear(); break;
             }
         }
         return spans;
 
         // Helpers
+        void SetTextMatrix(List<object> operands) {
+            lineMatrix = new Matrix2D(
+                ToDouble(operands[operands.Count - 6]),
+                ToDouble(operands[operands.Count - 5]),
+                ToDouble(operands[operands.Count - 4]),
+                ToDouble(operands[operands.Count - 3]),
+                ToDouble(operands[operands.Count - 2]),
+                ToDouble(operands[operands.Count - 1]));
+            textMatrix = lineMatrix;
+            pendingGapPt = 0;
+        }
+
+        void MoveTextLine(double tx, double ty) {
+            lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(tx, ty));
+            textMatrix = lineMatrix;
+            pendingGapPt = 0;
+        }
+
+        void MoveToNextTextLine() {
+            lineMatrix = Matrix2D.Multiply(lineMatrix, Matrix2D.Translation(0, -leading));
+            textMatrix = lineMatrix;
+            pendingGapPt = 0;
+        }
+
         void MaybeInsertSpaceBeforeRun() {
             // Insert a space depending on kerning gap accumulated from TJ array numbers
             if (pendingGapPt <= 0) return;
@@ -110,24 +220,20 @@ internal static class TextContentParser {
             if (bytes.Length >= 2) {
                 string one = decodeWithFont(font, new byte[] { bytes[0] });
                 string two = decodeWithFont(font, new byte[] { bytes[0], bytes[1] });
-                twoByte = IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two);
+                double firstByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[0] });
+                double secondByteWidth = sumWidth1000ForFont(font, new byte[] { bytes[1] });
+                double pairWidth = sumWidth1000ForFont(font, new byte[] { bytes[0], bytes[1] });
+                twoByte = (IsNullOrEmptyDecodedGlyph(one) && !IsNullOrEmptyDecodedGlyph(two)) ||
+                    (firstByteWidth <= 0 && secondByteWidth <= 0 && pairWidth > 0);
             }
             var sbOut = new StringBuilder(bytes.Length);
             double advTotal = 0;
             char prevChar = '\0';
+            string wholeDecoded = NormalizeDecodedGlyphText(decodeWithFont(font, bytes) ?? string.Empty);
             for (int idx = 0; idx < bytes.Length;) {
                 int step = twoByte ? (idx + 1 < bytes.Length ? 2 : 1) : 1;
                 byte[] g = step == 1 ? new byte[] { bytes[idx] } : new byte[] { bytes[idx], bytes[idx + 1] };
-                string t = decodeWithFont(font, g) ?? string.Empty;
-                // Normalize common ligatures if ToUnicode is absent or produced U+FBxx
-                if (t.Length > 0) {
-                    t = t
-                        .Replace("\uFB00", "ff") // ﬀ
-                        .Replace("\uFB01", "fi") // ﬁ
-                        .Replace("\uFB02", "fl") // ﬂ
-                        .Replace("\uFB03", "ffi") // ﬃ
-                        .Replace("\uFB04", "ffl"); // ﬄ
-                }
+                string t = NormalizeDecodedGlyphText(decodeWithFont(font, g) ?? string.Empty);
                 char ch = (t.Length > 0) ? t[0] : '\0';
                 double w1000 = sumWidth1000ForFont(font, g);
                 double advGlyph = ((w1000 / 1000.0) * size + charSpacing + (ch == ' ' ? wordSpacing : 0)) * hScale;
@@ -149,13 +255,73 @@ internal static class TextContentParser {
                 advTotal += advGlyph;
                 idx += step;
             }
-            if (sbOut.Length == 0) return;
+            if (ShouldUseWholeDecodedText(sbOut.ToString(), wholeDecoded)) {
+                sbOut.Clear();
+                sbOut.Append(wholeDecoded);
+            }
+            var actualTextState = GetActiveActualTextState();
+            bool isArtifact = HasActiveArtifact();
+            if (sbOut.Length == 0 && actualTextState is null && !isArtifact) return;
             string textOut = NormalizeShatteredSpan(sbOut.ToString());
-            var (dx, dy) = ctm.Transform(x, y + textRise);
-            spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, advTotal));
-            sbOutGlobal.Append(textOut);
-            x += advTotal;
+            var textOrigin = textMatrix.Transform(0, textRise);
+            var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
+            var textEnd = textMatrix.Transform(advTotal, textRise);
+            var (endX, endY) = ctm.Transform(textEnd.X, textEnd.Y);
+            double transformedAdvance = Math.Sqrt(((endX - dx) * (endX - dx)) + ((endY - dy) * (endY - dy)));
+            if (isArtifact) {
+                // Artifact content is visual decoration, not logical page text.
+            } else if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
+                textOut = actualTextState.ActualText;
+                actualTextState.ActualTextEmitted = true;
+                if (textOut.Length > 0) {
+                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
+                    sbOutGlobal.Append(textOut);
+                }
+            } else if (actualTextState is null && textOut.Length > 0) {
+                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
+                sbOutGlobal.Append(textOut);
+            }
+
+            textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
         }
+
+        MarkedContentState? GetActiveActualTextState() {
+            foreach (var state in markedContentStack) {
+                if (state.HasActualText) {
+                    return state;
+                }
+            }
+
+            return null;
+        }
+
+        bool HasActiveArtifact() {
+            foreach (var state in markedContentStack) {
+                if (state.IsArtifact) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        ActualTextValue? GetActualText(object? propertyObject) {
+            if (propertyObject is string propertyName) {
+                string? text = actualTextForProperty?.Invoke(propertyName);
+                return text is null ? (ActualTextValue?)null : new ActualTextValue(text);
+            }
+
+            if (propertyObject is InlineDictionary dictionary &&
+                dictionary.Items.TryGetValue("ActualText", out var value) &&
+                value is byte[] bytes) {
+                return new ActualTextValue(PdfTextString.Decode(bytes));
+            }
+
+            return null;
+        }
+
+        static bool IsArtifactTag(object? tag) =>
+            tag is string name && string.Equals(name, "Artifact", StringComparison.Ordinal);
 
         void ShowTextArray(object arrObj) {
             if (!inText || arrObj == null) return;
@@ -166,7 +332,7 @@ internal static class TextContentParser {
                 if (it is byte[] b) { ShowTextRun(b); }
                 else if (adjustKerningFromTJ && it is double num) {
                     double delta = -num / 1000.0 * size * hScale;
-                    x += delta;
+                    textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
                     // Only positive visual gap should suggest a space
                     if (delta > 0) pendingGapPt += delta; else pendingGapPt = 0;
                 }
@@ -195,7 +361,7 @@ internal static class TextContentParser {
             int start = ++i; int depth = 1; bool esc = false; var sb = new StringBuilder();
             while (i < n && depth > 0) {
                 char ch = content[i++];
-                if (esc) { sb.Append(ch); esc = false; }
+                if (esc) { sb.Append('\\'); sb.Append(ch); esc = false; }
                 else if (ch == '\\') esc = true;
                 else if (ch == '(') { depth++; sb.Append(ch); }
                 else if (ch == ')') { depth--; if (depth > 0) sb.Append(ch); }
@@ -225,6 +391,82 @@ internal static class TextContentParser {
                 if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
                 throw new FormatException($"Invalid hex character '{c}'.");
             }
+        }
+
+        InlineDictionary ReadInlineDictionary() {
+            i += 2;
+            var dictionary = new InlineDictionary();
+            while (i < n) {
+                SkipWs();
+                if (i + 1 < n && content[i] == '>' && content[i + 1] == '>') {
+                    i += 2;
+                    break;
+                }
+
+                if (i >= n) {
+                    break;
+                }
+
+                if (content[i] != '/') {
+                    SkipInlineDictionaryValue();
+                    continue;
+                }
+
+                string key = ReadName();
+                SkipWs();
+                if (i >= n) {
+                    break;
+                }
+
+                if (content[i] == '(') {
+                    dictionary.Items[key] = ReadLiteralStringBytes();
+                } else if (content[i] == '<' && i + 1 < n && content[i + 1] != '<') {
+                    dictionary.Items[key] = ReadHexStringBytes();
+                } else {
+                    SkipInlineDictionaryValue();
+                }
+            }
+
+            return dictionary;
+        }
+
+        void SkipInlineDictionaryValue() {
+            if (i >= n) {
+                return;
+            }
+
+            char ch = content[i];
+            if (ch == '(') {
+                ReadLiteralStringBytes();
+                return;
+            }
+
+            if (ch == '<') {
+                if (i + 1 < n && content[i + 1] == '<') {
+                    ReadInlineDictionary();
+                } else {
+                    ReadHexStringBytes();
+                }
+
+                return;
+            }
+
+            if (ch == '[') {
+                ReadArray();
+                return;
+            }
+
+            if (ch == '/') {
+                ReadName();
+                return;
+            }
+
+            if (IsNumberStart(ch)) {
+                ReadNumber();
+                return;
+            }
+
+            ReadOperator();
         }
 
         List<object> ReadArray() {
@@ -257,6 +499,39 @@ internal static class TextContentParser {
         static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }
         static byte[] ToBytes(object o) { return o as byte[] ?? Array.Empty<byte>(); }
+
+        static string NormalizeDecodedGlyphText(string text) =>
+            text.Length == 0
+                ? text
+                : text
+                    .Replace("\uFB00", "ff")
+                    .Replace("\uFB01", "fi")
+                    .Replace("\uFB02", "fl")
+                    .Replace("\uFB03", "ffi")
+                    .Replace("\uFB04", "ffl");
+
+        static bool ShouldUseWholeDecodedText(string chunkedText, string wholeDecoded) {
+            if (string.IsNullOrEmpty(wholeDecoded)) {
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(chunkedText)) {
+                return true;
+            }
+
+            return ContainsNonTextControl(chunkedText) && !ContainsNonTextControl(wholeDecoded);
+        }
+
+        static bool ContainsNonTextControl(string text) {
+            for (int index = 0; index < text.Length; index++) {
+                char ch = text[index];
+                if (char.IsControl(ch) && ch != '\t' && ch != '\n' && ch != '\r') {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         // Helpers (left empty for future metrics)
         // NormalizeThinSpaces removed in favor of per-glyph join logic

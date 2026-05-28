@@ -4,13 +4,32 @@ namespace OfficeIMO.Pdf;
 /// Updates simple AcroForm field values in parser-supported PDFs.
 /// </summary>
 public static class PdfFormFiller {
-    private const string UnsupportedFlattenWidgetMessage = "Only simple text and button AcroForm widgets with rectangles are supported for flattening by OfficeIMO.Pdf yet.";
-    private const string UnsupportedFlattenAnnotationMessage = "Only simple text and button AcroForm widgets referenced from page annotations are supported for flattening by OfficeIMO.Pdf yet.";
+    private const string UnsupportedFlattenWidgetMessage = "Only simple text, choice, and button AcroForm widgets with rectangles are supported for flattening by OfficeIMO.Pdf yet.";
+    private const string UnsupportedFlattenAnnotationMessage = "Only simple text, choice, and button AcroForm widgets referenced from page annotations are supported for flattening by OfficeIMO.Pdf yet.";
+    private const int EditableChoiceFlag = 262144;
+    private const int MultiSelectChoiceFlag = 2097152;
+
+    private readonly struct ChoiceFillValue {
+        public string ExportValue { get; }
+        public string DisplayValue { get; }
+
+        public ChoiceFillValue(string exportValue, string displayValue) {
+            ExportValue = exportValue;
+            DisplayValue = displayValue;
+        }
+    }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues) {
+        return FillFields(pdf, ToFormFieldValues(fieldValues));
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
+    /// </summary>
+    public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
 
@@ -36,7 +55,7 @@ public static class PdfFormFiller {
         var remaining = new HashSet<string>(fieldValues.Keys, StringComparer.Ordinal);
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         for (int i = 0; i < fields.Items.Count; i++) {
-            FillField(objects, fields.Items[i], null, null, fieldValues, remaining, new HashSet<int>(), ref nextObjectNumber);
+            FillField(objects, fields.Items[i], null, null, 0, null, fieldValues, remaining, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (remaining.Count > 0) {
@@ -55,9 +74,23 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
+    /// </summary>
+    public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        return FillFields(ReadStream(stream, nameof(stream)), fieldValues);
+    }
+
+    /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues) {
+        WriteOutput(outputStream, FillFields(pdf, fieldValues));
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
         WriteOutput(outputStream, FillFields(pdf, fieldValues));
     }
 
@@ -69,9 +102,28 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
+    /// </summary>
+    public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        WriteOutput(outputStream, FillFields(inputStream, fieldValues));
+    }
+
+    /// <summary>
     /// Writes a new PDF file with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        string fullOutputPath = ValidateOutputPath(outputPath);
+        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues);
+        var directory = Path.GetDirectoryName(fullOutputPath);
+        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        File.WriteAllBytes(fullOutputPath, bytes);
+    }
+
+    /// <summary>
+    /// Writes a new PDF file with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
         byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues);
@@ -92,6 +144,17 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
+    /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        ValidateWritableOutputStream(outputStream);
+
+        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues);
+        WriteOutput(outputStream, bytes);
+    }
+
+    /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated.
     /// </summary>
     public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues) {
@@ -100,7 +163,15 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
-    /// Returns a new PDF with simple text and button AcroForm widgets painted into page content and removed from the form tree.
+    /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated.
+    /// </summary>
+    public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        return FillFields(File.ReadAllBytes(inputPath), fieldValues);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple text, choice, and button AcroForm widgets painted into page content and removed from the form tree.
     /// </summary>
     public static byte[] FlattenFields(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
@@ -128,7 +199,7 @@ public static class PdfFormFiller {
         var widgets = new Dictionary<int, FlattenWidgetState>();
         var removableObjects = new HashSet<int>();
         for (int i = 0; i < fields.Items.Count; i++) {
-            CollectFlattenWidgets(objects, fields.Items[i], null, null, null, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
+            CollectFlattenWidgets(objects, fields.Items[i], null, null, null, null, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (widgets.Count == 0) {
@@ -153,28 +224,28 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
-    /// Returns a new PDF with simple text and button AcroForm widgets flattened from the current position of a readable stream.
+    /// Returns a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FlattenFields(Stream stream) {
         return FlattenFields(ReadStream(stream, nameof(stream)));
     }
 
     /// <summary>
-    /// Writes a new PDF with simple text and button AcroForm widgets flattened.
+    /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static void FlattenFields(byte[] pdf, Stream outputStream) {
         WriteOutput(outputStream, FlattenFields(pdf));
     }
 
     /// <summary>
-    /// Writes a new PDF with simple text and button AcroForm widgets flattened from the current position of a readable stream.
+    /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
     /// </summary>
     public static void FlattenFields(Stream inputStream, Stream outputStream) {
         WriteOutput(outputStream, FlattenFields(inputStream));
     }
 
     /// <summary>
-    /// Writes a new PDF file with simple text and button AcroForm widgets flattened.
+    /// Writes a new PDF file with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static void FlattenFields(string inputPath, string outputPath) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
@@ -186,7 +257,7 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
-    /// Reads a PDF file and writes a new PDF with simple text and button AcroForm widgets flattened.
+    /// Reads a PDF file and writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static void FlattenFields(string inputPath, Stream outputStream) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
@@ -197,7 +268,7 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
-    /// Reads a PDF file and returns new PDF bytes with simple text and button AcroForm widgets flattened.
+    /// Reads a PDF file and returns new PDF bytes with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static byte[] FlattenFieldsToBytes(string inputPath) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
@@ -212,9 +283,23 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
+    /// </summary>
+    public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        return FlattenFields(FillFields(pdf, fieldValues));
+    }
+
+    /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues) {
+        return FillAndFlattenFields(ReadStream(stream, nameof(stream)), fieldValues);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
+    /// </summary>
+    public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
         return FillAndFlattenFields(ReadStream(stream, nameof(stream)), fieldValues);
     }
 
@@ -226,6 +311,13 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues));
+    }
+
+    /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues) {
@@ -233,9 +325,28 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
+    /// </summary>
+    public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues));
+    }
+
+    /// <summary>
     /// Writes a new PDF file with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        string fullOutputPath = ValidateOutputPath(outputPath);
+        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+        var directory = Path.GetDirectoryName(fullOutputPath);
+        if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+        File.WriteAllBytes(fullOutputPath, bytes);
+    }
+
+    /// <summary>
+    /// Writes a new PDF file with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
         byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
@@ -256,6 +367,17 @@ public static class PdfFormFiller {
     }
 
     /// <summary>
+    /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        ValidateWritableOutputStream(outputStream);
+
+        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+        WriteOutput(outputStream, bytes);
+    }
+
+    /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated and flattened.
     /// </summary>
     public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues) {
@@ -263,7 +385,30 @@ public static class PdfFormFiller {
         return FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
     }
 
-    private static void ValidateFieldValues(IReadOnlyDictionary<string, string> fieldValues) {
+    /// <summary>
+    /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
+        return FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+    }
+
+    private static Dictionary<string, PdfFormFieldValue> ToFormFieldValues(IReadOnlyDictionary<string, string> fieldValues) {
+        Guard.NotNull(fieldValues, nameof(fieldValues));
+
+        var converted = new Dictionary<string, PdfFormFieldValue>(fieldValues.Count, StringComparer.Ordinal);
+        foreach (var pair in fieldValues) {
+            if (pair.Value is null) {
+                throw new ArgumentException("Field values cannot be null. Use an empty string to clear a text value.", nameof(fieldValues));
+            }
+
+            converted[pair.Key] = PdfFormFieldValue.From(pair.Value);
+        }
+
+        return converted;
+    }
+
+    private static void ValidateFieldValues(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
         Guard.NotNull(fieldValues, nameof(fieldValues));
         if (fieldValues.Count == 0) {
             throw new ArgumentException("At least one field value is required.", nameof(fieldValues));
@@ -277,6 +422,16 @@ public static class PdfFormFiller {
             if (pair.Value is null) {
                 throw new ArgumentException("Field values cannot be null. Use an empty string to clear a text value.", nameof(fieldValues));
             }
+
+            if (pair.Value.Values.Count == 0) {
+                throw new ArgumentException("Field values must contain at least one entry. Use an empty string to clear a text value.", nameof(fieldValues));
+            }
+
+            for (int i = 0; i < pair.Value.Values.Count; i++) {
+                if (pair.Value.Values[i] is null) {
+                    throw new ArgumentException("Field values cannot contain null entries. Use an empty string to clear a text value.", nameof(fieldValues));
+                }
+            }
         }
     }
 
@@ -284,8 +439,9 @@ public static class PdfFormFiller {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject fieldObject,
         string? inheritedFieldType,
-        string? inheritedValue,
+        string? inheritedDisplayValue,
         string? inheritedName,
+        PdfArray? inheritedChoiceOptions,
         Dictionary<int, FlattenWidgetState> widgets,
         HashSet<int> removableObjects,
         HashSet<int> visited,
@@ -309,8 +465,13 @@ public static class PdfFormFiller {
         string? partialName = TryReadText(objects, field, "T");
         string? fullName = CombineFieldName(inheritedName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
-        string? value = TryReadSimpleValue(objects, field, "V") ?? inheritedValue;
+        PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
+        IReadOnlyList<string>? values = TryReadSimpleValues(objects, field, "V");
+        string? value = values is { Count: > 0 } ? values[0] : inheritedDisplayValue;
         bool isButtonField = string.Equals(fieldType, "Btn", StringComparison.Ordinal);
+        string? appearanceValue = string.Equals(fieldType, "Ch", StringComparison.Ordinal)
+            ? TryResolveChoiceDisplayValue(objects, choiceOptions, values) ?? JoinSimpleValues(values) ?? inheritedDisplayValue
+            : value;
 
         if (IsWidget(field)) {
             if (!fieldObjectNumber.HasValue ||
@@ -332,7 +493,7 @@ public static class PdfFormFiller {
                 appearanceObjectNumber = appearanceReference!.ObjectNumber;
             } else {
                 appearanceObjectNumber = nextObjectNumber++;
-                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(value ?? string.Empty, width, height));
+                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(appearanceValue ?? string.Empty, width, height));
             }
 
             widgets[fieldObjectNumber.Value] = new FlattenWidgetState(fieldObjectNumber.Value, x, y, width, height, appearanceObjectNumber);
@@ -345,7 +506,7 @@ public static class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, value, fullName, widgets, removableObjects, visited, ref nextObjectNumber);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, appearanceValue, fullName, choiceOptions, widgets, removableObjects, visited, ref nextObjectNumber);
         }
     }
 
@@ -490,7 +651,9 @@ public static class PdfFormFiller {
         PdfObject fieldObject,
         string? parentName,
         string? inheritedFieldType,
-        IReadOnlyDictionary<string, string> fieldValues,
+        int inheritedFlags,
+        PdfArray? inheritedChoiceOptions,
+        IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         HashSet<string> remaining,
         HashSet<int> visited,
         ref int nextObjectNumber) {
@@ -505,8 +668,10 @@ public static class PdfFormFiller {
         string? partialName = TryReadText(objects, field, "T");
         string? fullName = CombineFieldName(parentName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
-        if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out string? value)) {
-            SetFieldValue(objects, field, fieldType, value, ref nextObjectNumber);
+        int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
+        PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
+        if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out PdfFormFieldValue? value)) {
+            SetFieldValue(objects, field, fieldType, fieldFlags, choiceOptions, value, ref nextObjectNumber);
             remaining.Remove(fullName);
         }
 
@@ -516,21 +681,59 @@ public static class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            FillField(objects, kids.Items[i], fullName, fieldType, fieldValues, remaining, visited, ref nextObjectNumber);
+            FillField(objects, kids.Items[i], fullName, fieldType, fieldFlags, choiceOptions, fieldValues, remaining, visited, ref nextObjectNumber);
         }
     }
 
-    private static void SetFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, string value, ref int nextObjectNumber) {
+    private static void SetFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string? fieldType, int fieldFlags, PdfArray? choiceOptions, PdfFormFieldValue value, ref int nextObjectNumber) {
+        IReadOnlyList<string> values = value.Values;
+        string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
-            string name = string.IsNullOrEmpty(value) ? "Off" : value;
+            string name = string.IsNullOrEmpty(firstValue) ? "Off" : firstValue;
             field.Items["V"] = new PdfName(name);
             field.Items["AS"] = new PdfName(name);
             SetWidgetAppearanceStates(objects, field, name, new HashSet<int>(), ref nextObjectNumber);
             return;
         }
 
-        field.Items["V"] = new PdfStringObj(value);
-        SetTextWidgetAppearances(objects, field, value, new HashSet<int>(), ref nextObjectNumber);
+        if (string.Equals(fieldType, "Ch", StringComparison.Ordinal)) {
+            bool isMultiSelectChoice = (fieldFlags & MultiSelectChoiceFlag) != 0;
+            if (values.Count > 1 && !isMultiSelectChoice) {
+                throw new ArgumentException("PDF scalar choice field cannot be filled with multiple values.", nameof(value));
+            }
+
+            IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
+            if (isMultiSelectChoice) {
+                field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
+                SetTextWidgetAppearances(objects, field, string.Join(", ", choiceValues.Select(item => item.DisplayValue)), new HashSet<int>(), ref nextObjectNumber);
+                return;
+            }
+
+            ChoiceFillValue choiceValue = choiceValues[0];
+            field.Items["V"] = new PdfStringObj(choiceValue.ExportValue, useTextStringEncoding: true);
+            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, new HashSet<int>(), ref nextObjectNumber);
+            return;
+        }
+
+        field.Items["V"] = new PdfStringObj(firstValue, useTextStringEncoding: true);
+        SetTextWidgetAppearances(objects, field, firstValue, new HashSet<int>(), ref nextObjectNumber);
+    }
+
+    private static int ReadFieldFlags(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int inheritedFlags) {
+        if (!field.Items.TryGetValue("Ff", out PdfObject? flagsObject) ||
+            ResolveObject(objects, flagsObject) is not PdfNumber flagsNumber) {
+            return inheritedFlags;
+        }
+
+        return (int)flagsNumber.Value;
+    }
+
+    private static PdfArray? TryReadChoiceOptions(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field) {
+        if (!field.Items.TryGetValue("Opt", out PdfObject? optionsObject)) {
+            return null;
+        }
+
+        return ResolveObject(objects, optionsObject) as PdfArray;
     }
 
     private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, HashSet<int> visited, ref int nextObjectNumber) {
@@ -626,12 +829,11 @@ public static class PdfFormFiller {
     private static PdfStream CreateTextAppearanceStream(string value, double width, double height) {
         double fontSize = Math.Max(6D, Math.Min(12D, height - 4D));
         double baseline = Math.Max(2D, (height - fontSize) / 2D);
-        string escapedValue = PdfSyntaxEscaper.EscapeLiteralContent(value);
         string content =
             "q\n" +
             "1 1 1 rg 0 0 " + FormatNumber(width) + " " + FormatNumber(height) + " re f\n" +
             "0.75 0.75 0.75 RG 0.5 0.5 " + FormatNumber(Math.Max(0D, width - 1D)) + " " + FormatNumber(Math.Max(0D, height - 1D)) + " re S\n" +
-            "BT /Helv " + FormatNumber(fontSize) + " Tf 0 0 0 rg 2 " + FormatNumber(baseline) + " Td (" + escapedValue + ") Tj ET\n" +
+            "BT /Helv " + FormatNumber(fontSize) + " Tf 0 0 0 rg 2 " + FormatNumber(baseline) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(value) + " Tj ET\n" +
             "Q\n";
 
         var dictionary = new PdfDictionary();
@@ -691,6 +893,15 @@ public static class PdfFormFiller {
         var array = new PdfArray();
         foreach (double value in values) {
             array.Items.Add(new PdfNumber(value));
+        }
+
+        return array;
+    }
+
+    private static PdfArray CreateStringArray(IEnumerable<string> values) {
+        var array = new PdfArray();
+        foreach (string value in values) {
+            array.Items.Add(new PdfStringObj(value, useTextStringEncoding: true));
         }
 
         return array;
@@ -810,6 +1021,159 @@ public static class PdfFormFiller {
             PdfBoolean boolean => boolean.Value ? "true" : "false",
             _ => null
         };
+    }
+
+    private static IReadOnlyList<string>? TryReadSimpleValues(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {
+        if (!dictionary.Items.TryGetValue(key, out var value)) {
+            return null;
+        }
+
+        PdfObject? resolved = ResolveObject(objects, value);
+        if (resolved is PdfArray array) {
+            var values = new List<string>();
+            for (int i = 0; i < array.Items.Count; i++) {
+                if (TryFormatSimpleValue(objects, array.Items[i], out string? item)) {
+                    values.Add(item!);
+                }
+            }
+
+            return values.Count == 0 ? null : values.AsReadOnly();
+        }
+
+        return TryFormatSimpleValue(objects, resolved, out string? single)
+            ? new[] { single! }
+            : null;
+    }
+
+    private static bool TryFormatSimpleValue(Dictionary<int, PdfIndirectObject> objects, PdfObject? value, out string? text) {
+        text = null;
+        switch (ResolveObject(objects, value)) {
+            case PdfStringObj stringObj:
+                text = stringObj.Value;
+                return true;
+            case PdfName name:
+                text = name.Name;
+                return true;
+            case PdfNumber number:
+                text = FormatNumber(number.Value);
+                return true;
+            case PdfBoolean boolean:
+                text = boolean.Value ? "true" : "false";
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static string? JoinSimpleValues(IReadOnlyList<string>? values) {
+        return values is { Count: > 0 }
+            ? string.Join(", ", values)
+            : null;
+    }
+
+    private static string? TryResolveChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, IReadOnlyList<string>? exportValues) {
+        if (exportValues is not { Count: > 0 } ||
+            options is null ||
+            options.Items.Count == 0) {
+            return null;
+        }
+
+        var displayValues = new List<string>(exportValues.Count);
+        for (int i = 0; i < exportValues.Count; i++) {
+            displayValues.Add(ResolveSingleChoiceDisplayValue(objects, options, exportValues[i]) ?? exportValues[i]);
+        }
+
+        return displayValues.Count == 0 ? null : string.Join(", ", displayValues);
+    }
+
+    private static string? ResolveSingleChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, string exportValue) {
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
+                string.Equals(pairExportValue, exportValue, StringComparison.Ordinal) &&
+                TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText)) {
+                return pairDisplayText;
+            }
+
+            if (optionObject is not null &&
+                TryReadOptionText(objects, optionObject, out string? singleValue) &&
+                string.Equals(singleValue, exportValue, StringComparison.Ordinal)) {
+                return singleValue;
+            }
+        }
+
+        return null;
+    }
+
+    private static List<ChoiceFillValue> ResolveChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, bool isEditableChoice, IReadOnlyList<string> values) {
+        var resolved = new List<ChoiceFillValue>(values.Count);
+        for (int i = 0; i < values.Count; i++) {
+            resolved.Add(options is null || options.Items.Count == 0
+                ? new ChoiceFillValue(values[i], values[i])
+                : ResolveSingleChoiceFillValue(objects, options, isEditableChoice, values[i]));
+        }
+
+        return resolved;
+    }
+
+    private static ChoiceFillValue ResolveSingleChoiceFillValue(Dictionary<int, PdfIndirectObject> objects, PdfArray options, bool isEditableChoice, string value) {
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
+                pairExportValue is not null &&
+                TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
+                pairDisplayText is not null &&
+                string.Equals(pairExportValue, value, StringComparison.Ordinal)) {
+                return new ChoiceFillValue(pairExportValue, pairDisplayText);
+            }
+
+            if (optionObject is not null &&
+                TryReadOptionText(objects, optionObject, out string? singleValue) &&
+                singleValue is not null &&
+                string.Equals(singleValue, value, StringComparison.Ordinal)) {
+                return new ChoiceFillValue(singleValue, singleValue);
+            }
+        }
+
+        for (int i = 0; i < options.Items.Count; i++) {
+            PdfObject? optionObject = ResolveObject(objects, options.Items[i]);
+            if (optionObject is PdfArray pair &&
+                pair.Items.Count >= 2 &&
+                TryReadOptionText(objects, pair.Items[0], out string? pairExportValue) &&
+                pairExportValue is not null &&
+                TryReadOptionText(objects, pair.Items[1], out string? pairDisplayText) &&
+                pairDisplayText is not null &&
+                string.Equals(pairDisplayText, value, StringComparison.Ordinal)) {
+                return new ChoiceFillValue(pairExportValue, pairDisplayText);
+            }
+        }
+
+        if (isEditableChoice) {
+            return new ChoiceFillValue(value, value);
+        }
+
+        throw new ArgumentException("PDF choice field value does not match an available option: " + value, nameof(value));
+    }
+
+    private static bool TryReadOptionText(Dictionary<int, PdfIndirectObject> objects, PdfObject value, out string? text) {
+        switch (ResolveObject(objects, value)) {
+            case PdfStringObj stringObj:
+                text = stringObj.Value;
+                return true;
+            case PdfName name:
+                text = name.Name;
+                return true;
+            case PdfNumber number:
+                text = FormatNumber(number.Value);
+                return true;
+            default:
+                text = null;
+                return false;
+        }
     }
 
     private static string FormatNumber(double value) {

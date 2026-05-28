@@ -9,8 +9,10 @@ namespace OfficeIMO.Pdf;
 /// - Lines: plain text lines in top-to-bottom order
 /// - Toc: table-of-contents style rows detected via dotted leaders
 /// - ListItems: bullets and numbered list items
-/// - LeaderRows: generic dotted-leader rows (label + trailing number)
+/// - LeaderRows: generic leader rows (label + trailing value)
 /// - LinesDetailed: line geometry useful for higher-level extraction/debugging
+/// - Headings: heuristic heading lines inferred from larger-than-body font sizes
+/// - Paragraphs: heuristic paragraph groups built from nearby non-list, non-table lines
 /// - Tables: simple rows detected via large X gaps (heuristic)
 /// </summary>
 public sealed class StructuredPage {
@@ -20,12 +22,16 @@ public sealed class StructuredPage {
     public List<(string Title, int Page)> Toc { get; } = new();
     /// <summary>Bullet/numbered list items.</summary>
     public List<string> ListItems { get; } = new();
-    /// <summary>Leader rows split into label and trailing number.</summary>
+    /// <summary>Leader rows split into label and trailing value.</summary>
     public List<string[]> LeaderRows { get; } = new();
     /// <summary>Detected list nodes with hierarchical level.</summary>
     public List<StructuredListItem> ListNodes { get; } = new();
     /// <summary>Per-line geometry details (Y, XStart, XEnd, Text, Spans).</summary>
     public List<StructuredLine> LinesDetailed { get; } = new();
+    /// <summary>Heuristic heading lines inferred from larger-than-body font sizes.</summary>
+    public List<StructuredHeading> Headings { get; } = new();
+    /// <summary>Heuristic paragraph groups built from nearby non-list, non-table lines.</summary>
+    public List<StructuredParagraph> Paragraphs { get; } = new();
     /// <summary>Simple table-like rows derived from large X gaps per line.</summary>
     public List<string[]> Tables { get; } = new();
     /// <summary>Optional horizontal bands (line groups) for diagnostics/structure.</summary>
@@ -52,6 +58,8 @@ public sealed class StructuredListItem {
     public string Marker { get; init; } = string.Empty;
     /// <summary>Normalized text of the list item.</summary>
     public string Text { get; init; } = string.Empty;
+    /// <summary>Line geometry for the source list item.</summary>
+    public StructuredLine Line { get; init; } = new();
 }
 
 /// <summary>Table model with column geometry and extracted rows.</summary>
@@ -95,6 +103,91 @@ public sealed class StructuredTablePage {
     public List<StructuredTable> Tables { get; } = new();
 }
 
+/// <summary>Detected paragraphs for a single document page.</summary>
+public sealed class StructuredParagraphPage {
+    /// <summary>Creates a page paragraph result.</summary>
+    public StructuredParagraphPage(int pageNumber, IEnumerable<StructuredParagraph> paragraphs) {
+        if (pageNumber < 1) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        PageNumber = pageNumber;
+        Paragraphs.AddRange(paragraphs ?? throw new ArgumentNullException(nameof(paragraphs)));
+    }
+
+    /// <summary>1-based page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Detected paragraphs on this page.</summary>
+    public List<StructuredParagraph> Paragraphs { get; } = new();
+}
+
+/// <summary>Detected headings for a single document page.</summary>
+public sealed class StructuredHeadingPage {
+    /// <summary>Creates a page heading result.</summary>
+    public StructuredHeadingPage(int pageNumber, IEnumerable<StructuredHeading> headings) {
+        if (pageNumber < 1) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        PageNumber = pageNumber;
+        Headings.AddRange(headings ?? throw new ArgumentNullException(nameof(headings)));
+    }
+
+    /// <summary>1-based page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Detected headings on this page.</summary>
+    public List<StructuredHeading> Headings { get; } = new();
+}
+
+/// <summary>Detected list items for a single document page.</summary>
+public sealed class StructuredListItemPage {
+    /// <summary>Creates a page list-item result.</summary>
+    public StructuredListItemPage(int pageNumber, IEnumerable<StructuredListItem> listItems) {
+        if (pageNumber < 1) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        PageNumber = pageNumber;
+        ListItems.AddRange(listItems ?? throw new ArgumentNullException(nameof(listItems)));
+    }
+
+    /// <summary>1-based page number.</summary>
+    public int PageNumber { get; }
+
+    /// <summary>Detected list items on this page.</summary>
+    public List<StructuredListItem> ListItems { get; } = new();
+}
+
+/// <summary>Heuristic heading line inferred from font size and geometry.</summary>
+public sealed class StructuredHeading {
+    /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
+    public int Level { get; init; }
+    /// <summary>Heading text.</summary>
+    public string Text { get; init; } = string.Empty;
+    /// <summary>Line geometry for the heading.</summary>
+    public StructuredLine Line { get; init; } = new();
+    /// <summary>Representative font size in points.</summary>
+    public double FontSize { get; init; }
+}
+
+/// <summary>Heuristic paragraph group built from nearby non-list, non-table lines.</summary>
+public sealed class StructuredParagraph {
+    /// <summary>Paragraph text with grouped lines joined by spaces.</summary>
+    public string Text { get; init; } = string.Empty;
+    /// <summary>Line geometry entries that make up the paragraph.</summary>
+    public List<StructuredLine> Lines { get; } = new();
+    /// <summary>Leftmost X coordinate (points).</summary>
+    public double XStart { get; init; }
+    /// <summary>Rightmost X coordinate (points).</summary>
+    public double XEnd { get; init; }
+    /// <summary>Top baseline Y coordinate (points).</summary>
+    public double YTop { get; init; }
+    /// <summary>Bottom baseline Y coordinate (points).</summary>
+    public double YBottom { get; init; }
+}
+
 /// <summary>Geometry detail for a single emitted line.</summary>
 public sealed class StructuredLine {
     /// <summary>Baseline Y coordinate for the line (points from bottom).</summary>
@@ -105,15 +198,18 @@ public sealed class StructuredLine {
     public double XEnd { get; init; }
     /// <summary>Line text.</summary>
     public string Text { get; init; } = string.Empty;
+    /// <summary>Representative font size in points.</summary>
+    public double FontSize { get; init; }
     /// <summary>Number of underlying spans grouped into this line.</summary>
     public int SpanCount { get; init; }
 }
 
 internal static class ContentStructureExtractor {
     private static readonly Regex TocRegex = new Regex(@"^(?<label>.+?)\s*\.{3,}\s+(?<num>\d{1,5})\s*$", RegexOptions.Compiled);
-    private static readonly Regex ListRegex = new Regex(@"^\s*(?:[\u2022\-\*\u25CF]|\d+(?:\.\d+)*[\.)]|\([A-Za-z0-9]+\))\s+", RegexOptions.Compiled);
-    private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)+)[\.)]?\s+(?<text>.+)$", RegexOptions.Compiled);
-    private static readonly Regex BulletRegex = new Regex(@"^\s*(?<mark>[\u2022\-\*\u25CF])\s+(?<text>.+)$", RegexOptions.Compiled);
+    private static readonly Regex LeaderRowRegex = new Regex(@"^(?<label>.+?)(?:\.{3,}|-{3,}|_{3,})\s*(?<value>[$€£]?\s*[A-Za-z0-9][A-Za-z0-9\s.,'/%+\-()]*)\s*$", RegexOptions.Compiled);
+    private static readonly Regex ListRegex = new Regex(@"^\s*(?:[\u2022\u25CF]\s*|[\-\*]\s+|\d+(?:\.\d+)*[\.)]\s*|\([A-Za-z0-9]+\)\s*).+", RegexOptions.Compiled);
+    private static readonly Regex NumberListRegex = new Regex(@"^\s*(?<mark>\d+(?:\.\d+)*)[\.)]\s*(?<text>.+)$", RegexOptions.Compiled);
+    private static readonly Regex BulletRegex = new Regex(@"^\s*(?:(?<mark>[\u2022\u25CF])\s*|(?<mark>[\-\*])\s+)(?<text>.+)$", RegexOptions.Compiled);
     private static readonly Regex ParenRegex = new Regex(@"^\s*\((?<mark>[A-Za-z0-9]+)\)\s+(?<text>.+)$", RegexOptions.Compiled);
     private static readonly HashSet<string> CommonSuffixes = new(StringComparer.OrdinalIgnoreCase) {
         "ion", "ions", "ing", "ment", "tion", "sion", "iation", "ization",
@@ -123,19 +219,14 @@ internal static class ContentStructureExtractor {
 
     public static StructuredPage Extract(IReadOnlyList<PdfTextSpan> spans, TextLayoutEngine.Options opts) {
         var page = new StructuredPage();
+        var fallbackTableLines = new HashSet<TextLayoutEngine.TextLine>();
         var lines = TextLayoutEngine.BuildLines(spans, opts);
         var nonEmpty = new List<TextLayoutEngine.TextLine>();
         foreach (var ln in lines) if (!string.IsNullOrWhiteSpace(ln.Text)) nonEmpty.Add(ln);
         var bands = TextLayoutEngine.BandLines(nonEmpty, opts);
         // Fill detailed geometry first
         foreach (var ln in lines) {
-            page.LinesDetailed.Add(new StructuredLine {
-                Y = ln.Y,
-                XStart = ln.XStart,
-                XEnd = ln.XEnd,
-                Text = ln.Text,
-                SpanCount = ln.Spans.Count
-            });
+            page.LinesDetailed.Add(ToStructuredLine(ln));
         }
         // Then semantic classification
         foreach (var ln in lines) {
@@ -146,7 +237,7 @@ internal static class ContentStructureExtractor {
             if (mToc.Success && int.TryParse(mToc.Groups["num"].Value, out int num)) {
                 var label = NormalizeShattered(mToc.Groups["label"].Value.TrimEnd('.').Trim());
                 page.Toc.Add((label, num));
-                page.LeaderRows.Add(new [] { label, num.ToString(System.Globalization.CultureInfo.InvariantCulture) });
+                AddLeaderRow(page, label, num.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 continue;
             }
             if (ListRegex.IsMatch(t)) {
@@ -155,25 +246,23 @@ internal static class ContentStructureExtractor {
                 if (mNum.Success) {
                     string mark = mNum.Groups["mark"].Value;
                     int level = Math.Max(1, mark.Count(c => c == '.') + 1);
-                    page.ListNodes.Add(new StructuredListItem { Level = level, Marker = mark, Text = mNum.Groups["text"].Value.Trim() });
+                    page.ListNodes.Add(new StructuredListItem { Level = level, Marker = mark, Text = mNum.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
                 } else {
                     var mBul = BulletRegex.Match(t);
-                    if (mBul.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = mBul.Groups["mark"].Value, Text = mBul.Groups["text"].Value.Trim() });
+                    if (mBul.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = mBul.Groups["mark"].Value, Text = mBul.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
                     else {
                         var mPar = ParenRegex.Match(t);
-                        if (mPar.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = "(" + mPar.Groups["mark"].Value + ")", Text = mPar.Groups["text"].Value.Trim() });
+                        if (mPar.Success) page.ListNodes.Add(new StructuredListItem { Level = 1, Marker = "(" + mPar.Groups["mark"].Value + ")", Text = mPar.Groups["text"].Value.Trim(), Line = ToStructuredLine(ln) });
                     }
                 }
             }
             else {
-                // generic leader split: last whitespace + digits, after 3+ dots
-                int dots = t.LastIndexOf("...", System.StringComparison.Ordinal);
-                if (dots > 0) {
-                    int k = t.Length - 1; while (k >= 0 && char.IsDigit(t[k])) k--; int numStart = k + 1;
-                    if (numStart > 0 && numStart < t.Length && TryParsePositiveIntTail(t, numStart, out int n2)) {
-                        var left = NormalizeShattered(t.Substring(0, numStart).TrimEnd('.', ' ').Trim());
-                        var right = t.Substring(numStart);
-                        page.LeaderRows.Add(new [] { left, right });
+                var mLeader = LeaderRowRegex.Match(t);
+                if (mLeader.Success) {
+                    var value = NormalizeLeaderValue(mLeader.Groups["value"].Value);
+                    if (value.Length > 0) {
+                        var left = NormalizeShattered(mLeader.Groups["label"].Value.TrimEnd('.', '-', '_', ' ').Trim());
+                        AddLeaderRow(page, left, value);
                     }
                 }
             }
@@ -195,11 +284,11 @@ internal static class ContentStructureExtractor {
                 if (string.Equals(t.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
                     for (int r = 0; r < t.Rows.Count; r++) if (t.Rows[r].Length >= 2) {
                         t.Rows[r][0] = NormalizeShattered(t.Rows[r][0]);
-                        t.Rows[r][1] = t.Rows[r][1].Trim('.');
+                        t.Rows[r][1] = NormalizeLeaderValue(t.Rows[r][1]);
                     }
                     // add only to detailed + LeaderRows; do NOT mix into generic Tables
                     page.TablesDetailed.Add(t);
-                    foreach (var r in t.Rows) page.LeaderRows.Add(new[] { r[0], r[1] });
+                    foreach (var r in t.Rows) AddLeaderRow(page, r[0], r[1]);
                     continue;
                 }
                 // Clean generic band/group tables to remove micro-token shattering and dot runs
@@ -227,20 +316,257 @@ internal static class ContentStructureExtractor {
                 if (string.Equals(leaderTbl.Kind, "leaders", StringComparison.OrdinalIgnoreCase)) {
                     for (int r = 0; r < leaderTbl.Rows.Count; r++) if (leaderTbl.Rows[r].Length >= 2) {
                         leaderTbl.Rows[r][0] = NormalizeShattered(leaderTbl.Rows[r][0]);
-                        leaderTbl.Rows[r][1] = leaderTbl.Rows[r][1].Trim('.');
+                        leaderTbl.Rows[r][1] = NormalizeLeaderValue(leaderTbl.Rows[r][1]);
                     }
                 }
                 page.TablesDetailed.Add(leaderTbl);
-                foreach (var r in leaderTbl.Rows) page.LeaderRows.Add(new [] { r[0], r[1] });
+                foreach (var r in leaderTbl.Rows) AddLeaderRow(page, r[0], r[1]);
             } else {
-                var rows = TableDetector.Detect(lines);
+                var rows = TableDetector.DetectLineRows(lines);
                 if (rows.Count > 0) {
-                    foreach (var r in rows) if (r.Length >= 2) { r[0] = NormalizeShattered(r[0]); r[1] = r[1].Trim('.'); }
-                    page.Tables.AddRange(rows);
+                    foreach (var row in rows) {
+                        var r = row.Cells;
+                        if (r.Length >= 2) {
+                            r[0] = NormalizeShattered(r[0]);
+                            r[1] = r[1].Trim('.');
+                        }
+
+                        fallbackTableLines.Add(row.Line);
+                        page.Tables.Add(r);
+                    }
                 }
             }
         }
+        AddHeadings(page, nonEmpty);
+        AddParagraphs(page, nonEmpty, fallbackTableLines);
         return page;
+    }
+
+    private static void AddParagraphs(StructuredPage page, List<TextLayoutEngine.TextLine> lines, HashSet<TextLayoutEngine.TextLine> fallbackTableLines) {
+        var candidates = new List<TextLayoutEngine.TextLine>();
+        foreach (var line in lines) {
+            string text = line.Text.Trim();
+            if (text.Length == 0 ||
+                ListRegex.IsMatch(text) ||
+                IsHeadingLine(line, page.Headings) ||
+                fallbackTableLines.Contains(line) ||
+                IsInsideTable(line, page.TablesDetailed)) {
+                continue;
+            }
+
+            candidates.Add(line);
+        }
+
+        if (candidates.Count == 0) {
+            return;
+        }
+
+        var gaps = new List<double>();
+        for (int i = 1; i < candidates.Count; i++) {
+            double gap = candidates[i - 1].Y - candidates[i].Y;
+            if (gap > 0.001) {
+                gaps.Add(gap);
+            }
+        }
+
+        double medianGap = Median(gaps);
+        double splitGap = medianGap <= 0 ? 18D : Math.Max(18D, medianGap * 1.35D);
+        double xTolerance = 18D;
+        var current = new List<TextLayoutEngine.TextLine> { candidates[0] };
+
+        for (int i = 1; i < candidates.Count; i++) {
+            var previous = candidates[i - 1];
+            var next = candidates[i];
+            double gap = previous.Y - next.Y;
+            bool split = gap > splitGap || Math.Abs(next.XStart - current[0].XStart) > xTolerance;
+            if (split) {
+                page.Paragraphs.Add(BuildParagraph(current));
+                current = new List<TextLayoutEngine.TextLine>();
+            }
+
+            current.Add(next);
+        }
+
+        if (current.Count > 0) {
+            page.Paragraphs.Add(BuildParagraph(current));
+        }
+    }
+
+    private static StructuredParagraph BuildParagraph(List<TextLayoutEngine.TextLine> lines) {
+        var paragraph = new StructuredParagraph {
+            Text = string.Join(" ", lines.Select(line => line.Text.Trim())),
+            XStart = lines.Min(line => line.XStart),
+            XEnd = lines.Max(line => line.XEnd),
+            YTop = lines.Max(line => line.Y),
+            YBottom = lines.Min(line => line.Y)
+        };
+
+        for (int i = 0; i < lines.Count; i++) {
+            var line = lines[i];
+            paragraph.Lines.Add(new StructuredLine {
+                Y = line.Y,
+                XStart = line.XStart,
+                XEnd = line.XEnd,
+                Text = line.Text,
+                FontSize = GetLineFontSize(line),
+                SpanCount = line.Spans.Count
+            });
+        }
+
+        return paragraph;
+    }
+
+    private static void AddHeadings(StructuredPage page, List<TextLayoutEngine.TextLine> lines) {
+        var bodySizes = new List<double>();
+        foreach (var line in lines) {
+            string text = line.Text.Trim();
+            if (text.Length == 0 ||
+                ListRegex.IsMatch(text) ||
+                IsInsideTable(line, page.TablesDetailed)) {
+                continue;
+            }
+
+            bodySizes.Add(GetLineFontSize(line));
+        }
+
+        double bodySize = EstimateBodyFontSize(bodySizes);
+        if (bodySize <= 0) {
+            return;
+        }
+
+        foreach (var line in lines) {
+            string text = line.Text.Trim();
+            if (text.Length == 0 ||
+                text.Length > 160 ||
+                ListRegex.IsMatch(text) ||
+                IsInsideTable(line, page.TablesDetailed)) {
+                continue;
+            }
+
+            double fontSize = GetLineFontSize(line);
+            if (fontSize < Math.Max(bodySize + 1.5D, bodySize * 1.18D)) {
+                continue;
+            }
+
+            var structuredLine = new StructuredLine {
+                Y = line.Y,
+                XStart = line.XStart,
+                XEnd = line.XEnd,
+                Text = text,
+                FontSize = fontSize,
+                SpanCount = line.Spans.Count
+            };
+            page.Headings.Add(new StructuredHeading {
+                Level = GetHeadingLevel(fontSize, bodySize),
+                Text = text,
+                Line = structuredLine,
+                FontSize = fontSize
+            });
+        }
+    }
+
+    private static int GetHeadingLevel(double fontSize, double bodySize) {
+        if (fontSize >= bodySize * 1.65D) {
+            return 1;
+        }
+
+        if (fontSize >= bodySize * 1.35D) {
+            return 2;
+        }
+
+        return 3;
+    }
+
+    private static double EstimateBodyFontSize(List<double> fontSizes) {
+        if (fontSizes.Count == 0) {
+            return 0D;
+        }
+
+        fontSizes.Sort();
+        int index = Math.Max(0, (int)Math.Floor((fontSizes.Count - 1) * 0.35D));
+        return fontSizes[index];
+    }
+
+    private static bool IsHeadingLine(TextLayoutEngine.TextLine line, List<StructuredHeading> headings) {
+        for (int i = 0; i < headings.Count; i++) {
+            var heading = headings[i];
+            if (Math.Abs(heading.Line.Y - line.Y) <= 0.001 &&
+                Math.Abs(heading.Line.XStart - line.XStart) <= 0.001 &&
+                string.Equals(heading.Text, line.Text.Trim(), StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static double GetLineFontSize(TextLayoutEngine.TextLine line) {
+        double fontSize = 0D;
+        for (int i = 0; i < line.Spans.Count; i++) {
+            fontSize = Math.Max(fontSize, line.Spans[i].FontSize);
+        }
+
+        return fontSize;
+    }
+
+    private static StructuredLine ToStructuredLine(TextLayoutEngine.TextLine line) {
+        return new StructuredLine {
+            Y = line.Y,
+            XStart = line.XStart,
+            XEnd = line.XEnd,
+            Text = line.Text,
+            FontSize = GetLineFontSize(line),
+            SpanCount = line.Spans.Count
+        };
+    }
+
+    private static bool IsInsideTable(TextLayoutEngine.TextLine line, List<StructuredTable> tables) {
+        for (int i = 0; i < tables.Count; i++) {
+            var table = tables[i];
+            if (table.Columns.Count == 0) {
+                continue;
+            }
+
+            if (line.Y <= table.YTop + 0.001 &&
+                line.Y >= table.YBottom - 0.001 &&
+                line.XEnd >= table.Columns[0].From - 2D) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static double Median(List<double> values) {
+        if (values.Count == 0) {
+            return 0D;
+        }
+
+        values.Sort();
+        int middle = values.Count / 2;
+        if ((values.Count & 1) == 1) {
+            return values[middle];
+        }
+
+        return (values[middle - 1] + values[middle]) / 2D;
+    }
+
+    private static void AddLeaderRow(StructuredPage page, string label, string value) {
+        label = NormalizeShattered(label ?? string.Empty).Trim();
+        value = NormalizeLeaderValue(value);
+        if (label.Length == 0 || value.Length == 0) {
+            return;
+        }
+
+        foreach (var row in page.LeaderRows) {
+            if (row.Length >= 2 &&
+                string.Equals(row[0], label, StringComparison.Ordinal) &&
+                string.Equals(row[1], value, StringComparison.Ordinal)) {
+                return;
+            }
+        }
+
+        page.LeaderRows.Add(new[] { label, value });
     }
 
     private static bool IsWordish(char c) => char.IsLetter(c) || c == '\'' || c == '-' || c == '/';
@@ -293,18 +619,24 @@ internal static class ContentStructureExtractor {
         return joined;
     }
 
-    private static bool TryParsePositiveIntTail(string text, int startIndex, out int value) {
-        value = 0;
-        if (string.IsNullOrEmpty(text)) return false;
-        if (startIndex < 0 || startIndex >= text.Length) return false;
-
-        for (int i = startIndex; i < text.Length; i++) {
-            var c = text[i];
-            if (c < '0' || c > '9') return false;
-            var digit = c - '0';
-            if (value > ((int.MaxValue - digit) / 10)) return false;
-            value = (value * 10) + digit;
+    private static string NormalizeLeaderValue(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return string.Empty;
         }
-        return true;
+
+        string normalized = Regex.Replace(value!.Trim(), "\\s+", " ");
+        normalized = Regex.Replace(normalized, "\\s*([.,])\\s*", "$1");
+        normalized = Regex.Replace(normalized, "([$€£])\\s+", "$1");
+        normalized = normalized.Trim('.');
+
+        bool hasDigit = false;
+        for (int i = 0; i < normalized.Length; i++) {
+            if (char.IsDigit(normalized[i])) {
+                hasDigit = true;
+                break;
+            }
+        }
+
+        return hasDigit ? normalized : string.Empty;
     }
 }

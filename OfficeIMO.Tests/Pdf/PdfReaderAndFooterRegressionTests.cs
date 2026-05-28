@@ -219,12 +219,228 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void TextContentParser_UsesTwoByteCid_WhenWidthEvidenceIdentifiesCidGlyphs() {
+        const string content = "BT /F1 12 Tf 0 0 Td <01000101> Tj ET";
+
+        var spans = TextContentParser.Parse(
+            content,
+            static (_, bytes) => DecodeSyntheticCid(bytes),
+            static (_, bytes) => MeasureSyntheticCid(bytes));
+
+        PdfTextSpan span = Assert.Single(spans);
+        Assert.Equal("AB", span.Text);
+        Assert.Equal(12, span.Advance, 3);
+
+        static string DecodeSyntheticCid(byte[] bytes) {
+            if (bytes.Length == 1) {
+                return ((char)bytes[0]).ToString();
+            }
+
+            if (bytes.Length == 2 && bytes[0] == 0x01) {
+                if (bytes[1] == 0x00) return "A";
+                if (bytes[1] == 0x01) return "B";
+            }
+
+            return string.Empty;
+        }
+
+        static double MeasureSyntheticCid(byte[] bytes) {
+            if (bytes.Length != 2 || bytes[0] != 0x01) {
+                return 0;
+            }
+
+            return bytes[1] == 0x00 ? 600 : 400;
+        }
+    }
+
+    [Fact]
+    public void TextContentParser_RestoresTextStateAcrossGraphicsStateStack() {
+        const string content = "BT /F1 10 Tf 0 0 Td (A) Tj ET q BT /F2 20 Tf 10 Tc 50 Tz 5 Ts 10 0 Td (B) Tj ET Q BT 20 0 Td (C) Tj ET";
+
+        var spans = TextContentParser.Parse(
+            content,
+            static (_, bytes) => Encoding.ASCII.GetString(bytes),
+            static (font, bytes) => font == "F2" ? (bytes?.Length ?? 0) * 1000 : (bytes?.Length ?? 0) * 500);
+
+        PdfTextSpan first = Assert.Single(spans, span => span.Text == "A");
+        PdfTextSpan scoped = Assert.Single(spans, span => span.Text == "B");
+        PdfTextSpan restored = Assert.Single(spans, span => span.Text == "C");
+
+        Assert.Equal("F1", first.FontResource);
+        Assert.Equal(10, first.FontSize);
+        Assert.Equal(5, first.Advance, 3);
+
+        Assert.Equal("F2", scoped.FontResource);
+        Assert.Equal(20, scoped.FontSize);
+        Assert.Equal(5, scoped.Y, 3);
+
+        Assert.Equal("F1", restored.FontResource);
+        Assert.Equal(10, restored.FontSize);
+        Assert.Equal(20, restored.X, 3);
+        Assert.Equal(0, restored.Y, 3);
+        Assert.Equal(5, restored.Advance, 3);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_UsesMarkedContentActualText() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Span << /ActualText <FEFF005A00650064> >> BDC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
+            "EMC\n");
+
+        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("Zed", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.Equal(PdfWriter.EstimateSimpleTextWidth("X", PdfStandardFont.Helvetica, 12), span.Advance, 3);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsLittleEndianMarkedContentActualText() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Span << /ActualText <FFFE5A0065006400> >> BDC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
+            "EMC\n");
+
+        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("Zed", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.Equal(PdfWriter.EstimateSimpleTextWidth("X", PdfStandardFont.Helvetica, 12), span.Advance, 3);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsUtf8MarkedContentActualText() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Span << /ActualText <EFBBBF5A6564> >> BDC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
+            "EMC\n");
+
+        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("Zed", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.Equal(PdfWriter.EstimateSimpleTextWidth("X", PdfStandardFont.Helvetica, 12), span.Advance, 3);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ResolvesMarkedContentActualTextFromPropertiesResource() {
+        byte[] bytes = BuildSingleStreamPdfWithMarkedContentProperties(
+            "/Span /MC0 BDC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(X) Tj\nET\n" +
+            "EMC\n");
+
+        var span = Assert.Single(PdfReadDocument.Load(bytes).Pages[0].GetTextSpans());
+
+        Assert.Equal("Resource Zed", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.Equal(PdfWriter.EstimateSimpleTextWidth("X", PdfStandardFont.Helvetica, 12), span.Advance, 3);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_HonorsEmptyMarkedContentActualText() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Span << /ActualText <> >> BDC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Decorative glyph text) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
+
+        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var span = Assert.Single(page.GetTextSpans());
+
+        Assert.Equal("Body text", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.DoesNotContain("Decorative glyph text", page.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_HonorsEmptyMarkedContentActualTextFromPropertiesResource() {
+        byte[] bytes = BuildSingleStreamPdfWithMarkedContentProperties(
+            "/Span /MC0 BDC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Decorative resource text) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n",
+            "<>");
+
+        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var span = Assert.Single(page.GetTextSpans());
+
+        Assert.Equal("Body text", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.DoesNotContain("Decorative resource text", page.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_IgnoresArtifactMarkedContent() {
+        byte[] bytes = BuildSingleStreamPdf(
+            "/Artifact BMC\n" +
+            "BT\n/F1 12 Tf\n72 760 Td\n(Decorative header) Tj\nET\n" +
+            "EMC\n" +
+            "BT\n/F1 12 Tf\n72 720 Td\n(Body text) Tj\nET\n");
+
+        var page = PdfReadDocument.Load(bytes).Pages[0];
+        var span = Assert.Single(page.GetTextSpans());
+
+        Assert.Equal("Body text", span.Text);
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.DoesNotContain("Decorative header", page.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsSimpleFontEncodingDifferences() {
+        byte[] bytes = BuildPdfWithFontEncodingDifferences();
+
+        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans();
+
+        var span = Assert.Single(spans, item => item.Text == "Z \u20AC\u0104A");
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
+        Assert.Equal(PdfWriter.EstimateSimpleTextWidth("Z \u20AC\u0104A", PdfStandardFont.Helvetica, 12), span.Advance, 3);
+    }
+
+    [Fact]
+    public void TextContentParser_AdvancesRunsThroughActiveTextMatrix() {
+        const string content = "BT /F1 10 Tf 2 0 0 2 10 20 Tm (A) Tj (B) Tj ET";
+
+        var spans = TextContentParser.Parse(
+            content,
+            static (_, bytes) => Encoding.ASCII.GetString(bytes),
+            static (_, bytes) => (bytes?.Length ?? 0) * 1000);
+
+        PdfTextSpan first = Assert.Single(spans, span => span.Text == "A");
+        PdfTextSpan second = Assert.Single(spans, span => span.Text == "B");
+        Assert.Equal(10, first.X, 3);
+        Assert.Equal(20, first.Y, 3);
+        Assert.Equal(20, first.Advance, 3);
+        Assert.Equal(30, second.X, 3);
+        Assert.Equal(20, second.Y, 3);
+    }
+
+    [Fact]
     public void PdfTextExtractor_ExtractAllText_ReadsPagesWithContentStreamArrays() {
         byte[] bytes = BuildPdfWithContentStreamArray();
 
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
         Assert.Contains("Hello world", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_PreservesTextStateAcrossContentStreamArrays() {
+        byte[] bytes = BuildPdfWithSplitTextStateContentStreamArray();
+
+        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans();
+
+        var span = Assert.Single(spans, item => item.Text == "Split state");
+        Assert.Equal(72, span.X, 3);
+        Assert.Equal(720, span.Y, 3);
     }
 
     [Fact]
@@ -315,7 +531,7 @@ public class PdfReaderAndFooterRegressionTests {
 
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
-        Assert.Contains("Hello world", text, StringComparison.Ordinal);
+        Assert.Matches("Hello\\s+world", text);
     }
 
     [Fact]
@@ -324,7 +540,57 @@ public class PdfReaderAndFooterRegressionTests {
 
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
-        Assert.Contains("Hello world", text, StringComparison.Ordinal);
+        Assert.Matches("Hello\\s+world", text);
+    }
+
+    [Fact]
+    public void PdfReadDocument_ExtractText_TreatsDoubleQuoteOperatorAsLineAdvance() {
+        byte[] bytes = BuildPdfWithDoubleQuoteLineAdvanceOperator();
+
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Matches("First\\r?\\nSecond", text);
+        Assert.DoesNotContain("FirstSecond", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_TreatsQuoteOperatorsAsLineAdvance() {
+        byte[] singleQuote = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n(Second) '\nET\n");
+        byte[] doubleQuote = BuildPdfWithDoubleQuoteLineAdvanceOperator();
+
+        Assert.Matches("First\\r?\\nSecond", PdfTextExtractor.ExtractAllText(singleQuote));
+        Assert.Matches("First\\r?\\nSecond", PdfTextExtractor.ExtractAllText(doubleQuote));
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ResetsXForLineAdvanceOperators() {
+        byte[] tStar = BuildSingleStreamPdf("BT\n/F1 12 Tf\n14 TL\n72 720 Td\n(First) Tj\nT*\n(Second) Tj\nET\n");
+        byte[] td = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n0 -14 Td\n(Second) Tj\nET\n");
+        byte[] singleQuote = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n(Second) '\nET\n");
+        byte[] doubleQuote = BuildPdfWithDoubleQuoteLineAdvanceOperator();
+
+        AssertSecondLineStartsAtFirstLineX(tStar);
+        AssertSecondLineStartsAtFirstLineX(td);
+        AssertSecondLineStartsAtFirstLineX(singleQuote);
+        AssertSecondLineStartsAtFirstLineX(doubleQuote);
+    }
+
+    [Fact]
+    public void PdfReadPage_ExtractStructured_HonorsHeaderFooterIgnoreBands() {
+        byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n1 0 0 1 72 760 Tm\n(Header line) Tj\n1 0 0 1 72 400 Tm\n(Body line) Tj\n1 0 0 1 72 30 Tm\n(Footer line) Tj\nET\n");
+
+        var page = PdfReadDocument.Load(bytes).Pages[0].ExtractStructured(new PdfTextLayoutOptions {
+            IgnoreHeaderHeight = 60,
+            IgnoreFooterHeight = 60,
+            ForceSingleColumn = true
+        });
+
+        Assert.Contains("Body line", page.Lines);
+        Assert.DoesNotContain("Header line", page.Lines);
+        Assert.DoesNotContain("Footer line", page.Lines);
+        Assert.Contains(page.LinesDetailed, line => line.Text == "Body line");
+        Assert.DoesNotContain(page.LinesDetailed, line => line.Text == "Header line");
+        Assert.DoesNotContain(page.LinesDetailed, line => line.Text == "Footer line");
     }
 
     [Fact]
@@ -392,7 +658,17 @@ public class PdfReaderAndFooterRegressionTests {
 
         string text = PdfTextExtractor.ExtractAllText(bytes);
 
-        Assert.Contains("Hello world", text, StringComparison.Ordinal);
+        Assert.Contains("Helloworld", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_ReadsEscapedLiteralStrings() {
+        byte[] bytes = BuildSingleStreamPdf("BT\n/F1 12 Tf\n72 720 Td\n(Hello\\040octal\\041) Tj\n( Line\\nbreak) Tj\nET\n");
+
+        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans();
+
+        Assert.Contains(spans, span => span.Text == "Hello octal!");
+        Assert.Contains(spans, span => span.Text == "Line break");
     }
 
     [Fact]
@@ -602,6 +878,18 @@ public class PdfReaderAndFooterRegressionTests {
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Nested form");
         Assert.Equal(120, span.X, 3);
         Assert.Equal(232, span.Y, 3);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
+        byte[] bytes = BuildPdfWithScaledFormMatrix();
+
+        var doc = PdfReadDocument.Load(bytes);
+
+        Assert.Single(doc.Pages);
+        var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Scaled form");
+        Assert.Equal(26, span.X, 3);
+        Assert.Equal(42, span.Y, 3);
     }
 
     [Fact]
@@ -1047,8 +1335,48 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     private static byte[] BuildPdfWithContentStreamArray() {
-        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET\n";
-        const string streamTwo = "BT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET\n";
+        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET";
+        const string streamTwo = "\nBT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET";
+        int streamOneLength = Encoding.ASCII.GetByteCount(streamOne);
+        int streamTwoLength = Encoding.ASCII.GetByteCount(streamTwo);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents [5 0 R 6 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {streamOneLength} >>",
+            "stream",
+            streamOne.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Length {streamTwoLength} >>",
+            "stream",
+            streamTwo.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithSplitTextStateContentStreamArray() {
+        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td";
+        const string streamTwo = "\n(Split state) Tj\nET";
         int streamOneLength = Encoding.ASCII.GetByteCount(streamOne);
         int streamTwoLength = Encoding.ASCII.GetByteCount(streamTwo);
 
@@ -1157,8 +1485,8 @@ public class PdfReaderAndFooterRegressionTests {
     }
 
     private static byte[] BuildPdfWithIndirectContentArrayObject() {
-        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET\n";
-        const string streamTwo = "BT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET\n";
+        const string streamOne = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\nET";
+        const string streamTwo = "\nBT\n/F1 12 Tf\n72 720 Td\n( world) Tj\nET";
         int streamOneLength = Encoding.ASCII.GetByteCount(streamOne);
         int streamTwoLength = Encoding.ASCII.GetByteCount(streamTwo);
 
@@ -1398,6 +1726,15 @@ public class PdfReaderAndFooterRegressionTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static void AssertSecondLineStartsAtFirstLineX(byte[] bytes) {
+        var spans = PdfReadDocument.Load(bytes).Pages[0].GetTextSpans().ToArray();
+        PdfTextSpan first = Assert.Single(spans, span => span.Text == "First");
+        PdfTextSpan second = Assert.Single(spans, span => span.Text == "Second");
+
+        Assert.Equal(first.X, second.X, 2);
+        Assert.True(second.Y < first.Y, $"Expected second line Y {second.Y} to be below first line Y {first.Y}.");
+    }
+
     private static byte[] BuildPdfWithSingleQuoteOperator() {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\n( world) '\nET\n";
         return BuildSingleStreamPdf(streamContent);
@@ -1405,6 +1742,11 @@ public class PdfReaderAndFooterRegressionTests {
 
     private static byte[] BuildPdfWithDoubleQuoteOperator() {
         const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(Hello) Tj\n0 0 ( world) \"\nET\n";
+        return BuildSingleStreamPdf(streamContent);
+    }
+
+    private static byte[] BuildPdfWithDoubleQuoteLineAdvanceOperator() {
+        const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n(First) Tj\n0 0 (Second) \"\nET\n";
         return BuildSingleStreamPdf(streamContent);
     }
 
@@ -1521,6 +1863,70 @@ public class PdfReaderAndFooterRegressionTests {
 
     private static byte[] BuildSingleStreamPdf(string streamContent) {
         return BuildSingleStreamPdf(Encoding.ASCII.GetBytes(streamContent.TrimEnd('\n')));
+    }
+
+    private static byte[] BuildSingleStreamPdfWithMarkedContentProperties(string streamContent, string actualTextPdfString = "<FEFF005200650073006F00750072006300650020005A00650064>") {
+        streamContent = streamContent.TrimEnd('\n');
+        int streamLength = Encoding.ASCII.GetByteCount(streamContent);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
+            "endobj",
+            "3 0 obj",
+            $"<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> /Properties << /MC0 << /ActualText {actualTextPdfString} >> >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {streamLength} >>",
+            "stream",
+            streamContent,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithFontEncodingDifferences() {
+        const string streamContent = "BT\n/F1 12 Tf\n72 720 Td\n<4142434445> Tj\nET\n";
+        int streamLength = Encoding.ASCII.GetByteCount(streamContent);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding << /BaseEncoding /WinAnsiEncoding /Differences [65 /Z /space /Euro /uni0104 /A.alt] >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {streamLength} >>",
+            "stream",
+            streamContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] BuildSingleStreamPdf(byte[] streamBytes, string extraStreamDictionaryEntries = "") {
@@ -1942,6 +2348,58 @@ public class PdfReaderAndFooterRegressionTests {
             "<< /FxInner 6 0 R >>",
             "endobj",
             "13 0 obj",
+            "<< /F1 4 0 R >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithScaledFormMatrix() {
+        const string pageContent = "q\n2 0 0 2 10 20 cm\n/Fx Do\nQ\n";
+        const string formContent = "BT\n/F1 12 Tf\n3 4 Td\n(Scaled form) Tj\nET\n";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int formStreamLength = Encoding.ASCII.GetByteCount(formContent);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 7 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 6 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Matrix [1 0 0 1 5 7] /Resources 9 0 R /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /XObject 8 0 R >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Fx 5 0 R >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Font 10 0 R >>",
+            "endobj",
+            "10 0 obj",
             "<< /F1 4 0 R >>",
             "endobj",
             "trailer",

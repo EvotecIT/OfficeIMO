@@ -144,6 +144,33 @@ public readonly struct PdfPageRange : System.IEquatable<PdfPageRange> {
         return pages;
     }
 
+    internal static int[] ExpandMany(PdfPageRange[]? pageRanges, int pageCount, string paramName) {
+        if (pageRanges is null) {
+            throw new System.ArgumentNullException(paramName);
+        }
+
+        if (pageRanges.Length == 0) {
+            throw new System.ArgumentException("At least one page range must be specified.", paramName);
+        }
+
+        var pages = new System.Collections.Generic.List<int>();
+        for (int i = 0; i < pageRanges.Length; i++) {
+            if (pageRanges[i].FirstPage < 1 || pageRanges[i].LastPage < pageRanges[i].FirstPage) {
+                throw new System.ArgumentOutOfRangeException(paramName, "Page ranges must be inclusive one-based ranges.");
+            }
+
+            if (pageRanges[i].LastPage > pageCount) {
+                throw new System.ArgumentOutOfRangeException(paramName, "Page range cannot exceed the document page count.");
+            }
+
+            for (int pageNumber = pageRanges[i].FirstPage; pageNumber <= pageRanges[i].LastPage; pageNumber++) {
+                pages.Add(pageNumber);
+            }
+        }
+
+        return pages.ToArray();
+    }
+
     /// <summary>
     /// Compares two page ranges for equality.
     /// </summary>

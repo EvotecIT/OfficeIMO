@@ -40,6 +40,7 @@ public class PdfDocRasterVisualBaselineTests {
     [InlineData("table-style-gallery")]
     [InlineData("default-styles")]
     [InlineData("styled-runs")]
+    [InlineData("tabs-leaders")]
     [InlineData("drawing-gallery")]
     [InlineData("row-columns")]
     [InlineData("showcase-dashboard")]
@@ -147,6 +148,8 @@ public class PdfDocRasterVisualBaselineTests {
                 return CreateDefaultStyles();
             case "styled-runs":
                 return CreateStyledRuns();
+            case "tabs-leaders":
+                return CreateTabsLeaders();
             case "drawing-gallery":
                 return CreateDrawingGallery();
             case "row-columns":
@@ -357,6 +360,64 @@ public class PdfDocRasterVisualBaselineTests {
                 .Color(PdfColor.FromRgb(22, 101, 52)).Text("healthy ")
                 .Color(PdfColor.FromRgb(31, 41, 55)).Text("normal."))
             .Paragraph(p => p.Text("End of styled runs sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
+            .ToBytes();
+    }
+
+    private static byte[] CreateTabsLeaders() {
+        return PdfDoc.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10,
+                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf tabs and leaders",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true,
+                DefaultParagraphStyle = new PdfParagraphStyle {
+                    DefaultTabStopWidth = 252,
+                    LineHeight = 1.18,
+                    SpacingAfter = 4
+                }
+            })
+            .Meta(title: "OfficeIMO.Pdf Tabs and Leaders", author: "OfficeIMO")
+            .H1("Tabs and Leaders", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+            .Paragraph(p => p.Text("A compact visual gate for Word-like paragraph tabs, leader styles, and structured readback rhythm."))
+            .HR(style: new PdfHorizontalRuleStyle {
+                Color = PdfColor.FromRgb(183, 194, 207),
+                Thickness = 0.8,
+                SpacingBefore = 6,
+                SpacingAfter = 8
+            })
+            .Paragraph(p => p.Bold("Revenue").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("128 450"))
+            .Paragraph(p => p.Text("Operating cost").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("84 210"))
+            .Paragraph(p => p.Text("Margin").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right).Text("44 240"))
+            .Paragraph(p => p.Text("Tax rate").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("8.50"))
+            .Paragraph(p => p.Text("Total").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.DecimalSeparator).Text("1450.75"))
+            .Paragraph(p => p.Text("Milestone").Tab(PdfTabLeaderStyle.Hyphens, PdfTabAlignment.Right).Text("Q4"))
+            .Paragraph(p => p.Text("Signature").Tab(PdfTabLeaderStyle.Underscores, PdfTabAlignment.Left).Text("approved"))
+            .Spacer(4)
+            .Paragraph(p => p.Text("Left label").Tab().Text("plain tab").Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Center).Text("center"),
+                style: new PdfParagraphStyle {
+                    DefaultTabStopWidth = 144,
+                    SpacingBefore = 4,
+                    SpacingAfter = 2
+                })
+            .PanelParagraph(
+                p => p.Text("Tab leaders are paragraph primitives, not invoice-specific rendering. Dotted value rows should align while remaining extractable as leader rows."),
+                new PanelStyle {
+                    Background = PdfColor.FromRgb(248, 250, 252),
+                    BorderColor = PdfColor.FromRgb(183, 194, 207),
+                    PaddingX = 9,
+                    PaddingY = 7,
+                    SpacingBefore = 10,
+                    SpacingAfter = 8
+                })
+            .Paragraph(p => p.Text("End of tabs and leaders sample."), PdfAlign.Right, PdfColor.FromRgb(80, 80, 80))
             .ToBytes();
     }
 
@@ -848,8 +909,7 @@ public class PdfDocRasterVisualBaselineTests {
     private static byte[] CreateTableStyleGallery() {
         var rows = new[] {
             new[] { "Signal", "State", "Notes" },
-            new[] { "Header", "Repeated", "The first row should stay readable without relying on a domain-specific preset." },
-            new[] { "Flow", "Generic", "Borders, row separators, and spacing should reveal the preset shape at raster level." }
+            new[] { "Flow", "Generic", "Borders and row separators should reveal each preset shape at raster level." }
         };
 
         PdfDoc doc = PdfDoc.Create(new PdfOptions {
@@ -871,7 +931,15 @@ public class PdfDocRasterVisualBaselineTests {
             .H1("Table Style Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
             .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."));
 
-        foreach (string styleName in TableStyles.SupportedWordStyleNames) {
+        string[] visualStyleNames = {
+            "TableGrid",
+            "TableGridLight",
+            "PlainTable1",
+            "GridTable1Light",
+            "ListTable1Light"
+        };
+
+        foreach (string styleName in visualStyleNames) {
             PdfTableStyle style = TableStyles.FromWordTableStyle(styleName);
             style.Caption = styleName;
             style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
@@ -890,7 +958,55 @@ public class PdfDocRasterVisualBaselineTests {
             doc.Table(rows, PdfAlign.Left, style);
         }
 
+        doc.Table(CreateWordAccentSwatchRows(), PdfAlign.Left, CreateWordAccentSwatchStyle());
+
         return doc.ToBytes();
+    }
+
+    private static string[][] CreateWordAccentSwatchRows() {
+        return new[] {
+            new[] { "Role", "A1", "A2", "A3", "A4", "A5", "A6" },
+            new[] { "Grid line", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty },
+            new[] { "Strong line", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty },
+            new[] { "List band", string.Empty, string.Empty, string.Empty, string.Empty, string.Empty, string.Empty }
+        };
+    }
+
+    private static PdfTableStyle CreateWordAccentSwatchStyle() {
+        var style = TableStyles.ListTable1Light();
+        style.Caption = "Accent swatches";
+        style.CaptionColor = PdfColor.FromRgb(80, 90, 100);
+        style.CaptionFontSize = 8.5;
+        style.CaptionSpacingAfter = 4;
+        style.SpacingBefore = 6;
+        style.SpacingAfter = 4;
+        style.FontSize = 8.5;
+        style.HeaderFontSize = 8.5;
+        style.CellPaddingX = 5;
+        style.CellPaddingY = 3;
+        style.ColumnWidthPoints = new List<double?> { 76, 45, 45, 45, 45, 45, 45 };
+        style.AutoFitColumns = false;
+        style.Alignments = new List<PdfColumnAlign> {
+            PdfColumnAlign.Left,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center,
+            PdfColumnAlign.Center
+        };
+
+        var cellFills = new Dictionary<(int Row, int Column), PdfColor>();
+        for (int accent = 1; accent <= 6; accent++) {
+            PdfTableStyle grid = TableStyles.FromWordTableStyle("GridTable1LightAccent" + accent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            PdfTableStyle list = TableStyles.FromWordTableStyle("ListTable1LightAccent" + accent.ToString(System.Globalization.CultureInfo.InvariantCulture));
+            cellFills[(1, accent)] = grid.BorderColor ?? PdfColor.White;
+            cellFills[(2, accent)] = grid.HeaderSeparatorColor ?? PdfColor.White;
+            cellFills[(3, accent)] = list.RowStripeFill ?? PdfColor.White;
+        }
+
+        style.CellFills = cellFills;
+        return style;
     }
 
     private static byte[] CreateLinksAndRules() {
@@ -1003,7 +1119,7 @@ public class PdfDocRasterVisualBaselineTests {
             .ToBytes();
     }
 
-    private static byte[] CreateLineItemsTwoPage() {
+    internal static byte[] CreateLineItemsTwoPage() {
         string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
         byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
         var lineItemRows = CreateLineItemRows();

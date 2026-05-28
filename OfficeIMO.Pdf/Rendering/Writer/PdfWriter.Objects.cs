@@ -54,6 +54,7 @@ internal static partial class PdfWriter {
             public int PageGroupId { get; set; }
             public string Content { get; set; } = string.Empty;
             public System.Collections.Generic.List<LinkAnnotation> Annotations { get; } = new();
+            public System.Collections.Generic.List<FormFieldAnnotation> FormFields { get; } = new();
             public System.Collections.Generic.List<PageImage> Images { get; } = new();
             public System.Collections.Generic.List<PageGraphicsState> GraphicsStates { get; } = new();
             public System.Collections.Generic.List<PageShading> Shadings { get; } = new();
@@ -73,6 +74,29 @@ internal static partial class PdfWriter {
         public string? Uri { get; init; }
         public string? DestinationName { get; init; }
         public string? Contents { get; init; }
+    }
+
+    private sealed class FormFieldAnnotation {
+        public double X1 { get; init; }
+        public double Y1 { get; init; }
+        public double X2 { get; init; }
+        public double Y2 { get; init; }
+        public FormFieldAnnotationKind Kind { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public string Value { get; init; } = string.Empty;
+        public IReadOnlyList<string> Values { get; init; } = Array.Empty<string>();
+        public double FontSize { get; init; }
+        public bool IsChecked { get; init; }
+        public string CheckedValueName { get; init; } = "Yes";
+        public IReadOnlyList<string> Options { get; init; } = Array.Empty<string>();
+        public bool IsComboBox { get; init; }
+        public bool AllowsMultipleSelection { get; init; }
+    }
+
+    private enum FormFieldAnnotationKind {
+        Text,
+        CheckBox,
+        Choice
     }
 
     private sealed class PageBookmark {

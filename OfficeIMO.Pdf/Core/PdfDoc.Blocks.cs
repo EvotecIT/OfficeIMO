@@ -253,6 +253,30 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Adds a simple AcroForm text field at the current flow position.</summary>
+    public PdfDoc TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
+        AddBlock(new TextFieldBlock(name, width, height, value, align, fontSize, spacingBefore, spacingAfter));
+        return this;
+    }
+
+    /// <summary>Adds a simple AcroForm check box at the current flow position.</summary>
+    public PdfDoc CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes") {
+        AddBlock(new CheckBoxBlock(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName));
+        return this;
+    }
+
+    /// <summary>Adds a simple AcroForm choice field at the current flow position.</summary>
+    public PdfDoc ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true) {
+        AddBlock(new ChoiceFieldBlock(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox));
+        return this;
+    }
+
+    /// <summary>Adds a simple AcroForm multi-select choice field at the current flow position.</summary>
+    public PdfDoc MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
+        AddBlock(new ChoiceFieldBlock(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox: false, allowsMultipleSelection: true));
+        return this;
+    }
+
     /// <summary>Adds a shared OfficeIMO.Drawing shape at the current flow position.</summary>
     public PdfDoc Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         AddBlock(CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));

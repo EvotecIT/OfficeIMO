@@ -61,9 +61,10 @@ public sealed class PdfReadPage {
         var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
         var activeForms = new HashSet<PdfStream>();
 
-        foreach (var stream in GetContentStreams()) {
+        string content = GetContentStreamContent();
+        if (content.Length > 0) {
             CollectTextAndForms(
-                PdfEncoding.Latin1GetString(stream),
+                content,
                 pageResources,
                 pageDecoders,
                 pageWidthProviders,
@@ -120,6 +121,31 @@ public sealed class PdfReadPage {
         return result.AsReadOnly();
     }
 
+    internal IReadOnlyList<int> GetAnnotationObjectNumbers(string subtypeName) {
+        if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
+            return Array.Empty<int>();
+        }
+
+        var annotations = ResolveArray(annotsObject);
+        if (annotations is null) {
+            return Array.Empty<int>();
+        }
+
+        var result = new List<int>();
+        foreach (var item in annotations.Items) {
+            if (item is not PdfReference reference) {
+                continue;
+            }
+
+            var annotation = ResolveDictionary(reference);
+            if (annotation?.Get<PdfName>("Subtype")?.Name == subtypeName) {
+                result.Add(reference.ObjectNumber);
+            }
+        }
+
+        return result.Count == 0 ? Array.Empty<int>() : result.AsReadOnly();
+    }
+
     /// <summary>Extracts image XObjects referenced by this page.</summary>
     public IReadOnlyList<PdfExtractedImage> GetImages() => GetImages(0);
 
@@ -131,11 +157,20 @@ public sealed class PdfReadPage {
         var unsupported = new List<string>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
+        var content = new System.Text.StringBuilder();
+        bool canInspectFormInvocations = true;
         foreach (var stream in GetContentStreamObjects()) {
             AddUnsupportedFilters(stream, unsupported);
-            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count == 0) {
-                CollectUnsupportedFormFilters(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)), pageResources, unsupported, activeForms);
+            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, _objects).Count != 0) {
+                canInspectFormInvocations = false;
+                continue;
             }
+
+            content.Append(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)));
+        }
+
+        if (canInspectFormInvocations && content.Length > 0) {
+            CollectUnsupportedFormFilters(content.ToString(), pageResources, unsupported, activeForms);
         }
 
         return unsupported;
@@ -188,8 +223,10 @@ public sealed class PdfReadPage {
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
         double SumWidth1000(string fontRes, byte[] bytes) =>
             widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
+        string? ResolveActualTextProperty(string propertyName) =>
+            GetMarkedContentActualText(resources, propertyName);
 
-        spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000));
+        spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000, actualTextForProperty: ResolveActualTextProperty));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
@@ -243,6 +280,28 @@ public sealed class PdfReadPage {
 
         formStream = null!;
         return false;
+    }
+
+    private string? GetMarkedContentActualText(PdfDictionary? resources, string propertyName) {
+        if (resources is null ||
+            !resources.Items.TryGetValue("Properties", out var propertiesObj)) {
+            return null;
+        }
+
+        var properties = ResolveDictionary(propertiesObj);
+        if (properties is null ||
+            !properties.Items.TryGetValue(propertyName, out var propertyObj)) {
+            return null;
+        }
+
+        var propertyDictionary = ResolveDictionary(propertyObj);
+        if (propertyDictionary is null ||
+            !propertyDictionary.Items.TryGetValue("ActualText", out var actualTextObj) ||
+            ResolveObject(actualTextObj) is not PdfStringObj actualText) {
+            return null;
+        }
+
+        return actualText.Value;
     }
 
     private static Dictionary<string, Func<byte[], string>> MergeDecoders(
@@ -444,15 +503,15 @@ public sealed class PdfReadPage {
     }
 
     /// <summary>
-    /// Returns a shallow list of content stream bytes for the page (handles single or array of streams).
+    /// Returns decoded page content with stream arrays concatenated in PDF processing order.
     /// </summary>
-    private List<byte[]> GetContentStreams() {
-        var result = new List<byte[]>();
+    private string GetContentStreamContent() {
+        var builder = new System.Text.StringBuilder();
         foreach (var stream in GetContentStreamObjects()) {
-            result.Add(DecodeIfNeeded(stream));
+            builder.Append(PdfEncoding.Latin1GetString(DecodeIfNeeded(stream)));
         }
 
-        return result;
+        return builder.ToString();
     }
 
     private List<PdfStream> GetContentStreamObjects() {

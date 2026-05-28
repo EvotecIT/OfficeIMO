@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static class PdfCatalogDictionaryBuilder {
-    internal static string BuildGeneratedCatalogDictionary(int pagesId, int outlinesId, int namedDestinationsId = 0) {
+    internal static string BuildGeneratedCatalogDictionary(int pagesId, int outlinesId, int namedDestinationsId = 0, int acroFormId = 0) {
         var sb = new StringBuilder();
         AppendCatalogStart(sb, pagesId);
 
@@ -13,6 +13,10 @@ internal static class PdfCatalogDictionaryBuilder {
             throw new ArgumentOutOfRangeException(nameof(namedDestinationsId), "PDF named destinations object number cannot be negative.");
         }
 
+        if (acroFormId < 0) {
+            throw new ArgumentOutOfRangeException(nameof(acroFormId), "PDF AcroForm object number cannot be negative.");
+        }
+
         if (outlinesId > 0) {
             AppendReferenceEntry(sb, "Outlines", outlinesId);
             AppendNameEntry(sb, "PageMode", "UseOutlines");
@@ -20,6 +24,10 @@ internal static class PdfCatalogDictionaryBuilder {
 
         if (namedDestinationsId > 0) {
             AppendNamedDestinationsEntry(sb, namedDestinationsId);
+        }
+
+        if (acroFormId > 0) {
+            AppendReferenceEntry(sb, "AcroForm", acroFormId);
         }
 
         sb.Append(" >>\n");

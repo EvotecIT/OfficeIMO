@@ -46,6 +46,8 @@ public sealed class PdfParagraphBuilder {
     public PdfParagraphBuilder Text(string text) { _runs.Add(new TextRun(text, _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike, baseline: _currentBaseline)); return this; }
     /// <summary>Adds an explicit line break inside the current paragraph.</summary>
     public PdfParagraphBuilder LineBreak() { _runs.Add(TextRun.LineBreak()); return this; }
+    /// <summary>Adds an explicit paragraph tab using the current style flags.</summary>
+    public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None, PdfTabAlignment alignment = PdfTabAlignment.Left) { _runs.Add(new TextRun("\t", _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike, baseline: _currentBaseline, tabLeader: leader, tabAlignment: alignment)); return this; }
     /// <summary>Adds a bold text run.</summary>
     public PdfParagraphBuilder Bold(string text, PdfColor? color = null) { _runs.Add(new TextRun(text, bold: true, underline: false, color: color ?? _currentColor, italic: false)); return this; }
     /// <summary>Adds an italic text run.</summary>
