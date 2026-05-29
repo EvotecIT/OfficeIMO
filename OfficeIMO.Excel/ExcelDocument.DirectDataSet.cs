@@ -1886,11 +1886,6 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (_requiresSavePreflight) {
-                skipReason = "Save preflight is pending.";
-                return false;
-            }
-
             if (HasCalculationSaveWork(options)) {
                 skipReason = "Calculation save policy requires the standard package finalization path.";
                 return false;
@@ -1912,6 +1907,11 @@ namespace OfficeIMO.Excel {
             }
 
             PromotePendingDirectCellValueSheetIfPossible();
+
+            if (_requiresSavePreflight) {
+                skipReason = "Save preflight is pending.";
+                return false;
+            }
 
             if (HasWorkbookContentOutsideDirectDataSetImport(allowSheets: true)) {
                 skipReason = "Workbook-level metadata requires the standard package finalization path.";
