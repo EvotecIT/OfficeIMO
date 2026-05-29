@@ -593,9 +593,27 @@
       "failOnFailures": true
     },
     {
+      "task": "seo-doctor",
+      "id": "seo-doctor-ci",
+      "dependsOn": "agent-ready",
+      "modes": ["ci"],
+      "siteRoot": "./_site",
+      "baseline": "./.powerforge/seo-baseline.json",
+      "failOnNewIssues": true,
+      "checkContentLeaks": true,
+      "requireCanonical": true,
+      "requireHreflang": true,
+      "requireHreflangXDefault": true,
+      "reportPath": "./_reports/seo-doctor.json",
+      "summaryPath": "./_reports/seo-doctor.md",
+      "backlogSummaryPath": "./_reports/seo-backlog-summary.json",
+      "pageMetricsPath": "./_reports/seo-page-metrics.csv",
+      "issuesCsvPath": "./_reports/seo-issues.csv"
+    },
+    {
       "task": "audit",
       "id": "audit-ci",
-      "dependsOn": "agent-ready",
+      "dependsOn": "seo-doctor-ci",
       "modes": ["ci"],
       "config": "./site.json",
       "siteRoot": "./_site",
