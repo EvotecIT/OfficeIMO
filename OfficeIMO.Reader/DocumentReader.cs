@@ -81,7 +81,7 @@ public static class DocumentReader {
         new ReaderHandlerCapability {
             Id = "officeimo.reader.pdf",
             DisplayName = "PDF Reader",
-            Description = "Built-in PDF page extractor.",
+            Description = "Built-in PDF logical page and markdown extractor.",
             Kind = ReaderInputKind.Pdf,
             Extensions = new[] { ".pdf" },
             IsBuiltIn = true,
@@ -1248,21 +1248,23 @@ public static class DocumentReader {
 
     private static IEnumerable<ReaderChunk> ReadPdf(string path, ReaderOptions opt, CancellationToken ct) {
         var fileName = Path.GetFileName(path);
-        var doc = PdfReadDocument.Load(path);
+        var doc = PdfLogicalDocument.Load(path);
         int outIndex = 0;
 
         for (int pageIndex = 0; pageIndex < doc.Pages.Count; pageIndex++) {
             ct.ThrowIfCancellationRequested();
 
-            var pageNumber = pageIndex + 1;
-            var pageText = doc.Pages[pageIndex].ExtractText();
+            var page = doc.Pages[pageIndex];
+            var pageNumber = page.PageNumber;
+            var pageText = BuildPdfPageText(page);
             if (string.IsNullOrWhiteSpace(pageText)) {
                 yield return BuildPdfEmptyChunk(path, fileName, pageNumber, outIndex);
                 outIndex++;
                 continue;
             }
 
-            var pageChunks = ChunkPdfText(path, fileName, pageNumber, pageText, opt, outIndex, ct, out var nextIndex);
+            string pageMarkdown = page.ToMarkdown();
+            var pageChunks = ChunkPdfText(path, fileName, pageNumber, pageText, pageMarkdown, opt, outIndex, ct, out var nextIndex);
             outIndex = nextIndex;
             foreach (var chunk in pageChunks) {
                 yield return chunk;
@@ -1273,21 +1275,23 @@ public static class DocumentReader {
     private static IEnumerable<ReaderChunk> ReadPdf(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         using var ms = CopyToMemory(stream, ct);
         var fileName = string.IsNullOrWhiteSpace(sourceName) ? "memory.pdf" : Path.GetFileName(sourceName!.Trim());
-        var doc = PdfReadDocument.Load(ms.ToArray());
+        var doc = PdfLogicalDocument.Load(ms.ToArray());
         int outIndex = 0;
 
         for (int pageIndex = 0; pageIndex < doc.Pages.Count; pageIndex++) {
             ct.ThrowIfCancellationRequested();
 
-            var pageNumber = pageIndex + 1;
-            var pageText = doc.Pages[pageIndex].ExtractText();
+            var page = doc.Pages[pageIndex];
+            var pageNumber = page.PageNumber;
+            var pageText = BuildPdfPageText(page);
             if (string.IsNullOrWhiteSpace(pageText)) {
                 yield return BuildPdfEmptyChunk(sourceName ?? fileName, fileName, pageNumber, outIndex);
                 outIndex++;
                 continue;
             }
 
-            var pageChunks = ChunkPdfText(sourceName ?? fileName, fileName, pageNumber, pageText, opt, outIndex, ct, out var nextIndex);
+            string pageMarkdown = page.ToMarkdown();
+            var pageChunks = ChunkPdfText(sourceName ?? fileName, fileName, pageNumber, pageText, pageMarkdown, opt, outIndex, ct, out var nextIndex);
             outIndex = nextIndex;
             foreach (var chunk in pageChunks) {
                 yield return chunk;
@@ -1584,6 +1588,7 @@ public static class DocumentReader {
         string fileName,
         int pageNumber,
         string text,
+        string? markdown,
         ReaderOptions opt,
         int startChunkIndex,
         CancellationToken ct,
@@ -1627,8 +1632,30 @@ public static class DocumentReader {
             list.Add(BuildPdfChunk(path, fileName, pageNumber, outIndex, firstLine, current.ToString().TrimEnd(), warnings));
             outIndex++;
         }
+
+        if (!string.IsNullOrWhiteSpace(markdown) && list.Count == 1 && markdown!.Length <= opt.MaxChars) {
+            list[0].Markdown = markdown.Trim();
+        }
+
         nextChunkIndex = outIndex;
         return list;
+    }
+
+    private static string BuildPdfPageText(PdfLogicalPage page) {
+        if (page.TextBlocks.Count == 0) {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder();
+        for (int i = 0; i < page.TextBlocks.Count; i++) {
+            if (i > 0) {
+                builder.AppendLine();
+            }
+
+            builder.Append(page.TextBlocks[i].Text);
+        }
+
+        return builder.ToString();
     }
 
     private static ReaderChunk BuildMarkdownChunk(
