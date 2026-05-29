@@ -2004,6 +2004,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_RecalculateMaterializesPendingDirectCellValuesBeforeFormulaScan() {
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            var sheet = document.AddWorkSheet("Calc");
+
+            for (int row = 1; row <= 130; row++) {
+                sheet.CellValue(row, 1, row);
+            }
+
+            sheet.CellFormula(131, 1, "SUM(A1:A130)");
+
+            Assert.Equal(1, document.RecalculateSupportedFormulas());
+            Assert.True(sheet.TryGetCachedFormulaValue(131, 1, out string? value));
+            Assert.Equal("8515", value);
+        }
+
+        [Fact]
         public void PerformanceReview_ExplicitStreamSave_FallsBackWhenCalculationPolicyIsPending() {
             using var memory = new MemoryStream();
             using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
