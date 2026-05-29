@@ -1,6 +1,6 @@
 # OfficeIMO.Excel Benchmark Report
 
-Generated: 2026-05-26T16:45:00.1417439Z
+Generated: 2026-05-29T09:47:05.7621264Z
 Run mode: quick
 Publish: False
 Machine: EVOMAGIC (32 processors)
@@ -21,8 +21,9 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | package-profile | package | Package size | 37 | 12 | write-datatable-direct vs LargeXlsx (2.03x) |
 | 2500 | speed-comparison | mutate | AutoFit and mutation | 1 | 0 |  |
 | 2500 | speed-comparison | other | Object projection | 2 | 0 |  |
-| 2500 | speed-comparison | other | Other | 8 | 0 |  |
 | 2500 | speed-comparison | other | Range and table read | 4 | 0 |  |
+| 2500 | speed-comparison | other | Real-world feature mix | 6 | 0 |  |
+| 2500 | speed-comparison | other | Real-world report | 2 | 0 |  |
 | 2500 | speed-comparison | other | Report workbook | 4 | 0 |  |
 | 2500 | speed-comparison | read | Formula write/read | 1 | 0 |  |
 | 2500 | speed-comparison | read | Other | 0 | 3 | large-sparse-row-read vs Sylvan.Data.Excel (2.40x) |
@@ -41,12 +42,14 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | speed-comparison | write | Plain string export | 1 | 0 |  |
 | 2500 | speed-comparison | write | Shared string write | 4 | 0 |  |
 | 2500 | speed-comparison | write | Typed object export | 0 | 3 | write-insertobjects-flat-dictionaries-direct vs LargeXlsx (1.48x) |
+| 10000 | focused-package-profile | package | Package size | 1 | 0 |  |
 | 25000 | dense-helloworld-comparison | read | Other | 1 | 1 | dense-helloworld-read-stream vs Sylvan.Data.Excel (1.23x) |
 | 25000 | package-profile | package | Package size | 37 | 12 | write-insertobjects-legacy-dictionaries-direct vs LargeXlsx (1.66x) |
 | 25000 | speed-comparison | mutate | AutoFit and mutation | 1 | 0 |  |
 | 25000 | speed-comparison | other | Object projection | 2 | 0 |  |
-| 25000 | speed-comparison | other | Other | 8 | 0 |  |
 | 25000 | speed-comparison | other | Range and table read | 4 | 0 |  |
+| 25000 | speed-comparison | other | Real-world feature mix | 6 | 0 |  |
+| 25000 | speed-comparison | other | Real-world report | 2 | 0 |  |
 | 25000 | speed-comparison | other | Report workbook | 4 | 0 |  |
 | 25000 | speed-comparison | read | Formula write/read | 1 | 0 |  |
 | 25000 | speed-comparison | read | Other | 0 | 3 | large-sparse-row-read vs Sylvan.Data.Excel (1.74x) |
@@ -65,6 +68,7 @@ Machine: EVOMAGIC (32 processors)
 | 25000 | speed-comparison | write | Plain string export | 0 | 1 | write-blog-2023-20-string-columns vs LargeXlsx (1.07x) |
 | 25000 | speed-comparison | write | Shared string write | 4 | 0 |  |
 | 25000 | speed-comparison | write | Typed object export | 0 | 3 | write-insertobjects-flat-dictionaries-direct vs LargeXlsx (1.36x) |
+| 300000 | focused-package-profile | package | Package size | 0 | 1 | write-blog-2023-20-string-columns vs LargeXlsx (1.10x) |
 
 ## Rows
 
@@ -594,6 +598,10 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | speed-comparison | write-powershell-psobject-wide-direct | MiniExcel | 35.38 ms | 47.3 MB |  | OfficeIMO.Excel | 73.5% slower than OfficeIMO |
 | 2500 | speed-comparison | write-powershell-psobject-wide-direct | ClosedXML | 122.84 ms | 50.4 MB |  | OfficeIMO.Excel | 502.3% slower than OfficeIMO |
 | 2500 | speed-comparison | write-powershell-psobject-wide-direct | EPPlus | 174.10 ms | 67.5 MB |  | OfficeIMO.Excel | 753.6% slower than OfficeIMO |
+| 10000 | focused-package-profile | write-blog-2023-20-string-columns | OfficeIMO.Excel | 33.01 ms | 7.6 MB | 880.4 KB | OfficeIMO.Excel | Win |
+| 10000 | focused-package-profile | write-blog-2023-20-string-columns | LargeXlsx | 88.91 ms | 3.1 MB | 970.2 KB | OfficeIMO.Excel | 2.69x vs best |
+| 10000 | focused-package-profile | write-blog-2023-20-string-columns | MiniExcel | 142.47 ms | 96.2 MB | 957.6 KB | OfficeIMO.Excel | 4.32x vs best |
+| 10000 | focused-package-profile | write-blog-2023-20-string-columns | ClosedXML | 725.30 ms | 280.2 MB | 1,015.4 KB | OfficeIMO.Excel | 21.97x vs best |
 | 25000 | dense-helloworld-comparison | dense-helloworld-read-range | OfficeIMO.Excel | 60.77 ms | 23.1 MB |  | OfficeIMO.Excel, Sylvan.Data.Excel | Win |
 | 25000 | dense-helloworld-comparison | dense-helloworld-read-range | Sylvan.Data.Excel | 61.82 ms | 394.1 KB |  | OfficeIMO.Excel, Sylvan.Data.Excel | Tie vs OfficeIMO |
 | 25000 | dense-helloworld-comparison | dense-helloworld-read-range | ExcelDataReader | 164.62 ms | 67.9 MB |  | OfficeIMO.Excel, Sylvan.Data.Excel | 170.9% slower than OfficeIMO |
@@ -1118,3 +1126,7 @@ Machine: EVOMAGIC (32 processors)
 | 25000 | speed-comparison | write-powershell-psobject-wide-direct | MiniExcel | 330.00 ms | 339.8 MB |  | OfficeIMO.Excel | 74.8% slower than OfficeIMO |
 | 25000 | speed-comparison | write-powershell-psobject-wide-direct | ClosedXML | 1.21 s | 476.0 MB |  | OfficeIMO.Excel | 541.5% slower than OfficeIMO |
 | 25000 | speed-comparison | write-powershell-psobject-wide-direct | EPPlus | 1.54 s | 549.7 MB |  | OfficeIMO.Excel | 713.8% slower than OfficeIMO |
+| 300000 | focused-package-profile | write-blog-2023-20-string-columns | LargeXlsx | 636.47 ms | 93.1 MB | 28.6 MB | LargeXlsx | Win |
+| 300000 | focused-package-profile | write-blog-2023-20-string-columns | OfficeIMO.Excel | 701.65 ms | 173.4 MB | 26.6 MB | LargeXlsx | 1.10x vs best |
+| 300000 | focused-package-profile | write-blog-2023-20-string-columns | MiniExcel | 2.28 s | 2.46 GB | 28.5 MB | LargeXlsx | 3.58x vs best |
+| 300000 | focused-package-profile | write-blog-2023-20-string-columns | ClosedXML | 15.89 s | 8.51 GB | 31.0 MB | LargeXlsx | 24.97x vs best |

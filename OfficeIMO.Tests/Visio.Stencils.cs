@@ -42,6 +42,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains(tagMatches, shape => shape.Id == "net.firewall");
             Assert.All(categoryOnly, shape => Assert.Equal("Timeline", shape.Category));
             Assert.Contains(categoryOnly, shape => shape.Id == "time.milestone");
+            Assert.True(VisioStencils.All.TryFindBest(new[] { "missing", "access-point" }, out VisioStencilShape? best));
+            Assert.Equal("Wireless AP", best!.Name);
+            Assert.Equal("Storage", VisioStencils.All.FindBest("not-present", "data-store").Name);
         }
 
         [Fact]
@@ -105,6 +108,96 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Equal(new[] { "switch", "milestone" }, loaded.Pages[0].Shapes.Select(shape => shape.Id));
+        }
+
+        [Fact]
+        public void PageCanRenderStencilCatalogGallery() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => builder
+                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9)
+                .Add("gallery.queue", "Queue", "Data", "Integration", 1.4, 0.8)
+                .Add("gallery.worker", "Worker", "Rectangle", "Compute", 1.6, 0.9));
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Gallery", 5, 4);
+
+            IReadOnlyList<VisioShape> placed = page.AddStencilGallery(catalog, new VisioStencilGalleryOptions {
+                IdPrefix = "gallery",
+                Columns = 2,
+                MaxShapes = 3,
+                Title = "Reusable palette",
+                AutoResizePage = true
+            });
+
+            Assert.Equal(3, placed.Count);
+            Assert.True(page.Width > 5);
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title" && shape.Text == "Reusable palette");
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-0-name" && shape.Text == "API");
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-1-category" && shape.Text == "Integration");
+            Assert.Equal("Process", page.Shapes.Single(shape => shape.Id == "gallery-0-shape").MasterNameU);
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal(13, loaded.Pages[0].Shapes.Count);
+        }
+
+        [Fact]
+        public void StencilCatalogGalleryReservesIdsAndKeepsUnitlessStencilSizesInInches() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Metric Gallery Catalog", builder => builder
+                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Metric Gallery", 29.7, 21, VisioMeasurementUnit.Centimeters);
+            VisioStencilGalleryOptions options = new() {
+                IdPrefix = "gallery",
+                Columns = 1,
+                MaxShapes = 1,
+                Title = "Reusable palette",
+                AutoResizePage = false,
+                IconMaxWidth = 1D,
+                IconMaxHeight = 0.8D
+            };
+
+            page.AddStencilGallery(catalog, options);
+            page.AddStencilGallery(catalog, options);
+
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title");
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title-2");
+            Assert.Equal(page.Shapes.Count, page.Shapes.Select(shape => shape.Id).Distinct(StringComparer.Ordinal).Count());
+            Assert.Equal(1D, page.Shapes.Single(shape => shape.Id == "gallery-0-shape").Width, 6);
+            Assert.Equal(0.5D, page.Shapes.Single(shape => shape.Id == "gallery-0-shape").Height, 6);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void StencilCatalogGalleryReservesExistingConnectorIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => builder
+                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Gallery", 5, 4);
+            VisioShape left = new VisioShape("left", 0.8, 0.8, 0.5, 0.5, "L");
+            VisioShape right = new VisioShape("right", 1.8, 0.8, 0.5, 0.5, "R");
+            page.Shapes.Add(left);
+            page.Shapes.Add(right);
+            page.AddConnector("gallery-title", left, right, ConnectorKind.Dynamic);
+
+            page.AddStencilGallery(catalog, new VisioStencilGalleryOptions {
+                IdPrefix = "gallery",
+                Columns = 1,
+                MaxShapes = 1,
+                Title = "Reusable palette"
+            });
+
+            Assert.Contains(page.Connectors, connector => connector.Id == "gallery-title");
+            Assert.Contains(page.Shapes, shape => shape.Id == "gallery-title-2" && shape.Text == "Reusable palette");
+            Assert.DoesNotContain(page.Shapes, shape => shape.Id == "gallery-title");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
         }
 
         [Fact]

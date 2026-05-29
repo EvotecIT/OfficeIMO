@@ -1,10 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Examples.Visio {
     public static class GraphDiagramBuilder {
@@ -36,15 +36,38 @@ namespace OfficeIMO.Examples.Visio {
 
                     graph
                         .Root("users")
+                        .NodeShapeData("gateway", "Owner", "Platform", "Owner", VisioShapeDataType.String, "Owning support team")
+                        .NodeShapeData("gateway", "Sla", "99.95%", "SLA", VisioShapeDataType.String)
+                        .NodeHyperlink("gateway", "https://learn.microsoft.com/azure/api-management/", "API Management docs")
+                        .NodeShapeData("sql", "Classification", "Confidential", "Data classification", VisioShapeDataType.String)
+                        .NodeShapeData("sql", "RecoveryTier", "BusinessCritical", "Recovery tier", VisioShapeDataType.String)
+                        .NodeHyperlink("sql", "https://learn.microsoft.com/azure/azure-sql/", "Azure SQL docs")
+                        .NodeShapeData("monitor", "Signal", "Logs and metrics", "Signal", VisioShapeDataType.String)
+                        .NodeHyperlink("monitor", "https://learn.microsoft.com/azure/azure-monitor/", "Azure Monitor docs")
+                        .NodeStyle("batch", style => {
+                            style.FillColor = Color.FromRgb(73, 80, 87);
+                            style.LineColor = Color.FromRgb(45, 52, 59);
+                            style.LineWeight = 0.026D;
+                        })
                         .Zone("edge", "Edge", "users", "gateway")
                         .Zone("runtime", "Runtime", "events", "function", "worker", "batch", "monitor")
                         .Zone("data", "Data", "sql")
                         .Edge("users", "gateway", "HTTPS")
-                        .ControlEdge("gateway", "events", "publish")
-                        .ControlEdge("events", "function", "trigger")
+                        .ControlEdge("gateway-publishes-events", "gateway", "events", "publish")
+                        .EdgeShapeData("gateway-publishes-events", "Protocol", "HTTPS", "Protocol", VisioShapeDataType.String)
+                        .EdgeHyperlink("gateway-publishes-events", "https://learn.microsoft.com/azure/event-grid/", "Event Grid docs")
+                        .ControlEdge("events-trigger-function", "events", "function", "trigger")
+                        .EdgeShapeData("events-trigger-function", "Trigger", "EventGrid", "Trigger", VisioShapeDataType.String)
+                        .EdgeHyperlink("events-trigger-function", "https://learn.microsoft.com/azure/azure-functions/functions-bindings-event-grid", "Function trigger docs")
                         .Edge("function", "worker", "dispatch")
                         .ControlEdge("worker", "batch", "schedule")
-                        .DataEdge("worker", "sql", "write")
+                        .DataEdge("worker-writes-sql", "worker", "sql", "write")
+                        .EdgeShapeData("worker-writes-sql", "Port", "1433", "Port", VisioShapeDataType.Number)
+                        .EdgeHyperlink("worker-writes-sql", "https://learn.microsoft.com/azure/azure-sql/database/connect-query-dotnet-core", "SQL client docs")
+                        .EdgeStyle("worker-writes-sql", style => {
+                            style.LineColor = Color.FromRgb(0, 102, 204);
+                            style.LineWeight = 0.026D;
+                        })
                         .DataEdge("sql", "function", "read model")
                         .Relationship("monitor", "function", "metrics")
                         .Relationship("monitor", "worker", "logs")
@@ -86,28 +109,12 @@ namespace OfficeIMO.Examples.Visio {
         }
 
         private static void AddNode(VisioGraphDiagramBuilder graph, VisioStencilCatalog? catalog, string id, string text, VisioGraphNodeKind fallbackKind, params string[] queries) {
-            if (catalog != null && TryPick(catalog, queries, out VisioStencilShape? stencil) && stencil != null) {
-                graph.StencilNode(id, text, stencil);
+            if (catalog != null && catalog.TryFindBest(queries, out VisioStencilShape? stencil) && stencil != null) {
+                graph.StencilNode(id, text, catalog, queries);
                 return;
             }
 
             graph.Node(id, text, fallbackKind);
-        }
-
-        private static bool TryPick(VisioStencilCatalog catalog, IEnumerable<string> queries, out VisioStencilShape? stencil) {
-            foreach (string query in queries) {
-                if (catalog.TryGet(query, out stencil) && stencil != null) {
-                    return true;
-                }
-
-                stencil = catalog.Search(query).FirstOrDefault();
-                if (stencil != null) {
-                    return true;
-                }
-            }
-
-            stencil = null;
-            return false;
         }
     }
 }

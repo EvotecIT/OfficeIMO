@@ -1,7 +1,24 @@
 # OfficeIMO.Visio Assessment
 
-Date: 2026-05-25
-Branch/worktree: `codex/visio-assessment` at `C:\Support\GitHub\OfficeIMO-visio-assessment`
+Date: 2026-05-28
+Branch/worktree: `codex/visio-external-stencil-packs` at `C:\Support\GitHub\OfficeIMO-visio-external-stencil-packs`
+
+## Current Status Update
+
+The Visio work has moved from assessment into a real product slice. PR #1865 is green and merge-ready at the time of this update: CodeQL, cross-platform builds, Windows, Ubuntu, macOS, AOT/trim analyzers, dependency submission, Codecov project, and Codecov patch checks all passed, and all review threads are resolved.
+
+The branch adds the first serious external-stencil and graph layer:
+
+- Package-backed stencil catalogs for installed Visio and external `.vssx` / `.vstx` / `.vsdx` sources.
+- External multi-file stencil-pack discovery and examples, including repository-style packs such as Microsoft Integration/Azure stencil collections.
+- A generic graph diagram builder with layered, grid, and radial layouts; cycles; disconnected components; zones; connector kinds; labels; hyperlinks; shape data on nodes; and shape data on connectors.
+- Catalog selection helpers such as `FindBest`, `TryFindBest`, and graph builder overloads that let callers choose stencil nodes by catalog query instead of manually plucking masters.
+- Robust gallery and showcase handling for duplicate generated IDs, connector ID reservation, metric-page sizing, optional pack probing, and stencil caption page fitting.
+- Better visual behavior for package-backed stencil nodes: imported master artwork stays clean and captions are rendered as separate Visio text boxes when needed.
+
+That changes the roadmap. The next bottleneck is no longer "can we load external stencils?" It is now "can we make generated diagrams look consistently premium and make real stencil packs easy to use at scale?"
+
+For the live staged plan, see [officeimo.visio.roadmap.md](./officeimo.visio.roadmap.md).
 
 ## Executive Verdict
 
@@ -273,16 +290,18 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 
 VisioDocument.Create("property-buying-flowchart.vsdx")
-    .WithTheme(VisioDiagramTheme.ModernBlueGreen)
     .Flowchart("Property buying Flowchart", flow => flow
+        .Theme(VisioStyleTheme.Modern())
+        .Title()
+        .Layout(VisioFlowchartLayout.TwoColumnContinuation)
         .Start("agent", "Start with an agent\nyou trust")
         .Step("consult", "Consult with agent to\ndetermine your property\nwants and needs")
         .Step("paperwork", "Review and complete\npaperwork")
         .Step("loan", "Go to preferred lender,\nget pre-qualified and\npre-approval for loan\namount")
         .Step("market", "With agent, analyze\nmarket to choose\nproperties of interest")
         .Step("view", "View properties\nwith agent")
-        .OffPage("A")
-        .Continue("A")
+        .OffPage("jump", "A")
+        .Continue("resume", "A")
         .Step("offer", "Select ideal property\nand write offer to\npurchase")
         .Decision("negotiate", "Negotiate\n& Counteroffer:\nAgreement?")
         .Branch("negotiate", "No", "market")
@@ -291,8 +310,7 @@ VisioDocument.Create("property-buying-flowchart.vsdx")
         .Step("underwriting", "Secure underwriting,\nobtain loan approval")
         .Step("closing", "Select/Contact closing\nattorney for title exam\nand title insurance")
         .Step("inspection", "Schedule inspection\nand survey")
-        .End("close", "Close on the\nproperty")
-        .Layout(FlowchartLayout.TwoColumnContinuation))
+        .End("close", "Close on the\nproperty"))
     .Save();
 ```
 

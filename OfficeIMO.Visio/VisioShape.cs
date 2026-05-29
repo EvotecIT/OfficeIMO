@@ -439,9 +439,8 @@ namespace OfficeIMO.Visio {
         public string? GetShapeDataValue(string name) {
             VisioShapeDataRow? row = FindShapeData(name);
             if (row != null) {
-                if (Data.TryGetValue(name, out string? current) &&
-                    row.LoadedValue != null &&
-                    string.Equals(row.Value, row.LoadedValue, StringComparison.Ordinal) &&
+                if (Data.TryGetValue(row.Name, out string? current) &&
+                    !string.Equals(current, row.MirroredDataValue, StringComparison.Ordinal) &&
                     !string.Equals(current, row.Value, StringComparison.Ordinal)) {
                     return current;
                 }
@@ -468,15 +467,27 @@ namespace OfficeIMO.Visio {
                 ShapeData.Add(row);
             }
 
-            row.Value = value;
+            row.Value = value ?? string.Empty;
+            row.ValueFormula = null;
+            if (row.PreservedKnownCells.TryGetValue("Value", out XElement? valueCell)) {
+                valueCell.Attribute("F")?.Remove();
+            }
+
             if (label != null) row.Label = label;
             if (type.HasValue) row.Type = type.Value;
             if (prompt != null) row.Prompt = prompt;
             if (format != null) row.Format = format;
 
+            string dataKey = row.Name;
             if (value != null) {
-                Data[name] = value;
+                Data[dataKey] = value;
+                row.MirroredDataValue = value;
             } else {
+                Data.Remove(dataKey);
+                row.MirroredDataValue = null;
+            }
+
+            if (!string.Equals(dataKey, name, StringComparison.Ordinal)) {
                 Data.Remove(name);
             }
 

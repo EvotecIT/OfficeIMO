@@ -825,6 +825,12 @@ namespace OfficeIMO.Visio {
                         ParseHyperlinks(connectorHyperlinkSection, vNs, connector.Hyperlinks);
                     }
 
+                    XElement? connectorPropSection = connectorElement.Elements(vNs + "Section")
+                        .FirstOrDefault(section => string.Equals(section.Attribute("N")?.Value, "Prop", StringComparison.OrdinalIgnoreCase));
+                    if (connectorPropSection != null) {
+                        ParseShapeDataRows(connectorPropSection, vNs, connector.ShapeData, connector.PreservedDataRows, connector.Data);
+                    }
+
                     connector.FromConnectionPoint = ResolveConnectionPoint(fromShape, ids.fromCell);
                     connector.ToConnectionPoint = ResolveConnectionPoint(toShape, ids.toCell);
                     TryHydrateConnectorWaypoints(connector, connectorElement, vNs);
@@ -1311,8 +1317,17 @@ namespace OfficeIMO.Visio {
         }
 
         private static void ParseShapeDataRows(XElement propSection, XNamespace ns, VisioShape shape) {
-            shape.ShapeData.Clear();
-            shape.PreservedDataRows.Clear();
+            ParseShapeDataRows(propSection, ns, shape.ShapeData, shape.PreservedDataRows, shape.Data);
+        }
+
+        private static void ParseShapeDataRows(
+            XElement propSection,
+            XNamespace ns,
+            IList<VisioShapeDataRow> shapeData,
+            IList<XElement> preservedDataRows,
+            IDictionary<string, string> data) {
+            shapeData.Clear();
+            preservedDataRows.Clear();
             foreach (XElement row in propSection.Elements(ns + "Row")) {
                 string? key = row.Attribute("N")?.Value;
                 if (string.IsNullOrEmpty(key) || string.Equals(key, OriginalIdPropName, StringComparison.Ordinal)) {
@@ -1349,10 +1364,11 @@ namespace OfficeIMO.Visio {
 
                 dataRow.LoadedValue = dataRow.Value;
                 if (dataRow.Value != null) {
-                    shape.Data[dataRow.Name] = dataRow.Value;
+                    data[dataRow.Name] = dataRow.Value;
+                    dataRow.MirroredDataValue = dataRow.Value;
                 }
 
-                shape.ShapeData.Add(dataRow);
+                shapeData.Add(dataRow);
             }
         }
 

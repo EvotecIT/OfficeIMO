@@ -118,6 +118,16 @@ namespace OfficeIMO.Visio {
         public IList<VisioHyperlink> Hyperlinks { get; } = new List<VisioHyperlink>();
 
         /// <summary>
+        /// Visio Shape Data rows attached to this connector.
+        /// </summary>
+        public IList<VisioShapeDataRow> ShapeData { get; } = new List<VisioShapeDataRow>();
+
+        /// <summary>
+        /// Arbitrary data associated with the connector.
+        /// </summary>
+        public Dictionary<string, string> Data { get; } = new();
+
+        /// <summary>
         /// Visio ShapeSheet protection cells controlling interactive connector editing in Visio.
         /// </summary>
         public VisioProtection Protection { get; } = new VisioProtection();
@@ -201,6 +211,8 @@ namespace OfficeIMO.Visio {
 
         internal string? PreservedTextValue { get; set; }
 
+        internal IList<XElement> PreservedDataRows { get; } = new List<XElement>();
+
         internal bool HasModeledCharSection { get; set; }
 
         internal bool HasModeledParaSection { get; set; }
@@ -237,6 +249,86 @@ namespace OfficeIMO.Visio {
             }
 
             return AddHyperlink(address.ToString(), description, subAddress);
+        }
+
+        /// <summary>
+        /// Finds a Shape Data row by row name.
+        /// </summary>
+        /// <param name="name">Shape Data row name.</param>
+        public VisioShapeDataRow? FindShapeData(string name) {
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Shape data name cannot be empty.", nameof(name));
+            }
+
+            foreach (VisioShapeDataRow row in ShapeData) {
+                if (string.Equals(row.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                    return row;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Gets a Shape Data value by row name.
+        /// </summary>
+        /// <param name="name">Shape Data row name.</param>
+        public string? GetShapeDataValue(string name) {
+            VisioShapeDataRow? row = FindShapeData(name);
+            if (row != null) {
+                if (Data.TryGetValue(row.Name, out string? current) &&
+                    !string.Equals(current, row.MirroredDataValue, StringComparison.Ordinal) &&
+                    !string.Equals(current, row.Value, StringComparison.Ordinal)) {
+                    return current;
+                }
+
+                return row.Value;
+            }
+
+            return Data.TryGetValue(name, out string? value) ? value : null;
+        }
+
+        /// <summary>
+        /// Sets or creates a Shape Data row.
+        /// </summary>
+        /// <param name="name">Shape Data row name.</param>
+        /// <param name="value">Shape Data value.</param>
+        /// <param name="label">Optional label shown in Visio's Shape Data window.</param>
+        /// <param name="type">Optional Shape Data type.</param>
+        /// <param name="prompt">Optional help prompt.</param>
+        /// <param name="format">Optional format picture or list values.</param>
+        public VisioShapeDataRow SetShapeData(string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
+            VisioShapeDataRow? row = FindShapeData(name);
+            if (row == null) {
+                row = new VisioShapeDataRow(name);
+                ShapeData.Add(row);
+            }
+
+            row.Value = value ?? string.Empty;
+            row.ValueFormula = null;
+            if (row.PreservedKnownCells.TryGetValue("Value", out XElement? valueCell)) {
+                valueCell.Attribute("F")?.Remove();
+            }
+
+            if (label != null) row.Label = label;
+            if (type.HasValue) row.Type = type.Value;
+            if (prompt != null) row.Prompt = prompt;
+            if (format != null) row.Format = format;
+
+            string dataKey = row.Name;
+            if (value != null) {
+                Data[dataKey] = value;
+                row.MirroredDataValue = value;
+            } else {
+                Data.Remove(dataKey);
+                row.MirroredDataValue = null;
+            }
+
+            if (!string.Equals(dataKey, name, StringComparison.Ordinal)) {
+                Data.Remove(name);
+            }
+
+            return row;
         }
 
         /// <summary>

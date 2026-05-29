@@ -138,6 +138,7 @@ using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 var installed = VisioStencilPackageCatalog.DiscoverInstalledVisioPackages()
     .Where(path => Path.GetFileName(path).StartsWith("AZURE", StringComparison.OrdinalIgnoreCase));
@@ -155,11 +156,33 @@ VisioDocument.Create("graph.vsdx")
         .StencilNode("events", "Events", stencils.Search("Event Grid").First())
         .Node("worker", "Worker")
         .Node("database", "Database", VisioGraphNodeKind.Data)
+        .NodeShapeData("gateway", "Owner", "Platform", "Owner",
+            VisioShapeDataType.String, "Owning support team")
+        .NodeHyperlink("gateway",
+            "https://learn.microsoft.com/azure/api-management/", "API docs")
+        .NodeShapeData("database", "Classification", "Confidential",
+            "Data classification", VisioShapeDataType.String)
+        .NodeStyle("worker", style => {
+            style.FillColor = Color.FromRgb(73, 80, 87);
+            style.LineColor = Color.FromRgb(45, 52, 59);
+        })
         .Zone("runtime", "Runtime", "gateway", "events", "worker")
         .Root("gateway")
-        .ControlEdge("gateway", "events", "publish")
+        .ControlEdge("gateway-publishes-events", "gateway", "events", "publish")
+        .EdgeShapeData("gateway-publishes-events", "Protocol", "HTTPS",
+            "Protocol", VisioShapeDataType.String)
+        .EdgeHyperlink("gateway-publishes-events",
+            "https://learn.microsoft.com/azure/event-grid/", "Event docs")
         .Edge("events", "worker", "trigger")
-        .DataEdge("worker", "database", "write")
+        .DataEdge("worker-writes-database", "worker", "database", "write")
+        .EdgeShapeData("worker-writes-database", "Port", "1433",
+            "Port", VisioShapeDataType.Number)
+        .EdgeHyperlink("worker-writes-database",
+            "https://example.org/contracts/write-model", "Write contract")
+        .EdgeStyle("worker-writes-database", style => {
+            style.LineColor = Color.FromRgb(0, 102, 204);
+            style.LineWeight = 0.026D;
+        })
         .DataEdge("database", "gateway", "read model"))
     .Save();
 ```
@@ -168,7 +191,13 @@ The generic graph builder is for real node/edge maps that are not strict DAGs
 or one diagram domain. It supports layered, grid, and radial layouts; directed
 and undirected edges; cycles; disconnected components; background zones; native
 nodes; and source-aware `VisioStencilShape` nodes loaded from installed Visio
-or external `.vssx`/`.vstx` packages.
+or external `.vssx`/`.vstx` packages. Use `NodeShapeData` and `NodeHyperlink`
+to keep generated graph nodes searchable, inspectable, and linked to runbooks,
+dashboards, API docs, or data catalogs inside Visio. Named edges can also carry
+connector Shape Data with `EdgeShapeData` and hyperlinks with `EdgeHyperlink`,
+which is useful for protocols, ports, trust levels, API contracts, message
+schemas, queries, and relationship-specific runbooks. Use `NodeStyle` and
+`EdgeStyle` for local visual emphasis without cloning or forking a whole theme.
 
 ## Quick sample (architecture diagram builder)
 
@@ -628,6 +657,37 @@ doc.Save();
 ```
 
 Use `LoadMany(...)` or `LoadDirectory(...)` to compose a palette from many packs.
+That is the preferred model for repository-style stencil packs, such as the
+Microsoft Integration and Azure community pack, where the useful masters are
+spread across multiple `.vssx` files:
+
+```csharp
+var packages = VisioStencilPackageCatalog.EnumeratePackageFiles(
+    @"C:\StencilPacks\Microsoft-Integration-and-Azure-Stencils-Pack-for-Visio",
+    recursive: true);
+var integration = VisioStencilPackageCatalog.LoadMany(packages,
+    new VisioStencilPackageLoadOptions {
+        CatalogName = "Microsoft Integration and Azure",
+        IncludeUnsupportedMasters = true
+    });
+
+var apim = integration.Search("API Management").First();
+var serviceBus = integration.Search("Service Bus").First();
+```
+
+To inspect a pack before building a diagram, render a catalog contact sheet:
+
+```csharp
+var doc = VisioDocument.Create("stencil-gallery.vsdx");
+var page = doc.AddPage("Gallery", 11, 8.5);
+page.AddStencilGallery(integration, new VisioStencilGalleryOptions {
+    Title = "Microsoft Integration and Azure",
+    Columns = 4,
+    MaxShapes = 24
+});
+doc.Save();
+```
+
 `DiscoverInstalledVisioPackages()` finds the local Microsoft Visio `.vssx` and
 `.vstx` content folders without automating Visio, letting you build diagrams from
 installed Visio stencils while keeping OfficeIMO itself dependency-free:

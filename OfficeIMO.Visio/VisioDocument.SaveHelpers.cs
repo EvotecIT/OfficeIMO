@@ -816,8 +816,7 @@ namespace OfficeIMO.Visio {
         private static bool IsDictionaryShapeDataOverride(VisioShapeDataRow row, IDictionary<string, string> data, out string? value) {
             value = null;
             if (data.TryGetValue(row.Name, out string? current) &&
-                row.LoadedValue != null &&
-                string.Equals(row.Value, row.LoadedValue, StringComparison.Ordinal) &&
+                !string.Equals(current, row.MirroredDataValue, StringComparison.Ordinal) &&
                 !string.Equals(current, row.Value, StringComparison.Ordinal)) {
                 value = current;
                 return true;
