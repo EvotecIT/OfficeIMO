@@ -77,6 +77,8 @@ namespace OfficeIMO.Excel {
         public int RecalculateSupportedFormulas() {
             int count = 0;
             WriteLock(() => {
+                MaterializePendingDirectCellValues();
+
                 var previousCache = _formulaEvaluationCache;
                 var previousStack = _formulaEvaluationStack;
                 _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);
