@@ -5,7 +5,7 @@
 - Excel (`.xlsx`, `.xlsm`) -> table chunks + optional Markdown table previews
 - PowerPoint (`.pptx`, `.pptm`) -> slide-aligned Markdown chunks (optionally including notes)
 - Markdown (`.md`, `.markdown`) -> parser-aware heading chunks with preserved fenced/table blocks
-- PDF (`.pdf`) -> page-aware text chunks
+- PDF (`.pdf`) -> page-aware text chunks with logical Markdown when a page fits in one chunk
 
 The goal is to make it easy for tools like chat bots to ingest content deterministically.
 
