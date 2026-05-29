@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 using ExcelTableStyle = OfficeIMO.Excel.TableStyle;
+using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
@@ -678,12 +679,16 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(63, 1, "VLOOKUP(\"US\",B1:C4,2,FALSE)");
                 sheet.CellFormula(64, 1, "HLOOKUP(\"US\",E1:G2,2,FALSE)");
                 sheet.CellFormula(65, 1, "XLOOKUP(\"EMEA\",B1:B4,C1:C4)");
+                sheet.CellFormula(66, 1, "MINIFS(C1:C4,B1:B4,\"EU\")");
+                sheet.CellFormula(67, 1, "MAXIFS(C1:C4,B1:B4,\"E*\",C1:C4,\">=30\")");
+                sheet.CellFormula(68, 1, "COUNTBLANK(H1:H3)");
+                sheet.CellFormula(69, 1, "SUBTOTAL(9,C1:C4)");
 
                 ExcelFormulaInspection sheetInspection = sheet.InspectFormulas();
-                Assert.Equal(63, sheetInspection.TotalFormulas);
-                Assert.Equal(62, sheetInspection.SupportedFormulas);
+                Assert.Equal(67, sheetInspection.TotalFormulas);
+                Assert.Equal(66, sheetInspection.SupportedFormulas);
                 Assert.Equal(1, sheetInspection.UnsupportedFormulas);
-                Assert.Equal(63, sheetInspection.MissingCachedResults);
+                Assert.Equal(67, sheetInspection.MissingCachedResults);
                 Assert.False(sheetInspection.AllSupported);
                 Assert.False(sheetInspection.AllHaveCachedResults);
                 Assert.Contains("SUM", sheetInspection.Capabilities.SupportedFunctions);
@@ -699,6 +704,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("COUNTIFS", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("SUMIFS", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("AVERAGEIFS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("MINIFS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("MAXIFS", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("COUNTBLANK", sheetInspection.Capabilities.SupportedFunctions);
+                Assert.Contains("SUBTOTAL", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("PRODUCT", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("MEDIAN", sheetInspection.Capabilities.SupportedFunctions);
                 Assert.Contains("LARGE", sheetInspection.Capabilities.SupportedFunctions);
@@ -749,7 +758,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("+", sheetInspection.Capabilities.SupportedOperators);
                 Assert.Contains(">=", sheetInspection.Capabilities.SupportedOperators);
                 Assert.Contains("same-sheet A1 range", string.Join(";", sheetInspection.Capabilities.SupportedOperandKinds));
-                Assert.Contains("same-sheet numeric comparison", string.Join(";", sheetInspection.Capabilities.SupportedOperandKinds));
+                Assert.Contains("same-sheet numeric/text comparison", string.Join(";", sheetInspection.Capabilities.SupportedOperandKinds));
                 Assert.Equal(8192, sheetInspection.Capabilities.MaxFormulaLength);
                 Assert.Contains(sheetInspection.Formulas, formula => formula.CellReference == "A3" && formula.IsSupportedByOfficeIMO);
                 Assert.Contains(sheetInspection.Formulas, formula => formula.CellReference == "A4"
@@ -766,7 +775,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Calc", workbookInspection.Formulas[0].SheetName);
 
                 double nowBefore = DateTime.Now.ToOADate();
-                Assert.Equal(62, document.RecalculateSupportedFormulas());
+                Assert.Equal(66, document.RecalculateSupportedFormulas());
                 ExcelFormulaInspection afterRecalculate = document.InspectFormulas();
                 double nowAfter = DateTime.Now.ToOADate();
                 Assert.Equal(1, afterRecalculate.MissingCachedResults);
@@ -835,11 +844,15 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A63" && formula.CachedValue == "20");
                 Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A64" && formula.CachedValue == "200");
                 Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A65" && formula.CachedValue == "40");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A66" && formula.CachedValue == "10");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A67" && formula.CachedValue == "40");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A68" && formula.CachedValue == "3");
+                Assert.Contains(afterRecalculate.Formulas, formula => formula.CellReference == "A69" && formula.CachedValue == "100");
                 Assert.Throws<InvalidOperationException>(() => afterRecalculate.EnsureAllSupported());
                 Assert.Throws<InvalidOperationException>(() => afterRecalculate.EnsureAllHaveCachedResults());
 
                 document.InvalidateFormulas();
-                Assert.Equal(63, document.InspectFormulas().DirtyFormulas);
+                Assert.Equal(67, document.InspectFormulas().DirtyFormulas);
                 document.Save();
             }
 
@@ -933,6 +946,352 @@ namespace OfficeIMO.Tests {
                 string markdown = report.ToMarkdown();
                 Assert.Contains("https://example.org/spec", markdown);
                 Assert.Contains("/customXml/", markdown);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelFeatureReport_DetectsSlicerAndTimelinePackageParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFeatureReport.SlicerTimelineParts.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(2, 1, "EU");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+
+                ExtendedPart slicerPart = workbookPart.AddExtendedPart(
+                    "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                    "application/vnd.ms-excel.slicerCache+xml",
+                    "xml");
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"Region\"/>"))) {
+                    slicerPart.FeedData(stream);
+                }
+
+                ExtendedPart timelinePart = workbookPart.AddExtendedPart(
+                    "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
+                    "application/vnd.ms-excel.timelineCache+xml",
+                    "xml");
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"OrderDate\"/>"))) {
+                    timelinePart.FeedData(stream);
+                }
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                ExcelFeatureFinding slicers = Assert.Single(report.FindFeatures("Slicers"));
+                Assert.Equal(ExcelFeatureSupportLevel.Preserved, slicers.SupportLevel);
+                Assert.Equal(1, slicers.Count);
+                Assert.Contains(slicers.Details, detail => detail.Contains("slicerCache", StringComparison.OrdinalIgnoreCase));
+
+                ExcelFeatureFinding timelines = Assert.Single(report.FindFeatures("Timelines"));
+                Assert.Equal(ExcelFeatureSupportLevel.Preserved, timelines.SupportLevel);
+                Assert.Equal(1, timelines.Count);
+                Assert.Contains(timelines.Details, detail => detail.Contains("timelineCache", StringComparison.OrdinalIgnoreCase));
+
+                InvalidOperationException advancedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                Assert.Contains("Slicers", advancedException.Message);
+                Assert.Contains("Timelines", advancedException.Message);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelFeatureReport_DetectsConnectionAndQueryTablePackageParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFeatureReport.ConnectionQueryParts.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(2, 1, "EU");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+
+                ExtendedPart connectionPart = workbookPart.AddExtendedPart(
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/connections",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.connections+xml",
+                    "xml");
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\"><connection id=\"1\" name=\"SalesConnection\" type=\"5\" refreshedVersion=\"7\"/></connections>"))) {
+                    connectionPart.FeedData(stream);
+                }
+
+                ExtendedPart queryTablePart = worksheetPart.AddExtendedPart(
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/queryTable",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.queryTable+xml",
+                    "xml");
+                using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("<queryTable xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" name=\"SalesQuery\" connectionId=\"1\"/>"))) {
+                    queryTablePart.FeedData(stream);
+                }
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+
+                ExcelFeatureFinding connections = Assert.Single(report.FindFeatures("Connections and query tables"));
+                Assert.Equal(ExcelFeatureSupportLevel.Preserved, connections.SupportLevel);
+                Assert.Equal(2, connections.Count);
+                Assert.Contains(connections.Details, detail => detail.Contains("connections", StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(connections.Details, detail => detail.Contains("queryTable", StringComparison.OrdinalIgnoreCase));
+
+                InvalidOperationException advancedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                Assert.Contains("Connections and query tables", advancedException.Message);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RoundTrip_PreservesSlicerAndTimelinePackageParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.PreserveSlicerTimelineParts.xlsx");
+            byte[] slicerBytes = Encoding.UTF8.GetBytes("<slicerCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2009/9/main\" name=\"Region\"/>");
+            byte[] timelineBytes = Encoding.UTF8.GetBytes("<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"OrderDate\"/>");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(2, 1, "EU");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+
+                ExtendedPart slicerPart = workbookPart.AddExtendedPart(
+                    "http://schemas.microsoft.com/office/2007/relationships/slicerCache",
+                    "application/vnd.ms-excel.slicerCache+xml",
+                    "xml");
+                using (var stream = new MemoryStream(slicerBytes)) {
+                    slicerPart.FeedData(stream);
+                }
+
+                ExtendedPart timelinePart = workbookPart.AddExtendedPart(
+                    "http://schemas.microsoft.com/office/2011/relationships/timelineCache",
+                    "application/vnd.ms-excel.timelineCache+xml",
+                    "xml");
+                using (var stream = new MemoryStream(timelineBytes)) {
+                    timelinePart.FeedData(stream);
+                }
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document["Dashboard"].CellValue(3, 1, "US");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                OpenXmlPart slicerPart = Assert.Single(workbookPart.Parts.Select(part => part.OpenXmlPart),
+                    part => part.ContentType.IndexOf("slicerCache", StringComparison.OrdinalIgnoreCase) >= 0);
+                OpenXmlPart timelinePart = Assert.Single(workbookPart.Parts.Select(part => part.OpenXmlPart),
+                    part => part.ContentType.IndexOf("timelineCache", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                using (var stream = slicerPart.GetStream(FileMode.Open, FileAccess.Read)) {
+                    using var buffer = new MemoryStream();
+                    stream.CopyTo(buffer);
+                    Assert.Equal(slicerBytes, buffer.ToArray());
+                }
+
+                using (var stream = timelinePart.GetStream(FileMode.Open, FileAccess.Read)) {
+                    using var buffer = new MemoryStream();
+                    stream.CopyTo(buffer);
+                    Assert.Equal(timelineBytes, buffer.ToArray());
+                }
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Slicers"
+                    && feature.Details.Any(detail => detail.Contains("slicerCache", StringComparison.OrdinalIgnoreCase)));
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Timelines"
+                    && feature.Details.Any(detail => detail.Contains("timelineCache", StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RoundTrip_PreservesConnectionAndQueryTablePackageParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.PreserveConnectionQueryParts.xlsx");
+            byte[] connectionBytes = Encoding.UTF8.GetBytes("<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\"><connection id=\"1\" name=\"SalesConnection\" type=\"5\" refreshedVersion=\"7\"/></connections>");
+            byte[] queryTableBytes = Encoding.UTF8.GetBytes("<queryTable xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" name=\"SalesQuery\" connectionId=\"1\"/>");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(2, 1, "EU");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+
+                ExtendedPart connectionPart = workbookPart.AddExtendedPart(
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/connections",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.connections+xml",
+                    "xml");
+                using (var stream = new MemoryStream(connectionBytes)) {
+                    connectionPart.FeedData(stream);
+                }
+
+                ExtendedPart queryTablePart = worksheetPart.AddExtendedPart(
+                    "http://schemas.openxmlformats.org/officeDocument/2006/relationships/queryTable",
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.queryTable+xml",
+                    "xml");
+                using (var stream = new MemoryStream(queryTableBytes)) {
+                    queryTablePart.FeedData(stream);
+                }
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document["Data"].CellValue(3, 1, "US");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                OpenXmlPart connectionPart = Assert.Single(workbookPart.Parts.Select(part => part.OpenXmlPart),
+                    part => part.ContentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) >= 0);
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+                OpenXmlPart queryTablePart = Assert.Single(worksheetPart.Parts.Select(part => part.OpenXmlPart),
+                    part => part.ContentType.IndexOf("queryTable", StringComparison.OrdinalIgnoreCase) >= 0);
+
+                using (var stream = connectionPart.GetStream(FileMode.Open, FileAccess.Read)) {
+                    using var buffer = new MemoryStream();
+                    stream.CopyTo(buffer);
+                    Assert.Equal(connectionBytes, buffer.ToArray());
+                }
+
+                using (var stream = queryTablePart.GetStream(FileMode.Open, FileAccess.Read)) {
+                    using var buffer = new MemoryStream();
+                    stream.CopyTo(buffer);
+                    Assert.Equal(queryTableBytes, buffer.ToArray());
+                }
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Connections and query tables"
+                    && feature.Count == 2
+                    && feature.Details.Any(detail => detail.Contains("queryTable", StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RoundTrip_PreservesThreadedCommentsAndReportsDetails() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.PreserveThreadedComments.xlsx");
+            const string personId = "{11111111-1111-1111-1111-111111111111}";
+            const string commentId = "{22222222-2222-2222-2222-222222222222}";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Review");
+                sheet.CellValue(1, 1, "Revenue");
+                sheet.CellValue(2, 1, 1250d);
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                WorkbookPersonPart personPart = workbookPart.AddNewPart<WorkbookPersonPart>();
+                personPart.PersonList = new Threaded.PersonList(
+                    new Threaded.Person {
+                        DisplayName = "Modern Reviewer",
+                        Id = personId,
+                        UserId = "modern.reviewer@example.test",
+                        ProviderId = "OfficeIMO.Tests"
+                    });
+                personPart.PersonList.Save();
+
+                WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
+                WorksheetThreadedCommentsPart threadedPart = worksheetPart.AddNewPart<WorksheetThreadedCommentsPart>();
+                threadedPart.ThreadedComments = new Threaded.ThreadedComments(
+                    new Threaded.ThreadedComment(
+                        new Threaded.ThreadedCommentText("Confirm revenue threshold"))
+                    {
+                        Ref = "A1",
+                        PersonId = personId,
+                        Id = commentId,
+                        DT = new DateTime(2026, 5, 29, 12, 0, 0, DateTimeKind.Utc),
+                        Done = false
+                    });
+                threadedPart.ThreadedComments.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document["Review"].CellValue(3, 1, "Checked");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorkbookPart workbookPart = spreadsheet.WorkbookPart!;
+                WorkbookPersonPart personPart = Assert.Single(workbookPart.WorkbookPersonParts);
+                Assert.Equal("Modern Reviewer", Assert.Single(personPart.PersonList!.Elements<Threaded.Person>()).DisplayName!.Value);
+
+                WorksheetThreadedCommentsPart threadedPart = Assert.Single(workbookPart.WorksheetParts.Single().WorksheetThreadedCommentsParts);
+                Threaded.ThreadedComment threadedComment = Assert.Single(threadedPart.ThreadedComments!.Elements<Threaded.ThreadedComment>());
+                Assert.Equal("A1", threadedComment.Ref!.Value);
+                Assert.Equal(commentId, threadedComment.Id!.Value);
+                Assert.Equal("Confirm revenue threshold", threadedComment.ThreadedCommentText!.InnerText);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+                ExcelFeatureFinding threadedComments = Assert.Single(report.FindFeatures("Threaded comments"));
+                Assert.Equal(ExcelFeatureSupportLevel.Preserved, threadedComments.SupportLevel);
+                Assert.Equal(1, threadedComments.Count);
+                Assert.Contains(threadedComments.Details, detail => detail.Contains("Review: A1 by Modern Reviewer", StringComparison.OrdinalIgnoreCase));
+
+                InvalidOperationException advancedException = Assert.Throws<InvalidOperationException>(() => report.EnsureNoAdvancedFeatures());
+                Assert.Contains("Threaded comments", advancedException.Message);
+                Assert.Contains("Modern Reviewer", advancedException.Message);
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RoundTrip_PreservesOleObjectAndFormControlMarkers() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.PreserveOleFormControls.xlsx");
+            const string oleObjectsXml = "<x:oleObjects xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><x:oleObject progId=\"Package\" shapeId=\"1025\" r:id=\"rIdOlePackage\" /></x:oleObjects>";
+            const string controlsXml = "<x:controls xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><x:control shapeId=\"1026\" name=\"ApproveButton\" r:id=\"rIdControl1\" /></x:controls>";
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Controls");
+                sheet.CellValue(1, 1, "Status");
+                sheet.CellValue(2, 1, "Before");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                worksheetPart.Worksheet.Append(new OleObjects(oleObjectsXml));
+                worksheetPart.Worksheet.Append(new Controls(controlsXml));
+                worksheetPart.Worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document["Controls"].CellValue(3, 1, "After");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet;
+                OleObjects oleObjects = Assert.Single(worksheet.Elements<OleObjects>());
+                Controls controls = Assert.Single(worksheet.Elements<Controls>());
+
+                Assert.Contains("rIdOlePackage", oleObjects.OuterXml);
+                Assert.Contains("ApproveButton", controls.OuterXml);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "OLE objects"
+                    && feature.Count == 1
+                    && feature.Details.Any(detail => detail.Contains("Controls", StringComparison.OrdinalIgnoreCase)));
+                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Form controls"
+                    && feature.Count == 1
+                    && feature.Details.Any(detail => detail.Contains("Controls", StringComparison.OrdinalIgnoreCase)));
             }
         }
 
@@ -1061,6 +1420,61 @@ namespace OfficeIMO.Tests {
                     && feature.Details.Any(detail => detail.Contains("vbaProject", StringComparison.OrdinalIgnoreCase)));
                 Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Embedded packages"
                     && feature.Details.Any(detail => detail.Contains("/embeddings/", StringComparison.OrdinalIgnoreCase)));
+            }
+        }
+
+        [Fact]
+        public void Test_ClosedXmlGap_RoundTrip_PreservesDigitalSignatureMetadataParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.PreserveDigitalSignatureMetadata.xlsx");
+            byte[] signatureBytes = Encoding.UTF8.GetBytes(
+                "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo /></Signature>");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("Signed");
+                sheet.CellValue(1, 1, "Status");
+                sheet.CellValue(2, 1, "Before");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                spreadsheet.AddDigitalSignatureOriginPart();
+                DigitalSignatureOriginPart originPart = spreadsheet.DigitalSignatureOriginPart!;
+                XmlSignaturePart signaturePart = originPart.AddNewPart<XmlSignaturePart>();
+                using (var stream = new MemoryStream(signatureBytes)) {
+                    signaturePart.FeedData(stream);
+                }
+
+                ExtendedFilePropertiesPart appPart = spreadsheet.ExtendedFilePropertiesPart ?? spreadsheet.AddExtendedFilePropertiesPart();
+                appPart.Properties ??= new DocumentFormat.OpenXml.ExtendedProperties.Properties();
+                appPart.Properties.DigitalSignature = new DocumentFormat.OpenXml.ExtendedProperties.DigitalSignature();
+                appPart.Properties.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                document["Signed"].CellValue(3, 1, "After");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                Assert.NotNull(spreadsheet.DigitalSignatureOriginPart);
+                DigitalSignatureOriginPart originPart = spreadsheet.DigitalSignatureOriginPart!;
+                XmlSignaturePart signaturePart = Assert.Single(originPart.XmlSignatureParts);
+                using (Stream stream = signaturePart.GetStream(FileMode.Open, FileAccess.Read)) {
+                    using var buffer = new MemoryStream();
+                    stream.CopyTo(buffer);
+                    Assert.Equal(signatureBytes, buffer.ToArray());
+                }
+
+                Assert.NotNull(spreadsheet.ExtendedFilePropertiesPart?.Properties?.DigitalSignature);
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelFeatureReport report = document.InspectFeatures();
+                ExcelFeatureFinding signatures = Assert.Single(report.FindFeatures("Digital signatures"));
+                Assert.Equal(ExcelFeatureSupportLevel.Preserved, signatures.SupportLevel);
+                Assert.Contains(signatures.Details, detail => detail.Contains("/origin.sigs", StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(signatures.Details, detail => detail.Contains("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(signatures.Details, detail => detail.Contains("extended application properties", StringComparison.OrdinalIgnoreCase));
             }
         }
 

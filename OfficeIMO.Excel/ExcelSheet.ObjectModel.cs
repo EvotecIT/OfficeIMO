@@ -646,17 +646,90 @@ namespace OfficeIMO.Excel {
         }
 
         private void RemapShiftedRowMetadata(int firstAffectedRow, int rowDelta) {
+            RemapShiftedDefinedNames(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedTables(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedComments(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedHyperlinks(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedDataValidations(firstAffectedRow, rowDelta, lastDeletedRow: null);
             RemapShiftedConditionalFormatting(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedSparklines(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedDrawingAnchors(firstAffectedRow, rowDelta, lastDeletedRow: null);
+            RemapShiftedChartReferences(firstAffectedRow, rowDelta, lastDeletedRow: null);
         }
 
         private void RemapDeletedRowMetadata(int firstDeletedRow, int lastDeletedRow, int rowDelta) {
+            RemapShiftedDefinedNames(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedTables(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedComments(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedHyperlinks(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedDataValidations(firstDeletedRow, rowDelta, lastDeletedRow);
             RemapShiftedConditionalFormatting(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedSparklines(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedDrawingAnchors(firstDeletedRow, rowDelta, lastDeletedRow);
+            RemapShiftedChartReferences(firstDeletedRow, rowDelta, lastDeletedRow);
+        }
+
+        private void RemapShiftedDefinedNames(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            var definedNames = WorkbookRoot.DefinedNames;
+            if (definedNames == null) {
+                return;
+            }
+
+            bool changed = false;
+            foreach (var definedName in definedNames.Elements<DefinedName>()) {
+                string? text = definedName.Text;
+                if (string.IsNullOrWhiteSpace(text)) {
+                    continue;
+                }
+
+                string rewritten = lastDeletedRow.HasValue
+                    ? RewriteDeletedFormulaReferences(text, firstAffectedRow, lastDeletedRow.Value, rowDelta, Name)
+                    : RewriteShiftedFormulaReferences(text, firstAffectedRow, rowDelta, Name);
+
+                if (!string.Equals(text, rewritten, StringComparison.Ordinal)) {
+                    definedName.Text = rewritten;
+                    changed = true;
+                }
+            }
+
+            if (changed) {
+                WorkbookRoot.Save();
+            }
+        }
+
+        private void RemapShiftedTables(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            foreach (var tableDefinitionPart in _worksheetPart.TableDefinitionParts) {
+                var table = tableDefinitionPart.Table;
+                if (table == null) {
+                    continue;
+                }
+
+                bool changed = false;
+                if (table.Reference?.Value is string reference
+                    && TryRemapShiftedReferenceListRows(reference, firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)
+                    && remapped.Count > 0) {
+                    string updatedReference = remapped[0];
+                    if (!string.Equals(reference, updatedReference, StringComparison.OrdinalIgnoreCase)) {
+                        table.Reference = updatedReference;
+                        changed = true;
+                    }
+                }
+
+                var autoFilter = table.GetFirstChild<AutoFilter>();
+                if (autoFilter?.Reference?.Value is string filterReference
+                    && TryRemapShiftedReferenceListRows(filterReference, firstAffectedRow, rowDelta, lastDeletedRow, out var remappedFilter)
+                    && remappedFilter.Count > 0) {
+                    string updatedFilterReference = remappedFilter[0];
+                    if (!string.Equals(filterReference, updatedFilterReference, StringComparison.OrdinalIgnoreCase)) {
+                        autoFilter.Reference = updatedFilterReference;
+                        changed = true;
+                    }
+                }
+
+                if (changed) {
+                    table.Save();
+                }
+            }
         }
 
         private void RemapShiftedComments(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
@@ -785,6 +858,123 @@ namespace OfficeIMO.Excel {
                 }
 
                 conditional.SequenceOfReferences = new ListValue<StringValue> { InnerText = string.Join(" ", remapped) };
+            }
+        }
+
+        private void RemapShiftedSparklines(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            foreach (var sparkline in WorksheetRoot.Descendants<DocumentFormat.OpenXml.Office2010.Excel.Sparkline>().ToList()) {
+                if (sparkline.ReferenceSequence?.Text is string location
+                    && TryRemapShiftedReferenceListRows(location, firstAffectedRow, rowDelta, lastDeletedRow, out var remappedLocations)) {
+                    if (remappedLocations.Count == 0) {
+                        sparkline.Remove();
+                        continue;
+                    }
+
+                    sparkline.ReferenceSequence.Text = string.Join(" ", remappedLocations);
+                }
+
+                if (sparkline.Formula?.Text is string formula
+                    && TryRemapShiftedReferenceListRows(formula, firstAffectedRow, rowDelta, lastDeletedRow, out var remappedFormulas)) {
+                    if (remappedFormulas.Count == 0) {
+                        sparkline.Remove();
+                        continue;
+                    }
+
+                    sparkline.Formula.Text = string.Join(" ", remappedFormulas);
+                }
+            }
+        }
+
+        private void RemapShiftedDrawingAnchors(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            var drawing = _worksheetPart.DrawingsPart?.WorksheetDrawing;
+            if (drawing == null) {
+                return;
+            }
+
+            bool changed = false;
+            foreach (var anchor in drawing.ChildElements.ToList()) {
+                if (anchor is Xdr.OneCellAnchor oneCellAnchor) {
+                    if (!TryRemapDrawingMarkerRow(oneCellAnchor.FromMarker, firstAffectedRow, rowDelta, lastDeletedRow, out bool markerChanged)) {
+                        oneCellAnchor.Remove();
+                        changed = true;
+                        continue;
+                    }
+
+                    changed |= markerChanged;
+                } else if (anchor is Xdr.TwoCellAnchor twoCellAnchor) {
+                    bool fromKept = TryRemapDrawingMarkerRow(twoCellAnchor.FromMarker, firstAffectedRow, rowDelta, lastDeletedRow, out bool fromChanged);
+                    bool toKept = TryRemapDrawingMarkerRow(twoCellAnchor.ToMarker, firstAffectedRow, rowDelta, lastDeletedRow, out bool toChanged);
+                    if (!fromKept && !toKept) {
+                        twoCellAnchor.Remove();
+                        changed = true;
+                        continue;
+                    }
+
+                    changed |= fromChanged || toChanged;
+                }
+            }
+
+            if (changed) {
+                drawing.Save();
+            }
+        }
+
+        private static bool TryRemapDrawingMarkerRow(Xdr.MarkerType? marker, int firstAffectedRow, int rowDelta, int? lastDeletedRow, out bool changed) {
+            changed = false;
+            if (marker?.RowId?.Text is not string rowText
+                || !int.TryParse(rowText, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBasedRow)) {
+                return true;
+            }
+
+            int oneBasedRow = zeroBasedRow + 1;
+            if (!TryRemapShiftedReferenceRows((oneBasedRow, 1, oneBasedRow, 1), firstAffectedRow, rowDelta, lastDeletedRow, out var remapped)) {
+                return true;
+            }
+
+            if (remapped == null) {
+                return false;
+            }
+
+            int remappedZeroBasedRow = remapped.Value.r1 - 1;
+            if (remappedZeroBasedRow != zeroBasedRow) {
+                marker.RowId.Text = remappedZeroBasedRow.ToString(CultureInfo.InvariantCulture);
+                changed = true;
+            }
+
+            return true;
+        }
+
+        private void RemapShiftedChartReferences(int firstAffectedRow, int rowDelta, int? lastDeletedRow) {
+            var drawingPart = _worksheetPart.DrawingsPart;
+            if (drawingPart == null) {
+                return;
+            }
+
+            foreach (var chartPart in drawingPart.ChartParts) {
+                var chartSpace = chartPart.ChartSpace;
+                if (chartSpace == null) {
+                    continue;
+                }
+
+                bool changed = false;
+                foreach (var formula in chartSpace.Descendants<DocumentFormat.OpenXml.Drawing.Charts.Formula>()) {
+                    string? text = formula.Text;
+                    if (string.IsNullOrEmpty(text)) {
+                        continue;
+                    }
+
+                    string rewritten = lastDeletedRow.HasValue
+                        ? RewriteDeletedFormulaReferences(text, firstAffectedRow, lastDeletedRow.Value, rowDelta, Name)
+                        : RewriteShiftedFormulaReferences(text, firstAffectedRow, rowDelta, Name);
+                    if (!string.Equals(text, rewritten, StringComparison.Ordinal)) {
+                        formula.Text = rewritten;
+                        changed = true;
+                    }
+                }
+
+                if (changed) {
+                    chartSpace.Save();
+                }
             }
         }
 

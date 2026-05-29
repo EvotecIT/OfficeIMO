@@ -12,6 +12,8 @@ namespace OfficeIMO.Excel {
             UnsupportedFormulas = TotalFormulas - SupportedFormulas;
             MissingCachedResults = formulas.Count(formula => !formula.HasCachedValue);
             DirtyFormulas = formulas.Count(formula => formula.IsDirty);
+            DependencyIssueCount = formulas.Sum(formula => formula.DependencyIssues.Count);
+            DependencyGraph = ExcelFormulaDependencyGraph.Create(formulas);
         }
 
         /// <summary>Formula cells discovered in workbook order.</summary>
@@ -32,11 +34,20 @@ namespace OfficeIMO.Excel {
         /// <summary>Formula cells marked dirty for recalculation.</summary>
         public int DirtyFormulas { get; }
 
+        /// <summary>Total dependency issues found across formula cells.</summary>
+        public int DependencyIssueCount { get; }
+
+        /// <summary>Workbook-level graph of formula cells, direct dependencies, and formula dependents.</summary>
+        public ExcelFormulaDependencyGraph DependencyGraph { get; }
+
         /// <summary>True when every formula can be evaluated by OfficeIMO's lightweight evaluator.</summary>
         public bool AllSupported => TotalFormulas == SupportedFormulas;
 
         /// <summary>True when every formula has a cached result.</summary>
         public bool AllHaveCachedResults => MissingCachedResults == 0;
+
+        /// <summary>True when any formula dependency issue was detected.</summary>
+        public bool HasDependencyIssues => DependencyIssueCount > 0;
 
         /// <summary>Describes the formula patterns supported by OfficeIMO's lightweight evaluator.</summary>
         public ExcelFormulaCapabilities Capabilities => ExcelFormulaCapabilities.Current;
@@ -72,6 +83,21 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Throws when any formula dependency issue is detected.
+        /// </summary>
+        public ExcelFormulaInspection EnsureNoDependencyIssues() {
+            if (DependencyIssueCount > 0) {
+                var issues = Formulas
+                    .Where(formula => formula.DependencyIssues.Count > 0)
+                    .Select(formula => $"{formula.SheetName}!{formula.CellReference}: {string.Join("; ", formula.DependencyIssues)}")
+                    .ToArray();
+                throw new InvalidOperationException("Formula dependency issues: " + string.Join(", ", issues));
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Returns a compact Markdown report of formula support and cache status.
         /// </summary>
         public string ToMarkdown() {
@@ -83,9 +109,10 @@ namespace OfficeIMO.Excel {
             builder.AppendLine($"Unsupported formulas: {UnsupportedFormulas}");
             builder.AppendLine($"Missing cached results: {MissingCachedResults}");
             builder.AppendLine($"Dirty formulas: {DirtyFormulas}");
+            builder.AppendLine($"Dependency issues: {DependencyIssueCount}");
             builder.AppendLine();
-            builder.AppendLine("| Sheet | Cell | Formula | Supported | Cached | Dirty | Reason |");
-            builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
+            builder.AppendLine("| Sheet | Cell | Formula | Supported | Cached | Dirty | Dependencies | Dependency issues | Reason |");
+            builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- | --- | --- |");
 
             foreach (ExcelFormulaCellInfo formula in Formulas) {
                 builder.Append("| ");
@@ -101,6 +128,10 @@ namespace OfficeIMO.Excel {
                 builder.Append(" | ");
                 builder.Append(formula.IsDirty ? "yes" : "no");
                 builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", formula.Dependencies)));
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", formula.DependencyIssues)));
+                builder.Append(" | ");
                 builder.Append(EscapeMarkdownCell(formula.UnsupportedReason ?? string.Empty));
                 builder.AppendLine(" |");
             }
@@ -114,6 +145,231 @@ namespace OfficeIMO.Excel {
     }
 
     /// <summary>
+    /// Workbook-level dependency graph built from formula inspection metadata.
+    /// </summary>
+    public sealed class ExcelFormulaDependencyGraph {
+        private readonly Dictionary<string, ExcelFormulaDependencyNode> _nodesByReference;
+
+        private ExcelFormulaDependencyGraph(IReadOnlyList<ExcelFormulaDependencyNode> nodes) {
+            Nodes = nodes;
+            _nodesByReference = nodes.ToDictionary(node => node.Reference, StringComparer.OrdinalIgnoreCase);
+        }
+
+        /// <summary>Formula nodes in workbook order.</summary>
+        public IReadOnlyList<ExcelFormulaDependencyNode> Nodes { get; }
+
+        /// <summary>Total formula nodes in the graph.</summary>
+        public int NodeCount => Nodes.Count;
+
+        /// <summary>True when at least one formula node has dependency diagnostics.</summary>
+        public bool HasDependencyIssues => Nodes.Any(node => node.HasDependencyIssues);
+
+        internal static ExcelFormulaDependencyGraph Create(IReadOnlyList<ExcelFormulaCellInfo> formulas) {
+            var builders = new Dictionary<string, ExcelFormulaDependencyNodeBuilder>(StringComparer.OrdinalIgnoreCase);
+            foreach (ExcelFormulaCellInfo formula in formulas) {
+                string reference = FormatReference(formula.SheetName, formula.CellReference);
+                if (builders.ContainsKey(reference)) {
+                    continue;
+                }
+
+                builders.Add(reference, new ExcelFormulaDependencyNodeBuilder(
+                    reference,
+                    formula.SheetName,
+                    NormalizeCellReference(formula.CellReference),
+                    formula.Dependencies,
+                    formula.DependencyIssues));
+            }
+
+            foreach (ExcelFormulaCellInfo formula in formulas) {
+                string sourceReference = FormatReference(formula.SheetName, formula.CellReference);
+                foreach (string dependency in formula.Dependencies) {
+                    foreach (string targetReference in FindCoveredFormulaReferences(dependency, builders.Keys)) {
+                        if (builders.TryGetValue(targetReference, out ExcelFormulaDependencyNodeBuilder? dependencyNode)) {
+                            dependencyNode.Dependents.Add(sourceReference);
+                        }
+                    }
+                }
+            }
+
+            var nodes = builders.Values
+                .Select(builder => builder.ToNode())
+                .ToList();
+            return new ExcelFormulaDependencyGraph(nodes);
+        }
+
+        /// <summary>
+        /// Finds a formula dependency node by worksheet name and cell reference.
+        /// </summary>
+        public ExcelFormulaDependencyNode? FindNode(string sheetName, string cellReference) {
+            string reference = FormatReference(sheetName, cellReference);
+            return _nodesByReference.TryGetValue(reference, out ExcelFormulaDependencyNode? node) ? node : null;
+        }
+
+        /// <summary>
+        /// Returns a compact Markdown report of formula dependencies and dependents.
+        /// </summary>
+        public string ToMarkdown() {
+            var builder = new StringBuilder();
+            builder.AppendLine("# Excel Formula Dependency Graph");
+            builder.AppendLine();
+            builder.AppendLine($"Formula nodes: {NodeCount}");
+            builder.AppendLine();
+            builder.AppendLine("| Formula | Dependencies | Dependents | Dependency issues |");
+            builder.AppendLine("| --- | --- | --- | --- |");
+
+            foreach (ExcelFormulaDependencyNode node in Nodes) {
+                builder.Append("| ");
+                builder.Append(EscapeMarkdownCell(node.Reference));
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", node.Dependencies)));
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", node.Dependents)));
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", node.DependencyIssues)));
+                builder.AppendLine(" |");
+            }
+
+            return builder.ToString();
+        }
+
+        private static IEnumerable<string> FindCoveredFormulaReferences(string dependency, IEnumerable<string> formulaReferences) {
+            foreach (string formulaReference in formulaReferences) {
+                if (ReferenceContainsFormulaCell(dependency, formulaReference)) {
+                    yield return formulaReference;
+                }
+            }
+        }
+
+        private static bool ReferenceContainsFormulaCell(string dependency, string formulaReference) {
+            if (!TrySplitQualifiedReference(dependency, out string dependencySheet, out string dependencyAddress)
+                || !TrySplitQualifiedReference(formulaReference, out string formulaSheet, out string formulaAddress)
+                || !string.Equals(dependencySheet, formulaSheet, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            var formulaCell = A1.ParseCellRef(formulaAddress);
+            if (formulaCell.Row <= 0 || formulaCell.Col <= 0) {
+                return false;
+            }
+
+            string normalizedDependency = dependencyAddress.Replace("$", string.Empty);
+            if (A1.TryParseRange(normalizedDependency, out int r1, out int c1, out int r2, out int c2)) {
+                return formulaCell.Row >= r1 && formulaCell.Row <= r2 && formulaCell.Col >= c1 && formulaCell.Col <= c2;
+            }
+
+            var dependencyCell = A1.ParseCellRef(normalizedDependency);
+            return dependencyCell.Row == formulaCell.Row && dependencyCell.Col == formulaCell.Col;
+        }
+
+        private static bool TrySplitQualifiedReference(string reference, out string sheetName, out string address) {
+            sheetName = string.Empty;
+            address = string.Empty;
+            if (string.IsNullOrWhiteSpace(reference)) {
+                return false;
+            }
+
+            int separator = reference.LastIndexOf('!');
+            if (separator <= 0 || separator == reference.Length - 1) {
+                return false;
+            }
+
+            sheetName = reference.Substring(0, separator).Trim();
+            address = reference.Substring(separator + 1).Trim();
+            return sheetName.Length > 0 && address.Length > 0;
+        }
+
+        private static string FormatReference(string sheetName, string cellReference) {
+            return sheetName + "!" + NormalizeCellReference(cellReference);
+        }
+
+        private static string NormalizeCellReference(string cellReference) {
+            string normalized = (cellReference ?? string.Empty).Trim().Replace("$", string.Empty);
+            var parsed = A1.ParseCellRef(normalized);
+            return parsed.Row > 0 && parsed.Col > 0
+                ? A1.CellReference(parsed.Row, parsed.Col)
+                : normalized;
+        }
+
+        private static string EscapeMarkdownCell(string value) {
+            return value.Replace("\\", "\\\\").Replace("|", "\\|").Replace("\r", " ").Replace("\n", " ");
+        }
+
+        private sealed class ExcelFormulaDependencyNodeBuilder {
+            internal ExcelFormulaDependencyNodeBuilder(
+                string reference,
+                string sheetName,
+                string cellReference,
+                IReadOnlyList<string> dependencies,
+                IReadOnlyList<string> dependencyIssues) {
+                Reference = reference;
+                SheetName = sheetName;
+                CellReference = cellReference;
+                Dependencies = dependencies;
+                DependencyIssues = dependencyIssues;
+                Dependents = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            internal string Reference { get; }
+            internal string SheetName { get; }
+            internal string CellReference { get; }
+            internal IReadOnlyList<string> Dependencies { get; }
+            internal IReadOnlyList<string> DependencyIssues { get; }
+            internal HashSet<string> Dependents { get; }
+
+            internal ExcelFormulaDependencyNode ToNode() {
+                return new ExcelFormulaDependencyNode(
+                    Reference,
+                    SheetName,
+                    CellReference,
+                    Dependencies,
+                    Dependents.OrderBy(dependent => dependent, StringComparer.OrdinalIgnoreCase).ToList(),
+                    DependencyIssues);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Formula cell node in a workbook-level dependency graph.
+    /// </summary>
+    public sealed class ExcelFormulaDependencyNode {
+        internal ExcelFormulaDependencyNode(
+            string reference,
+            string sheetName,
+            string cellReference,
+            IReadOnlyList<string> dependencies,
+            IReadOnlyList<string> dependents,
+            IReadOnlyList<string> dependencyIssues) {
+            Reference = reference;
+            SheetName = sheetName;
+            CellReference = cellReference;
+            Dependencies = dependencies;
+            Dependents = dependents;
+            DependencyIssues = dependencyIssues;
+        }
+
+        /// <summary>Qualified formula cell reference, such as Sheet1!A1.</summary>
+        public string Reference { get; }
+
+        /// <summary>Worksheet name.</summary>
+        public string SheetName { get; }
+
+        /// <summary>A1 cell reference.</summary>
+        public string CellReference { get; }
+
+        /// <summary>Direct A1/range dependencies detected for this formula.</summary>
+        public IReadOnlyList<string> Dependencies { get; }
+
+        /// <summary>Formula cells that directly depend on this formula cell.</summary>
+        public IReadOnlyList<string> Dependents { get; }
+
+        /// <summary>Dependency diagnostics associated with this formula cell.</summary>
+        public IReadOnlyList<string> DependencyIssues { get; }
+
+        /// <summary>True when dependency diagnostics found one or more issues.</summary>
+        public bool HasDependencyIssues => DependencyIssues.Count > 0;
+    }
+
+    /// <summary>
     /// Formula metadata for a single worksheet cell.
     /// </summary>
     public sealed class ExcelFormulaCellInfo {
@@ -124,7 +380,9 @@ namespace OfficeIMO.Excel {
             string? cachedValue,
             bool isDirty,
             bool isSupportedByOfficeIMO,
-            string? unsupportedReason) {
+            string? unsupportedReason,
+            IReadOnlyList<string>? dependencies = null,
+            IReadOnlyList<string>? dependencyIssues = null) {
             SheetName = sheetName;
             CellReference = cellReference;
             Formula = formula;
@@ -132,6 +390,8 @@ namespace OfficeIMO.Excel {
             IsDirty = isDirty;
             IsSupportedByOfficeIMO = isSupportedByOfficeIMO;
             UnsupportedReason = unsupportedReason;
+            Dependencies = dependencies ?? Array.Empty<string>();
+            DependencyIssues = dependencyIssues ?? Array.Empty<string>();
         }
 
         /// <summary>Worksheet name.</summary>
@@ -157,15 +417,24 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Reason a formula is not supported by OfficeIMO's lightweight evaluator.</summary>
         public string? UnsupportedReason { get; }
+
+        /// <summary>Direct A1/range dependencies detected in the formula.</summary>
+        public IReadOnlyList<string> Dependencies { get; }
+
+        /// <summary>Dependency diagnostics such as circular references or missing cached formula dependencies.</summary>
+        public IReadOnlyList<string> DependencyIssues { get; }
+
+        /// <summary>True when dependency diagnostics found one or more issues.</summary>
+        public bool HasDependencyIssues => DependencyIssues.Count > 0;
     }
 
     /// <summary>
     /// Describes the current lightweight formula calculation support in OfficeIMO.Excel.
     /// </summary>
     public sealed class ExcelFormulaCapabilities {
-        private static readonly string[] Functions = { "SUM", "AVERAGE", "MIN", "MAX", "COUNT", "COUNTA", "COUNTIF", "SUMIF", "AVERAGEIF", "COUNTIFS", "SUMIFS", "AVERAGEIFS", "PRODUCT", "MEDIAN", "LARGE", "SMALL", "SUMPRODUCT", "VLOOKUP", "HLOOKUP", "XLOOKUP", "CONCAT", "TEXTJOIN", "LEFT", "RIGHT", "MID", "LEN", "TRIM", "ABS", "SIGN", "ROUND", "ROUNDUP", "ROUNDDOWN", "TRUNC", "INT", "CEILING", "FLOOR", "POWER", "SQRT", "LN", "LOG10", "EXP", "PI", "RADIANS", "DEGREES", "MOD", "DATE", "TIME", "TODAY", "NOW", "YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND", "EDATE", "EOMONTH", "DAYS", "WEEKDAY", "NETWORKDAYS", "IF", "AND", "OR", "NOT", "IFERROR" };
+        private static readonly string[] Functions = { "SUM", "AVERAGE", "AVERAGEA", "MIN", "MINA", "MAX", "MAXA", "COUNT", "COUNTA", "COUNTBLANK", "SUBTOTAL", "COUNTIF", "SUMIF", "AVERAGEIF", "COUNTIFS", "SUMIFS", "AVERAGEIFS", "MINIFS", "MAXIFS", "PRODUCT", "MEDIAN", "LARGE", "SMALL", "MODE.SNGL", "MODE", "GEOMEAN", "HARMEAN", "AVEDEV", "DEVSQ", "SUMXMY2", "SUMX2MY2", "SUMX2PY2", "SUMSQ", "SUMPRODUCT", "STDEV.S", "STDEV.P", "VAR.S", "VAR.P", "PERCENTILE.INC", "PERCENTILE.EXC", "QUARTILE.INC", "QUARTILE.EXC", "PERCENTRANK.INC", "PERCENTRANK.EXC", "RANK.EQ", "RANK.AVG", "CORREL", "SLOPE", "INTERCEPT", "RSQ", "FORECAST.LINEAR", "PMT", "PV", "FV", "NPER", "NPV", "VLOOKUP", "HLOOKUP", "XLOOKUP", "INDEX", "MATCH", "XMATCH", "CONCAT", "CONCATENATE", "TEXT", "TEXTJOIN", "TEXTBEFORE", "TEXTAFTER", "FORMULATEXT", "LEFT", "RIGHT", "MID", "LEN", "TRIM", "UPPER", "LOWER", "PROPER", "SUBSTITUTE", "FIND", "SEARCH", "VALUE", "EXACT", "REPT", "ABS", "SIGN", "ROUND", "ROUNDUP", "ROUNDDOWN", "MROUND", "TRUNC", "INT", "CEILING.MATH", "FLOOR.MATH", "CEILING", "FLOOR", "POWER", "SQRT", "LN", "LOG10", "EXP", "PI", "RADIANS", "DEGREES", "MOD", "ROW", "COLUMN", "ROWS", "COLUMNS", "DATE", "TIME", "DATEVALUE", "TIMEVALUE", "TODAY", "NOW", "YEAR", "MONTH", "DAY", "HOUR", "MINUTE", "SECOND", "DATEDIF", "YEARFRAC", "EDATE", "EOMONTH", "DAYS", "DAYS360", "WEEKDAY", "WEEKNUM", "ISOWEEKNUM", "NETWORKDAYS", "WORKDAY", "WORKDAY.INTL", "IF", "IFS", "SWITCH", "CHOOSE", "ISBLANK", "ISNUMBER", "ISTEXT", "ISERROR", "ISERR", "ISNA", "ISFORMULA", "AND", "OR", "NOT", "IFERROR", "IFNA" };
         private static readonly string[] Operators = { "+", "-", "*", "/", ">", "<", ">=", "<=", "=", "<>" };
-        private static readonly string[] OperandKinds = { "number literal", "same-sheet A1 cell reference", "same-sheet A1 range for function arguments", "cross-sheet A1 cell/range reference", "A1-backed named range reference", "simple table structured reference", "same-sheet numeric comparison for IF/AND/OR/NOT" };
+        private static readonly string[] OperandKinds = { "number literal", "text literal", "same-sheet A1 cell reference", "same-sheet A1 range for function arguments", "cross-sheet A1 cell/range reference", "A1-backed named range reference", "simple table structured reference", "same-sheet numeric/text comparison for IF/IFS/SWITCH/AND/OR/NOT", "direct dependency diagnostics for A1 cell and range references" };
 
         private ExcelFormulaCapabilities() {
         }
@@ -186,6 +455,6 @@ namespace OfficeIMO.Excel {
         public int MaxFormulaLength => 8192;
 
         /// <summary>Short human-readable summary of the current evaluator scope.</summary>
-        public string Summary => "Supports simple same-sheet arithmetic plus SUM/AVERAGE/MIN/MAX/COUNT/COUNTA/COUNTIF/SUMIF/AVERAGEIF/COUNTIFS/SUMIFS/AVERAGEIFS/PRODUCT/MEDIAN/LARGE/SMALL/SUMPRODUCT, exact-match VLOOKUP/HLOOKUP/XLOOKUP returning numeric or text values, CONCAT/TEXTJOIN/LEFT/RIGHT/MID/LEN/TRIM text helpers, ABS/SIGN/ROUND/ROUNDUP/ROUNDDOWN/TRUNC/INT/CEILING/FLOOR/POWER/SQRT/LN/LOG10/EXP/PI/RADIANS/DEGREES/MOD, DATE/TIME/TODAY/NOW/YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/EDATE/EOMONTH/DAYS/WEEKDAY/NETWORKDAYS, numeric IF/AND/OR/NOT comparisons, and numeric IFERROR fallbacks over numbers, text literals, A1 cells, A1 ranges, A1-backed named ranges, simple table structured references, cross-sheet references, and nested formulas.";
+        public string Summary => "Supports simple same-sheet arithmetic plus SUM/AVERAGE/AVERAGEA/MIN/MINA/MAX/MAXA/COUNT/COUNTA/COUNTBLANK/SUBTOTAL/COUNTIF/SUMIF/AVERAGEIF/COUNTIFS/SUMIFS/AVERAGEIFS/MINIFS/MAXIFS/PRODUCT/MEDIAN/LARGE/SMALL/SUMSQ/SUMPRODUCT, bounded MODE.SNGL/MODE/GEOMEAN/HARMEAN/AVEDEV/DEVSQ/SUMXMY2/SUMX2MY2/SUMX2PY2/STDEV.S/STDEV.P/VAR.S/VAR.P/PERCENTILE.INC/PERCENTILE.EXC/QUARTILE.INC/QUARTILE.EXC/PERCENTRANK.INC/PERCENTRANK.EXC/RANK.EQ/RANK.AVG/CORREL/SLOPE/INTERCEPT/RSQ/FORECAST.LINEAR statistical report formulas, bounded PMT/PV/FV/NPER/NPV financial report formulas, exact-match VLOOKUP/HLOOKUP/INDEX/MATCH/XMATCH returning numeric or text values where applicable, XLOOKUP if-not-found fallbacks plus forward/reverse exact and bounded next-smaller/next-larger numeric search, MATCH/XMATCH bounded exact and next-smaller/next-larger numeric positions, CONCAT/CONCATENATE/TEXT/TEXTJOIN/TEXTBEFORE/TEXTAFTER/FORMULATEXT/LEFT/RIGHT/MID/LEN/TRIM/UPPER/LOWER/PROPER/SUBSTITUTE/FIND/SEARCH/VALUE/EXACT/REPT text helpers, bounded TEXT number/date/time formats for report labels, ABS/SIGN/ROUND/ROUNDUP/ROUNDDOWN/MROUND/TRUNC/INT/CEILING.MATH/FLOOR.MATH/CEILING/FLOOR/POWER/SQRT/LN/LOG10/EXP/PI/RADIANS/DEGREES/MOD, ROW/COLUMN/ROWS/COLUMNS reference-shape helpers, DATE/TIME/DATEVALUE/TIMEVALUE/TODAY/NOW/YEAR/MONTH/DAY/HOUR/MINUTE/SECOND/DATEDIF/YEARFRAC/EDATE/EOMONTH/DAYS/DAYS360/WEEKDAY/WEEKNUM/ISOWEEKNUM/NETWORKDAYS/WORKDAY/WORKDAY.INTL, IF/IFS/SWITCH/CHOOSE with numeric/text comparison or selector branches, ISBLANK/ISNUMBER/ISTEXT/ISERROR/ISERR/ISNA/ISFORMULA report guards, AND/OR/NOT comparisons, and IFERROR/IFNA fallbacks returning numbers or text over numbers, text literals, A1 cells, A1 ranges, A1-backed named ranges, simple table structured references, cross-sheet references, and nested formulas. Inspection reports direct A1 dependencies, workbook-level dependency graphs, and dependency issues for preflight diagnostics.";
     }
 }
