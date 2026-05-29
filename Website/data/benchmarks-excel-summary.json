@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "generatedUtc": "2026-05-28T13:35:33.7558468Z",
+  "generatedUtc": "2026-05-29T09:47:05.7621264Z",
   "runMode": "quick",
   "publish": false,
   "framework": ".NET 8.0.27",
   "meta": {
-    "commit": "33548cdacce6a3fbb212c280e49fbb4ce30f0ce8",
-    "branch": "codex/benchmarks-site-data",
+    "commit": "8250bdd5f1a38cb28e9c02845f3ca69ef55c8c45",
+    "branch": "codex/benchmarks-responsive-table",
     "dotnetSdk": "10.0.300",
     "runtime": ".NET 9.0.14",
     "osDescription": "Microsoft Windows 10.0.26200",

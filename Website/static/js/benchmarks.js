@@ -8,6 +8,7 @@
   var rows = Array.prototype.slice.call(tbody.querySelectorAll('[data-benchmark-row]'));
   var filters = root.querySelectorAll('[data-benchmark-filter]');
   var buttons = root.querySelectorAll('[data-benchmark-sort]');
+  var sortMetric = root.querySelector('[data-benchmark-sort-mode]');
   var reset = root.querySelector('[data-benchmark-reset]');
   var count = root.querySelector('[data-benchmark-count]');
   var sortState = { key: 'original', direction: 'none', type: 'number' };
@@ -32,6 +33,8 @@
 
   function durationValue(cell) {
     if (!cell || cell.querySelector('.imo-benchmark-missing')) return null;
+    var attributeValue = numberValue(cell.getAttribute('data-mean-ms'));
+    if (isFiniteNumber(attributeValue)) return attributeValue;
     var strong = cell.querySelector('strong');
     var text = (strong && strong.textContent ? strong.textContent : '').trim().toLowerCase();
     var parsed = numberValue(text);
@@ -40,14 +43,58 @@
     return parsed;
   }
 
+  function ratioValue(cell) {
+    if (!cell || cell.querySelector('.imo-benchmark-missing')) return null;
+    return numberValue(cell.getAttribute('data-ratio-to-fastest'));
+  }
+
+  function activeSortMetric() {
+    return sortMetric && sortMetric.value === 'ratio' ? 'ratio' : 'time';
+  }
+
+  function librarySortValue(cell) {
+    var time = durationValue(cell);
+    var ratio = ratioValue(cell);
+    return activeSortMetric() === 'ratio' ? [ratio, time] : [time, ratio];
+  }
+
   function rowValue(row, key) {
     if (key === 'original') return numberValue(row.getAttribute('data-original-index')) || 0;
     if (key === 'scenario') return row.getAttribute('data-scenario') || '';
     if (key === 'fastest') return numberValue(row.getAttribute('data-fastest-ms'));
     if (key.indexOf('library:') === 0) {
-      return durationValue(row._libraryCells[key.substring(8)]);
+      return librarySortValue(row._libraryCells[key.substring(8)]);
     }
     return '';
+  }
+
+  function missingValue(value) {
+    if (Array.isArray(value)) {
+      return value.every(function (entry) { return missingValue(entry); });
+    }
+    return value === null || typeof value === 'undefined' || value === '';
+  }
+
+  function compareNumberValues(leftValue, rightValue) {
+    var leftValues = Array.isArray(leftValue) ? leftValue : [leftValue];
+    var rightValues = Array.isArray(rightValue) ? rightValue : [rightValue];
+    var length = Math.max(leftValues.length, rightValues.length);
+
+    for (var index = 0; index < length; index++) {
+      var leftEntry = leftValues[index];
+      var rightEntry = rightValues[index];
+      var leftMissing = missingValue(leftEntry);
+      var rightMissing = missingValue(rightEntry);
+
+      if (leftMissing && rightMissing) continue;
+      if (leftMissing) return 1;
+      if (rightMissing) return -1;
+
+      var result = leftEntry - rightEntry;
+      if (result !== 0) return result;
+    }
+
+    return 0;
   }
 
   function compareRows(left, right) {
@@ -57,15 +104,15 @@
 
     var leftValue = rowValue(left, sortState.key);
     var rightValue = rowValue(right, sortState.key);
-    var leftMissing = leftValue === null || typeof leftValue === 'undefined' || leftValue === '';
-    var rightMissing = rightValue === null || typeof rightValue === 'undefined' || rightValue === '';
+    var leftMissing = missingValue(leftValue);
+    var rightMissing = missingValue(rightValue);
 
     if (leftMissing && rightMissing) return rowValue(left, 'original') - rowValue(right, 'original');
     if (leftMissing) return 1;
     if (rightMissing) return -1;
 
     var result = sortState.type === 'number'
-      ? leftValue - rightValue
+      ? compareNumberValues(leftValue, rightValue)
       : String(leftValue).localeCompare(String(rightValue), undefined, { numeric: true, sensitivity: 'base' });
 
     if (result === 0) result = rowValue(left, 'original') - rowValue(right, 'original');
@@ -148,6 +195,7 @@
 
   function resetMatrix() {
     Array.prototype.forEach.call(filters, function (filter) { filter.value = ''; });
+    if (sortMetric) sortMetric.value = 'time';
     sortState = { key: 'original', direction: 'none', type: 'number' };
     updateHeaders(null);
     apply();
@@ -166,6 +214,8 @@
     on(filter, 'input', apply);
     on(filter, 'change', apply);
   });
+
+  on(sortMetric, 'change', apply);
 
   Array.prototype.forEach.call(buttons, function (button) {
     on(button, 'click', function () {
@@ -188,6 +238,10 @@
     apply: apply,
     reset: resetMatrix,
     setFilter: setFilter,
+    setSortMetric: function (value) {
+      if (sortMetric) sortMetric.value = value === 'ratio' ? 'ratio' : 'time';
+      apply();
+    },
     sortBy: sortBy
   };
 
