@@ -37,6 +37,7 @@ Build the lightweight evaluator into a dependable reporting-calculation layer.
 - Done initial slice: add bounded statistical report formulas for `SUMSQ`, `STDEV.S`, `STDEV.P`, `VAR.S`, `VAR.P`, `PERCENTILE.INC`, `PERCENTILE.EXC`, `QUARTILE.INC`, `QUARTILE.EXC`, `PERCENTRANK.INC`, `PERCENTRANK.EXC`, `RANK.EQ`, `RANK.AVG`, `CORREL`, `SLOPE`, `INTERCEPT`, `RSQ`, and `FORECAST.LINEAR`.
 - Done initial slice: add bounded descriptive-statistics report formulas for `MEDIAN`, `LARGE`, `SMALL`, `MODE.SNGL`, `MODE`, `GEOMEAN`, and `HARMEAN`.
 - Done initial slice: add deviation and paired-array statistical report formulas for `AVEDEV`, `DEVSQ`, `SUMXMY2`, `SUMX2MY2`, and `SUMX2PY2`.
+- Done initial slice: add covariance report formulas for `COVARIANCE.P`, `COVARIANCE.S`, and `COVAR`.
 - Done initial slice: add bounded rounding-to-significance report formulas for `MROUND`, `CEILING.MATH`, and `FLOOR.MATH`.
 - Done initial slice: add standard rounding helpers for `ROUND`, `ROUNDUP`, `ROUNDDOWN`, `TRUNC`, `INT`, `CEILING`, and `FLOOR`, including negative digit positions for report-scale rounding.
 - Done initial slice: add value-returning `CHOOSE` selectors for numeric and text report formulas.

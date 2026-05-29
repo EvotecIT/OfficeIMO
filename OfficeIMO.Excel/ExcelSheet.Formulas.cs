@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         private HashSet<string>? _formulaEvaluationStack;
 
         private static readonly Regex SimpleFunctionFormulaRegex = new Regex(
-            @"^\s*=?\s*(SUM|AVERAGE|AVERAGEA|MIN|MINA|MAX|MAXA|COUNT|COUNTA|COUNTBLANK|SUBTOTAL|COUNTIF|SUMIF|AVERAGEIF|COUNTIFS|SUMIFS|AVERAGEIFS|MINIFS|MAXIFS|PRODUCT|MEDIAN|LARGE|SMALL|MODE\.SNGL|MODE|GEOMEAN|HARMEAN|AVEDEV|DEVSQ|SUMXMY2|SUMX2MY2|SUMX2PY2|SUMSQ|SUMPRODUCT|STDEV\.S|STDEV\.P|VAR\.S|VAR\.P|PERCENTILE\.INC|PERCENTILE\.EXC|QUARTILE\.INC|QUARTILE\.EXC|PERCENTRANK\.INC|PERCENTRANK\.EXC|RANK\.EQ|RANK\.AVG|CORREL|SLOPE|INTERCEPT|RSQ|FORECAST\.LINEAR|PMT|PV|FV|NPER|NPV|VLOOKUP|HLOOKUP|XLOOKUP|INDEX|MATCH|XMATCH|ABS|SIGN|ROUND|ROUNDUP|ROUNDDOWN|MROUND|TRUNC|INT|CEILING\.MATH|FLOOR\.MATH|CEILING|FLOOR|POWER|SQRT|LN|LOG10|EXP|PI|RADIANS|DEGREES|MOD|ROW|COLUMN|ROWS|COLUMNS|DATE|TIME|DATEVALUE|TIMEVALUE|TODAY|NOW|YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|DATEDIF|YEARFRAC|EDATE|EOMONTH|DAYS|DAYS360|WEEKDAY|WEEKNUM|ISOWEEKNUM|NETWORKDAYS|WORKDAY\.INTL|WORKDAY|IF|IFS|SWITCH|CHOOSE|ISBLANK|ISNUMBER|ISTEXT|ISERROR|ISERR|ISNA|ISFORMULA|AND|OR|NOT|IFERROR|IFNA|CONCAT|CONCATENATE|TEXT|TEXTJOIN|TEXTBEFORE|TEXTAFTER|FORMULATEXT|LEFT|RIGHT|MID|LEN|TRIM|UPPER|LOWER|PROPER|SUBSTITUTE|FIND|SEARCH|VALUE|EXACT|REPT)\s*\((.*)\)\s*$",
+            @"^\s*=?\s*(SUM|AVERAGE|AVERAGEA|MIN|MINA|MAX|MAXA|COUNT|COUNTA|COUNTBLANK|SUBTOTAL|COUNTIF|SUMIF|AVERAGEIF|COUNTIFS|SUMIFS|AVERAGEIFS|MINIFS|MAXIFS|PRODUCT|MEDIAN|LARGE|SMALL|MODE\.SNGL|MODE|GEOMEAN|HARMEAN|AVEDEV|DEVSQ|SUMXMY2|SUMX2MY2|SUMX2PY2|SUMSQ|SUMPRODUCT|STDEV\.S|STDEV\.P|VAR\.S|VAR\.P|PERCENTILE\.INC|PERCENTILE\.EXC|QUARTILE\.INC|QUARTILE\.EXC|PERCENTRANK\.INC|PERCENTRANK\.EXC|RANK\.EQ|RANK\.AVG|COVAR|COVARIANCE\.P|COVARIANCE\.S|CORREL|SLOPE|INTERCEPT|RSQ|FORECAST\.LINEAR|PMT|PV|FV|NPER|NPV|VLOOKUP|HLOOKUP|XLOOKUP|INDEX|MATCH|XMATCH|ABS|SIGN|ROUND|ROUNDUP|ROUNDDOWN|MROUND|TRUNC|INT|CEILING\.MATH|FLOOR\.MATH|CEILING|FLOOR|POWER|SQRT|LN|LOG10|EXP|PI|RADIANS|DEGREES|MOD|ROW|COLUMN|ROWS|COLUMNS|DATE|TIME|DATEVALUE|TIMEVALUE|TODAY|NOW|YEAR|MONTH|DAY|HOUR|MINUTE|SECOND|DATEDIF|YEARFRAC|EDATE|EOMONTH|DAYS|DAYS360|WEEKDAY|WEEKNUM|ISOWEEKNUM|NETWORKDAYS|WORKDAY\.INTL|WORKDAY|IF|IFS|SWITCH|CHOOSE|ISBLANK|ISNUMBER|ISTEXT|ISERROR|ISERR|ISNA|ISFORMULA|AND|OR|NOT|IFERROR|IFNA|CONCAT|CONCATENATE|TEXT|TEXTJOIN|TEXTBEFORE|TEXTAFTER|FORMULATEXT|LEFT|RIGHT|MID|LEN|TRIM|UPPER|LOWER|PROPER|SUBSTITUTE|FIND|SEARCH|VALUE|EXACT|REPT)\s*\((.*)\)\s*$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled,
             FormulaRegexTimeout);
 
@@ -474,6 +474,7 @@ namespace OfficeIMO.Excel {
                         || function == "QUARTILE.INC" || function == "QUARTILE.EXC"
                         || function == "PERCENTRANK.INC" || function == "PERCENTRANK.EXC"
                         || function == "RANK.EQ" || function == "RANK.AVG"
+                        || function == "COVAR" || function == "COVARIANCE.P" || function == "COVARIANCE.S"
                         || function == "CORREL" || function == "SLOPE" || function == "INTERCEPT" || function == "RSQ"
                         || function == "FORECAST.LINEAR") {
                         return TryEvaluateStatisticalFunction(function, args, out result);
@@ -1650,6 +1651,17 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            if (function == "COVAR" || function == "COVARIANCE.P" || function == "COVARIANCE.S") {
+                if (tokens.Count != 2
+                    || !TryResolveFormulaArgumentNumbers(tokens[0], out var leftValues)
+                    || !TryResolveFormulaArgumentNumbers(tokens[1], out var rightValues)
+                    || !TryCalculateCovariance(leftValues, rightValues, sample: function == "COVARIANCE.S", out result)) {
+                    return false;
+                }
+
+                return IsFinite(result);
+            }
+
             if (function == "CORREL" || function == "SLOPE" || function == "INTERCEPT" || function == "RSQ") {
                 if (tokens.Count != 2
                     || !TryResolveFormulaArgumentNumbers(tokens[0], out var knownY)
@@ -1813,6 +1825,23 @@ namespace OfficeIMO.Excel {
                 return delta * delta;
             });
             return sumSquares / (sample ? numbers.Count - 1 : numbers.Count);
+        }
+
+        private static bool TryCalculateCovariance(IReadOnlyList<double> leftValues, IReadOnlyList<double> rightValues, bool sample, out double result) {
+            result = 0;
+            if (leftValues.Count != rightValues.Count || leftValues.Count == 0 || (sample && leftValues.Count < 2)) {
+                return false;
+            }
+
+            double leftAverage = leftValues.Average();
+            double rightAverage = rightValues.Average();
+            double sumProducts = 0;
+            for (int index = 0; index < leftValues.Count; index++) {
+                sumProducts += (leftValues[index] - leftAverage) * (rightValues[index] - rightAverage);
+            }
+
+            result = sumProducts / (sample ? leftValues.Count - 1 : leftValues.Count);
+            return IsFinite(result);
         }
 
         private static bool TryCalculateLinearRegression(

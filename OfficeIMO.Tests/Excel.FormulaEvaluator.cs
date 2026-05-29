@@ -807,10 +807,14 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(48, 4, "SUMX2MY2(A1:A5,C1:C5)");
                 sheet.CellFormula(49, 4, "SUMX2PY2(A1:A5,C1:C5)");
                 sheet.CellFormula(50, 4, "SUMXMY2(A1:A5,C1:C4)");
+                sheet.CellFormula(51, 4, "COVARIANCE.P(A1:A5,C1:C5)");
+                sheet.CellFormula(52, 4, "COVARIANCE.S(A1:A5,C1:C5)");
+                sheet.CellFormula(53, 4, "COVAR(A1:A5,C1:C5)");
+                sheet.CellFormula(54, 4, "COVARIANCE.P(A1:A5,C1:C4)");
 
                 ExcelFormulaInspection before = sheet.InspectFormulas();
-                Assert.Equal(50, before.TotalFormulas);
-                Assert.Equal(41, before.SupportedFormulas);
+                Assert.Equal(54, before.TotalFormulas);
+                Assert.Equal(44, before.SupportedFormulas);
                 Assert.Contains("AVERAGEA", before.Capabilities.SupportedFunctions);
                 Assert.Contains("MINA", before.Capabilities.SupportedFunctions);
                 Assert.Contains("MAXA", before.Capabilities.SupportedFunctions);
@@ -827,6 +831,9 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("SUMXMY2", before.Capabilities.SupportedFunctions);
                 Assert.Contains("SUMX2MY2", before.Capabilities.SupportedFunctions);
                 Assert.Contains("SUMX2PY2", before.Capabilities.SupportedFunctions);
+                Assert.Contains("COVARIANCE.P", before.Capabilities.SupportedFunctions);
+                Assert.Contains("COVARIANCE.S", before.Capabilities.SupportedFunctions);
+                Assert.Contains("COVAR", before.Capabilities.SupportedFunctions);
                 Assert.Contains("SUMSQ", before.Capabilities.SupportedFunctions);
                 Assert.Contains("VAR.P", before.Capabilities.SupportedFunctions);
                 Assert.Contains("VAR.S", before.Capabilities.SupportedFunctions);
@@ -854,8 +861,9 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(before.Formulas, formula => formula.CellReference == "D32" && !formula.IsSupportedByOfficeIMO);
                 Assert.Contains(before.Formulas, formula => formula.CellReference == "D37" && !formula.IsSupportedByOfficeIMO);
                 Assert.Contains(before.Formulas, formula => formula.CellReference == "D50" && !formula.IsSupportedByOfficeIMO);
+                Assert.Contains(before.Formulas, formula => formula.CellReference == "D54" && !formula.IsSupportedByOfficeIMO);
 
-                Assert.Equal(41, document.Calculate());
+                Assert.Equal(44, document.Calculate());
                 ExcelFormulaInspection after = document.InspectFormulas();
                 AssertCachedNumber(after, "D1", 16d);
                 AssertCachedNumber(after, "D2", 20d);
@@ -898,6 +906,9 @@ namespace OfficeIMO.Tests {
                 AssertCachedNumber(after, "D47", 754d);
                 AssertCachedNumber(after, "D48", 1150d);
                 AssertCachedNumber(after, "D49", 1260d);
+                AssertCachedNumber(after, "D51", 5.6d);
+                AssertCachedNumber(after, "D52", 7d);
+                AssertCachedNumber(after, "D53", 5.6d);
                 document.Save();
             }
 
