@@ -469,7 +469,6 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     $lines.Add('</select></label>')
     $lines.Add('<label class="imo-benchmark-sort-mode"><span>Sort metric</span><select data-benchmark-sort-mode><option value="time">Time, then relative</option><option value="ratio">Relative, then time</option></select></label>')
     $lines.Add('<button type="button" class="imo-benchmark-reset" data-benchmark-reset>Reset</button>')
-    $lines.Add('<p class="imo-benchmark-count" data-benchmark-count>Showing ' + (Encode-Html @($matrix.rows).Count) + ' of ' + (Encode-Html @($matrix.rows).Count) + ' rows</p>')
     $lines.Add('</div>')
     $lines.Add('<div class="imo-benchmark-table-wrap">')
     $lines.Add('<table class="imo-benchmark-table imo-benchmark-table--matrix">')
@@ -520,6 +519,7 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     $lines.Add('</tbody>')
     $lines.Add('</table>')
     $lines.Add('</div>')
+    $lines.Add('<p class="imo-benchmark-count" data-benchmark-count>Showing ' + (Encode-Html @($matrix.rows).Count) + ' of ' + (Encode-Html @($matrix.rows).Count) + ' rows</p>')
     $lines.Add('</section>')
     $lines.Add('</section>')
 
