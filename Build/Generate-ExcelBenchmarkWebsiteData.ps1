@@ -394,6 +394,14 @@ function Write-MarkdownReport([object] $Document, [string] $Path) {
     Write-TextUtf8NoBom $Path (($lines -join "`n") + "`n")
 }
 
+function Format-MatrixHeaderLabel([string] $Value) {
+    $encoded = Encode-Html $Value
+    $encoded = [regex]::Replace($encoded, '(?<=[a-z])(?=[A-Z])', '<wbr>')
+    $encoded = $encoded -replace '\.', '.<wbr>'
+    $encoded = $encoded -replace ' ', ' <wbr>'
+    return '<span class="imo-benchmark-column-label">' + $encoded + '</span>'
+}
+
 function Write-MatrixPartial([object] $Document, [string] $Path) {
     $lines = New-Object System.Collections.Generic.List[string]
     $metrics = $Document.metrics
@@ -459,6 +467,7 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
         $lines.Add('<option value="' + (Encode-Html $library) + '">' + (Encode-Html $library) + '</option>')
     }
     $lines.Add('</select></label>')
+    $lines.Add('<label class="imo-benchmark-sort-mode"><span>Sort metric</span><select data-benchmark-sort-mode><option value="time">Time, then relative</option><option value="ratio">Relative, then time</option></select></label>')
     $lines.Add('<button type="button" class="imo-benchmark-reset" data-benchmark-reset>Reset</button>')
     $lines.Add('<p class="imo-benchmark-count" data-benchmark-count>Showing ' + (Encode-Html @($matrix.rows).Count) + ' of ' + (Encode-Html @($matrix.rows).Count) + ' rows</p>')
     $lines.Add('</div>')
@@ -469,7 +478,7 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     $lines.Add('<th aria-sort="none"><button type="button" data-benchmark-sort="scenario" data-sort-type="text">Scenario</button></th>')
     $lines.Add('<th aria-sort="none"><button type="button" data-benchmark-sort="fastest" data-sort-type="number">Fastest</button></th>')
     foreach ($library in $matrix.libraries) {
-        $lines.Add('<th aria-sort="none"><button type="button" data-benchmark-sort="library:' + (Encode-Html $library) + '" data-sort-type="number">' + (Encode-Html $library) + '</button></th>')
+        $lines.Add('<th aria-sort="none"><button type="button" data-benchmark-sort="library:' + (Encode-Html $library) + '" data-sort-type="number">' + (Format-MatrixHeaderLabel $library) + '</button></th>')
     }
     $lines.Add('</tr>')
     $lines.Add('</thead>')
@@ -478,10 +487,20 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     foreach ($row in $matrix.rows) {
         $lines.Add('<tr data-benchmark-row data-original-index="' + (Encode-Html $rowIndex) + '" data-row-count="' + (Encode-Html $row.rowCount) + '" data-workload="' + (Encode-Html $row.workload) + '" data-category="' + (Encode-Html $row.category) + '" data-scenario="' + (Encode-Html $row.scenario) + '" data-fastest-library="' + (Encode-Html $row.fastestLibrary) + '" data-fastest-ms="' + (Encode-Html (Format-SortNumber $row.fastestMeanMilliseconds)) + '">')
         $scenarioMeta = ([string] $row.rowCount) + ' rows - ' + ([string] $row.workload) + ' - ' + ([string] $row.category) + ' - ' + ([string] $row.artifactKind)
-        $lines.Add('<td class="imo-benchmark-scenario"><strong>' + (Encode-Html $row.scenario) + '</strong><small>' + (Encode-Html $scenarioMeta) + '</small></td>')
-        $lines.Add('<td class="imo-benchmark-fastest"><strong>' + (Encode-Html $row.fastestLibrary) + '</strong><small>' + (Encode-Html $row.fastestMeanText) + '</small></td>')
+        $lines.Add('<td class="imo-benchmark-scenario" data-label="Scenario"><strong>' + (Encode-Html $row.scenario) + '</strong><small>' + (Encode-Html $scenarioMeta) + '</small></td>')
+        $lines.Add('<td class="imo-benchmark-fastest" data-label="Fastest"><strong>' + (Encode-Html $row.fastestLibrary) + '</strong><small>' + (Encode-Html $row.fastestMeanText) + '</small></td>')
         foreach ($cell in $row.cells) {
-            $lines.Add('<td class="imo-benchmark-value imo-benchmark-value--' + (Encode-Html $cell.style) + '" data-library="' + (Encode-Html $cell.library) + '">')
+            $cellClasses = 'imo-benchmark-value imo-benchmark-value--' + ([string] $cell.style)
+            if ($cell.measured) {
+                $cellAttributes = ' data-mean-ms="' + (Encode-Html (Format-SortNumber $cell.meanMilliseconds)) + '"'
+                if ($null -ne $cell.ratioToFastest) {
+                    $cellAttributes += ' data-ratio-to-fastest="' + (Encode-Html (Format-SortNumber $cell.ratioToFastest)) + '"'
+                }
+            } else {
+                $cellClasses += ' imo-benchmark-value--missing'
+                $cellAttributes = ''
+            }
+            $lines.Add('<td class="' + (Encode-Html $cellClasses) + '" data-library="' + (Encode-Html $cell.library) + '" data-label="' + (Encode-Html $cell.library) + '"' + $cellAttributes + '>')
             if ($cell.measured) {
                 $lines.Add('<strong>' + (Encode-Html $cell.meanText) + '</strong>')
                 $lines.Add('<span>' + (Encode-Html $cell.ratioToFastestText) + '</span>')
@@ -501,7 +520,6 @@ function Write-MatrixPartial([object] $Document, [string] $Path) {
     $lines.Add('</tbody>')
     $lines.Add('</table>')
     $lines.Add('</div>')
-    $lines.Add('<script src="/js/benchmarks.js" data-cfasync="false"></script>')
     $lines.Add('</section>')
     $lines.Add('</section>')
 

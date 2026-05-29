@@ -223,11 +223,13 @@
       },
       { "Name": "home", "Css": ["/css/home.css"] },
       { "Name": "product", "Css": ["/css/product.css"] },
-      { "Name": "docs", "Css": ["/css/docs.css"] }
+      { "Name": "docs", "Css": ["/css/docs.css"] },
+      { "Name": "benchmarks", "Js": ["/js/benchmarks.js"] }
     ],
     "RouteBundles": [
       { "Match": "/", "Bundles": ["global", "home"] },
       { "Match": "/products/**", "Bundles": ["global", "product"] },
+      { "Match": "/benchmarks/", "Bundles": ["global", "benchmarks"] },
       { "Match": "/showcase/", "Bundles": ["global", "docs"] },
       { "Match": "/faq/", "Bundles": ["global", "docs"] },
       { "Match": "/docs/**", "Bundles": ["global", "docs"] },
