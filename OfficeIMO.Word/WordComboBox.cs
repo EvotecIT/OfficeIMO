@@ -55,10 +55,11 @@ namespace OfficeIMO.Word {
 
                 if (!string.IsNullOrEmpty(value)) {
                     var allowedValues = combo.Elements<ListItem>()
-                        .Select(li => li.Value?.Value ?? li.DisplayText?.Value ?? string.Empty)
+                        .SelectMany(li => new[] { li.Value?.Value, li.DisplayText?.Value })
+                        .Where(item => !string.IsNullOrEmpty(item))
                         .ToList();
 
-                    if (!allowedValues.Contains(value!)) {
+                    if (!allowedValues.Any(item => string.Equals(item, value, StringComparison.OrdinalIgnoreCase))) {
                         throw new ArgumentException("The selected combo box value must match one of the provided items.", nameof(value));
                     }
 

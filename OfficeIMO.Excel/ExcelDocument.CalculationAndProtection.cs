@@ -93,6 +93,8 @@ namespace OfficeIMO.Excel {
         /// Evaluates supported formulas and writes cached values.
         /// </summary>
         public int RecalculateSupportedFormulas() {
+            MaterializePendingDirectCellValueSheetIfNeeded();
+
             int count = 0;
             foreach (var sheet in Sheets) {
                 count += sheet.RecalculateSupportedFormulas();

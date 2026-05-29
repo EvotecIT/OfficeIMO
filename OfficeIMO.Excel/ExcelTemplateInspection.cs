@@ -77,8 +77,8 @@ namespace OfficeIMO.Excel {
             }
 
             builder.AppendLine();
-            builder.AppendLine("| Sheet | Cell | Marker | Format | Whole cell | Bound |");
-            builder.AppendLine("| --- | --- | --- | --- | --- | --- |");
+            builder.AppendLine("| Sheet | Cell | Marker | Format | Whole cell | Bound | Value kind |");
+            builder.AppendLine("| --- | --- | --- | --- | --- | --- | --- |");
 
             foreach (ExcelTemplateMarkerInfo marker in Markers) {
                 builder.Append("| ");
@@ -93,6 +93,8 @@ namespace OfficeIMO.Excel {
                 builder.Append(marker.IsWholeCell ? "yes" : "no");
                 builder.Append(" | ");
                 builder.Append(marker.IsBound.HasValue ? marker.IsBound.Value ? "yes" : "no" : string.Empty);
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(marker.BoundValueKind ?? string.Empty));
                 builder.AppendLine(" |");
             }
 
@@ -108,7 +110,8 @@ namespace OfficeIMO.Excel {
     /// Template marker metadata for a single marker occurrence.
     /// </summary>
     public sealed class ExcelTemplateMarkerInfo {
-        internal ExcelTemplateMarkerInfo(string sheetName, string cellReference, string name, string? format, string cellText, bool isWholeCell, bool? isBound) {
+        internal ExcelTemplateMarkerInfo(string sheetName, string cellReference, string name, string? format, string cellText, bool isWholeCell,
+            bool? isBound, string? boundValueKind, string? boundValueTypeName) {
             SheetName = sheetName;
             CellReference = cellReference;
             Name = name;
@@ -116,6 +119,8 @@ namespace OfficeIMO.Excel {
             CellText = cellText;
             IsWholeCell = isWholeCell;
             IsBound = isBound;
+            BoundValueKind = boundValueKind;
+            BoundValueTypeName = boundValueTypeName;
         }
 
         /// <summary>Worksheet name.</summary>
@@ -138,5 +143,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>True/false when inspected with bindings; null when no bindings were supplied.</summary>
         public bool? IsBound { get; }
+
+        /// <summary>Coarse bound value category such as text, number, date/time, image, or null.</summary>
+        public string? BoundValueKind { get; }
+
+        /// <summary>CLR type name for the bound value. Null when the marker is unbound or inspection had no binding source.</summary>
+        public string? BoundValueTypeName { get; }
     }
 }

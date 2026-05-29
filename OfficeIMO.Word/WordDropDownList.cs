@@ -31,6 +31,49 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets the currently selected value displayed by the dropdown list.
+        /// </summary>
+        public string? SelectedValue {
+            get {
+                var text = _sdtRun.SdtContentRun?.Descendants<Text>().FirstOrDefault();
+                return text?.Text;
+            }
+            set {
+                var ddl = _sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault();
+                if (ddl == null) {
+                    throw new InvalidOperationException("Dropdown list properties are missing from the structured document tag.");
+                }
+
+                if (!string.IsNullOrEmpty(value)) {
+                    var allowedValues = ddl.Elements<ListItem>()
+                        .SelectMany(li => new[] { li.Value?.Value, li.DisplayText?.Value })
+                        .Where(item => !string.IsNullOrEmpty(item))
+                        .ToList();
+
+                    if (!allowedValues.Any(item => string.Equals(item, value, StringComparison.OrdinalIgnoreCase))) {
+                        throw new ArgumentException("The selected dropdown list value must match one of the provided items.", nameof(value));
+                    }
+                }
+
+                var content = _sdtRun.SdtContentRun ?? (_sdtRun.SdtContentRun = new SdtContentRun());
+                var run = content.Elements<Run>().FirstOrDefault();
+                if (run == null) {
+                    run = new Run();
+                    content.Append(run);
+                }
+
+                var text = run.Elements<Text>().FirstOrDefault();
+                if (text == null) {
+                    text = new Text();
+                    run.Append(text);
+                }
+
+                text.Text = value ?? string.Empty;
+                text.Space = SpaceProcessingModeValues.Preserve;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the tag value for this dropdown list control.
         /// </summary>
         public string? Tag {

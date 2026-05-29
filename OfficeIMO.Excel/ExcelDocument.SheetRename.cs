@@ -267,7 +267,7 @@ namespace OfficeIMO.Excel {
             changed = true;
         }
 
-        private static string ReplaceSheetNameReferences(string text, string oldSheetName, string newSheetName) {
+        internal static string ReplaceSheetNameReferences(string text, string oldSheetName, string newSheetName) {
             if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(oldSheetName) || string.IsNullOrEmpty(newSheetName)) {
                 return text;
             }
