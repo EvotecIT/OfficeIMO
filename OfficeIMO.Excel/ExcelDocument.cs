@@ -1710,6 +1710,7 @@ namespace OfficeIMO.Excel {
         /// and header/footer references, and cleans up invalid table references.
         /// </summary>
         public void PreflightWorkbook() {
+            MaterializePendingDirectCellValueSheetIfNeeded();
             PreflightWorkbook(Sheets);
             _requiresSavePreflight = false;
         }
@@ -2263,6 +2264,7 @@ namespace OfficeIMO.Excel {
             // Run the heavier repair sweep only when workbook-level operations requested it.
             if (_requiresSavePreflight || options?.SafePreflight == true) {
                 if (!skipDirectFastSaveSheetPreparation || options?.SafePreflight == true) {
+                    MaterializePendingDirectCellValueSheetIfNeeded();
                     try { PreflightWorkbook(sheets); } catch { }
                     _requiresSavePreflight = false;
                 } else {

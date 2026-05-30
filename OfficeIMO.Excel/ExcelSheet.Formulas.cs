@@ -7,7 +7,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private const int MaxSupportedFormulaLength = 8192;
-        private static readonly TimeSpan FormulaRegexTimeout = TimeSpan.FromMilliseconds(100);
+        private static readonly TimeSpan FormulaRegexTimeout = TimeSpan.FromSeconds(1);
         private Dictionary<string, FormulaArgumentValue>? _formulaEvaluationCache;
         private HashSet<string>? _formulaEvaluationStack;
 
@@ -79,6 +79,8 @@ namespace OfficeIMO.Excel {
 
             int count = 0;
             WriteLock(() => {
+                MaterializePendingDirectCellValues();
+
                 var previousCache = _formulaEvaluationCache;
                 var previousStack = _formulaEvaluationStack;
                 _formulaEvaluationCache = new Dictionary<string, FormulaArgumentValue>(StringComparer.OrdinalIgnoreCase);

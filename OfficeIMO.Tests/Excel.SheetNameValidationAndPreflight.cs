@@ -1331,8 +1331,9 @@ namespace OfficeIMO.Tests {
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
                 var cell = package.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single();
-                Assert.Equal(CellValues.InlineString.ToString(), cell.DataType!.Value.ToString());
-                Assert.Equal("NotAnIndex", cell.InlineString?.InnerText ?? cell.CellValue?.Text ?? cell.InnerText);
+                Assert.Equal("inlineStr", cell.DataType!.InnerText);
+                Assert.Null(cell.CellValue);
+                Assert.Equal("NotAnIndex", cell.InlineString!.InnerText);
             }
 
             using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {

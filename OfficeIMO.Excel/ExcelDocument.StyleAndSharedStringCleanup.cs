@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel {
                 if (sheetData != null) {
                     foreach (var row in sheetData.Elements<Row>()) {
                         foreach (var cell in row.Elements<Cell>()) {
-                            if (cell.DataType?.Value != CellValues.SharedString) {
+                            if (!IsSharedStringCell(cell)) {
                                 continue;
                             }
 
@@ -173,6 +173,12 @@ namespace OfficeIMO.Excel {
 
             index = parsed;
             return true;
+        }
+
+        private static bool IsSharedStringCell(Cell cell) {
+            var dataType = cell.DataType;
+            return dataType?.Value == CellValues.SharedString
+                || string.Equals(dataType?.InnerText, "s", StringComparison.Ordinal);
         }
 
         private static void EnsureStylesheetPrimitives(Stylesheet stylesheet) {

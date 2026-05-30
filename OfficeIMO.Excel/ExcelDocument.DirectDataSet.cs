@@ -1912,6 +1912,11 @@ namespace OfficeIMO.Excel {
 
             PromotePendingDirectCellValueSheetIfPossible();
 
+            if (_requiresSavePreflight) {
+                skipReason = "Save preflight is pending.";
+                return false;
+            }
+
             if (HasWorkbookContentOutsideDirectDataSetImport(allowSheets: true)) {
                 skipReason = "Workbook-level metadata requires the standard package finalization path.";
                 return false;
