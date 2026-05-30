@@ -481,9 +481,16 @@ namespace OfficeIMO.Excel {
             int rowIndex = startRow;
             int appendedRowCount = 0;
             bool canCancel = ct.CanBeCanceled;
+            List<Row>? pendingRows = canCancel ? new List<Row>() : null;
 
             if (includeHeaders) {
-                sheetData.Append(CreateDataReaderHeaderRow(rowIndex++, columnReferencePrefixes, headers, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                Row headerRow = CreateDataReaderHeaderRow(rowIndex++, columnReferencePrefixes, headers, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
+                if (pendingRows != null) {
+                    pendingRows.Add(headerRow);
+                } else {
+                    sheetData.Append(headerRow);
+                }
+
                 appendedRowCount++;
             }
 
@@ -503,9 +510,15 @@ namespace OfficeIMO.Excel {
                     : reusableValues ??= new object?[columnCount];
                 FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
 
-                sheetData.Append(canCancel
+                Row valueRow = canCancel
                     ? CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct)
-                    : CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
+                    : CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes);
+                if (pendingRows != null) {
+                    pendingRows.Add(valueRow);
+                } else {
+                    sheetData.Append(valueRow);
+                }
+
                 appendedRowCount++;
                 dataRows++;
 
@@ -515,6 +528,12 @@ namespace OfficeIMO.Excel {
                     } else {
                         directRows = null;
                     }
+                }
+            }
+
+            if (pendingRows != null) {
+                foreach (var pendingRow in pendingRows) {
+                    sheetData.Append(pendingRow);
                 }
             }
 

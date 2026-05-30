@@ -30,7 +30,8 @@ namespace OfficeIMO.Excel {
 
             if (_canStreamWorksheetPart
                 && TryGetWorksheetDimensionReferenceFromXml(out string dimensionReference)
-                && TryGetTableBackedDimensionReference(dimensionReference, out string tableBackedReference)) {
+                && TryGetTableBackedDimensionReference(dimensionReference, out string tableBackedReference)
+                && TryWorksheetCellsFitWithinRangeFromXml(tableBackedReference)) {
                 _usedRangeA1 = tableBackedReference;
                 return tableBackedReference;
             }
@@ -185,6 +186,91 @@ namespace OfficeIMO.Excel {
                 }
 
                 reference = A1.CellReference(minRow, minColumn) + ":" + A1.CellReference(maxRow, maxColumn);
+                return true;
+            } catch (XmlException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            } catch (UnauthorizedAccessException) {
+                return false;
+            } catch (ObjectDisposedException) {
+                return false;
+            }
+        }
+
+        private bool TryWorksheetCellsFitWithinRangeFromXml(string reference) {
+            if (!A1.TryParseRange(reference, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return false;
+            }
+
+            try {
+                using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+                if (!TryPrepareWorksheetStream(stream)) {
+                    return false;
+                }
+
+                using var reader = OpenWorksheetXmlReader(stream);
+                int nextRowIndex = 1;
+                while (reader.Read()) {
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                        continue;
+                    }
+
+                    int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                    bool hasExplicitRowIndex = rowIndex > 0;
+                    if (!hasExplicitRowIndex) {
+                        rowIndex = nextRowIndex;
+                    }
+
+                    nextRowIndex = rowIndex + 1;
+                    if (reader.IsEmptyElement) {
+                        continue;
+                    }
+
+                    int rowDepth = reader.Depth;
+                    int lastColumnIndex = 0;
+                    bool advanceReader = true;
+                    while (advanceReader ? reader.Read() : !reader.EOF) {
+                        advanceReader = true;
+                        if (reader.NodeType == XmlNodeType.EndElement
+                            && reader.Depth == rowDepth
+                            && reader.LocalName == "row") {
+                            break;
+                        }
+
+                        if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c") {
+                            continue;
+                        }
+
+                        int cellRow = rowIndex;
+                        int cellColumn = 0;
+                        string? cellReference = reader.GetAttribute("r");
+                        if (hasExplicitRowIndex) {
+                            cellColumn = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(cellReference);
+                        } else if (A1.TryParseCellReferenceFast(cellReference, out int parsedRow, out int parsedColumn)) {
+                            if (parsedRow > 0) {
+                                cellRow = parsedRow;
+                            }
+
+                            cellColumn = parsedColumn;
+                        }
+
+                        if (cellColumn <= 0) {
+                            cellColumn = lastColumnIndex + 1;
+                        }
+
+                        lastColumnIndex = cellColumn;
+                        if (cellRow < firstRow || cellRow > lastRow || cellColumn < firstColumn || cellColumn > lastColumn) {
+                            return false;
+                        }
+
+                        if (!reader.IsEmptyElement) {
+                            reader.Skip();
+                            advanceReader = false;
+                        }
+                    }
+                }
+
                 return true;
             } catch (XmlException) {
                 return false;
