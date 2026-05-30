@@ -1,46 +1,42 @@
 {
-  "GeneratedAtUtc": "2026-05-26T18:06:22.0016546Z",
+  "GeneratedAtUtc": "2026-05-30T20:40:24.1606558Z",
   "Framework": ".NET 8.0.27",
   "MachineName": "EVOMAGIC",
   "BuildConfiguration": "Release",
   "RowCount": 25000,
-  "WarmupIterations": 3,
-  "MeasuredIterations": 5,
+  "WarmupIterations": 1,
+  "MeasuredIterations": 3,
   "Notes": "Local opt-in package-size profile. Timed samples include workbook generation only; ZIP part analysis is performed after timing.",
   "Scenarios": [
     {
       "Scenario": "realworld-report-all-in-one",
       "Library": "OfficeIMO.Excel",
       "Notes": "Create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, pivot table, chart, and save.",
-      "AverageMilliseconds": 47.15516,
-      "MedianMilliseconds": 48.6852,
-      "StandardDeviationMilliseconds": 4.193000058788455,
-      "StandardErrorMilliseconds": 1.8751666322223197,
+      "AverageMilliseconds": 87.859,
+      "MedianMilliseconds": 88.3152,
+      "StandardDeviationMilliseconds": 1.2145538604771713,
+      "StandardErrorMilliseconds": 0.701222998291794,
       "SamplesMilliseconds": [
-        49.193,
-        48.6852,
-        41.0641,
-        51.848,
-        44.9855
+        86.4824,
+        88.7794,
+        88.3152
       ],
-      "AverageAllocatedBytes": 16217003.2,
-      "MedianAllocatedBytes": 16216792,
+      "AverageAllocatedBytes": 44726776,
+      "MedianAllocatedBytes": 44725312,
       "SamplesAllocatedBytes": [
-        16214752,
-        16214752,
-        16216792,
-        16219872,
-        16218848
+        44732512,
+        44722504,
+        44725312
       ],
       "Package": {
-        "FileSizeBytes": 1471628,
+        "FileSizeBytes": 2033575,
         "PartCount": 21,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 200026,
         "SharedStringCount": 4,
         "UniqueSharedStringCount": 4,
         "CellStyleCount": 5,
-        "WorksheetCompressedBytes": 1461319,
+        "WorksheetCompressedBytes": 1461320,
         "WorksheetUncompressedBytes": 8376033,
         "SharedStringsCompressedBytes": 167,
         "SharedStringsUncompressedBytes": 325,
@@ -48,20 +44,26 @@
         "StylesUncompressedBytes": 1304,
         "TablesCompressedBytes": 343,
         "TablesUncompressedBytes": 727,
-        "WorkbookCompressedBytes": 277,
+        "WorkbookCompressedBytes": 276,
         "WorkbookUncompressedBytes": 620,
-        "RelationshipsCompressedBytes": 1371,
-        "RelationshipsUncompressedBytes": 3156,
-        "DocPropsCompressedBytes": 371,
-        "DocPropsUncompressedBytes": 594,
-        "OtherCompressedBytes": 4605,
-        "OtherUncompressedBytes": 16539,
+        "RelationshipsCompressedBytes": 1373,
+        "RelationshipsUncompressedBytes": 3151,
+        "DocPropsCompressedBytes": 425,
+        "DocPropsUncompressedBytes": 696,
+        "OtherCompressedBytes": 566496,
+        "OtherUncompressedBytes": 3738851,
         "Parts": [
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1461005,
+            "CompressedBytes": 1461006,
             "UncompressedBytes": 8375260
+          },
+          {
+            "Name": "pivotCache/pivotCacheRecords1.xml",
+            "Category": "Other",
+            "CompressedBytes": 562014,
+            "UncompressedBytes": 3722451
           },
           {
             "Name": "xl/theme/theme1.xml",
@@ -72,7 +74,7 @@
           {
             "Name": "xl/drawings/charts/chart1.xml",
             "Category": "Other",
-            "CompressedBytes": 1042,
+            "CompressedBytes": 1045,
             "UncompressedBytes": 3241
           },
           {
@@ -108,7 +110,7 @@
           {
             "Name": "xl/_rels/workbook.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 330,
+            "CompressedBytes": 335,
             "UncompressedBytes": 1068
           },
           {
@@ -126,26 +128,26 @@
           {
             "Name": "xl/workbook.xml",
             "Category": "Workbook",
-            "CompressedBytes": 277,
+            "CompressedBytes": 276,
             "UncompressedBytes": 620
           },
           {
             "Name": "xl/worksheets/_rels/sheet1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 236,
+            "CompressedBytes": 237,
             "UncompressedBytes": 592
           },
           {
             "Name": "_rels/.rels",
             "Category": "Relationships",
-            "CompressedBytes": 242,
-            "UncompressedBytes": 587
+            "CompressedBytes": 240,
+            "UncompressedBytes": 582
           },
           {
             "Name": "docProps/core.xml",
             "Category": "DocProps",
-            "CompressedBytes": 200,
-            "UncompressedBytes": 327
+            "CompressedBytes": 254,
+            "UncompressedBytes": 429
           },
           {
             "Name": "xl/sharedStrings.xml",
@@ -162,7 +164,7 @@
           {
             "Name": "pivotCache/_rels/pivotCacheDefinition1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 185,
+            "CompressedBytes": 183,
             "UncompressedBytes": 301
           },
           {
@@ -176,12 +178,6 @@
             "Category": "DocProps",
             "CompressedBytes": 171,
             "UncompressedBytes": 267
-          },
-          {
-            "Name": "pivotCache/pivotCacheRecords1.xml",
-            "Category": "Other",
-            "CompressedBytes": 126,
-            "UncompressedBytes": 139
           }
         ]
       }
@@ -190,35 +186,31 @@
       "Scenario": "realworld-report-all-in-one",
       "Library": "EPPlus",
       "Notes": "Create a sales workbook with table, AutoFit, freeze panes, filters, conditional formatting, pivot table, chart, and save.",
-      "AverageMilliseconds": 491.41246,
-      "MedianMilliseconds": 493.6423,
-      "StandardDeviationMilliseconds": 14.01143450339756,
-      "StandardErrorMilliseconds": 6.26610400237659,
+      "AverageMilliseconds": 445.1928666666667,
+      "MedianMilliseconds": 450.3337,
+      "StandardDeviationMilliseconds": 17.17434097959319,
+      "StandardErrorMilliseconds": 9.91561038772255,
       "SamplesMilliseconds": [
-        497.4561,
-        486.9811,
-        493.6423,
-        470.5604,
-        508.4224
+        450.3337,
+        459.2097,
+        426.0352
       ],
-      "AverageAllocatedBytes": 283724318.4,
-      "MedianAllocatedBytes": 283723896,
+      "AverageAllocatedBytes": 283726661.3333333,
+      "MedianAllocatedBytes": 283727120,
       "SamplesAllocatedBytes": [
-        283726008,
-        283723896,
-        283723896,
-        283723896,
-        283723896
+        283727120,
+        283725744,
+        283727120
       ],
       "Package": {
-        "FileSizeBytes": 1124091,
+        "FileSizeBytes": 1124093,
         "PartCount": 25,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 200026,
         "SharedStringCount": 53,
         "UniqueSharedStringCount": 53,
         "CellStyleCount": 1,
-        "WorksheetCompressedBytes": 1113233,
+        "WorksheetCompressedBytes": 1113235,
         "WorksheetUncompressedBytes": 8119567,
         "SharedStringsCompressedBytes": 558,
         "SharedStringsUncompressedBytes": 3562,
@@ -238,7 +230,7 @@
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1112494,
+            "CompressedBytes": 1112496,
             "UncompressedBytes": 8117790
           },
           {
@@ -392,35 +384,31 @@
       "Scenario": "realworld-report-no-autofit",
       "Library": "OfficeIMO.Excel",
       "Notes": "Create the real-world report workbook without AutoFit to check the fast path is not tied to width measurement.",
-      "AverageMilliseconds": 42.53762,
-      "MedianMilliseconds": 41.9515,
-      "StandardDeviationMilliseconds": 1.5691810752746158,
-      "StandardErrorMilliseconds": 0.7017591106640511,
+      "AverageMilliseconds": 84.06783333333333,
+      "MedianMilliseconds": 84.4913,
+      "StandardDeviationMilliseconds": 0.8180137244162435,
+      "StandardErrorMilliseconds": 0.47228044399252656,
       "SamplesMilliseconds": [
-        41.9515,
-        41.5384,
-        45.2665,
-        41.5149,
-        42.4168
+        84.4913,
+        84.5873,
+        83.1249
       ],
-      "AverageAllocatedBytes": 16209246.4,
-      "MedianAllocatedBytes": 16209656,
+      "AverageAllocatedBytes": 44718789.333333336,
+      "MedianAllocatedBytes": 44718112,
       "SamplesAllocatedBytes": [
-        16206072,
-        16210160,
-        16209656,
-        16212216,
-        16208128
+        44718112,
+        44717856,
+        44720400
       ],
       "Package": {
-        "FileSizeBytes": 1471505,
+        "FileSizeBytes": 2033437,
         "PartCount": 21,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 200026,
         "SharedStringCount": 4,
         "UniqueSharedStringCount": 4,
         "CellStyleCount": 5,
-        "WorksheetCompressedBytes": 1461188,
+        "WorksheetCompressedBytes": 1461189,
         "WorksheetUncompressedBytes": 8375538,
         "SharedStringsCompressedBytes": 167,
         "SharedStringsUncompressedBytes": 325,
@@ -428,20 +416,26 @@
         "StylesUncompressedBytes": 1304,
         "TablesCompressedBytes": 343,
         "TablesUncompressedBytes": 727,
-        "WorkbookCompressedBytes": 279,
+        "WorkbookCompressedBytes": 277,
         "WorkbookUncompressedBytes": 620,
-        "RelationshipsCompressedBytes": 1375,
-        "RelationshipsUncompressedBytes": 3156,
-        "DocPropsCompressedBytes": 371,
-        "DocPropsUncompressedBytes": 594,
-        "OtherCompressedBytes": 4607,
-        "OtherUncompressedBytes": 16539,
+        "RelationshipsCompressedBytes": 1365,
+        "RelationshipsUncompressedBytes": 3151,
+        "DocPropsCompressedBytes": 425,
+        "DocPropsUncompressedBytes": 696,
+        "OtherCompressedBytes": 566496,
+        "OtherUncompressedBytes": 3738851,
         "Parts": [
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1460874,
+            "CompressedBytes": 1460875,
             "UncompressedBytes": 8374765
+          },
+          {
+            "Name": "pivotCache/pivotCacheRecords1.xml",
+            "Category": "Other",
+            "CompressedBytes": 562014,
+            "UncompressedBytes": 3722451
           },
           {
             "Name": "xl/theme/theme1.xml",
@@ -476,7 +470,7 @@
           {
             "Name": "xl/drawings/drawing1.xml",
             "Category": "Other",
-            "CompressedBytes": 431,
+            "CompressedBytes": 432,
             "UncompressedBytes": 1180
           },
           {
@@ -488,7 +482,7 @@
           {
             "Name": "xl/_rels/workbook.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 334,
+            "CompressedBytes": 326,
             "UncompressedBytes": 1068
           },
           {
@@ -506,26 +500,26 @@
           {
             "Name": "xl/workbook.xml",
             "Category": "Workbook",
-            "CompressedBytes": 279,
+            "CompressedBytes": 277,
             "UncompressedBytes": 620
           },
           {
             "Name": "xl/worksheets/_rels/sheet1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 237,
+            "CompressedBytes": 235,
             "UncompressedBytes": 592
           },
           {
             "Name": "_rels/.rels",
             "Category": "Relationships",
-            "CompressedBytes": 242,
-            "UncompressedBytes": 587
+            "CompressedBytes": 240,
+            "UncompressedBytes": 582
           },
           {
             "Name": "docProps/core.xml",
             "Category": "DocProps",
-            "CompressedBytes": 200,
-            "UncompressedBytes": 327
+            "CompressedBytes": 254,
+            "UncompressedBytes": 429
           },
           {
             "Name": "xl/sharedStrings.xml",
@@ -548,7 +542,7 @@
           {
             "Name": "xl/drawings/_rels/drawing1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 179,
+            "CompressedBytes": 181,
             "UncompressedBytes": 284
           },
           {
@@ -556,12 +550,6 @@
             "Category": "DocProps",
             "CompressedBytes": 171,
             "UncompressedBytes": 267
-          },
-          {
-            "Name": "pivotCache/pivotCacheRecords1.xml",
-            "Category": "Other",
-            "CompressedBytes": 126,
-            "UncompressedBytes": 139
           }
         ]
       }
@@ -570,25 +558,21 @@
       "Scenario": "realworld-report-no-autofit",
       "Library": "EPPlus",
       "Notes": "Create the equivalent real-world report workbook without AutoFit.",
-      "AverageMilliseconds": 441.19226,
-      "MedianMilliseconds": 440.003,
-      "StandardDeviationMilliseconds": 8.798133085092553,
-      "StandardErrorMilliseconds": 3.934644730671378,
+      "AverageMilliseconds": 391.6522333333333,
+      "MedianMilliseconds": 391.6025,
+      "StandardDeviationMilliseconds": 1.3265993605204647,
+      "StandardErrorMilliseconds": 0.7659124979032758,
       "SamplesMilliseconds": [
-        430.2197,
-        440.003,
-        441.7158,
-        439.2713,
-        454.7515
+        391.6025,
+        393.003,
+        390.3512
       ],
-      "AverageAllocatedBytes": 240415035.2,
-      "MedianAllocatedBytes": 240415032,
+      "AverageAllocatedBytes": 240416776,
+      "MedianAllocatedBytes": 240417776,
       "SamplesAllocatedBytes": [
-        240415032,
-        240415032,
-        240415040,
-        240415032,
-        240415040
+        240417776,
+        240417784,
+        240414768
       ],
       "Package": {
         "FileSizeBytes": 1124017,
@@ -772,35 +756,31 @@
       "Scenario": "realworld-report-chart-first",
       "Library": "OfficeIMO.Excel",
       "Notes": "Create the real-world report workbook with chart creation before pivot creation.",
-      "AverageMilliseconds": 46.06416,
-      "MedianMilliseconds": 44.1069,
-      "StandardDeviationMilliseconds": 4.087150522430022,
-      "StandardErrorMilliseconds": 1.8278292804854617,
+      "AverageMilliseconds": 85.98406666666666,
+      "MedianMilliseconds": 86.1004,
+      "StandardDeviationMilliseconds": 0.30813555999484177,
+      "StandardErrorMilliseconds": 0.17790214850991798,
       "SamplesMilliseconds": [
-        47.6894,
-        42.6658,
-        43.3555,
-        52.5032,
-        44.1069
+        86.2171,
+        85.6347,
+        86.1004
       ],
-      "AverageAllocatedBytes": 16216614.4,
-      "MedianAllocatedBytes": 16215792,
+      "AverageAllocatedBytes": 44606410.666666664,
+      "MedianAllocatedBytes": 44607440,
       "SamplesAllocatedBytes": [
-        16220400,
-        16217848,
-        16214256,
-        16214776,
-        16215792
+        44608200,
+        44607440,
+        44603592
       ],
       "Package": {
-        "FileSizeBytes": 1471633,
+        "FileSizeBytes": 2033579,
         "PartCount": 21,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 200026,
         "SharedStringCount": 4,
         "UniqueSharedStringCount": 4,
         "CellStyleCount": 5,
-        "WorksheetCompressedBytes": 1461321,
+        "WorksheetCompressedBytes": 1461322,
         "WorksheetUncompressedBytes": 8376033,
         "SharedStringsCompressedBytes": 167,
         "SharedStringsUncompressedBytes": 325,
@@ -810,18 +790,24 @@
         "TablesUncompressedBytes": 727,
         "WorkbookCompressedBytes": 277,
         "WorkbookUncompressedBytes": 620,
-        "RelationshipsCompressedBytes": 1369,
-        "RelationshipsUncompressedBytes": 3156,
-        "DocPropsCompressedBytes": 371,
-        "DocPropsUncompressedBytes": 594,
-        "OtherCompressedBytes": 4610,
-        "OtherUncompressedBytes": 16539,
+        "RelationshipsCompressedBytes": 1374,
+        "RelationshipsUncompressedBytes": 3151,
+        "DocPropsCompressedBytes": 425,
+        "DocPropsUncompressedBytes": 696,
+        "OtherCompressedBytes": 566496,
+        "OtherUncompressedBytes": 3738851,
         "Parts": [
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1461007,
+            "CompressedBytes": 1461008,
             "UncompressedBytes": 8375260
+          },
+          {
+            "Name": "pivotCache/pivotCacheRecords1.xml",
+            "Category": "Other",
+            "CompressedBytes": 562014,
+            "UncompressedBytes": 3722451
           },
           {
             "Name": "xl/theme/theme1.xml",
@@ -832,7 +818,7 @@
           {
             "Name": "xl/drawings/charts/chart1.xml",
             "Category": "Other",
-            "CompressedBytes": 1047,
+            "CompressedBytes": 1045,
             "UncompressedBytes": 3241
           },
           {
@@ -868,7 +854,7 @@
           {
             "Name": "xl/_rels/workbook.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 327,
+            "CompressedBytes": 336,
             "UncompressedBytes": 1068
           },
           {
@@ -898,14 +884,14 @@
           {
             "Name": "_rels/.rels",
             "Category": "Relationships",
-            "CompressedBytes": 243,
-            "UncompressedBytes": 587
+            "CompressedBytes": 241,
+            "UncompressedBytes": 582
           },
           {
             "Name": "docProps/core.xml",
             "Category": "DocProps",
-            "CompressedBytes": 200,
-            "UncompressedBytes": 327
+            "CompressedBytes": 254,
+            "UncompressedBytes": 429
           },
           {
             "Name": "xl/sharedStrings.xml",
@@ -916,19 +902,19 @@
           {
             "Name": "xl/pivotTables/_rels/pivotTable.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 199,
+            "CompressedBytes": 197,
             "UncompressedBytes": 324
           },
           {
             "Name": "pivotCache/_rels/pivotCacheDefinition1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 183,
+            "CompressedBytes": 184,
             "UncompressedBytes": 301
           },
           {
             "Name": "xl/drawings/_rels/drawing1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 181,
+            "CompressedBytes": 180,
             "UncompressedBytes": 284
           },
           {
@@ -936,12 +922,6 @@
             "Category": "DocProps",
             "CompressedBytes": 171,
             "UncompressedBytes": 267
-          },
-          {
-            "Name": "pivotCache/pivotCacheRecords1.xml",
-            "Category": "Other",
-            "CompressedBytes": 126,
-            "UncompressedBytes": 139
           }
         ]
       }
@@ -950,35 +930,31 @@
       "Scenario": "realworld-report-chart-first",
       "Library": "EPPlus",
       "Notes": "Create the equivalent real-world report workbook with chart creation before pivot creation.",
-      "AverageMilliseconds": 478.18286,
-      "MedianMilliseconds": 476.5558,
-      "StandardDeviationMilliseconds": 20.21889171698094,
-      "StandardErrorMilliseconds": 9.042163261775364,
+      "AverageMilliseconds": 419.311,
+      "MedianMilliseconds": 419.8816,
+      "StandardDeviationMilliseconds": 3.955984488088883,
+      "StandardErrorMilliseconds": 2.2839887091081006,
       "SamplesMilliseconds": [
-        471.0537,
-        450.2759,
-        504.603,
-        488.4259,
-        476.5558
+        415.1007,
+        422.9507,
+        419.8816
       ],
-      "AverageAllocatedBytes": 283722769.6,
-      "MedianAllocatedBytes": 283722768,
+      "AverageAllocatedBytes": 283726568,
+      "MedianAllocatedBytes": 283726808,
       "SamplesAllocatedBytes": [
-        283722768,
-        283722768,
-        283722768,
-        283722776,
-        283722768
+        283726816,
+        283726808,
+        283726080
       ],
       "Package": {
-        "FileSizeBytes": 1124093,
+        "FileSizeBytes": 1124092,
         "PartCount": 25,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 200026,
         "SharedStringCount": 53,
         "UniqueSharedStringCount": 53,
         "CellStyleCount": 1,
-        "WorksheetCompressedBytes": 1113236,
+        "WorksheetCompressedBytes": 1113235,
         "WorksheetUncompressedBytes": 8119567,
         "SharedStringsCompressedBytes": 558,
         "SharedStringsUncompressedBytes": 3562,
@@ -998,7 +974,7 @@
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1112497,
+            "CompressedBytes": 1112496,
             "UncompressedBytes": 8117790
           },
           {
@@ -1152,35 +1128,31 @@
       "Scenario": "realworld-report-shuffled-columns",
       "Library": "OfficeIMO.Excel",
       "Notes": "Create the real-world report workbook with the same fields in a different column order.",
-      "AverageMilliseconds": 46.96784,
-      "MedianMilliseconds": 44.2817,
-      "StandardDeviationMilliseconds": 5.0143611974009215,
-      "StandardErrorMilliseconds": 2.2424905002251405,
+      "AverageMilliseconds": 98.9366,
+      "MedianMilliseconds": 98.5647,
+      "StandardDeviationMilliseconds": 1.8598495288597945,
+      "StandardErrorMilliseconds": 1.073784626139401,
       "SamplesMilliseconds": [
-        44.2817,
-        47.5855,
-        55.4679,
-        43.9017,
-        43.6024
+        100.9543,
+        97.2908,
+        98.5647
       ],
-      "AverageAllocatedBytes": 16195800,
-      "MedianAllocatedBytes": 16196520,
+      "AverageAllocatedBytes": 44790341.333333336,
+      "MedianAllocatedBytes": 44788960,
       "SamplesAllocatedBytes": [
-        16195496,
-        16197544,
-        16196520,
-        16192416,
-        16197024
+        44794120,
+        44787944,
+        44788960
       ],
       "Package": {
-        "FileSizeBytes": 1449297,
+        "FileSizeBytes": 2095177,
         "PartCount": 21,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 200026,
         "SharedStringCount": 4,
         "UniqueSharedStringCount": 4,
         "CellStyleCount": 5,
-        "WorksheetCompressedBytes": 1438994,
+        "WorksheetCompressedBytes": 1438996,
         "WorksheetUncompressedBytes": 8376033,
         "SharedStringsCompressedBytes": 167,
         "SharedStringsUncompressedBytes": 325,
@@ -1190,18 +1162,24 @@
         "TablesUncompressedBytes": 727,
         "WorkbookCompressedBytes": 278,
         "WorkbookUncompressedBytes": 620,
-        "RelationshipsCompressedBytes": 1369,
-        "RelationshipsUncompressedBytes": 3156,
-        "DocPropsCompressedBytes": 371,
-        "DocPropsUncompressedBytes": 594,
-        "OtherCompressedBytes": 4601,
-        "OtherUncompressedBytes": 16539,
+        "RelationshipsCompressedBytes": 1363,
+        "RelationshipsUncompressedBytes": 3151,
+        "DocPropsCompressedBytes": 425,
+        "DocPropsUncompressedBytes": 696,
+        "OtherCompressedBytes": 650431,
+        "OtherUncompressedBytes": 3738851,
         "Parts": [
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1438680,
+            "CompressedBytes": 1438682,
             "UncompressedBytes": 8375260
+          },
+          {
+            "Name": "pivotCache/pivotCacheRecords1.xml",
+            "Category": "Other",
+            "CompressedBytes": 645953,
+            "UncompressedBytes": 3722451
           },
           {
             "Name": "xl/theme/theme1.xml",
@@ -1212,7 +1190,7 @@
           {
             "Name": "xl/drawings/charts/chart1.xml",
             "Category": "Other",
-            "CompressedBytes": 1042,
+            "CompressedBytes": 1045,
             "UncompressedBytes": 3241
           },
           {
@@ -1248,7 +1226,7 @@
           {
             "Name": "xl/_rels/workbook.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 326,
+            "CompressedBytes": 328,
             "UncompressedBytes": 1068
           },
           {
@@ -1272,20 +1250,20 @@
           {
             "Name": "xl/worksheets/_rels/sheet1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 238,
+            "CompressedBytes": 236,
             "UncompressedBytes": 592
           },
           {
             "Name": "_rels/.rels",
             "Category": "Relationships",
-            "CompressedBytes": 242,
-            "UncompressedBytes": 587
+            "CompressedBytes": 239,
+            "UncompressedBytes": 582
           },
           {
             "Name": "docProps/core.xml",
             "Category": "DocProps",
-            "CompressedBytes": 200,
-            "UncompressedBytes": 327
+            "CompressedBytes": 254,
+            "UncompressedBytes": 429
           },
           {
             "Name": "xl/sharedStrings.xml",
@@ -1296,13 +1274,13 @@
           {
             "Name": "xl/pivotTables/_rels/pivotTable.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 199,
+            "CompressedBytes": 197,
             "UncompressedBytes": 324
           },
           {
             "Name": "pivotCache/_rels/pivotCacheDefinition1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 184,
+            "CompressedBytes": 183,
             "UncompressedBytes": 301
           },
           {
@@ -1316,12 +1294,6 @@
             "Category": "DocProps",
             "CompressedBytes": 171,
             "UncompressedBytes": 267
-          },
-          {
-            "Name": "pivotCache/pivotCacheRecords1.xml",
-            "Category": "Other",
-            "CompressedBytes": 126,
-            "UncompressedBytes": 139
           }
         ]
       }
@@ -1330,35 +1302,31 @@
       "Scenario": "realworld-report-shuffled-columns",
       "Library": "EPPlus",
       "Notes": "Create the equivalent real-world report workbook with the same fields in a different column order.",
-      "AverageMilliseconds": 511.9555200000001,
-      "MedianMilliseconds": 513.0563,
-      "StandardDeviationMilliseconds": 16.328153891576353,
-      "StandardErrorMilliseconds": 7.302172409728491,
+      "AverageMilliseconds": 431.60510000000005,
+      "MedianMilliseconds": 429.6696,
+      "StandardDeviationMilliseconds": 8.345807824890286,
+      "StandardErrorMilliseconds": 4.818454394305292,
       "SamplesMilliseconds": [
-        532.0932,
-        523.2479,
-        494.455,
-        496.9252,
-        513.0563
+        429.6696,
+        440.7486,
+        424.3971
       ],
-      "AverageAllocatedBytes": 283718268.8,
-      "MedianAllocatedBytes": 283718272,
+      "AverageAllocatedBytes": 283720141.3333333,
+      "MedianAllocatedBytes": 283720328,
       "SamplesAllocatedBytes": [
-        283718272,
-        283718272,
-        283718272,
-        283718264,
-        283718264
+        283720336,
+        283720328,
+        283719760
       ],
       "Package": {
-        "FileSizeBytes": 1124759,
+        "FileSizeBytes": 1124763,
         "PartCount": 25,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 200026,
         "SharedStringCount": 53,
         "UniqueSharedStringCount": 53,
         "CellStyleCount": 1,
-        "WorksheetCompressedBytes": 1113906,
+        "WorksheetCompressedBytes": 1113910,
         "WorksheetUncompressedBytes": 8119567,
         "SharedStringsCompressedBytes": 555,
         "SharedStringsUncompressedBytes": 3562,
@@ -1378,7 +1346,7 @@
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1113169,
+            "CompressedBytes": 1113173,
             "UncompressedBytes": 8117790
           },
           {
@@ -1532,35 +1500,31 @@
       "Scenario": "realworld-report-extra-column",
       "Library": "OfficeIMO.Excel",
       "Notes": "Create the real-world report workbook with an extra derived column.",
-      "AverageMilliseconds": 49.36598,
-      "MedianMilliseconds": 48.7596,
-      "StandardDeviationMilliseconds": 1.7956544968339536,
-      "StandardErrorMilliseconds": 0.8030411038047802,
+      "AverageMilliseconds": 97.36189999999999,
+      "MedianMilliseconds": 97.5014,
+      "StandardDeviationMilliseconds": 0.64909186560918,
+      "StandardErrorMilliseconds": 0.3747533633382565,
       "SamplesMilliseconds": [
-        50.7042,
-        47.6416,
-        51.7692,
-        48.7596,
-        47.9553
+        96.6544,
+        97.9299,
+        97.5014
       ],
-      "AverageAllocatedBytes": 16515710.4,
-      "MedianAllocatedBytes": 16515504,
+      "AverageAllocatedBytes": 46657376,
+      "MedianAllocatedBytes": 46657472,
       "SamplesAllocatedBytes": [
-        16514480,
-        16517048,
-        16515504,
-        16515504,
-        16516016
+        46657472,
+        46656304,
+        46658352
       ],
       "Package": {
-        "FileSizeBytes": 1568211,
+        "FileSizeBytes": 2161421,
         "PartCount": 21,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 225027,
         "SharedStringCount": 4,
         "UniqueSharedStringCount": 4,
         "CellStyleCount": 5,
-        "WorksheetCompressedBytes": 1557889,
+        "WorksheetCompressedBytes": 1557888,
         "WorksheetUncompressedBytes": 9307515,
         "SharedStringsCompressedBytes": 167,
         "SharedStringsUncompressedBytes": 325,
@@ -1568,20 +1532,26 @@
         "StylesUncompressedBytes": 1304,
         "TablesCompressedBytes": 352,
         "TablesUncompressedBytes": 769,
-        "WorkbookCompressedBytes": 276,
+        "WorkbookCompressedBytes": 278,
         "WorkbookUncompressedBytes": 620,
-        "RelationshipsCompressedBytes": 1367,
-        "RelationshipsUncompressedBytes": 3156,
-        "DocPropsCompressedBytes": 371,
-        "DocPropsUncompressedBytes": 594,
-        "OtherCompressedBytes": 4614,
-        "OtherUncompressedBytes": 16704,
+        "RelationshipsCompressedBytes": 1369,
+        "RelationshipsUncompressedBytes": 3151,
+        "DocPropsCompressedBytes": 426,
+        "DocPropsUncompressedBytes": 696,
+        "OtherCompressedBytes": 597766,
+        "OtherUncompressedBytes": 4081500,
         "Parts": [
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1557575,
+            "CompressedBytes": 1557574,
             "UncompressedBytes": 9306742
+          },
+          {
+            "Name": "pivotCache/pivotCacheRecords1.xml",
+            "Category": "Other",
+            "CompressedBytes": 593278,
+            "UncompressedBytes": 4064935
           },
           {
             "Name": "xl/theme/theme1.xml",
@@ -1628,7 +1598,7 @@
           {
             "Name": "xl/_rels/workbook.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 325,
+            "CompressedBytes": 334,
             "UncompressedBytes": 1068
           },
           {
@@ -1646,26 +1616,26 @@
           {
             "Name": "xl/workbook.xml",
             "Category": "Workbook",
-            "CompressedBytes": 276,
+            "CompressedBytes": 278,
             "UncompressedBytes": 620
           },
           {
             "Name": "xl/worksheets/_rels/sheet1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 237,
+            "CompressedBytes": 236,
             "UncompressedBytes": 592
           },
           {
             "Name": "_rels/.rels",
             "Category": "Relationships",
-            "CompressedBytes": 242,
-            "UncompressedBytes": 587
+            "CompressedBytes": 236,
+            "UncompressedBytes": 582
           },
           {
             "Name": "docProps/core.xml",
             "Category": "DocProps",
-            "CompressedBytes": 200,
-            "UncompressedBytes": 327
+            "CompressedBytes": 255,
+            "UncompressedBytes": 429
           },
           {
             "Name": "xl/sharedStrings.xml",
@@ -1682,13 +1652,13 @@
           {
             "Name": "pivotCache/_rels/pivotCacheDefinition1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 185,
+            "CompressedBytes": 184,
             "UncompressedBytes": 301
           },
           {
             "Name": "xl/drawings/_rels/drawing1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 180,
+            "CompressedBytes": 181,
             "UncompressedBytes": 284
           },
           {
@@ -1696,12 +1666,6 @@
             "Category": "DocProps",
             "CompressedBytes": 171,
             "UncompressedBytes": 267
-          },
-          {
-            "Name": "pivotCache/pivotCacheRecords1.xml",
-            "Category": "Other",
-            "CompressedBytes": 126,
-            "UncompressedBytes": 139
           }
         ]
       }
@@ -1710,35 +1674,31 @@
       "Scenario": "realworld-report-extra-column",
       "Library": "EPPlus",
       "Notes": "Create the equivalent real-world report workbook with an extra derived column.",
-      "AverageMilliseconds": 551.81098,
-      "MedianMilliseconds": 553.591,
-      "StandardDeviationMilliseconds": 19.336263962229125,
-      "StandardErrorMilliseconds": 8.64744013008475,
+      "AverageMilliseconds": 476.9155333333333,
+      "MedianMilliseconds": 466.1357,
+      "StandardDeviationMilliseconds": 19.49411073230408,
+      "StandardErrorMilliseconds": 11.254930078908133,
       "SamplesMilliseconds": [
-        567.5393,
-        570.4491,
-        553.591,
-        544.7911,
-        522.6844
+        465.1921,
+        466.1357,
+        499.4188
       ],
-      "AverageAllocatedBytes": 310024800,
-      "MedianAllocatedBytes": 310024800,
+      "AverageAllocatedBytes": 310026648,
+      "MedianAllocatedBytes": 310026648,
       "SamplesAllocatedBytes": [
-        310024800,
-        310024800,
-        310024800,
-        310024800,
-        310024800
+        310026648,
+        310026648,
+        310026648
       ],
       "Package": {
-        "FileSizeBytes": 1194241,
+        "FileSizeBytes": 1194240,
         "PartCount": 25,
         "WorksheetRowCount": 25007,
         "WorksheetCellCount": 225027,
         "SharedStringCount": 55,
         "UniqueSharedStringCount": 55,
         "CellStyleCount": 1,
-        "WorksheetCompressedBytes": 1183337,
+        "WorksheetCompressedBytes": 1183336,
         "WorksheetUncompressedBytes": 9096710,
         "SharedStringsCompressedBytes": 585,
         "SharedStringsUncompressedBytes": 3649,
@@ -1758,7 +1718,7 @@
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1182600,
+            "CompressedBytes": 1182599,
             "UncompressedBytes": 9094933
           },
           {
@@ -1912,35 +1872,31 @@
       "Scenario": "realworld-report-post-mutation",
       "Library": "OfficeIMO.Excel",
       "Notes": "Create the real-world report workbook and then make a normal cell edit after report features are added.",
-      "AverageMilliseconds": 49.05582,
-      "MedianMilliseconds": 50.5516,
-      "StandardDeviationMilliseconds": 3.563950247548358,
-      "StandardErrorMilliseconds": 1.5938470043890662,
+      "AverageMilliseconds": 88.70479999999999,
+      "MedianMilliseconds": 88.4926,
+      "StandardDeviationMilliseconds": 1.4004101256417723,
+      "StandardErrorMilliseconds": 0.8085271630151549,
       "SamplesMilliseconds": [
-        44.6121,
-        46.1701,
-        50.6536,
-        50.5516,
-        53.2917
+        90.1992,
+        88.4926,
+        87.4226
       ],
-      "AverageAllocatedBytes": 16227156.8,
-      "MedianAllocatedBytes": 16226440,
+      "AverageAllocatedBytes": 44737138.666666664,
+      "MedianAllocatedBytes": 44736456,
       "SamplesAllocatedBytes": [
-        16226432,
-        16226440,
-        16227464,
-        16225936,
-        16229512
+        44741984,
+        44732976,
+        44736456
       ],
       "Package": {
-        "FileSizeBytes": 1471705,
+        "FileSizeBytes": 2033652,
         "PartCount": 21,
         "WorksheetRowCount": 25008,
         "WorksheetCellCount": 200027,
         "SharedStringCount": 4,
         "UniqueSharedStringCount": 4,
         "CellStyleCount": 5,
-        "WorksheetCompressedBytes": 1461375,
+        "WorksheetCompressedBytes": 1461374,
         "WorksheetUncompressedBytes": 8376120,
         "SharedStringsCompressedBytes": 192,
         "SharedStringsUncompressedBytes": 382,
@@ -1948,20 +1904,26 @@
         "StylesUncompressedBytes": 1304,
         "TablesCompressedBytes": 343,
         "TablesUncompressedBytes": 727,
-        "WorkbookCompressedBytes": 276,
+        "WorkbookCompressedBytes": 277,
         "WorkbookUncompressedBytes": 620,
-        "RelationshipsCompressedBytes": 1369,
-        "RelationshipsUncompressedBytes": 3156,
-        "DocPropsCompressedBytes": 371,
-        "DocPropsUncompressedBytes": 594,
-        "OtherCompressedBytes": 4604,
-        "OtherUncompressedBytes": 16539,
+        "RelationshipsCompressedBytes": 1370,
+        "RelationshipsUncompressedBytes": 3151,
+        "DocPropsCompressedBytes": 425,
+        "DocPropsUncompressedBytes": 696,
+        "OtherCompressedBytes": 566496,
+        "OtherUncompressedBytes": 3738851,
         "Parts": [
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1461061,
+            "CompressedBytes": 1461060,
             "UncompressedBytes": 8375347
+          },
+          {
+            "Name": "pivotCache/pivotCacheRecords1.xml",
+            "Category": "Other",
+            "CompressedBytes": 562014,
+            "UncompressedBytes": 3722451
           },
           {
             "Name": "xl/theme/theme1.xml",
@@ -1972,7 +1934,7 @@
           {
             "Name": "xl/drawings/charts/chart1.xml",
             "Category": "Other",
-            "CompressedBytes": 1042,
+            "CompressedBytes": 1045,
             "UncompressedBytes": 3241
           },
           {
@@ -1996,7 +1958,7 @@
           {
             "Name": "xl/drawings/drawing1.xml",
             "Category": "Other",
-            "CompressedBytes": 431,
+            "CompressedBytes": 432,
             "UncompressedBytes": 1180
           },
           {
@@ -2008,7 +1970,7 @@
           {
             "Name": "xl/_rels/workbook.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 326,
+            "CompressedBytes": 329,
             "UncompressedBytes": 1068
           },
           {
@@ -2026,7 +1988,7 @@
           {
             "Name": "xl/workbook.xml",
             "Category": "Workbook",
-            "CompressedBytes": 276,
+            "CompressedBytes": 277,
             "UncompressedBytes": 620
           },
           {
@@ -2038,8 +2000,14 @@
           {
             "Name": "_rels/.rels",
             "Category": "Relationships",
-            "CompressedBytes": 242,
-            "UncompressedBytes": 587
+            "CompressedBytes": 241,
+            "UncompressedBytes": 582
+          },
+          {
+            "Name": "docProps/core.xml",
+            "Category": "DocProps",
+            "CompressedBytes": 254,
+            "UncompressedBytes": 429
           },
           {
             "Name": "xl/sharedStrings.xml",
@@ -2048,27 +2016,21 @@
             "UncompressedBytes": 382
           },
           {
-            "Name": "docProps/core.xml",
-            "Category": "DocProps",
-            "CompressedBytes": 200,
-            "UncompressedBytes": 327
-          },
-          {
             "Name": "xl/pivotTables/_rels/pivotTable.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 199,
+            "CompressedBytes": 198,
             "UncompressedBytes": 324
           },
           {
             "Name": "pivotCache/_rels/pivotCacheDefinition1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 185,
+            "CompressedBytes": 184,
             "UncompressedBytes": 301
           },
           {
             "Name": "xl/drawings/_rels/drawing1.xml.rels",
             "Category": "Relationships",
-            "CompressedBytes": 180,
+            "CompressedBytes": 181,
             "UncompressedBytes": 284
           },
           {
@@ -2076,12 +2038,6 @@
             "Category": "DocProps",
             "CompressedBytes": 171,
             "UncompressedBytes": 267
-          },
-          {
-            "Name": "pivotCache/pivotCacheRecords1.xml",
-            "Category": "Other",
-            "CompressedBytes": 126,
-            "UncompressedBytes": 139
           }
         ]
       }
@@ -2090,35 +2046,31 @@
       "Scenario": "realworld-report-post-mutation",
       "Library": "EPPlus",
       "Notes": "Create the equivalent real-world report workbook and then make a normal cell edit after report features are added.",
-      "AverageMilliseconds": 519.87416,
-      "MedianMilliseconds": 516.0011,
-      "StandardDeviationMilliseconds": 41.324005233072455,
-      "StandardErrorMilliseconds": 18.48065696074141,
+      "AverageMilliseconds": 415.66783333333325,
+      "MedianMilliseconds": 417.9482,
+      "StandardDeviationMilliseconds": 10.597779093910821,
+      "StandardErrorMilliseconds": 6.118630612681601,
       "SamplesMilliseconds": [
-        493.259,
-        555.6099,
-        468.1764,
-        516.0011,
-        566.3244
+        424.9398,
+        417.9482,
+        404.1155
       ],
-      "AverageAllocatedBytes": 283723800,
-      "MedianAllocatedBytes": 283723800,
+      "AverageAllocatedBytes": 283727728,
+      "MedianAllocatedBytes": 283728000,
       "SamplesAllocatedBytes": [
-        283723800,
-        283723800,
-        283723800,
-        283723800,
-        283723800
+        283728000,
+        283728000,
+        283727184
       ],
       "Package": {
-        "FileSizeBytes": 1124133,
+        "FileSizeBytes": 1124132,
         "PartCount": 25,
         "WorksheetRowCount": 25008,
         "WorksheetCellCount": 200027,
         "SharedStringCount": 53,
         "UniqueSharedStringCount": 53,
         "CellStyleCount": 1,
-        "WorksheetCompressedBytes": 1113248,
+        "WorksheetCompressedBytes": 1113247,
         "WorksheetUncompressedBytes": 8119628,
         "SharedStringsCompressedBytes": 585,
         "SharedStringsUncompressedBytes": 3611,
@@ -2138,7 +2090,7 @@
           {
             "Name": "xl/worksheets/sheet1.xml",
             "Category": "Worksheets",
-            "CompressedBytes": 1112509,
+            "CompressedBytes": 1112508,
             "UncompressedBytes": 8117851
           },
           {

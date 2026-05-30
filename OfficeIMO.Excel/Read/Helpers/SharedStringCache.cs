@@ -203,6 +203,10 @@ namespace OfficeIMO.Excel {
             return null;
         }
 
+        internal List<string> GetItems() {
+            return GetLoadedItems();
+        }
+
         internal void EnsureLoaded() {
             _ = GetLoadedItems();
         }

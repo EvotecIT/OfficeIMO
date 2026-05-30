@@ -420,7 +420,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 value = ReadXmlCellValue(rowReader);
-                SkipXmlElementContent(rowReader, depth, "row");
+                SkipXmlElementContent(rowReader, depth);
                 return true;
             }
 

@@ -27,12 +27,13 @@ namespace OfficeIMO.Excel {
             }
             var list = cells as IReadOnlyList<(int Row, int Column, object Value)> ?? cells.ToList();
             if (list.Count == 0) return;
+            DirectCellValuesSaveCandidate? appendSaveCandidate = null;
+
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 _excelDocument.MaterializeDeferredDataSetImport();
             }
 
             DirectCellValuesSaveCandidate? directSaveCandidate = null;
-            DirectCellValuesSaveCandidate? appendSaveCandidate = null;
             if (TryCreateDirectCellValuesSaveCandidate(list, mode, out DirectCellValuesSaveCandidate? candidate)
                 && candidate != null
                 && CanRegisterDirectTabularSaveCandidate(1, 1, candidate.ColumnNames.Length)) {
@@ -44,12 +45,14 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (mode == ExecutionMode.Parallel
+            if (appendSaveCandidate == null
+                && mode == ExecutionMode.Parallel
                 && TryCreateDirectCellValuesAppendCandidate(list, out DirectCellValuesSaveCandidate? appendCandidate)) {
                 appendSaveCandidate = appendCandidate;
             }
 
             if (appendSaveCandidate != null
+                && _excelDocument.CanWriteDirectDataSetPackageOnDispose
                 && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate)) {
                 return;
             }
@@ -159,6 +162,7 @@ namespace OfficeIMO.Excel {
                     candidate.Values!,
                     candidate.ColumnCount,
                     candidate.RowCount,
+                    candidate.ValuesMatchColumnTypes,
                     candidate.IncludeHeaders,
                     candidate.Range);
             }
@@ -186,37 +190,51 @@ namespace OfficeIMO.Excel {
                     candidate.Values!,
                     candidate.ColumnCount,
                     candidate.RowCount,
+                    candidate.ValuesMatchColumnTypes,
                     candidate.IncludeHeaders,
                     candidate.Range);
         }
 
         private bool TryCreateDirectCellValuesAppendCandidate(IReadOnlyList<(int Row, int Column, object Value)> cells, out DirectCellValuesSaveCandidate? candidate) {
             candidate = null;
-            if (!TryGetCompleteColumnOneRectangle(cells, out int firstRow, out int rowCount, out int columnCount)
+            if (!TryGetColumnOneRectangleShape(cells, out int firstRow, out int columnCount)
                 || firstRow != 2
-                || !CanRegisterDirectTabularSaveCandidateWithExistingHeader(columnCount)
-                || !TryReadExistingHeaderRow(columnCount, out string[] headers)
-                || !TryCreateDirectAppendCellValuesSaveCandidate(cells, headers, columnCount, out candidate)
+                || !TryReadExistingHeadersForDirectAppend(columnCount, out string[] headers)
+                || !TryCreateDirectAppendCellValuesSaveCandidate(cells, headers, firstRow, columnCount, out candidate)
                 || candidate == null) {
                 return false;
             }
 
-            string range = A1.CellReference(1, 1) + ":" + A1.CellReference(firstRow + rowCount - 1, columnCount);
+            string range = A1.CellReference(1, 1) + ":" + A1.CellReference(firstRow + candidate.RowCount - 1, columnCount);
             candidate = candidate.WithRange(range);
             return true;
         }
 
-        private bool CanRegisterDirectTabularSaveCandidateWithExistingHeader(int columnCount) {
+        private bool TryReadExistingHeadersForDirectAppend(int columnCount, out string[] headers) {
+            headers = Array.Empty<string>();
             if (columnCount <= 0 || _excelDocument.HasPackagePropertiesDirty) {
                 return false;
             }
 
-            var sheets = WorkbookRoot.Sheets?.Elements<Sheet>().ToList();
-            if (sheets == null || sheets.Count != 1 || !ReferenceEquals(sheets[0], SheetElement)) {
+            var sheets = WorkbookRoot.Sheets;
+            if (sheets == null) {
                 return false;
             }
 
-            if (SheetElement.State != null && SheetElement.State.Value != SheetStateValues.Visible) {
+            Sheet? onlySheet = null;
+            foreach (var sheet in sheets.Elements<Sheet>()) {
+                if (onlySheet != null) {
+                    return false;
+                }
+
+                onlySheet = sheet;
+            }
+
+            if (onlySheet == null || !ReferenceEquals(onlySheet, SheetElement)) {
+                return false;
+            }
+
+            if (onlySheet.State != null && onlySheet.State.Value != SheetStateValues.Visible) {
                 return false;
             }
 
@@ -229,6 +247,7 @@ namespace OfficeIMO.Excel {
             }
 
             var worksheet = WorksheetRoot;
+            bool foundSheetData = false;
             foreach (var child in worksheet.ChildElements) {
                 if (child is SheetDimension) {
                     continue;
@@ -238,15 +257,22 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                if (!SheetDataContainsOnlyHeaderRow(sheetData, columnCount)) {
+                if (foundSheetData) {
                     return false;
                 }
+
+                if (!TryReadHeadersIfSheetDataContainsOnlyHeaderRow(sheetData, columnCount, out headers)) {
+                    return false;
+                }
+
+                foundSheetData = true;
             }
 
-            return true;
+            return foundSheetData;
         }
 
-        private static bool SheetDataContainsOnlyHeaderRow(SheetData sheetData, int columnCount) {
+        private bool TryReadHeadersIfSheetDataContainsOnlyHeaderRow(SheetData sheetData, int columnCount, out string[] headers) {
+            headers = new string[columnCount];
             Row? headerRow = null;
             foreach (var row in sheetData.Elements<Row>()) {
                 if (row.RowIndex == null || row.RowIndex.Value != 1U) {
@@ -268,65 +294,58 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var cells = headerRow.Elements<Cell>().ToList();
-            if (cells.Count != columnCount) {
-                return false;
-            }
-
-            for (int i = 0; i < cells.Count; i++) {
-                string? reference = cells[i].CellReference?.Value;
-                if (string.IsNullOrEmpty(reference)
-                    || A1.ParseColumnIndexFromCellReference(reference!) != i + 1) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        private bool TryReadExistingHeaderRow(int columnCount, out string[] headers) {
-            headers = new string[columnCount];
-            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
-            var headerRow = sheetData?.Elements<Row>().FirstOrDefault(row => row.RowIndex?.Value == 1U);
-            if (headerRow == null) {
-                return false;
-            }
-
-            var usedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            HashSet<string>? usedHeaders = columnCount > DirectCellValuesLinearHeaderDuplicateCheckLimit
+                ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                : null;
+            int cellCount = 0;
             foreach (var cell in headerRow.Elements<Cell>()) {
-                string? reference = cell.CellReference?.Value;
-                if (string.IsNullOrEmpty(reference)) {
+                cellCount++;
+                if (cellCount > columnCount) {
                     return false;
                 }
 
-                int column = A1.ParseColumnIndexFromCellReference(reference!);
-                if (column <= 0 || column > columnCount) {
+                string? reference = cell.CellReference?.Value;
+                if (string.IsNullOrEmpty(reference)
+                    || A1.ParseColumnIndexFromCellReferenceFast(reference) != cellCount) {
                     return false;
                 }
 
                 string header = GetCellText(cell);
-                if (string.IsNullOrWhiteSpace(header) || !usedHeaders.Add(header)) {
+                if (string.IsNullOrWhiteSpace(header)) {
                     return false;
                 }
 
-                headers[column - 1] = header;
+                if (usedHeaders != null) {
+                    if (!usedHeaders.Add(header)) {
+                        return false;
+                    }
+                } else {
+                    for (int headerIndex = 0; headerIndex < headers.Length; headerIndex++) {
+                        if (string.Equals(headers[headerIndex], header, StringComparison.OrdinalIgnoreCase)) {
+                            return false;
+                        }
+                    }
+                }
+
+                headers[cellCount - 1] = header;
             }
 
-            return headers.All(header => !string.IsNullOrWhiteSpace(header));
+            return cellCount == columnCount;
         }
 
         private static bool TryCreateDirectAppendCellValuesSaveCandidate(
             IReadOnlyList<(int Row, int Column, object Value)> cells,
-            IReadOnlyList<string> headers,
+            string[] headers,
+            int firstRow,
             int columnCount,
             out DirectCellValuesSaveCandidate? candidate) {
             candidate = null;
 
-            if (!TryCreateDirectCellValuesRowsAndColumnTypes(cells, 0, columnCount, out Type[] columnTypes, out object?[][] rows)) {
+            if (!TrySnapshotDirectAppendCellValues(cells, firstRow, columnCount, out Type[] columnTypes, out object?[] values, out int rowCount, out bool valuesMatchColumnTypes)) {
                 return false;
             }
 
-            candidate = new DirectCellValuesSaveCandidate(headers.ToArray(), columnTypes, rows, includeHeaders: true, range: string.Empty);
+            candidate = new DirectCellValuesSaveCandidate(headers, columnTypes, values, columnCount, rowCount, valuesMatchColumnTypes, includeHeaders: true, range: string.Empty);
             return true;
         }
 
@@ -336,7 +355,7 @@ namespace OfficeIMO.Excel {
             out DirectCellValuesSaveCandidate? candidate) {
             candidate = null;
 
-            if (!TryGetCompleteA1Rectangle(cells, out int rowCount, out int columnCount)) {
+            if (!TryGetA1RectangleShape(cells, out int rowCount, out int columnCount)) {
                 return false;
             }
 
@@ -356,12 +375,13 @@ namespace OfficeIMO.Excel {
             Type[] columnTypes;
             object?[]? values = null;
             object?[][]? rows = null;
+            bool valuesMatchColumnTypes = false;
             int dataRowCount;
             if (useFlatSnapshot) {
-                if (!TrySnapshotDirectCellValues(cells, dataStartIndex, columnCount, out columnTypes, out values, out dataRowCount)) {
+                if (!TrySnapshotDirectCellValues(cells, dataStartIndex, columnCount, validateA1Rectangle: true, out columnTypes, out values, out dataRowCount, out valuesMatchColumnTypes)) {
                     return false;
                 }
-            } else if (TryCreateDirectCellValuesRowsAndColumnTypes(cells, dataStartIndex, columnCount, out columnTypes, out rows)) {
+            } else if (TryCreateDirectCellValuesRowsAndColumnTypes(cells, dataStartIndex, columnCount, validateA1Rectangle: true, out columnTypes, out rows)) {
                 dataRowCount = rows.Length;
             } else {
                 return false;
@@ -376,7 +396,7 @@ namespace OfficeIMO.Excel {
 
             string range = A1.CellReference(1, 1) + ":" + A1.CellReference(rowCount, columnCount);
             candidate = values != null
-                ? new DirectCellValuesSaveCandidate(columnNames, columnTypes, values, columnCount, dataRowCount, includeHeaders, range)
+                ? new DirectCellValuesSaveCandidate(columnNames, columnTypes, values, columnCount, dataRowCount, valuesMatchColumnTypes, includeHeaders, range)
                 : new DirectCellValuesSaveCandidate(columnNames, columnTypes, rows!, includeHeaders, range);
             return true;
         }
@@ -388,6 +408,7 @@ namespace OfficeIMO.Excel {
                 Rows = rows;
                 ColumnCount = columnNames.Length;
                 RowCount = rows.Length;
+                ValuesMatchColumnTypes = false;
                 IncludeHeaders = includeHeaders;
                 Range = range;
             }
@@ -398,6 +419,7 @@ namespace OfficeIMO.Excel {
                 object?[] values,
                 int columnCount,
                 int rowCount,
+                bool valuesMatchColumnTypes,
                 bool includeHeaders,
                 string range) {
                 ColumnNames = columnNames;
@@ -405,6 +427,7 @@ namespace OfficeIMO.Excel {
                 Values = values;
                 ColumnCount = columnCount;
                 RowCount = rowCount;
+                ValuesMatchColumnTypes = valuesMatchColumnTypes;
                 IncludeHeaders = includeHeaders;
                 Range = range;
             }
@@ -421,6 +444,8 @@ namespace OfficeIMO.Excel {
 
             internal int RowCount { get; }
 
+            internal bool ValuesMatchColumnTypes { get; }
+
             internal bool IncludeHeaders { get; }
 
             internal string Range { get; }
@@ -428,11 +453,11 @@ namespace OfficeIMO.Excel {
             internal DirectCellValuesSaveCandidate WithRange(string range) {
                 return Rows != null
                     ? new DirectCellValuesSaveCandidate(ColumnNames, ColumnTypes, Rows, IncludeHeaders, range)
-                    : new DirectCellValuesSaveCandidate(ColumnNames, ColumnTypes, Values!, ColumnCount, RowCount, IncludeHeaders, range);
+                    : new DirectCellValuesSaveCandidate(ColumnNames, ColumnTypes, Values!, ColumnCount, RowCount, ValuesMatchColumnTypes, IncludeHeaders, range);
             }
         }
 
-        private static bool TryGetCompleteA1Rectangle(IReadOnlyList<(int Row, int Column, object Value)> cells, out int rowCount, out int columnCount) {
+        private static bool TryGetA1RectangleShape(IReadOnlyList<(int Row, int Column, object Value)> cells, out int rowCount, out int columnCount) {
             rowCount = 0;
             columnCount = 0;
             if (cells.Count == 0 || cells[0].Row != 1 || cells[0].Column != 1) {
@@ -452,24 +477,14 @@ namespace OfficeIMO.Excel {
             }
 
             rowCount = cells.Count / columnCount;
-            for (int index = columnCount; index < cells.Count; index++) {
-                int expectedRow = (index / columnCount) + 1;
-                int expectedColumn = (index % columnCount) + 1;
-                if (cells[index].Row != expectedRow || cells[index].Column != expectedColumn) {
-                    return false;
-                }
-            }
-
             return true;
         }
 
-        private static bool TryGetCompleteColumnOneRectangle(
+        private static bool TryGetColumnOneRectangleShape(
             IReadOnlyList<(int Row, int Column, object Value)> cells,
             out int firstRow,
-            out int rowCount,
             out int columnCount) {
             firstRow = 0;
-            rowCount = 0;
             columnCount = 0;
             if (cells.Count == 0 || cells[0].Row <= 1 || cells[0].Column != 1) {
                 return false;
@@ -486,15 +501,6 @@ namespace OfficeIMO.Excel {
 
             if (columnCount == 0 || cells.Count % columnCount != 0) {
                 return false;
-            }
-
-            rowCount = cells.Count / columnCount;
-            for (int index = columnCount; index < cells.Count; index++) {
-                int expectedRow = firstRow + (index / columnCount);
-                int expectedColumn = (index % columnCount) + 1;
-                if (cells[index].Row != expectedRow || cells[index].Column != expectedColumn) {
-                    return false;
-                }
             }
 
             return true;
@@ -554,6 +560,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<(int Row, int Column, object Value)> cells,
             int dataStartIndex,
             int columnCount,
+            bool validateA1Rectangle,
             out Type[] columnTypes,
             out object?[][] rows) {
             columnTypes = new Type[columnCount];
@@ -565,7 +572,17 @@ namespace OfficeIMO.Excel {
             for (int index = dataStartIndex; index < cells.Count; index += columnCount) {
                 var row = new object?[columnCount];
                 for (int column = 0; column < columnCount; column++) {
-                    object? value = cells[index + column].Value;
+                    int cellIndex = index + column;
+                    if (validateA1Rectangle) {
+                        var cell = cells[cellIndex];
+                        int expectedRow = (cellIndex / columnCount) + 1;
+                        int expectedColumn = (cellIndex % columnCount) + 1;
+                        if (cell.Row != expectedRow || cell.Column != expectedColumn) {
+                            return false;
+                        }
+                    }
+
+                    object? value = cells[cellIndex].Value;
                     if (value is string text && IsDirectCellValuesAutomaticFormattingText(text)) {
                         return false;
                     }
@@ -613,23 +630,37 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<(int Row, int Column, object Value)> cells,
             int dataStartIndex,
             int columnCount,
+            bool validateA1Rectangle,
             out Type[] columnTypes,
             out object?[] values,
-            out int rowCount) {
+            out int rowCount,
+            out bool valuesMatchColumnTypes) {
             columnTypes = new Type[columnCount];
             rowCount = (cells.Count - dataStartIndex) / columnCount;
             values = new object?[rowCount * columnCount];
             var inferredTypes = new Type?[columnCount];
+            valuesMatchColumnTypes = true;
 
             int valueIndex = 0;
             for (int index = dataStartIndex; index < cells.Count; index += columnCount) {
                 for (int column = 0; column < columnCount; column++) {
-                    object? value = cells[index + column].Value;
+                    int cellIndex = index + column;
+                    if (validateA1Rectangle) {
+                        var cell = cells[cellIndex];
+                        int expectedRow = (cellIndex / columnCount) + 1;
+                        int expectedColumn = (cellIndex % columnCount) + 1;
+                        if (cell.Row != expectedRow || cell.Column != expectedColumn) {
+                            return false;
+                        }
+                    }
+
+                    object? value = cells[cellIndex].Value;
                     if (value is string text && IsDirectCellValuesAutomaticFormattingText(text)) {
                         return false;
                     }
 
                     if (IsDirectCellValuesBlankValue(value)) {
+                        valuesMatchColumnTypes = false;
                         values[valueIndex++] = value;
                         continue;
                     }
@@ -653,6 +684,7 @@ namespace OfficeIMO.Excel {
                         }
 
                         inferredTypes[column] = typeof(object);
+                        valuesMatchColumnTypes = false;
                     }
 
                     values[valueIndex++] = value;
@@ -660,6 +692,81 @@ namespace OfficeIMO.Excel {
             }
 
             for (int column = 0; column < columnCount; column++) {
+                if (inferredTypes[column] == null || inferredTypes[column] == typeof(object)) {
+                    valuesMatchColumnTypes = false;
+                }
+
+                columnTypes[column] = inferredTypes[column] ?? typeof(string);
+            }
+
+            return true;
+        }
+
+        private static bool TrySnapshotDirectAppendCellValues(
+            IReadOnlyList<(int Row, int Column, object Value)> cells,
+            int firstRow,
+            int columnCount,
+            out Type[] columnTypes,
+            out object?[] values,
+            out int rowCount,
+            out bool valuesMatchColumnTypes) {
+            columnTypes = new Type[columnCount];
+            rowCount = cells.Count / columnCount;
+            values = new object?[cells.Count];
+            var inferredTypes = new Type?[columnCount];
+            valuesMatchColumnTypes = true;
+
+            int index = 0;
+            for (int rowOffset = 0; rowOffset < rowCount; rowOffset++) {
+                int expectedRow = firstRow + rowOffset;
+                for (int column = 0; column < columnCount; column++, index++) {
+                    var cell = cells[index];
+                    if (cell.Row != expectedRow || cell.Column != column + 1) {
+                        return false;
+                    }
+
+                    object? value = cell.Value;
+                    if (value is string text && IsDirectCellValuesAutomaticFormattingText(text)) {
+                        return false;
+                    }
+
+                    if (IsDirectCellValuesBlankValue(value)) {
+                        valuesMatchColumnTypes = false;
+                        values[index] = value;
+                        continue;
+                    }
+
+                    Type valueType = GetDirectCellValuesColumnType(value!);
+                    Type? inferred = inferredTypes[column];
+                    if (inferred == null) {
+                        inferredTypes[column] = valueType;
+                        values[index] = value;
+                        continue;
+                    }
+
+                    if (inferred == typeof(object)) {
+                        values[index] = value;
+                        continue;
+                    }
+
+                    if (inferred != valueType) {
+                        if (IsDirectCellValuesStyleSensitiveType(inferred) || IsDirectCellValuesStyleSensitiveType(valueType)) {
+                            return false;
+                        }
+
+                        inferredTypes[column] = typeof(object);
+                        valuesMatchColumnTypes = false;
+                    }
+
+                    values[index] = value;
+                }
+            }
+
+            for (int column = 0; column < columnCount; column++) {
+                if (inferredTypes[column] == null || inferredTypes[column] == typeof(object)) {
+                    valuesMatchColumnTypes = false;
+                }
+
                 columnTypes[column] = inferredTypes[column] ?? typeof(string);
             }
 
@@ -801,7 +908,6 @@ namespace OfficeIMO.Excel {
 
             Dictionary<string, int>? sharedStringIndexes = null;
             bool useDirectStringCells = source.Count >= 4096 && maxColumn > 1;
-            var appendedRows = new List<OpenXmlElement>(Math.Max(1, source.Count / Math.Max(maxColumn, 1)));
             Row? row = null;
             int rowIndex = 0;
             string rowReference = string.Empty;
@@ -816,7 +922,7 @@ namespace OfficeIMO.Excel {
 
                 if (item.Row != rowIndex) {
                     if (row != null) {
-                        appendedRows.Add(row);
+                        sheetData.Append(row);
                     }
 
                     rowIndex = item.Row;
@@ -829,10 +935,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (row != null) {
-                appendedRows.Add(row);
+                sheetData.Append(row);
             }
 
-            sheetData.Append(appendedRows);
             ClearHeaderCacheForPreparedAppend();
             int lastRow = source[source.Count - 1].Row;
             int dimensionMinRow = minExistingRow == int.MaxValue ? firstRow : Math.Min(minExistingRow, firstRow);
@@ -903,10 +1008,22 @@ namespace OfficeIMO.Excel {
 
         private void SetSheetDimensionReference(int minRow, int minColumn, int maxRow, int maxColumn) {
             var worksheet = WorksheetRoot;
-            var dimensions = worksheet.Elements<SheetDimension>().ToList();
-            SheetDimension? dimension = dimensions.FirstOrDefault();
-            foreach (var extraDimension in dimensions.Skip(1).ToList()) {
-                extraDimension.Remove();
+            SheetDimension? dimension = null;
+            List<SheetDimension>? extraDimensions = null;
+            foreach (var currentDimension in worksheet.Elements<SheetDimension>()) {
+                if (dimension == null) {
+                    dimension = currentDimension;
+                    continue;
+                }
+
+                extraDimensions ??= new List<SheetDimension>();
+                extraDimensions.Add(currentDimension);
+            }
+
+            if (extraDimensions != null) {
+                for (int i = 0; i < extraDimensions.Count; i++) {
+                    extraDimensions[i].Remove();
+                }
             }
 
             string start = A1.CellReference(minRow, minColumn);

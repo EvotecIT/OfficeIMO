@@ -561,12 +561,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (canUseOrderedFullWidthExit && columnIndex >= c2) {
-                    SkipXmlElementContent(rowReader, depth, "row");
+                    SkipXmlElementContent(rowReader, depth);
                     return values;
                 }
 
                 if (canTrackColumns && !canUseOrderedFullWidthExit && MarkRequestedColumnSeen(offset, allColumnsSeen, ref seenColumns)) {
-                    SkipXmlElementContent(rowReader, depth, "row");
+                    SkipXmlElementContent(rowReader, depth);
                     return values;
                 }
             }

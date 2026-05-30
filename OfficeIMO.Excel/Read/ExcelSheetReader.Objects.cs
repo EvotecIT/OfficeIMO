@@ -336,15 +336,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (CanUseTypedObjectXmlReader()) {
-                if (rows <= BufferedRangeStreamRowLimit
-                    && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var mediumRows)) {
-                    return mediumRows;
-                }
-
-                if (rows > BufferedRangeStreamRowLimit
-                    && ShouldUseOrderedBufferedXmlStream(rows, c1, c2)
-                    && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var orderedRows)) {
-                    return orderedRows;
+                if (_opt.CellValueConverter == null
+                    && _opt.TypeConverter == null) {
+                    return ReadObjectsStreamXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct);
                 }
 
                 if (RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
@@ -357,6 +351,101 @@ namespace OfficeIMO.Excel {
 
         private bool CanUseTypedObjectXmlReader() {
             return CanStreamWorksheetPart();
+        }
+
+        private IEnumerable<T> ReadObjectsStreamXmlAdaptive<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
+            string a1Range,
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int cols,
+            CancellationToken ct) where T : new() {
+            using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
+            RewindWorksheetStream(stream);
+            using var reader = OpenWorksheetXmlReader(stream);
+            bool canCancel = ct.CanBeCanceled;
+            TypedPropertyBinding<T>?[]? bindings = null;
+            bool canTrackMappedColumns = false;
+            ulong mappedColumns = 0;
+            int nextRowIndex = 1;
+            int nextDataRow = r1 + 1;
+            Dictionary<int, T>? pendingRows = null;
+
+            while (reader.Read()) {
+                if (canCancel) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row") {
+                    continue;
+                }
+
+                int rowIndex = ParsePositiveIntAttribute(reader.GetAttribute("r"));
+                if (rowIndex <= 0) {
+                    rowIndex = nextRowIndex;
+                }
+
+                nextRowIndex = rowIndex + 1;
+                if (rowIndex < r1 || rowIndex > r2) {
+                    if (rowIndex > r2 && nextDataRow > r2) {
+                        break;
+                    }
+
+                    SkipXmlElement(reader, "row");
+                    continue;
+                }
+
+                if (rowIndex == r1) {
+                    object?[] headerValues = ReadXmlRowValues(reader, rowIndex, c1, c2, cols, ct);
+                    var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => headerValues[c]?.ToString(), _opt.NormalizeHeaders);
+                    bindings = GetTypedHeaderBindings<T>(headers, a1Range).Bindings;
+                    canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
+                    continue;
+                }
+
+                if (bindings == null) {
+                    foreach (var item in ReadObjectsStreamIterator<T>(a1Range, r1, c1, r2, c2, cols, ct)) {
+                        yield return item;
+                    }
+
+                    yield break;
+                }
+
+                if (!canTrackMappedColumns) {
+                    canTrackMappedColumns = TryGetMappedColumnMask(bindings, out mappedColumns);
+                }
+
+                var target = new T();
+                ReadXmlRowIntoTypedObject(reader, rowIndex, c1, c2, bindings, canTrackMappedColumns, mappedColumns, target, ct);
+                if (rowIndex == nextDataRow) {
+                    yield return target;
+                    nextDataRow++;
+
+                    while (pendingRows != null && pendingRows.Remove(nextDataRow, out var pending)) {
+                        yield return pending;
+                        nextDataRow++;
+                    }
+                } else if (rowIndex > nextDataRow) {
+                    pendingRows ??= new Dictionary<int, T>();
+                    pendingRows[rowIndex] = target;
+                }
+            }
+
+            bindings ??= CreateTypedHeaderBindingsFromMissingRow<T>(a1Range, cols);
+            while (nextDataRow <= r2) {
+                if (canCancel && ((nextDataRow - r1) & 1023) == 0) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                if (pendingRows != null && pendingRows.Remove(nextDataRow, out var pending)) {
+                    yield return pending;
+                } else {
+                    yield return new T();
+                }
+
+                nextDataRow++;
+            }
         }
 
         private bool TryReadObjectsStreamOrderedXmlFast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
@@ -624,7 +713,7 @@ namespace OfficeIMO.Excel {
 
                 values[columnIndex - c1] = value;
                 if (canTrackColumns && MarkRequestedColumnSeen(columnIndex - c1, allColumnsSeen, ref seenColumns)) {
-                    SkipXmlElementContent(rowReader, depth, "row");
+                    SkipXmlElementContent(rowReader, depth);
                     return;
                 }
             }
@@ -694,14 +783,14 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (canUseOrderedAllMappedExit && columnIndex >= c2) {
-                    SkipXmlElementContent(rowReader, depth, "row");
+                    SkipXmlElementContent(rowReader, depth);
                     return;
                 }
 
                 if (canTrackMappedColumns && !canUseOrderedAllMappedExit) {
                     seenMappedColumns |= 1UL << (columnIndex - c1);
                     if (seenMappedColumns == mappedColumns) {
-                        SkipXmlElementContent(rowReader, depth, "row");
+                        SkipXmlElementContent(rowReader, depth);
                         return;
                     }
                 }
@@ -728,7 +817,9 @@ namespace OfficeIMO.Excel {
 
         private static int GetXmlCellColumnIndex(XmlReader cellReader, ref int nextColumnIndex) {
             string? reference = cellReader.GetAttribute("r");
-            int columnIndex = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
+            int columnIndex = TryGetExpectedSingleLetterColumnIndex(reference, nextColumnIndex, out int expectedColumnIndex)
+                ? expectedColumnIndex
+                : A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(reference);
             if (columnIndex <= 0) {
                 columnIndex = string.IsNullOrEmpty(reference) ? nextColumnIndex : 0;
             }
@@ -738,6 +829,61 @@ namespace OfficeIMO.Excel {
             }
 
             return columnIndex;
+        }
+
+        private static bool TryGetExpectedSingleLetterColumnIndex(string? reference, int expectedColumnIndex, out int columnIndex) {
+            columnIndex = 0;
+            if ((uint)(expectedColumnIndex - 1) >= 26U
+                || string.IsNullOrEmpty(reference)) {
+                return false;
+            }
+
+            string text = reference!;
+            if (text.Length < 2) {
+                return false;
+            }
+
+            char expectedUpper = (char)('A' + expectedColumnIndex - 1);
+            char first = text[0];
+            if (first != expectedUpper && first != (char)(expectedUpper + 32)) {
+                return false;
+            }
+
+            char firstRowDigit = text[1];
+            int length = text.Length;
+            if (firstRowDigit >= '1'
+                && firstRowDigit <= '9'
+                && (length == 2
+                    || (length == 3 && IsAsciiDigit(text[2]))
+                    || (length == 4 && IsAsciiDigit(text[2]) && IsAsciiDigit(text[3]))
+                    || (length == 5 && IsAsciiDigit(text[2]) && IsAsciiDigit(text[3]) && IsAsciiDigit(text[4]))
+                    || (length == 6 && IsAsciiDigit(text[2]) && IsAsciiDigit(text[3]) && IsAsciiDigit(text[4]) && IsAsciiDigit(text[5]))
+                    || (length == 7 && IsAsciiDigit(text[2]) && IsAsciiDigit(text[3]) && IsAsciiDigit(text[4]) && IsAsciiDigit(text[5]) && IsAsciiDigit(text[6]))
+                    || (length == 8 && IsAsciiDigit(text[2]) && IsAsciiDigit(text[3]) && IsAsciiDigit(text[4]) && IsAsciiDigit(text[5]) && IsAsciiDigit(text[6]) && IsAsciiDigit(text[7])))) {
+                columnIndex = expectedColumnIndex;
+                return true;
+            }
+
+            bool hasNonZeroRowDigit = false;
+            for (int i = 1; i < text.Length; i++) {
+                char ch = text[i];
+                if (ch < '0' || ch > '9') {
+                    return false;
+                }
+
+                hasNonZeroRowDigit |= ch != '0';
+            }
+
+            if (!hasNonZeroRowDigit) {
+                return false;
+            }
+
+            columnIndex = expectedColumnIndex;
+            return true;
+        }
+
+        private static bool IsAsciiDigit(char value) {
+            return (uint)(value - '0') <= 9U;
         }
 
         private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex) {
@@ -793,6 +939,17 @@ namespace OfficeIMO.Excel {
 
                 if (cellReader.NodeType == XmlNodeType.Element) {
                     if (cellReader.LocalName == "v") {
+                        if (cellKind == XmlCellKind.SharedString
+                            && !hasFormula
+                            && inlineText == null
+                            && binding.SetString != null
+                            && binding.BindingKind == TypedBindingKind.String
+                            && _opt.UseCachedFormulaResult) {
+                            bool parsedSharedStringIndex = TryReadXmlSharedStringIndexValueAndSkipCell(cellReader, depth, out int sstIndex, out rawText);
+                            binding.SetString(target, parsedSharedStringIndex ? GetSharedString(sstIndex) : rawText);
+                            return;
+                        }
+
                         rawText = cellReader.ReadElementContentAsString();
                         if (cellReader.NodeType == XmlNodeType.EndElement
                             && cellReader.Depth == depth
@@ -860,7 +1017,7 @@ namespace OfficeIMO.Excel {
             TTarget target) {
             switch (cellKind) {
                 case XmlCellKind.SharedString: {
-                    string? text = TryParseSharedStringIndex(rawText, out int sstIndex) ? _sst.Get(sstIndex) : rawText;
+                    string? text = TryParseSharedStringIndex(rawText, out int sstIndex) ? GetSharedString(sstIndex) : rawText;
                     return TrySetStringTextBinding(text, binding, target);
                 }
 
@@ -1021,6 +1178,18 @@ namespace OfficeIMO.Excel {
 
             while (reader.Read()) {
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == localName) {
+                    return;
+                }
+            }
+        }
+
+        private static void SkipXmlElementContent(XmlReader reader, int depth) {
+            if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth) {
+                return;
+            }
+
+            while (reader.Read()) {
+                if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth) {
                     return;
                 }
             }
@@ -1834,7 +2003,7 @@ namespace OfficeIMO.Excel {
             if (typeHint == CellValues.SharedString) {
                 string? text = rawText;
                 if (TryParseSharedStringIndex(rawText, out int sstIndex)) {
-                    text = _sst.Get(sstIndex);
+                    text = GetSharedString(sstIndex);
                 }
 
                 if (ReturnBindingConversion(TryConvertStringForBinding(text, binding, out converted), binding, converted)) {
@@ -1956,7 +2125,7 @@ namespace OfficeIMO.Excel {
                     return TryConvertStringForBinding(raw.RawText, binding, out converted);
                 }
 
-                return TryConvertStringForBinding(_sst.Get(sstIndex), binding, out converted);
+                return TryConvertStringForBinding(GetSharedString(sstIndex), binding, out converted);
             }
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean && raw.RawText != null) {
@@ -2071,7 +2240,7 @@ namespace OfficeIMO.Excel {
 
             if (raw.TypeHint == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString) {
                 string? text = TryParseSharedStringIndex(raw.RawText, out int sstIndex)
-                    ? _sst.Get(sstIndex)
+                    ? GetSharedString(sstIndex)
                     : raw.RawText;
                 if (TrySetStringTextBinding(text, binding, target)) {
                     return true;

@@ -130,6 +130,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_OpenBytes_DoesNotMutateSourceArray() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderOpenBytesDoesNotMutate.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Value");
+                    document.Save();
+                }
+
+                byte[] bytes = File.ReadAllBytes(filePath);
+                byte[] original = bytes.ToArray();
+
+                using (var reader = ExcelDocumentReader.Open(bytes)) {
+                    object?[,] values = reader.GetSheet("Data").ReadRange("A1:A1");
+
+                    Assert.Equal("Value", values[0, 0]);
+                }
+
+                Assert.Equal(original, bytes);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_ReadRange_UsesConfiguredCultureBeforeInvariantNumericFallback() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderCultureNumericFallback.xlsx");
 

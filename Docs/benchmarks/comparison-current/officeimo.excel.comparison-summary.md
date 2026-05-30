@@ -6,1361 +6,1435 @@ This is the suite-level decision table. Mean, standard deviation, standard error
 
 | Row count | Artifact | Workload | Category | OfficeIMO wins | OfficeIMO losses | Biggest loss |
 | ---: | --- | --- | --- | ---: | ---: | --- |
-| 2500 | dense-helloworld-comparison | read | Other | 0 | 2 | dense-helloworld-read-range: Loss +51.9% vs Sylvan.Data.Excel |
-| 2500 | package-profile | package | Package size | 37 | 12 | write-datatable-direct: Loss +102.5% vs LargeXlsx |
-| 2500 | speed-comparison | mutate | AutoFit and mutation | 1 | 0 |  |
-| 2500 | speed-comparison | other | DataTable table export | 2 | 0 |  |
+| 2500 | dense-helloworld-comparison | read | Other | 0 | 2 | dense-helloworld-read-range: Loss +20.4% vs Sylvan.Data.Excel |
+| 2500 | package-profile | package | Package size | 41 | 13 | write-insertobjects-legacy-dictionaries-direct: Loss +53.3% vs LargeXlsx |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | 2 | 0 |  |
+| 2500 | speed-comparison | other | Anti-cheat report variants | 4 | 0 |  |
 | 2500 | speed-comparison | other | Object projection | 2 | 0 |  |
-| 2500 | speed-comparison | other | Other | 10 | 0 |  |
 | 2500 | speed-comparison | other | Range and table read | 4 | 0 |  |
+| 2500 | speed-comparison | other | Real-world feature mix | 6 | 0 |  |
+| 2500 | speed-comparison | other | Real-world report | 2 | 0 |  |
+| 2500 | speed-comparison | other | Report workbook | 4 | 0 |  |
 | 2500 | speed-comparison | read | Formula write/read | 1 | 0 |  |
-| 2500 | speed-comparison | read | Other | 0 | 3 | large-sparse-row-read: Loss +139.6% vs Sylvan.Data.Excel |
-| 2500 | speed-comparison | read | Range and table read | 1 | 6 | read-top-range: Loss +201.9% vs Sylvan.Data.Excel |
-| 2500 | speed-comparison | read | Streaming read | 0 | 4 | read-top-range-stream-small-chunks: Loss +249.3% vs Sylvan.Data.Excel |
-| 2500 | speed-comparison | read | Typed object read | 0 | 2 | read-objects-stream: Loss +17.8% vs Sylvan.Data.Excel |
+| 2500 | speed-comparison | read | Other | 1 | 2 | shared-string-read: Loss +61.4% vs Sylvan.Data.Excel |
+| 2500 | speed-comparison | read | Range and table read | 3 | 4 | read-datatable: Loss +95.7% vs Sylvan.Data.Excel |
+| 2500 | speed-comparison | read | Streaming read | 1 | 3 | read-range-stream: Loss +142.7% vs Sylvan.Data.Excel |
+| 2500 | speed-comparison | read | Typed object read | 0 | 2 | read-objects: Loss +15.0% vs Sylvan.Data.Excel |
 | 2500 | speed-comparison | write | AutoFit and mutation | 5 | 0 |  |
 | 2500 | speed-comparison | write | Cell writer | 7 | 0 |  |
 | 2500 | speed-comparison | write | DataSet table export | 3 | 0 |  |
 | 2500 | speed-comparison | write | DataTable table export | 4 | 0 |  |
 | 2500 | speed-comparison | write | Formatted report write | 1 | 0 |  |
 | 2500 | speed-comparison | write | Formula write/read | 1 | 0 |  |
-| 2500 | speed-comparison | write | Other | 2 | 2 | write-powershell-psobject-mixed-direct: Loss +24.3% vs LargeXlsx |
-| 2500 | speed-comparison | write | Plain cell export | 1 | 3 | append-plain-rows: Loss +80.6% vs LargeXlsx |
-| 2500 | speed-comparison | write | Plain streaming export | 2 | 0 |  |
-| 2500 | speed-comparison | write | Plain string export | 1 | 0 |  |
+| 2500 | speed-comparison | write | Other | 2 | 2 | write-powershell-mixed-objects-direct: Loss +30.3% vs LargeXlsx |
+| 2500 | speed-comparison | write | Plain cell export | 1 | 3 | append-plain-rows: Loss +43.5% vs LargeXlsx |
+| 2500 | speed-comparison | write | Plain streaming export | 1 | 1 | write-datareader-plain: Loss +14.0% vs Sylvan.Data.Excel |
+| 2500 | speed-comparison | write | Plain string export | 0 | 1 | write-blog-2023-20-string-columns: Loss +6.9% vs LargeXlsx |
 | 2500 | speed-comparison | write | Shared string write | 4 | 0 |  |
-| 2500 | speed-comparison | write | Typed object export | 0 | 3 | write-insertobjects-flat-dictionaries-direct: Loss +47.8% vs LargeXlsx |
-| 25000 | dense-helloworld-comparison | read | Other | 1 | 1 | dense-helloworld-read-stream: Loss +22.9% vs Sylvan.Data.Excel |
-| 25000 | package-profile | package | Package size | 37 | 12 | write-insertobjects-legacy-dictionaries-direct: Loss +65.6% vs LargeXlsx |
-| 25000 | speed-comparison | mutate | AutoFit and mutation | 1 | 0 |  |
-| 25000 | speed-comparison | other | DataTable table export | 2 | 0 |  |
+| 2500 | speed-comparison | write | Typed object export | 0 | 3 | write-insertobjects-direct: Loss +37.5% vs LargeXlsx |
+| 25000 | dense-helloworld-comparison | read | Other | 0 | 2 | dense-helloworld-read-stream: Loss +28.7% vs Sylvan.Data.Excel |
+| 25000 | package-profile | package | Package size | 42 | 12 | write-insertobjects-legacy-dictionaries-direct: Loss +51.8% vs LargeXlsx |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | 2 | 0 |  |
+| 25000 | speed-comparison | other | Anti-cheat report variants | 4 | 0 |  |
 | 25000 | speed-comparison | other | Object projection | 2 | 0 |  |
-| 25000 | speed-comparison | other | Other | 10 | 0 |  |
 | 25000 | speed-comparison | other | Range and table read | 4 | 0 |  |
+| 25000 | speed-comparison | other | Real-world feature mix | 6 | 0 |  |
+| 25000 | speed-comparison | other | Real-world report | 2 | 0 |  |
+| 25000 | speed-comparison | other | Report workbook | 4 | 0 |  |
 | 25000 | speed-comparison | read | Formula write/read | 1 | 0 |  |
-| 25000 | speed-comparison | read | Other | 0 | 3 | large-sparse-row-read: Loss +74.3% vs Sylvan.Data.Excel |
-| 25000 | speed-comparison | read | Range and table read | 4 | 3 | read-top-range: Loss +319.8% vs Sylvan.Data.Excel |
-| 25000 | speed-comparison | read | Streaming read | 2 | 2 | read-top-range-stream: Loss +313.2% vs Sylvan.Data.Excel |
-| 25000 | speed-comparison | read | Typed object read | 0 | 2 | read-objects: Loss +5.3% vs Sylvan.Data.Excel |
+| 25000 | speed-comparison | read | Other | 2 | 1 | shared-string-read: Loss +14.4% vs Sylvan.Data.Excel |
+| 25000 | speed-comparison | read | Range and table read | 2 | 5 | read-top-range: Loss +31.6% vs Sylvan.Data.Excel |
+| 25000 | speed-comparison | read | Streaming read | 1 | 3 | read-top-range-stream-small-chunks: Loss +33.3% vs Sylvan.Data.Excel |
+| 25000 | speed-comparison | read | Typed object read | 1 | 1 | read-objects: Loss +29.3% vs Sylvan.Data.Excel |
 | 25000 | speed-comparison | write | AutoFit and mutation | 5 | 0 |  |
 | 25000 | speed-comparison | write | Cell writer | 7 | 0 |  |
 | 25000 | speed-comparison | write | DataSet table export | 3 | 0 |  |
-| 25000 | speed-comparison | write | DataTable table export | 3 | 1 | write-datatable-direct: Loss +15.7% vs LargeXlsx |
+| 25000 | speed-comparison | write | DataTable table export | 3 | 1 | write-datatable-direct: Loss +3.1% vs LargeXlsx |
 | 25000 | speed-comparison | write | Formatted report write | 1 | 0 |  |
 | 25000 | speed-comparison | write | Formula write/read | 1 | 0 |  |
-| 25000 | speed-comparison | write | Other | 2 | 2 | write-powershell-mixed-objects-direct: Loss +16.8% vs LargeXlsx |
-| 25000 | speed-comparison | write | Plain cell export | 2 | 2 | append-plain-rows: Loss +51.4% vs LargeXlsx |
-| 25000 | speed-comparison | write | Plain streaming export | 1 | 1 | write-datareader-plain: Loss +27.5% vs Sylvan.Data.Excel |
-| 25000 | speed-comparison | write | Plain string export | 0 | 1 | write-blog-2023-20-string-columns: Loss +6.5% vs LargeXlsx |
+| 25000 | speed-comparison | write | Other | 2 | 2 | write-powershell-psobject-mixed-direct: Loss +22.9% vs LargeXlsx |
+| 25000 | speed-comparison | write | Plain cell export | 1 | 3 | append-plain-rows: Loss +29.4% vs LargeXlsx |
+| 25000 | speed-comparison | write | Plain streaming export | 1 | 1 | write-datareader-plain: Loss +24.1% vs Sylvan.Data.Excel |
+| 25000 | speed-comparison | write | Plain string export | 0 | 1 | write-blog-2023-20-string-columns: Loss +12.0% vs LargeXlsx |
 | 25000 | speed-comparison | write | Shared string write | 4 | 0 |  |
-| 25000 | speed-comparison | write | Typed object export | 0 | 3 | write-insertobjects-flat-dictionaries-direct: Loss +35.7% vs LargeXlsx |
+| 25000 | speed-comparison | write | Typed object export | 0 | 3 | write-insertobjects-flat-dictionaries-direct: Loss +42.6% vs LargeXlsx |
 
 ## OfficeIMO decision table
 
 | Row count | Artifact | Workload | Category | Scenario | OfficeIMO mean | Best | OfficeIMO vs best | Alloc | Package |
 | ---: | --- | --- | --- | --- | ---: | --- | ---: | ---: | ---: |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | 6.14 ms | Sylvan.Data.Excel | Loss +51.9% | 2488.6 KB |  |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | 5.54 ms | Sylvan.Data.Excel | Loss +32.4% | 2566.9 KB |  |
-| 2500 | package-profile | package | Package size | append-plain-rows | 2.45 ms | LargeXlsx | Loss +60.3% | 1657.3 KB | 64.5 KB |
-| 2500 | package-profile | package | Package size | autofit-existing | 44.54 ms | OfficeIMO.Excel | Win | 13971.2 KB | 143.2 KB |
-| 2500 | package-profile | package | Package size | large-shared-strings | 2.01 ms | OfficeIMO.Excel | Win | 2111.9 KB | 55.2 KB |
-| 2500 | package-profile | package | Package size | realworld-autofilter | 3.57 ms | OfficeIMO.Excel | Win | 1171.9 KB | 142.4 KB |
-| 2500 | package-profile | package | Package size | realworld-charts | 5.25 ms | OfficeIMO.Excel | Win | 1688.9 KB | 147.5 KB |
-| 2500 | package-profile | package | Package size | realworld-conditional-formatting | 4.40 ms | OfficeIMO.Excel | Win | 1236.8 KB | 142.7 KB |
-| 2500 | package-profile | package | Package size | realworld-data-validation | 3.54 ms | OfficeIMO.Excel | Win | 1187.6 KB | 142.5 KB |
-| 2500 | package-profile | package | Package size | realworld-freeze-panes | 3.86 ms | OfficeIMO.Excel | Win | 1174.0 KB | 142.5 KB |
-| 2500 | package-profile | package | Package size | realworld-pivot-table | 20.98 ms | OfficeIMO.Excel | Win | 18628.0 KB | 203.9 KB |
-| 2500 | package-profile | package | Package size | realworld-report-all-in-one | 18.78 ms | OfficeIMO.Excel | Win | 19412.8 KB | 210.0 KB |
-| 2500 | package-profile | package | Package size | realworld-report-core | 4.52 ms | OfficeIMO.Excel | Win | 1319.1 KB | 143.9 KB |
-| 2500 | package-profile | package | Package size | report-workbook | 14.44 ms | OfficeIMO.Excel | Win | 12228.4 KB | 90.2 KB |
-| 2500 | package-profile | package | Package size | report-workbook-core | 6.18 ms | OfficeIMO.Excel | Win | 2375.5 KB | 187.5 KB |
-| 2500 | package-profile | package | Package size | report-workbook-datatable | 16.45 ms | OfficeIMO.Excel | Win | 12500.1 KB | 90.2 KB |
-| 2500 | package-profile | package | Package size | report-workbook-datatable-core | 6.33 ms | OfficeIMO.Excel | Win | 2647.2 KB | 187.5 KB |
-| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | 5.00 ms | LargeXlsx | Loss +14.3% | 1508.4 KB | 216.7 KB |
-| 2500 | package-profile | package | Package size | write-bulk-report | 4.78 ms | OfficeIMO.Excel | Win | 1233.1 KB | 143.2 KB |
-| 2500 | package-profile | package | Package size | write-cellformula | 2.27 ms | OfficeIMO.Excel | Win | 1171.8 KB | 66.6 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-empty-strings | 2.40 ms | OfficeIMO.Excel | Win | 1454.0 KB | 44.2 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-numbers | 2.01 ms | OfficeIMO.Excel | Win | 946.8 KB | 47.0 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-mixed | 3.14 ms | OfficeIMO.Excel | Win | 1431.4 KB | 61.2 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse | 2.60 ms | OfficeIMO.Excel | Win | 1271.0 KB | 62.0 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | 2.27 ms | OfficeIMO.Excel | Win | 1271.1 KB | 62.0 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-scalars | 1.85 ms | OfficeIMO.Excel | Win | 964.9 KB | 46.3 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings | 2.87 ms | OfficeIMO.Excel | Win | 2283.8 KB | 55.1 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings-distinct | 2.39 ms | OfficeIMO.Excel | Win | 2206.1 KB | 51.8 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings-repeated | 2.26 ms | OfficeIMO.Excel | Win | 1246.7 KB | 40.0 KB |
-| 2500 | package-profile | package | Package size | write-cellvalue-temporal | 2.49 ms | OfficeIMO.Excel | Win | 1262.6 KB | 63.3 KB |
-| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | 1.79 ms | LargeXlsx | Loss +45.7% | 923.6 KB | 48.2 KB |
-| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | 4.15 ms | LargeXlsx | Loss +27.3% | 1752.7 KB | 138.0 KB |
-| 2500 | package-profile | package | Package size | write-datareader-plain | 4.76 ms | Sylvan.Data.Excel | Loss +10.2% | 1434.6 KB | 138.0 KB |
-| 2500 | package-profile | package | Package size | write-datareader-table | 7.12 ms | OfficeIMO.Excel | Win | 1446.4 KB | 138.8 KB |
-| 2500 | package-profile | package | Package size | write-datareader-table-autofit | 4.84 ms | OfficeIMO.Excel | Win | 1452.7 KB | 138.9 KB |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | 4.42 ms | LargeXlsx | Loss +11.7% | 1652.6 KB | 131.1 KB |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | 4.90 ms | OfficeIMO.Excel | Win | 2392.1 KB | 176.0 KB |
-| 2500 | package-profile | package | Package size | write-dataset-tables | 3.86 ms | OfficeIMO.Excel | Win | 1578.0 KB | 138.9 KB |
-| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | 4.73 ms | OfficeIMO.Excel | Win | 1590.6 KB | 139.2 KB |
-| 2500 | package-profile | package | Package size | write-datatable-direct | 7.16 ms | LargeXlsx | Loss +102.5% | 1420.2 KB | 138.0 KB |
-| 2500 | package-profile | package | Package size | write-datatable-table-direct | 4.56 ms | OfficeIMO.Excel | Win | 1432.2 KB | 138.8 KB |
-| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | 4.52 ms | LargeXlsx | Loss +33.9% | 1440.7 KB | 138.0 KB |
-| 2500 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | 4.99 ms | OfficeIMO.Excel | Win | 1178.6 KB | 142.4 KB |
-| 2500 | package-profile | package | Package size | write-insertobjects-direct | 4.02 ms | LargeXlsx | Loss +8.7% | 1170.9 KB | 142.3 KB |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | 5.71 ms | OfficeIMO.Excel | Win | 1176.8 KB | 138.1 KB |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | 4.18 ms | LargeXlsx | Loss +36.9% | 1169.1 KB | 138.0 KB |
-| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | 5.99 ms | LargeXlsx | Loss +72.3% | 1601.6 KB | 142.3 KB |
-| 2500 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | 3.68 ms | OfficeIMO.Excel | Win | 1177.9 KB | 142.4 KB |
-| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | 5.97 ms | LargeXlsx | Loss +47.6% | 2013.3 KB | 183.1 KB |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | 4.46 ms | OfficeIMO.Excel | Win | 1339.3 KB | 182.4 KB |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | 20.71 ms | OfficeIMO.Excel | Win | 4333.9 KB | 651.0 KB |
-| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | 28.07 ms | OfficeIMO.Excel | Win | 13971.2 KB |  |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable | 13.57 ms | OfficeIMO.Excel | Win | 12500.1 KB |  |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | 5.55 ms | OfficeIMO.Excel | Win | 2647.2 KB |  |
-| 2500 | speed-comparison | other | Object projection | build-object-datatable-dictionaries | 1.57 ms | OfficeIMO.Excel | Win | 564.2 KB |  |
-| 2500 | speed-comparison | other | Object projection | build-object-datatable-typed | 1.34 ms | OfficeIMO.Excel | Win | 856.9 KB |  |
-| 2500 | speed-comparison | other | Other | realworld-autofilter | 3.69 ms | OfficeIMO.Excel | Win | 1171.9 KB |  |
-| 2500 | speed-comparison | other | Other | realworld-charts | 5.01 ms | OfficeIMO.Excel | Win | 1689.0 KB |  |
-| 2500 | speed-comparison | other | Other | realworld-conditional-formatting | 3.93 ms | OfficeIMO.Excel | Win | 1236.8 KB |  |
-| 2500 | speed-comparison | other | Other | realworld-data-validation | 3.67 ms | OfficeIMO.Excel | Win | 1187.6 KB |  |
-| 2500 | speed-comparison | other | Other | realworld-freeze-panes | 3.46 ms | OfficeIMO.Excel | Win | 1174.1 KB |  |
-| 2500 | speed-comparison | other | Other | realworld-pivot-table | 16.56 ms | OfficeIMO.Excel | Win | 18627.9 KB |  |
-| 2500 | speed-comparison | other | Other | realworld-report-all-in-one | 18.59 ms | OfficeIMO.Excel | Win | 19412.9 KB |  |
-| 2500 | speed-comparison | other | Other | realworld-report-core | 4.15 ms | OfficeIMO.Excel | Win | 1319.1 KB |  |
-| 2500 | speed-comparison | other | Other | report-workbook | 15.21 ms | OfficeIMO.Excel | Win | 12228.4 KB |  |
-| 2500 | speed-comparison | other | Other | report-workbook-core | 5.79 ms | OfficeIMO.Excel | Win | 2375.5 KB |  |
-| 2500 | speed-comparison | other | Range and table read | enumerate-cells | 7.92 ms | OfficeIMO.Excel | Win | 2649.2 KB |  |
-| 2500 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | 4.83 ms | OfficeIMO.Excel | Win | 643.4 KB |  |
-| 2500 | speed-comparison | other | Range and table read | enumerate-range | 8.36 ms | OfficeIMO.Excel | Win | 2649.2 KB |  |
-| 2500 | speed-comparison | other | Range and table read | enumerate-top-range | 1.69 ms | OfficeIMO.Excel | Win | 402.6 KB |  |
-| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | 3.33 ms | OfficeIMO.Excel | Win | 777.4 KB |  |
-| 2500 | speed-comparison | read | Other | large-sparse-column-read | 1.73 ms | Sylvan.Data.Excel | Loss +72.4% | 248.8 KB |  |
-| 2500 | speed-comparison | read | Other | large-sparse-row-read | 2.38 ms | Sylvan.Data.Excel | Loss +139.6% | 248.9 KB |  |
-| 2500 | speed-comparison | read | Other | shared-string-read | 3.47 ms | Sylvan.Data.Excel | Loss +67.1% | 1133.5 KB |  |
-| 2500 | speed-comparison | read | Range and table read | read-bottom-range | 4.98 ms | Sylvan.Data.Excel | Loss +12.4% | 494.6 KB |  |
-| 2500 | speed-comparison | read | Range and table read | read-datatable | 8.48 ms | Sylvan.Data.Excel | Loss +33.3% | 3714.5 KB |  |
-| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | 4.93 ms | Sylvan.Data.Excel | Loss +2.7% | 663.0 KB |  |
-| 2500 | speed-comparison | read | Range and table read | read-range | 11.83 ms | OfficeIMO.Excel | Win | 2812.6 KB |  |
-| 2500 | speed-comparison | read | Range and table read | read-range-decimal | 8.17 ms | Sylvan.Data.Excel | Loss +44.6% | 2871.4 KB |  |
-| 2500 | speed-comparison | read | Range and table read | read-top-range | 1.56 ms | Sylvan.Data.Excel | Loss +201.9% | 416.1 KB |  |
-| 2500 | speed-comparison | read | Range and table read | read-used-range | 14.55 ms | Sylvan.Data.Excel | Loss +191.0% | 3535.1 KB |  |
-| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | 4.93 ms | Sylvan.Data.Excel | Loss +12.7% | 497.9 KB |  |
-| 2500 | speed-comparison | read | Streaming read | read-range-stream | 8.69 ms | Sylvan.Data.Excel | Loss +76.0% | 2891.5 KB |  |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | 1.49 ms | Sylvan.Data.Excel | Loss +241.8% | 419.5 KB |  |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | 1.60 ms | Sylvan.Data.Excel | Loss +249.3% | 420.2 KB |  |
-| 2500 | speed-comparison | read | Typed object read | read-objects | 7.90 ms | Sylvan.Data.Excel | Loss +16.2% | 2562.1 KB |  |
-| 2500 | speed-comparison | read | Typed object read | read-objects-stream | 5.81 ms | Sylvan.Data.Excel | Loss +17.8% | 2562.4 KB |  |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | 5.40 ms | OfficeIMO.Excel | Win | 1452.7 KB |  |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | 6.35 ms | OfficeIMO.Excel | Win | 1591.1 KB |  |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | 4.42 ms | OfficeIMO.Excel | Win | 1178.6 KB |  |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | 4.45 ms | OfficeIMO.Excel | Win | 1176.8 KB |  |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | 4.23 ms | OfficeIMO.Excel | Win | 1177.9 KB |  |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | 2.91 ms | OfficeIMO.Excel | Win | 1454.0 KB |  |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | 2.98 ms | OfficeIMO.Excel | Win | 946.8 KB |  |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | 2.90 ms | OfficeIMO.Excel | Win | 1431.4 KB |  |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | 4.69 ms | OfficeIMO.Excel | Win | 1271.0 KB |  |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | 3.26 ms | OfficeIMO.Excel | Win | 1271.1 KB |  |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | 2.65 ms | OfficeIMO.Excel | Win | 964.9 KB |  |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | 3.28 ms | OfficeIMO.Excel | Win | 1262.6 KB |  |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | 5.53 ms | OfficeIMO.Excel | Win | 1576.3 KB |  |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | 8.58 ms | OfficeIMO.Excel | Win | 2392.1 KB |  |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | 5.44 ms | OfficeIMO.Excel | Win | 1579.6 KB |  |
-| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | 4.40 ms | OfficeIMO.Excel | Win | 1446.4 KB |  |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | 5.02 ms | OfficeIMO.Excel | Win | 1420.2 KB |  |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | 5.05 ms | OfficeIMO.Excel | Win | 1158.8 KB |  |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | 4.82 ms | OfficeIMO.Excel | Win | 1432.2 KB |  |
-| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | 7.21 ms | OfficeIMO.Excel | Win | 1234.7 KB |  |
-| 2500 | speed-comparison | write | Formula write/read | write-cellformula | 2.81 ms | OfficeIMO.Excel | Win | 1409.1 KB |  |
-| 2500 | speed-comparison | write | Other | write-dictionary-objects-table-direct | 7.91 ms | OfficeIMO.Excel | Win | 1723.0 KB |  |
-| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | 5.61 ms | LargeXlsx | Loss +22.5% | 2013.3 KB |  |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | 5.39 ms | LargeXlsx | Loss +24.3% | 1339.3 KB |  |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | 20.40 ms | OfficeIMO.Excel | Win | 4333.9 KB |  |
-| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | 2.47 ms | LargeXlsx | Loss +80.6% | 1657.3 KB |  |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | 1.66 ms | LargeXlsx | Loss +28.0% | 923.6 KB |  |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | 4.64 ms | LargeXlsx | Loss +27.0% | 1752.7 KB |  |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | 2.43 ms | OfficeIMO.Excel | Win | 1165.6 KB |  |
-| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | 5.34 ms | OfficeIMO.Excel | Win | 1434.6 KB |  |
-| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | 5.41 ms | OfficeIMO.Excel | Win | 1652.6 KB |  |
-| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | 5.04 ms | OfficeIMO.Excel | Win | 1508.4 KB |  |
-| 2500 | speed-comparison | write | Shared string write | large-shared-strings | 2.09 ms | OfficeIMO.Excel | Win | 2111.9 KB |  |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | 2.99 ms | OfficeIMO.Excel | Win | 2283.8 KB |  |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | 3.11 ms | OfficeIMO.Excel | Win | 2206.1 KB |  |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | 2.57 ms | OfficeIMO.Excel | Win | 1246.7 KB |  |
-| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | 3.60 ms | LargeXlsx | Loss +22.1% | 1440.7 KB |  |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | 4.60 ms | LargeXlsx | Loss +31.5% | 1170.9 KB |  |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | 4.66 ms | LargeXlsx | Loss +47.8% | 1169.1 KB |  |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | 60.77 ms | OfficeIMO.Excel, Sylvan.Data.Excel | Win | 23699.6 KB |  |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | 58.28 ms | Sylvan.Data.Excel | Loss +22.9% | 24481.9 KB |  |
-| 25000 | package-profile | package | Package size | append-plain-rows | 20.87 ms | LargeXlsx | Loss +48.1% | 11671.6 KB | 622.5 KB |
-| 25000 | package-profile | package | Package size | autofit-existing | 342.58 ms | OfficeIMO.Excel | Win | 138378.6 KB | 1429.3 KB |
-| 25000 | package-profile | package | Package size | large-shared-strings | 14.99 ms | OfficeIMO.Excel | Win | 15416.5 KB | 529.7 KB |
-| 25000 | package-profile | package | Package size | realworld-autofilter | 30.84 ms | OfficeIMO.Excel | Win | 11326.3 KB | 1428.5 KB |
-| 25000 | package-profile | package | Package size | realworld-charts | 41.92 ms | OfficeIMO.Excel | Win | 12323.4 KB | 1433.6 KB |
-| 25000 | package-profile | package | Package size | realworld-conditional-formatting | 30.63 ms | OfficeIMO.Excel | Win | 11391.3 KB | 1428.8 KB |
-| 25000 | package-profile | package | Package size | realworld-data-validation | 39.78 ms | OfficeIMO.Excel | Win | 11342.1 KB | 1428.6 KB |
-| 25000 | package-profile | package | Package size | realworld-freeze-panes | 31.47 ms | OfficeIMO.Excel | Win | 11331.2 KB | 1428.6 KB |
-| 25000 | package-profile | package | Package size | realworld-pivot-table | 117.92 ms | OfficeIMO.Excel | Win | 100856.7 KB | 1431.1 KB |
-| 25000 | package-profile | package | Package size | realworld-report-all-in-one | 117.37 ms | OfficeIMO.Excel | Win | 102341.4 KB | 1437.1 KB |
-| 25000 | package-profile | package | Package size | realworld-report-core | 38.60 ms | OfficeIMO.Excel | Win | 11487.6 KB | 1430.0 KB |
-| 25000 | package-profile | package | Package size | report-workbook | 48.14 ms | OfficeIMO.Excel | Win | 14316.9 KB | 1857.1 KB |
-| 25000 | package-profile | package | Package size | report-workbook-core | 55.61 ms | OfficeIMO.Excel | Win | 10803.9 KB | 1850.9 KB |
-| 25000 | package-profile | package | Package size | report-workbook-datatable | 148.11 ms | OfficeIMO.Excel | Win | 17067.8 KB | 1857.1 KB |
-| 25000 | package-profile | package | Package size | report-workbook-datatable-core | 61.19 ms | OfficeIMO.Excel | Win | 13557.9 KB | 1850.9 KB |
-| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | 43.48 ms | LargeXlsx | Loss +10.6% | 11539.8 KB | 2228.8 KB |
-| 25000 | package-profile | package | Package size | write-bulk-report | 34.49 ms | OfficeIMO.Excel | Win | 11393.2 KB | 1429.3 KB |
-| 25000 | package-profile | package | Package size | write-cellformula | 25.87 ms | OfficeIMO.Excel | Win | 9557.4 KB | 670.3 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-empty-strings | 12.62 ms | OfficeIMO.Excel | Win | 6731.3 KB | 451.4 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-numbers | 15.94 ms | OfficeIMO.Excel | Win | 5805.8 KB | 462.6 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-mixed | 18.84 ms | OfficeIMO.Excel | Win | 8009.0 KB | 585.1 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse | 18.93 ms | OfficeIMO.Excel | Win | 7188.3 KB | 607.1 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | 20.86 ms | OfficeIMO.Excel | Win | 7188.4 KB | 607.1 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-scalars | 11.71 ms | OfficeIMO.Excel | Win | 5979.5 KB | 441.9 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings | 18.58 ms | OfficeIMO.Excel | Win | 15027.2 KB | 527.8 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings-distinct | 14.93 ms | OfficeIMO.Excel | Win | 13659.0 KB | 499.0 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings-repeated | 14.38 ms | OfficeIMO.Excel | Win | 7197.6 KB | 376.0 KB |
-| 25000 | package-profile | package | Package size | write-cellvalue-temporal | 20.22 ms | OfficeIMO.Excel | Win | 7317.8 KB | 620.5 KB |
-| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | 11.34 ms | LargeXlsx | Loss +21.1% | 6793.3 KB | 455.5 KB |
-| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | 35.01 ms | LargeXlsx | Loss +29.2% | 15708.0 KB | 1384.9 KB |
-| 25000 | package-profile | package | Package size | write-datareader-plain | 37.20 ms | Sylvan.Data.Excel | Loss +31.0% | 12673.9 KB | 1384.9 KB |
-| 25000 | package-profile | package | Package size | write-datareader-table | 34.36 ms | OfficeIMO.Excel | Win | 12691.9 KB | 1385.7 KB |
-| 25000 | package-profile | package | Package size | write-datareader-table-autofit | 38.07 ms | OfficeIMO.Excel | Win | 12698.2 KB | 1385.9 KB |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | 31.59 ms | OfficeIMO.Excel | Win | 9491.6 KB | 1329.2 KB |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | 40.66 ms | OfficeIMO.Excel | Win | 13130.4 KB | 1795.1 KB |
-| 25000 | package-profile | package | Package size | write-dataset-tables | 32.65 ms | OfficeIMO.Excel | Win | 9800.0 KB | 1376.4 KB |
-| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | 36.92 ms | OfficeIMO.Excel | Win | 9812.6 KB | 1376.7 KB |
-| 25000 | package-profile | package | Package size | write-datatable-direct | 33.29 ms | LargeXlsx | Loss +9.2% | 12387.3 KB | 1384.9 KB |
-| 25000 | package-profile | package | Package size | write-datatable-table-direct | 33.76 ms | OfficeIMO.Excel | Win | 12405.4 KB | 1385.7 KB |
-| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | 49.21 ms | LargeXlsx | Loss +29.7% | 12583.6 KB | 1384.9 KB |
-| 25000 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | 60.06 ms | OfficeIMO.Excel | Win | 11341.1 KB | 1428.5 KB |
-| 25000 | package-profile | package | Package size | write-insertobjects-direct | 39.60 ms | LargeXlsx | Loss +16.8% | 11333.4 KB | 1428.4 KB |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | 41.82 ms | OfficeIMO.Excel | Win | 9866.7 KB | 1385.1 KB |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | 40.79 ms | LargeXlsx | Loss +33.0% | 9859.0 KB | 1384.9 KB |
-| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | 46.52 ms | LargeXlsx | Loss +65.6% | 15631.3 KB | 1428.4 KB |
-| 25000 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | 36.82 ms | OfficeIMO.Excel | Win | 11340.4 KB | 1428.5 KB |
-| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | 58.38 ms | LargeXlsx | Loss +19.0% | 10416.8 KB | 1828.0 KB |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | 52.24 ms | LargeXlsx | Loss +8.4% | 9781.8 KB | 1828.0 KB |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | 213.38 ms | OfficeIMO.Excel | Win | 35984.4 KB | 6725.6 KB |
-| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | 345.37 ms | OfficeIMO.Excel | Win | 138378.6 KB |  |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable | 50.01 ms | OfficeIMO.Excel | Win | 17062.3 KB |  |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | 47.36 ms | OfficeIMO.Excel | Win | 13549.5 KB |  |
-| 25000 | speed-comparison | other | Object projection | build-object-datatable-dictionaries | 9.59 ms | OfficeIMO.Excel | Win | 5164.3 KB |  |
-| 25000 | speed-comparison | other | Object projection | build-object-datatable-typed | 7.00 ms | OfficeIMO.Excel | Win | 8093.8 KB |  |
-| 25000 | speed-comparison | other | Other | realworld-autofilter | 31.29 ms | OfficeIMO.Excel | Win | 11326.3 KB |  |
-| 25000 | speed-comparison | other | Other | realworld-charts | 32.35 ms | OfficeIMO.Excel | Win | 12323.0 KB |  |
-| 25000 | speed-comparison | other | Other | realworld-conditional-formatting | 30.43 ms | OfficeIMO.Excel | Win | 11391.3 KB |  |
-| 25000 | speed-comparison | other | Other | realworld-data-validation | 30.51 ms | OfficeIMO.Excel | Win | 11342.1 KB |  |
-| 25000 | speed-comparison | other | Other | realworld-freeze-panes | 30.76 ms | OfficeIMO.Excel | Win | 11328.5 KB |  |
-| 25000 | speed-comparison | other | Other | realworld-pivot-table | 88.29 ms | OfficeIMO.Excel | Win | 100855.7 KB |  |
-| 25000 | speed-comparison | other | Other | realworld-report-all-in-one | 98.88 ms | OfficeIMO.Excel | Win | 102332.3 KB |  |
-| 25000 | speed-comparison | other | Other | realworld-report-core | 34.16 ms | OfficeIMO.Excel | Win | 11479.2 KB |  |
-| 25000 | speed-comparison | other | Other | report-workbook | 47.84 ms | OfficeIMO.Excel | Win | 14317.1 KB |  |
-| 25000 | speed-comparison | other | Other | report-workbook-core | 44.99 ms | OfficeIMO.Excel | Win | 10803.9 KB |  |
-| 25000 | speed-comparison | other | Range and table read | enumerate-cells | 49.58 ms | OfficeIMO.Excel | Win | 24648.3 KB |  |
-| 25000 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | 35.38 ms | OfficeIMO.Excel | Win | 3959.5 KB |  |
-| 25000 | speed-comparison | other | Range and table read | enumerate-range | 48.79 ms | OfficeIMO.Excel | Win | 24648.4 KB |  |
-| 25000 | speed-comparison | other | Range and table read | enumerate-top-range | 1.90 ms | OfficeIMO.Excel | Win | 402.7 KB |  |
-| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | 21.56 ms | OfficeIMO.Excel | Win | 6287.0 KB |  |
-| 25000 | speed-comparison | read | Other | large-sparse-column-read | 1.61 ms | Sylvan.Data.Excel | Loss +67.8% | 248.8 KB |  |
-| 25000 | speed-comparison | read | Other | large-sparse-row-read | 1.67 ms | Sylvan.Data.Excel | Loss +74.3% | 248.9 KB |  |
-| 25000 | speed-comparison | read | Other | shared-string-read | 20.74 ms | Sylvan.Data.Excel | Loss +18.0% | 9295.0 KB |  |
-| 25000 | speed-comparison | read | Range and table read | read-bottom-range | 34.26 ms | OfficeIMO.Excel | Win | 1242.4 KB |  |
-| 25000 | speed-comparison | read | Range and table read | read-datatable | 56.83 ms | OfficeIMO.Excel | Win | 34766.1 KB |  |
-| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | 36.37 ms | OfficeIMO.Excel | Win | 4154.6 KB |  |
-| 25000 | speed-comparison | read | Range and table read | read-range | 53.24 ms | Sylvan.Data.Excel | Loss +3.8% | 26218.6 KB |  |
-| 25000 | speed-comparison | read | Range and table read | read-range-decimal | 53.65 ms | OfficeIMO.Excel | Win | 26804.5 KB |  |
-| 25000 | speed-comparison | read | Range and table read | read-top-range | 1.90 ms | Sylvan.Data.Excel | Loss +319.8% | 416.1 KB |  |
-| 25000 | speed-comparison | read | Range and table read | read-used-range | 86.61 ms | Sylvan.Data.Excel | Loss +79.7% | 34214.6 KB |  |
-| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | 36.68 ms | OfficeIMO.Excel | Win | 1245.8 KB |  |
-| 25000 | speed-comparison | read | Streaming read | read-range-stream | 45.91 ms | OfficeIMO.Excel | Win | 27005.5 KB |  |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | 1.81 ms | Sylvan.Data.Excel | Loss +313.2% | 419.5 KB |  |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | 1.91 ms | Sylvan.Data.Excel | Loss +305.3% | 420.2 KB |  |
-| 25000 | speed-comparison | read | Typed object read | read-objects | 49.48 ms | Sylvan.Data.Excel | Loss +5.3% | 23682.5 KB |  |
-| 25000 | speed-comparison | read | Typed object read | read-objects-stream | 46.73 ms | Sylvan.Data.Excel | Loss +2.1% | 23682.8 KB |  |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | 38.06 ms | OfficeIMO.Excel | Win | 12698.2 KB |  |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | 41.98 ms | OfficeIMO.Excel | Win | 9812.6 KB |  |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | 36.60 ms | OfficeIMO.Excel | Win | 11333.1 KB |  |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | 41.65 ms | OfficeIMO.Excel | Win | 9858.7 KB |  |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | 33.99 ms | OfficeIMO.Excel | Win | 11332.4 KB |  |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | 12.92 ms | OfficeIMO.Excel | Win | 6723.3 KB |  |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | 16.92 ms | OfficeIMO.Excel | Win | 5797.7 KB |  |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | 20.04 ms | OfficeIMO.Excel | Win | 8001.0 KB |  |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | 20.10 ms | OfficeIMO.Excel | Win | 7180.3 KB |  |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | 16.76 ms | OfficeIMO.Excel | Win | 7180.4 KB |  |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | 11.89 ms | OfficeIMO.Excel | Win | 5971.5 KB |  |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | 20.70 ms | OfficeIMO.Excel | Win | 7309.7 KB |  |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | 36.09 ms | OfficeIMO.Excel | Win | 12551.5 KB |  |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | 45.39 ms | OfficeIMO.Excel | Win | 13130.4 KB |  |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | 41.49 ms | OfficeIMO.Excel | Win | 9800.0 KB |  |
-| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | 36.75 ms | OfficeIMO.Excel | Win | 12691.9 KB |  |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | 43.95 ms | LargeXlsx | Loss +15.7% | 12387.3 KB |  |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | 35.92 ms | OfficeIMO.Excel | Win | 9673.7 KB |  |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | 40.36 ms | OfficeIMO.Excel | Win | 12410.7 KB |  |
-| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | 43.86 ms | OfficeIMO.Excel | Win | 11393.2 KB |  |
-| 25000 | speed-comparison | write | Formula write/read | write-cellformula | 21.20 ms | OfficeIMO.Excel | Win | 9548.9 KB |  |
-| 25000 | speed-comparison | write | Other | write-dictionary-objects-table-direct | 46.09 ms | OfficeIMO.Excel | Win | 14835.3 KB |  |
-| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | 43.73 ms | LargeXlsx | Loss +16.8% | 10408.8 KB |  |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | 43.61 ms | LargeXlsx | Loss +11.2% | 9773.8 KB |  |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | 188.84 ms | OfficeIMO.Excel | Win | 35981.7 KB |  |
-| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | 18.02 ms | LargeXlsx | Loss +51.4% | 11671.6 KB |  |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | 15.73 ms | OfficeIMO.Excel | Win | 6801.3 KB |  |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | 41.96 ms | LargeXlsx | Loss +37.7% | 15708.0 KB |  |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | 33.10 ms | OfficeIMO.Excel | Win | 7543.0 KB |  |
-| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | 35.24 ms | Sylvan.Data.Excel | Loss +27.5% | 12673.9 KB |  |
-| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | 40.02 ms | OfficeIMO.Excel | Win | 9491.6 KB |  |
-| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | 42.64 ms | LargeXlsx | Loss +6.5% | 11547.8 KB |  |
-| 25000 | speed-comparison | write | Shared string write | large-shared-strings | 15.26 ms | OfficeIMO.Excel | Win | 15416.5 KB |  |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | 18.65 ms | OfficeIMO.Excel | Win | 15027.2 KB |  |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | 13.14 ms | OfficeIMO.Excel | Win | 13651.0 KB |  |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | 16.32 ms | OfficeIMO.Excel | Win | 7192.2 KB |  |
-| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | 33.11 ms | LargeXlsx | Loss +16.8% | 12583.6 KB |  |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | 32.57 ms | LargeXlsx | Loss +14.2% | 11325.4 KB |  |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | 38.73 ms | LargeXlsx | Loss +35.7% | 9851.0 KB |  |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | 8.12 ms | Sylvan.Data.Excel | Loss +20.4% | 2410.9 KB |  |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | 7.38 ms | Sylvan.Data.Excel | Loss +18.2% | 2489.4 KB |  |
+| 2500 | package-profile | package | Package size | append-plain-rows | 2.25 ms | LargeXlsx | Loss +25.3% | 1576.3 KB | 63.0 KB |
+| 2500 | package-profile | package | Package size | autofit-existing | 8.84 ms | OfficeIMO.Excel | Win | 1895.3 KB | 143.2 KB |
+| 2500 | package-profile | package | Package size | large-shared-strings | 2.36 ms | OfficeIMO.Excel | Win | 2440.3 KB | 55.2 KB |
+| 2500 | package-profile | package | Package size | realworld-autofilter | 4.61 ms | OfficeIMO.Excel | Win | 1340.4 KB | 142.4 KB |
+| 2500 | package-profile | package | Package size | realworld-charts | 6.37 ms | OfficeIMO.Excel | Win | 1891.6 KB | 147.6 KB |
+| 2500 | package-profile | package | Package size | realworld-conditional-formatting | 4.19 ms | OfficeIMO.Excel | Win | 1405.8 KB | 142.7 KB |
+| 2500 | package-profile | package | Package size | realworld-data-validation | 4.94 ms | OfficeIMO.Excel | Win | 1356.1 KB | 142.5 KB |
+| 2500 | package-profile | package | Package size | realworld-freeze-panes | 4.03 ms | OfficeIMO.Excel | Win | 1342.8 KB | 142.5 KB |
+| 2500 | package-profile | package | Package size | realworld-pivot-table | 10.88 ms | OfficeIMO.Excel | Win | 5495.0 KB | 200.4 KB |
+| 2500 | package-profile | package | Package size | realworld-report-all-in-one | 14.06 ms | OfficeIMO.Excel | Win | 6197.0 KB | 206.5 KB |
+| 2500 | package-profile | package | Package size | realworld-report-chart-first | 13.49 ms | OfficeIMO.Excel | Win | 6198.7 KB | 206.5 KB |
+| 2500 | package-profile | package | Package size | realworld-report-core | 4.93 ms | OfficeIMO.Excel | Win | 1488.5 KB | 143.9 KB |
+| 2500 | package-profile | package | Package size | realworld-report-extra-column | 14.28 ms | OfficeIMO.Excel | Win | 6389.4 KB | 219.1 KB |
+| 2500 | package-profile | package | Package size | realworld-report-no-autofit | 11.95 ms | OfficeIMO.Excel | Win | 6190.2 KB | 206.4 KB |
+| 2500 | package-profile | package | Package size | realworld-report-post-mutation | 12.69 ms | OfficeIMO.Excel | Win | 6208.3 KB | 206.6 KB |
+| 2500 | package-profile | package | Package size | realworld-report-shuffled-columns | 15.33 ms | OfficeIMO.Excel | Win | 6201.5 KB | 211.2 KB |
+| 2500 | package-profile | package | Package size | report-workbook | 17.65 ms | OfficeIMO.Excel | Win | 7277.0 KB | 275.6 KB |
+| 2500 | package-profile | package | Package size | report-workbook-core | 7.96 ms | OfficeIMO.Excel | Win | 2711.1 KB | 187.5 KB |
+| 2500 | package-profile | package | Package size | report-workbook-datatable | 17.85 ms | OfficeIMO.Excel | Win | 7548.5 KB | 275.6 KB |
+| 2500 | package-profile | package | Package size | report-workbook-datatable-core | 7.45 ms | OfficeIMO.Excel | Win | 2982.7 KB | 187.5 KB |
+| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | 5.36 ms | LargeXlsx | Loss +5.8% | 1676.8 KB | 216.7 KB |
+| 2500 | package-profile | package | Package size | write-bulk-report | 4.33 ms | OfficeIMO.Excel | Win | 1401.7 KB | 143.2 KB |
+| 2500 | package-profile | package | Package size | write-cellformula | 3.39 ms | OfficeIMO.Excel | Win | 1383.3 KB | 66.6 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-empty-strings | 2.37 ms | OfficeIMO.Excel | Win | 1787.1 KB | 44.2 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-numbers | 2.49 ms | OfficeIMO.Excel | Win | 1119.9 KB | 47.0 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-mixed | 3.22 ms | OfficeIMO.Excel | Win | 1763.3 KB | 61.2 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse | 3.17 ms | OfficeIMO.Excel | Win | 1506.9 KB | 62.0 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | 3.11 ms | OfficeIMO.Excel | Win | 1507.0 KB | 62.0 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-scalars | 2.13 ms | OfficeIMO.Excel | Win | 1138.1 KB | 46.3 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings | 3.87 ms | OfficeIMO.Excel | Win | 2617.0 KB | 55.1 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings-distinct | 2.43 ms | OfficeIMO.Excel | Win | 2379.2 KB | 51.8 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings-repeated | 2.14 ms | OfficeIMO.Excel | Win | 1579.8 KB | 40.0 KB |
+| 2500 | package-profile | package | Package size | write-cellvalue-temporal | 2.80 ms | OfficeIMO.Excel | Win | 1435.7 KB | 63.3 KB |
+| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | 1.71 ms | LargeXlsx | Loss +23.2% | 1092.0 KB | 48.2 KB |
+| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | 4.64 ms | LargeXlsx | Loss +19.8% | 2081.1 KB | 138.0 KB |
+| 2500 | package-profile | package | Package size | write-datareader-plain | 4.46 ms | Sylvan.Data.Excel | Loss +21.0% | 1763.0 KB | 138.0 KB |
+| 2500 | package-profile | package | Package size | write-datareader-table | 4.83 ms | OfficeIMO.Excel | Win | 1774.9 KB | 138.8 KB |
+| 2500 | package-profile | package | Package size | write-datareader-table-autofit | 5.27 ms | OfficeIMO.Excel | Win | 1781.2 KB | 138.9 KB |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | 4.53 ms | OfficeIMO.Excel | Win | 2140.6 KB | 131.1 KB |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | 5.66 ms | OfficeIMO.Excel | Win | 2880.2 KB | 176.0 KB |
+| 2500 | package-profile | package | Package size | write-dataset-tables | 5.01 ms | OfficeIMO.Excel | Win | 2066.1 KB | 138.9 KB |
+| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | 5.08 ms | OfficeIMO.Excel | Win | 2078.7 KB | 139.2 KB |
+| 2500 | package-profile | package | Package size | write-datatable-direct | 4.89 ms | LargeXlsx | Loss +22.4% | 1748.6 KB | 138.0 KB |
+| 2500 | package-profile | package | Package size | write-datatable-table-direct | 4.74 ms | OfficeIMO.Excel | Win | 1760.7 KB | 138.8 KB |
+| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | 4.56 ms | LargeXlsx | Loss +36.4% | 1769.2 KB | 138.0 KB |
+| 2500 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | 5.36 ms | OfficeIMO.Excel | Win | 1347.1 KB | 142.4 KB |
+| 2500 | package-profile | package | Package size | write-insertobjects-direct | 4.68 ms | LargeXlsx | Loss +16.6% | 1339.3 KB | 142.3 KB |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | 6.49 ms | OfficeIMO.Excel | Win | 1505.3 KB | 138.1 KB |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | 5.71 ms | LargeXlsx | Loss +45.0% | 1497.5 KB | 138.0 KB |
+| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | 6.06 ms | LargeXlsx | Loss +53.3% | 1770.1 KB | 142.3 KB |
+| 2500 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | 4.93 ms | OfficeIMO.Excel | Win | 1346.4 KB | 142.4 KB |
+| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | 7.74 ms | LargeXlsx | Loss +45.8% | 2341.7 KB | 183.1 KB |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | 5.26 ms | LargeXlsx | Loss +5.2% | 1507.7 KB | 182.4 KB |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | 25.72 ms | LargeXlsx | Loss +7.5% | 4502.3 KB | 651.0 KB |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | 9.68 ms | OfficeIMO.Excel | Win | 1895.3 KB |  |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | realworld-report-no-autofit | 13.55 ms | OfficeIMO.Excel | Win | 6190.5 KB |  |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-chart-first | 13.43 ms | OfficeIMO.Excel | Win | 6197.4 KB |  |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-extra-column | 14.14 ms | OfficeIMO.Excel | Win | 6390.9 KB |  |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-post-mutation | 14.68 ms | OfficeIMO.Excel | Win | 6208.1 KB |  |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-shuffled-columns | 15.82 ms | OfficeIMO.Excel | Win | 6204.6 KB |  |
+| 2500 | speed-comparison | other | Object projection | build-object-datatable-dictionaries | 1.67 ms | OfficeIMO.Excel | Win | 564.2 KB |  |
+| 2500 | speed-comparison | other | Object projection | build-object-datatable-typed | 1.60 ms | OfficeIMO.Excel | Win | 856.9 KB |  |
+| 2500 | speed-comparison | other | Range and table read | enumerate-cells | 7.95 ms | OfficeIMO.Excel | Win | 2531.8 KB |  |
+| 2500 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | 5.17 ms | OfficeIMO.Excel | Win | 523.5 KB |  |
+| 2500 | speed-comparison | other | Range and table read | enumerate-range | 7.62 ms | OfficeIMO.Excel | Win | 2531.9 KB |  |
+| 2500 | speed-comparison | other | Range and table read | enumerate-top-range | 0.77 ms | OfficeIMO.Excel | Win | 285.5 KB |  |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-autofilter | 4.26 ms | OfficeIMO.Excel | Win | 1340.4 KB |  |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-charts | 6.57 ms | OfficeIMO.Excel | Win | 1891.6 KB |  |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | 4.53 ms | OfficeIMO.Excel | Win | 1405.8 KB |  |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-data-validation | 4.76 ms | OfficeIMO.Excel | Win | 1356.1 KB |  |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | 4.25 ms | OfficeIMO.Excel | Win | 1342.9 KB |  |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-pivot-table | 10.98 ms | OfficeIMO.Excel | Win | 5494.9 KB |  |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-all-in-one | 13.87 ms | OfficeIMO.Excel | Win | 6198.3 KB |  |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-core | 5.27 ms | OfficeIMO.Excel | Win | 1488.6 KB |  |
+| 2500 | speed-comparison | other | Report workbook | report-workbook | 26.10 ms | OfficeIMO.Excel | Win | 7234.1 KB |  |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-core | 7.48 ms | OfficeIMO.Excel | Win | 2711.1 KB |  |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable | 18.81 ms | OfficeIMO.Excel | Win | 7548.8 KB |  |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable-core | 7.58 ms | OfficeIMO.Excel | Win | 2982.8 KB |  |
+| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | 3.23 ms | OfficeIMO.Excel | Win | 706.7 KB |  |
+| 2500 | speed-comparison | read | Other | large-sparse-column-read | 1.33 ms | OfficeIMO.Excel | Win | 177.3 KB |  |
+| 2500 | speed-comparison | read | Other | large-sparse-row-read | 2.33 ms | Sylvan.Data.Excel | Loss +44.4% | 177.3 KB |  |
+| 2500 | speed-comparison | read | Other | shared-string-read | 3.89 ms | Sylvan.Data.Excel | Loss +61.4% | 1056.5 KB |  |
+| 2500 | speed-comparison | read | Range and table read | read-bottom-range | 6.31 ms | Sylvan.Data.Excel | Loss +23.2% | 374.5 KB |  |
+| 2500 | speed-comparison | read | Range and table read | read-datatable | 21.50 ms | Sylvan.Data.Excel | Loss +95.7% | 3594.5 KB |  |
+| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | 5.97 ms | OfficeIMO.Excel | Win | 543.0 KB |  |
+| 2500 | speed-comparison | read | Range and table read | read-range | 11.52 ms | OfficeIMO.Excel | Win | 2692.5 KB |  |
+| 2500 | speed-comparison | read | Range and table read | read-range-decimal | 6.46 ms | OfficeIMO.Excel | Win | 2751.1 KB |  |
+| 2500 | speed-comparison | read | Range and table read | read-top-range | 0.77 ms | Sylvan.Data.Excel | Loss +27.8% | 296.0 KB |  |
+| 2500 | speed-comparison | read | Range and table read | read-used-range | 8.52 ms | Sylvan.Data.Excel | Loss +25.8% | 2750.3 KB |  |
+| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | 5.85 ms | OfficeIMO.Excel | Win | 377.9 KB |  |
+| 2500 | speed-comparison | read | Streaming read | read-range-stream | 16.61 ms | Sylvan.Data.Excel | Loss +142.7% | 2771.4 KB |  |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | 0.69 ms | Sylvan.Data.Excel | Loss +5.7% | 299.4 KB |  |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | 0.72 ms | Sylvan.Data.Excel | Loss +26.9% | 300.2 KB |  |
+| 2500 | speed-comparison | read | Typed object read | read-objects | 9.62 ms | Sylvan.Data.Excel | Loss +15.0% | 2442.0 KB |  |
+| 2500 | speed-comparison | read | Typed object read | read-objects-stream | 7.32 ms | Sylvan.Data.Excel | Loss +11.4% | 2422.9 KB |  |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | 6.87 ms | OfficeIMO.Excel | Win | 1781.2 KB |  |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | 6.06 ms | OfficeIMO.Excel | Win | 2079.3 KB |  |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | 5.95 ms | OfficeIMO.Excel | Win | 1347.1 KB |  |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | 5.93 ms | OfficeIMO.Excel | Win | 1505.3 KB |  |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | 4.96 ms | OfficeIMO.Excel | Win | 1346.4 KB |  |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | 2.17 ms | OfficeIMO.Excel | Win | 1787.1 KB |  |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | 2.01 ms | OfficeIMO.Excel | Win | 1119.9 KB |  |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | 3.34 ms | OfficeIMO.Excel | Win | 1763.1 KB |  |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | 3.47 ms | OfficeIMO.Excel | Win | 1506.7 KB |  |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | 3.65 ms | OfficeIMO.Excel | Win | 1506.8 KB |  |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | 1.85 ms | OfficeIMO.Excel | Win | 1138.1 KB |  |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | 3.11 ms | OfficeIMO.Excel | Win | 1435.5 KB |  |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | 5.96 ms | OfficeIMO.Excel | Win | 2064.5 KB |  |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | 7.23 ms | OfficeIMO.Excel | Win | 2880.2 KB |  |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | 6.40 ms | OfficeIMO.Excel | Win | 2067.7 KB |  |
+| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | 5.22 ms | OfficeIMO.Excel | Win | 1774.9 KB |  |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | 5.01 ms | OfficeIMO.Excel | Win | 1748.6 KB |  |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | 4.57 ms | OfficeIMO.Excel | Win | 1487.2 KB |  |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | 4.70 ms | OfficeIMO.Excel | Win | 1760.7 KB |  |
+| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | 7.20 ms | OfficeIMO.Excel | Win | 1403.3 KB |  |
+| 2500 | speed-comparison | write | Formula write/read | write-cellformula | 4.33 ms | OfficeIMO.Excel | Win | 1620.6 KB |  |
+| 2500 | speed-comparison | write | Other | write-dictionary-objects-table-direct | 6.69 ms | OfficeIMO.Excel | Win | 2051.4 KB |  |
+| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | 6.99 ms | LargeXlsx | Loss +30.3% | 2341.7 KB |  |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | 7.68 ms | LargeXlsx | Loss +25.2% | 1507.7 KB |  |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | 23.95 ms | OfficeIMO.Excel | Win | 4502.3 KB |  |
+| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | 2.79 ms | LargeXlsx | Loss +43.5% | 1576.3 KB |  |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | 1.57 ms | LargeXlsx | Loss +27.0% | 1092.0 KB |  |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | 4.14 ms | LargeXlsx | Loss +29.7% | 2081.1 KB |  |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | 2.27 ms | OfficeIMO.Excel | Win | 1494.0 KB |  |
+| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | 4.47 ms | Sylvan.Data.Excel | Loss +14.0% | 1763.0 KB |  |
+| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | 6.99 ms | OfficeIMO.Excel | Win | 2140.6 KB |  |
+| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | 4.51 ms | LargeXlsx | Loss +6.9% | 1676.8 KB |  |
+| 2500 | speed-comparison | write | Shared string write | large-shared-strings | 2.99 ms | OfficeIMO.Excel | Win | 2440.3 KB |  |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | 2.78 ms | OfficeIMO.Excel | Win | 2617.0 KB |  |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | 2.66 ms | OfficeIMO.Excel | Win | 2379.2 KB |  |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | 2.13 ms | OfficeIMO.Excel | Win | 1579.8 KB |  |
+| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | 4.60 ms | LargeXlsx | Loss +26.6% | 1769.2 KB |  |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | 5.65 ms | LargeXlsx | Loss +37.5% | 1339.3 KB |  |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | 5.39 ms | LargeXlsx | Loss +31.8% | 1497.5 KB |  |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | 48.16 ms | Sylvan.Data.Excel | Loss +28.4% | 23622.0 KB |  |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | 47.73 ms | Sylvan.Data.Excel | Loss +28.7% | 24404.4 KB |  |
+| 25000 | package-profile | package | Package size | append-plain-rows | 14.25 ms | LargeXlsx | Loss +28.4% | 10842.5 KB | 610.4 KB |
+| 25000 | package-profile | package | Package size | autofit-existing | 85.90 ms | OfficeIMO.Excel | Win | 15708.3 KB | 1429.3 KB |
+| 25000 | package-profile | package | Package size | large-shared-strings | 14.85 ms | OfficeIMO.Excel | Win | 15744.9 KB | 529.7 KB |
+| 25000 | package-profile | package | Package size | realworld-autofilter | 30.76 ms | OfficeIMO.Excel | Win | 11494.9 KB | 1428.5 KB |
+| 25000 | package-profile | package | Package size | realworld-charts | 36.44 ms | OfficeIMO.Excel | Win | 12550.9 KB | 1433.6 KB |
+| 25000 | package-profile | package | Package size | realworld-conditional-formatting | 30.36 ms | OfficeIMO.Excel | Win | 11560.2 KB | 1428.8 KB |
+| 25000 | package-profile | package | Package size | realworld-data-validation | 32.26 ms | OfficeIMO.Excel | Win | 11510.5 KB | 1428.6 KB |
+| 25000 | package-profile | package | Package size | realworld-freeze-panes | 31.38 ms | OfficeIMO.Excel | Win | 11497.3 KB | 1428.6 KB |
+| 25000 | package-profile | package | Package size | realworld-pivot-table | 81.89 ms | OfficeIMO.Excel | Win | 42218.3 KB | 1979.8 KB |
+| 25000 | package-profile | package | Package size | realworld-report-all-in-one | 88.60 ms | OfficeIMO.Excel | Win | 43677.9 KB | 1985.9 KB |
+| 25000 | package-profile | package | Package size | realworld-report-chart-first | 90.24 ms | OfficeIMO.Excel | Win | 43564.4 KB | 1985.9 KB |
+| 25000 | package-profile | package | Package size | realworld-report-core | 34.89 ms | OfficeIMO.Excel | Win | 11648.7 KB | 1430.0 KB |
+| 25000 | package-profile | package | Package size | realworld-report-extra-column | 99.55 ms | OfficeIMO.Excel | Win | 45561.9 KB | 2110.8 KB |
+| 25000 | package-profile | package | Package size | realworld-report-no-autofit | 82.57 ms | OfficeIMO.Excel | Win | 43671.9 KB | 1985.8 KB |
+| 25000 | package-profile | package | Package size | realworld-report-post-mutation | 91.54 ms | OfficeIMO.Excel | Win | 43687.3 KB | 1986.0 KB |
+| 25000 | package-profile | package | Package size | realworld-report-shuffled-columns | 100.92 ms | OfficeIMO.Excel | Win | 43743.0 KB | 2046.1 KB |
+| 25000 | package-profile | package | Package size | report-workbook | 114.88 ms | OfficeIMO.Excel | Win | 59187.8 KB | 2672.0 KB |
+| 25000 | package-profile | package | Package size | report-workbook-core | 48.41 ms | OfficeIMO.Excel | Win | 10979.4 KB | 1850.9 KB |
+| 25000 | package-profile | package | Package size | report-workbook-datatable | 125.75 ms | OfficeIMO.Excel | Win | 61933.5 KB | 2672.0 KB |
+| 25000 | package-profile | package | Package size | report-workbook-datatable-core | 48.98 ms | OfficeIMO.Excel | Win | 13725.0 KB | 1850.9 KB |
+| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | 62.44 ms | LargeXlsx | Loss +17.8% | 11708.2 KB | 2228.8 KB |
+| 25000 | package-profile | package | Package size | write-bulk-report | 35.39 ms | OfficeIMO.Excel | Win | 11561.8 KB | 1429.3 KB |
+| 25000 | package-profile | package | Package size | write-cellformula | 24.74 ms | OfficeIMO.Excel | Win | 10112.0 KB | 670.3 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-empty-strings | 14.96 ms | OfficeIMO.Excel | Win | 6896.4 KB | 451.4 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-numbers | 22.16 ms | OfficeIMO.Excel | Win | 5970.9 KB | 462.6 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-mixed | 26.90 ms | OfficeIMO.Excel | Win | 8332.9 KB | 585.1 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse | 24.34 ms | OfficeIMO.Excel | Win | 7416.2 KB | 607.1 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | 20.17 ms | OfficeIMO.Excel | Win | 7416.3 KB | 607.1 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-scalars | 14.54 ms | OfficeIMO.Excel | Win | 6144.6 KB | 441.9 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings | 21.69 ms | OfficeIMO.Excel | Win | 15360.4 KB | 527.8 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings-distinct | 18.79 ms | OfficeIMO.Excel | Win | 13824.1 KB | 499.0 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings-repeated | 15.44 ms | OfficeIMO.Excel | Win | 7525.3 KB | 376.0 KB |
+| 25000 | package-profile | package | Package size | write-cellvalue-temporal | 27.28 ms | OfficeIMO.Excel | Win | 7482.8 KB | 620.5 KB |
+| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | 14.79 ms | LargeXlsx | Loss +12.9% | 6961.7 KB | 455.5 KB |
+| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | 44.94 ms | LargeXlsx | Loss +32.8% | 16036.5 KB | 1384.9 KB |
+| 25000 | package-profile | package | Package size | write-datareader-plain | 47.47 ms | Sylvan.Data.Excel | Loss +23.2% | 13002.3 KB | 1384.9 KB |
+| 25000 | package-profile | package | Package size | write-datareader-table | 51.03 ms | OfficeIMO.Excel | Win | 13020.3 KB | 1385.7 KB |
+| 25000 | package-profile | package | Package size | write-datareader-table-autofit | 45.06 ms | OfficeIMO.Excel | Win | 13026.6 KB | 1385.9 KB |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | 31.35 ms | OfficeIMO.Excel | Win | 9819.7 KB | 1329.2 KB |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | 37.94 ms | OfficeIMO.Excel | Win | 13458.5 KB | 1795.1 KB |
+| 25000 | package-profile | package | Package size | write-dataset-tables | 32.75 ms | OfficeIMO.Excel | Win | 10288.1 KB | 1376.4 KB |
+| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | 37.93 ms | OfficeIMO.Excel | Win | 10300.7 KB | 1376.7 KB |
+| 25000 | package-profile | package | Package size | write-datatable-direct | 48.70 ms | LargeXlsx | Loss +4.1% | 12715.7 KB | 1384.9 KB |
+| 25000 | package-profile | package | Package size | write-datatable-table-direct | 43.59 ms | OfficeIMO.Excel | Win | 12733.8 KB | 1385.7 KB |
+| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | 31.39 ms | LargeXlsx | Loss +15.6% | 12912.0 KB | 1384.9 KB |
+| 25000 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | 41.71 ms | OfficeIMO.Excel | Win | 11501.6 KB | 1428.5 KB |
+| 25000 | package-profile | package | Package size | write-insertobjects-direct | 41.89 ms | LargeXlsx | Loss +12.5% | 11493.8 KB | 1428.4 KB |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | 41.91 ms | OfficeIMO.Excel | Win | 10187.2 KB | 1385.1 KB |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | 37.17 ms | LargeXlsx | Loss +31.1% | 10179.4 KB | 1384.9 KB |
+| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | 39.14 ms | LargeXlsx | Loss +51.8% | 15791.7 KB | 1428.4 KB |
+| 25000 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | 33.39 ms | OfficeIMO.Excel | Win | 11500.9 KB | 1428.5 KB |
+| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | 45.00 ms | LargeXlsx | Loss +20.6% | 10577.2 KB | 1828.0 KB |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | 42.38 ms | LargeXlsx | Loss +14.5% | 9942.2 KB | 1828.0 KB |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | 190.90 ms | OfficeIMO.Excel | Win | 36150.1 KB | 6725.6 KB |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | 84.25 ms | OfficeIMO.Excel | Win | 15708.5 KB |  |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | realworld-report-no-autofit | 89.46 ms | OfficeIMO.Excel | Win | 43670.5 KB |  |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-chart-first | 89.50 ms | OfficeIMO.Excel | Win | 43558.6 KB |  |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-extra-column | 98.59 ms | OfficeIMO.Excel | Win | 45565.9 KB |  |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-post-mutation | 93.32 ms | OfficeIMO.Excel | Win | 43686.0 KB |  |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-shuffled-columns | 105.35 ms | OfficeIMO.Excel | Win | 43738.1 KB |  |
+| 25000 | speed-comparison | other | Object projection | build-object-datatable-dictionaries | 12.67 ms | OfficeIMO.Excel | Win | 5164.3 KB |  |
+| 25000 | speed-comparison | other | Object projection | build-object-datatable-typed | 10.47 ms | OfficeIMO.Excel | Win | 8093.8 KB |  |
+| 25000 | speed-comparison | other | Range and table read | enumerate-cells | 55.93 ms | OfficeIMO.Excel | Win | 24530.8 KB |  |
+| 25000 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | 41.78 ms | OfficeIMO.Excel | Win | 3839.2 KB |  |
+| 25000 | speed-comparison | other | Range and table read | enumerate-range | 67.22 ms | OfficeIMO.Excel | Win | 24531.0 KB |  |
+| 25000 | speed-comparison | other | Range and table read | enumerate-top-range | 0.74 ms | OfficeIMO.Excel | Win | 285.3 KB |  |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-autofilter | 32.65 ms | OfficeIMO.Excel | Win | 11494.9 KB |  |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-charts | 32.68 ms | OfficeIMO.Excel | Win | 12549.2 KB |  |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | 31.89 ms | OfficeIMO.Excel | Win | 11560.2 KB |  |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-data-validation | 32.47 ms | OfficeIMO.Excel | Win | 11510.5 KB |  |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | 33.62 ms | OfficeIMO.Excel | Win | 11497.3 KB |  |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-pivot-table | 83.49 ms | OfficeIMO.Excel | Win | 42217.9 KB |  |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-all-in-one | 91.44 ms | OfficeIMO.Excel | Win | 43675.4 KB |  |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-core | 34.81 ms | OfficeIMO.Excel | Win | 11648.7 KB |  |
+| 25000 | speed-comparison | other | Report workbook | report-workbook | 116.92 ms | OfficeIMO.Excel | Win | 59145.6 KB |  |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-core | 46.03 ms | OfficeIMO.Excel | Win | 10979.4 KB |  |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable | 126.00 ms | OfficeIMO.Excel | Win | 61935.3 KB |  |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable-core | 49.99 ms | OfficeIMO.Excel | Win | 13725.0 KB |  |
+| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | 19.08 ms | OfficeIMO.Excel | Win | 6219.0 KB |  |
+| 25000 | speed-comparison | read | Other | large-sparse-column-read | 0.84 ms | OfficeIMO.Excel | Win | 177.3 KB |  |
+| 25000 | speed-comparison | read | Other | large-sparse-row-read | 0.83 ms | OfficeIMO.Excel | Win | 177.4 KB |  |
+| 25000 | speed-comparison | read | Other | shared-string-read | 17.94 ms | Sylvan.Data.Excel | Loss +14.4% | 9218.0 KB |  |
+| 25000 | speed-comparison | read | Range and table read | read-bottom-range | 37.82 ms | OfficeIMO.Excel | Win | 1122.3 KB |  |
+| 25000 | speed-comparison | read | Range and table read | read-datatable | 82.41 ms | Sylvan.Data.Excel | Loss +2.4% | 34645.8 KB |  |
+| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | 41.76 ms | OfficeIMO.Excel | Win | 4034.6 KB |  |
+| 25000 | speed-comparison | read | Range and table read | read-range | 70.99 ms | Sylvan.Data.Excel | Loss +13.4% | 26098.2 KB |  |
+| 25000 | speed-comparison | read | Range and table read | read-range-decimal | 74.37 ms | Sylvan.Data.Excel | Loss +21.1% | 26684.1 KB |  |
+| 25000 | speed-comparison | read | Range and table read | read-top-range | 0.67 ms | Sylvan.Data.Excel | Loss +31.6% | 296.0 KB |  |
+| 25000 | speed-comparison | read | Range and table read | read-used-range | 72.30 ms | Sylvan.Data.Excel | Loss +8.9% | 26156.0 KB |  |
+| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | 31.74 ms | OfficeIMO.Excel | Win | 1125.7 KB |  |
+| 25000 | speed-comparison | read | Streaming read | read-range-stream | 58.57 ms | Sylvan.Data.Excel | Loss +29.3% | 26885.3 KB |  |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | 0.53 ms | Sylvan.Data.Excel | Loss +24.7% | 299.3 KB |  |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | 0.54 ms | Sylvan.Data.Excel | Loss +33.3% | 300.0 KB |  |
+| 25000 | speed-comparison | read | Typed object read | read-objects | 56.11 ms | Sylvan.Data.Excel | Loss +29.3% | 23562.3 KB |  |
+| 25000 | speed-comparison | read | Typed object read | read-objects-stream | 57.68 ms | OfficeIMO.Excel | Win | 23367.3 KB |  |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | 48.83 ms | OfficeIMO.Excel | Win | 13026.6 KB |  |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | 47.84 ms | OfficeIMO.Excel | Win | 10300.7 KB |  |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | 44.97 ms | OfficeIMO.Excel | Win | 11501.6 KB |  |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | 51.37 ms | OfficeIMO.Excel | Win | 10187.2 KB |  |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | 39.87 ms | OfficeIMO.Excel | Win | 11500.9 KB |  |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | 18.17 ms | OfficeIMO.Excel | Win | 6896.4 KB |  |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | 21.13 ms | OfficeIMO.Excel | Win | 5970.9 KB |  |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | 26.87 ms | OfficeIMO.Excel | Win | 8332.9 KB |  |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | 25.88 ms | OfficeIMO.Excel | Win | 7416.2 KB |  |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | 20.35 ms | OfficeIMO.Excel | Win | 7416.3 KB |  |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | 16.44 ms | OfficeIMO.Excel | Win | 6144.6 KB |  |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | 28.12 ms | OfficeIMO.Excel | Win | 7482.8 KB |  |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | 56.02 ms | OfficeIMO.Excel | Win | 13039.6 KB |  |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | 54.08 ms | OfficeIMO.Excel | Win | 13458.5 KB |  |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | 45.61 ms | OfficeIMO.Excel | Win | 10288.1 KB |  |
+| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | 46.10 ms | OfficeIMO.Excel | Win | 13020.3 KB |  |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | 39.58 ms | LargeXlsx | Loss +3.1% | 12715.7 KB |  |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | 44.19 ms | OfficeIMO.Excel | Win | 9999.4 KB |  |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | 45.13 ms | OfficeIMO.Excel | Win | 12733.8 KB |  |
+| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | 43.87 ms | OfficeIMO.Excel | Win | 11561.8 KB |  |
+| 25000 | speed-comparison | write | Formula write/read | write-cellformula | 28.29 ms | OfficeIMO.Excel | Win | 10112.1 KB |  |
+| 25000 | speed-comparison | write | Other | write-dictionary-objects-table-direct | 57.67 ms | OfficeIMO.Excel | Win | 15163.8 KB |  |
+| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | 52.53 ms | LargeXlsx | Loss +3.7% | 10577.2 KB |  |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | 55.52 ms | LargeXlsx | Loss +22.9% | 9942.2 KB |  |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | 226.59 ms | OfficeIMO.Excel | Win | 36150.1 KB |  |
+| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | 19.42 ms | LargeXlsx | Loss +29.4% | 10842.5 KB |  |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | 14.28 ms | LargeXlsx | Loss +11.2% | 6961.7 KB |  |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | 39.59 ms | LargeXlsx | Loss +11.4% | 16036.5 KB |  |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | 20.83 ms | OfficeIMO.Excel | Win | 7866.1 KB |  |
+| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | 41.47 ms | Sylvan.Data.Excel | Loss +24.1% | 13002.3 KB |  |
+| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | 45.09 ms | OfficeIMO.Excel | Win | 9819.7 KB |  |
+| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | 57.24 ms | LargeXlsx | Loss +12.0% | 11708.2 KB |  |
+| 25000 | speed-comparison | write | Shared string write | large-shared-strings | 14.54 ms | OfficeIMO.Excel | Win | 15744.9 KB |  |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | 23.58 ms | OfficeIMO.Excel | Win | 15360.4 KB |  |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | 17.30 ms | OfficeIMO.Excel | Win | 13824.1 KB |  |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | 18.09 ms | OfficeIMO.Excel | Win | 7525.3 KB |  |
+| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | 39.68 ms | LargeXlsx | Loss +14.1% | 12912.0 KB |  |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | 39.19 ms | LargeXlsx | Loss +18.2% | 11493.8 KB |  |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | 47.75 ms | LargeXlsx | Loss +42.6% | 10179.4 KB |  |
 
 ## Full comparison table
 
 | Row count | Artifact | Workload | Category | Scenario | Library | Mean | StdDev | StdErr | Ratio to OfficeIMO | Ratio to best | Alloc | Alloc ratio | Package | Package ratio | Outcome |
 | ---: | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | Sylvan.Data.Excel | 4.04 ms | 0.17 ms | 0.10 ms | 0.66 | 1.00 | 362.3 KB | 0.15 |  |  | 34.2% faster than OfficeIMO |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | OfficeIMO.Excel | 6.14 ms | 0.35 ms | 0.20 ms | 1.00 | 1.52 | 2488.6 KB | 1.00 |  |  | Loss +51.9% |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | ExcelDataReader | 12.37 ms | 1.37 ms | 0.79 ms | 2.02 | 3.06 | 6874.1 KB | 2.76 |  |  | 101.6% slower than OfficeIMO |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | MiniExcel | 15.37 ms | 1.17 ms | 0.67 ms | 2.51 | 3.81 | 21502.8 KB | 8.64 |  |  | 150.6% slower than OfficeIMO |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | Sylvan.Data.Excel | 4.19 ms | 0.48 ms | 0.28 ms | 0.76 | 1.00 | 362.3 KB | 0.14 |  |  | 24.5% faster than OfficeIMO |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | OfficeIMO.Excel | 5.54 ms | 0.09 ms | 0.05 ms | 1.00 | 1.32 | 2566.9 KB | 1.00 |  |  | Loss +32.4% |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | ExcelDataReader | 11.27 ms | 0.19 ms | 0.11 ms | 2.03 | 2.69 | 6874.1 KB | 2.68 |  |  | 103.4% slower than OfficeIMO |
-| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | MiniExcel | 14.82 ms | 0.88 ms | 0.51 ms | 2.67 | 3.54 | 21502.8 KB | 8.38 |  |  | 167.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | append-plain-rows | LargeXlsx | 1.53 ms | 0.19 ms | 0.11 ms | 0.62 | 1.00 | 288.4 KB | 0.17 | 63.1 KB | 0.98 | 37.6% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | append-plain-rows | OfficeIMO.Excel | 2.45 ms | 0.29 ms | 0.17 ms | 1.00 | 1.60 | 1657.3 KB | 1.00 | 64.5 KB | 1.00 | Loss +60.3% |
-| 2500 | package-profile | package | Package size | append-plain-rows | MiniExcel | 4.10 ms | 0.11 ms | 0.06 ms | 1.67 | 2.68 | 19701.7 KB | 11.89 | 68.1 KB | 1.06 | 67.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | append-plain-rows | ClosedXML | 15.92 ms | 1.97 ms | 1.14 ms | 6.50 | 10.42 | 11189.4 KB | 6.75 | 59.8 KB | 0.93 | 550.1% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | append-plain-rows | EPPlus | 28.54 ms | 3.26 ms | 1.88 ms | 11.65 | 18.68 | 14283.5 KB | 8.62 | 56.9 KB | 0.88 | 1065.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | autofit-existing | OfficeIMO.Excel | 44.54 ms | 21.22 ms | 12.25 ms | 1.00 | 1.00 | 13971.2 KB | 1.00 | 143.2 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | autofit-existing | EPPlus | 99.96 ms | 15.05 ms | 8.69 ms | 2.24 | 2.24 | 50639.2 KB | 3.62 | 115.0 KB | 0.80 | 124.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | autofit-existing | ClosedXML | 133.33 ms | 4.84 ms | 2.79 ms | 2.99 | 2.99 | 84424.1 KB | 6.04 | 121.0 KB | 0.84 | 199.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | large-shared-strings | OfficeIMO.Excel | 2.01 ms | 0.06 ms | 0.03 ms | 1.00 | 1.00 | 2111.9 KB | 1.00 | 55.2 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | large-shared-strings | MiniExcel | 4.39 ms | 0.55 ms | 0.32 ms | 2.18 | 2.18 | 21128.5 KB | 10.00 | 60.7 KB | 1.10 | 118.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | large-shared-strings | ClosedXML | 11.82 ms | 0.96 ms | 0.56 ms | 5.88 | 5.88 | 11291.2 KB | 5.35 | 50.3 KB | 0.91 | 487.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | large-shared-strings | EPPlus | 21.40 ms | 1.00 ms | 0.58 ms | 10.63 | 10.63 | 12730.2 KB | 6.03 | 48.1 KB | 0.87 | 963.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-autofilter | OfficeIMO.Excel | 3.57 ms | 0.16 ms | 0.09 ms | 1.00 | 1.00 | 1171.9 KB | 1.00 | 142.4 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | realworld-autofilter | ClosedXML | 32.58 ms | 2.93 ms | 1.69 ms | 9.11 | 9.11 | 22218.8 KB | 18.96 | 120.2 KB | 0.84 | 811.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-autofilter | EPPlus | 53.85 ms | 5.21 ms | 3.01 ms | 15.06 | 15.06 | 24647.8 KB | 21.03 | 114.2 KB | 0.80 | 1406.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-charts | OfficeIMO.Excel | 5.25 ms | 0.84 ms | 0.49 ms | 1.00 | 1.00 | 1688.9 KB | 1.00 | 147.5 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | realworld-charts | EPPlus | 48.96 ms | 2.15 ms | 1.24 ms | 9.33 | 9.33 | 27072.7 KB | 16.03 | 117.0 KB | 0.79 | 832.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-conditional-formatting | OfficeIMO.Excel | 4.40 ms | 0.82 ms | 0.47 ms | 1.00 | 1.00 | 1236.8 KB | 1.00 | 142.7 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | realworld-conditional-formatting | ClosedXML | 33.31 ms | 1.74 ms | 1.01 ms | 7.58 | 7.58 | 22265.8 KB | 18.00 | 120.3 KB | 0.84 | 657.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-conditional-formatting | EPPlus | 54.02 ms | 2.91 ms | 1.68 ms | 12.28 | 12.28 | 24690.0 KB | 19.96 | 114.3 KB | 0.80 | 1128.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-data-validation | OfficeIMO.Excel | 3.54 ms | 0.19 ms | 0.11 ms | 1.00 | 1.00 | 1187.6 KB | 1.00 | 142.5 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | realworld-data-validation | ClosedXML | 31.64 ms | 1.94 ms | 1.12 ms | 8.94 | 8.94 | 22239.9 KB | 18.73 | 120.3 KB | 0.84 | 793.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-data-validation | EPPlus | 47.78 ms | 0.99 ms | 0.57 ms | 13.49 | 13.49 | 24632.9 KB | 20.74 | 114.2 KB | 0.80 | 1249.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-freeze-panes | OfficeIMO.Excel | 3.86 ms | 0.07 ms | 0.04 ms | 1.00 | 1.00 | 1174.0 KB | 1.00 | 142.5 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | realworld-freeze-panes | ClosedXML | 36.17 ms | 5.61 ms | 3.24 ms | 9.37 | 9.37 | 22214.0 KB | 18.92 | 120.2 KB | 0.84 | 836.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-freeze-panes | EPPlus | 53.22 ms | 8.27 ms | 4.77 ms | 13.78 | 13.78 | 24660.4 KB | 21.01 | 114.3 KB | 0.80 | 1278.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-pivot-table | OfficeIMO.Excel | 20.98 ms | 5.81 ms | 3.36 ms | 1.00 | 1.00 | 18628.0 KB | 1.00 | 203.9 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | realworld-pivot-table | EPPlus | 56.12 ms | 2.54 ms | 1.46 ms | 2.68 | 2.68 | 29469.7 KB | 1.58 | 117.4 KB | 0.58 | 167.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-report-all-in-one | OfficeIMO.Excel | 18.78 ms | 0.49 ms | 0.28 ms | 1.00 | 1.00 | 19412.8 KB | 1.00 | 210.0 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | realworld-report-all-in-one | EPPlus | 65.51 ms | 1.89 ms | 1.09 ms | 3.49 | 3.49 | 54522.6 KB | 2.81 | 121.8 KB | 0.58 | 248.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-report-core | OfficeIMO.Excel | 4.52 ms | 0.51 ms | 0.29 ms | 1.00 | 1.00 | 1319.1 KB | 1.00 | 143.9 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | realworld-report-core | EPPlus | 68.92 ms | 2.10 ms | 1.21 ms | 15.23 | 15.23 | 47227.1 KB | 35.80 | 115.5 KB | 0.80 | 1423.1% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | realworld-report-core | ClosedXML | 88.23 ms | 5.30 ms | 3.06 ms | 19.50 | 19.50 | 69825.5 KB | 52.93 | 121.5 KB | 0.84 | 1849.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | report-workbook | OfficeIMO.Excel | 14.44 ms | 1.53 ms | 0.88 ms | 1.00 | 1.00 | 12228.4 KB | 1.00 | 90.2 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | report-workbook | EPPlus | 100.13 ms | 0.51 ms | 0.30 ms | 6.93 | 6.93 | 77408.8 KB | 6.33 | 161.8 KB | 1.79 | 593.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | report-workbook-core | OfficeIMO.Excel | 6.18 ms | 0.10 ms | 0.06 ms | 1.00 | 1.00 | 2375.5 KB | 1.00 | 187.5 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | report-workbook-core | EPPlus | 117.65 ms | 25.03 ms | 14.45 ms | 19.03 | 19.03 | 71893.6 KB | 30.26 | 157.2 KB | 0.84 | 1802.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | report-workbook-core | ClosedXML | 118.34 ms | 10.24 ms | 5.91 ms | 19.14 | 19.14 | 97210.5 KB | 40.92 | 165.1 KB | 0.88 | 1813.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | report-workbook-datatable | OfficeIMO.Excel | 16.45 ms | 0.30 ms | 0.17 ms | 1.00 | 1.00 | 12500.1 KB | 1.00 | 90.2 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | report-workbook-datatable | EPPlus | 98.05 ms | 8.90 ms | 5.14 ms | 5.96 | 5.96 | 65913.8 KB | 5.27 | 161.8 KB | 1.79 | 495.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | report-workbook-datatable-core | OfficeIMO.Excel | 6.33 ms | 0.57 ms | 0.33 ms | 1.00 | 1.00 | 2647.2 KB | 1.00 | 187.5 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | report-workbook-datatable-core | EPPlus | 97.29 ms | 7.45 ms | 4.30 ms | 15.37 | 15.37 | 60398.6 KB | 22.82 | 157.2 KB | 0.84 | 1436.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | report-workbook-datatable-core | ClosedXML | 112.16 ms | 6.08 ms | 3.51 ms | 17.71 | 17.71 | 82852.7 KB | 31.30 | 165.1 KB | 0.88 | 1671.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | LargeXlsx | 4.37 ms | 0.51 ms | 0.29 ms | 0.88 | 1.00 | 849.6 KB | 0.56 | 237.7 KB | 1.10 | 12.5% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | OfficeIMO.Excel | 5.00 ms | 0.84 ms | 0.49 ms | 1.00 | 1.14 | 1508.4 KB | 1.00 | 216.7 KB | 1.00 | Loss +14.3% |
-| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | MiniExcel | 18.06 ms | 2.10 ms | 1.21 ms | 3.61 | 4.13 | 35911.1 KB | 23.81 | 235.3 KB | 1.09 | 261.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | ClosedXML | 103.58 ms | 3.25 ms | 1.88 ms | 20.73 | 23.69 | 71470.2 KB | 47.38 | 257.2 KB | 1.19 | 1973.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-bulk-report | OfficeIMO.Excel | 4.78 ms | 0.66 ms | 0.38 ms | 1.00 | 1.00 | 1233.1 KB | 1.00 | 143.2 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-bulk-report | MiniExcel | 9.96 ms | 1.01 ms | 0.58 ms | 2.08 | 2.08 | 26816.2 KB | 21.75 | 153.8 KB | 1.07 | 108.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-bulk-report | EPPlus | 76.38 ms | 6.03 ms | 3.48 ms | 15.96 | 15.96 | 47121.2 KB | 38.21 | 115.0 KB | 0.80 | 1496.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-bulk-report | ClosedXML | 93.49 ms | 6.86 ms | 3.96 ms | 19.54 | 19.54 | 58336.8 KB | 47.31 | 121.0 KB | 0.84 | 1853.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellformula | OfficeIMO.Excel | 2.27 ms | 0.02 ms | 0.01 ms | 1.00 | 1.00 | 1171.8 KB | 1.00 | 66.6 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellformula | ClosedXML | 16.56 ms | 0.59 ms | 0.34 ms | 7.30 | 7.30 | 12031.2 KB | 10.27 | 70.6 KB | 1.06 | 630.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellformula | EPPlus | 39.21 ms | 6.43 ms | 3.71 ms | 17.29 | 17.29 | 18036.5 KB | 15.39 | 62.1 KB | 0.93 | 1629.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-empty-strings | OfficeIMO.Excel | 2.40 ms | 0.59 ms | 0.34 ms | 1.00 | 1.00 | 1454.0 KB | 1.00 | 44.2 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-empty-strings | ClosedXML | 14.84 ms | 2.95 ms | 1.70 ms | 6.18 | 6.18 | 9951.5 KB | 6.84 | 44.9 KB | 1.02 | 517.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-empty-strings | EPPlus | 27.33 ms | 4.56 ms | 2.63 ms | 11.38 | 11.38 | 11703.7 KB | 8.05 | 42.0 KB | 0.95 | 1037.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-numbers | OfficeIMO.Excel | 2.01 ms | 0.08 ms | 0.05 ms | 1.00 | 1.00 | 946.8 KB | 1.00 | 47.0 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-numbers | ClosedXML | 11.14 ms | 0.58 ms | 0.33 ms | 5.54 | 5.54 | 9169.1 KB | 9.68 | 45.9 KB | 0.98 | 453.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-numbers | EPPlus | 23.22 ms | 0.41 ms | 0.24 ms | 11.54 | 11.54 | 12829.3 KB | 13.55 | 43.7 KB | 0.93 | 1054.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-mixed | OfficeIMO.Excel | 3.14 ms | 1.11 ms | 0.64 ms | 1.00 | 1.00 | 1431.4 KB | 1.00 | 61.2 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-mixed | ClosedXML | 19.34 ms | 1.92 ms | 1.11 ms | 6.16 | 6.16 | 11879.0 KB | 8.30 | 59.5 KB | 0.97 | 515.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-mixed | EPPlus | 31.64 ms | 1.98 ms | 1.14 ms | 10.07 | 10.07 | 15577.2 KB | 10.88 | 58.9 KB | 0.96 | 907.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse | OfficeIMO.Excel | 2.60 ms | 0.14 ms | 0.08 ms | 1.00 | 1.00 | 1271.0 KB | 1.00 | 62.0 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse | ClosedXML | 18.09 ms | 4.52 ms | 2.61 ms | 6.96 | 6.96 | 11288.3 KB | 8.88 | 52.5 KB | 0.85 | 596.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse | EPPlus | 24.91 ms | 2.15 ms | 1.24 ms | 9.59 | 9.59 | 14894.0 KB | 11.72 | 54.2 KB | 0.88 | 859.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | OfficeIMO.Excel | 2.27 ms | 0.04 ms | 0.02 ms | 1.00 | 1.00 | 1271.1 KB | 1.00 | 62.0 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | ClosedXML | 14.77 ms | 1.31 ms | 0.76 ms | 6.51 | 6.51 | 11288.3 KB | 8.88 | 52.5 KB | 0.85 | 551.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | EPPlus | 24.83 ms | 0.66 ms | 0.38 ms | 10.95 | 10.95 | 14894.0 KB | 11.72 | 54.2 KB | 0.88 | 995.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-scalars | OfficeIMO.Excel | 1.85 ms | 0.09 ms | 0.05 ms | 1.00 | 1.00 | 964.9 KB | 1.00 | 46.3 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-scalars | ClosedXML | 11.94 ms | 1.18 ms | 0.68 ms | 6.47 | 6.47 | 9013.2 KB | 9.34 | 45.4 KB | 0.98 | 546.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-scalars | EPPlus | 24.55 ms | 2.36 ms | 1.36 ms | 13.29 | 13.29 | 12761.5 KB | 13.23 | 42.4 KB | 0.91 | 1229.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings | OfficeIMO.Excel | 2.87 ms | 0.27 ms | 0.15 ms | 1.00 | 1.00 | 2283.8 KB | 1.00 | 55.1 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings | ClosedXML | 12.04 ms | 0.87 ms | 0.50 ms | 4.19 | 4.19 | 11291.2 KB | 4.94 | 50.3 KB | 0.91 | 319.0% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings | EPPlus | 25.70 ms | 1.31 ms | 0.76 ms | 8.95 | 8.95 | 12730.2 KB | 5.57 | 48.1 KB | 0.87 | 794.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings-distinct | OfficeIMO.Excel | 2.39 ms | 0.24 ms | 0.14 ms | 1.00 | 1.00 | 2206.1 KB | 1.00 | 51.8 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings-distinct | ClosedXML | 16.13 ms | 2.33 ms | 1.35 ms | 6.76 | 6.76 | 13119.1 KB | 5.95 | 61.9 KB | 1.19 | 576.1% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings-distinct | EPPlus | 24.08 ms | 1.18 ms | 0.68 ms | 10.09 | 10.09 | 13793.7 KB | 6.25 | 61.5 KB | 1.19 | 909.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings-repeated | OfficeIMO.Excel | 2.26 ms | 0.59 ms | 0.34 ms | 1.00 | 1.00 | 1246.7 KB | 1.00 | 40.0 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings-repeated | ClosedXML | 13.11 ms | 2.47 ms | 1.43 ms | 5.79 | 5.79 | 9218.5 KB | 7.39 | 38.8 KB | 0.97 | 479.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-strings-repeated | EPPlus | 20.78 ms | 1.37 ms | 0.79 ms | 9.18 | 9.18 | 11265.7 KB | 9.04 | 34.8 KB | 0.87 | 817.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-temporal | OfficeIMO.Excel | 2.49 ms | 0.03 ms | 0.02 ms | 1.00 | 1.00 | 1262.6 KB | 1.00 | 63.3 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-cellvalue-temporal | ClosedXML | 15.12 ms | 1.33 ms | 0.77 ms | 6.09 | 6.09 | 9703.1 KB | 7.69 | 54.5 KB | 0.86 | 508.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalue-temporal | EPPlus | 25.99 ms | 2.81 ms | 1.62 ms | 10.46 | 10.46 | 14654.6 KB | 11.61 | 53.1 KB | 0.84 | 945.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 1.23 ms | 0.08 ms | 0.05 ms | 0.69 | 1.00 | 439.0 KB | 0.48 | 47.3 KB | 0.98 | 31.4% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 1.79 ms | 0.22 ms | 0.13 ms | 1.00 | 1.46 | 923.6 KB | 1.00 | 48.2 KB | 1.00 | Loss +45.7% |
-| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | ClosedXML | 12.80 ms | 1.34 ms | 0.77 ms | 7.15 | 10.42 | 10227.8 KB | 11.07 | 53.0 KB | 1.10 | 615.0% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | EPPlus | 24.08 ms | 2.19 ms | 1.27 ms | 13.45 | 19.60 | 12985.4 KB | 14.06 | 52.5 KB | 1.09 | 1245.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | LargeXlsx | 3.26 ms | 0.20 ms | 0.12 ms | 0.79 | 1.00 | 750.2 KB | 0.43 | 138.4 KB | 1.00 | 21.4% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 4.15 ms | 0.17 ms | 0.10 ms | 1.00 | 1.27 | 1752.7 KB | 1.00 | 138.0 KB | 1.00 | Loss +27.3% |
-| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | MiniExcel | 8.04 ms | 0.31 ms | 0.18 ms | 1.94 | 2.47 | 23213.1 KB | 13.24 | 153.7 KB | 1.11 | 93.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | ClosedXML | 32.29 ms | 1.88 ms | 1.09 ms | 7.79 | 9.91 | 22213.3 KB | 12.67 | 120.1 KB | 0.87 | 678.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | EPPlus | 51.02 ms | 4.02 ms | 2.32 ms | 12.31 | 15.66 | 24626.9 KB | 14.05 | 114.1 KB | 0.83 | 1130.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-plain | Sylvan.Data.Excel | 4.32 ms | 1.84 ms | 1.06 ms | 0.91 | 1.00 | 750.7 KB | 0.52 | 78.5 KB | 0.57 | 9.3% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-plain | OfficeIMO.Excel | 4.76 ms | 1.35 ms | 0.78 ms | 1.00 | 1.10 | 1434.6 KB | 1.00 | 138.0 KB | 1.00 | Loss +10.2% |
-| 2500 | package-profile | package | Package size | write-datareader-plain | LargeXlsx | 5.08 ms | 0.87 ms | 0.50 ms | 1.07 | 1.18 | 1024.5 KB | 0.71 | 138.4 KB | 1.00 | 6.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-plain | MiniExcel | 9.66 ms | 3.02 ms | 1.74 ms | 2.03 | 2.24 | 23034.8 KB | 16.06 | 153.6 KB | 1.11 | 103.1% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-plain | ClosedXML | 31.62 ms | 3.51 ms | 2.03 ms | 6.65 | 7.33 | 11573.0 KB | 8.07 | 120.1 KB | 0.87 | 564.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-plain | EPPlus | 44.99 ms | 4.99 ms | 2.88 ms | 9.46 | 10.42 | 16579.3 KB | 11.56 | 114.9 KB | 0.83 | 845.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-table | OfficeIMO.Excel | 7.12 ms | 4.83 ms | 2.79 ms | 1.00 | 1.00 | 1446.4 KB | 1.00 | 138.8 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-datareader-table | MiniExcel | 7.61 ms | 1.03 ms | 0.60 ms | 1.07 | 1.07 | 23035.0 KB | 15.93 | 153.6 KB | 1.11 | 6.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-table | ClosedXML | 36.72 ms | 0.67 ms | 0.39 ms | 5.15 | 5.15 | 18999.5 KB | 13.14 | 120.9 KB | 0.87 | 415.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-table | EPPlus | 46.27 ms | 8.77 ms | 5.06 ms | 6.49 | 6.49 | 16579.3 KB | 11.46 | 114.9 KB | 0.83 | 549.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-table-autofit | OfficeIMO.Excel | 4.84 ms | 0.24 ms | 0.14 ms | 1.00 | 1.00 | 1452.7 KB | 1.00 | 138.9 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-datareader-table-autofit | MiniExcel | 8.33 ms | 1.07 ms | 0.62 ms | 1.72 | 1.72 | 26638.2 KB | 18.34 | 153.8 KB | 1.11 | 72.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-table-autofit | EPPlus | 68.76 ms | 6.91 ms | 3.99 ms | 14.21 | 14.21 | 38271.3 KB | 26.34 | 115.1 KB | 0.83 | 1320.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datareader-table-autofit | ClosedXML | 94.38 ms | 11.31 ms | 6.53 ms | 19.50 | 19.50 | 58353.1 KB | 40.17 | 121.0 KB | 0.87 | 1850.1% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | LargeXlsx | 3.96 ms | 0.06 ms | 0.04 ms | 0.90 | 1.00 | 1115.8 KB | 0.68 | 164.2 KB | 1.25 | 10.4% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | OfficeIMO.Excel | 4.42 ms | 0.73 ms | 0.42 ms | 1.00 | 1.12 | 1652.6 KB | 1.00 | 131.1 KB | 1.00 | Loss +11.7% |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | MiniExcel | 9.48 ms | 0.29 ms | 0.17 ms | 2.14 | 2.40 | 29737.8 KB | 17.99 | 180.5 KB | 1.38 | 114.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | EPPlus | 54.50 ms | 1.42 ms | 0.82 ms | 12.33 | 13.77 | 21822.9 KB | 13.21 | 144.5 KB | 1.10 | 1132.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | ClosedXML | 64.55 ms | 5.28 ms | 3.05 ms | 14.60 | 16.30 | 27401.4 KB | 16.58 | 159.4 KB | 1.22 | 1360.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | OfficeIMO.Excel | 4.90 ms | 0.85 ms | 0.49 ms | 1.00 | 1.00 | 2392.1 KB | 1.00 | 176.0 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | MiniExcel | 10.77 ms | 0.79 ms | 0.46 ms | 2.20 | 2.20 | 29737.8 KB | 12.43 | 180.5 KB | 1.03 | 119.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | EPPlus | 58.49 ms | 7.90 ms | 4.56 ms | 11.94 | 11.94 | 21822.9 KB | 9.12 | 144.5 KB | 0.82 | 1094.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | ClosedXML | 65.46 ms | 11.90 ms | 6.87 ms | 13.37 | 13.37 | 27403.3 KB | 11.46 | 159.4 KB | 0.91 | 1236.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-tables | OfficeIMO.Excel | 3.86 ms | 0.25 ms | 0.15 ms | 1.00 | 1.00 | 1578.0 KB | 1.00 | 138.9 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-dataset-tables | MiniExcel | 7.89 ms | 0.44 ms | 0.26 ms | 2.04 | 2.04 | 28691.3 KB | 18.18 | 156.4 KB | 1.13 | 104.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-tables | EPPlus | 38.26 ms | 1.23 ms | 0.71 ms | 9.91 | 9.91 | 18633.8 KB | 11.81 | 116.6 KB | 0.84 | 891.0% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-tables | ClosedXML | 40.02 ms | 2.98 ms | 1.72 ms | 10.37 | 10.37 | 18868.8 KB | 11.96 | 123.4 KB | 0.89 | 936.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | OfficeIMO.Excel | 4.73 ms | 0.68 ms | 0.40 ms | 1.00 | 1.00 | 1590.6 KB | 1.00 | 139.2 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | MiniExcel | 9.20 ms | 0.81 ms | 0.47 ms | 1.95 | 1.95 | 31789.4 KB | 19.99 | 156.6 KB | 1.13 | 94.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | EPPlus | 74.88 ms | 6.35 ms | 3.66 ms | 15.84 | 15.84 | 41385.5 KB | 26.02 | 116.9 KB | 0.84 | 1483.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | ClosedXML | 79.77 ms | 6.89 ms | 3.98 ms | 16.87 | 16.87 | 56700.1 KB | 35.65 | 123.7 KB | 0.89 | 1587.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datatable-direct | LargeXlsx | 3.54 ms | 0.04 ms | 0.02 ms | 0.49 | 1.00 | 1141.0 KB | 0.80 | 138.4 KB | 1.00 | 50.6% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datatable-direct | OfficeIMO.Excel | 7.16 ms | 5.31 ms | 3.06 ms | 1.00 | 2.03 | 1420.2 KB | 1.00 | 138.0 KB | 1.00 | Loss +102.5% |
-| 2500 | package-profile | package | Package size | write-datatable-direct | MiniExcel | 8.41 ms | 0.53 ms | 0.31 ms | 1.18 | 2.38 | 23053.5 KB | 16.23 | 153.7 KB | 1.11 | 17.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datatable-direct | ClosedXML | 33.78 ms | 10.36 ms | 5.98 ms | 4.72 | 9.55 | 11573.0 KB | 8.15 | 120.1 KB | 0.87 | 371.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datatable-direct | EPPlus | 40.32 ms | 2.88 ms | 1.66 ms | 5.63 | 11.41 | 16579.3 KB | 11.67 | 114.9 KB | 0.83 | 463.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datatable-table-direct | OfficeIMO.Excel | 4.56 ms | 0.61 ms | 0.35 ms | 1.00 | 1.00 | 1432.2 KB | 1.00 | 138.8 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-datatable-table-direct | MiniExcel | 8.42 ms | 0.28 ms | 0.16 ms | 1.85 | 1.85 | 23053.8 KB | 16.10 | 153.7 KB | 1.11 | 84.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datatable-table-direct | ClosedXML | 39.21 ms | 2.66 ms | 1.54 ms | 8.60 | 8.60 | 18999.9 KB | 13.27 | 120.9 KB | 0.87 | 759.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-datatable-table-direct | EPPlus | 39.60 ms | 3.13 ms | 1.81 ms | 8.68 | 8.68 | 16579.3 KB | 11.58 | 114.9 KB | 0.83 | 768.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | LargeXlsx | 3.38 ms | 0.36 ms | 0.21 ms | 0.75 | 1.00 | 750.2 KB | 0.52 | 138.4 KB | 1.00 | 25.3% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | OfficeIMO.Excel | 4.52 ms | 0.67 ms | 0.38 ms | 1.00 | 1.34 | 1440.7 KB | 1.00 | 138.0 KB | 1.00 | Loss +33.9% |
-| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | MiniExcel | 11.68 ms | 3.71 ms | 2.14 ms | 2.58 | 3.46 | 23213.1 KB | 16.11 | 153.7 KB | 1.11 | 158.1% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | ClosedXML | 43.17 ms | 12.47 ms | 7.20 ms | 9.54 | 12.78 | 11573.0 KB | 8.03 | 120.1 KB | 0.87 | 854.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | EPPlus | 44.85 ms | 1.54 ms | 0.89 ms | 9.92 | 13.28 | 16579.3 KB | 11.51 | 114.9 KB | 0.83 | 891.5% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | OfficeIMO.Excel | 4.99 ms | 2.09 ms | 1.20 ms | 1.00 | 1.00 | 1178.6 KB | 1.00 | 142.4 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | ClosedXML | 70.27 ms | 10.02 ms | 5.79 ms | 14.08 | 14.08 | 50919.5 KB | 43.20 | 120.2 KB | 0.84 | 1308.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | EPPlus | 72.92 ms | 12.19 ms | 7.04 ms | 14.61 | 14.61 | 38271.3 KB | 32.47 | 115.1 KB | 0.81 | 1361.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-direct | LargeXlsx | 3.70 ms | 0.64 ms | 0.37 ms | 0.92 | 1.00 | 750.2 KB | 0.64 | 138.4 KB | 0.97 | 8.0% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-direct | OfficeIMO.Excel | 4.02 ms | 1.01 ms | 0.58 ms | 1.00 | 1.09 | 1170.9 KB | 1.00 | 142.3 KB | 1.00 | Loss +8.7% |
-| 2500 | package-profile | package | Package size | write-insertobjects-direct | MiniExcel | 7.46 ms | 0.73 ms | 0.42 ms | 1.85 | 2.01 | 23213.1 KB | 19.83 | 153.7 KB | 1.08 | 85.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-direct | ClosedXML | 29.77 ms | 2.31 ms | 1.34 ms | 7.40 | 8.04 | 11573.0 KB | 9.88 | 120.1 KB | 0.84 | 640.0% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-direct | EPPlus | 42.31 ms | 7.27 ms | 4.20 ms | 10.52 | 11.43 | 16579.3 KB | 14.16 | 114.9 KB | 0.81 | 952.0% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | OfficeIMO.Excel | 5.71 ms | 1.32 ms | 0.76 ms | 1.00 | 1.00 | 1176.8 KB | 1.00 | 138.1 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | EPPlus | 73.08 ms | 7.76 ms | 4.48 ms | 12.80 | 12.80 | 38271.3 KB | 32.52 | 115.1 KB | 0.83 | 1180.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | ClosedXML | 87.93 ms | 17.24 ms | 9.95 ms | 15.40 | 15.40 | 50919.5 KB | 43.27 | 120.2 KB | 0.87 | 1440.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | LargeXlsx | 3.05 ms | 0.18 ms | 0.11 ms | 0.73 | 1.00 | 750.2 KB | 0.64 | 138.4 KB | 1.00 | 27.0% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | OfficeIMO.Excel | 4.18 ms | 0.46 ms | 0.27 ms | 1.00 | 1.37 | 1169.1 KB | 1.00 | 138.0 KB | 1.00 | Loss +36.9% |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | MiniExcel | 7.26 ms | 0.19 ms | 0.11 ms | 1.74 | 2.38 | 23213.1 KB | 19.86 | 153.7 KB | 1.11 | 73.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | ClosedXML | 27.30 ms | 0.76 ms | 0.44 ms | 6.53 | 8.94 | 11573.0 KB | 9.90 | 120.1 KB | 0.87 | 553.2% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | EPPlus | 40.65 ms | 4.42 ms | 2.55 ms | 9.73 | 13.32 | 16579.3 KB | 14.18 | 114.9 KB | 0.83 | 872.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | LargeXlsx | 3.48 ms | 0.42 ms | 0.24 ms | 0.58 | 1.00 | 750.2 KB | 0.47 | 138.4 KB | 0.97 | 42.0% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | OfficeIMO.Excel | 5.99 ms | 1.83 ms | 1.05 ms | 1.00 | 1.72 | 1601.6 KB | 1.00 | 142.3 KB | 1.00 | Loss +72.3% |
-| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | MiniExcel | 9.62 ms | 2.51 ms | 1.45 ms | 1.61 | 2.77 | 23213.1 KB | 14.49 | 153.7 KB | 1.08 | 60.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | ClosedXML | 28.70 ms | 1.39 ms | 0.80 ms | 4.79 | 8.26 | 11573.0 KB | 7.23 | 120.1 KB | 0.84 | 379.1% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | EPPlus | 39.24 ms | 1.12 ms | 0.64 ms | 6.55 | 11.29 | 16579.3 KB | 10.35 | 114.9 KB | 0.81 | 555.0% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | OfficeIMO.Excel | 3.68 ms | 0.12 ms | 0.07 ms | 1.00 | 1.00 | 1177.9 KB | 1.00 | 142.4 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | ClosedXML | 41.77 ms | 2.27 ms | 1.31 ms | 11.36 | 11.36 | 28532.5 KB | 24.22 | 120.2 KB | 0.84 | 1035.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | EPPlus | 56.45 ms | 4.50 ms | 2.60 ms | 15.35 | 15.35 | 27236.1 KB | 23.12 | 115.0 KB | 0.81 | 1434.8% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | LargeXlsx | 4.05 ms | 0.13 ms | 0.08 ms | 0.68 | 1.00 | 794.5 KB | 0.39 | 182.6 KB | 1.00 | 32.2% faster than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | OfficeIMO.Excel | 5.97 ms | 0.62 ms | 0.36 ms | 1.00 | 1.48 | 2013.3 KB | 1.00 | 183.1 KB | 1.00 | Loss +47.6% |
-| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | MiniExcel | 8.42 ms | 0.34 ms | 0.20 ms | 1.41 | 2.08 | 25181.4 KB | 12.51 | 194.0 KB | 1.06 | 40.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | EPPlus | 53.40 ms | 8.37 ms | 4.84 ms | 8.94 | 13.19 | 20030.7 KB | 9.95 | 152.1 KB | 0.83 | 793.9% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | ClosedXML | 54.32 ms | 18.16 ms | 10.49 ms | 9.09 | 13.42 | 16965.4 KB | 8.43 | 161.0 KB | 0.88 | 809.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | OfficeIMO.Excel | 4.46 ms | 0.32 ms | 0.18 ms | 1.00 | 1.00 | 1339.3 KB | 1.00 | 182.4 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | LargeXlsx | 4.73 ms | 1.38 ms | 0.80 ms | 1.06 | 1.06 | 794.5 KB | 0.59 | 182.6 KB | 1.00 | 6.1% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | MiniExcel | 9.33 ms | 0.55 ms | 0.32 ms | 2.09 | 2.09 | 25181.4 KB | 18.80 | 194.0 KB | 1.06 | 109.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | ClosedXML | 45.15 ms | 7.57 ms | 4.37 ms | 10.13 | 10.13 | 16965.4 KB | 12.67 | 161.0 KB | 0.88 | 912.7% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | EPPlus | 52.58 ms | 6.05 ms | 3.49 ms | 11.79 | 11.79 | 20030.7 KB | 14.96 | 152.1 KB | 0.83 | 1079.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | OfficeIMO.Excel | 20.71 ms | 1.20 ms | 0.69 ms | 1.00 | 1.00 | 4333.9 KB | 1.00 | 651.0 KB | 1.00 | Win |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | LargeXlsx | 25.80 ms | 6.41 ms | 3.70 ms | 1.25 | 1.25 | 2802.7 KB | 0.65 | 644.6 KB | 0.99 | 24.6% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | MiniExcel | 40.03 ms | 7.79 ms | 4.50 ms | 1.93 | 1.93 | 48404.7 KB | 11.17 | 674.4 KB | 1.04 | 93.3% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | ClosedXML | 141.94 ms | 29.11 ms | 16.81 ms | 6.85 | 6.85 | 51639.0 KB | 11.92 | 615.5 KB | 0.95 | 585.4% slower than OfficeIMO |
-| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | EPPlus | 181.38 ms | 7.80 ms | 4.50 ms | 8.76 | 8.76 | 69073.3 KB | 15.94 | 548.9 KB | 0.84 | 775.8% slower than OfficeIMO |
-| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | OfficeIMO.Excel | 28.07 ms | 0.50 ms | 0.29 ms | 1.00 | 1.00 | 13971.2 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | EPPlus | 70.35 ms | 1.06 ms | 0.61 ms | 2.51 | 2.51 | 50639.2 KB | 3.62 |  |  | 150.6% slower than OfficeIMO |
-| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | EPPlus 4.5.3.3 | 101.48 ms |  |  | 3.61 | 3.61 |  |  |  |  | 261.5% slower than OfficeIMO |
-| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | ClosedXML | 116.48 ms | 2.97 ms | 1.71 ms | 4.15 | 4.15 | 84601.4 KB | 6.06 |  |  | 314.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable | OfficeIMO.Excel | 13.57 ms | 2.52 ms | 1.45 ms | 1.00 | 1.00 | 12500.1 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable | EPPlus | 78.84 ms | 0.32 ms | 0.19 ms | 5.81 | 5.81 | 65913.9 KB | 5.27 |  |  | 480.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable | EPPlus 4.5.3.3 | 95.85 ms |  |  | 7.06 | 7.06 |  |  |  |  | 606.2% slower than OfficeIMO |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | OfficeIMO.Excel | 5.55 ms | 0.37 ms | 0.21 ms | 1.00 | 1.00 | 2647.2 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | EPPlus | 74.43 ms | 1.10 ms | 0.64 ms | 13.41 | 13.41 | 60398.6 KB | 22.82 |  |  | 1241.5% slower than OfficeIMO |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | EPPlus 4.5.3.3 | 85.02 ms |  |  | 15.32 | 15.32 |  |  |  |  | 1432.2% slower than OfficeIMO |
-| 2500 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | ClosedXML | 94.28 ms | 1.94 ms | 1.12 ms | 16.99 | 16.99 | 82850.8 KB | 31.30 |  |  | 1599.3% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Object projection | build-object-datatable-dictionaries | OfficeIMO.Excel | 1.57 ms | 0.16 ms | 0.09 ms | 1.00 | 1.00 | 564.2 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Object projection | build-object-datatable-typed | OfficeIMO.Excel | 1.34 ms | 0.25 ms | 0.14 ms | 1.00 | 1.00 | 856.9 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-autofilter | OfficeIMO.Excel | 3.69 ms | 0.38 ms | 0.22 ms | 1.00 | 1.00 | 1171.9 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-autofilter | ClosedXML | 28.95 ms | 0.67 ms | 0.38 ms | 7.83 | 7.83 | 22218.8 KB | 18.96 |  |  | 683.4% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-autofilter | EPPlus 4.5.3.3 | 39.92 ms |  |  | 10.80 | 10.80 |  |  |  |  | 980.4% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-autofilter | EPPlus | 44.38 ms | 1.15 ms | 0.67 ms | 12.01 | 12.01 | 24647.8 KB | 21.03 |  |  | 1101.2% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-charts | OfficeIMO.Excel | 5.01 ms | 0.26 ms | 0.15 ms | 1.00 | 1.00 | 1689.0 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-charts | EPPlus 4.5.3.3 | 39.41 ms |  |  | 7.87 | 7.87 |  |  |  |  | 687.4% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-charts | EPPlus | 51.29 ms | 4.51 ms | 2.60 ms | 10.25 | 10.25 | 27072.7 KB | 16.03 |  |  | 924.7% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-conditional-formatting | OfficeIMO.Excel | 3.93 ms | 0.23 ms | 0.14 ms | 1.00 | 1.00 | 1236.8 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-conditional-formatting | ClosedXML | 30.67 ms | 0.65 ms | 0.37 ms | 7.80 | 7.80 | 22265.8 KB | 18.00 |  |  | 679.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-conditional-formatting | EPPlus 4.5.3.3 | 39.96 ms |  |  | 10.16 | 10.16 |  |  |  |  | 916.3% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-conditional-formatting | EPPlus | 47.48 ms | 0.18 ms | 0.10 ms | 12.08 | 12.08 | 24690.0 KB | 19.96 |  |  | 1107.7% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-data-validation | OfficeIMO.Excel | 3.67 ms | 0.15 ms | 0.09 ms | 1.00 | 1.00 | 1187.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-data-validation | ClosedXML | 29.63 ms | 0.37 ms | 0.22 ms | 8.07 | 8.07 | 22239.9 KB | 18.73 |  |  | 706.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-data-validation | EPPlus 4.5.3.3 | 42.20 ms |  |  | 11.49 | 11.49 |  |  |  |  | 1049.3% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-data-validation | EPPlus | 46.03 ms | 0.78 ms | 0.45 ms | 12.54 | 12.54 | 24632.9 KB | 20.74 |  |  | 1153.7% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-freeze-panes | OfficeIMO.Excel | 3.46 ms | 0.04 ms | 0.02 ms | 1.00 | 1.00 | 1174.1 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-freeze-panes | ClosedXML | 28.29 ms | 0.30 ms | 0.17 ms | 8.17 | 8.17 | 22214.0 KB | 18.92 |  |  | 717.1% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-freeze-panes | EPPlus 4.5.3.3 | 38.40 ms |  |  | 11.09 | 11.09 |  |  |  |  | 1009.3% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-freeze-panes | EPPlus | 44.71 ms | 0.52 ms | 0.30 ms | 12.92 | 12.92 | 24660.4 KB | 21.00 |  |  | 1191.6% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-pivot-table | OfficeIMO.Excel | 16.56 ms | 0.05 ms | 0.03 ms | 1.00 | 1.00 | 18627.9 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-pivot-table | EPPlus 4.5.3.3 | 37.41 ms |  |  | 2.26 | 2.26 |  |  |  |  | 125.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-pivot-table | EPPlus | 50.71 ms | 0.60 ms | 0.35 ms | 3.06 | 3.06 | 29469.8 KB | 1.58 |  |  | 206.1% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-report-all-in-one | OfficeIMO.Excel | 18.59 ms | 0.36 ms | 0.21 ms | 1.00 | 1.00 | 19412.9 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-report-all-in-one | EPPlus | 58.40 ms | 1.98 ms | 1.15 ms | 3.14 | 3.14 | 54522.6 KB | 2.81 |  |  | 214.2% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-report-all-in-one | EPPlus 4.5.3.3 | 76.95 ms |  |  | 4.14 | 4.14 |  |  |  |  | 313.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-report-core | OfficeIMO.Excel | 4.15 ms | 0.05 ms | 0.03 ms | 1.00 | 1.00 | 1319.1 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | realworld-report-core | EPPlus | 61.69 ms | 0.47 ms | 0.27 ms | 14.85 | 14.85 | 47227.1 KB | 35.80 |  |  | 1384.8% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-report-core | EPPlus 4.5.3.3 | 73.14 ms |  |  | 17.60 | 17.60 |  |  |  |  | 1660.3% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | realworld-report-core | ClosedXML | 75.83 ms | 1.23 ms | 0.71 ms | 18.25 | 18.25 | 69825.6 KB | 52.93 |  |  | 1725.2% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | report-workbook | OfficeIMO.Excel | 15.21 ms | 1.13 ms | 0.65 ms | 1.00 | 1.00 | 12228.4 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | report-workbook | EPPlus | 92.76 ms | 3.31 ms | 1.91 ms | 6.10 | 6.10 | 77408.8 KB | 6.33 |  |  | 509.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | report-workbook | EPPlus 4.5.3.3 | 105.14 ms |  |  | 6.91 | 6.91 |  |  |  |  | 591.3% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | report-workbook-core | OfficeIMO.Excel | 5.79 ms | 0.02 ms | 0.01 ms | 1.00 | 1.00 | 2375.5 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Other | report-workbook-core | EPPlus | 79.26 ms | 3.75 ms | 2.17 ms | 13.69 | 13.69 | 71893.6 KB | 30.26 |  |  | 1269.4% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | report-workbook-core | ClosedXML | 98.36 ms | 2.94 ms | 1.70 ms | 16.99 | 16.99 | 97210.4 KB | 40.92 |  |  | 1599.4% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Other | report-workbook-core | EPPlus 4.5.3.3 | 98.91 ms |  |  | 17.09 | 17.09 |  |  |  |  | 1609.0% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Range and table read | enumerate-cells | OfficeIMO.Excel | 7.92 ms | 0.08 ms | 0.04 ms | 1.00 | 1.00 | 2649.2 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Range and table read | enumerate-cells | EPPlus | 27.96 ms | 4.98 ms | 2.88 ms | 3.53 | 3.53 | 20154.4 KB | 7.61 |  |  | 252.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Range and table read | enumerate-cells | ClosedXML | 29.81 ms | 0.66 ms | 0.38 ms | 3.76 | 3.76 | 17018.2 KB | 6.42 |  |  | 276.3% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | OfficeIMO.Excel | 4.83 ms | 0.10 ms | 0.06 ms | 1.00 | 1.00 | 643.4 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | EPPlus | 23.00 ms | 0.31 ms | 0.18 ms | 4.76 | 4.76 | 13107.5 KB | 20.37 |  |  | 375.9% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | ClosedXML | 30.15 ms | 1.00 ms | 0.58 ms | 6.24 | 6.24 | 15455.9 KB | 24.02 |  |  | 523.8% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Range and table read | enumerate-range | OfficeIMO.Excel | 8.36 ms | 0.36 ms | 0.21 ms | 1.00 | 1.00 | 2649.2 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Range and table read | enumerate-range | EPPlus | 27.50 ms | 4.47 ms | 2.58 ms | 3.29 | 3.29 | 20154.4 KB | 7.61 |  |  | 229.0% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Range and table read | enumerate-range | ClosedXML | 28.87 ms | 0.31 ms | 0.18 ms | 3.45 | 3.45 | 17018.9 KB | 6.42 |  |  | 245.4% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Range and table read | enumerate-top-range | OfficeIMO.Excel | 1.69 ms | 0.06 ms | 0.03 ms | 1.00 | 1.00 | 402.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | other | Range and table read | enumerate-top-range | EPPlus | 23.03 ms | 0.57 ms | 0.33 ms | 13.62 | 13.62 | 12403.9 KB | 30.81 |  |  | 1261.5% slower than OfficeIMO |
-| 2500 | speed-comparison | other | Range and table read | enumerate-top-range | ClosedXML | 28.74 ms | 0.52 ms | 0.30 ms | 16.99 | 16.99 | 15368.8 KB | 38.17 |  |  | 1599.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | OfficeIMO.Excel | 3.33 ms | 0.12 ms | 0.07 ms | 1.00 | 1.00 | 777.4 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | ClosedXML | 16.25 ms | 0.36 ms | 0.21 ms | 4.88 | 4.88 | 8271.4 KB | 10.64 |  |  | 388.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | EPPlus 4.5.3.3 | 17.44 ms |  |  | 5.24 | 5.24 |  |  |  |  | 423.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | EPPlus | 18.86 ms | 1.53 ms | 0.89 ms | 5.67 | 5.67 | 7707.5 KB | 9.91 |  |  | 466.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-column-read | Sylvan.Data.Excel | 1.01 ms | 0.03 ms | 0.02 ms | 0.58 | 1.00 | 316.6 KB | 1.27 |  |  | 42.0% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-column-read | ExcelDataReader | 1.51 ms | 0.13 ms | 0.07 ms | 0.87 | 1.50 | 4046.2 KB | 16.26 |  |  | 13.0% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-column-read | OfficeIMO.Excel | 1.73 ms | 0.21 ms | 0.12 ms | 1.00 | 1.72 | 248.8 KB | 1.00 |  |  | Loss +72.4% |
-| 2500 | speed-comparison | read | Other | large-sparse-column-read | ClosedXML | 3.27 ms | 0.06 ms | 0.03 ms | 1.89 | 3.26 | 4392.9 KB | 17.65 |  |  | 88.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-column-read | MiniExcel | 10.85 ms | 0.28 ms | 0.16 ms | 6.26 | 10.79 | 46189.1 KB | 185.63 |  |  | 526.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-column-read | EPPlus 4.5.3.3 | 11.98 ms |  |  | 6.92 | 11.92 |  |  |  |  | 591.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-column-read | EPPlus | 38.09 ms | 1.35 ms | 0.78 ms | 21.98 | 37.89 | 43070.2 KB | 173.09 |  |  | 2098.2% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-row-read | Sylvan.Data.Excel | 0.99 ms | 0.04 ms | 0.02 ms | 0.42 | 1.00 | 316.6 KB | 1.27 |  |  | 58.3% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-row-read | ExcelDataReader | 1.48 ms | 0.07 ms | 0.04 ms | 0.62 | 1.48 | 4046.2 KB | 16.26 |  |  | 38.0% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-row-read | OfficeIMO.Excel | 2.38 ms | 0.63 ms | 0.36 ms | 1.00 | 2.40 | 248.9 KB | 1.00 |  |  | Loss +139.6% |
-| 2500 | speed-comparison | read | Other | large-sparse-row-read | ClosedXML | 3.20 ms | 0.05 ms | 0.03 ms | 1.34 | 3.21 | 4392.7 KB | 17.65 |  |  | 34.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-row-read | EPPlus 4.5.3.3 | 10.94 ms |  |  | 4.59 | 10.99 |  |  |  |  | 358.8% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-row-read | MiniExcel | 11.27 ms | 1.32 ms | 0.76 ms | 4.73 | 11.33 | 46189.1 KB | 185.57 |  |  | 372.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | large-sparse-row-read | EPPlus | 39.79 ms | 3.37 ms | 1.95 ms | 16.69 | 39.99 | 43070.2 KB | 173.04 |  |  | 1568.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | shared-string-read | Sylvan.Data.Excel | 2.08 ms | 0.19 ms | 0.11 ms | 0.60 | 1.00 | 518.6 KB | 0.46 |  |  | 40.2% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Other | shared-string-read | OfficeIMO.Excel | 3.47 ms | 0.06 ms | 0.04 ms | 1.00 | 1.67 | 1133.5 KB | 1.00 |  |  | Loss +67.1% |
-| 2500 | speed-comparison | read | Other | shared-string-read | ExcelDataReader | 4.73 ms | 0.44 ms | 0.26 ms | 1.36 | 2.28 | 2603.0 KB | 2.30 |  |  | 36.3% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | shared-string-read | MiniExcel | 5.80 ms | 0.65 ms | 0.37 ms | 1.67 | 2.79 | 7524.7 KB | 6.64 |  |  | 67.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | shared-string-read | EPPlus 4.5.3.3 | 14.28 ms |  |  | 4.11 | 6.87 |  |  |  |  | 311.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | shared-string-read | ClosedXML | 15.21 ms | 1.97 ms | 1.14 ms | 4.38 | 7.32 | 9498.0 KB | 8.38 |  |  | 338.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Other | shared-string-read | EPPlus | 17.88 ms | 1.78 ms | 1.03 ms | 5.15 | 8.61 | 10371.6 KB | 9.15 |  |  | 414.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-bottom-range | Sylvan.Data.Excel | 4.43 ms | 0.21 ms | 0.12 ms | 0.89 | 1.00 | 655.2 KB | 1.32 |  |  | 11.0% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-bottom-range | OfficeIMO.Excel | 4.98 ms | 0.30 ms | 0.18 ms | 1.00 | 1.12 | 494.6 KB | 1.00 |  |  | Loss +12.4% |
-| 2500 | speed-comparison | read | Range and table read | read-bottom-range | ExcelDataReader | 10.87 ms | 0.78 ms | 0.45 ms | 2.18 | 2.45 | 6081.3 KB | 12.30 |  |  | 118.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-bottom-range | MiniExcel | 13.55 ms | 1.38 ms | 0.80 ms | 2.72 | 3.06 | 18651.2 KB | 37.71 |  |  | 171.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-bottom-range | EPPlus | 23.27 ms | 1.72 ms | 1.00 ms | 4.67 | 5.25 | 12426.5 KB | 25.13 |  |  | 366.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-bottom-range | ClosedXML | 28.54 ms | 0.64 ms | 0.37 ms | 5.73 | 6.44 | 15356.9 KB | 31.05 |  |  | 472.6% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-datatable | Sylvan.Data.Excel | 6.36 ms | 0.19 ms | 0.11 ms | 0.75 | 1.00 | 2239.3 KB | 0.60 |  |  | 25.0% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-datatable | OfficeIMO.Excel | 8.48 ms | 1.59 ms | 0.92 ms | 1.00 | 1.33 | 3714.5 KB | 1.00 |  |  | Loss +33.3% |
-| 2500 | speed-comparison | read | Range and table read | read-datatable | ExcelDataReader | 12.54 ms | 0.58 ms | 0.33 ms | 1.48 | 1.97 | 7665.3 KB | 2.06 |  |  | 47.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-datatable | MiniExcel | 13.53 ms | 1.19 ms | 0.69 ms | 1.59 | 2.13 | 18255.8 KB | 4.91 |  |  | 59.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-datatable | ClosedXML | 31.55 ms | 1.04 ms | 0.60 ms | 3.72 | 4.96 | 18311.6 KB | 4.93 |  |  | 272.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-datatable | EPPlus | 32.84 ms | 4.63 ms | 2.67 ms | 3.87 | 5.16 | 21736.0 KB | 5.85 |  |  | 287.3% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-datatable | EPPlus 4.5.3.3 | 38.04 ms |  |  | 4.48 | 5.98 |  |  |  |  | 348.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | Sylvan.Data.Excel | 4.81 ms | 0.03 ms | 0.02 ms | 0.97 | 1.00 | 733.5 KB | 1.11 |  |  | 2.6% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | OfficeIMO.Excel | 4.93 ms | 0.12 ms | 0.07 ms | 1.00 | 1.03 | 663.0 KB | 1.00 |  |  | Loss +2.7% |
-| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | MiniExcel | 10.33 ms | 0.86 ms | 0.50 ms | 2.09 | 2.15 | 15842.3 KB | 23.89 |  |  | 109.3% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | ExcelDataReader | 10.76 ms | 0.24 ms | 0.14 ms | 2.18 | 2.24 | 6081.3 KB | 9.17 |  |  | 118.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | EPPlus | 21.94 ms | 0.21 ms | 0.12 ms | 4.45 | 4.57 | 13107.6 KB | 19.77 |  |  | 344.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | ClosedXML | 29.16 ms | 0.44 ms | 0.26 ms | 5.91 | 6.07 | 15456.0 KB | 23.31 |  |  | 490.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range | OfficeIMO.Excel | 11.83 ms | 0.72 ms | 0.42 ms | 1.00 | 1.00 | 2812.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | read | Range and table read | read-range | Sylvan.Data.Excel | 14.26 ms | 0.90 ms | 0.52 ms | 1.21 | 1.21 | 654.9 KB | 0.23 |  |  | 20.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range | MiniExcel | 25.82 ms | 5.60 ms | 3.23 ms | 2.18 | 2.18 | 18651.4 KB | 6.63 |  |  | 118.3% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range | ExcelDataReader | 26.47 ms | 4.35 ms | 2.51 ms | 2.24 | 2.24 | 6081.0 KB | 2.16 |  |  | 123.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range | EPPlus | 34.88 ms | 7.21 ms | 4.16 ms | 2.95 | 2.95 | 20152.0 KB | 7.16 |  |  | 194.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range | EPPlus 4.5.3.3 | 35.77 ms |  |  | 3.02 | 3.02 |  |  |  |  | 202.4% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range | ClosedXML | 73.80 ms | 19.95 ms | 11.52 ms | 6.24 | 6.24 | 16843.3 KB | 5.99 |  |  | 523.8% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range-decimal | Sylvan.Data.Excel | 5.65 ms | 0.05 ms | 0.03 ms | 0.69 | 1.00 | 750.3 KB | 0.26 |  |  | 30.9% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range-decimal | OfficeIMO.Excel | 8.17 ms | 2.32 ms | 1.34 ms | 1.00 | 1.45 | 2871.4 KB | 1.00 |  |  | Loss +44.6% |
-| 2500 | speed-comparison | read | Range and table read | read-range-decimal | ExcelDataReader | 10.78 ms | 0.06 ms | 0.04 ms | 1.32 | 1.91 | 6081.3 KB | 2.12 |  |  | 31.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range-decimal | MiniExcel | 12.62 ms | 0.46 ms | 0.26 ms | 1.54 | 2.23 | 18651.7 KB | 6.50 |  |  | 54.4% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range-decimal | EPPlus | 27.98 ms | 4.10 ms | 2.37 ms | 3.42 | 4.95 | 20152.1 KB | 7.02 |  |  | 242.3% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-range-decimal | ClosedXML | 30.65 ms | 1.19 ms | 0.69 ms | 3.75 | 5.42 | 16726.0 KB | 5.83 |  |  | 275.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-top-range | Sylvan.Data.Excel | 0.52 ms | 0.11 ms | 0.07 ms | 0.33 | 1.00 | 348.4 KB | 0.84 |  |  | 66.9% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-top-range | MiniExcel | 0.90 ms | 0.18 ms | 0.10 ms | 0.58 | 1.75 | 858.3 KB | 2.06 |  |  | 42.1% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-top-range | OfficeIMO.Excel | 1.56 ms | 0.05 ms | 0.03 ms | 1.00 | 3.02 | 416.1 KB | 1.00 |  |  | Loss +201.9% |
-| 2500 | speed-comparison | read | Range and table read | read-top-range | ExcelDataReader | 4.61 ms | 0.31 ms | 0.18 ms | 2.95 | 8.92 | 1923.6 KB | 4.62 |  |  | 195.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-top-range | EPPlus | 26.65 ms | 5.30 ms | 3.06 ms | 17.08 | 51.56 | 12401.5 KB | 29.81 |  |  | 1608.2% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-top-range | ClosedXML | 30.08 ms | 1.48 ms | 0.86 ms | 19.28 | 58.20 | 15357.4 KB | 36.91 |  |  | 1828.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-top-range | EPPlus 4.5.3.3 | 31.81 ms |  |  | 20.39 | 61.55 |  |  |  |  | 1939.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-used-range | Sylvan.Data.Excel | 5.00 ms | 0.01 ms | 0.01 ms | 0.34 | 1.00 | 655.2 KB | 0.19 |  |  | 65.6% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-used-range | MiniExcel | 13.80 ms | 2.81 ms | 1.62 ms | 0.95 | 2.76 | 18651.7 KB | 5.28 |  |  | 5.2% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-used-range | OfficeIMO.Excel | 14.55 ms | 0.43 ms | 0.25 ms | 1.00 | 2.91 | 3535.1 KB | 1.00 |  |  | Loss +191.0% |
-| 2500 | speed-comparison | read | Range and table read | read-used-range | ExcelDataReader | 14.99 ms | 7.06 ms | 4.07 ms | 1.03 | 3.00 | 6081.3 KB | 1.72 |  |  | 3.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-used-range | EPPlus | 33.20 ms | 4.96 ms | 2.86 ms | 2.28 | 6.64 | 20152.1 KB | 5.70 |  |  | 128.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Range and table read | read-used-range | ClosedXML | 70.35 ms | 34.47 ms | 19.90 ms | 4.83 | 14.07 | 16805.2 KB | 4.75 |  |  | 383.4% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | Sylvan.Data.Excel | 4.37 ms | 0.01 ms | 0.01 ms | 0.89 | 1.00 | 655.2 KB | 1.32 |  |  | 11.3% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | OfficeIMO.Excel | 4.93 ms | 0.09 ms | 0.05 ms | 1.00 | 1.13 | 497.9 KB | 1.00 |  |  | Loss +12.7% |
-| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | ExcelDataReader | 10.58 ms | 0.08 ms | 0.05 ms | 2.15 | 2.42 | 6081.5 KB | 12.21 |  |  | 114.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | MiniExcel | 13.35 ms | 1.56 ms | 0.90 ms | 2.71 | 3.05 | 18651.2 KB | 37.46 |  |  | 170.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | EPPlus | 22.38 ms | 0.32 ms | 0.19 ms | 4.54 | 5.12 | 12426.5 KB | 24.96 |  |  | 354.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | ClosedXML | 29.16 ms | 1.30 ms | 0.75 ms | 5.91 | 6.67 | 15357.9 KB | 30.84 |  |  | 491.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-range-stream | Sylvan.Data.Excel | 4.94 ms | 0.11 ms | 0.06 ms | 0.57 | 1.00 | 655.2 KB | 0.23 |  |  | 43.2% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-range-stream | OfficeIMO.Excel | 8.69 ms | 2.65 ms | 1.53 ms | 1.00 | 1.76 | 2891.5 KB | 1.00 |  |  | Loss +76.0% |
-| 2500 | speed-comparison | read | Streaming read | read-range-stream | ExcelDataReader | 11.25 ms | 0.53 ms | 0.31 ms | 1.30 | 2.28 | 6081.3 KB | 2.10 |  |  | 29.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-range-stream | MiniExcel | 12.31 ms | 0.59 ms | 0.34 ms | 1.42 | 2.49 | 18651.7 KB | 6.45 |  |  | 41.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-range-stream | EPPlus | 29.21 ms | 5.14 ms | 2.97 ms | 3.36 | 5.92 | 20152.0 KB | 6.97 |  |  | 236.2% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-range-stream | ClosedXML | 30.93 ms | 1.41 ms | 0.81 ms | 3.56 | 6.27 | 16725.7 KB | 5.78 |  |  | 256.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-range-stream | EPPlus 4.5.3.3 | 32.64 ms |  |  | 3.76 | 6.61 |  |  |  |  | 275.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | Sylvan.Data.Excel | 0.44 ms | 0.00 ms | 0.00 ms | 0.29 | 1.00 | 348.5 KB | 0.83 |  |  | 70.7% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | MiniExcel | 0.78 ms | 0.05 ms | 0.03 ms | 0.52 | 1.79 | 858.3 KB | 2.05 |  |  | 47.6% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | OfficeIMO.Excel | 1.49 ms | 0.05 ms | 0.03 ms | 1.00 | 3.42 | 419.5 KB | 1.00 |  |  | Loss +241.8% |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | ExcelDataReader | 4.27 ms | 0.08 ms | 0.04 ms | 2.86 | 9.76 | 1923.7 KB | 4.59 |  |  | 185.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | EPPlus | 22.65 ms | 1.10 ms | 0.63 ms | 15.16 | 51.82 | 12401.5 KB | 29.56 |  |  | 1416.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | ClosedXML | 28.80 ms | 1.81 ms | 1.05 ms | 19.28 | 65.88 | 15357.8 KB | 36.61 |  |  | 1827.7% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | EPPlus 4.5.3.3 | 29.40 ms |  |  | 19.68 | 67.26 |  |  |  |  | 1868.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | Sylvan.Data.Excel | 0.46 ms | 0.03 ms | 0.01 ms | 0.29 | 1.00 | 348.5 KB | 0.83 |  |  | 71.4% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | MiniExcel | 0.73 ms | 0.00 ms | 0.00 ms | 0.46 | 1.60 | 858.3 KB | 2.04 |  |  | 54.2% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | OfficeIMO.Excel | 1.60 ms | 0.06 ms | 0.03 ms | 1.00 | 3.49 | 420.2 KB | 1.00 |  |  | Loss +249.3% |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | ExcelDataReader | 4.30 ms | 0.05 ms | 0.03 ms | 2.68 | 9.36 | 1923.7 KB | 4.58 |  |  | 167.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | EPPlus | 21.95 ms | 1.13 ms | 0.65 ms | 13.68 | 47.77 | 12401.5 KB | 29.51 |  |  | 1267.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | ClosedXML | 28.60 ms | 1.10 ms | 0.64 ms | 17.82 | 62.24 | 15357.4 KB | 36.54 |  |  | 1681.8% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects | Sylvan.Data.Excel | 6.80 ms | 3.32 ms | 1.92 ms | 0.86 | 1.00 | 895.3 KB | 0.35 |  |  | 14.0% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects | OfficeIMO.Excel | 7.90 ms | 1.84 ms | 1.06 ms | 1.00 | 1.16 | 2562.1 KB | 1.00 |  |  | Loss +16.2% |
-| 2500 | speed-comparison | read | Typed object read | read-objects | ExcelDataReader | 12.76 ms | 3.59 ms | 2.07 ms | 1.61 | 1.88 | 6321.5 KB | 2.47 |  |  | 61.5% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects | MiniExcel | 13.90 ms | 0.71 ms | 0.41 ms | 1.76 | 2.04 | 18463.3 KB | 7.21 |  |  | 75.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects | ClosedXML | 29.64 ms | 1.60 ms | 0.92 ms | 3.75 | 4.36 | 16922.5 KB | 6.61 |  |  | 275.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects | EPPlus | 30.86 ms | 8.69 ms | 5.02 ms | 3.91 | 4.54 | 21353.7 KB | 8.33 |  |  | 290.6% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects | EPPlus 4.5.3.3 | 33.35 ms |  |  | 4.22 | 4.91 |  |  |  |  | 322.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects-stream | Sylvan.Data.Excel | 4.94 ms | 0.17 ms | 0.10 ms | 0.85 | 1.00 | 831.0 KB | 0.32 |  |  | 15.1% faster than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects-stream | OfficeIMO.Excel | 5.81 ms | 0.16 ms | 0.09 ms | 1.00 | 1.18 | 2562.4 KB | 1.00 |  |  | Loss +17.8% |
-| 2500 | speed-comparison | read | Typed object read | read-objects-stream | ExcelDataReader | 11.16 ms | 0.39 ms | 0.22 ms | 1.92 | 2.26 | 6257.2 KB | 2.44 |  |  | 92.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects-stream | MiniExcel | 13.42 ms | 0.51 ms | 0.29 ms | 2.31 | 2.72 | 18399.1 KB | 7.18 |  |  | 130.9% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects-stream | EPPlus | 28.75 ms | 5.57 ms | 3.21 ms | 4.95 | 5.82 | 21334.1 KB | 8.33 |  |  | 394.6% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects-stream | ClosedXML | 29.20 ms | 1.49 ms | 0.86 ms | 5.02 | 5.91 | 16903.3 KB | 6.60 |  |  | 402.2% slower than OfficeIMO |
-| 2500 | speed-comparison | read | Typed object read | read-objects-stream | EPPlus 4.5.3.3 | 32.83 ms |  |  | 5.65 | 6.65 |  |  |  |  | 464.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | OfficeIMO.Excel | 5.40 ms | 0.87 ms | 0.50 ms | 1.00 | 1.00 | 1452.7 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | MiniExcel | 13.86 ms | 5.13 ms | 2.96 ms | 2.57 | 2.57 | 26638.3 KB | 18.34 |  |  | 156.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | EPPlus | 71.32 ms | 2.61 ms | 1.51 ms | 13.22 | 13.22 | 38271.2 KB | 26.34 |  |  | 1221.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | EPPlus 4.5.3.3 | 73.95 ms |  |  | 13.71 | 13.71 |  |  |  |  | 1270.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | ClosedXML | 90.59 ms | 3.46 ms | 2.00 ms | 16.79 | 16.79 | 58353.7 KB | 40.17 |  |  | 1579.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | OfficeIMO.Excel | 6.35 ms | 0.40 ms | 0.23 ms | 1.00 | 1.00 | 1591.1 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | MiniExcel | 17.92 ms | 1.72 ms | 0.99 ms | 2.82 | 2.82 | 32319.6 KB | 20.31 |  |  | 182.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | EPPlus | 116.48 ms | 18.62 ms | 10.75 ms | 18.33 | 18.33 | 43362.1 KB | 27.25 |  |  | 1733.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | ClosedXML | 231.05 ms | 28.08 ms | 16.21 ms | 36.36 | 36.36 | 56700.2 KB | 35.63 |  |  | 3536.4% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | OfficeIMO.Excel | 4.42 ms | 0.38 ms | 0.22 ms | 1.00 | 1.00 | 1178.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | EPPlus | 73.80 ms | 9.17 ms | 5.29 ms | 16.68 | 16.68 | 38271.3 KB | 32.47 |  |  | 1568.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | ClosedXML | 91.44 ms | 29.22 ms | 16.87 ms | 20.67 | 20.67 | 50919.4 KB | 43.20 |  |  | 1967.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | OfficeIMO.Excel | 4.45 ms | 0.20 ms | 0.11 ms | 1.00 | 1.00 | 1176.8 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | EPPlus | 60.80 ms | 2.51 ms | 1.45 ms | 13.66 | 13.66 | 38271.3 KB | 32.52 |  |  | 1266.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | ClosedXML | 68.27 ms | 5.21 ms | 3.01 ms | 15.34 | 15.34 | 50919.3 KB | 43.27 |  |  | 1434.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | OfficeIMO.Excel | 4.23 ms | 0.38 ms | 0.22 ms | 1.00 | 1.00 | 1177.9 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | ClosedXML | 49.91 ms | 7.10 ms | 4.10 ms | 11.80 | 11.80 | 28532.3 KB | 24.22 |  |  | 1080.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | EPPlus | 58.72 ms | 3.30 ms | 1.91 ms | 13.89 | 13.89 | 27236.1 KB | 23.12 |  |  | 1288.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | OfficeIMO.Excel | 2.91 ms | 0.11 ms | 0.06 ms | 1.00 | 1.00 | 1454.0 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | ClosedXML | 16.46 ms | 4.25 ms | 2.45 ms | 5.67 | 5.67 | 9951.5 KB | 6.84 |  |  | 466.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | EPPlus | 24.85 ms | 3.91 ms | 2.26 ms | 8.55 | 8.55 | 11703.6 KB | 8.05 |  |  | 755.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | OfficeIMO.Excel | 2.98 ms | 0.92 ms | 0.53 ms | 1.00 | 1.00 | 946.8 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | ClosedXML | 11.93 ms | 1.06 ms | 0.61 ms | 4.00 | 4.00 | 9169.1 KB | 9.68 |  |  | 299.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | EPPlus 4.5.3.3 | 15.35 ms |  |  | 5.14 | 5.14 |  |  |  |  | 414.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | EPPlus | 27.95 ms | 2.33 ms | 1.35 ms | 9.37 | 9.37 | 12829.2 KB | 13.55 |  |  | 836.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | OfficeIMO.Excel | 2.90 ms | 0.03 ms | 0.02 ms | 1.00 | 1.00 | 1431.4 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | EPPlus 4.5.3.3 | 18.26 ms |  |  | 6.29 | 6.29 |  |  |  |  | 529.4% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | ClosedXML | 19.84 ms | 2.85 ms | 1.65 ms | 6.84 | 6.84 | 11879.0 KB | 8.30 |  |  | 583.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | EPPlus | 29.60 ms | 2.38 ms | 1.37 ms | 10.20 | 10.20 | 15577.1 KB | 10.88 |  |  | 920.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | OfficeIMO.Excel | 4.69 ms | 1.65 ms | 0.95 ms | 1.00 | 1.00 | 1271.0 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | ClosedXML | 16.30 ms | 2.41 ms | 1.39 ms | 3.47 | 3.47 | 11288.3 KB | 8.88 |  |  | 247.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | EPPlus | 30.71 ms | 5.22 ms | 3.01 ms | 6.55 | 6.55 | 14894.0 KB | 11.72 |  |  | 554.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | OfficeIMO.Excel | 3.26 ms | 0.42 ms | 0.24 ms | 1.00 | 1.00 | 1271.1 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | ClosedXML | 15.47 ms | 2.05 ms | 1.18 ms | 4.74 | 4.74 | 11288.3 KB | 8.88 |  |  | 374.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | EPPlus | 27.73 ms | 1.60 ms | 0.92 ms | 8.50 | 8.50 | 14894.0 KB | 11.72 |  |  | 750.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | OfficeIMO.Excel | 2.65 ms | 0.43 ms | 0.25 ms | 1.00 | 1.00 | 964.9 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | ClosedXML | 11.44 ms | 0.37 ms | 0.21 ms | 4.32 | 4.32 | 9013.2 KB | 9.34 |  |  | 331.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | EPPlus 4.5.3.3 | 16.51 ms |  |  | 6.23 | 6.23 |  |  |  |  | 523.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | EPPlus | 26.49 ms | 5.76 ms | 3.33 ms | 10.00 | 10.00 | 12761.4 KB | 13.23 |  |  | 899.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | OfficeIMO.Excel | 3.28 ms | 0.23 ms | 0.13 ms | 1.00 | 1.00 | 1262.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | ClosedXML | 15.48 ms | 0.24 ms | 0.14 ms | 4.72 | 4.72 | 9703.1 KB | 7.69 |  |  | 371.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | EPPlus 4.5.3.3 | 17.51 ms |  |  | 5.34 | 5.34 |  |  |  |  | 433.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | EPPlus | 25.73 ms | 1.57 ms | 0.90 ms | 7.84 | 7.84 | 14654.6 KB | 11.61 |  |  | 684.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | OfficeIMO.Excel | 5.53 ms | 0.33 ms | 0.19 ms | 1.00 | 1.00 | 1576.3 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | MiniExcel | 15.07 ms | 4.70 ms | 2.71 ms | 2.73 | 2.73 | 29038.3 KB | 18.42 |  |  | 172.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | ClosedXML | 44.46 ms | 6.13 ms | 3.54 ms | 8.05 | 8.05 | 18905.4 KB | 11.99 |  |  | 704.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | EPPlus | 58.18 ms | 5.69 ms | 3.29 ms | 10.53 | 10.53 | 17634.2 KB | 11.19 |  |  | 953.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | OfficeIMO.Excel | 8.58 ms | 1.50 ms | 0.87 ms | 1.00 | 1.00 | 2392.1 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | MiniExcel | 12.68 ms | 0.78 ms | 0.45 ms | 1.48 | 1.48 | 29737.9 KB | 12.43 |  |  | 47.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | ClosedXML | 57.84 ms | 4.08 ms | 2.36 ms | 6.74 | 6.74 | 27402.4 KB | 11.46 |  |  | 574.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | EPPlus | 58.03 ms | 7.74 ms | 4.47 ms | 6.76 | 6.76 | 21826.0 KB | 9.12 |  |  | 576.4% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | OfficeIMO.Excel | 5.44 ms | 0.56 ms | 0.32 ms | 1.00 | 1.00 | 1579.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | MiniExcel | 18.88 ms | 5.27 ms | 3.04 ms | 3.47 | 3.47 | 29043.9 KB | 18.39 |  |  | 246.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | EPPlus 4.5.3.3 | 42.06 ms |  |  | 7.73 | 7.73 |  |  |  |  | 672.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | ClosedXML | 86.38 ms | 16.14 ms | 9.32 ms | 15.87 | 15.87 | 18870.3 KB | 11.95 |  |  | 1486.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | EPPlus | 89.88 ms | 3.72 ms | 2.15 ms | 16.51 | 16.51 | 19364.2 KB | 12.26 |  |  | 1550.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | OfficeIMO.Excel | 4.40 ms | 0.34 ms | 0.20 ms | 1.00 | 1.00 | 1446.4 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | MiniExcel | 10.69 ms | 1.93 ms | 1.11 ms | 2.43 | 2.43 | 23035.1 KB | 15.93 |  |  | 142.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | EPPlus 4.5.3.3 | 32.13 ms |  |  | 7.30 | 7.30 |  |  |  |  | 630.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | ClosedXML | 37.82 ms | 4.98 ms | 2.87 ms | 8.59 | 8.59 | 19001.4 KB | 13.14 |  |  | 759.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | EPPlus | 39.41 ms | 2.22 ms | 1.28 ms | 8.95 | 8.95 | 16579.4 KB | 11.46 |  |  | 795.4% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | OfficeIMO.Excel | 5.02 ms | 0.29 ms | 0.17 ms | 1.00 | 1.00 | 1420.2 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | LargeXlsx | 9.94 ms | 2.08 ms | 1.20 ms | 1.98 | 1.98 | 1141.0 KB | 0.80 |  |  | 98.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | MiniExcel | 11.92 ms | 3.35 ms | 1.94 ms | 2.37 | 2.37 | 23053.6 KB | 16.23 |  |  | 137.4% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | ClosedXML | 40.89 ms | 10.64 ms | 6.14 ms | 8.15 | 8.15 | 11573.0 KB | 8.15 |  |  | 714.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | EPPlus 4.5.3.3 | 41.55 ms |  |  | 8.28 | 8.28 |  |  |  |  | 727.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | EPPlus | 51.81 ms | 9.18 ms | 5.30 ms | 10.32 | 10.32 | 16580.6 KB | 11.67 |  |  | 932.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | OfficeIMO.Excel | 5.05 ms | 0.97 ms | 0.56 ms | 1.00 | 1.00 | 1158.8 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | MiniExcel | 9.14 ms | 1.90 ms | 1.10 ms | 1.81 | 1.81 | 22780.4 KB | 19.66 |  |  | 80.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | ClosedXML | 43.54 ms | 5.32 ms | 3.07 ms | 8.62 | 8.62 | 18726.0 KB | 16.16 |  |  | 761.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | EPPlus | 49.24 ms | 12.90 ms | 7.45 ms | 9.74 | 9.74 | 16307.0 KB | 14.07 |  |  | 874.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | OfficeIMO.Excel | 4.82 ms | 0.28 ms | 0.16 ms | 1.00 | 1.00 | 1432.2 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | MiniExcel | 9.28 ms | 1.09 ms | 0.63 ms | 1.93 | 1.93 | 23053.9 KB | 16.10 |  |  | 92.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | EPPlus 4.5.3.3 | 42.06 ms |  |  | 8.73 | 8.73 |  |  |  |  | 773.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | ClosedXML | 43.22 ms | 2.13 ms | 1.23 ms | 8.97 | 8.97 | 18999.7 KB | 13.27 |  |  | 797.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | EPPlus | 51.11 ms | 0.98 ms | 0.57 ms | 10.61 | 10.61 | 16580.5 KB | 11.58 |  |  | 961.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | OfficeIMO.Excel | 7.21 ms | 1.00 ms | 0.58 ms | 1.00 | 1.00 | 1234.7 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | MiniExcel | 17.56 ms | 4.52 ms | 2.61 ms | 2.44 | 2.44 | 26815.9 KB | 21.72 |  |  | 143.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | EPPlus 4.5.3.3 | 112.17 ms |  |  | 15.56 | 15.56 |  |  |  |  | 1455.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | EPPlus | 152.33 ms | 6.80 ms | 3.92 ms | 21.13 | 21.13 | 49086.2 KB | 39.76 |  |  | 2013.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | ClosedXML | 277.96 ms | 24.07 ms | 13.90 ms | 38.56 | 38.56 | 58343.1 KB | 47.25 |  |  | 3755.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Formula write/read | write-cellformula | OfficeIMO.Excel | 2.81 ms | 0.13 ms | 0.07 ms | 1.00 | 1.00 | 1409.1 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Formula write/read | write-cellformula | EPPlus 4.5.3.3 | 20.04 ms |  |  | 7.13 | 7.13 |  |  |  |  | 613.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Formula write/read | write-cellformula | ClosedXML | 21.99 ms | 6.20 ms | 3.58 ms | 7.82 | 7.82 | 12031.2 KB | 8.54 |  |  | 682.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Formula write/read | write-cellformula | EPPlus | 41.27 ms | 1.74 ms | 1.00 ms | 14.68 | 14.68 | 18036.5 KB | 12.80 |  |  | 1367.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-dictionary-objects-table-direct | OfficeIMO.Excel | 7.91 ms | 2.10 ms | 1.21 ms | 1.00 | 1.00 | 1723.0 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | LargeXlsx | 4.58 ms | 1.07 ms | 0.62 ms | 0.82 | 1.00 | 794.5 KB | 0.39 |  |  | 18.4% faster than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | OfficeIMO.Excel | 5.61 ms | 0.58 ms | 0.33 ms | 1.00 | 1.22 | 2013.3 KB | 1.00 |  |  | Loss +22.5% |
-| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | MiniExcel | 8.18 ms | 0.23 ms | 0.13 ms | 1.46 | 1.79 | 25181.4 KB | 12.51 |  |  | 45.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | ClosedXML | 39.16 ms | 2.36 ms | 1.36 ms | 6.98 | 8.55 | 16965.4 KB | 8.43 |  |  | 597.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | EPPlus | 47.42 ms | 4.62 ms | 2.67 ms | 8.45 | 10.35 | 20030.7 KB | 9.95 |  |  | 745.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | LargeXlsx | 4.33 ms | 0.40 ms | 0.23 ms | 0.80 | 1.00 | 794.5 KB | 0.59 |  |  | 19.6% faster than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | OfficeIMO.Excel | 5.39 ms | 0.48 ms | 0.28 ms | 1.00 | 1.24 | 1339.3 KB | 1.00 |  |  | Loss +24.3% |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | MiniExcel | 9.12 ms | 1.44 ms | 0.83 ms | 1.69 | 2.10 | 25181.4 KB | 18.80 |  |  | 69.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | ClosedXML | 38.16 ms | 4.16 ms | 2.40 ms | 7.08 | 8.81 | 16965.4 KB | 12.67 |  |  | 608.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | EPPlus | 48.34 ms | 5.86 ms | 3.39 ms | 8.97 | 11.16 | 20030.7 KB | 14.96 |  |  | 797.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | OfficeIMO.Excel | 20.40 ms | 2.88 ms | 1.66 ms | 1.00 | 1.00 | 4333.9 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | LargeXlsx | 21.01 ms | 2.53 ms | 1.46 ms | 1.03 | 1.03 | 2802.7 KB | 0.65 |  |  | 3.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | MiniExcel | 35.38 ms | 2.80 ms | 1.62 ms | 1.73 | 1.73 | 48404.7 KB | 11.17 |  |  | 73.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | ClosedXML | 122.84 ms | 8.17 ms | 4.72 ms | 6.02 | 6.02 | 51639.0 KB | 11.92 |  |  | 502.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | EPPlus | 174.10 ms | 5.06 ms | 2.92 ms | 8.54 | 8.54 | 69073.3 KB | 15.94 |  |  | 753.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | LargeXlsx | 1.37 ms | 0.05 ms | 0.03 ms | 0.55 | 1.00 | 288.4 KB | 0.17 |  |  | 44.6% faster than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | OfficeIMO.Excel | 2.47 ms | 0.05 ms | 0.03 ms | 1.00 | 1.81 | 1657.3 KB | 1.00 |  |  | Loss +80.6% |
-| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | MiniExcel | 3.88 ms | 0.02 ms | 0.01 ms | 1.57 | 2.83 | 19701.8 KB | 11.89 |  |  | 56.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | ClosedXML | 13.41 ms | 0.40 ms | 0.23 ms | 5.43 | 9.80 | 11189.4 KB | 6.75 |  |  | 442.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | EPPlus 4.5.3.3 | 20.76 ms |  |  | 8.40 | 15.17 |  |  |  |  | 740.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | EPPlus | 22.93 ms | 1.40 ms | 0.81 ms | 9.28 | 16.75 | 14283.5 KB | 8.62 |  |  | 827.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 1.30 ms | 0.06 ms | 0.03 ms | 0.78 | 1.00 | 439.0 KB | 0.48 |  |  | 21.9% faster than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 1.66 ms | 0.02 ms | 0.01 ms | 1.00 | 1.28 | 923.6 KB | 1.00 |  |  | Loss +28.0% |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | ClosedXML | 15.63 ms | 4.68 ms | 2.70 ms | 9.40 | 12.03 | 10227.8 KB | 11.07 |  |  | 840.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | EPPlus | 24.31 ms | 6.28 ms | 3.63 ms | 14.62 | 18.71 | 12985.2 KB | 14.06 |  |  | 1362.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | LargeXlsx | 3.65 ms | 0.21 ms | 0.12 ms | 0.79 | 1.00 | 750.2 KB | 0.43 |  |  | 21.2% faster than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 4.64 ms | 0.42 ms | 0.24 ms | 1.00 | 1.27 | 1752.7 KB | 1.00 |  |  | Loss +27.0% |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | MiniExcel | 10.89 ms | 1.15 ms | 0.66 ms | 2.35 | 2.98 | 23212.8 KB | 13.24 |  |  | 134.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | EPPlus 4.5.3.3 | 35.16 ms |  |  | 7.58 | 9.63 |  |  |  |  | 658.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | ClosedXML | 36.01 ms | 7.83 ms | 4.52 ms | 7.76 | 9.86 | 22213.3 KB | 12.67 |  |  | 676.4% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | EPPlus | 53.97 ms | 4.39 ms | 2.53 ms | 11.64 | 14.77 | 24626.6 KB | 14.05 |  |  | 1063.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | OfficeIMO.Excel | 2.43 ms | 0.05 ms | 0.03 ms | 1.00 | 1.00 | 1165.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | ClosedXML | 17.48 ms | 2.43 ms | 1.40 ms | 7.20 | 7.20 | 11288.3 KB | 9.68 |  |  | 619.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | EPPlus | 27.79 ms | 3.55 ms | 2.05 ms | 11.44 | 11.44 | 14893.8 KB | 12.78 |  |  | 1043.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | OfficeIMO.Excel | 5.34 ms | 0.99 ms | 0.57 ms | 1.00 | 1.00 | 1434.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | LargeXlsx | 7.74 ms | 3.30 ms | 1.91 ms | 1.45 | 1.45 | 1024.5 KB | 0.71 |  |  | 44.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | Sylvan.Data.Excel | 7.91 ms | 7.25 ms | 4.19 ms | 1.48 | 1.48 | 750.5 KB | 0.52 |  |  | 48.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | MiniExcel | 8.71 ms | 1.19 ms | 0.69 ms | 1.63 | 1.63 | 23034.8 KB | 16.06 |  |  | 63.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | EPPlus 4.5.3.3 | 33.37 ms |  |  | 6.24 | 6.24 |  |  |  |  | 524.4% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | ClosedXML | 34.33 ms | 7.08 ms | 4.09 ms | 6.42 | 6.42 | 11573.0 KB | 8.07 |  |  | 542.4% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | EPPlus | 44.66 ms | 8.81 ms | 5.09 ms | 8.36 | 8.36 | 16579.0 KB | 11.56 |  |  | 735.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | OfficeIMO.Excel | 5.41 ms | 0.46 ms | 0.27 ms | 1.00 | 1.00 | 1652.6 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | LargeXlsx | 10.34 ms | 0.73 ms | 0.42 ms | 1.91 | 1.91 | 1115.8 KB | 0.68 |  |  | 91.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | MiniExcel | 12.31 ms | 0.63 ms | 0.36 ms | 2.28 | 2.28 | 29737.9 KB | 17.99 |  |  | 127.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | ClosedXML | 58.39 ms | 7.33 ms | 4.23 ms | 10.80 | 10.80 | 27402.9 KB | 16.58 |  |  | 980.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | EPPlus | 65.19 ms | 4.47 ms | 2.58 ms | 12.06 | 12.06 | 21826.0 KB | 13.21 |  |  | 1106.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | OfficeIMO.Excel | 5.04 ms | 0.47 ms | 0.27 ms | 1.00 | 1.00 | 1508.4 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | LargeXlsx | 5.22 ms | 1.39 ms | 0.80 ms | 1.04 | 1.04 | 849.6 KB | 0.56 |  |  | 3.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | MiniExcel | 17.52 ms | 1.92 ms | 1.11 ms | 3.48 | 3.48 | 35910.0 KB | 23.81 |  |  | 247.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | ClosedXML | 96.02 ms | 3.24 ms | 1.87 ms | 19.04 | 19.04 | 71470.2 KB | 47.38 |  |  | 1804.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | large-shared-strings | OfficeIMO.Excel | 2.09 ms | 0.09 ms | 0.05 ms | 1.00 | 1.00 | 2111.9 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Shared string write | large-shared-strings | MiniExcel | 3.79 ms | 0.24 ms | 0.14 ms | 1.81 | 1.81 | 21128.5 KB | 10.00 |  |  | 81.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | large-shared-strings | ClosedXML | 11.41 ms | 0.54 ms | 0.31 ms | 5.45 | 5.45 | 11291.2 KB | 5.35 |  |  | 444.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | large-shared-strings | EPPlus 4.5.3.3 | 13.84 ms |  |  | 6.61 | 6.61 |  |  |  |  | 560.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | large-shared-strings | EPPlus | 20.79 ms | 0.50 ms | 0.29 ms | 9.93 | 9.93 | 12730.2 KB | 6.03 |  |  | 892.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | OfficeIMO.Excel | 2.99 ms | 0.10 ms | 0.06 ms | 1.00 | 1.00 | 2283.8 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | ClosedXML | 16.22 ms | 4.82 ms | 2.78 ms | 5.42 | 5.42 | 11291.2 KB | 4.94 |  |  | 441.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | EPPlus 4.5.3.3 | 17.27 ms |  |  | 5.77 | 5.77 |  |  |  |  | 476.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | EPPlus | 25.78 ms | 4.54 ms | 2.62 ms | 8.61 | 8.61 | 12730.1 KB | 5.57 |  |  | 760.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | OfficeIMO.Excel | 3.11 ms | 0.64 ms | 0.37 ms | 1.00 | 1.00 | 2206.1 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | ClosedXML | 20.50 ms | 3.64 ms | 2.10 ms | 6.58 | 6.58 | 13119.1 KB | 5.95 |  |  | 558.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | EPPlus | 28.35 ms | 2.03 ms | 1.17 ms | 9.10 | 9.10 | 13793.7 KB | 6.25 |  |  | 810.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | OfficeIMO.Excel | 2.57 ms | 0.62 ms | 0.36 ms | 1.00 | 1.00 | 1246.7 KB | 1.00 |  |  | Win |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | ClosedXML | 12.18 ms | 1.73 ms | 1.00 ms | 4.74 | 4.74 | 9218.5 KB | 7.39 |  |  | 374.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | EPPlus | 19.46 ms | 0.54 ms | 0.31 ms | 7.58 | 7.58 | 11265.6 KB | 9.04 |  |  | 657.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | LargeXlsx | 2.95 ms | 0.05 ms | 0.03 ms | 0.82 | 1.00 | 750.2 KB | 0.52 |  |  | 18.1% faster than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | OfficeIMO.Excel | 3.60 ms | 0.18 ms | 0.10 ms | 1.00 | 1.22 | 1440.7 KB | 1.00 |  |  | Loss +22.1% |
-| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | MiniExcel | 7.76 ms | 0.68 ms | 0.39 ms | 2.15 | 2.63 | 23213.3 KB | 16.11 |  |  | 115.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | ClosedXML | 25.77 ms | 0.27 ms | 0.15 ms | 7.15 | 8.73 | 11573.0 KB | 8.03 |  |  | 615.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | EPPlus | 34.21 ms | 0.18 ms | 0.10 ms | 9.50 | 11.60 | 16579.3 KB | 11.51 |  |  | 849.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | EPPlus 4.5.3.3 | 35.19 ms |  |  | 9.77 | 11.93 |  |  |  |  | 876.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | LargeXlsx | 3.50 ms | 0.14 ms | 0.08 ms | 0.76 | 1.00 | 750.2 KB | 0.64 |  |  | 24.0% faster than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | OfficeIMO.Excel | 4.60 ms | 1.02 ms | 0.59 ms | 1.00 | 1.32 | 1170.9 KB | 1.00 |  |  | Loss +31.5% |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | MiniExcel | 8.79 ms | 0.68 ms | 0.39 ms | 1.91 | 2.51 | 23213.3 KB | 19.83 |  |  | 90.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | ClosedXML | 31.75 ms | 1.39 ms | 0.81 ms | 6.90 | 9.07 | 11573.0 KB | 9.88 |  |  | 589.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | EPPlus 4.5.3.3 | 32.91 ms |  |  | 7.15 | 9.40 |  |  |  |  | 614.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | EPPlus | 45.59 ms | 7.64 ms | 4.41 ms | 9.90 | 13.02 | 16579.3 KB | 14.16 |  |  | 890.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | LargeXlsx | 3.15 ms | 0.15 ms | 0.09 ms | 0.68 | 1.00 | 750.2 KB | 0.64 |  |  | 32.4% faster than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | OfficeIMO.Excel | 4.66 ms | 0.12 ms | 0.07 ms | 1.00 | 1.48 | 1169.1 KB | 1.00 |  |  | Loss +47.8% |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | MiniExcel | 9.41 ms | 2.30 ms | 1.33 ms | 2.02 | 2.98 | 23213.3 KB | 19.86 |  |  | 101.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | ClosedXML | 28.99 ms | 2.16 ms | 1.25 ms | 6.22 | 9.19 | 11573.0 KB | 9.90 |  |  | 521.7% slower than OfficeIMO |
-| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | EPPlus | 41.06 ms | 3.13 ms | 1.81 ms | 8.81 | 13.02 | 16579.3 KB | 14.18 |  |  | 780.6% slower than OfficeIMO |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | OfficeIMO.Excel | 60.77 ms | 10.97 ms | 6.33 ms | 1.00 | 1.00 | 23699.6 KB | 1.00 |  |  | Win |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | Sylvan.Data.Excel | 61.82 ms | 4.31 ms | 2.49 ms | 1.02 | 1.02 | 394.1 KB | 0.02 |  |  | Tie vs OfficeIMO |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | ExcelDataReader | 164.62 ms | 37.31 ms | 21.54 ms | 2.71 | 2.71 | 69517.4 KB | 2.93 |  |  | 170.9% slower than OfficeIMO |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | MiniExcel | 208.69 ms | 44.53 ms | 25.71 ms | 3.43 | 3.43 | 215349.0 KB | 9.09 |  |  | 243.4% slower than OfficeIMO |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | Sylvan.Data.Excel | 47.40 ms | 14.26 ms | 8.24 ms | 0.81 | 1.00 | 394.1 KB | 0.02 |  |  | 18.7% faster than OfficeIMO |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | OfficeIMO.Excel | 58.28 ms | 13.32 ms | 7.69 ms | 1.00 | 1.23 | 24481.9 KB | 1.00 |  |  | Loss +22.9% |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | ExcelDataReader | 154.40 ms | 34.84 ms | 20.12 ms | 2.65 | 3.26 | 69517.4 KB | 2.84 |  |  | 165.0% slower than OfficeIMO |
-| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | MiniExcel | 202.82 ms | 45.80 ms | 26.44 ms | 3.48 | 4.28 | 215349.0 KB | 8.80 |  |  | 248.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | append-plain-rows | LargeXlsx | 14.09 ms | 3.29 ms | 1.90 ms | 0.68 | 1.00 | 2763.0 KB | 0.24 | 605.0 KB | 0.97 | 32.5% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | append-plain-rows | OfficeIMO.Excel | 20.87 ms | 7.00 ms | 4.04 ms | 1.00 | 1.48 | 11671.6 KB | 1.00 | 622.5 KB | 1.00 | Loss +48.1% |
-| 25000 | package-profile | package | Package size | append-plain-rows | MiniExcel | 40.13 ms | 16.84 ms | 9.72 ms | 1.92 | 2.85 | 58233.0 KB | 4.99 | 642.3 KB | 1.03 | 92.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | append-plain-rows | ClosedXML | 146.77 ms | 8.08 ms | 4.67 ms | 7.03 | 10.41 | 104225.1 KB | 8.93 | 540.6 KB | 0.87 | 603.2% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | append-plain-rows | EPPlus | 223.35 ms | 6.99 ms | 4.04 ms | 10.70 | 15.85 | 100275.4 KB | 8.59 | 525.6 KB | 0.84 | 970.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | autofit-existing | OfficeIMO.Excel | 342.58 ms | 13.12 ms | 7.58 ms | 1.00 | 1.00 | 138378.6 KB | 1.00 | 1429.3 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | autofit-existing | EPPlus | 464.86 ms | 24.15 ms | 13.94 ms | 1.36 | 1.36 | 250878.4 KB | 1.81 | 1091.0 KB | 0.76 | 35.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | autofit-existing | ClosedXML | 1356.48 ms | 124.28 ms | 71.75 ms | 3.96 | 3.96 | 829585.3 KB | 6.00 | 1140.9 KB | 0.80 | 296.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | large-shared-strings | OfficeIMO.Excel | 14.99 ms | 0.38 ms | 0.22 ms | 1.00 | 1.00 | 15416.5 KB | 1.00 | 529.7 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | large-shared-strings | MiniExcel | 31.72 ms | 2.11 ms | 1.22 ms | 2.12 | 2.12 | 73751.2 KB | 4.78 | 581.0 KB | 1.10 | 111.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | large-shared-strings | ClosedXML | 118.65 ms | 16.50 ms | 9.53 ms | 7.91 | 7.91 | 104233.3 KB | 6.76 | 460.1 KB | 0.87 | 691.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | large-shared-strings | EPPlus | 197.43 ms | 14.93 ms | 8.62 ms | 13.17 | 13.17 | 84343.7 KB | 5.47 | 444.7 KB | 0.84 | 1217.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-autofilter | OfficeIMO.Excel | 30.84 ms | 0.98 ms | 0.57 ms | 1.00 | 1.00 | 11326.3 KB | 1.00 | 1428.5 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | realworld-autofilter | ClosedXML | 286.03 ms | 1.36 ms | 0.78 ms | 9.27 | 9.27 | 210655.8 KB | 18.60 | 1140.0 KB | 0.80 | 827.4% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-autofilter | EPPlus | 336.19 ms | 3.33 ms | 1.92 ms | 10.90 | 10.90 | 211804.2 KB | 18.70 | 1090.1 KB | 0.76 | 990.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-charts | OfficeIMO.Excel | 41.92 ms | 2.52 ms | 1.45 ms | 1.00 | 1.00 | 12323.4 KB | 1.00 | 1433.6 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | realworld-charts | EPPlus | 428.40 ms | 7.50 ms | 4.33 ms | 10.22 | 10.22 | 214836.4 KB | 17.43 | 1092.9 KB | 0.76 | 922.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-conditional-formatting | OfficeIMO.Excel | 30.63 ms | 0.49 ms | 0.28 ms | 1.00 | 1.00 | 11391.3 KB | 1.00 | 1428.8 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | realworld-conditional-formatting | ClosedXML | 297.68 ms | 9.74 ms | 5.62 ms | 9.72 | 9.72 | 210703.7 KB | 18.50 | 1140.1 KB | 0.80 | 871.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-conditional-formatting | EPPlus | 362.33 ms | 6.22 ms | 3.59 ms | 11.83 | 11.83 | 211845.7 KB | 18.60 | 1090.2 KB | 0.76 | 1082.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-data-validation | OfficeIMO.Excel | 39.78 ms | 7.11 ms | 4.11 ms | 1.00 | 1.00 | 11342.1 KB | 1.00 | 1428.6 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | realworld-data-validation | ClosedXML | 352.17 ms | 40.89 ms | 23.61 ms | 8.85 | 8.85 | 210664.6 KB | 18.57 | 1140.1 KB | 0.80 | 785.2% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-data-validation | EPPlus | 438.54 ms | 6.83 ms | 3.94 ms | 11.02 | 11.02 | 211789.9 KB | 18.67 | 1090.1 KB | 0.76 | 1002.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-freeze-panes | OfficeIMO.Excel | 31.47 ms | 2.32 ms | 1.34 ms | 1.00 | 1.00 | 11331.2 KB | 1.00 | 1428.6 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | realworld-freeze-panes | ClosedXML | 289.57 ms | 7.40 ms | 4.27 ms | 9.20 | 9.20 | 210641.4 KB | 18.59 | 1140.0 KB | 0.80 | 820.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-freeze-panes | EPPlus | 345.28 ms | 6.16 ms | 3.55 ms | 10.97 | 10.97 | 211838.4 KB | 18.70 | 1090.2 KB | 0.76 | 997.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-pivot-table | OfficeIMO.Excel | 117.92 ms | 11.87 ms | 6.85 ms | 1.00 | 1.00 | 100856.7 KB | 1.00 | 1431.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | realworld-pivot-table | EPPlus | 439.09 ms | 47.93 ms | 27.67 ms | 3.72 | 3.72 | 230731.6 KB | 2.29 | 1093.4 KB | 0.76 | 272.4% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-report-all-in-one | OfficeIMO.Excel | 117.37 ms | 2.33 ms | 1.35 ms | 1.00 | 1.00 | 102341.4 KB | 1.00 | 1437.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | realworld-report-all-in-one | EPPlus | 474.97 ms | 4.99 ms | 2.88 ms | 4.05 | 4.05 | 277073.9 KB | 2.71 | 1097.8 KB | 0.76 | 304.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-report-core | OfficeIMO.Excel | 38.60 ms | 6.20 ms | 3.58 ms | 1.00 | 1.00 | 11487.6 KB | 1.00 | 1430.0 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | realworld-report-core | EPPlus | 400.17 ms | 20.39 ms | 11.77 ms | 10.37 | 10.37 | 255063.6 KB | 22.20 | 1091.5 KB | 0.76 | 936.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | realworld-report-core | ClosedXML | 887.72 ms | 90.31 ms | 52.14 ms | 23.00 | 23.00 | 680111.7 KB | 59.20 | 1141.3 KB | 0.80 | 2199.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | report-workbook | OfficeIMO.Excel | 48.14 ms | 0.65 ms | 0.37 ms | 1.00 | 1.00 | 14316.9 KB | 1.00 | 1857.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | report-workbook | EPPlus | 545.30 ms | 3.85 ms | 2.22 ms | 11.33 | 11.33 | 364641.3 KB | 25.47 | 1517.2 KB | 0.82 | 1032.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | report-workbook-core | OfficeIMO.Excel | 55.61 ms | 8.40 ms | 4.85 ms | 1.00 | 1.00 | 10803.9 KB | 1.00 | 1850.9 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | report-workbook-core | EPPlus | 673.82 ms | 45.65 ms | 26.36 ms | 12.12 | 12.12 | 342774.1 KB | 31.73 | 1512.6 KB | 0.82 | 1111.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | report-workbook-core | ClosedXML | 1341.84 ms | 187.61 ms | 108.32 ms | 24.13 | 24.13 | 975769.4 KB | 90.32 | 1579.8 KB | 0.85 | 2312.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | report-workbook-datatable | OfficeIMO.Excel | 148.11 ms | 57.77 ms | 33.35 ms | 1.00 | 1.00 | 17067.8 KB | 1.00 | 1857.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | report-workbook-datatable | EPPlus | 1336.40 ms | 199.68 ms | 115.28 ms | 9.02 | 9.02 | 247775.1 KB | 14.52 | 1517.2 KB | 0.82 | 802.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | report-workbook-datatable-core | OfficeIMO.Excel | 61.19 ms | 17.52 ms | 10.11 ms | 1.00 | 1.00 | 13557.9 KB | 1.00 | 1850.9 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | report-workbook-datatable-core | EPPlus | 676.56 ms | 157.08 ms | 90.69 ms | 11.06 | 11.06 | 225953.6 KB | 16.67 | 1512.6 KB | 0.82 | 1005.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | report-workbook-datatable-core | ClosedXML | 1455.98 ms | 214.48 ms | 123.83 ms | 23.80 | 23.80 | 832229.4 KB | 61.38 | 1579.8 KB | 0.85 | 2279.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | LargeXlsx | 39.31 ms | 1.07 ms | 0.62 ms | 0.90 | 1.00 | 10787.2 KB | 0.93 | 2444.6 KB | 1.10 | 9.6% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | OfficeIMO.Excel | 43.48 ms | 2.25 ms | 1.30 ms | 1.00 | 1.11 | 11539.8 KB | 1.00 | 2228.8 KB | 1.00 | Loss +10.6% |
-| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | MiniExcel | 148.34 ms | 3.01 ms | 1.74 ms | 3.41 | 3.77 | 226867.6 KB | 19.66 | 2410.6 KB | 1.08 | 241.2% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | ClosedXML | 926.37 ms | 38.09 ms | 21.99 ms | 21.31 | 23.56 | 759810.2 KB | 65.84 | 2581.2 KB | 1.16 | 2030.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-bulk-report | OfficeIMO.Excel | 34.49 ms | 1.01 ms | 0.59 ms | 1.00 | 1.00 | 11393.2 KB | 1.00 | 1429.3 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-bulk-report | MiniExcel | 64.38 ms | 0.34 ms | 0.20 ms | 1.87 | 1.87 | 125541.4 KB | 11.02 | 1521.1 KB | 1.06 | 86.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-bulk-report | EPPlus | 382.74 ms | 5.81 ms | 3.35 ms | 11.10 | 11.10 | 254887.6 KB | 22.37 | 1091.0 KB | 0.76 | 1009.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-bulk-report | ClosedXML | 761.72 ms | 3.93 ms | 2.27 ms | 22.09 | 22.09 | 565944.6 KB | 49.67 | 1140.9 KB | 0.80 | 2108.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellformula | OfficeIMO.Excel | 25.87 ms | 1.64 ms | 0.95 ms | 1.00 | 1.00 | 9557.4 KB | 1.00 | 670.3 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellformula | ClosedXML | 221.62 ms | 11.35 ms | 6.55 ms | 8.57 | 8.57 | 113853.5 KB | 11.91 | 643.2 KB | 0.96 | 756.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellformula | EPPlus | 436.26 ms | 7.13 ms | 4.12 ms | 16.86 | 16.86 | 140731.8 KB | 14.72 | 593.9 KB | 0.89 | 1586.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-empty-strings | OfficeIMO.Excel | 12.62 ms | 0.44 ms | 0.25 ms | 1.00 | 1.00 | 6731.3 KB | 1.00 | 451.4 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-empty-strings | ClosedXML | 109.53 ms | 5.12 ms | 2.96 ms | 8.68 | 8.68 | 92902.1 KB | 13.80 | 398.1 KB | 0.88 | 767.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-empty-strings | EPPlus | 162.80 ms | 1.19 ms | 0.68 ms | 12.89 | 12.89 | 74492.7 KB | 11.07 | 390.6 KB | 0.87 | 1189.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-numbers | OfficeIMO.Excel | 15.94 ms | 0.92 ms | 0.53 ms | 1.00 | 1.00 | 5805.8 KB | 1.00 | 462.6 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-numbers | ClosedXML | 104.55 ms | 4.61 ms | 2.66 ms | 6.56 | 6.56 | 84206.7 KB | 14.50 | 411.4 KB | 0.89 | 555.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-numbers | EPPlus | 202.05 ms | 31.05 ms | 17.92 ms | 12.68 | 12.68 | 86377.4 KB | 14.88 | 406.5 KB | 0.88 | 1167.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-mixed | OfficeIMO.Excel | 18.84 ms | 1.70 ms | 0.98 ms | 1.00 | 1.00 | 8009.0 KB | 1.00 | 585.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-mixed | ClosedXML | 159.22 ms | 7.24 ms | 4.18 ms | 8.45 | 8.45 | 111118.7 KB | 13.87 | 532.9 KB | 0.91 | 745.2% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-mixed | EPPlus | 274.52 ms | 29.21 ms | 16.86 ms | 14.57 | 14.57 | 113245.0 KB | 14.14 | 544.3 KB | 0.93 | 1357.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse | OfficeIMO.Excel | 18.93 ms | 0.17 ms | 0.10 ms | 1.00 | 1.00 | 7188.3 KB | 1.00 | 607.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse | ClosedXML | 145.15 ms | 4.49 ms | 2.59 ms | 7.67 | 7.67 | 105223.9 KB | 14.64 | 468.0 KB | 0.77 | 666.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse | EPPlus | 234.91 ms | 27.43 ms | 15.84 ms | 12.41 | 12.41 | 106316.9 KB | 14.79 | 494.4 KB | 0.81 | 1140.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | OfficeIMO.Excel | 20.86 ms | 3.52 ms | 2.03 ms | 1.00 | 1.00 | 7188.4 KB | 1.00 | 607.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | ClosedXML | 160.37 ms | 17.19 ms | 9.93 ms | 7.69 | 7.69 | 105223.9 KB | 14.64 | 468.0 KB | 0.77 | 668.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | EPPlus | 279.38 ms | 63.52 ms | 36.67 ms | 13.39 | 13.39 | 106316.9 KB | 14.79 | 494.4 KB | 0.81 | 1239.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-scalars | OfficeIMO.Excel | 11.71 ms | 0.12 ms | 0.07 ms | 1.00 | 1.00 | 5979.5 KB | 1.00 | 441.9 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-scalars | ClosedXML | 96.98 ms | 2.25 ms | 1.30 ms | 8.28 | 8.28 | 82591.3 KB | 13.81 | 394.9 KB | 0.89 | 727.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-scalars | EPPlus | 236.22 ms | 6.87 ms | 3.97 ms | 20.17 | 20.17 | 85127.3 KB | 14.24 | 379.3 KB | 0.86 | 1916.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings | OfficeIMO.Excel | 18.58 ms | 2.18 ms | 1.26 ms | 1.00 | 1.00 | 15027.2 KB | 1.00 | 527.8 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings | ClosedXML | 141.87 ms | 17.21 ms | 9.94 ms | 7.64 | 7.64 | 104233.3 KB | 6.94 | 460.1 KB | 0.87 | 663.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings | EPPlus | 223.16 ms | 18.55 ms | 10.71 ms | 12.01 | 12.01 | 84343.7 KB | 5.61 | 444.7 KB | 0.84 | 1101.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings-distinct | OfficeIMO.Excel | 14.93 ms | 1.87 ms | 1.08 ms | 1.00 | 1.00 | 13659.0 KB | 1.00 | 499.0 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings-distinct | ClosedXML | 159.99 ms | 16.08 ms | 9.28 ms | 10.71 | 10.71 | 131501.7 KB | 9.63 | 555.3 KB | 1.11 | 971.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings-distinct | EPPlus | 215.95 ms | 4.92 ms | 2.84 ms | 14.46 | 14.46 | 97729.5 KB | 7.15 | 565.1 KB | 1.13 | 1346.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings-repeated | OfficeIMO.Excel | 14.38 ms | 2.29 ms | 1.32 ms | 1.00 | 1.00 | 7197.6 KB | 1.00 | 376.0 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings-repeated | ClosedXML | 117.96 ms | 8.85 ms | 5.11 ms | 8.20 | 8.20 | 84517.3 KB | 11.74 | 331.8 KB | 0.88 | 720.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-strings-repeated | EPPlus | 244.28 ms | 49.37 ms | 28.50 ms | 16.99 | 16.99 | 70033.2 KB | 9.73 | 300.8 KB | 0.80 | 1599.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-temporal | OfficeIMO.Excel | 20.22 ms | 0.45 ms | 0.26 ms | 1.00 | 1.00 | 7317.8 KB | 1.00 | 620.5 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-cellvalue-temporal | ClosedXML | 145.82 ms | 1.44 ms | 0.83 ms | 7.21 | 7.21 | 89323.7 KB | 12.21 | 483.0 KB | 0.78 | 621.2% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalue-temporal | EPPlus | 215.91 ms | 28.99 ms | 16.74 ms | 10.68 | 10.68 | 103799.9 KB | 14.18 | 495.1 KB | 0.80 | 967.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 9.36 ms | 0.29 ms | 0.17 ms | 0.83 | 1.00 | 3436.3 KB | 0.51 | 443.4 KB | 0.97 | 17.4% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 11.34 ms | 0.32 ms | 0.19 ms | 1.00 | 1.21 | 6793.3 KB | 1.00 | 455.5 KB | 1.00 | Loss +21.1% |
-| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | ClosedXML | 118.84 ms | 3.06 ms | 1.77 ms | 10.48 | 12.70 | 96007.6 KB | 14.13 | 467.5 KB | 1.03 | 948.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | EPPlus | 193.96 ms | 6.92 ms | 4.00 ms | 17.11 | 20.72 | 87396.2 KB | 12.87 | 484.1 KB | 1.06 | 1611.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | LargeXlsx | 27.10 ms | 0.51 ms | 0.29 ms | 0.77 | 1.00 | 5606.0 KB | 0.36 | 1386.5 KB | 1.00 | 22.6% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 35.01 ms | 0.44 ms | 0.25 ms | 1.00 | 1.29 | 15708.0 KB | 1.00 | 1384.9 KB | 1.00 | Loss +29.2% |
-| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | MiniExcel | 66.46 ms | 3.06 ms | 1.77 ms | 1.90 | 2.45 | 93246.9 KB | 5.94 | 1521.1 KB | 1.10 | 89.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | ClosedXML | 309.83 ms | 3.31 ms | 1.91 ms | 8.85 | 11.43 | 210638.1 KB | 13.41 | 1139.9 KB | 0.82 | 784.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | EPPlus | 376.69 ms | 6.00 ms | 3.46 ms | 10.76 | 13.90 | 211783.2 KB | 13.48 | 1090.0 KB | 0.79 | 975.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-plain | Sylvan.Data.Excel | 28.40 ms | 2.30 ms | 1.33 ms | 0.76 | 1.00 | 5692.3 KB | 0.45 | 755.4 KB | 0.55 | 23.6% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-plain | LargeXlsx | 34.40 ms | 1.02 ms | 0.59 ms | 0.92 | 1.21 | 8341.2 KB | 0.66 | 1386.5 KB | 1.00 | 7.5% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-plain | OfficeIMO.Excel | 37.20 ms | 2.36 ms | 1.36 ms | 1.00 | 1.31 | 12673.9 KB | 1.00 | 1384.9 KB | 1.00 | Loss +31.0% |
-| 25000 | package-profile | package | Package size | write-datareader-plain | MiniExcel | 76.60 ms | 7.08 ms | 4.09 ms | 2.06 | 2.70 | 92189.6 KB | 7.27 | 1521.0 KB | 1.10 | 105.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-plain | ClosedXML | 279.07 ms | 3.39 ms | 1.96 ms | 7.50 | 9.83 | 104197.0 KB | 8.22 | 1139.9 KB | 0.82 | 650.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-plain | EPPlus | 346.14 ms | 18.87 ms | 10.90 ms | 9.31 | 12.19 | 117370.5 KB | 9.26 | 1090.8 KB | 0.79 | 830.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-table | OfficeIMO.Excel | 34.36 ms | 0.44 ms | 0.26 ms | 1.00 | 1.00 | 12691.9 KB | 1.00 | 1385.7 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-datareader-table | MiniExcel | 64.09 ms | 1.17 ms | 0.68 ms | 1.87 | 1.87 | 92190.0 KB | 7.26 | 1521.0 KB | 1.10 | 86.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-table | EPPlus | 315.29 ms | 1.85 ms | 1.07 ms | 9.18 | 9.18 | 117370.5 KB | 9.25 | 1090.8 KB | 0.79 | 817.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-table | ClosedXML | 353.26 ms | 3.88 ms | 2.24 ms | 10.28 | 10.28 | 173388.8 KB | 13.66 | 1140.7 KB | 0.82 | 928.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-table-autofit | OfficeIMO.Excel | 38.07 ms | 0.41 ms | 0.24 ms | 1.00 | 1.00 | 12698.2 KB | 1.00 | 1385.9 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-datareader-table-autofit | MiniExcel | 71.32 ms | 2.49 ms | 1.44 ms | 1.87 | 1.87 | 124485.4 KB | 9.80 | 1521.1 KB | 1.10 | 87.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-table-autofit | EPPlus | 362.42 ms | 1.26 ms | 0.73 ms | 9.52 | 9.52 | 159670.6 KB | 12.57 | 1091.0 KB | 0.79 | 851.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datareader-table-autofit | ClosedXML | 769.32 ms | 11.16 ms | 6.45 ms | 20.21 | 20.21 | 566133.4 KB | 44.58 | 1140.9 KB | 0.82 | 1920.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | OfficeIMO.Excel | 31.59 ms | 1.60 ms | 0.92 ms | 1.00 | 1.00 | 9491.6 KB | 1.00 | 1329.2 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | LargeXlsx | 35.56 ms | 0.92 ms | 0.53 ms | 1.13 | 1.13 | 9257.9 KB | 0.98 | 1680.0 KB | 1.26 | 12.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | MiniExcel | 92.72 ms | 1.89 ms | 1.09 ms | 2.94 | 2.94 | 108118.7 KB | 11.39 | 1819.7 KB | 1.37 | 193.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | EPPlus | 471.40 ms | 5.43 ms | 3.13 ms | 14.92 | 14.92 | 135640.3 KB | 14.29 | 1390.4 KB | 1.05 | 1392.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | ClosedXML | 523.90 ms | 22.94 ms | 13.24 ms | 16.58 | 16.58 | 280365.8 KB | 29.54 | 1519.9 KB | 1.14 | 1558.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | OfficeIMO.Excel | 40.66 ms | 2.68 ms | 1.55 ms | 1.00 | 1.00 | 13130.4 KB | 1.00 | 1795.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | MiniExcel | 94.25 ms | 2.49 ms | 1.44 ms | 2.32 | 2.32 | 108118.7 KB | 8.23 | 1819.7 KB | 1.01 | 131.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | EPPlus | 472.69 ms | 9.79 ms | 5.65 ms | 11.62 | 11.62 | 135640.3 KB | 10.33 | 1390.4 KB | 0.77 | 1062.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | ClosedXML | 520.92 ms | 21.12 ms | 12.19 ms | 12.81 | 12.81 | 280363.3 KB | 21.35 | 1519.9 KB | 0.85 | 1181.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-tables | OfficeIMO.Excel | 32.65 ms | 0.32 ms | 0.19 ms | 1.00 | 1.00 | 9800.0 KB | 1.00 | 1376.4 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-dataset-tables | MiniExcel | 73.08 ms | 0.87 ms | 0.50 ms | 2.24 | 2.24 | 97074.9 KB | 9.91 | 1511.8 KB | 1.10 | 123.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-tables | EPPlus | 309.60 ms | 1.77 ms | 1.02 ms | 9.48 | 9.48 | 110708.7 KB | 11.30 | 1100.6 KB | 0.80 | 848.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-tables | ClosedXML | 348.81 ms | 8.18 ms | 4.73 ms | 10.68 | 10.68 | 171997.0 KB | 17.55 | 1139.0 KB | 0.83 | 968.2% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | OfficeIMO.Excel | 36.92 ms | 1.21 ms | 0.70 ms | 1.00 | 1.00 | 9812.6 KB | 1.00 | 1376.7 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | MiniExcel | 79.01 ms | 3.39 ms | 1.96 ms | 2.14 | 2.14 | 128864.4 KB | 13.13 | 1512.0 KB | 1.10 | 114.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | EPPlus | 383.06 ms | 5.20 ms | 3.00 ms | 10.38 | 10.38 | 195297.9 KB | 19.90 | 1100.9 KB | 0.80 | 937.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | ClosedXML | 719.33 ms | 4.54 ms | 2.62 ms | 19.48 | 19.48 | 550083.4 KB | 56.06 | 1139.3 KB | 0.83 | 1848.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datatable-direct | LargeXlsx | 30.50 ms | 1.40 ms | 0.81 ms | 0.92 | 1.00 | 9512.4 KB | 0.77 | 1386.5 KB | 1.00 | 8.4% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datatable-direct | OfficeIMO.Excel | 33.29 ms | 1.06 ms | 0.61 ms | 1.00 | 1.09 | 12387.3 KB | 1.00 | 1384.9 KB | 1.00 | Loss +9.2% |
-| 25000 | package-profile | package | Package size | write-datatable-direct | MiniExcel | 75.13 ms | 3.09 ms | 1.78 ms | 2.26 | 2.46 | 92384.2 KB | 7.46 | 1521.0 KB | 1.10 | 125.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datatable-direct | ClosedXML | 259.77 ms | 4.00 ms | 2.31 ms | 7.80 | 8.52 | 104197.0 KB | 8.41 | 1139.9 KB | 0.82 | 680.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datatable-direct | EPPlus | 321.63 ms | 8.93 ms | 5.16 ms | 9.66 | 10.55 | 117370.5 KB | 9.48 | 1090.8 KB | 0.79 | 866.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datatable-table-direct | OfficeIMO.Excel | 33.76 ms | 0.49 ms | 0.28 ms | 1.00 | 1.00 | 12405.4 KB | 1.00 | 1385.7 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-datatable-table-direct | MiniExcel | 74.23 ms | 0.96 ms | 0.55 ms | 2.20 | 2.20 | 92384.5 KB | 7.45 | 1521.1 KB | 1.10 | 119.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datatable-table-direct | EPPlus | 319.32 ms | 2.34 ms | 1.35 ms | 9.46 | 9.46 | 117370.5 KB | 9.46 | 1090.8 KB | 0.79 | 845.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-datatable-table-direct | ClosedXML | 359.12 ms | 2.04 ms | 1.18 ms | 10.64 | 10.64 | 173395.3 KB | 13.98 | 1140.7 KB | 0.82 | 963.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | LargeXlsx | 37.93 ms | 3.94 ms | 2.27 ms | 0.77 | 1.00 | 5606.0 KB | 0.45 | 1386.5 KB | 1.00 | 22.9% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | OfficeIMO.Excel | 49.21 ms | 15.96 ms | 9.21 ms | 1.00 | 1.30 | 12583.6 KB | 1.00 | 1384.9 KB | 1.00 | Loss +29.7% |
-| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | MiniExcel | 97.96 ms | 4.03 ms | 2.33 ms | 1.99 | 2.58 | 93246.9 KB | 7.41 | 1521.1 KB | 1.10 | 99.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | EPPlus | 401.65 ms | 58.47 ms | 33.76 ms | 8.16 | 10.59 | 117370.5 KB | 9.33 | 1090.8 KB | 0.79 | 716.2% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | ClosedXML | 407.00 ms | 113.89 ms | 65.76 ms | 8.27 | 10.73 | 104197.0 KB | 8.28 | 1139.9 KB | 0.82 | 727.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | OfficeIMO.Excel | 60.06 ms | 4.14 ms | 2.39 ms | 1.00 | 1.00 | 11341.1 KB | 1.00 | 1428.5 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | EPPlus | 690.87 ms | 134.23 ms | 77.50 ms | 11.50 | 11.50 | 159742.3 KB | 14.09 | 1091.0 KB | 0.76 | 1050.4% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | ClosedXML | 1147.01 ms | 93.88 ms | 54.20 ms | 19.10 | 19.10 | 496956.9 KB | 43.82 | 1140.1 KB | 0.80 | 1809.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-direct | LargeXlsx | 33.91 ms | 1.01 ms | 0.58 ms | 0.86 | 1.00 | 5614.1 KB | 0.50 | 1386.5 KB | 0.97 | 14.4% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-direct | OfficeIMO.Excel | 39.60 ms | 3.01 ms | 1.74 ms | 1.00 | 1.17 | 11333.4 KB | 1.00 | 1428.4 KB | 1.00 | Loss +16.8% |
-| 25000 | package-profile | package | Package size | write-insertobjects-direct | MiniExcel | 82.37 ms | 5.84 ms | 3.37 ms | 2.08 | 2.43 | 93257.0 KB | 8.23 | 1521.0 KB | 1.06 | 108.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-direct | ClosedXML | 344.89 ms | 9.09 ms | 5.25 ms | 8.71 | 10.17 | 104205.0 KB | 9.19 | 1139.9 KB | 0.80 | 770.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-direct | EPPlus | 462.65 ms | 9.35 ms | 5.40 ms | 11.68 | 13.65 | 117437.3 KB | 10.36 | 1090.8 KB | 0.76 | 1068.2% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | OfficeIMO.Excel | 41.82 ms | 2.56 ms | 1.48 ms | 1.00 | 1.00 | 9866.7 KB | 1.00 | 1385.1 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | EPPlus | 394.55 ms | 15.81 ms | 9.13 ms | 9.43 | 9.43 | 159742.1 KB | 16.19 | 1091.0 KB | 0.79 | 843.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | ClosedXML | 717.96 ms | 30.56 ms | 17.65 ms | 17.17 | 17.17 | 496956.9 KB | 50.37 | 1140.1 KB | 0.82 | 1616.9% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | LargeXlsx | 30.66 ms | 3.00 ms | 1.73 ms | 0.75 | 1.00 | 5614.1 KB | 0.57 | 1386.5 KB | 1.00 | 24.8% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | OfficeIMO.Excel | 40.79 ms | 2.06 ms | 1.19 ms | 1.00 | 1.33 | 9859.0 KB | 1.00 | 1384.9 KB | 1.00 | Loss +33.0% |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | MiniExcel | 69.39 ms | 6.06 ms | 3.50 ms | 1.70 | 2.26 | 93257.0 KB | 9.46 | 1521.1 KB | 1.10 | 70.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | ClosedXML | 293.04 ms | 6.30 ms | 3.64 ms | 7.18 | 9.56 | 104205.0 KB | 10.57 | 1139.9 KB | 0.82 | 618.4% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | EPPlus | 346.45 ms | 5.41 ms | 3.13 ms | 8.49 | 11.30 | 117437.3 KB | 11.91 | 1090.8 KB | 0.79 | 749.4% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | LargeXlsx | 28.10 ms | 0.34 ms | 0.19 ms | 0.60 | 1.00 | 5614.1 KB | 0.36 | 1386.5 KB | 0.97 | 39.6% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | OfficeIMO.Excel | 46.52 ms | 4.96 ms | 2.86 ms | 1.00 | 1.66 | 15631.3 KB | 1.00 | 1428.4 KB | 1.00 | Loss +65.6% |
-| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | MiniExcel | 69.20 ms | 5.26 ms | 3.03 ms | 1.49 | 2.46 | 93257.2 KB | 5.97 | 1521.1 KB | 1.06 | 48.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | ClosedXML | 328.48 ms | 37.50 ms | 21.65 ms | 7.06 | 11.69 | 104205.0 KB | 6.67 | 1139.9 KB | 0.80 | 606.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | EPPlus | 386.19 ms | 28.20 ms | 16.28 ms | 8.30 | 13.75 | 117437.3 KB | 7.51 | 1090.8 KB | 0.76 | 730.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | OfficeIMO.Excel | 36.82 ms | 0.92 ms | 0.53 ms | 1.00 | 1.00 | 11340.4 KB | 1.00 | 1428.5 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | EPPlus | 422.33 ms | 56.17 ms | 32.43 ms | 11.47 | 11.47 | 138360.3 KB | 12.20 | 1091.0 KB | 0.76 | 1047.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | ClosedXML | 479.24 ms | 7.32 ms | 4.23 ms | 13.02 | 13.02 | 275422.3 KB | 24.29 | 1140.1 KB | 0.80 | 1201.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | LargeXlsx | 49.06 ms | 8.40 ms | 4.85 ms | 0.84 | 1.00 | 6043.9 KB | 0.58 | 1816.3 KB | 0.99 | 16.0% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | OfficeIMO.Excel | 58.38 ms | 10.60 ms | 6.12 ms | 1.00 | 1.19 | 10416.8 KB | 1.00 | 1828.0 KB | 1.00 | Loss +19.0% |
-| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | MiniExcel | 108.24 ms | 9.99 ms | 5.77 ms | 1.85 | 2.21 | 113974.3 KB | 10.94 | 1936.7 KB | 1.06 | 85.4% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | ClosedXML | 453.78 ms | 35.58 ms | 20.54 ms | 7.77 | 9.25 | 179552.5 KB | 17.24 | 1555.2 KB | 0.85 | 677.3% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | EPPlus | 495.40 ms | 15.28 ms | 8.82 ms | 8.49 | 10.10 | 144919.9 KB | 13.91 | 1473.0 KB | 0.81 | 748.6% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | LargeXlsx | 48.20 ms | 4.57 ms | 2.64 ms | 0.92 | 1.00 | 6043.9 KB | 0.62 | 1816.3 KB | 0.99 | 7.7% faster than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | OfficeIMO.Excel | 52.24 ms | 8.47 ms | 4.89 ms | 1.00 | 1.08 | 9781.8 KB | 1.00 | 1828.0 KB | 1.00 | Loss +8.4% |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | MiniExcel | 106.60 ms | 16.72 ms | 9.65 ms | 2.04 | 2.21 | 113973.6 KB | 11.65 | 1936.7 KB | 1.06 | 104.1% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | ClosedXML | 468.45 ms | 77.47 ms | 44.73 ms | 8.97 | 9.72 | 179552.7 KB | 18.36 | 1555.2 KB | 0.85 | 796.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | EPPlus | 521.63 ms | 35.03 ms | 20.22 ms | 9.99 | 10.82 | 144919.9 KB | 14.82 | 1473.0 KB | 0.81 | 898.5% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | OfficeIMO.Excel | 213.38 ms | 23.65 ms | 13.65 ms | 1.00 | 1.00 | 35984.4 KB | 1.00 | 6725.6 KB | 1.00 | Win |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | LargeXlsx | 219.17 ms | 10.21 ms | 5.89 ms | 1.03 | 1.03 | 23206.1 KB | 0.64 | 6614.8 KB | 0.98 | 2.7% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | MiniExcel | 334.59 ms | 5.26 ms | 3.04 ms | 1.57 | 1.57 | 347919.8 KB | 9.67 | 6949.8 KB | 1.03 | 56.8% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | ClosedXML | 1280.22 ms | 31.61 ms | 18.25 ms | 6.00 | 6.00 | 487444.1 KB | 13.55 | 6165.9 KB | 0.92 | 500.0% slower than OfficeIMO |
-| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | EPPlus | 1611.05 ms | 74.21 ms | 42.85 ms | 7.55 | 7.55 | 562893.4 KB | 15.64 | 5441.6 KB | 0.81 | 655.0% slower than OfficeIMO |
-| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | OfficeIMO.Excel | 345.37 ms | 5.96 ms | 3.44 ms | 1.00 | 1.00 | 138378.6 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | EPPlus | 434.91 ms | 7.94 ms | 4.58 ms | 1.26 | 1.26 | 250878.4 KB | 1.81 |  |  | 25.9% slower than OfficeIMO |
-| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | EPPlus 4.5.3.3 | 551.81 ms |  |  | 1.60 | 1.60 |  |  |  |  | 59.8% slower than OfficeIMO |
-| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | ClosedXML | 1282.08 ms | 19.86 ms | 11.47 ms | 3.71 | 3.71 | 829583.9 KB | 6.00 |  |  | 271.2% slower than OfficeIMO |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable | OfficeIMO.Excel | 50.01 ms | 0.86 ms | 0.49 ms | 1.00 | 1.00 | 17062.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable | EPPlus | 523.07 ms | 2.55 ms | 1.47 ms | 10.46 | 10.46 | 247752.2 KB | 14.52 |  |  | 946.0% slower than OfficeIMO |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable | EPPlus 4.5.3.3 | 638.00 ms |  |  | 12.76 | 12.76 |  |  |  |  | 1175.8% slower than OfficeIMO |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | OfficeIMO.Excel | 47.36 ms | 0.69 ms | 0.40 ms | 1.00 | 1.00 | 13549.5 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | EPPlus | 495.55 ms | 3.00 ms | 1.73 ms | 10.46 | 10.46 | 225884.3 KB | 16.67 |  |  | 946.5% slower than OfficeIMO |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | EPPlus 4.5.3.3 | 627.62 ms |  |  | 13.25 | 13.25 |  |  |  |  | 1225.3% slower than OfficeIMO |
-| 25000 | speed-comparison | other | DataTable table export | report-workbook-datatable-core | ClosedXML | 1019.86 ms | 12.53 ms | 7.23 ms | 21.54 | 21.54 | 832219.8 KB | 61.42 |  |  | 2053.6% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Object projection | build-object-datatable-dictionaries | OfficeIMO.Excel | 9.59 ms | 0.00 ms | 0.00 ms | 1.00 | 1.00 | 5164.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Object projection | build-object-datatable-typed | OfficeIMO.Excel | 7.00 ms | 0.06 ms | 0.04 ms | 1.00 | 1.00 | 8093.8 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-autofilter | OfficeIMO.Excel | 31.29 ms | 0.95 ms | 0.55 ms | 1.00 | 1.00 | 11326.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-autofilter | EPPlus 4.5.3.3 | 237.76 ms |  |  | 7.60 | 7.60 |  |  |  |  | 660.0% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-autofilter | ClosedXML | 290.20 ms | 7.12 ms | 4.11 ms | 9.28 | 9.28 | 210655.8 KB | 18.60 |  |  | 827.6% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-autofilter | EPPlus | 357.32 ms | 10.26 ms | 5.92 ms | 11.42 | 11.42 | 211804.2 KB | 18.70 |  |  | 1042.1% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-charts | OfficeIMO.Excel | 32.35 ms | 0.83 ms | 0.48 ms | 1.00 | 1.00 | 12323.0 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-charts | EPPlus 4.5.3.3 | 238.29 ms |  |  | 7.37 | 7.37 |  |  |  |  | 636.5% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-charts | EPPlus | 343.32 ms | 1.92 ms | 1.11 ms | 10.61 | 10.61 | 214836.4 KB | 17.43 |  |  | 961.2% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-conditional-formatting | OfficeIMO.Excel | 30.43 ms | 0.16 ms | 0.09 ms | 1.00 | 1.00 | 11391.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-conditional-formatting | EPPlus 4.5.3.3 | 237.67 ms |  |  | 7.81 | 7.81 |  |  |  |  | 680.9% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-conditional-formatting | ClosedXML | 303.59 ms | 17.40 ms | 10.04 ms | 9.98 | 9.98 | 210703.7 KB | 18.50 |  |  | 897.5% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-conditional-formatting | EPPlus | 346.54 ms | 9.04 ms | 5.22 ms | 11.39 | 11.39 | 211845.7 KB | 18.60 |  |  | 1038.7% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-data-validation | OfficeIMO.Excel | 30.51 ms | 0.17 ms | 0.10 ms | 1.00 | 1.00 | 11342.1 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-data-validation | EPPlus 4.5.3.3 | 246.27 ms |  |  | 8.07 | 8.07 |  |  |  |  | 707.3% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-data-validation | ClosedXML | 285.27 ms | 2.38 ms | 1.38 ms | 9.35 | 9.35 | 210664.6 KB | 18.57 |  |  | 835.1% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-data-validation | EPPlus | 341.09 ms | 3.30 ms | 1.91 ms | 11.18 | 11.18 | 211789.9 KB | 18.67 |  |  | 1018.1% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-freeze-panes | OfficeIMO.Excel | 30.76 ms | 0.86 ms | 0.50 ms | 1.00 | 1.00 | 11328.5 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-freeze-panes | EPPlus 4.5.3.3 | 239.74 ms |  |  | 7.79 | 7.79 |  |  |  |  | 679.5% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-freeze-panes | ClosedXML | 288.10 ms | 3.80 ms | 2.20 ms | 9.37 | 9.37 | 210638.7 KB | 18.59 |  |  | 836.7% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-freeze-panes | EPPlus | 350.41 ms | 14.19 ms | 8.19 ms | 11.39 | 11.39 | 211816.0 KB | 18.70 |  |  | 1039.3% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-pivot-table | OfficeIMO.Excel | 88.29 ms | 2.19 ms | 1.26 ms | 1.00 | 1.00 | 100855.7 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-pivot-table | EPPlus 4.5.3.3 | 240.67 ms |  |  | 2.73 | 2.73 |  |  |  |  | 172.6% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-pivot-table | EPPlus | 388.13 ms | 4.34 ms | 2.50 ms | 4.40 | 4.40 | 230731.4 KB | 2.29 |  |  | 339.6% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-report-all-in-one | OfficeIMO.Excel | 98.88 ms | 0.59 ms | 0.34 ms | 1.00 | 1.00 | 102332.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-report-all-in-one | EPPlus | 398.97 ms | 4.72 ms | 2.72 ms | 4.03 | 4.03 | 277004.6 KB | 2.71 |  |  | 303.5% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-report-all-in-one | EPPlus 4.5.3.3 | 471.99 ms |  |  | 4.77 | 4.77 |  |  |  |  | 377.3% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-report-core | OfficeIMO.Excel | 34.16 ms | 1.67 ms | 0.96 ms | 1.00 | 1.00 | 11479.2 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | realworld-report-core | EPPlus | 365.15 ms | 2.85 ms | 1.64 ms | 10.69 | 10.69 | 254994.4 KB | 22.21 |  |  | 969.1% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-report-core | EPPlus 4.5.3.3 | 456.65 ms |  |  | 13.37 | 13.37 |  |  |  |  | 1236.9% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | realworld-report-core | ClosedXML | 781.87 ms | 20.70 ms | 11.95 ms | 22.89 | 22.89 | 680108.9 KB | 59.25 |  |  | 2189.1% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | report-workbook | OfficeIMO.Excel | 47.84 ms | 0.39 ms | 0.22 ms | 1.00 | 1.00 | 14317.1 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | report-workbook | EPPlus | 540.39 ms | 7.64 ms | 4.41 ms | 11.30 | 11.30 | 364641.3 KB | 25.47 |  |  | 1029.5% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | report-workbook | EPPlus 4.5.3.3 | 634.90 ms |  |  | 13.27 | 13.27 |  |  |  |  | 1227.1% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | report-workbook-core | OfficeIMO.Excel | 44.99 ms | 0.11 ms | 0.06 ms | 1.00 | 1.00 | 10803.9 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Other | report-workbook-core | EPPlus | 509.77 ms | 8.09 ms | 4.67 ms | 11.33 | 11.33 | 342774.1 KB | 31.73 |  |  | 1033.0% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | report-workbook-core | EPPlus 4.5.3.3 | 628.83 ms |  |  | 13.98 | 13.98 |  |  |  |  | 1297.6% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Other | report-workbook-core | ClosedXML | 1061.55 ms | 19.06 ms | 11.01 ms | 23.59 | 23.59 | 975766.2 KB | 90.32 |  |  | 2259.4% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Range and table read | enumerate-cells | OfficeIMO.Excel | 49.58 ms | 3.94 ms | 2.27 ms | 1.00 | 1.00 | 24648.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Range and table read | enumerate-cells | EPPlus | 240.62 ms | 4.21 ms | 2.43 ms | 4.85 | 4.85 | 187392.6 KB | 7.60 |  |  | 385.3% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Range and table read | enumerate-cells | ClosedXML | 311.54 ms | 3.49 ms | 2.01 ms | 6.28 | 6.28 | 166510.3 KB | 6.76 |  |  | 528.3% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | OfficeIMO.Excel | 35.38 ms | 0.69 ms | 0.40 ms | 1.00 | 1.00 | 3959.5 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | EPPlus | 207.50 ms | 4.90 ms | 2.83 ms | 5.87 | 5.87 | 115541.0 KB | 29.18 |  |  | 486.6% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | ClosedXML | 291.84 ms | 2.17 ms | 1.25 ms | 8.25 | 8.25 | 150890.2 KB | 38.11 |  |  | 725.0% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Range and table read | enumerate-range | OfficeIMO.Excel | 48.79 ms | 1.94 ms | 1.12 ms | 1.00 | 1.00 | 24648.4 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Range and table read | enumerate-range | EPPlus | 254.69 ms | 6.13 ms | 3.54 ms | 5.22 | 5.22 | 187392.6 KB | 7.60 |  |  | 422.0% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Range and table read | enumerate-range | ClosedXML | 311.93 ms | 2.02 ms | 1.17 ms | 6.39 | 6.39 | 166516.9 KB | 6.76 |  |  | 539.3% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Range and table read | enumerate-top-range | OfficeIMO.Excel | 1.90 ms | 0.01 ms | 0.01 ms | 1.00 | 1.00 | 402.7 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | other | Range and table read | enumerate-top-range | EPPlus | 202.01 ms | 6.55 ms | 3.78 ms | 106.08 | 106.08 | 105579.4 KB | 262.16 |  |  | 10508.2% slower than OfficeIMO |
-| 25000 | speed-comparison | other | Range and table read | enumerate-top-range | ClosedXML | 283.85 ms | 8.22 ms | 4.75 ms | 149.05 | 149.05 | 149397.6 KB | 370.96 |  |  | 14805.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | OfficeIMO.Excel | 21.56 ms | 1.90 ms | 1.09 ms | 1.00 | 1.00 | 6287.0 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | EPPlus 4.5.3.3 | 72.88 ms |  |  | 3.38 | 3.38 |  |  |  |  | 238.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | EPPlus | 144.77 ms | 1.90 ms | 1.10 ms | 6.72 | 6.72 | 70813.8 KB | 11.26 |  |  | 571.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | ClosedXML | 171.49 ms | 15.27 ms | 8.82 ms | 7.95 | 7.95 | 79507.6 KB | 12.65 |  |  | 695.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-column-read | Sylvan.Data.Excel | 0.96 ms | 0.01 ms | 0.00 ms | 0.60 | 1.00 | 316.6 KB | 1.27 |  |  | 40.4% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-column-read | ExcelDataReader | 1.39 ms | 0.02 ms | 0.01 ms | 0.86 | 1.44 | 4046.1 KB | 16.26 |  |  | 14.0% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-column-read | OfficeIMO.Excel | 1.61 ms | 0.02 ms | 0.01 ms | 1.00 | 1.68 | 248.8 KB | 1.00 |  |  | Loss +67.8% |
-| 25000 | speed-comparison | read | Other | large-sparse-column-read | ClosedXML | 3.24 ms | 0.07 ms | 0.04 ms | 2.01 | 3.37 | 4392.9 KB | 17.65 |  |  | 101.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-column-read | MiniExcel | 10.93 ms | 0.57 ms | 0.33 ms | 6.77 | 11.37 | 46189.1 KB | 185.63 |  |  | 577.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-column-read | EPPlus 4.5.3.3 | 16.81 ms |  |  | 10.42 | 17.48 |  |  |  |  | 941.8% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-column-read | EPPlus | 89.83 ms | 1.89 ms | 1.09 ms | 55.66 | 93.40 | 43070.2 KB | 173.09 |  |  | 5466.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-row-read | Sylvan.Data.Excel | 0.96 ms | 0.01 ms | 0.01 ms | 0.57 | 1.00 | 316.6 KB | 1.27 |  |  | 42.6% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-row-read | ExcelDataReader | 1.38 ms | 0.02 ms | 0.01 ms | 0.83 | 1.44 | 4046.1 KB | 16.26 |  |  | 17.3% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-row-read | OfficeIMO.Excel | 1.67 ms | 0.08 ms | 0.04 ms | 1.00 | 1.74 | 248.9 KB | 1.00 |  |  | Loss +74.3% |
-| 25000 | speed-comparison | read | Other | large-sparse-row-read | ClosedXML | 3.22 ms | 0.20 ms | 0.12 ms | 1.93 | 3.36 | 4392.9 KB | 17.65 |  |  | 92.8% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-row-read | MiniExcel | 11.22 ms | 0.11 ms | 0.06 ms | 6.72 | 11.72 | 46189.1 KB | 185.57 |  |  | 572.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-row-read | EPPlus 4.5.3.3 | 16.58 ms |  |  | 9.93 | 17.31 |  |  |  |  | 893.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | large-sparse-row-read | EPPlus | 90.18 ms | 2.07 ms | 1.20 ms | 54.01 | 94.15 | 43070.2 KB | 173.04 |  |  | 5300.6% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | shared-string-read | Sylvan.Data.Excel | 17.58 ms | 0.47 ms | 0.27 ms | 0.85 | 1.00 | 1936.7 KB | 0.21 |  |  | 15.2% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Other | shared-string-read | OfficeIMO.Excel | 20.74 ms | 1.19 ms | 0.69 ms | 1.00 | 1.18 | 9295.0 KB | 1.00 |  |  | Loss +18.0% |
-| 25000 | speed-comparison | read | Other | shared-string-read | ExcelDataReader | 44.01 ms | 0.74 ms | 0.43 ms | 2.12 | 2.50 | 25004.8 KB | 2.69 |  |  | 112.2% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | shared-string-read | MiniExcel | 49.00 ms | 0.43 ms | 0.25 ms | 2.36 | 2.79 | 74398.5 KB | 8.00 |  |  | 136.3% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | shared-string-read | EPPlus 4.5.3.3 | 83.68 ms |  |  | 4.04 | 4.76 |  |  |  |  | 303.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | shared-string-read | EPPlus | 145.48 ms | 2.05 ms | 1.18 ms | 7.02 | 8.28 | 89345.5 KB | 9.61 |  |  | 601.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Other | shared-string-read | ClosedXML | 147.84 ms | 5.88 ms | 3.40 ms | 7.13 | 8.41 | 90414.2 KB | 9.73 |  |  | 612.9% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-bottom-range | OfficeIMO.Excel | 34.26 ms | 1.02 ms | 0.59 ms | 1.00 | 1.00 | 1242.4 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | read | Range and table read | read-bottom-range | Sylvan.Data.Excel | 42.52 ms | 3.43 ms | 1.98 ms | 1.24 | 1.24 | 3534.8 KB | 2.85 |  |  | 24.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-bottom-range | ExcelDataReader | 104.28 ms | 3.21 ms | 1.85 ms | 3.04 | 3.04 | 61193.9 KB | 49.25 |  |  | 204.4% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-bottom-range | MiniExcel | 121.68 ms | 4.91 ms | 2.83 ms | 3.55 | 3.55 | 186406.3 KB | 150.03 |  |  | 255.2% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-bottom-range | EPPlus | 204.67 ms | 7.43 ms | 4.29 ms | 5.97 | 5.97 | 105608.3 KB | 85.00 |  |  | 497.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-bottom-range | ClosedXML | 285.77 ms | 1.03 ms | 0.59 ms | 8.34 | 8.34 | 149384.2 KB | 120.24 |  |  | 734.2% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-datatable | OfficeIMO.Excel | 56.83 ms | 1.98 ms | 1.14 ms | 1.00 | 1.00 | 34766.1 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | read | Range and table read | read-datatable | Sylvan.Data.Excel | 58.57 ms | 1.69 ms | 0.98 ms | 1.03 | 1.03 | 18394.2 KB | 0.53 |  |  | 3.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-datatable | ExcelDataReader | 123.90 ms | 1.63 ms | 0.94 ms | 2.18 | 2.18 | 76053.3 KB | 2.19 |  |  | 118.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-datatable | MiniExcel | 141.87 ms | 3.03 ms | 1.75 ms | 2.50 | 2.50 | 181273.2 KB | 5.21 |  |  | 149.6% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-datatable | EPPlus 4.5.3.3 | 202.05 ms |  |  | 3.56 | 3.56 |  |  |  |  | 255.6% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-datatable | EPPlus | 252.00 ms | 1.38 ms | 0.80 ms | 4.43 | 4.43 | 202249.6 KB | 5.82 |  |  | 343.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-datatable | ClosedXML | 316.21 ms | 4.67 ms | 2.70 ms | 5.56 | 5.56 | 178452.0 KB | 5.13 |  |  | 456.4% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | OfficeIMO.Excel | 36.37 ms | 3.14 ms | 1.81 ms | 1.00 | 1.00 | 4154.6 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | Sylvan.Data.Excel | 46.00 ms | 3.05 ms | 1.76 ms | 1.26 | 1.26 | 4316.2 KB | 1.04 |  |  | 26.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | MiniExcel | 95.20 ms | 5.53 ms | 3.19 ms | 2.62 | 2.62 | 158604.8 KB | 38.18 |  |  | 161.7% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | ExcelDataReader | 104.41 ms | 1.39 ms | 0.80 ms | 2.87 | 2.87 | 61193.9 KB | 14.73 |  |  | 187.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | EPPlus | 211.90 ms | 7.15 ms | 4.13 ms | 5.83 | 5.83 | 115541.0 KB | 27.81 |  |  | 482.6% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | ClosedXML | 304.83 ms | 17.47 ms | 10.08 ms | 8.38 | 8.38 | 150891.1 KB | 36.32 |  |  | 738.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range | Sylvan.Data.Excel | 51.30 ms | 3.48 ms | 2.01 ms | 0.96 | 1.00 | 3534.8 KB | 0.13 |  |  | 3.6% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range | OfficeIMO.Excel | 53.24 ms | 3.18 ms | 1.84 ms | 1.00 | 1.04 | 26218.6 KB | 1.00 |  |  | Loss +3.8% |
-| 25000 | speed-comparison | read | Range and table read | read-range | ExcelDataReader | 129.90 ms | 7.22 ms | 4.17 ms | 2.44 | 2.53 | 61193.9 KB | 2.33 |  |  | 144.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range | MiniExcel | 130.41 ms | 5.35 ms | 3.09 ms | 2.45 | 2.54 | 186406.4 KB | 7.11 |  |  | 145.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range | EPPlus 4.5.3.3 | 178.03 ms |  |  | 3.34 | 3.47 |  |  |  |  | 234.4% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range | EPPlus | 260.23 ms | 11.78 ms | 6.80 ms | 4.89 | 5.07 | 187390.2 KB | 7.15 |  |  | 388.8% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range | ClosedXML | 347.41 ms | 14.99 ms | 8.65 ms | 6.53 | 6.77 | 163590.3 KB | 6.24 |  |  | 552.6% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range-decimal | OfficeIMO.Excel | 53.65 ms | 3.69 ms | 2.13 ms | 1.00 | 1.00 | 26804.5 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | read | Range and table read | read-range-decimal | Sylvan.Data.Excel | 55.13 ms | 3.74 ms | 2.16 ms | 1.03 | 1.03 | 4484.9 KB | 0.17 |  |  | 2.8% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range-decimal | ExcelDataReader | 111.19 ms | 5.82 ms | 3.36 ms | 2.07 | 2.07 | 61193.9 KB | 2.28 |  |  | 107.3% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range-decimal | MiniExcel | 127.15 ms | 4.81 ms | 2.78 ms | 2.37 | 2.37 | 186406.4 KB | 6.95 |  |  | 137.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range-decimal | EPPlus | 246.53 ms | 6.44 ms | 3.72 ms | 4.60 | 4.60 | 187390.2 KB | 6.99 |  |  | 359.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-range-decimal | ClosedXML | 346.89 ms | 32.62 ms | 18.84 ms | 6.47 | 6.47 | 163587.3 KB | 6.10 |  |  | 546.6% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-top-range | Sylvan.Data.Excel | 0.45 ms | 0.05 ms | 0.03 ms | 0.24 | 1.00 | 348.5 KB | 0.84 |  |  | 76.2% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-top-range | MiniExcel | 0.71 ms | 0.01 ms | 0.01 ms | 0.38 | 1.58 | 858.3 KB | 2.06 |  |  | 62.5% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-top-range | OfficeIMO.Excel | 1.90 ms | 0.13 ms | 0.08 ms | 1.00 | 4.20 | 416.1 KB | 1.00 |  |  | Loss +319.8% |
-| 25000 | speed-comparison | read | Range and table read | read-top-range | ExcelDataReader | 40.42 ms | 1.95 ms | 1.13 ms | 21.25 | 89.23 | 17107.2 KB | 41.11 |  |  | 2025.4% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-top-range | EPPlus 4.5.3.3 | 129.14 ms |  |  | 67.91 | 285.11 |  |  |  |  | 6691.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-top-range | EPPlus | 205.92 ms | 4.03 ms | 2.33 ms | 108.28 | 454.60 | 105577.1 KB | 253.73 |  |  | 10728.2% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-top-range | ClosedXML | 292.07 ms | 11.52 ms | 6.65 ms | 153.58 | 644.80 | 149382.8 KB | 359.01 |  |  | 15258.4% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-used-range | Sylvan.Data.Excel | 48.19 ms | 1.24 ms | 0.72 ms | 0.56 | 1.00 | 3534.8 KB | 0.10 |  |  | 44.4% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-used-range | OfficeIMO.Excel | 86.61 ms | 1.22 ms | 0.71 ms | 1.00 | 1.80 | 34214.6 KB | 1.00 |  |  | Loss +79.7% |
-| 25000 | speed-comparison | read | Range and table read | read-used-range | ExcelDataReader | 115.29 ms | 5.81 ms | 3.36 ms | 1.33 | 2.39 | 61193.9 KB | 1.79 |  |  | 33.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-used-range | MiniExcel | 126.48 ms | 4.98 ms | 2.88 ms | 1.46 | 2.62 | 186406.4 KB | 5.45 |  |  | 46.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-used-range | EPPlus | 249.07 ms | 4.50 ms | 2.60 ms | 2.88 | 5.17 | 187390.2 KB | 5.48 |  |  | 187.6% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Range and table read | read-used-range | ClosedXML | 321.54 ms | 11.01 ms | 6.35 ms | 3.71 | 6.67 | 163589.5 KB | 4.78 |  |  | 271.3% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | OfficeIMO.Excel | 36.68 ms | 3.77 ms | 2.18 ms | 1.00 | 1.00 | 1245.8 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | Sylvan.Data.Excel | 43.76 ms | 3.18 ms | 1.84 ms | 1.19 | 1.19 | 3534.8 KB | 2.84 |  |  | 19.3% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | ExcelDataReader | 107.47 ms | 2.79 ms | 1.61 ms | 2.93 | 2.93 | 61193.9 KB | 49.12 |  |  | 193.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | MiniExcel | 116.86 ms | 0.47 ms | 0.27 ms | 3.19 | 3.19 | 186406.3 KB | 149.63 |  |  | 218.6% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | EPPlus | 204.02 ms | 4.24 ms | 2.45 ms | 5.56 | 5.56 | 105608.3 KB | 84.77 |  |  | 456.2% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | ClosedXML | 285.75 ms | 8.46 ms | 4.89 ms | 7.79 | 7.79 | 149389.0 KB | 119.91 |  |  | 679.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-range-stream | OfficeIMO.Excel | 45.91 ms | 0.59 ms | 0.34 ms | 1.00 | 1.00 | 27005.5 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | read | Streaming read | read-range-stream | Sylvan.Data.Excel | 47.62 ms | 0.22 ms | 0.13 ms | 1.04 | 1.04 | 3534.8 KB | 0.13 |  |  | 3.7% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-range-stream | ExcelDataReader | 106.17 ms | 2.41 ms | 1.39 ms | 2.31 | 2.31 | 61193.9 KB | 2.27 |  |  | 131.2% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-range-stream | MiniExcel | 124.97 ms | 6.83 ms | 3.94 ms | 2.72 | 2.72 | 186406.4 KB | 6.90 |  |  | 172.2% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-range-stream | EPPlus 4.5.3.3 | 166.86 ms |  |  | 3.63 | 3.63 |  |  |  |  | 263.4% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-range-stream | EPPlus | 240.42 ms | 2.44 ms | 1.41 ms | 5.24 | 5.24 | 187390.2 KB | 6.94 |  |  | 423.7% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-range-stream | ClosedXML | 304.41 ms | 1.05 ms | 0.60 ms | 6.63 | 6.63 | 163592.4 KB | 6.06 |  |  | 563.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | Sylvan.Data.Excel | 0.44 ms | 0.01 ms | 0.01 ms | 0.24 | 1.00 | 348.5 KB | 0.83 |  |  | 75.8% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | MiniExcel | 0.77 ms | 0.12 ms | 0.07 ms | 0.42 | 1.75 | 858.3 KB | 2.05 |  |  | 57.6% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | OfficeIMO.Excel | 1.81 ms | 0.04 ms | 0.03 ms | 1.00 | 4.13 | 419.5 KB | 1.00 |  |  | Loss +313.2% |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | ExcelDataReader | 38.28 ms | 0.71 ms | 0.41 ms | 21.18 | 87.49 | 17107.2 KB | 40.78 |  |  | 2017.7% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | EPPlus 4.5.3.3 | 134.20 ms |  |  | 74.24 | 306.74 |  |  |  |  | 7324.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | EPPlus | 217.44 ms | 14.00 ms | 8.08 ms | 120.29 | 496.99 | 105577.1 KB | 251.68 |  |  | 11928.9% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | ClosedXML | 292.44 ms | 9.28 ms | 5.36 ms | 161.78 | 668.43 | 149389.5 KB | 356.12 |  |  | 16078.3% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | Sylvan.Data.Excel | 0.47 ms | 0.06 ms | 0.03 ms | 0.25 | 1.00 | 348.5 KB | 0.83 |  |  | 75.3% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | MiniExcel | 0.71 ms | 0.04 ms | 0.03 ms | 0.37 | 1.51 | 858.3 KB | 2.04 |  |  | 62.8% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | OfficeIMO.Excel | 1.91 ms | 0.19 ms | 0.11 ms | 1.00 | 4.05 | 420.2 KB | 1.00 |  |  | Loss +305.3% |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | ExcelDataReader | 37.01 ms | 0.30 ms | 0.17 ms | 19.41 | 78.69 | 17107.2 KB | 40.71 |  |  | 1841.5% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | EPPlus | 200.20 ms | 2.40 ms | 1.39 ms | 105.03 | 425.71 | 105577.1 KB | 251.22 |  |  | 10402.7% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | ClosedXML | 281.38 ms | 9.79 ms | 5.65 ms | 147.62 | 598.34 | 149384.3 KB | 355.47 |  |  | 14661.8% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects | Sylvan.Data.Excel | 47.00 ms | 1.44 ms | 0.83 ms | 0.95 | 1.00 | 5805.0 KB | 0.25 |  |  | 5.0% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects | OfficeIMO.Excel | 49.48 ms | 2.09 ms | 1.21 ms | 1.00 | 1.05 | 23682.5 KB | 1.00 |  |  | Loss +5.3% |
-| 25000 | speed-comparison | read | Typed object read | read-objects | ExcelDataReader | 113.78 ms | 2.69 ms | 1.55 ms | 2.30 | 2.42 | 63464.0 KB | 2.68 |  |  | 130.0% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects | MiniExcel | 140.40 ms | 6.12 ms | 3.53 ms | 2.84 | 2.99 | 183645.3 KB | 7.75 |  |  | 183.8% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects | EPPlus 4.5.3.3 | 160.99 ms |  |  | 3.25 | 3.43 |  |  |  |  | 225.4% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects | EPPlus | 246.55 ms | 5.23 ms | 3.02 ms | 4.98 | 5.25 | 199607.5 KB | 8.43 |  |  | 398.3% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects | ClosedXML | 302.83 ms | 7.88 ms | 4.55 ms | 6.12 | 6.44 | 165538.0 KB | 6.99 |  |  | 512.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects-stream | Sylvan.Data.Excel | 45.79 ms | 0.26 ms | 0.15 ms | 0.98 | 1.00 | 5292.6 KB | 0.22 |  |  | 2.0% faster than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects-stream | OfficeIMO.Excel | 46.73 ms | 0.58 ms | 0.34 ms | 1.00 | 1.02 | 23682.8 KB | 1.00 |  |  | Loss +2.1% |
-| 25000 | speed-comparison | read | Typed object read | read-objects-stream | ExcelDataReader | 102.85 ms | 0.98 ms | 0.57 ms | 2.20 | 2.25 | 62951.7 KB | 2.66 |  |  | 120.1% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects-stream | MiniExcel | 121.23 ms | 1.60 ms | 0.92 ms | 2.59 | 2.65 | 183133.0 KB | 7.73 |  |  | 159.4% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects-stream | EPPlus 4.5.3.3 | 161.62 ms |  |  | 3.46 | 3.53 |  |  |  |  | 245.8% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects-stream | EPPlus | 239.12 ms | 1.97 ms | 1.14 ms | 5.12 | 5.22 | 199412.2 KB | 8.42 |  |  | 411.7% slower than OfficeIMO |
-| 25000 | speed-comparison | read | Typed object read | read-objects-stream | ClosedXML | 296.22 ms | 4.07 ms | 2.35 ms | 6.34 | 6.47 | 165345.7 KB | 6.98 |  |  | 533.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | OfficeIMO.Excel | 38.06 ms | 0.93 ms | 0.53 ms | 1.00 | 1.00 | 12698.2 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | MiniExcel | 70.60 ms | 3.81 ms | 2.20 ms | 1.85 | 1.85 | 124485.4 KB | 9.80 |  |  | 85.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | EPPlus | 380.41 ms | 33.25 ms | 19.20 ms | 10.00 | 10.00 | 159670.6 KB | 12.57 |  |  | 899.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | EPPlus 4.5.3.3 | 444.55 ms |  |  | 11.68 | 11.68 |  |  |  |  | 1068.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | ClosedXML | 808.69 ms | 45.19 ms | 26.09 ms | 21.25 | 21.25 | 566135.6 KB | 44.58 |  |  | 2024.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | OfficeIMO.Excel | 41.98 ms | 4.81 ms | 2.77 ms | 1.00 | 1.00 | 9812.6 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | MiniExcel | 85.39 ms | 3.67 ms | 2.12 ms | 2.03 | 2.03 | 128864.4 KB | 13.13 |  |  | 103.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | EPPlus | 407.26 ms | 23.33 ms | 13.47 ms | 9.70 | 9.70 | 195297.9 KB | 19.90 |  |  | 870.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | ClosedXML | 788.34 ms | 49.07 ms | 28.33 ms | 18.78 | 18.78 | 550087.1 KB | 56.06 |  |  | 1778.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | OfficeIMO.Excel | 36.60 ms | 1.15 ms | 0.66 ms | 1.00 | 1.00 | 11333.1 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | EPPlus | 371.98 ms | 8.98 ms | 5.18 ms | 10.16 | 10.16 | 159670.6 KB | 14.09 |  |  | 916.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | ClosedXML | 711.64 ms | 14.31 ms | 8.26 ms | 19.44 | 19.44 | 496948.9 KB | 43.85 |  |  | 1844.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | OfficeIMO.Excel | 41.65 ms | 0.76 ms | 0.44 ms | 1.00 | 1.00 | 9858.7 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | EPPlus | 368.05 ms | 3.44 ms | 1.98 ms | 8.84 | 8.84 | 159670.6 KB | 16.20 |  |  | 783.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | ClosedXML | 694.81 ms | 12.92 ms | 7.46 ms | 16.68 | 16.68 | 496948.9 KB | 50.41 |  |  | 1568.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | OfficeIMO.Excel | 33.99 ms | 1.45 ms | 0.84 ms | 1.00 | 1.00 | 11332.4 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | EPPlus | 358.72 ms | 11.29 ms | 6.52 ms | 10.55 | 10.55 | 138290.0 KB | 12.20 |  |  | 955.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | ClosedXML | 438.00 ms | 11.06 ms | 6.38 ms | 12.89 | 12.89 | 275414.3 KB | 24.30 |  |  | 1188.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | OfficeIMO.Excel | 12.92 ms | 0.95 ms | 0.55 ms | 1.00 | 1.00 | 6723.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | ClosedXML | 108.12 ms | 3.46 ms | 2.00 ms | 8.37 | 8.37 | 92894.1 KB | 13.82 |  |  | 737.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | EPPlus | 163.97 ms | 4.81 ms | 2.78 ms | 12.69 | 12.69 | 74425.8 KB | 11.07 |  |  | 1169.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | OfficeIMO.Excel | 16.92 ms | 1.74 ms | 1.00 ms | 1.00 | 1.00 | 5797.7 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | EPPlus 4.5.3.3 | 100.49 ms |  |  | 5.94 | 5.94 |  |  |  |  | 493.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | ClosedXML | 109.60 ms | 6.22 ms | 3.59 ms | 6.48 | 6.48 | 84198.7 KB | 14.52 |  |  | 547.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | EPPlus | 186.60 ms | 9.37 ms | 5.41 ms | 11.03 | 11.03 | 86279.5 KB | 14.88 |  |  | 1002.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | OfficeIMO.Excel | 20.04 ms | 2.80 ms | 1.62 ms | 1.00 | 1.00 | 8001.0 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | EPPlus 4.5.3.3 | 115.97 ms |  |  | 5.79 | 5.79 |  |  |  |  | 478.7% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | ClosedXML | 175.43 ms | 7.68 ms | 4.43 ms | 8.75 | 8.75 | 111110.6 KB | 13.89 |  |  | 775.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | EPPlus | 225.75 ms | 8.50 ms | 4.91 ms | 11.26 | 11.26 | 113162.8 KB | 14.14 |  |  | 1026.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | OfficeIMO.Excel | 20.10 ms | 0.38 ms | 0.22 ms | 1.00 | 1.00 | 7180.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | ClosedXML | 149.88 ms | 4.66 ms | 2.69 ms | 7.46 | 7.46 | 105215.9 KB | 14.65 |  |  | 645.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | EPPlus | 209.57 ms | 2.76 ms | 1.59 ms | 10.43 | 10.43 | 106250.4 KB | 14.80 |  |  | 942.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | OfficeIMO.Excel | 16.76 ms | 0.62 ms | 0.36 ms | 1.00 | 1.00 | 7180.4 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | ClosedXML | 146.78 ms | 4.36 ms | 2.52 ms | 8.76 | 8.76 | 105215.9 KB | 14.65 |  |  | 776.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | EPPlus | 212.57 ms | 8.63 ms | 4.98 ms | 12.69 | 12.69 | 106250.4 KB | 14.80 |  |  | 1168.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | OfficeIMO.Excel | 11.89 ms | 0.33 ms | 0.19 ms | 1.00 | 1.00 | 5971.5 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | EPPlus 4.5.3.3 | 96.74 ms |  |  | 8.14 | 8.14 |  |  |  |  | 713.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | ClosedXML | 102.20 ms | 2.51 ms | 1.45 ms | 8.60 | 8.60 | 82583.3 KB | 13.83 |  |  | 759.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | EPPlus | 185.08 ms | 6.04 ms | 3.49 ms | 15.57 | 15.57 | 85057.4 KB | 14.24 |  |  | 1457.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | OfficeIMO.Excel | 20.70 ms | 0.26 ms | 0.15 ms | 1.00 | 1.00 | 7309.7 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | EPPlus 4.5.3.3 | 102.09 ms |  |  | 4.93 | 4.93 |  |  |  |  | 393.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | ClosedXML | 144.39 ms | 2.42 ms | 1.40 ms | 6.97 | 6.97 | 89315.7 KB | 12.22 |  |  | 597.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | EPPlus | 199.40 ms | 6.78 ms | 3.92 ms | 9.63 | 9.63 | 103733.9 KB | 14.19 |  |  | 863.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | OfficeIMO.Excel | 36.09 ms | 2.18 ms | 1.26 ms | 1.00 | 1.00 | 12551.5 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | MiniExcel | 88.55 ms | 12.54 ms | 7.24 ms | 2.45 | 2.45 | 97077.8 KB | 7.73 |  |  | 145.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | ClosedXML | 390.36 ms | 17.92 ms | 10.34 ms | 10.82 | 10.82 | 172008.1 KB | 13.70 |  |  | 981.7% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | EPPlus | 436.16 ms | 22.20 ms | 12.82 ms | 12.09 | 12.09 | 111170.8 KB | 8.86 |  |  | 1108.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | OfficeIMO.Excel | 45.39 ms | 3.96 ms | 2.29 ms | 1.00 | 1.00 | 13130.4 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | MiniExcel | 128.26 ms | 21.40 ms | 12.36 ms | 2.83 | 2.83 | 108118.7 KB | 8.23 |  |  | 182.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | EPPlus | 547.82 ms | 54.78 ms | 31.63 ms | 12.07 | 12.07 | 135640.3 KB | 10.33 |  |  | 1107.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | ClosedXML | 587.97 ms | 3.38 ms | 1.95 ms | 12.95 | 12.95 | 280364.4 KB | 21.35 |  |  | 1195.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | OfficeIMO.Excel | 41.49 ms | 3.55 ms | 2.05 ms | 1.00 | 1.00 | 9800.0 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | MiniExcel | 95.54 ms | 4.64 ms | 2.68 ms | 2.30 | 2.30 | 97074.9 KB | 9.91 |  |  | 130.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | EPPlus 4.5.3.3 | 213.69 ms |  |  | 5.15 | 5.15 |  |  |  |  | 415.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | EPPlus | 359.86 ms | 16.70 ms | 9.64 ms | 8.67 | 8.67 | 110708.7 KB | 11.30 |  |  | 767.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | ClosedXML | 421.48 ms | 31.83 ms | 18.38 ms | 10.16 | 10.16 | 171989.8 KB | 17.55 |  |  | 915.7% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | OfficeIMO.Excel | 36.75 ms | 1.23 ms | 0.71 ms | 1.00 | 1.00 | 12691.9 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | MiniExcel | 69.47 ms | 1.97 ms | 1.14 ms | 1.89 | 1.89 | 92190.0 KB | 7.26 |  |  | 89.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | EPPlus 4.5.3.3 | 222.38 ms |  |  | 6.05 | 6.05 |  |  |  |  | 505.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | EPPlus | 329.10 ms | 9.98 ms | 5.76 ms | 8.95 | 8.95 | 117370.5 KB | 9.25 |  |  | 795.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | ClosedXML | 375.34 ms | 9.19 ms | 5.31 ms | 10.21 | 10.21 | 173392.3 KB | 13.66 |  |  | 921.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | LargeXlsx | 37.99 ms | 5.33 ms | 3.08 ms | 0.86 | 1.00 | 9512.4 KB | 0.77 |  |  | 13.6% faster than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | OfficeIMO.Excel | 43.95 ms | 13.61 ms | 7.86 ms | 1.00 | 1.16 | 12387.3 KB | 1.00 |  |  | Loss +15.7% |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | MiniExcel | 81.01 ms | 1.53 ms | 0.88 ms | 1.84 | 2.13 | 92384.2 KB | 7.46 |  |  | 84.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | EPPlus 4.5.3.3 | 217.29 ms |  |  | 4.94 | 5.72 |  |  |  |  | 394.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | ClosedXML | 294.38 ms | 15.43 ms | 8.91 ms | 6.70 | 7.75 | 104197.0 KB | 8.41 |  |  | 569.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | EPPlus | 354.88 ms | 15.85 ms | 9.15 ms | 8.07 | 9.34 | 117370.5 KB | 9.48 |  |  | 707.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | OfficeIMO.Excel | 35.92 ms | 0.97 ms | 0.56 ms | 1.00 | 1.00 | 9673.7 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | MiniExcel | 78.36 ms | 0.84 ms | 0.48 ms | 2.18 | 2.18 | 89653.1 KB | 9.27 |  |  | 118.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | EPPlus | 322.71 ms | 7.90 ms | 4.56 ms | 8.98 | 8.98 | 114680.7 KB | 11.85 |  |  | 798.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | ClosedXML | 370.25 ms | 8.30 ms | 4.79 ms | 10.31 | 10.31 | 170658.5 KB | 17.64 |  |  | 930.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | OfficeIMO.Excel | 40.36 ms | 4.26 ms | 2.46 ms | 1.00 | 1.00 | 12410.7 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | MiniExcel | 111.29 ms | 18.42 ms | 10.64 ms | 2.76 | 2.76 | 92390.5 KB | 7.44 |  |  | 175.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | EPPlus 4.5.3.3 | 223.64 ms |  |  | 5.54 | 5.54 |  |  |  |  | 454.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | EPPlus | 407.39 ms | 100.68 ms | 58.13 ms | 10.09 | 10.09 | 117415.0 KB | 9.46 |  |  | 909.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | ClosedXML | 413.73 ms | 19.89 ms | 11.49 ms | 10.25 | 10.25 | 173392.1 KB | 13.97 |  |  | 925.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | OfficeIMO.Excel | 43.86 ms | 3.72 ms | 2.15 ms | 1.00 | 1.00 | 11393.2 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | MiniExcel | 75.86 ms | 2.93 ms | 1.69 ms | 1.73 | 1.73 | 125541.4 KB | 11.02 |  |  | 73.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | EPPlus | 451.91 ms | 11.43 ms | 6.60 ms | 10.30 | 10.30 | 254887.6 KB | 22.37 |  |  | 930.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | EPPlus 4.5.3.3 | 519.39 ms |  |  | 11.84 | 11.84 |  |  |  |  | 1084.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | ClosedXML | 966.22 ms | 40.17 ms | 23.19 ms | 22.03 | 22.03 | 565942.2 KB | 49.67 |  |  | 2103.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Formula write/read | write-cellformula | OfficeIMO.Excel | 21.20 ms | 1.29 ms | 0.74 ms | 1.00 | 1.00 | 9548.9 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Formula write/read | write-cellformula | EPPlus 4.5.3.3 | 131.18 ms |  |  | 6.19 | 6.19 |  |  |  |  | 518.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Formula write/read | write-cellformula | ClosedXML | 179.99 ms | 15.13 ms | 8.74 ms | 8.49 | 8.49 | 113844.9 KB | 11.92 |  |  | 748.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Formula write/read | write-cellformula | EPPlus | 323.42 ms | 18.56 ms | 10.72 ms | 15.25 | 15.25 | 140665.9 KB | 14.73 |  |  | 1425.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-dictionary-objects-table-direct | OfficeIMO.Excel | 46.09 ms | 0.74 ms | 0.43 ms | 1.00 | 1.00 | 14835.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | LargeXlsx | 37.45 ms | 0.51 ms | 0.30 ms | 0.86 | 1.00 | 6035.9 KB | 0.58 |  |  | 14.4% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | OfficeIMO.Excel | 43.73 ms | 1.71 ms | 0.99 ms | 1.00 | 1.17 | 10408.8 KB | 1.00 |  |  | Loss +16.8% |
-| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | MiniExcel | 79.83 ms | 1.90 ms | 1.10 ms | 1.83 | 2.13 | 113964.2 KB | 10.95 |  |  | 82.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | ClosedXML | 369.08 ms | 4.46 ms | 2.57 ms | 8.44 | 9.86 | 179544.5 KB | 17.25 |  |  | 744.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | EPPlus | 440.36 ms | 4.21 ms | 2.43 ms | 10.07 | 11.76 | 144853.2 KB | 13.92 |  |  | 907.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | LargeXlsx | 39.21 ms | 0.22 ms | 0.13 ms | 0.90 | 1.00 | 6035.9 KB | 0.62 |  |  | 10.1% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | OfficeIMO.Excel | 43.61 ms | 0.84 ms | 0.49 ms | 1.00 | 1.11 | 9773.8 KB | 1.00 |  |  | Loss +11.2% |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | MiniExcel | 80.87 ms | 4.07 ms | 2.35 ms | 1.85 | 2.06 | 113964.2 KB | 11.66 |  |  | 85.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | ClosedXML | 379.99 ms | 6.45 ms | 3.72 ms | 8.71 | 9.69 | 179544.5 KB | 18.37 |  |  | 771.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | EPPlus | 444.45 ms | 5.74 ms | 3.32 ms | 10.19 | 11.34 | 144853.2 KB | 14.82 |  |  | 919.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | OfficeIMO.Excel | 188.84 ms | 3.24 ms | 1.87 ms | 1.00 | 1.00 | 35981.7 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | LargeXlsx | 202.63 ms | 2.41 ms | 1.39 ms | 1.07 | 1.07 | 23203.4 KB | 0.64 |  |  | 7.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | MiniExcel | 330.00 ms | 3.53 ms | 2.04 ms | 1.75 | 1.75 | 347916.6 KB | 9.67 |  |  | 74.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | ClosedXML | 1211.33 ms | 7.00 ms | 4.04 ms | 6.41 | 6.41 | 487439.1 KB | 13.55 |  |  | 541.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | EPPlus | 1536.70 ms | 16.38 ms | 9.46 ms | 8.14 | 8.14 | 562848.8 KB | 15.64 |  |  | 713.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | LargeXlsx | 11.90 ms | 0.67 ms | 0.39 ms | 0.66 | 1.00 | 2763.0 KB | 0.24 |  |  | 33.9% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | OfficeIMO.Excel | 18.02 ms | 1.46 ms | 0.84 ms | 1.00 | 1.51 | 11671.6 KB | 1.00 |  |  | Loss +51.4% |
-| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | MiniExcel | 33.10 ms | 2.75 ms | 1.59 ms | 1.84 | 2.78 | 58233.0 KB | 4.99 |  |  | 83.7% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | EPPlus 4.5.3.3 | 110.08 ms |  |  | 6.11 | 9.25 |  |  |  |  | 510.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | ClosedXML | 138.31 ms | 0.78 ms | 0.45 ms | 7.67 | 11.62 | 104225.1 KB | 8.93 |  |  | 667.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | EPPlus | 215.93 ms | 7.04 ms | 4.06 ms | 11.98 | 18.14 | 100275.4 KB | 8.59 |  |  | 1098.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 15.73 ms | 6.47 ms | 3.74 ms | 1.00 | 1.00 | 6801.3 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 16.19 ms | 6.11 ms | 3.53 ms | 1.03 | 1.03 | 3444.4 KB | 0.51 |  |  | 2.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | ClosedXML | 202.46 ms | 55.72 ms | 32.17 ms | 12.87 | 12.87 | 96015.7 KB | 14.12 |  |  | 1186.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | EPPlus | 258.46 ms | 27.21 ms | 15.71 ms | 16.43 | 16.43 | 87467.0 KB | 12.86 |  |  | 1542.7% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | LargeXlsx | 30.47 ms | 2.77 ms | 1.60 ms | 0.73 | 1.00 | 5606.0 KB | 0.36 |  |  | 27.4% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 41.96 ms | 9.06 ms | 5.23 ms | 1.00 | 1.38 | 15708.0 KB | 1.00 |  |  | Loss +37.7% |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | MiniExcel | 66.03 ms | 3.98 ms | 2.30 ms | 1.57 | 2.17 | 93246.9 KB | 5.94 |  |  | 57.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | EPPlus 4.5.3.3 | 237.95 ms |  |  | 5.67 | 7.81 |  |  |  |  | 467.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | ClosedXML | 342.73 ms | 67.26 ms | 38.83 ms | 8.17 | 11.25 | 210638.1 KB | 13.41 |  |  | 716.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | EPPlus | 357.01 ms | 8.79 ms | 5.08 ms | 8.51 | 11.72 | 211783.2 KB | 13.48 |  |  | 750.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | OfficeIMO.Excel | 33.10 ms | 14.46 ms | 8.35 ms | 1.00 | 1.00 | 7543.0 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | ClosedXML | 286.93 ms | 102.12 ms | 58.96 ms | 8.67 | 8.67 | 105218.5 KB | 13.95 |  |  | 766.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | EPPlus | 318.34 ms | 35.38 ms | 20.43 ms | 9.62 | 9.62 | 106294.3 KB | 14.09 |  |  | 861.8% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | Sylvan.Data.Excel | 27.64 ms | 1.63 ms | 0.94 ms | 0.78 | 1.00 | 5692.3 KB | 0.45 |  |  | 21.6% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | LargeXlsx | 33.94 ms | 0.81 ms | 0.47 ms | 0.96 | 1.23 | 8341.2 KB | 0.66 |  |  | 3.7% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | OfficeIMO.Excel | 35.24 ms | 0.30 ms | 0.17 ms | 1.00 | 1.28 | 12673.9 KB | 1.00 |  |  | Loss +27.5% |
-| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | MiniExcel | 70.92 ms | 2.80 ms | 1.62 ms | 2.01 | 2.57 | 92189.6 KB | 7.27 |  |  | 101.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | EPPlus 4.5.3.3 | 221.32 ms |  |  | 6.28 | 8.01 |  |  |  |  | 527.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | ClosedXML | 269.04 ms | 3.70 ms | 2.13 ms | 7.63 | 9.73 | 104197.0 KB | 8.22 |  |  | 663.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | EPPlus | 325.80 ms | 2.38 ms | 1.37 ms | 9.24 | 11.79 | 117370.5 KB | 9.26 |  |  | 824.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | OfficeIMO.Excel | 40.02 ms | 2.06 ms | 1.19 ms | 1.00 | 1.00 | 9491.6 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | LargeXlsx | 48.19 ms | 6.12 ms | 3.53 ms | 1.20 | 1.20 | 9257.9 KB | 0.98 |  |  | 20.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | MiniExcel | 102.42 ms | 3.15 ms | 1.82 ms | 2.56 | 2.56 | 108118.7 KB | 11.39 |  |  | 155.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | EPPlus | 548.05 ms | 17.40 ms | 10.04 ms | 13.69 | 13.69 | 135640.3 KB | 14.29 |  |  | 1269.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | ClosedXML | 563.87 ms | 21.13 ms | 12.20 ms | 14.09 | 14.09 | 280363.8 KB | 29.54 |  |  | 1309.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | LargeXlsx | 40.03 ms | 1.71 ms | 0.99 ms | 0.94 | 1.00 | 10795.2 KB | 0.93 |  |  | 6.1% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | OfficeIMO.Excel | 42.64 ms | 1.72 ms | 0.99 ms | 1.00 | 1.07 | 11547.8 KB | 1.00 |  |  | Loss +6.5% |
-| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | MiniExcel | 146.06 ms | 4.11 ms | 2.38 ms | 3.43 | 3.65 | 226876.1 KB | 19.65 |  |  | 242.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | ClosedXML | 926.06 ms | 3.81 ms | 2.20 ms | 21.72 | 23.13 | 759818.3 KB | 65.80 |  |  | 2071.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | large-shared-strings | OfficeIMO.Excel | 15.26 ms | 0.79 ms | 0.45 ms | 1.00 | 1.00 | 15416.5 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Shared string write | large-shared-strings | MiniExcel | 29.36 ms | 1.84 ms | 1.06 ms | 1.92 | 1.92 | 73751.2 KB | 4.78 |  |  | 92.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | large-shared-strings | EPPlus 4.5.3.3 | 95.69 ms |  |  | 6.27 | 6.27 |  |  |  |  | 527.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | large-shared-strings | ClosedXML | 108.89 ms | 5.04 ms | 2.91 ms | 7.14 | 7.14 | 104233.3 KB | 6.76 |  |  | 613.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | large-shared-strings | EPPlus | 173.88 ms | 8.97 ms | 5.18 ms | 11.40 | 11.40 | 84343.7 KB | 5.47 |  |  | 1039.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | OfficeIMO.Excel | 18.65 ms | 2.47 ms | 1.43 ms | 1.00 | 1.00 | 15027.2 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | EPPlus 4.5.3.3 | 92.38 ms |  |  | 4.95 | 4.95 |  |  |  |  | 395.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | ClosedXML | 116.93 ms | 13.91 ms | 8.03 ms | 6.27 | 6.27 | 104233.3 KB | 6.94 |  |  | 527.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | EPPlus | 192.78 ms | 26.96 ms | 15.57 ms | 10.34 | 10.34 | 84343.7 KB | 5.61 |  |  | 933.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | OfficeIMO.Excel | 13.14 ms | 0.12 ms | 0.07 ms | 1.00 | 1.00 | 13651.0 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | ClosedXML | 145.31 ms | 5.37 ms | 3.10 ms | 11.05 | 11.05 | 131493.2 KB | 9.63 |  |  | 1005.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | EPPlus | 199.21 ms | 2.61 ms | 1.51 ms | 15.16 | 15.16 | 97646.6 KB | 7.15 |  |  | 1415.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | OfficeIMO.Excel | 16.32 ms | 4.93 ms | 2.84 ms | 1.00 | 1.00 | 7192.2 KB | 1.00 |  |  | Win |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | ClosedXML | 111.50 ms | 19.68 ms | 11.36 ms | 6.83 | 6.83 | 84512.0 KB | 11.75 |  |  | 583.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | EPPlus | 235.21 ms | 48.39 ms | 27.94 ms | 14.41 | 14.41 | 69934.9 KB | 9.72 |  |  | 1340.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | LargeXlsx | 28.34 ms | 0.58 ms | 0.34 ms | 0.86 | 1.00 | 5606.0 KB | 0.45 |  |  | 14.4% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | OfficeIMO.Excel | 33.11 ms | 2.72 ms | 1.57 ms | 1.00 | 1.17 | 12583.6 KB | 1.00 |  |  | Loss +16.8% |
-| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | MiniExcel | 63.74 ms | 0.64 ms | 0.37 ms | 1.93 | 2.25 | 93246.9 KB | 7.41 |  |  | 92.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | EPPlus 4.5.3.3 | 228.79 ms |  |  | 6.91 | 8.07 |  |  |  |  | 591.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | ClosedXML | 279.93 ms | 5.49 ms | 3.17 ms | 8.46 | 9.88 | 104197.0 KB | 8.28 |  |  | 745.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | EPPlus | 348.97 ms | 11.72 ms | 6.76 ms | 10.54 | 12.31 | 117370.5 KB | 9.33 |  |  | 954.1% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | LargeXlsx | 28.51 ms | 0.09 ms | 0.05 ms | 0.88 | 1.00 | 5606.0 KB | 0.49 |  |  | 12.5% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | OfficeIMO.Excel | 32.57 ms | 1.62 ms | 0.94 ms | 1.00 | 1.14 | 11325.4 KB | 1.00 |  |  | Loss +14.2% |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | MiniExcel | 63.60 ms | 1.85 ms | 1.07 ms | 1.95 | 2.23 | 93246.9 KB | 8.23 |  |  | 95.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | EPPlus 4.5.3.3 | 219.47 ms |  |  | 6.74 | 7.70 |  |  |  |  | 573.9% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | ClosedXML | 279.24 ms | 4.47 ms | 2.58 ms | 8.57 | 9.80 | 104197.0 KB | 9.20 |  |  | 757.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | EPPlus | 340.20 ms | 18.08 ms | 10.44 ms | 10.45 | 11.93 | 117370.5 KB | 10.36 |  |  | 944.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | LargeXlsx | 28.54 ms | 0.61 ms | 0.35 ms | 0.74 | 1.00 | 5606.0 KB | 0.57 |  |  | 26.3% faster than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | OfficeIMO.Excel | 38.73 ms | 1.66 ms | 0.96 ms | 1.00 | 1.36 | 9851.0 KB | 1.00 |  |  | Loss +35.7% |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | MiniExcel | 64.00 ms | 1.06 ms | 0.61 ms | 1.65 | 2.24 | 93246.9 KB | 9.47 |  |  | 65.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | ClosedXML | 281.39 ms | 14.37 ms | 8.29 ms | 7.27 | 9.86 | 104197.0 KB | 10.58 |  |  | 626.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | EPPlus | 334.00 ms | 5.85 ms | 3.38 ms | 8.62 | 11.70 | 117370.5 KB | 11.91 |  |  | 762.4% slower than OfficeIMO |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | Sylvan.Data.Excel | 6.74 ms | 0.38 ms | 0.22 ms | 0.83 | 1.00 | 362.3 KB | 0.15 |  |  | 17.0% faster than OfficeIMO |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | OfficeIMO.Excel | 8.12 ms | 1.34 ms | 0.78 ms | 1.00 | 1.20 | 2410.9 KB | 1.00 |  |  | Loss +20.4% |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | ExcelDataReader | 16.65 ms | 1.04 ms | 0.60 ms | 2.05 | 2.47 | 6887.4 KB | 2.86 |  |  | 105.1% slower than OfficeIMO |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | MiniExcel | 20.71 ms | 3.73 ms | 2.15 ms | 2.55 | 3.07 | 21507.3 KB | 8.92 |  |  | 155.1% slower than OfficeIMO |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | Sylvan.Data.Excel | 6.24 ms | 0.15 ms | 0.09 ms | 0.85 | 1.00 | 362.3 KB | 0.15 |  |  | 15.4% faster than OfficeIMO |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | OfficeIMO.Excel | 7.38 ms | 1.17 ms | 0.67 ms | 1.00 | 1.18 | 2489.4 KB | 1.00 |  |  | Loss +18.2% |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | ExcelDataReader | 15.69 ms | 2.06 ms | 1.19 ms | 2.13 | 2.51 | 6887.4 KB | 2.77 |  |  | 112.7% slower than OfficeIMO |
+| 2500 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | MiniExcel | 20.40 ms | 1.28 ms | 0.74 ms | 2.77 | 3.27 | 21507.3 KB | 8.64 |  |  | 176.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | append-plain-rows | LargeXlsx | 1.79 ms | 0.42 ms | 0.24 ms | 0.80 | 1.00 | 296.4 KB | 0.19 | 63.1 KB | 1.00 | 20.2% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | append-plain-rows | OfficeIMO.Excel | 2.25 ms | 0.47 ms | 0.27 ms | 1.00 | 1.25 | 1576.3 KB | 1.00 | 63.0 KB | 1.00 | Loss +25.3% |
+| 2500 | package-profile | package | Package size | append-plain-rows | MiniExcel | 4.52 ms | 0.28 ms | 0.16 ms | 2.01 | 2.52 | 19710.6 KB | 12.50 | 68.1 KB | 1.08 | 101.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | append-plain-rows | ClosedXML | 17.74 ms | 0.54 ms | 0.31 ms | 7.90 | 9.90 | 11197.4 KB | 7.10 | 59.8 KB | 0.95 | 690.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | append-plain-rows | EPPlus | 29.62 ms | 1.48 ms | 0.85 ms | 13.19 | 16.53 | 14365.2 KB | 9.11 | 56.9 KB | 0.90 | 1219.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | autofit-existing | OfficeIMO.Excel | 8.84 ms | 0.53 ms | 0.30 ms | 1.00 | 1.00 | 1895.3 KB | 1.00 | 143.2 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | autofit-existing | EPPlus | 88.48 ms | 2.96 ms | 1.71 ms | 10.01 | 10.01 | 50712.0 KB | 26.76 | 115.0 KB | 0.80 | 900.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | autofit-existing | ClosedXML | 154.22 ms | 14.42 ms | 8.32 ms | 17.44 | 17.44 | 84561.9 KB | 44.62 | 121.0 KB | 0.84 | 1644.3% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | large-shared-strings | OfficeIMO.Excel | 2.36 ms | 0.41 ms | 0.24 ms | 1.00 | 1.00 | 2440.3 KB | 1.00 | 55.2 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | large-shared-strings | MiniExcel | 4.81 ms | 0.62 ms | 0.36 ms | 2.04 | 2.04 | 21137.5 KB | 8.66 | 60.7 KB | 1.10 | 104.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | large-shared-strings | ClosedXML | 13.22 ms | 1.30 ms | 0.75 ms | 5.61 | 5.61 | 11299.2 KB | 4.63 | 50.3 KB | 0.91 | 460.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | large-shared-strings | EPPlus | 24.93 ms | 1.86 ms | 1.07 ms | 10.58 | 10.58 | 12804.4 KB | 5.25 | 48.1 KB | 0.87 | 957.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-autofilter | OfficeIMO.Excel | 4.61 ms | 0.21 ms | 0.12 ms | 1.00 | 1.00 | 1340.4 KB | 1.00 | 142.4 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-autofilter | ClosedXML | 38.08 ms | 2.23 ms | 1.29 ms | 8.26 | 8.26 | 22226.8 KB | 16.58 | 120.2 KB | 0.84 | 726.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-autofilter | EPPlus | 48.85 ms | 1.64 ms | 0.94 ms | 10.60 | 10.60 | 24715.5 KB | 18.44 | 114.2 KB | 0.80 | 959.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-charts | OfficeIMO.Excel | 6.37 ms | 0.50 ms | 0.29 ms | 1.00 | 1.00 | 1891.6 KB | 1.00 | 147.6 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-charts | EPPlus | 50.42 ms | 1.71 ms | 0.99 ms | 7.92 | 7.92 | 27142.3 KB | 14.35 | 117.0 KB | 0.79 | 692.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-conditional-formatting | OfficeIMO.Excel | 4.19 ms | 0.33 ms | 0.19 ms | 1.00 | 1.00 | 1405.8 KB | 1.00 | 142.7 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-conditional-formatting | ClosedXML | 34.23 ms | 1.30 ms | 0.75 ms | 8.16 | 8.16 | 22273.8 KB | 15.84 | 120.3 KB | 0.84 | 716.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-conditional-formatting | EPPlus | 44.59 ms | 0.55 ms | 0.32 ms | 10.63 | 10.63 | 24757.5 KB | 17.61 | 114.3 KB | 0.80 | 963.3% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-data-validation | OfficeIMO.Excel | 4.94 ms | 0.23 ms | 0.13 ms | 1.00 | 1.00 | 1356.1 KB | 1.00 | 142.5 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-data-validation | ClosedXML | 37.64 ms | 1.82 ms | 1.05 ms | 7.62 | 7.62 | 22247.9 KB | 16.41 | 120.3 KB | 0.84 | 661.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-data-validation | EPPlus | 49.86 ms | 2.25 ms | 1.30 ms | 10.09 | 10.09 | 24701.4 KB | 18.22 | 114.2 KB | 0.80 | 909.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-freeze-panes | OfficeIMO.Excel | 4.03 ms | 0.52 ms | 0.30 ms | 1.00 | 1.00 | 1342.8 KB | 1.00 | 142.5 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-freeze-panes | ClosedXML | 38.72 ms | 4.41 ms | 2.55 ms | 9.60 | 9.60 | 22222.0 KB | 16.55 | 120.2 KB | 0.84 | 860.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-freeze-panes | EPPlus | 49.75 ms | 5.81 ms | 3.35 ms | 12.34 | 12.34 | 24730.0 KB | 18.42 | 114.3 KB | 0.80 | 1133.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-pivot-table | OfficeIMO.Excel | 10.88 ms | 0.54 ms | 0.31 ms | 1.00 | 1.00 | 5495.0 KB | 1.00 | 200.4 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-pivot-table | EPPlus | 53.85 ms | 2.36 ms | 1.36 ms | 4.95 | 4.95 | 29537.4 KB | 5.38 | 117.4 KB | 0.59 | 394.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-report-all-in-one | OfficeIMO.Excel | 14.06 ms | 1.01 ms | 0.58 ms | 1.00 | 1.00 | 6197.0 KB | 1.00 | 206.5 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-report-all-in-one | EPPlus | 81.69 ms | 2.63 ms | 1.52 ms | 5.81 | 5.81 | 54595.0 KB | 8.81 | 121.8 KB | 0.59 | 481.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-report-chart-first | OfficeIMO.Excel | 13.49 ms | 1.59 ms | 0.92 ms | 1.00 | 1.00 | 6198.7 KB | 1.00 | 206.5 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-report-chart-first | EPPlus | 84.74 ms | 5.35 ms | 3.09 ms | 6.28 | 6.28 | 54594.3 KB | 8.81 | 121.8 KB | 0.59 | 528.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-report-core | OfficeIMO.Excel | 4.93 ms | 0.70 ms | 0.40 ms | 1.00 | 1.00 | 1488.5 KB | 1.00 | 143.9 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-report-core | EPPlus | 77.21 ms | 1.71 ms | 0.99 ms | 15.65 | 15.65 | 47299.8 KB | 31.78 | 115.6 KB | 0.80 | 1465.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-report-core | ClosedXML | 96.60 ms | 6.88 ms | 3.97 ms | 19.59 | 19.59 | 69833.7 KB | 46.91 | 121.5 KB | 0.84 | 1858.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-report-extra-column | OfficeIMO.Excel | 14.28 ms | 0.19 ms | 0.11 ms | 1.00 | 1.00 | 6389.4 KB | 1.00 | 219.1 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-report-extra-column | EPPlus | 92.46 ms | 2.94 ms | 1.70 ms | 6.47 | 6.47 | 59226.6 KB | 9.27 | 128.4 KB | 0.59 | 547.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-report-no-autofit | OfficeIMO.Excel | 11.95 ms | 1.09 ms | 0.63 ms | 1.00 | 1.00 | 6190.2 KB | 1.00 | 206.4 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-report-no-autofit | EPPlus | 53.86 ms | 5.43 ms | 3.13 ms | 4.51 | 4.51 | 32906.8 KB | 5.32 | 121.8 KB | 0.59 | 350.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-report-post-mutation | OfficeIMO.Excel | 12.69 ms | 0.35 ms | 0.20 ms | 1.00 | 1.00 | 6208.3 KB | 1.00 | 206.6 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-report-post-mutation | EPPlus | 90.40 ms | 5.42 ms | 3.13 ms | 7.12 | 7.12 | 54594.9 KB | 8.79 | 121.9 KB | 0.59 | 612.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | realworld-report-shuffled-columns | OfficeIMO.Excel | 15.33 ms | 0.35 ms | 0.20 ms | 1.00 | 1.00 | 6201.5 KB | 1.00 | 211.2 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | realworld-report-shuffled-columns | EPPlus | 84.62 ms | 6.61 ms | 3.81 ms | 5.52 | 5.52 | 54591.5 KB | 8.80 | 124.3 KB | 0.59 | 451.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | report-workbook | OfficeIMO.Excel | 17.65 ms | 0.83 ms | 0.48 ms | 1.00 | 1.00 | 7277.0 KB | 1.00 | 275.6 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | report-workbook | EPPlus | 108.51 ms | 4.68 ms | 2.70 ms | 6.15 | 6.15 | 77486.2 KB | 10.65 | 161.8 KB | 0.59 | 514.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | report-workbook-core | OfficeIMO.Excel | 7.96 ms | 0.42 ms | 0.24 ms | 1.00 | 1.00 | 2711.1 KB | 1.00 | 187.5 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | report-workbook-core | ClosedXML | 119.39 ms | 4.19 ms | 2.42 ms | 15.00 | 15.00 | 97218.9 KB | 35.86 | 165.1 KB | 0.88 | 1400.3% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | report-workbook-core | EPPlus | 119.81 ms | 4.33 ms | 2.50 ms | 15.06 | 15.06 | 71970.6 KB | 26.55 | 157.2 KB | 0.84 | 1405.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | report-workbook-datatable | OfficeIMO.Excel | 17.85 ms | 0.60 ms | 0.34 ms | 1.00 | 1.00 | 7548.5 KB | 1.00 | 275.6 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | report-workbook-datatable | EPPlus | 122.78 ms | 6.69 ms | 3.86 ms | 6.88 | 6.88 | 65995.3 KB | 8.74 | 161.8 KB | 0.59 | 587.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | report-workbook-datatable-core | OfficeIMO.Excel | 7.45 ms | 1.50 ms | 0.87 ms | 1.00 | 1.00 | 2982.7 KB | 1.00 | 187.5 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | report-workbook-datatable-core | EPPlus | 109.00 ms | 5.27 ms | 3.04 ms | 14.64 | 14.64 | 60480.1 KB | 20.28 | 157.2 KB | 0.84 | 1363.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | report-workbook-datatable-core | ClosedXML | 121.77 ms | 7.19 ms | 4.15 ms | 16.35 | 16.35 | 82861.2 KB | 27.78 | 165.1 KB | 0.88 | 1535.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | LargeXlsx | 5.07 ms | 0.63 ms | 0.36 ms | 0.95 | 1.00 | 857.6 KB | 0.51 | 237.7 KB | 1.10 | 5.5% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | OfficeIMO.Excel | 5.36 ms | 0.65 ms | 0.38 ms | 1.00 | 1.06 | 1676.8 KB | 1.00 | 216.7 KB | 1.00 | Loss +5.8% |
+| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | MiniExcel | 22.32 ms | 0.95 ms | 0.55 ms | 4.16 | 4.40 | 35919.1 KB | 21.42 | 235.3 KB | 1.09 | 316.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-blog-2023-20-string-columns | ClosedXML | 104.61 ms | 4.75 ms | 2.74 ms | 19.50 | 20.63 | 71478.2 KB | 42.63 | 257.2 KB | 1.19 | 1849.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-bulk-report | OfficeIMO.Excel | 4.33 ms | 0.20 ms | 0.11 ms | 1.00 | 1.00 | 1401.7 KB | 1.00 | 143.2 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-bulk-report | MiniExcel | 9.96 ms | 1.03 ms | 0.59 ms | 2.30 | 2.30 | 26825.4 KB | 19.14 | 153.8 KB | 1.07 | 129.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-bulk-report | EPPlus | 79.07 ms | 8.40 ms | 4.85 ms | 18.25 | 18.25 | 47193.8 KB | 33.67 | 115.0 KB | 0.80 | 1724.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-bulk-report | ClosedXML | 91.62 ms | 4.60 ms | 2.66 ms | 21.14 | 21.14 | 58348.7 KB | 41.63 | 121.0 KB | 0.84 | 2014.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellformula | OfficeIMO.Excel | 3.39 ms | 0.20 ms | 0.12 ms | 1.00 | 1.00 | 1383.3 KB | 1.00 | 66.6 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellformula | ClosedXML | 24.79 ms | 3.77 ms | 2.18 ms | 7.31 | 7.31 | 12039.8 KB | 8.70 | 70.6 KB | 1.06 | 631.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellformula | EPPlus | 44.04 ms | 2.78 ms | 1.61 ms | 12.99 | 12.99 | 18110.5 KB | 13.09 | 62.1 KB | 0.93 | 1198.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-empty-strings | OfficeIMO.Excel | 2.37 ms | 0.11 ms | 0.06 ms | 1.00 | 1.00 | 1787.1 KB | 1.00 | 44.2 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-empty-strings | ClosedXML | 13.31 ms | 0.96 ms | 0.55 ms | 5.62 | 5.62 | 9959.5 KB | 5.57 | 44.9 KB | 1.02 | 461.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-empty-strings | EPPlus | 24.48 ms | 1.60 ms | 0.92 ms | 10.33 | 10.33 | 11773.0 KB | 6.59 | 42.0 KB | 0.95 | 933.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-numbers | OfficeIMO.Excel | 2.49 ms | 0.42 ms | 0.24 ms | 1.00 | 1.00 | 1119.9 KB | 1.00 | 47.0 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-numbers | ClosedXML | 12.57 ms | 1.22 ms | 0.71 ms | 5.06 | 5.06 | 9177.1 KB | 8.19 | 45.9 KB | 0.98 | 405.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-numbers | EPPlus | 25.76 ms | 0.60 ms | 0.35 ms | 10.36 | 10.36 | 12895.3 KB | 11.51 | 43.7 KB | 0.93 | 936.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-mixed | OfficeIMO.Excel | 3.22 ms | 0.34 ms | 0.20 ms | 1.00 | 1.00 | 1763.3 KB | 1.00 | 61.2 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-mixed | ClosedXML | 20.79 ms | 0.54 ms | 0.31 ms | 6.46 | 6.46 | 11887.0 KB | 6.74 | 59.5 KB | 0.97 | 546.3% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-mixed | EPPlus | 32.49 ms | 1.06 ms | 0.61 ms | 10.10 | 10.10 | 15643.4 KB | 8.87 | 58.9 KB | 0.96 | 910.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse | OfficeIMO.Excel | 3.17 ms | 0.70 ms | 0.41 ms | 1.00 | 1.00 | 1506.9 KB | 1.00 | 62.0 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse | ClosedXML | 17.85 ms | 0.20 ms | 0.12 ms | 5.63 | 5.63 | 11296.3 KB | 7.50 | 52.5 KB | 0.85 | 462.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse | EPPlus | 31.58 ms | 1.47 ms | 0.85 ms | 9.96 | 9.96 | 14960.3 KB | 9.93 | 54.2 KB | 0.88 | 895.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | OfficeIMO.Excel | 3.11 ms | 0.33 ms | 0.19 ms | 1.00 | 1.00 | 1507.0 KB | 1.00 | 62.0 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | ClosedXML | 24.55 ms | 6.67 ms | 3.85 ms | 7.89 | 7.89 | 11296.3 KB | 7.50 | 52.5 KB | 0.85 | 688.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | EPPlus | 32.53 ms | 2.39 ms | 1.38 ms | 10.46 | 10.46 | 14960.3 KB | 9.93 | 54.2 KB | 0.88 | 945.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-scalars | OfficeIMO.Excel | 2.13 ms | 0.54 ms | 0.31 ms | 1.00 | 1.00 | 1138.1 KB | 1.00 | 46.3 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-scalars | ClosedXML | 14.10 ms | 2.36 ms | 1.36 ms | 6.63 | 6.63 | 9021.2 KB | 7.93 | 45.4 KB | 0.98 | 563.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-scalars | EPPlus | 27.22 ms | 0.73 ms | 0.42 ms | 12.80 | 12.80 | 12827.5 KB | 11.27 | 42.4 KB | 0.91 | 1179.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings | OfficeIMO.Excel | 3.87 ms | 0.43 ms | 0.25 ms | 1.00 | 1.00 | 2617.0 KB | 1.00 | 55.1 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings | ClosedXML | 14.43 ms | 2.21 ms | 1.27 ms | 3.73 | 3.73 | 11299.2 KB | 4.32 | 50.3 KB | 0.91 | 272.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings | EPPlus | 25.28 ms | 2.35 ms | 1.36 ms | 6.53 | 6.53 | 12804.9 KB | 4.89 | 48.1 KB | 0.87 | 553.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings-distinct | OfficeIMO.Excel | 2.43 ms | 0.60 ms | 0.35 ms | 1.00 | 1.00 | 2379.2 KB | 1.00 | 51.8 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings-distinct | ClosedXML | 16.10 ms | 1.08 ms | 0.63 ms | 6.63 | 6.63 | 13127.1 KB | 5.52 | 61.9 KB | 1.19 | 562.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings-distinct | EPPlus | 28.89 ms | 1.59 ms | 0.92 ms | 11.89 | 11.89 | 13893.0 KB | 5.84 | 61.5 KB | 1.19 | 1089.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings-repeated | OfficeIMO.Excel | 2.14 ms | 0.29 ms | 0.17 ms | 1.00 | 1.00 | 1579.8 KB | 1.00 | 40.0 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings-repeated | ClosedXML | 11.76 ms | 0.56 ms | 0.33 ms | 5.50 | 5.50 | 9226.5 KB | 5.84 | 38.8 KB | 0.97 | 450.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-strings-repeated | EPPlus | 23.25 ms | 2.42 ms | 1.40 ms | 10.88 | 10.88 | 11332.5 KB | 7.17 | 34.8 KB | 0.87 | 988.3% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-temporal | OfficeIMO.Excel | 2.80 ms | 0.18 ms | 0.11 ms | 1.00 | 1.00 | 1435.7 KB | 1.00 | 63.3 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-cellvalue-temporal | ClosedXML | 18.76 ms | 4.55 ms | 2.63 ms | 6.71 | 6.71 | 9711.1 KB | 6.76 | 54.5 KB | 0.86 | 571.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalue-temporal | EPPlus | 30.46 ms | 4.42 ms | 2.55 ms | 10.90 | 10.90 | 14722.7 KB | 10.25 | 53.1 KB | 0.84 | 989.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 1.39 ms | 0.24 ms | 0.14 ms | 0.81 | 1.00 | 447.0 KB | 0.41 | 47.3 KB | 0.98 | 18.9% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 1.71 ms | 0.23 ms | 0.13 ms | 1.00 | 1.23 | 1092.0 KB | 1.00 | 48.2 KB | 1.00 | Loss +23.2% |
+| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | ClosedXML | 13.32 ms | 1.06 ms | 0.61 ms | 7.79 | 9.60 | 10235.8 KB | 9.37 | 53.0 KB | 1.10 | 678.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | EPPlus | 25.99 ms | 0.67 ms | 0.39 ms | 15.20 | 18.73 | 13052.1 KB | 11.95 | 52.5 KB | 1.09 | 1420.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | LargeXlsx | 3.87 ms | 0.37 ms | 0.21 ms | 0.83 | 1.00 | 758.3 KB | 0.36 | 138.4 KB | 1.00 | 16.5% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 4.64 ms | 0.51 ms | 0.29 ms | 1.00 | 1.20 | 2081.1 KB | 1.00 | 138.0 KB | 1.00 | Loss +19.8% |
+| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | MiniExcel | 9.47 ms | 0.59 ms | 0.34 ms | 2.04 | 2.44 | 23222.3 KB | 11.16 | 153.7 KB | 1.11 | 104.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | ClosedXML | 40.20 ms | 4.19 ms | 2.42 ms | 8.66 | 10.38 | 22221.3 KB | 10.68 | 120.1 KB | 0.87 | 766.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-cellvalues-rectangle-direct | EPPlus | 45.62 ms | 2.51 ms | 1.45 ms | 9.83 | 11.78 | 24694.0 KB | 11.87 | 114.1 KB | 0.83 | 883.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-plain | Sylvan.Data.Excel | 3.69 ms | 0.24 ms | 0.14 ms | 0.83 | 1.00 | 758.7 KB | 0.43 | 78.5 KB | 0.57 | 17.3% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-plain | OfficeIMO.Excel | 4.46 ms | 0.12 ms | 0.07 ms | 1.00 | 1.21 | 1763.0 KB | 1.00 | 138.0 KB | 1.00 | Loss +21.0% |
+| 2500 | package-profile | package | Package size | write-datareader-plain | LargeXlsx | 4.51 ms | 0.08 ms | 0.05 ms | 1.01 | 1.22 | 1032.5 KB | 0.59 | 138.4 KB | 1.00 | Tie vs OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-plain | MiniExcel | 8.62 ms | 1.04 ms | 0.60 ms | 1.93 | 2.34 | 23043.8 KB | 13.07 | 153.6 KB | 1.11 | 93.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-plain | ClosedXML | 31.74 ms | 3.09 ms | 1.78 ms | 7.11 | 8.61 | 11581.0 KB | 6.57 | 120.1 KB | 0.87 | 611.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-plain | EPPlus | 43.07 ms | 0.52 ms | 0.30 ms | 9.65 | 11.68 | 16646.4 KB | 9.44 | 114.9 KB | 0.83 | 865.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-table | OfficeIMO.Excel | 4.83 ms | 0.57 ms | 0.33 ms | 1.00 | 1.00 | 1774.9 KB | 1.00 | 138.8 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-datareader-table | MiniExcel | 8.15 ms | 0.90 ms | 0.52 ms | 1.69 | 1.69 | 23044.1 KB | 12.98 | 153.6 KB | 1.11 | 68.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-table | ClosedXML | 42.68 ms | 3.15 ms | 1.82 ms | 8.84 | 8.84 | 19007.4 KB | 10.71 | 120.9 KB | 0.87 | 784.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-table | EPPlus | 42.98 ms | 0.91 ms | 0.52 ms | 8.90 | 8.90 | 16646.1 KB | 9.38 | 114.9 KB | 0.83 | 790.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-table-autofit | OfficeIMO.Excel | 5.27 ms | 0.40 ms | 0.23 ms | 1.00 | 1.00 | 1781.2 KB | 1.00 | 138.9 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-datareader-table-autofit | MiniExcel | 10.06 ms | 0.24 ms | 0.14 ms | 1.91 | 1.91 | 26647.3 KB | 14.96 | 153.8 KB | 1.11 | 90.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-table-autofit | EPPlus | 66.73 ms | 5.27 ms | 3.04 ms | 12.67 | 12.67 | 38343.6 KB | 21.53 | 115.1 KB | 0.83 | 1166.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datareader-table-autofit | ClosedXML | 87.41 ms | 5.65 ms | 3.26 ms | 16.59 | 16.59 | 58360.1 KB | 32.77 | 121.0 KB | 0.87 | 1559.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | OfficeIMO.Excel | 4.53 ms | 0.40 ms | 0.23 ms | 1.00 | 1.00 | 2140.6 KB | 1.00 | 131.1 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | LargeXlsx | 5.15 ms | 0.21 ms | 0.12 ms | 1.14 | 1.14 | 1123.9 KB | 0.53 | 164.2 KB | 1.25 | 13.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | MiniExcel | 11.67 ms | 0.58 ms | 0.33 ms | 2.57 | 2.57 | 29746.9 KB | 13.90 | 180.5 KB | 1.38 | 157.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | ClosedXML | 67.27 ms | 2.47 ms | 1.43 ms | 14.84 | 14.84 | 27410.8 KB | 12.81 | 159.4 KB | 1.22 | 1384.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-direct-export | EPPlus | 67.79 ms | 9.55 ms | 5.51 ms | 14.96 | 14.96 | 21889.7 KB | 10.23 | 144.5 KB | 1.10 | 1395.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | OfficeIMO.Excel | 5.66 ms | 0.19 ms | 0.11 ms | 1.00 | 1.00 | 2880.2 KB | 1.00 | 176.0 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | MiniExcel | 11.50 ms | 0.68 ms | 0.40 ms | 2.03 | 2.03 | 29746.9 KB | 10.33 | 180.5 KB | 1.03 | 103.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | ClosedXML | 67.63 ms | 4.63 ms | 2.67 ms | 11.94 | 11.94 | 27410.3 KB | 9.52 | 159.4 KB | 0.91 | 1094.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-sparse-tables | EPPlus | 71.10 ms | 2.40 ms | 1.39 ms | 12.56 | 12.56 | 21889.7 KB | 7.60 | 144.5 KB | 0.82 | 1155.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-tables | OfficeIMO.Excel | 5.01 ms | 0.35 ms | 0.20 ms | 1.00 | 1.00 | 2066.1 KB | 1.00 | 138.9 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-dataset-tables | MiniExcel | 9.63 ms | 0.99 ms | 0.57 ms | 1.92 | 1.92 | 28700.4 KB | 13.89 | 156.4 KB | 1.13 | 92.3% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-tables | EPPlus | 41.45 ms | 1.02 ms | 0.59 ms | 8.28 | 8.28 | 18700.6 KB | 9.05 | 116.6 KB | 0.84 | 727.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-tables | ClosedXML | 43.41 ms | 1.41 ms | 0.81 ms | 8.67 | 8.67 | 18875.8 KB | 9.14 | 123.4 KB | 0.89 | 766.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | OfficeIMO.Excel | 5.08 ms | 0.06 ms | 0.03 ms | 1.00 | 1.00 | 2078.7 KB | 1.00 | 139.2 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | MiniExcel | 10.95 ms | 1.54 ms | 0.89 ms | 2.15 | 2.15 | 31798.6 KB | 15.30 | 156.6 KB | 1.13 | 115.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | EPPlus | 74.32 ms | 5.44 ms | 3.14 ms | 14.62 | 14.62 | 41455.7 KB | 19.94 | 116.9 KB | 0.84 | 1361.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-dataset-tables-autofit | ClosedXML | 95.69 ms | 4.10 ms | 2.36 ms | 18.82 | 18.82 | 56707.1 KB | 27.28 | 123.7 KB | 0.89 | 1781.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datatable-direct | LargeXlsx | 3.99 ms | 0.32 ms | 0.19 ms | 0.82 | 1.00 | 1149.0 KB | 0.66 | 138.4 KB | 1.00 | 18.3% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datatable-direct | OfficeIMO.Excel | 4.89 ms | 0.41 ms | 0.24 ms | 1.00 | 1.22 | 1748.6 KB | 1.00 | 138.0 KB | 1.00 | Loss +22.4% |
+| 2500 | package-profile | package | Package size | write-datatable-direct | MiniExcel | 9.58 ms | 0.25 ms | 0.14 ms | 1.96 | 2.40 | 23062.5 KB | 13.19 | 153.7 KB | 1.11 | 96.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datatable-direct | ClosedXML | 43.65 ms | 15.64 ms | 9.03 ms | 8.93 | 10.93 | 11581.0 KB | 6.62 | 120.1 KB | 0.87 | 792.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datatable-direct | EPPlus | 44.21 ms | 1.23 ms | 0.71 ms | 9.04 | 11.07 | 16646.1 KB | 9.52 | 114.9 KB | 0.83 | 804.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datatable-table-direct | OfficeIMO.Excel | 4.74 ms | 0.80 ms | 0.46 ms | 1.00 | 1.00 | 1760.7 KB | 1.00 | 138.8 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-datatable-table-direct | MiniExcel | 9.45 ms | 1.44 ms | 0.83 ms | 2.00 | 2.00 | 23062.8 KB | 13.10 | 153.7 KB | 1.11 | 99.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datatable-table-direct | ClosedXML | 40.97 ms | 1.51 ms | 0.87 ms | 8.65 | 8.65 | 19007.5 KB | 10.80 | 120.9 KB | 0.87 | 764.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-datatable-table-direct | EPPlus | 42.90 ms | 1.85 ms | 1.07 ms | 9.06 | 9.06 | 16646.1 KB | 9.45 | 114.9 KB | 0.83 | 805.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | LargeXlsx | 3.34 ms | 0.53 ms | 0.31 ms | 0.73 | 1.00 | 758.3 KB | 0.43 | 138.4 KB | 1.00 | 26.7% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | OfficeIMO.Excel | 4.56 ms | 0.08 ms | 0.05 ms | 1.00 | 1.36 | 1769.2 KB | 1.00 | 138.0 KB | 1.00 | Loss +36.4% |
+| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | MiniExcel | 10.34 ms | 0.77 ms | 0.45 ms | 2.27 | 3.09 | 23222.3 KB | 13.13 | 153.7 KB | 1.11 | 126.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | ClosedXML | 32.63 ms | 1.59 ms | 0.92 ms | 7.15 | 9.76 | 11581.0 KB | 6.55 | 120.1 KB | 0.87 | 615.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-fluent-rowsfrom-direct | EPPlus | 43.58 ms | 0.48 ms | 0.28 ms | 9.55 | 13.03 | 16646.4 KB | 9.41 | 114.9 KB | 0.83 | 855.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | OfficeIMO.Excel | 5.36 ms | 0.27 ms | 0.15 ms | 1.00 | 1.00 | 1347.1 KB | 1.00 | 142.4 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | EPPlus | 70.55 ms | 2.39 ms | 1.38 ms | 13.15 | 13.15 | 38343.9 KB | 28.46 | 115.1 KB | 0.81 | 1215.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | ClosedXML | 91.83 ms | 4.42 ms | 2.55 ms | 17.12 | 17.12 | 50927.5 KB | 37.80 | 120.2 KB | 0.84 | 1611.7% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-direct | LargeXlsx | 4.02 ms | 0.64 ms | 0.37 ms | 0.86 | 1.00 | 758.3 KB | 0.57 | 138.4 KB | 0.97 | 14.2% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-direct | OfficeIMO.Excel | 4.68 ms | 0.14 ms | 0.08 ms | 1.00 | 1.17 | 1339.3 KB | 1.00 | 142.3 KB | 1.00 | Loss +16.6% |
+| 2500 | package-profile | package | Package size | write-insertobjects-direct | MiniExcel | 10.79 ms | 1.26 ms | 0.73 ms | 2.30 | 2.69 | 23222.3 KB | 17.34 | 153.7 KB | 1.08 | 130.4% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-direct | ClosedXML | 40.84 ms | 8.72 ms | 5.03 ms | 8.72 | 10.16 | 11581.0 KB | 8.65 | 120.1 KB | 0.84 | 771.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-direct | EPPlus | 48.52 ms | 1.15 ms | 0.66 ms | 10.36 | 12.07 | 16646.1 KB | 12.43 | 114.9 KB | 0.81 | 935.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | OfficeIMO.Excel | 6.49 ms | 0.99 ms | 0.57 ms | 1.00 | 1.00 | 1505.3 KB | 1.00 | 138.1 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | EPPlus | 67.74 ms | 1.39 ms | 0.80 ms | 10.44 | 10.44 | 38343.9 KB | 25.47 | 115.1 KB | 0.83 | 943.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | ClosedXML | 83.81 ms | 3.44 ms | 1.99 ms | 12.91 | 12.91 | 50927.5 KB | 33.83 | 120.2 KB | 0.87 | 1191.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | LargeXlsx | 3.94 ms | 0.10 ms | 0.06 ms | 0.69 | 1.00 | 758.3 KB | 0.51 | 138.4 KB | 1.00 | 31.0% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | OfficeIMO.Excel | 5.71 ms | 0.93 ms | 0.54 ms | 1.00 | 1.45 | 1497.5 KB | 1.00 | 138.0 KB | 1.00 | Loss +45.0% |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | MiniExcel | 9.88 ms | 0.08 ms | 0.04 ms | 1.73 | 2.51 | 23222.3 KB | 15.51 | 153.7 KB | 1.11 | 73.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | ClosedXML | 35.22 ms | 1.43 ms | 0.82 ms | 6.17 | 8.94 | 11581.0 KB | 7.73 | 120.1 KB | 0.87 | 516.6% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | EPPlus | 44.96 ms | 2.09 ms | 1.21 ms | 7.87 | 11.41 | 16646.1 KB | 11.12 | 114.9 KB | 0.83 | 687.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | LargeXlsx | 3.95 ms | 0.14 ms | 0.08 ms | 0.65 | 1.00 | 758.3 KB | 0.43 | 138.4 KB | 0.97 | 34.8% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | OfficeIMO.Excel | 6.06 ms | 0.87 ms | 0.50 ms | 1.00 | 1.53 | 1770.1 KB | 1.00 | 142.3 KB | 1.00 | Loss +53.3% |
+| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | MiniExcel | 10.60 ms | 0.67 ms | 0.38 ms | 1.75 | 2.68 | 23222.3 KB | 13.12 | 153.7 KB | 1.08 | 74.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | ClosedXML | 36.87 ms | 0.57 ms | 0.33 ms | 6.09 | 9.33 | 11581.0 KB | 6.54 | 120.1 KB | 0.84 | 508.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | EPPlus | 43.50 ms | 0.57 ms | 0.33 ms | 7.18 | 11.00 | 16646.1 KB | 9.40 | 114.9 KB | 0.81 | 617.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | OfficeIMO.Excel | 4.93 ms | 0.21 ms | 0.12 ms | 1.00 | 1.00 | 1346.4 KB | 1.00 | 142.4 KB | 1.00 | Win |
+| 2500 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | ClosedXML | 58.21 ms | 7.04 ms | 4.07 ms | 11.80 | 11.80 | 28540.6 KB | 21.20 | 120.2 KB | 0.84 | 1080.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | EPPlus | 61.51 ms | 1.14 ms | 0.66 ms | 12.47 | 12.47 | 27305.8 KB | 20.28 | 115.0 KB | 0.81 | 1147.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | LargeXlsx | 5.31 ms | 0.99 ms | 0.57 ms | 0.69 | 1.00 | 802.5 KB | 0.34 | 182.6 KB | 1.00 | 31.4% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | OfficeIMO.Excel | 7.74 ms | 1.30 ms | 0.75 ms | 1.00 | 1.46 | 2341.7 KB | 1.00 | 183.1 KB | 1.00 | Loss +45.8% |
+| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | MiniExcel | 10.69 ms | 0.47 ms | 0.27 ms | 1.38 | 2.01 | 25190.5 KB | 10.76 | 194.0 KB | 1.06 | 38.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | ClosedXML | 45.32 ms | 3.80 ms | 2.20 ms | 5.86 | 8.54 | 16973.5 KB | 7.25 | 161.0 KB | 0.88 | 485.5% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-mixed-objects-direct | EPPlus | 59.97 ms | 3.21 ms | 1.85 ms | 7.75 | 11.29 | 20105.1 KB | 8.59 | 152.1 KB | 0.83 | 674.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | LargeXlsx | 5.00 ms | 0.31 ms | 0.18 ms | 0.95 | 1.00 | 802.5 KB | 0.53 | 182.6 KB | 1.00 | 5.0% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | OfficeIMO.Excel | 5.26 ms | 0.55 ms | 0.32 ms | 1.00 | 1.05 | 1507.7 KB | 1.00 | 182.4 KB | 1.00 | Loss +5.2% |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | MiniExcel | 10.38 ms | 1.79 ms | 1.03 ms | 1.97 | 2.07 | 25190.5 KB | 16.71 | 194.0 KB | 1.06 | 97.2% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | ClosedXML | 45.53 ms | 4.32 ms | 2.49 ms | 8.65 | 9.10 | 16973.5 KB | 11.26 | 161.0 KB | 0.88 | 764.8% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | EPPlus | 56.18 ms | 3.51 ms | 2.02 ms | 10.67 | 11.23 | 20105.1 KB | 13.33 | 152.1 KB | 0.83 | 967.1% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | LargeXlsx | 23.92 ms | 2.16 ms | 1.25 ms | 0.93 | 1.00 | 2810.7 KB | 0.62 | 644.6 KB | 0.99 | 7.0% faster than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | OfficeIMO.Excel | 25.72 ms | 2.23 ms | 1.29 ms | 1.00 | 1.08 | 4502.3 KB | 1.00 | 651.0 KB | 1.00 | Loss +7.5% |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | MiniExcel | 41.68 ms | 2.32 ms | 1.34 ms | 1.62 | 1.74 | 48414.8 KB | 10.75 | 674.4 KB | 1.04 | 62.0% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | ClosedXML | 141.20 ms | 5.00 ms | 2.89 ms | 5.49 | 5.90 | 51647.0 KB | 11.47 | 615.5 KB | 0.95 | 448.9% slower than OfficeIMO |
+| 2500 | package-profile | package | Package size | write-powershell-psobject-wide-direct | EPPlus | 182.54 ms | 6.21 ms | 3.58 ms | 7.10 | 7.63 | 69139.6 KB | 15.36 | 548.9 KB | 0.84 | 609.6% slower than OfficeIMO |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | OfficeIMO.Excel | 9.68 ms | 0.21 ms | 0.12 ms | 1.00 | 1.00 | 1895.3 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | EPPlus | 104.81 ms | 4.97 ms | 2.87 ms | 10.83 | 10.83 | 50712.0 KB | 26.76 |  |  | 983.2% slower than OfficeIMO |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | EPPlus 4.5.3.3 | 112.86 ms |  |  | 11.66 | 11.66 |  |  |  |  | 1066.4% slower than OfficeIMO |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | ClosedXML | 181.55 ms | 10.10 ms | 5.83 ms | 18.76 | 18.76 | 84605.7 KB | 44.64 |  |  | 1776.3% slower than OfficeIMO |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | realworld-report-no-autofit | OfficeIMO.Excel | 13.55 ms | 1.24 ms | 0.72 ms | 1.00 | 1.00 | 6190.5 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | realworld-report-no-autofit | EPPlus 4.5.3.3 | 39.42 ms |  |  | 2.91 | 2.91 |  |  |  |  | 190.9% slower than OfficeIMO |
+| 2500 | speed-comparison | mutate | AutoFit and mutation | realworld-report-no-autofit | EPPlus | 54.57 ms | 3.57 ms | 2.06 ms | 4.03 | 4.03 | 32906.8 KB | 5.32 |  |  | 302.6% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-chart-first | OfficeIMO.Excel | 13.43 ms | 1.00 ms | 0.58 ms | 1.00 | 1.00 | 6197.4 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-chart-first | EPPlus 4.5.3.3 | 81.33 ms |  |  | 6.06 | 6.06 |  |  |  |  | 505.7% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-chart-first | EPPlus | 88.79 ms | 4.35 ms | 2.51 ms | 6.61 | 6.61 | 54594.0 KB | 8.81 |  |  | 561.3% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-extra-column | OfficeIMO.Excel | 14.14 ms | 0.73 ms | 0.42 ms | 1.00 | 1.00 | 6390.9 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-extra-column | EPPlus 4.5.3.3 | 88.80 ms |  |  | 6.28 | 6.28 |  |  |  |  | 527.8% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-extra-column | EPPlus | 89.14 ms | 1.46 ms | 0.85 ms | 6.30 | 6.30 | 59226.4 KB | 9.27 |  |  | 530.2% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-post-mutation | OfficeIMO.Excel | 14.68 ms | 0.62 ms | 0.36 ms | 1.00 | 1.00 | 6208.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-post-mutation | EPPlus 4.5.3.3 | 78.95 ms |  |  | 5.38 | 5.38 |  |  |  |  | 437.8% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-post-mutation | EPPlus | 85.11 ms | 0.28 ms | 0.16 ms | 5.80 | 5.80 | 54594.7 KB | 8.79 |  |  | 479.7% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-shuffled-columns | OfficeIMO.Excel | 15.82 ms | 0.65 ms | 0.38 ms | 1.00 | 1.00 | 6204.6 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-shuffled-columns | EPPlus 4.5.3.3 | 81.45 ms |  |  | 5.15 | 5.15 |  |  |  |  | 414.9% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Anti-cheat report variants | realworld-report-shuffled-columns | EPPlus | 84.62 ms | 0.61 ms | 0.35 ms | 5.35 | 5.35 | 54591.3 KB | 8.80 |  |  | 434.9% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Object projection | build-object-datatable-dictionaries | OfficeIMO.Excel | 1.67 ms | 0.40 ms | 0.23 ms | 1.00 | 1.00 | 564.2 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Object projection | build-object-datatable-typed | OfficeIMO.Excel | 1.60 ms | 0.13 ms | 0.08 ms | 1.00 | 1.00 | 856.9 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Range and table read | enumerate-cells | OfficeIMO.Excel | 7.95 ms | 0.52 ms | 0.30 ms | 1.00 | 1.00 | 2531.8 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Range and table read | enumerate-cells | ClosedXML | 40.45 ms | 1.12 ms | 0.65 ms | 5.09 | 5.09 | 17022.3 KB | 6.72 |  |  | 409.0% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Range and table read | enumerate-cells | EPPlus | 40.75 ms | 6.37 ms | 3.68 ms | 5.13 | 5.13 | 20154.9 KB | 7.96 |  |  | 412.8% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | OfficeIMO.Excel | 5.17 ms | 0.06 ms | 0.04 ms | 1.00 | 1.00 | 523.5 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | EPPlus | 32.06 ms | 1.30 ms | 0.75 ms | 6.20 | 6.20 | 13108.1 KB | 25.04 |  |  | 520.1% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | ClosedXML | 44.98 ms | 1.46 ms | 0.84 ms | 8.70 | 8.70 | 15463.3 KB | 29.54 |  |  | 770.1% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Range and table read | enumerate-range | OfficeIMO.Excel | 7.62 ms | 1.94 ms | 1.12 ms | 1.00 | 1.00 | 2531.9 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Range and table read | enumerate-range | EPPlus | 37.58 ms | 5.57 ms | 3.22 ms | 4.93 | 4.93 | 20154.9 KB | 7.96 |  |  | 393.4% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Range and table read | enumerate-range | ClosedXML | 38.81 ms | 0.55 ms | 0.32 ms | 5.09 | 5.09 | 17020.5 KB | 6.72 |  |  | 409.5% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Range and table read | enumerate-top-range | OfficeIMO.Excel | 0.77 ms | 0.06 ms | 0.04 ms | 1.00 | 1.00 | 285.5 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Range and table read | enumerate-top-range | EPPlus | 28.35 ms | 3.28 ms | 1.89 ms | 36.92 | 36.92 | 12404.4 KB | 43.45 |  |  | 3592.3% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Range and table read | enumerate-top-range | ClosedXML | 37.77 ms | 1.18 ms | 0.68 ms | 49.20 | 49.20 | 15370.3 KB | 53.84 |  |  | 4819.5% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-autofilter | OfficeIMO.Excel | 4.26 ms | 0.12 ms | 0.07 ms | 1.00 | 1.00 | 1340.4 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-autofilter | EPPlus 4.5.3.3 | 28.49 ms |  |  | 6.68 | 6.68 |  |  |  |  | 568.1% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-autofilter | ClosedXML | 42.14 ms | 8.20 ms | 4.74 ms | 9.88 | 9.88 | 22226.8 KB | 16.58 |  |  | 888.2% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-autofilter | EPPlus | 50.65 ms | 4.04 ms | 2.33 ms | 11.88 | 11.88 | 24715.5 KB | 18.44 |  |  | 1087.7% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-charts | OfficeIMO.Excel | 6.57 ms | 0.44 ms | 0.26 ms | 1.00 | 1.00 | 1891.6 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-charts | EPPlus 4.5.3.3 | 34.29 ms |  |  | 5.22 | 5.22 |  |  |  |  | 422.1% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-charts | EPPlus | 54.79 ms | 1.79 ms | 1.03 ms | 8.34 | 8.34 | 27142.3 KB | 14.35 |  |  | 734.2% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | OfficeIMO.Excel | 4.53 ms | 0.59 ms | 0.34 ms | 1.00 | 1.00 | 1405.8 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | EPPlus 4.5.3.3 | 30.75 ms |  |  | 6.79 | 6.79 |  |  |  |  | 578.7% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | ClosedXML | 37.66 ms | 1.92 ms | 1.11 ms | 8.31 | 8.31 | 22273.8 KB | 15.84 |  |  | 731.1% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | EPPlus | 44.53 ms | 1.00 ms | 0.58 ms | 9.83 | 9.83 | 24757.5 KB | 17.61 |  |  | 882.8% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-data-validation | OfficeIMO.Excel | 4.76 ms | 0.32 ms | 0.19 ms | 1.00 | 1.00 | 1356.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-data-validation | EPPlus 4.5.3.3 | 28.70 ms |  |  | 6.03 | 6.03 |  |  |  |  | 502.6% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-data-validation | ClosedXML | 40.88 ms | 3.01 ms | 1.74 ms | 8.58 | 8.58 | 22247.9 KB | 16.41 |  |  | 758.2% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-data-validation | EPPlus | 47.64 ms | 0.82 ms | 0.47 ms | 10.00 | 10.00 | 24701.4 KB | 18.22 |  |  | 900.3% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | OfficeIMO.Excel | 4.25 ms | 0.40 ms | 0.23 ms | 1.00 | 1.00 | 1342.9 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | EPPlus 4.5.3.3 | 28.87 ms |  |  | 6.79 | 6.79 |  |  |  |  | 579.3% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | ClosedXML | 38.50 ms | 0.78 ms | 0.45 ms | 9.06 | 9.06 | 22222.0 KB | 16.55 |  |  | 806.0% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | EPPlus | 46.20 ms | 2.55 ms | 1.47 ms | 10.87 | 10.87 | 24730.0 KB | 18.42 |  |  | 987.3% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-pivot-table | OfficeIMO.Excel | 10.98 ms | 0.69 ms | 0.40 ms | 1.00 | 1.00 | 5494.9 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-pivot-table | EPPlus 4.5.3.3 | 33.03 ms |  |  | 3.01 | 3.01 |  |  |  |  | 200.9% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world feature mix | realworld-pivot-table | EPPlus | 55.47 ms | 1.23 ms | 0.71 ms | 5.05 | 5.05 | 29537.4 KB | 5.38 |  |  | 405.4% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-all-in-one | OfficeIMO.Excel | 13.87 ms | 1.79 ms | 1.03 ms | 1.00 | 1.00 | 6198.3 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-all-in-one | EPPlus | 85.20 ms | 5.79 ms | 3.34 ms | 6.14 | 6.14 | 54594.8 KB | 8.81 |  |  | 514.2% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-all-in-one | EPPlus 4.5.3.3 | 85.69 ms |  |  | 6.18 | 6.18 |  |  |  |  | 517.8% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-core | OfficeIMO.Excel | 5.27 ms | 0.92 ms | 0.53 ms | 1.00 | 1.00 | 1488.6 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-core | EPPlus | 78.53 ms | 2.09 ms | 1.21 ms | 14.91 | 14.91 | 47299.8 KB | 31.77 |  |  | 1390.6% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-core | EPPlus 4.5.3.3 | 85.01 ms |  |  | 16.14 | 16.14 |  |  |  |  | 1513.7% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Real-world report | realworld-report-core | ClosedXML | 92.13 ms | 4.02 ms | 2.32 ms | 17.49 | 17.49 | 69835.1 KB | 46.91 |  |  | 1648.9% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook | OfficeIMO.Excel | 26.10 ms | 1.19 ms | 0.69 ms | 1.00 | 1.00 | 7234.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Report workbook | report-workbook | EPPlus 4.5.3.3 | 108.50 ms |  |  | 4.16 | 4.16 |  |  |  |  | 315.6% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook | EPPlus | 124.26 ms | 5.83 ms | 3.36 ms | 4.76 | 4.76 | 77486.1 KB | 10.71 |  |  | 376.0% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-core | OfficeIMO.Excel | 7.48 ms | 0.63 ms | 0.36 ms | 1.00 | 1.00 | 2711.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-core | EPPlus 4.5.3.3 | 103.99 ms |  |  | 13.90 | 13.90 |  |  |  |  | 1290.3% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-core | EPPlus | 119.77 ms | 3.92 ms | 2.26 ms | 16.01 | 16.01 | 71970.6 KB | 26.55 |  |  | 1501.3% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-core | ClosedXML | 123.93 ms | 7.36 ms | 4.25 ms | 16.57 | 16.57 | 97217.3 KB | 35.86 |  |  | 1556.8% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable | OfficeIMO.Excel | 18.81 ms | 0.34 ms | 0.19 ms | 1.00 | 1.00 | 7548.8 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable | EPPlus 4.5.3.3 | 102.31 ms |  |  | 5.44 | 5.44 |  |  |  |  | 443.9% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable | EPPlus | 125.61 ms | 6.54 ms | 3.77 ms | 6.68 | 6.68 | 65995.1 KB | 8.74 |  |  | 567.8% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable-core | OfficeIMO.Excel | 7.58 ms | 0.57 ms | 0.33 ms | 1.00 | 1.00 | 2982.8 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable-core | EPPlus 4.5.3.3 | 100.61 ms |  |  | 13.28 | 13.28 |  |  |  |  | 1227.8% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable-core | EPPlus | 114.61 ms | 7.51 ms | 4.34 ms | 15.13 | 15.13 | 60480.1 KB | 20.28 |  |  | 1412.6% slower than OfficeIMO |
+| 2500 | speed-comparison | other | Report workbook | report-workbook-datatable-core | ClosedXML | 119.46 ms | 6.01 ms | 3.47 ms | 15.77 | 15.77 | 82860.0 KB | 27.78 |  |  | 1476.7% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | OfficeIMO.Excel | 3.23 ms | 0.22 ms | 0.13 ms | 1.00 | 1.00 | 706.7 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | EPPlus 4.5.3.3 | 17.95 ms |  |  | 5.56 | 5.56 |  |  |  |  | 456.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | EPPlus | 23.17 ms | 0.12 ms | 0.07 ms | 7.18 | 7.18 | 7708.0 KB | 10.91 |  |  | 618.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Formula write/read | formula-heavy-read | ClosedXML | 25.61 ms | 0.61 ms | 0.35 ms | 7.94 | 7.94 | 8279.4 KB | 11.72 |  |  | 693.7% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-column-read | OfficeIMO.Excel | 1.33 ms | 0.13 ms | 0.08 ms | 1.00 | 1.00 | 177.3 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | read | Other | large-sparse-column-read | Sylvan.Data.Excel | 1.48 ms | 0.16 ms | 0.09 ms | 1.11 | 1.11 | 316.6 KB | 1.79 |  |  | 10.9% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-column-read | ExcelDataReader | 2.49 ms | 0.16 ms | 0.09 ms | 1.87 | 1.87 | 4062.2 KB | 22.92 |  |  | 87.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-column-read | ClosedXML | 4.79 ms | 0.41 ms | 0.24 ms | 3.59 | 3.59 | 4392.6 KB | 24.78 |  |  | 259.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-column-read | EPPlus 4.5.3.3 | 10.56 ms |  |  | 7.92 | 7.92 |  |  |  |  | 692.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-column-read | MiniExcel | 17.43 ms | 3.15 ms | 1.82 ms | 13.08 | 13.08 | 46194.9 KB | 260.60 |  |  | 1207.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-column-read | EPPlus | 48.44 ms | 4.96 ms | 2.86 ms | 36.34 | 36.34 | 43071.0 KB | 242.98 |  |  | 3534.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-row-read | Sylvan.Data.Excel | 1.61 ms | 0.36 ms | 0.21 ms | 0.69 | 1.00 | 316.6 KB | 1.79 |  |  | 30.8% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-row-read | OfficeIMO.Excel | 2.33 ms | 0.91 ms | 0.52 ms | 1.00 | 1.44 | 177.3 KB | 1.00 |  |  | Loss +44.4% |
+| 2500 | speed-comparison | read | Other | large-sparse-row-read | ExcelDataReader | 2.73 ms | 0.40 ms | 0.23 ms | 1.17 | 1.69 | 4062.2 KB | 22.91 |  |  | 17.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-row-read | ClosedXML | 4.32 ms | 0.19 ms | 0.11 ms | 1.86 | 2.68 | 4392.6 KB | 24.77 |  |  | 85.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-row-read | EPPlus 4.5.3.3 | 13.49 ms |  |  | 5.79 | 8.36 |  |  |  |  | 478.8% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-row-read | MiniExcel | 14.22 ms | 1.74 ms | 1.01 ms | 6.10 | 8.81 | 46194.9 KB | 260.50 |  |  | 510.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | large-sparse-row-read | EPPlus | 47.28 ms | 3.92 ms | 2.26 ms | 20.28 | 29.29 | 43071.0 KB | 242.89 |  |  | 1928.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | shared-string-read | Sylvan.Data.Excel | 2.41 ms | 0.58 ms | 0.33 ms | 0.62 | 1.00 | 518.6 KB | 0.49 |  |  | 38.0% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Other | shared-string-read | OfficeIMO.Excel | 3.89 ms | 0.39 ms | 0.22 ms | 1.00 | 1.61 | 1056.5 KB | 1.00 |  |  | Loss +61.4% |
+| 2500 | speed-comparison | read | Other | shared-string-read | ExcelDataReader | 6.73 ms | 0.65 ms | 0.37 ms | 1.73 | 2.79 | 2619.0 KB | 2.48 |  |  | 73.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | shared-string-read | MiniExcel | 7.48 ms | 0.35 ms | 0.20 ms | 1.92 | 3.10 | 7530.0 KB | 7.13 |  |  | 92.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | shared-string-read | ClosedXML | 20.53 ms | 2.29 ms | 1.32 ms | 5.27 | 8.51 | 9497.7 KB | 8.99 |  |  | 427.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | shared-string-read | EPPlus 4.5.3.3 | 20.53 ms |  |  | 5.27 | 8.51 |  |  |  |  | 427.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Other | shared-string-read | EPPlus | 23.82 ms | 1.14 ms | 0.66 ms | 6.12 | 9.87 | 10372.2 KB | 9.82 |  |  | 511.8% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-bottom-range | Sylvan.Data.Excel | 5.13 ms | 1.11 ms | 0.64 ms | 0.81 | 1.00 | 655.2 KB | 1.75 |  |  | 18.8% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-bottom-range | OfficeIMO.Excel | 6.31 ms | 1.61 ms | 0.93 ms | 1.00 | 1.23 | 374.5 KB | 1.00 |  |  | Loss +23.2% |
+| 2500 | speed-comparison | read | Range and table read | read-bottom-range | ExcelDataReader | 14.84 ms | 1.65 ms | 0.95 ms | 2.35 | 2.90 | 6089.5 KB | 16.26 |  |  | 135.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-bottom-range | MiniExcel | 17.45 ms | 1.23 ms | 0.71 ms | 2.76 | 3.41 | 18661.8 KB | 49.83 |  |  | 176.4% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-bottom-range | EPPlus | 31.90 ms | 1.75 ms | 1.01 ms | 5.05 | 6.23 | 12427.1 KB | 33.18 |  |  | 405.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-bottom-range | ClosedXML | 40.72 ms | 2.99 ms | 1.72 ms | 6.45 | 7.94 | 15360.9 KB | 41.02 |  |  | 544.8% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-datatable | Sylvan.Data.Excel | 10.99 ms | 3.35 ms | 1.94 ms | 0.51 | 1.00 | 2239.3 KB | 0.62 |  |  | 48.9% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-datatable | ExcelDataReader | 16.89 ms | 1.75 ms | 1.01 ms | 0.79 | 1.54 | 7673.5 KB | 2.13 |  |  | 21.5% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-datatable | MiniExcel | 19.08 ms | 2.56 ms | 1.48 ms | 0.89 | 1.74 | 18266.6 KB | 5.08 |  |  | 11.3% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-datatable | OfficeIMO.Excel | 21.50 ms | 18.77 ms | 10.84 ms | 1.00 | 1.96 | 3594.5 KB | 1.00 |  |  | Loss +95.7% |
+| 2500 | speed-comparison | read | Range and table read | read-datatable | EPPlus | 44.57 ms | 6.25 ms | 3.61 ms | 2.07 | 4.06 | 21736.6 KB | 6.05 |  |  | 107.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-datatable | EPPlus 4.5.3.3 | 45.30 ms |  |  | 2.11 | 4.12 |  |  |  |  | 110.7% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-datatable | ClosedXML | 46.27 ms | 7.56 ms | 4.37 ms | 2.15 | 4.21 | 18314.1 KB | 5.10 |  |  | 115.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | OfficeIMO.Excel | 5.97 ms | 0.50 ms | 0.29 ms | 1.00 | 1.00 | 543.0 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | Sylvan.Data.Excel | 6.47 ms | 0.10 ms | 0.06 ms | 1.08 | 1.08 | 733.5 KB | 1.35 |  |  | 8.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | MiniExcel | 14.59 ms | 0.79 ms | 0.45 ms | 2.44 | 2.44 | 15850.3 KB | 29.19 |  |  | 144.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | ExcelDataReader | 15.25 ms | 0.73 ms | 0.42 ms | 2.55 | 2.55 | 6089.5 KB | 11.21 |  |  | 155.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | EPPlus | 32.44 ms | 3.45 ms | 1.99 ms | 5.43 | 5.43 | 13108.1 KB | 24.14 |  |  | 443.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | ClosedXML | 43.22 ms | 1.93 ms | 1.11 ms | 7.23 | 7.23 | 15465.0 KB | 28.48 |  |  | 623.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range | OfficeIMO.Excel | 11.52 ms | 0.79 ms | 0.46 ms | 1.00 | 1.00 | 2692.5 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | read | Range and table read | read-range | Sylvan.Data.Excel | 15.83 ms | 6.88 ms | 3.97 ms | 1.37 | 1.37 | 655.0 KB | 0.24 |  |  | 37.4% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range | MiniExcel | 27.33 ms | 3.56 ms | 2.05 ms | 2.37 | 2.37 | 18662.2 KB | 6.93 |  |  | 137.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range | ExcelDataReader | 29.17 ms | 12.29 ms | 7.10 ms | 2.53 | 2.53 | 6089.2 KB | 2.26 |  |  | 153.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range | EPPlus 4.5.3.3 | 41.98 ms |  |  | 3.65 | 3.65 |  |  |  |  | 264.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range | EPPlus | 42.16 ms | 7.02 ms | 4.05 ms | 3.66 | 3.66 | 20152.6 KB | 7.48 |  |  | 266.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range | ClosedXML | 92.11 ms | 19.74 ms | 11.40 ms | 8.00 | 8.00 | 16846.3 KB | 6.26 |  |  | 699.7% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range-decimal | OfficeIMO.Excel | 6.46 ms | 0.55 ms | 0.32 ms | 1.00 | 1.00 | 2751.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | read | Range and table read | read-range-decimal | Sylvan.Data.Excel | 7.72 ms | 0.86 ms | 0.50 ms | 1.20 | 1.20 | 750.3 KB | 0.27 |  |  | 19.6% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range-decimal | ExcelDataReader | 14.77 ms | 2.65 ms | 1.53 ms | 2.29 | 2.29 | 6089.5 KB | 2.21 |  |  | 128.7% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range-decimal | MiniExcel | 16.22 ms | 2.05 ms | 1.19 ms | 2.51 | 2.51 | 18662.4 KB | 6.78 |  |  | 151.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range-decimal | EPPlus | 33.72 ms | 3.57 ms | 2.06 ms | 5.22 | 5.22 | 20152.6 KB | 7.33 |  |  | 421.9% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-range-decimal | ClosedXML | 38.28 ms | 2.77 ms | 1.60 ms | 5.93 | 5.93 | 16728.2 KB | 6.08 |  |  | 492.6% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-top-range | Sylvan.Data.Excel | 0.60 ms | 0.13 ms | 0.07 ms | 0.78 | 1.00 | 348.5 KB | 1.18 |  |  | 21.8% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-top-range | OfficeIMO.Excel | 0.77 ms | 0.12 ms | 0.07 ms | 1.00 | 1.28 | 296.0 KB | 1.00 |  |  | Loss +27.8% |
+| 2500 | speed-comparison | read | Range and table read | read-top-range | MiniExcel | 0.99 ms | 0.13 ms | 0.08 ms | 1.29 | 1.65 | 869.0 KB | 2.94 |  |  | 29.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-top-range | ExcelDataReader | 6.38 ms | 0.75 ms | 0.43 ms | 8.28 | 10.58 | 1931.8 KB | 6.53 |  |  | 727.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-top-range | EPPlus | 33.20 ms | 0.90 ms | 0.52 ms | 43.10 | 55.08 | 12402.1 KB | 41.89 |  |  | 4209.6% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-top-range | EPPlus 4.5.3.3 | 35.67 ms |  |  | 46.30 | 59.18 |  |  |  |  | 4530.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-top-range | ClosedXML | 44.00 ms | 2.71 ms | 1.57 ms | 57.11 | 72.99 | 15360.2 KB | 51.89 |  |  | 5610.7% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-used-range | Sylvan.Data.Excel | 6.77 ms | 0.98 ms | 0.57 ms | 0.79 | 1.00 | 655.2 KB | 0.24 |  |  | 20.5% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-used-range | OfficeIMO.Excel | 8.52 ms | 1.92 ms | 1.11 ms | 1.00 | 1.26 | 2750.3 KB | 1.00 |  |  | Loss +25.8% |
+| 2500 | speed-comparison | read | Range and table read | read-used-range | ExcelDataReader | 14.77 ms | 2.03 ms | 1.17 ms | 1.73 | 2.18 | 6089.4 KB | 2.21 |  |  | 73.4% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-used-range | MiniExcel | 19.20 ms | 3.74 ms | 2.16 ms | 2.25 | 2.84 | 18662.4 KB | 6.79 |  |  | 125.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-used-range | EPPlus | 36.49 ms | 5.62 ms | 3.25 ms | 4.28 | 5.39 | 20152.7 KB | 7.33 |  |  | 328.4% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Range and table read | read-used-range | ClosedXML | 68.92 ms | 38.36 ms | 22.15 ms | 8.09 | 10.18 | 16806.7 KB | 6.11 |  |  | 709.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | OfficeIMO.Excel | 5.85 ms | 1.17 ms | 0.67 ms | 1.00 | 1.00 | 377.9 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | Sylvan.Data.Excel | 6.08 ms | 0.13 ms | 0.08 ms | 1.04 | 1.04 | 655.2 KB | 1.73 |  |  | 4.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | ExcelDataReader | 17.06 ms | 0.23 ms | 0.13 ms | 2.92 | 2.92 | 6089.5 KB | 16.12 |  |  | 191.8% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | MiniExcel | 20.60 ms | 1.05 ms | 0.61 ms | 3.52 | 3.52 | 18661.8 KB | 49.39 |  |  | 252.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | EPPlus | 35.11 ms | 0.48 ms | 0.28 ms | 6.01 | 6.01 | 12427.1 KB | 32.89 |  |  | 500.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-bottom-range-stream | ClosedXML | 44.83 ms | 3.98 ms | 2.30 ms | 7.67 | 7.67 | 15359.3 KB | 40.65 |  |  | 666.8% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-range-stream | Sylvan.Data.Excel | 6.84 ms | 0.88 ms | 0.51 ms | 0.41 | 1.00 | 655.2 KB | 0.24 |  |  | 58.8% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-range-stream | OfficeIMO.Excel | 16.61 ms | 6.52 ms | 3.76 ms | 1.00 | 2.43 | 2771.4 KB | 1.00 |  |  | Loss +142.7% |
+| 2500 | speed-comparison | read | Streaming read | read-range-stream | ExcelDataReader | 17.35 ms | 1.57 ms | 0.91 ms | 1.04 | 2.53 | 6089.5 KB | 2.20 |  |  | 4.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-range-stream | MiniExcel | 19.48 ms | 0.30 ms | 0.17 ms | 1.17 | 2.85 | 18662.4 KB | 6.73 |  |  | 17.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-range-stream | EPPlus 4.5.3.3 | 38.28 ms |  |  | 2.31 | 5.59 |  |  |  |  | 130.5% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-range-stream | EPPlus | 45.78 ms | 8.33 ms | 4.81 ms | 2.76 | 6.69 | 20152.6 KB | 7.27 |  |  | 175.6% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-range-stream | ClosedXML | 46.72 ms | 1.33 ms | 0.77 ms | 2.81 | 6.83 | 16729.3 KB | 6.04 |  |  | 181.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | Sylvan.Data.Excel | 0.66 ms | 0.07 ms | 0.04 ms | 0.95 | 1.00 | 348.5 KB | 1.16 |  |  | 5.4% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | OfficeIMO.Excel | 0.69 ms | 0.03 ms | 0.02 ms | 1.00 | 1.06 | 299.4 KB | 1.00 |  |  | Loss +5.7% |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | MiniExcel | 1.21 ms | 0.36 ms | 0.21 ms | 1.75 | 1.84 | 869.0 KB | 2.90 |  |  | 74.6% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | ExcelDataReader | 6.59 ms | 1.13 ms | 0.65 ms | 9.50 | 10.04 | 1931.8 KB | 6.45 |  |  | 850.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | EPPlus 4.5.3.3 | 33.54 ms |  |  | 48.33 | 51.08 |  |  |  |  | 4733.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | EPPlus | 35.07 ms | 3.19 ms | 1.84 ms | 50.54 | 53.41 | 12402.1 KB | 41.42 |  |  | 4954.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream | ClosedXML | 47.34 ms | 2.30 ms | 1.33 ms | 68.22 | 72.09 | 15360.8 KB | 51.30 |  |  | 6722.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | Sylvan.Data.Excel | 0.56 ms | 0.05 ms | 0.03 ms | 0.79 | 1.00 | 348.5 KB | 1.16 |  |  | 21.2% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | OfficeIMO.Excel | 0.72 ms | 0.08 ms | 0.04 ms | 1.00 | 1.27 | 300.2 KB | 1.00 |  |  | Loss +26.9% |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | MiniExcel | 1.01 ms | 0.08 ms | 0.04 ms | 1.42 | 1.80 | 869.0 KB | 2.89 |  |  | 41.8% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | ExcelDataReader | 6.03 ms | 0.36 ms | 0.21 ms | 8.43 | 10.70 | 1931.8 KB | 6.44 |  |  | 742.9% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | EPPlus | 31.18 ms | 2.93 ms | 1.69 ms | 43.58 | 55.31 | 12402.1 KB | 41.32 |  |  | 4258.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | ClosedXML | 45.49 ms | 6.53 ms | 3.77 ms | 63.59 | 80.70 | 15360.4 KB | 51.17 |  |  | 6259.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects | Sylvan.Data.Excel | 8.37 ms | 4.16 ms | 2.40 ms | 0.87 | 1.00 | 895.3 KB | 0.37 |  |  | 13.1% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects | OfficeIMO.Excel | 9.62 ms | 3.34 ms | 1.93 ms | 1.00 | 1.15 | 2442.0 KB | 1.00 |  |  | Loss +15.0% |
+| 2500 | speed-comparison | read | Typed object read | read-objects | ExcelDataReader | 16.84 ms | 3.66 ms | 2.11 ms | 1.75 | 2.01 | 6329.5 KB | 2.59 |  |  | 75.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects | MiniExcel | 19.73 ms | 1.80 ms | 1.04 ms | 2.05 | 2.36 | 18473.9 KB | 7.56 |  |  | 105.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects | EPPlus 4.5.3.3 | 39.04 ms |  |  | 4.06 | 4.67 |  |  |  |  | 305.7% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects | ClosedXML | 41.15 ms | 3.70 ms | 2.14 ms | 4.28 | 4.92 | 16925.3 KB | 6.93 |  |  | 327.6% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects | EPPlus | 41.83 ms | 8.83 ms | 5.10 ms | 4.35 | 5.00 | 21354.2 KB | 8.74 |  |  | 334.7% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects-stream | Sylvan.Data.Excel | 6.56 ms | 0.35 ms | 0.20 ms | 0.90 | 1.00 | 831.0 KB | 0.34 |  |  | 10.3% faster than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects-stream | OfficeIMO.Excel | 7.32 ms | 0.56 ms | 0.32 ms | 1.00 | 1.11 | 2422.9 KB | 1.00 |  |  | Loss +11.4% |
+| 2500 | speed-comparison | read | Typed object read | read-objects-stream | ExcelDataReader | 16.47 ms | 0.67 ms | 0.39 ms | 2.25 | 2.51 | 6265.3 KB | 2.59 |  |  | 125.2% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects-stream | MiniExcel | 19.62 ms | 1.23 ms | 0.71 ms | 2.68 | 2.99 | 18409.7 KB | 7.60 |  |  | 168.3% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects-stream | EPPlus 4.5.3.3 | 37.46 ms |  |  | 5.12 | 5.71 |  |  |  |  | 412.1% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects-stream | EPPlus | 45.75 ms | 7.85 ms | 4.53 ms | 6.25 | 6.97 | 21334.6 KB | 8.81 |  |  | 525.4% slower than OfficeIMO |
+| 2500 | speed-comparison | read | Typed object read | read-objects-stream | ClosedXML | 47.14 ms | 0.29 ms | 0.17 ms | 6.44 | 7.18 | 16903.8 KB | 6.98 |  |  | 544.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | OfficeIMO.Excel | 6.87 ms | 2.38 ms | 1.37 ms | 1.00 | 1.00 | 1781.2 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | MiniExcel | 8.40 ms | 0.51 ms | 0.30 ms | 1.22 | 1.22 | 26647.3 KB | 14.96 |  |  | 22.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | EPPlus | 54.87 ms | 4.20 ms | 2.43 ms | 7.98 | 7.98 | 38344.3 KB | 21.53 |  |  | 698.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | EPPlus 4.5.3.3 | 63.29 ms |  |  | 9.21 | 9.21 |  |  |  |  | 820.7% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | ClosedXML | 74.64 ms | 2.17 ms | 1.25 ms | 10.86 | 10.86 | 58360.0 KB | 32.77 |  |  | 985.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | OfficeIMO.Excel | 6.06 ms | 0.55 ms | 0.32 ms | 1.00 | 1.00 | 2079.3 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | MiniExcel | 16.98 ms | 1.23 ms | 0.71 ms | 2.80 | 2.80 | 32328.7 KB | 15.55 |  |  | 179.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | EPPlus | 144.10 ms | 6.79 ms | 3.92 ms | 23.76 | 23.76 | 43440.5 KB | 20.89 |  |  | 2276.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | ClosedXML | 146.69 ms | 18.92 ms | 10.93 ms | 24.19 | 24.19 | 56707.6 KB | 27.27 |  |  | 2319.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | OfficeIMO.Excel | 5.95 ms | 1.59 ms | 0.92 ms | 1.00 | 1.00 | 1347.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | EPPlus | 64.25 ms | 3.26 ms | 1.88 ms | 10.79 | 10.79 | 38344.1 KB | 28.46 |  |  | 979.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | ClosedXML | 82.94 ms | 9.53 ms | 5.50 ms | 13.93 | 13.93 | 50927.7 KB | 37.80 |  |  | 1292.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | OfficeIMO.Excel | 5.93 ms | 0.21 ms | 0.12 ms | 1.00 | 1.00 | 1505.3 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | EPPlus | 74.10 ms | 1.74 ms | 1.01 ms | 12.50 | 12.50 | 38344.1 KB | 25.47 |  |  | 1150.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | ClosedXML | 86.37 ms | 2.68 ms | 1.55 ms | 14.58 | 14.58 | 50927.3 KB | 33.83 |  |  | 1357.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | OfficeIMO.Excel | 4.96 ms | 0.15 ms | 0.08 ms | 1.00 | 1.00 | 1346.4 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | ClosedXML | 55.27 ms | 0.41 ms | 0.24 ms | 11.14 | 11.14 | 28540.4 KB | 21.20 |  |  | 1013.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | EPPlus | 60.14 ms | 3.08 ms | 1.78 ms | 12.12 | 12.12 | 27305.8 KB | 20.28 |  |  | 1111.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | OfficeIMO.Excel | 2.17 ms | 0.06 ms | 0.03 ms | 1.00 | 1.00 | 1787.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | ClosedXML | 11.88 ms | 0.76 ms | 0.44 ms | 5.46 | 5.46 | 9959.5 KB | 5.57 |  |  | 446.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | EPPlus | 20.60 ms | 1.70 ms | 0.98 ms | 9.48 | 9.48 | 11772.9 KB | 6.59 |  |  | 847.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | OfficeIMO.Excel | 2.01 ms | 0.02 ms | 0.01 ms | 1.00 | 1.00 | 1119.9 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | ClosedXML | 10.90 ms | 0.79 ms | 0.46 ms | 5.44 | 5.44 | 9177.1 KB | 8.19 |  |  | 443.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | EPPlus 4.5.3.3 | 13.09 ms |  |  | 6.53 | 6.53 |  |  |  |  | 552.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-numbers | EPPlus | 21.77 ms | 1.24 ms | 0.72 ms | 10.86 | 10.86 | 12895.2 KB | 11.51 |  |  | 986.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | OfficeIMO.Excel | 3.34 ms | 0.28 ms | 0.16 ms | 1.00 | 1.00 | 1763.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | EPPlus 4.5.3.3 | 15.61 ms |  |  | 4.67 | 4.67 |  |  |  |  | 367.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | ClosedXML | 15.63 ms | 0.29 ms | 0.17 ms | 4.68 | 4.68 | 11887.0 KB | 6.74 |  |  | 368.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | EPPlus | 28.99 ms | 4.18 ms | 2.41 ms | 8.68 | 8.68 | 15643.3 KB | 8.87 |  |  | 767.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | OfficeIMO.Excel | 3.47 ms | 0.42 ms | 0.24 ms | 1.00 | 1.00 | 1506.7 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | ClosedXML | 14.80 ms | 0.78 ms | 0.45 ms | 4.26 | 4.26 | 11296.3 KB | 7.50 |  |  | 326.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | EPPlus | 27.67 ms | 1.12 ms | 0.65 ms | 7.97 | 7.97 | 14960.2 KB | 9.93 |  |  | 697.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | OfficeIMO.Excel | 3.65 ms | 0.74 ms | 0.43 ms | 1.00 | 1.00 | 1506.8 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | ClosedXML | 16.35 ms | 1.79 ms | 1.03 ms | 4.48 | 4.48 | 11296.3 KB | 7.50 |  |  | 348.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | EPPlus | 28.41 ms | 1.00 ms | 0.58 ms | 7.79 | 7.79 | 14960.2 KB | 9.93 |  |  | 679.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | OfficeIMO.Excel | 1.85 ms | 0.01 ms | 0.01 ms | 1.00 | 1.00 | 1138.1 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | ClosedXML | 10.26 ms | 0.20 ms | 0.12 ms | 5.53 | 5.53 | 9021.2 KB | 7.93 |  |  | 453.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | EPPlus 4.5.3.3 | 12.40 ms |  |  | 6.69 | 6.69 |  |  |  |  | 568.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-scalars | EPPlus | 22.34 ms | 1.05 ms | 0.61 ms | 12.05 | 12.05 | 12827.4 KB | 11.27 |  |  | 1104.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | OfficeIMO.Excel | 3.11 ms | 0.46 ms | 0.27 ms | 1.00 | 1.00 | 1435.5 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | EPPlus 4.5.3.3 | 15.51 ms |  |  | 4.99 | 4.99 |  |  |  |  | 399.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | ClosedXML | 15.59 ms | 2.49 ms | 1.44 ms | 5.02 | 5.02 | 9711.1 KB | 6.76 |  |  | 402.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Cell writer | write-cellvalue-temporal | EPPlus | 24.48 ms | 2.02 ms | 1.17 ms | 7.88 | 7.88 | 14722.6 KB | 10.26 |  |  | 688.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | OfficeIMO.Excel | 5.96 ms | 0.59 ms | 0.34 ms | 1.00 | 1.00 | 2064.5 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | MiniExcel | 15.52 ms | 1.13 ms | 0.65 ms | 2.60 | 2.60 | 29223.6 KB | 14.16 |  |  | 160.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | ClosedXML | 53.71 ms | 7.72 ms | 4.46 ms | 9.00 | 9.00 | 18913.3 KB | 9.16 |  |  | 800.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | EPPlus | 95.66 ms | 19.19 ms | 11.08 ms | 16.04 | 16.04 | 18414.6 KB | 8.92 |  |  | 1503.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | OfficeIMO.Excel | 7.23 ms | 0.06 ms | 0.03 ms | 1.00 | 1.00 | 2880.2 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | MiniExcel | 17.99 ms | 1.06 ms | 0.61 ms | 2.49 | 2.49 | 30510.5 KB | 10.59 |  |  | 148.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | ClosedXML | 62.65 ms | 0.82 ms | 0.47 ms | 8.66 | 8.66 | 27410.7 KB | 9.52 |  |  | 766.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | EPPlus | 75.41 ms | 7.25 ms | 4.19 ms | 10.43 | 10.43 | 22591.6 KB | 7.84 |  |  | 942.7% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | OfficeIMO.Excel | 6.40 ms | 0.49 ms | 0.28 ms | 1.00 | 1.00 | 2067.7 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | MiniExcel | 17.91 ms | 3.74 ms | 2.16 ms | 2.80 | 2.80 | 28700.3 KB | 13.88 |  |  | 179.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | EPPlus 4.5.3.3 | 50.19 ms |  |  | 7.84 | 7.84 |  |  |  |  | 684.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | EPPlus | 93.79 ms | 10.89 ms | 6.29 ms | 14.66 | 14.66 | 19431.0 KB | 9.40 |  |  | 1365.7% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataSet table export | write-dataset-tables | ClosedXML | 108.60 ms | 8.75 ms | 5.05 ms | 16.97 | 16.97 | 18878.2 KB | 9.13 |  |  | 1597.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | OfficeIMO.Excel | 5.22 ms | 1.45 ms | 0.84 ms | 1.00 | 1.00 | 1774.9 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | MiniExcel | 8.19 ms | 0.21 ms | 0.12 ms | 1.57 | 1.57 | 23044.2 KB | 12.98 |  |  | 56.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | ClosedXML | 38.75 ms | 1.32 ms | 0.76 ms | 7.42 | 7.42 | 19008.4 KB | 10.71 |  |  | 641.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | EPPlus 4.5.3.3 | 40.00 ms |  |  | 7.66 | 7.66 |  |  |  |  | 665.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datareader-table | EPPlus | 41.39 ms | 10.46 ms | 6.04 ms | 7.92 | 7.92 | 16647.3 KB | 9.38 |  |  | 692.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | OfficeIMO.Excel | 5.01 ms | 0.72 ms | 0.41 ms | 1.00 | 1.00 | 1748.6 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | LargeXlsx | 7.23 ms | 0.23 ms | 0.13 ms | 1.44 | 1.44 | 1149.0 KB | 0.66 |  |  | 44.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | MiniExcel | 10.41 ms | 0.32 ms | 0.19 ms | 2.08 | 2.08 | 23062.6 KB | 13.19 |  |  | 107.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | ClosedXML | 31.52 ms | 3.05 ms | 1.76 ms | 6.29 | 6.29 | 11581.0 KB | 6.62 |  |  | 528.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | EPPlus | 42.67 ms | 5.72 ms | 3.30 ms | 8.51 | 8.51 | 16648.4 KB | 9.52 |  |  | 750.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-direct | EPPlus 4.5.3.3 | 54.65 ms |  |  | 10.90 | 10.90 |  |  |  |  | 990.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | OfficeIMO.Excel | 4.57 ms | 0.49 ms | 0.28 ms | 1.00 | 1.00 | 1487.2 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | MiniExcel | 9.61 ms | 0.57 ms | 0.33 ms | 2.10 | 2.10 | 22789.5 KB | 15.32 |  |  | 110.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | ClosedXML | 40.64 ms | 2.56 ms | 1.48 ms | 8.90 | 8.90 | 18735.1 KB | 12.60 |  |  | 789.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | EPPlus | 44.57 ms | 8.75 ms | 5.05 ms | 9.76 | 9.76 | 16374.0 KB | 11.01 |  |  | 876.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | OfficeIMO.Excel | 4.70 ms | 0.53 ms | 0.31 ms | 1.00 | 1.00 | 1760.7 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | MiniExcel | 10.20 ms | 0.95 ms | 0.55 ms | 2.17 | 2.17 | 23062.9 KB | 13.10 |  |  | 117.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | EPPlus | 42.18 ms | 3.99 ms | 2.30 ms | 8.98 | 8.98 | 16647.3 KB | 9.46 |  |  | 797.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | ClosedXML | 48.36 ms | 9.54 ms | 5.51 ms | 10.29 | 10.29 | 19008.7 KB | 10.80 |  |  | 929.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | DataTable table export | write-datatable-table-direct | EPPlus 4.5.3.3 | 49.12 ms |  |  | 10.46 | 10.46 |  |  |  |  | 945.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | OfficeIMO.Excel | 7.20 ms | 0.68 ms | 0.39 ms | 1.00 | 1.00 | 1403.3 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | MiniExcel | 14.97 ms | 0.95 ms | 0.55 ms | 2.08 | 2.08 | 26825.1 KB | 19.12 |  |  | 107.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | EPPlus 4.5.3.3 | 106.75 ms |  |  | 14.82 | 14.82 |  |  |  |  | 1382.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | EPPlus | 132.23 ms | 9.55 ms | 5.51 ms | 18.36 | 18.36 | 49158.1 KB | 35.03 |  |  | 1735.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Formatted report write | write-bulk-report | ClosedXML | 239.90 ms | 71.54 ms | 41.30 ms | 33.31 | 33.31 | 58350.2 KB | 41.58 |  |  | 3230.7% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Formula write/read | write-cellformula | OfficeIMO.Excel | 4.33 ms | 0.33 ms | 0.19 ms | 1.00 | 1.00 | 1620.6 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Formula write/read | write-cellformula | EPPlus 4.5.3.3 | 17.00 ms |  |  | 3.93 | 3.93 |  |  |  |  | 292.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Formula write/read | write-cellformula | ClosedXML | 23.08 ms | 4.76 ms | 2.75 ms | 5.33 | 5.33 | 12039.8 KB | 7.43 |  |  | 433.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Formula write/read | write-cellformula | EPPlus | 52.62 ms | 3.61 ms | 2.09 ms | 12.15 | 12.15 | 18110.5 KB | 11.17 |  |  | 1115.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-dictionary-objects-table-direct | OfficeIMO.Excel | 6.69 ms | 0.95 ms | 0.55 ms | 1.00 | 1.00 | 2051.4 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | LargeXlsx | 5.36 ms | 0.11 ms | 0.06 ms | 0.77 | 1.00 | 802.5 KB | 0.34 |  |  | 23.2% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | OfficeIMO.Excel | 6.99 ms | 0.82 ms | 0.47 ms | 1.00 | 1.30 | 2341.7 KB | 1.00 |  |  | Loss +30.3% |
+| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | MiniExcel | 11.77 ms | 0.82 ms | 0.47 ms | 1.69 | 2.20 | 25190.4 KB | 10.76 |  |  | 68.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | ClosedXML | 49.70 ms | 0.99 ms | 0.57 ms | 7.11 | 9.27 | 16973.5 KB | 7.25 |  |  | 611.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | EPPlus | 58.11 ms | 2.37 ms | 1.37 ms | 8.32 | 10.84 | 20105.1 KB | 8.59 |  |  | 731.7% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | LargeXlsx | 6.13 ms | 0.35 ms | 0.20 ms | 0.80 | 1.00 | 802.5 KB | 0.53 |  |  | 20.1% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | OfficeIMO.Excel | 7.68 ms | 0.71 ms | 0.41 ms | 1.00 | 1.25 | 1507.7 KB | 1.00 |  |  | Loss +25.2% |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | MiniExcel | 11.71 ms | 0.59 ms | 0.34 ms | 1.52 | 1.91 | 25190.4 KB | 16.71 |  |  | 52.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | ClosedXML | 49.52 ms | 4.09 ms | 2.36 ms | 6.45 | 8.08 | 16973.5 KB | 11.26 |  |  | 545.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | EPPlus | 57.50 ms | 3.03 ms | 1.75 ms | 7.49 | 9.38 | 20105.1 KB | 13.33 |  |  | 648.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | OfficeIMO.Excel | 23.95 ms | 2.47 ms | 1.43 ms | 1.00 | 1.00 | 4502.3 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | LargeXlsx | 25.83 ms | 1.56 ms | 0.90 ms | 1.08 | 1.08 | 2810.7 KB | 0.62 |  |  | 7.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | MiniExcel | 43.78 ms | 2.24 ms | 1.29 ms | 1.83 | 1.83 | 48414.8 KB | 10.75 |  |  | 82.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | ClosedXML | 151.06 ms | 12.28 ms | 7.09 ms | 6.31 | 6.31 | 51647.0 KB | 11.47 |  |  | 530.7% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | EPPlus | 182.97 ms | 3.21 ms | 1.86 ms | 7.64 | 7.64 | 69139.6 KB | 15.36 |  |  | 663.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | LargeXlsx | 1.95 ms | 0.62 ms | 0.36 ms | 0.70 | 1.00 | 296.4 KB | 0.19 |  |  | 30.3% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | OfficeIMO.Excel | 2.79 ms | 0.27 ms | 0.16 ms | 1.00 | 1.43 | 1576.3 KB | 1.00 |  |  | Loss +43.5% |
+| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | MiniExcel | 5.35 ms | 0.64 ms | 0.37 ms | 1.92 | 2.75 | 19710.8 KB | 12.50 |  |  | 91.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | EPPlus 4.5.3.3 | 16.83 ms |  |  | 6.02 | 8.64 |  |  |  |  | 502.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | ClosedXML | 18.25 ms | 0.98 ms | 0.57 ms | 6.53 | 9.37 | 11197.4 KB | 7.10 |  |  | 553.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | append-plain-rows | EPPlus | 30.11 ms | 3.06 ms | 1.77 ms | 10.77 | 15.46 | 14365.2 KB | 9.11 |  |  | 977.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 1.24 ms | 0.09 ms | 0.05 ms | 0.79 | 1.00 | 447.0 KB | 0.41 |  |  | 21.3% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 1.57 ms | 0.04 ms | 0.02 ms | 1.00 | 1.27 | 1092.0 KB | 1.00 |  |  | Loss +27.0% |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | ClosedXML | 12.07 ms | 0.77 ms | 0.44 ms | 7.67 | 9.74 | 10235.8 KB | 9.37 |  |  | 667.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | EPPlus | 23.40 ms | 2.17 ms | 1.25 ms | 14.87 | 18.88 | 13052.1 KB | 11.95 |  |  | 1386.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | LargeXlsx | 3.20 ms | 0.19 ms | 0.11 ms | 0.77 | 1.00 | 758.3 KB | 0.36 |  |  | 22.9% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 4.14 ms | 0.20 ms | 0.12 ms | 1.00 | 1.30 | 2081.1 KB | 1.00 |  |  | Loss +29.7% |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | MiniExcel | 9.01 ms | 0.37 ms | 0.22 ms | 2.18 | 2.82 | 23221.9 KB | 11.16 |  |  | 117.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | EPPlus 4.5.3.3 | 31.77 ms |  |  | 7.67 | 9.94 |  |  |  |  | 667.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | ClosedXML | 32.28 ms | 2.25 ms | 1.30 ms | 7.79 | 10.10 | 22221.3 KB | 10.68 |  |  | 679.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | EPPlus | 43.19 ms | 7.47 ms | 4.32 ms | 10.43 | 13.52 | 24693.7 KB | 11.87 |  |  | 942.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | OfficeIMO.Excel | 2.27 ms | 0.10 ms | 0.06 ms | 1.00 | 1.00 | 1494.0 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | ClosedXML | 14.29 ms | 0.50 ms | 0.29 ms | 6.30 | 6.30 | 11296.3 KB | 7.56 |  |  | 530.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | EPPlus | 24.41 ms | 0.58 ms | 0.34 ms | 10.76 | 10.76 | 14960.0 KB | 10.01 |  |  | 976.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | Sylvan.Data.Excel | 3.92 ms | 0.37 ms | 0.21 ms | 0.88 | 1.00 | 758.6 KB | 0.43 |  |  | 12.3% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | OfficeIMO.Excel | 4.47 ms | 0.35 ms | 0.20 ms | 1.00 | 1.14 | 1763.0 KB | 1.00 |  |  | Loss +14.0% |
+| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | LargeXlsx | 8.05 ms | 0.19 ms | 0.11 ms | 1.80 | 2.05 | 1032.5 KB | 0.59 |  |  | 80.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | MiniExcel | 8.37 ms | 0.27 ms | 0.16 ms | 1.87 | 2.14 | 23043.9 KB | 13.07 |  |  | 87.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | ClosedXML | 26.10 ms | 0.40 ms | 0.23 ms | 5.84 | 6.66 | 11581.0 KB | 6.57 |  |  | 483.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | EPPlus 4.5.3.3 | 27.49 ms |  |  | 6.15 | 7.01 |  |  |  |  | 514.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-datareader-plain | EPPlus | 35.56 ms | 1.19 ms | 0.69 ms | 7.95 | 9.07 | 16646.5 KB | 9.44 |  |  | 695.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | OfficeIMO.Excel | 6.99 ms | 1.07 ms | 0.62 ms | 1.00 | 1.00 | 2140.6 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | LargeXlsx | 11.06 ms | 0.72 ms | 0.42 ms | 1.58 | 1.58 | 1123.9 KB | 0.53 |  |  | 58.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | MiniExcel | 16.74 ms | 4.24 ms | 2.45 ms | 2.39 | 2.39 | 30001.5 KB | 14.02 |  |  | 139.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | EPPlus | 62.15 ms | 8.99 ms | 5.19 ms | 8.89 | 8.89 | 21892.9 KB | 10.23 |  |  | 788.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | ClosedXML | 74.89 ms | 16.51 ms | 9.53 ms | 10.71 | 10.71 | 27410.6 KB | 12.80 |  |  | 970.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | LargeXlsx | 4.22 ms | 0.26 ms | 0.15 ms | 0.94 | 1.00 | 857.6 KB | 0.51 |  |  | 6.4% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | OfficeIMO.Excel | 4.51 ms | 0.09 ms | 0.05 ms | 1.00 | 1.07 | 1676.8 KB | 1.00 |  |  | Loss +6.9% |
+| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | MiniExcel | 16.08 ms | 0.70 ms | 0.40 ms | 3.57 | 3.81 | 35918.0 KB | 21.42 |  |  | 256.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | ClosedXML | 82.94 ms | 0.53 ms | 0.30 ms | 18.40 | 19.67 | 71478.2 KB | 42.63 |  |  | 1740.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | large-shared-strings | OfficeIMO.Excel | 2.99 ms | 0.22 ms | 0.13 ms | 1.00 | 1.00 | 2440.3 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Shared string write | large-shared-strings | MiniExcel | 5.00 ms | 0.73 ms | 0.42 ms | 1.67 | 1.67 | 21137.5 KB | 8.66 |  |  | 67.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | large-shared-strings | EPPlus 4.5.3.3 | 12.65 ms |  |  | 4.23 | 4.23 |  |  |  |  | 323.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | large-shared-strings | ClosedXML | 16.12 ms | 2.10 ms | 1.21 ms | 5.39 | 5.39 | 11299.2 KB | 4.63 |  |  | 439.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | large-shared-strings | EPPlus | 26.57 ms | 3.51 ms | 2.03 ms | 8.88 | 8.88 | 12804.4 KB | 5.25 |  |  | 788.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | OfficeIMO.Excel | 2.78 ms | 0.07 ms | 0.04 ms | 1.00 | 1.00 | 2617.0 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | ClosedXML | 10.96 ms | 0.28 ms | 0.16 ms | 3.95 | 3.95 | 11299.2 KB | 4.32 |  |  | 294.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | EPPlus 4.5.3.3 | 14.80 ms |  |  | 5.33 | 5.33 |  |  |  |  | 432.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings | EPPlus | 19.78 ms | 0.11 ms | 0.06 ms | 7.12 | 7.12 | 12804.7 KB | 4.89 |  |  | 611.7% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | OfficeIMO.Excel | 2.66 ms | 0.47 ms | 0.27 ms | 1.00 | 1.00 | 2379.2 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | ClosedXML | 14.50 ms | 1.04 ms | 0.60 ms | 5.45 | 5.45 | 13127.1 KB | 5.52 |  |  | 444.9% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | EPPlus | 26.15 ms | 0.89 ms | 0.51 ms | 9.83 | 9.83 | 13893.0 KB | 5.84 |  |  | 882.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | OfficeIMO.Excel | 2.13 ms | 0.08 ms | 0.05 ms | 1.00 | 1.00 | 1579.8 KB | 1.00 |  |  | Win |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | ClosedXML | 10.64 ms | 1.08 ms | 0.62 ms | 5.00 | 5.00 | 9226.5 KB | 5.84 |  |  | 399.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | EPPlus | 19.63 ms | 0.48 ms | 0.28 ms | 9.22 | 9.22 | 11332.2 KB | 7.17 |  |  | 821.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | LargeXlsx | 3.63 ms | 0.41 ms | 0.24 ms | 0.79 | 1.00 | 758.3 KB | 0.43 |  |  | 21.0% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | OfficeIMO.Excel | 4.60 ms | 0.84 ms | 0.49 ms | 1.00 | 1.27 | 1769.2 KB | 1.00 |  |  | Loss +26.6% |
+| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | MiniExcel | 9.76 ms | 1.38 ms | 0.80 ms | 2.12 | 2.69 | 23222.4 KB | 13.13 |  |  | 112.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | EPPlus 4.5.3.3 | 30.21 ms |  |  | 6.57 | 8.32 |  |  |  |  | 556.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | ClosedXML | 33.96 ms | 1.79 ms | 1.03 ms | 7.38 | 9.35 | 11581.0 KB | 6.55 |  |  | 638.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | EPPlus | 46.83 ms | 6.68 ms | 3.86 ms | 10.18 | 12.89 | 16646.4 KB | 9.41 |  |  | 918.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | LargeXlsx | 4.11 ms | 0.61 ms | 0.35 ms | 0.73 | 1.00 | 758.3 KB | 0.57 |  |  | 27.3% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | OfficeIMO.Excel | 5.65 ms | 0.20 ms | 0.11 ms | 1.00 | 1.38 | 1339.3 KB | 1.00 |  |  | Loss +37.5% |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | MiniExcel | 11.13 ms | 1.99 ms | 1.15 ms | 1.97 | 2.71 | 23222.5 KB | 17.34 |  |  | 96.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | EPPlus 4.5.3.3 | 26.76 ms |  |  | 4.73 | 6.51 |  |  |  |  | 373.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | ClosedXML | 41.70 ms | 2.29 ms | 1.32 ms | 7.38 | 10.14 | 11581.0 KB | 8.65 |  |  | 637.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-direct | EPPlus | 54.21 ms | 9.13 ms | 5.27 ms | 9.59 | 13.19 | 16646.1 KB | 12.43 |  |  | 858.7% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | LargeXlsx | 4.09 ms | 0.17 ms | 0.10 ms | 0.76 | 1.00 | 758.3 KB | 0.51 |  |  | 24.1% faster than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | OfficeIMO.Excel | 5.39 ms | 0.20 ms | 0.11 ms | 1.00 | 1.32 | 1497.5 KB | 1.00 |  |  | Loss +31.8% |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | MiniExcel | 10.07 ms | 1.18 ms | 0.68 ms | 1.87 | 2.46 | 23222.5 KB | 15.51 |  |  | 86.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | ClosedXML | 40.54 ms | 7.52 ms | 4.34 ms | 7.51 | 9.91 | 11581.0 KB | 7.73 |  |  | 651.4% slower than OfficeIMO |
+| 2500 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | EPPlus | 49.90 ms | 8.74 ms | 5.05 ms | 9.25 | 12.19 | 16646.1 KB | 11.12 |  |  | 825.0% slower than OfficeIMO |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | Sylvan.Data.Excel | 37.49 ms | 0.25 ms | 0.15 ms | 0.78 | 1.00 | 394.1 KB | 0.02 |  |  | 22.1% faster than OfficeIMO |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | OfficeIMO.Excel | 48.16 ms | 3.76 ms | 2.17 ms | 1.00 | 1.28 | 23622.0 KB | 1.00 |  |  | Loss +28.4% |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | ExcelDataReader | 106.96 ms | 3.19 ms | 1.84 ms | 2.22 | 2.85 | 69530.7 KB | 2.94 |  |  | 122.1% slower than OfficeIMO |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-range | MiniExcel | 142.41 ms | 6.19 ms | 3.57 ms | 2.96 | 3.80 | 215349.1 KB | 9.12 |  |  | 195.7% slower than OfficeIMO |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | Sylvan.Data.Excel | 37.07 ms | 1.32 ms | 0.76 ms | 0.78 | 1.00 | 394.1 KB | 0.02 |  |  | 22.3% faster than OfficeIMO |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | OfficeIMO.Excel | 47.73 ms | 5.06 ms | 2.92 ms | 1.00 | 1.29 | 24404.4 KB | 1.00 |  |  | Loss +28.7% |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | ExcelDataReader | 107.61 ms | 0.92 ms | 0.53 ms | 2.25 | 2.90 | 69530.7 KB | 2.85 |  |  | 125.5% slower than OfficeIMO |
+| 25000 | dense-helloworld-comparison | read | Other | dense-helloworld-read-stream | MiniExcel | 141.46 ms | 2.54 ms | 1.47 ms | 2.96 | 3.82 | 215349.1 KB | 8.82 |  |  | 196.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | append-plain-rows | LargeXlsx | 11.10 ms | 0.09 ms | 0.05 ms | 0.78 | 1.00 | 2771.0 KB | 0.26 | 605.0 KB | 0.99 | 22.1% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | append-plain-rows | OfficeIMO.Excel | 14.25 ms | 0.75 ms | 0.43 ms | 1.00 | 1.28 | 10842.5 KB | 1.00 | 610.4 KB | 1.00 | Loss +28.4% |
+| 25000 | package-profile | package | Package size | append-plain-rows | MiniExcel | 29.97 ms | 1.27 ms | 0.73 ms | 2.10 | 2.70 | 58242.8 KB | 5.37 | 642.3 KB | 1.05 | 110.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | append-plain-rows | ClosedXML | 128.65 ms | 6.28 ms | 3.63 ms | 9.03 | 11.59 | 104233.1 KB | 9.61 | 540.6 KB | 0.89 | 802.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | append-plain-rows | EPPlus | 198.66 ms | 3.29 ms | 1.90 ms | 13.94 | 17.89 | 100373.5 KB | 9.26 | 525.6 KB | 0.86 | 1293.8% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | autofit-existing | OfficeIMO.Excel | 85.90 ms | 6.12 ms | 3.53 ms | 1.00 | 1.00 | 15708.3 KB | 1.00 | 1429.3 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | autofit-existing | EPPlus | 452.28 ms | 4.53 ms | 2.62 ms | 5.27 | 5.27 | 250950.0 KB | 15.98 | 1091.0 KB | 0.76 | 426.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | autofit-existing | ClosedXML | 1315.37 ms | 19.12 ms | 11.04 ms | 15.31 | 15.31 | 829720.5 KB | 52.82 | 1140.9 KB | 0.80 | 1431.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | large-shared-strings | OfficeIMO.Excel | 14.85 ms | 0.09 ms | 0.05 ms | 1.00 | 1.00 | 15744.9 KB | 1.00 | 529.7 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | large-shared-strings | MiniExcel | 27.87 ms | 0.37 ms | 0.21 ms | 1.88 | 1.88 | 73760.2 KB | 4.68 | 581.0 KB | 1.10 | 87.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | large-shared-strings | ClosedXML | 108.66 ms | 0.30 ms | 0.17 ms | 7.32 | 7.32 | 104241.3 KB | 6.62 | 460.1 KB | 0.87 | 631.5% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | large-shared-strings | EPPlus | 184.64 ms | 1.83 ms | 1.06 ms | 12.43 | 12.43 | 84410.0 KB | 5.36 | 444.7 KB | 0.84 | 1143.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-autofilter | OfficeIMO.Excel | 30.76 ms | 0.51 ms | 0.29 ms | 1.00 | 1.00 | 11494.9 KB | 1.00 | 1428.5 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-autofilter | ClosedXML | 294.92 ms | 0.60 ms | 0.35 ms | 9.59 | 9.59 | 210663.8 KB | 18.33 | 1140.0 KB | 0.80 | 858.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-autofilter | EPPlus | 367.81 ms | 12.04 ms | 6.95 ms | 11.96 | 11.96 | 211871.5 KB | 18.43 | 1090.1 KB | 0.76 | 1095.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-charts | OfficeIMO.Excel | 36.44 ms | 3.31 ms | 1.91 ms | 1.00 | 1.00 | 12550.9 KB | 1.00 | 1433.6 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-charts | EPPlus | 374.31 ms | 5.02 ms | 2.90 ms | 10.27 | 10.27 | 214905.8 KB | 17.12 | 1092.9 KB | 0.76 | 927.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-conditional-formatting | OfficeIMO.Excel | 30.36 ms | 0.17 ms | 0.10 ms | 1.00 | 1.00 | 11560.2 KB | 1.00 | 1428.8 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-conditional-formatting | ClosedXML | 286.34 ms | 4.91 ms | 2.83 ms | 9.43 | 9.43 | 210711.7 KB | 18.23 | 1140.1 KB | 0.80 | 843.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-conditional-formatting | EPPlus | 361.78 ms | 4.21 ms | 2.43 ms | 11.92 | 11.92 | 211912.9 KB | 18.33 | 1090.2 KB | 0.76 | 1091.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-data-validation | OfficeIMO.Excel | 32.26 ms | 1.92 ms | 1.11 ms | 1.00 | 1.00 | 11510.5 KB | 1.00 | 1428.6 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-data-validation | ClosedXML | 308.34 ms | 21.42 ms | 12.37 ms | 9.56 | 9.56 | 210672.7 KB | 18.30 | 1140.1 KB | 0.80 | 855.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-data-validation | EPPlus | 377.00 ms | 10.42 ms | 6.02 ms | 11.69 | 11.69 | 211857.4 KB | 18.41 | 1090.1 KB | 0.76 | 1068.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-freeze-panes | OfficeIMO.Excel | 31.38 ms | 1.23 ms | 0.71 ms | 1.00 | 1.00 | 11497.3 KB | 1.00 | 1428.6 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-freeze-panes | ClosedXML | 290.90 ms | 2.18 ms | 1.26 ms | 9.27 | 9.27 | 210646.8 KB | 18.32 | 1140.0 KB | 0.80 | 826.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-freeze-panes | EPPlus | 372.05 ms | 12.88 ms | 7.44 ms | 11.85 | 11.85 | 211883.3 KB | 18.43 | 1090.2 KB | 0.76 | 1085.5% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-pivot-table | OfficeIMO.Excel | 81.89 ms | 1.35 ms | 0.78 ms | 1.00 | 1.00 | 42218.3 KB | 1.00 | 1979.8 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-pivot-table | EPPlus | 395.47 ms | 1.26 ms | 0.73 ms | 4.83 | 4.83 | 230800.4 KB | 5.47 | 1093.4 KB | 0.55 | 382.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-report-all-in-one | OfficeIMO.Excel | 88.60 ms | 2.72 ms | 1.57 ms | 1.00 | 1.00 | 43677.9 KB | 1.00 | 1985.9 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-report-all-in-one | EPPlus | 422.81 ms | 8.26 ms | 4.77 ms | 4.77 | 4.77 | 277078.0 KB | 6.34 | 1097.7 KB | 0.55 | 377.2% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-report-chart-first | OfficeIMO.Excel | 90.24 ms | 4.24 ms | 2.45 ms | 1.00 | 1.00 | 43564.4 KB | 1.00 | 1985.9 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-report-chart-first | EPPlus | 424.94 ms | 4.71 ms | 2.72 ms | 4.71 | 4.71 | 277077.1 KB | 6.36 | 1097.7 KB | 0.55 | 370.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-report-core | OfficeIMO.Excel | 34.89 ms | 0.97 ms | 0.56 ms | 1.00 | 1.00 | 11648.7 KB | 1.00 | 1430.0 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-report-core | EPPlus | 413.51 ms | 22.21 ms | 12.82 ms | 11.85 | 11.85 | 255065.8 KB | 21.90 | 1091.5 KB | 0.76 | 1085.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-report-core | ClosedXML | 784.41 ms | 7.92 ms | 4.57 ms | 22.49 | 22.49 | 680116.8 KB | 58.39 | 1141.3 KB | 0.80 | 2148.5% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-report-extra-column | OfficeIMO.Excel | 99.55 ms | 3.67 ms | 2.12 ms | 1.00 | 1.00 | 45561.9 KB | 1.00 | 2110.8 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-report-extra-column | EPPlus | 469.40 ms | 8.21 ms | 4.74 ms | 4.72 | 4.72 | 302760.6 KB | 6.65 | 1166.3 KB | 0.55 | 371.5% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-report-no-autofit | OfficeIMO.Excel | 82.57 ms | 2.10 ms | 1.21 ms | 1.00 | 1.00 | 43671.9 KB | 1.00 | 1985.8 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-report-no-autofit | EPPlus | 389.25 ms | 14.20 ms | 8.20 ms | 4.71 | 4.71 | 234782.2 KB | 5.38 | 1097.7 KB | 0.55 | 371.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-report-post-mutation | OfficeIMO.Excel | 91.54 ms | 4.96 ms | 2.86 ms | 1.00 | 1.00 | 43687.3 KB | 1.00 | 1986.0 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-report-post-mutation | EPPlus | 433.54 ms | 11.74 ms | 6.78 ms | 4.74 | 4.74 | 277078.0 KB | 6.34 | 1097.8 KB | 0.55 | 373.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | realworld-report-shuffled-columns | OfficeIMO.Excel | 100.92 ms | 4.39 ms | 2.53 ms | 1.00 | 1.00 | 43743.0 KB | 1.00 | 2046.1 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | realworld-report-shuffled-columns | EPPlus | 435.26 ms | 25.44 ms | 14.69 ms | 4.31 | 4.31 | 277070.8 KB | 6.33 | 1098.4 KB | 0.54 | 331.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | report-workbook | OfficeIMO.Excel | 114.88 ms | 2.88 ms | 1.66 ms | 1.00 | 1.00 | 59187.8 KB | 1.00 | 2672.0 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | report-workbook | EPPlus | 569.92 ms | 16.67 ms | 9.62 ms | 4.96 | 4.96 | 364709.8 KB | 6.16 | 1517.2 KB | 0.57 | 396.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | report-workbook-core | OfficeIMO.Excel | 48.41 ms | 1.74 ms | 1.00 ms | 1.00 | 1.00 | 10979.4 KB | 1.00 | 1850.9 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | report-workbook-core | EPPlus | 578.88 ms | 22.00 ms | 12.70 ms | 11.96 | 11.96 | 342842.2 KB | 31.23 | 1512.6 KB | 0.82 | 1095.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | report-workbook-core | ClosedXML | 1185.52 ms | 52.61 ms | 30.38 ms | 24.49 | 24.49 | 975775.9 KB | 88.87 | 1579.8 KB | 0.85 | 2348.8% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | report-workbook-datatable | OfficeIMO.Excel | 125.75 ms | 8.17 ms | 4.71 ms | 1.00 | 1.00 | 61933.5 KB | 1.00 | 2672.0 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | report-workbook-datatable | EPPlus | 589.39 ms | 40.29 ms | 23.26 ms | 4.69 | 4.69 | 247823.6 KB | 4.00 | 1517.2 KB | 0.57 | 368.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | report-workbook-datatable-core | OfficeIMO.Excel | 48.98 ms | 2.21 ms | 1.28 ms | 1.00 | 1.00 | 13725.0 KB | 1.00 | 1850.9 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | report-workbook-datatable-core | EPPlus | 519.39 ms | 3.93 ms | 2.27 ms | 10.60 | 10.60 | 225957.1 KB | 16.46 | 1512.6 KB | 0.82 | 960.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | report-workbook-datatable-core | ClosedXML | 1018.35 ms | 24.10 ms | 13.92 ms | 20.79 | 20.79 | 832228.3 KB | 60.64 | 1579.8 KB | 0.85 | 1979.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | LargeXlsx | 52.98 ms | 1.07 ms | 0.62 ms | 0.85 | 1.00 | 10795.2 KB | 0.92 | 2444.6 KB | 1.10 | 15.1% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | OfficeIMO.Excel | 62.44 ms | 7.31 ms | 4.22 ms | 1.00 | 1.18 | 11708.2 KB | 1.00 | 2228.8 KB | 1.00 | Loss +17.8% |
+| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | MiniExcel | 189.99 ms | 6.02 ms | 3.47 ms | 3.04 | 3.59 | 226875.7 KB | 19.38 | 2410.6 KB | 1.08 | 204.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-blog-2023-20-string-columns | ClosedXML | 1113.84 ms | 37.39 ms | 21.59 ms | 17.84 | 21.02 | 759818.4 KB | 64.90 | 2581.2 KB | 1.16 | 1684.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-bulk-report | OfficeIMO.Excel | 35.39 ms | 1.28 ms | 0.74 ms | 1.00 | 1.00 | 11561.8 KB | 1.00 | 1429.3 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-bulk-report | MiniExcel | 66.86 ms | 1.31 ms | 0.76 ms | 1.89 | 1.89 | 125551.6 KB | 10.86 | 1521.1 KB | 1.06 | 88.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-bulk-report | EPPlus | 419.29 ms | 62.19 ms | 35.90 ms | 11.85 | 11.85 | 254959.0 KB | 22.05 | 1091.0 KB | 0.76 | 1084.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-bulk-report | ClosedXML | 718.65 ms | 4.07 ms | 2.35 ms | 20.30 | 20.30 | 565953.7 KB | 48.95 | 1140.9 KB | 0.80 | 1930.5% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellformula | OfficeIMO.Excel | 24.74 ms | 2.29 ms | 1.32 ms | 1.00 | 1.00 | 10112.0 KB | 1.00 | 670.3 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellformula | ClosedXML | 231.30 ms | 21.19 ms | 12.23 ms | 9.35 | 9.35 | 113853.5 KB | 11.26 | 643.2 KB | 0.96 | 834.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellformula | EPPlus | 407.68 ms | 23.86 ms | 13.77 ms | 16.48 | 16.48 | 140731.9 KB | 13.92 | 593.9 KB | 0.89 | 1547.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-empty-strings | OfficeIMO.Excel | 14.96 ms | 0.78 ms | 0.45 ms | 1.00 | 1.00 | 6896.4 KB | 1.00 | 451.4 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-empty-strings | ClosedXML | 152.22 ms | 12.69 ms | 7.32 ms | 10.18 | 10.18 | 92902.1 KB | 13.47 | 398.1 KB | 0.88 | 917.8% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-empty-strings | EPPlus | 196.67 ms | 6.50 ms | 3.75 ms | 13.15 | 13.15 | 74492.8 KB | 10.80 | 390.6 KB | 0.87 | 1215.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-numbers | OfficeIMO.Excel | 22.16 ms | 1.20 ms | 0.69 ms | 1.00 | 1.00 | 5970.9 KB | 1.00 | 462.6 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-numbers | ClosedXML | 141.31 ms | 8.77 ms | 5.06 ms | 6.38 | 6.38 | 84206.7 KB | 14.10 | 411.4 KB | 0.89 | 537.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-numbers | EPPlus | 237.33 ms | 15.49 ms | 8.95 ms | 10.71 | 10.71 | 86377.5 KB | 14.47 | 406.5 KB | 0.88 | 971.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-mixed | OfficeIMO.Excel | 26.90 ms | 1.51 ms | 0.87 ms | 1.00 | 1.00 | 8332.9 KB | 1.00 | 585.1 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-mixed | ClosedXML | 204.31 ms | 17.89 ms | 10.33 ms | 7.60 | 7.60 | 111118.7 KB | 13.33 | 532.9 KB | 0.91 | 659.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-mixed | EPPlus | 256.47 ms | 2.73 ms | 1.57 ms | 9.54 | 9.54 | 113245.1 KB | 13.59 | 544.3 KB | 0.93 | 853.5% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse | OfficeIMO.Excel | 24.34 ms | 2.68 ms | 1.54 ms | 1.00 | 1.00 | 7416.2 KB | 1.00 | 607.1 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse | ClosedXML | 199.93 ms | 26.11 ms | 15.07 ms | 8.22 | 8.22 | 105223.9 KB | 14.19 | 468.0 KB | 0.77 | 721.5% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse | EPPlus | 306.84 ms | 71.81 ms | 41.46 ms | 12.61 | 12.61 | 106316.9 KB | 14.34 | 494.4 KB | 0.81 | 1160.8% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | OfficeIMO.Excel | 20.17 ms | 1.16 ms | 0.67 ms | 1.00 | 1.00 | 7416.3 KB | 1.00 | 607.1 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | ClosedXML | 171.99 ms | 16.04 ms | 9.26 ms | 8.53 | 8.53 | 105223.9 KB | 14.19 | 468.0 KB | 0.77 | 752.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-object-sparse-batch | EPPlus | 245.03 ms | 8.92 ms | 5.15 ms | 12.15 | 12.15 | 106316.9 KB | 14.34 | 494.4 KB | 0.81 | 1114.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-scalars | OfficeIMO.Excel | 14.54 ms | 1.47 ms | 0.85 ms | 1.00 | 1.00 | 6144.6 KB | 1.00 | 441.9 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-scalars | ClosedXML | 125.06 ms | 8.48 ms | 4.89 ms | 8.60 | 8.60 | 82591.3 KB | 13.44 | 394.9 KB | 0.89 | 760.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-scalars | EPPlus | 227.11 ms | 7.36 ms | 4.25 ms | 15.62 | 15.62 | 85127.4 KB | 13.85 | 379.3 KB | 0.86 | 1462.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings | OfficeIMO.Excel | 21.69 ms | 1.86 ms | 1.07 ms | 1.00 | 1.00 | 15360.4 KB | 1.00 | 527.8 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings | ClosedXML | 155.26 ms | 15.13 ms | 8.73 ms | 7.16 | 7.16 | 104241.3 KB | 6.79 | 460.1 KB | 0.87 | 616.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings | EPPlus | 217.36 ms | 10.60 ms | 6.12 ms | 10.02 | 10.02 | 84410.5 KB | 5.50 | 444.7 KB | 0.84 | 902.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings-distinct | OfficeIMO.Excel | 18.79 ms | 2.77 ms | 1.60 ms | 1.00 | 1.00 | 13824.1 KB | 1.00 | 499.0 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings-distinct | ClosedXML | 189.65 ms | 8.31 ms | 4.80 ms | 10.09 | 10.09 | 131501.7 KB | 9.51 | 555.3 KB | 1.11 | 909.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings-distinct | EPPlus | 262.96 ms | 11.96 ms | 6.91 ms | 14.00 | 14.00 | 97729.6 KB | 7.07 | 565.1 KB | 1.13 | 1299.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings-repeated | OfficeIMO.Excel | 15.44 ms | 2.67 ms | 1.54 ms | 1.00 | 1.00 | 7525.3 KB | 1.00 | 376.0 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings-repeated | ClosedXML | 133.40 ms | 7.33 ms | 4.23 ms | 8.64 | 8.64 | 84520.0 KB | 11.23 | 331.8 KB | 0.88 | 764.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-strings-repeated | EPPlus | 214.21 ms | 36.68 ms | 21.18 ms | 13.87 | 13.87 | 70033.4 KB | 9.31 | 300.8 KB | 0.80 | 1287.5% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-temporal | OfficeIMO.Excel | 27.28 ms | 1.81 ms | 1.04 ms | 1.00 | 1.00 | 7482.8 KB | 1.00 | 620.5 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-cellvalue-temporal | ClosedXML | 196.97 ms | 9.41 ms | 5.43 ms | 7.22 | 7.22 | 89323.7 KB | 11.94 | 483.0 KB | 0.78 | 622.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalue-temporal | EPPlus | 273.95 ms | 54.20 ms | 31.29 ms | 10.04 | 10.04 | 103800.0 KB | 13.87 | 495.1 KB | 0.80 | 904.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 13.10 ms | 1.27 ms | 0.73 ms | 0.89 | 1.00 | 3444.4 KB | 0.49 | 443.4 KB | 0.97 | 11.4% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 14.79 ms | 1.40 ms | 0.81 ms | 1.00 | 1.13 | 6961.7 KB | 1.00 | 455.5 KB | 1.00 | Loss +12.9% |
+| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | ClosedXML | 161.16 ms | 10.01 ms | 5.78 ms | 10.90 | 12.30 | 96015.7 KB | 13.79 | 467.5 KB | 1.03 | 989.8% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalues-headerless-rectangle-direct | EPPlus | 227.82 ms | 1.53 ms | 0.88 ms | 15.41 | 17.39 | 87466.9 KB | 12.56 | 484.1 KB | 1.06 | 1440.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | LargeXlsx | 33.84 ms | 2.02 ms | 1.16 ms | 0.75 | 1.00 | 5614.1 KB | 0.35 | 1386.5 KB | 1.00 | 24.7% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 44.94 ms | 4.26 ms | 2.46 ms | 1.00 | 1.33 | 16036.5 KB | 1.00 | 1384.9 KB | 1.00 | Loss +32.8% |
+| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | MiniExcel | 89.91 ms | 3.82 ms | 2.20 ms | 2.00 | 2.66 | 93257.1 KB | 5.82 | 1521.0 KB | 1.10 | 100.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | ClosedXML | 356.62 ms | 20.09 ms | 11.60 ms | 7.94 | 10.54 | 210646.1 KB | 13.14 | 1139.9 KB | 0.82 | 693.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-cellvalues-rectangle-direct | EPPlus | 431.05 ms | 30.96 ms | 17.87 ms | 9.59 | 12.74 | 211849.9 KB | 13.21 | 1090.0 KB | 0.79 | 859.2% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-plain | Sylvan.Data.Excel | 38.53 ms | 1.35 ms | 0.78 ms | 0.81 | 1.00 | 5700.3 KB | 0.44 | 755.4 KB | 0.55 | 18.8% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-plain | LargeXlsx | 45.15 ms | 1.22 ms | 0.71 ms | 0.95 | 1.17 | 8349.2 KB | 0.64 | 1386.5 KB | 1.00 | 4.9% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-plain | OfficeIMO.Excel | 47.47 ms | 2.24 ms | 1.29 ms | 1.00 | 1.23 | 13002.3 KB | 1.00 | 1384.9 KB | 1.00 | Loss +23.2% |
+| 25000 | package-profile | package | Package size | write-datareader-plain | MiniExcel | 85.99 ms | 5.20 ms | 3.00 ms | 1.81 | 2.23 | 92199.8 KB | 7.09 | 1521.0 KB | 1.10 | 81.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-plain | ClosedXML | 340.53 ms | 14.89 ms | 8.59 ms | 7.17 | 8.84 | 104205.0 KB | 8.01 | 1139.9 KB | 0.82 | 617.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-plain | EPPlus | 407.27 ms | 11.53 ms | 6.66 ms | 8.58 | 10.57 | 117437.7 KB | 9.03 | 1090.8 KB | 0.79 | 757.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-table | OfficeIMO.Excel | 51.03 ms | 1.66 ms | 0.96 ms | 1.00 | 1.00 | 13020.3 KB | 1.00 | 1385.7 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-datareader-table | MiniExcel | 101.73 ms | 3.37 ms | 1.95 ms | 1.99 | 1.99 | 92200.2 KB | 7.08 | 1521.0 KB | 1.10 | 99.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-table | EPPlus | 452.81 ms | 15.09 ms | 8.71 ms | 8.87 | 8.87 | 117437.3 KB | 9.02 | 1090.8 KB | 0.79 | 787.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-table | ClosedXML | 512.33 ms | 10.08 ms | 5.82 ms | 10.04 | 10.04 | 173396.8 KB | 13.32 | 1140.7 KB | 0.82 | 904.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-table-autofit | OfficeIMO.Excel | 45.06 ms | 2.56 ms | 1.48 ms | 1.00 | 1.00 | 13026.6 KB | 1.00 | 1385.9 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-datareader-table-autofit | MiniExcel | 94.73 ms | 3.02 ms | 1.75 ms | 2.10 | 2.10 | 124495.5 KB | 9.56 | 1521.1 KB | 1.10 | 110.2% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-table-autofit | EPPlus | 433.23 ms | 25.84 ms | 14.92 ms | 9.61 | 9.61 | 159741.8 KB | 12.26 | 1091.0 KB | 0.79 | 861.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datareader-table-autofit | ClosedXML | 972.91 ms | 53.64 ms | 30.97 ms | 21.59 | 21.59 | 566146.0 KB | 43.46 | 1140.9 KB | 0.82 | 2059.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | OfficeIMO.Excel | 31.35 ms | 0.23 ms | 0.13 ms | 1.00 | 1.00 | 9819.7 KB | 1.00 | 1329.2 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | LargeXlsx | 34.77 ms | 0.56 ms | 0.32 ms | 1.11 | 1.11 | 9265.9 KB | 0.94 | 1680.0 KB | 1.26 | 10.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | MiniExcel | 94.69 ms | 3.83 ms | 2.21 ms | 3.02 | 3.02 | 108129.1 KB | 11.01 | 1819.7 KB | 1.37 | 202.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | EPPlus | 475.12 ms | 4.85 ms | 2.80 ms | 15.16 | 15.16 | 135723.5 KB | 13.82 | 1390.4 KB | 1.05 | 1415.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-direct-export | ClosedXML | 516.93 ms | 13.00 ms | 7.51 ms | 16.49 | 16.49 | 280375.8 KB | 28.55 | 1519.9 KB | 1.14 | 1549.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | OfficeIMO.Excel | 37.94 ms | 1.77 ms | 1.02 ms | 1.00 | 1.00 | 13458.5 KB | 1.00 | 1795.1 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | MiniExcel | 95.12 ms | 2.96 ms | 1.71 ms | 2.51 | 2.51 | 108129.1 KB | 8.03 | 1819.7 KB | 1.01 | 150.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | EPPlus | 501.01 ms | 21.78 ms | 12.57 ms | 13.20 | 13.20 | 135723.5 KB | 10.08 | 1390.4 KB | 0.77 | 1220.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-sparse-tables | ClosedXML | 528.34 ms | 11.10 ms | 6.41 ms | 13.92 | 13.92 | 280373.8 KB | 20.83 | 1519.9 KB | 0.85 | 1292.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-tables | OfficeIMO.Excel | 32.75 ms | 0.20 ms | 0.11 ms | 1.00 | 1.00 | 10288.1 KB | 1.00 | 1376.4 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-dataset-tables | MiniExcel | 74.48 ms | 2.03 ms | 1.17 ms | 2.27 | 2.27 | 97085.4 KB | 9.44 | 1511.8 KB | 1.10 | 127.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-tables | EPPlus | 315.41 ms | 3.62 ms | 2.09 ms | 9.63 | 9.63 | 110815.9 KB | 10.77 | 1100.6 KB | 0.80 | 863.2% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-tables | ClosedXML | 334.31 ms | 1.86 ms | 1.08 ms | 10.21 | 10.21 | 171997.9 KB | 16.72 | 1139.0 KB | 0.83 | 920.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | OfficeIMO.Excel | 37.93 ms | 2.03 ms | 1.17 ms | 1.00 | 1.00 | 10300.7 KB | 1.00 | 1376.7 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | MiniExcel | 80.85 ms | 0.99 ms | 0.57 ms | 2.13 | 2.13 | 128875.0 KB | 12.51 | 1512.0 KB | 1.10 | 113.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | EPPlus | 413.80 ms | 21.30 ms | 12.30 ms | 10.91 | 10.91 | 195407.9 KB | 18.97 | 1100.9 KB | 0.80 | 990.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-dataset-tables-autofit | ClosedXML | 724.66 ms | 35.67 ms | 20.59 ms | 19.10 | 19.10 | 550096.0 KB | 53.40 | 1139.3 KB | 0.83 | 1810.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datatable-direct | LargeXlsx | 46.80 ms | 2.13 ms | 1.23 ms | 0.96 | 1.00 | 9520.4 KB | 0.75 | 1386.5 KB | 1.00 | 3.9% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datatable-direct | OfficeIMO.Excel | 48.70 ms | 2.46 ms | 1.42 ms | 1.00 | 1.04 | 12715.7 KB | 1.00 | 1384.9 KB | 1.00 | Loss +4.1% |
+| 25000 | package-profile | package | Package size | write-datatable-direct | MiniExcel | 110.39 ms | 5.37 ms | 3.10 ms | 2.27 | 2.36 | 92394.2 KB | 7.27 | 1521.0 KB | 1.10 | 126.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datatable-direct | ClosedXML | 367.17 ms | 14.98 ms | 8.65 ms | 7.54 | 7.85 | 104205.0 KB | 8.19 | 1139.9 KB | 0.82 | 653.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datatable-direct | EPPlus | 443.45 ms | 15.59 ms | 9.00 ms | 9.11 | 9.48 | 117437.3 KB | 9.24 | 1090.8 KB | 0.79 | 810.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datatable-table-direct | OfficeIMO.Excel | 43.59 ms | 1.77 ms | 1.02 ms | 1.00 | 1.00 | 12733.8 KB | 1.00 | 1385.7 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-datatable-table-direct | MiniExcel | 108.29 ms | 0.60 ms | 0.35 ms | 2.48 | 2.48 | 92394.5 KB | 7.26 | 1521.1 KB | 1.10 | 148.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datatable-table-direct | EPPlus | 437.71 ms | 2.63 ms | 1.52 ms | 10.04 | 10.04 | 117437.3 KB | 9.22 | 1090.8 KB | 0.79 | 904.2% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-datatable-table-direct | ClosedXML | 501.41 ms | 11.22 ms | 6.48 ms | 11.50 | 11.50 | 173396.4 KB | 13.62 | 1140.7 KB | 0.82 | 1050.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | LargeXlsx | 27.15 ms | 0.31 ms | 0.18 ms | 0.87 | 1.00 | 5614.1 KB | 0.43 | 1386.5 KB | 1.00 | 13.5% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | OfficeIMO.Excel | 31.39 ms | 0.46 ms | 0.27 ms | 1.00 | 1.16 | 12912.0 KB | 1.00 | 1384.9 KB | 1.00 | Loss +15.6% |
+| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | MiniExcel | 64.33 ms | 1.44 ms | 0.83 ms | 2.05 | 2.37 | 93257.1 KB | 7.22 | 1521.1 KB | 1.10 | 105.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | ClosedXML | 263.69 ms | 8.82 ms | 5.09 ms | 8.40 | 9.71 | 104205.0 KB | 8.07 | 1139.9 KB | 0.82 | 740.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-fluent-rowsfrom-direct | EPPlus | 323.15 ms | 6.11 ms | 3.53 ms | 10.30 | 11.90 | 117437.7 KB | 9.10 | 1090.8 KB | 0.79 | 929.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | OfficeIMO.Excel | 41.71 ms | 1.93 ms | 1.11 ms | 1.00 | 1.00 | 11501.6 KB | 1.00 | 1428.5 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | EPPlus | 477.62 ms | 92.65 ms | 53.49 ms | 11.45 | 11.45 | 159742.2 KB | 13.89 | 1091.0 KB | 0.76 | 1045.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-autofitcolumnsfor-direct | ClosedXML | 819.12 ms | 52.25 ms | 30.17 ms | 19.64 | 19.64 | 496956.9 KB | 43.21 | 1140.1 KB | 0.80 | 1863.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-direct | LargeXlsx | 37.23 ms | 2.84 ms | 1.64 ms | 0.89 | 1.00 | 5614.1 KB | 0.49 | 1386.5 KB | 0.97 | 11.1% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-direct | OfficeIMO.Excel | 41.89 ms | 2.34 ms | 1.35 ms | 1.00 | 1.13 | 11493.8 KB | 1.00 | 1428.4 KB | 1.00 | Loss +12.5% |
+| 25000 | package-profile | package | Package size | write-insertobjects-direct | MiniExcel | 83.62 ms | 3.32 ms | 1.92 ms | 2.00 | 2.25 | 93257.1 KB | 8.11 | 1521.1 KB | 1.06 | 99.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-direct | ClosedXML | 342.11 ms | 19.76 ms | 11.41 ms | 8.17 | 9.19 | 104205.0 KB | 9.07 | 1139.9 KB | 0.80 | 716.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-direct | EPPlus | 462.26 ms | 58.55 ms | 33.81 ms | 11.03 | 12.42 | 117437.3 KB | 10.22 | 1090.8 KB | 0.76 | 1003.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | OfficeIMO.Excel | 41.91 ms | 3.30 ms | 1.91 ms | 1.00 | 1.00 | 10187.2 KB | 1.00 | 1385.1 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | EPPlus | 376.33 ms | 5.05 ms | 2.91 ms | 8.98 | 8.98 | 159742.2 KB | 15.68 | 1091.0 KB | 0.79 | 798.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | ClosedXML | 660.30 ms | 20.85 ms | 12.04 ms | 15.76 | 15.76 | 496956.9 KB | 48.78 | 1140.1 KB | 0.82 | 1475.6% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | LargeXlsx | 28.36 ms | 2.59 ms | 1.49 ms | 0.76 | 1.00 | 5614.1 KB | 0.55 | 1386.5 KB | 1.00 | 23.7% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | OfficeIMO.Excel | 37.17 ms | 0.73 ms | 0.42 ms | 1.00 | 1.31 | 10179.4 KB | 1.00 | 1384.9 KB | 1.00 | Loss +31.1% |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | MiniExcel | 83.02 ms | 33.06 ms | 19.09 ms | 2.23 | 2.93 | 93257.1 KB | 9.16 | 1521.1 KB | 1.10 | 123.3% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | ClosedXML | 276.14 ms | 5.72 ms | 3.30 ms | 7.43 | 9.74 | 104205.0 KB | 10.24 | 1139.9 KB | 0.82 | 642.8% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-flat-dictionaries-direct | EPPlus | 335.68 ms | 1.03 ms | 0.60 ms | 9.03 | 11.84 | 117437.3 KB | 11.54 | 1090.8 KB | 0.79 | 803.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | LargeXlsx | 25.79 ms | 0.12 ms | 0.07 ms | 0.66 | 1.00 | 5614.1 KB | 0.36 | 1386.5 KB | 0.97 | 34.1% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | OfficeIMO.Excel | 39.14 ms | 2.23 ms | 1.29 ms | 1.00 | 1.52 | 15791.7 KB | 1.00 | 1428.4 KB | 1.00 | Loss +51.8% |
+| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | MiniExcel | 59.78 ms | 0.95 ms | 0.55 ms | 1.53 | 2.32 | 93257.1 KB | 5.91 | 1521.0 KB | 1.06 | 52.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | ClosedXML | 257.84 ms | 4.99 ms | 2.88 ms | 6.59 | 10.00 | 104205.0 KB | 6.60 | 1139.9 KB | 0.80 | 558.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-legacy-dictionaries-direct | EPPlus | 322.95 ms | 1.78 ms | 1.03 ms | 8.25 | 12.52 | 117437.3 KB | 7.44 | 1090.8 KB | 0.76 | 725.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | OfficeIMO.Excel | 33.39 ms | 2.38 ms | 1.38 ms | 1.00 | 1.00 | 11500.9 KB | 1.00 | 1428.5 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | EPPlus | 373.66 ms | 17.61 ms | 10.17 ms | 11.19 | 11.19 | 138360.4 KB | 12.03 | 1091.0 KB | 0.76 | 1019.0% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-insertobjects-partial-autofitcolumnsfor-direct | ClosedXML | 441.73 ms | 45.31 ms | 26.16 ms | 13.23 | 13.23 | 275422.3 KB | 23.95 | 1140.1 KB | 0.80 | 1222.9% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | LargeXlsx | 37.33 ms | 2.05 ms | 1.19 ms | 0.83 | 1.00 | 6043.9 KB | 0.57 | 1816.3 KB | 0.99 | 17.1% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | OfficeIMO.Excel | 45.00 ms | 4.98 ms | 2.88 ms | 1.00 | 1.21 | 10577.2 KB | 1.00 | 1828.0 KB | 1.00 | Loss +20.6% |
+| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | MiniExcel | 79.84 ms | 1.66 ms | 0.96 ms | 1.77 | 2.14 | 113974.3 KB | 10.78 | 1936.7 KB | 1.06 | 77.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | ClosedXML | 359.92 ms | 3.10 ms | 1.79 ms | 8.00 | 9.64 | 179552.5 KB | 16.98 | 1555.2 KB | 0.85 | 699.8% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-mixed-objects-direct | EPPlus | 438.18 ms | 6.67 ms | 3.85 ms | 9.74 | 11.74 | 144920.0 KB | 13.70 | 1473.0 KB | 0.81 | 873.7% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | LargeXlsx | 37.01 ms | 1.20 ms | 0.70 ms | 0.87 | 1.00 | 6043.9 KB | 0.61 | 1816.3 KB | 0.99 | 12.7% faster than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | OfficeIMO.Excel | 42.38 ms | 0.39 ms | 0.23 ms | 1.00 | 1.15 | 9942.2 KB | 1.00 | 1828.0 KB | 1.00 | Loss +14.5% |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | MiniExcel | 79.29 ms | 2.45 ms | 1.42 ms | 1.87 | 2.14 | 113974.3 KB | 11.46 | 1936.7 KB | 1.06 | 87.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | ClosedXML | 371.02 ms | 13.44 ms | 7.76 ms | 8.75 | 10.03 | 179552.5 KB | 18.06 | 1555.2 KB | 0.85 | 775.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-mixed-direct | EPPlus | 448.05 ms | 16.60 ms | 9.58 ms | 10.57 | 12.11 | 144920.0 KB | 14.58 | 1473.0 KB | 0.81 | 957.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | OfficeIMO.Excel | 190.90 ms | 3.93 ms | 2.27 ms | 1.00 | 1.00 | 36150.1 KB | 1.00 | 6725.6 KB | 1.00 | Win |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | LargeXlsx | 198.09 ms | 2.74 ms | 1.58 ms | 1.04 | 1.04 | 23211.4 KB | 0.64 | 6614.8 KB | 0.98 | 3.8% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | MiniExcel | 336.82 ms | 16.49 ms | 9.52 ms | 1.76 | 1.76 | 347925.7 KB | 9.62 | 6949.8 KB | 1.03 | 76.4% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | ClosedXML | 1166.60 ms | 35.89 ms | 20.72 ms | 6.11 | 6.11 | 487446.6 KB | 13.48 | 6165.9 KB | 0.92 | 511.1% slower than OfficeIMO |
+| 25000 | package-profile | package | Package size | write-powershell-psobject-wide-direct | EPPlus | 1513.98 ms | 21.45 ms | 12.38 ms | 7.93 | 7.93 | 562916.0 KB | 15.57 | 5441.6 KB | 0.81 | 693.1% slower than OfficeIMO |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | OfficeIMO.Excel | 84.25 ms | 5.10 ms | 2.94 ms | 1.00 | 1.00 | 15708.5 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | EPPlus | 504.64 ms | 3.25 ms | 1.88 ms | 5.99 | 5.99 | 250948.5 KB | 15.98 |  |  | 499.0% slower than OfficeIMO |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | EPPlus 4.5.3.3 | 652.49 ms |  |  | 7.74 | 7.74 |  |  |  |  | 674.5% slower than OfficeIMO |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | autofit-existing | ClosedXML | 1563.09 ms | 59.06 ms | 34.10 ms | 18.55 | 18.55 | 829859.0 KB | 52.83 |  |  | 1755.3% slower than OfficeIMO |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | realworld-report-no-autofit | OfficeIMO.Excel | 89.46 ms | 3.86 ms | 2.23 ms | 1.00 | 1.00 | 43670.5 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | realworld-report-no-autofit | EPPlus 4.5.3.3 | 271.20 ms |  |  | 3.03 | 3.03 |  |  |  |  | 203.2% slower than OfficeIMO |
+| 25000 | speed-comparison | mutate | AutoFit and mutation | realworld-report-no-autofit | EPPlus | 403.76 ms | 15.62 ms | 9.02 ms | 4.51 | 4.51 | 234781.2 KB | 5.38 |  |  | 351.4% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-chart-first | OfficeIMO.Excel | 89.50 ms | 2.25 ms | 1.30 ms | 1.00 | 1.00 | 43558.6 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-chart-first | EPPlus | 434.47 ms | 19.00 ms | 10.97 ms | 4.85 | 4.85 | 277077.1 KB | 6.36 |  |  | 385.4% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-chart-first | EPPlus 4.5.3.3 | 514.29 ms |  |  | 5.75 | 5.75 |  |  |  |  | 474.6% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-extra-column | OfficeIMO.Excel | 98.59 ms | 4.34 ms | 2.51 ms | 1.00 | 1.00 | 45565.9 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-extra-column | EPPlus | 473.03 ms | 5.93 ms | 3.42 ms | 4.80 | 4.80 | 302760.6 KB | 6.64 |  |  | 379.8% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-extra-column | EPPlus 4.5.3.3 | 595.57 ms |  |  | 6.04 | 6.04 |  |  |  |  | 504.1% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-post-mutation | OfficeIMO.Excel | 93.32 ms | 1.50 ms | 0.87 ms | 1.00 | 1.00 | 43686.0 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-post-mutation | EPPlus | 416.94 ms | 7.85 ms | 4.53 ms | 4.47 | 4.47 | 277078.0 KB | 6.34 |  |  | 346.8% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-post-mutation | EPPlus 4.5.3.3 | 477.41 ms |  |  | 5.12 | 5.12 |  |  |  |  | 411.6% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-shuffled-columns | OfficeIMO.Excel | 105.35 ms | 1.97 ms | 1.14 ms | 1.00 | 1.00 | 43738.1 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-shuffled-columns | EPPlus | 434.19 ms | 12.41 ms | 7.17 ms | 4.12 | 4.12 | 277070.8 KB | 6.33 |  |  | 312.2% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Anti-cheat report variants | realworld-report-shuffled-columns | EPPlus 4.5.3.3 | 488.51 ms |  |  | 4.64 | 4.64 |  |  |  |  | 363.7% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Object projection | build-object-datatable-dictionaries | OfficeIMO.Excel | 12.67 ms | 0.27 ms | 0.16 ms | 1.00 | 1.00 | 5164.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Object projection | build-object-datatable-typed | OfficeIMO.Excel | 10.47 ms | 0.18 ms | 0.11 ms | 1.00 | 1.00 | 8093.8 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Range and table read | enumerate-cells | OfficeIMO.Excel | 55.93 ms | 5.89 ms | 3.40 ms | 1.00 | 1.00 | 24530.8 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Range and table read | enumerate-cells | EPPlus | 318.84 ms | 12.34 ms | 7.13 ms | 5.70 | 5.70 | 187393.2 KB | 7.64 |  |  | 470.0% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Range and table read | enumerate-cells | ClosedXML | 440.20 ms | 10.86 ms | 6.27 ms | 7.87 | 7.87 | 166527.0 KB | 6.79 |  |  | 687.0% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | OfficeIMO.Excel | 41.78 ms | 6.52 ms | 3.77 ms | 1.00 | 1.00 | 3839.2 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | EPPlus | 273.17 ms | 7.87 ms | 4.54 ms | 6.54 | 6.54 | 115541.6 KB | 30.10 |  |  | 553.8% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Range and table read | enumerate-first-column-from-wide-sheet | ClosedXML | 394.13 ms | 21.20 ms | 12.24 ms | 9.43 | 9.43 | 150901.0 KB | 39.31 |  |  | 843.3% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Range and table read | enumerate-range | OfficeIMO.Excel | 67.22 ms | 0.61 ms | 0.35 ms | 1.00 | 1.00 | 24531.0 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Range and table read | enumerate-range | EPPlus | 302.40 ms | 23.14 ms | 13.36 ms | 4.50 | 4.50 | 187393.2 KB | 7.64 |  |  | 349.8% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Range and table read | enumerate-range | ClosedXML | 390.28 ms | 19.62 ms | 11.33 ms | 5.81 | 5.81 | 166520.9 KB | 6.79 |  |  | 480.6% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Range and table read | enumerate-top-range | OfficeIMO.Excel | 0.74 ms | 0.03 ms | 0.02 ms | 1.00 | 1.00 | 285.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Range and table read | enumerate-top-range | EPPlus | 257.85 ms | 32.44 ms | 18.73 ms | 349.75 | 349.75 | 105580.1 KB | 370.12 |  |  | 34874.7% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Range and table read | enumerate-top-range | ClosedXML | 396.23 ms | 9.95 ms | 5.74 ms | 537.46 | 537.46 | 149396.1 KB | 523.72 |  |  | 53645.7% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-autofilter | OfficeIMO.Excel | 32.65 ms | 0.34 ms | 0.20 ms | 1.00 | 1.00 | 11494.9 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-autofilter | EPPlus 4.5.3.3 | 233.13 ms |  |  | 7.14 | 7.14 |  |  |  |  | 613.9% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-autofilter | ClosedXML | 309.25 ms | 7.11 ms | 4.11 ms | 9.47 | 9.47 | 210663.8 KB | 18.33 |  |  | 847.0% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-autofilter | EPPlus | 367.66 ms | 1.36 ms | 0.78 ms | 11.26 | 11.26 | 211871.5 KB | 18.43 |  |  | 1025.9% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-charts | OfficeIMO.Excel | 32.68 ms | 1.18 ms | 0.68 ms | 1.00 | 1.00 | 12549.2 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-charts | EPPlus 4.5.3.3 | 240.13 ms |  |  | 7.35 | 7.35 |  |  |  |  | 634.8% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-charts | EPPlus | 370.85 ms | 6.93 ms | 4.00 ms | 11.35 | 11.35 | 214905.8 KB | 17.13 |  |  | 1034.7% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | OfficeIMO.Excel | 31.89 ms | 1.05 ms | 0.61 ms | 1.00 | 1.00 | 11560.2 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | EPPlus 4.5.3.3 | 239.57 ms |  |  | 7.51 | 7.51 |  |  |  |  | 651.3% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | ClosedXML | 300.39 ms | 10.90 ms | 6.29 ms | 9.42 | 9.42 | 210711.7 KB | 18.23 |  |  | 842.1% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-conditional-formatting | EPPlus | 362.73 ms | 14.14 ms | 8.16 ms | 11.38 | 11.38 | 211912.9 KB | 18.33 |  |  | 1037.6% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-data-validation | OfficeIMO.Excel | 32.47 ms | 2.57 ms | 1.48 ms | 1.00 | 1.00 | 11510.5 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-data-validation | EPPlus 4.5.3.3 | 238.04 ms |  |  | 7.33 | 7.33 |  |  |  |  | 633.2% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-data-validation | ClosedXML | 294.79 ms | 0.76 ms | 0.44 ms | 9.08 | 9.08 | 210672.7 KB | 18.30 |  |  | 808.0% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-data-validation | EPPlus | 369.52 ms | 18.49 ms | 10.68 ms | 11.38 | 11.38 | 211857.4 KB | 18.41 |  |  | 1038.2% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | OfficeIMO.Excel | 33.62 ms | 1.37 ms | 0.79 ms | 1.00 | 1.00 | 11497.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | EPPlus 4.5.3.3 | 231.67 ms |  |  | 6.89 | 6.89 |  |  |  |  | 589.1% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | ClosedXML | 298.44 ms | 5.75 ms | 3.32 ms | 8.88 | 8.88 | 210646.8 KB | 18.32 |  |  | 787.7% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-freeze-panes | EPPlus | 372.05 ms | 11.39 ms | 6.58 ms | 11.07 | 11.07 | 211883.3 KB | 18.43 |  |  | 1006.6% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-pivot-table | OfficeIMO.Excel | 83.49 ms | 0.71 ms | 0.41 ms | 1.00 | 1.00 | 42217.9 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-pivot-table | EPPlus 4.5.3.3 | 238.99 ms |  |  | 2.86 | 2.86 |  |  |  |  | 186.2% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world feature mix | realworld-pivot-table | EPPlus | 394.56 ms | 8.18 ms | 4.72 ms | 4.73 | 4.73 | 230800.4 KB | 5.47 |  |  | 372.6% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-all-in-one | OfficeIMO.Excel | 91.44 ms | 5.14 ms | 2.97 ms | 1.00 | 1.00 | 43675.4 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-all-in-one | EPPlus | 425.47 ms | 10.12 ms | 5.85 ms | 4.65 | 4.65 | 277078.0 KB | 6.34 |  |  | 365.3% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-all-in-one | EPPlus 4.5.3.3 | 616.24 ms |  |  | 6.74 | 6.74 |  |  |  |  | 573.9% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-core | OfficeIMO.Excel | 34.81 ms | 0.78 ms | 0.45 ms | 1.00 | 1.00 | 11648.7 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-core | EPPlus | 400.27 ms | 5.38 ms | 3.10 ms | 11.50 | 11.50 | 255065.8 KB | 21.90 |  |  | 1049.9% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-core | EPPlus 4.5.3.3 | 470.96 ms |  |  | 13.53 | 13.53 |  |  |  |  | 1253.0% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Real-world report | realworld-report-core | ClosedXML | 801.68 ms | 8.91 ms | 5.14 ms | 23.03 | 23.03 | 680114.5 KB | 58.39 |  |  | 2203.2% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook | OfficeIMO.Excel | 116.92 ms | 2.95 ms | 1.70 ms | 1.00 | 1.00 | 59145.6 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Report workbook | report-workbook | EPPlus | 603.69 ms | 46.30 ms | 26.73 ms | 5.16 | 5.16 | 364709.8 KB | 6.17 |  |  | 416.3% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook | EPPlus 4.5.3.3 | 618.55 ms |  |  | 5.29 | 5.29 |  |  |  |  | 429.1% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-core | OfficeIMO.Excel | 46.03 ms | 1.92 ms | 1.11 ms | 1.00 | 1.00 | 10979.4 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-core | EPPlus | 527.81 ms | 6.29 ms | 3.63 ms | 11.47 | 11.47 | 342842.2 KB | 31.23 |  |  | 1046.8% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-core | EPPlus 4.5.3.3 | 616.09 ms |  |  | 13.39 | 13.39 |  |  |  |  | 1238.6% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-core | ClosedXML | 1135.82 ms | 22.97 ms | 13.26 ms | 24.68 | 24.68 | 975773.4 KB | 88.87 |  |  | 2367.8% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable | OfficeIMO.Excel | 126.00 ms | 4.91 ms | 2.84 ms | 1.00 | 1.00 | 61935.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable | EPPlus | 565.03 ms | 7.08 ms | 4.09 ms | 4.48 | 4.48 | 247823.7 KB | 4.00 |  |  | 348.4% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable | EPPlus 4.5.3.3 | 697.91 ms |  |  | 5.54 | 5.54 |  |  |  |  | 453.9% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable-core | OfficeIMO.Excel | 49.99 ms | 0.68 ms | 0.39 ms | 1.00 | 1.00 | 13725.0 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable-core | EPPlus | 542.99 ms | 3.78 ms | 2.18 ms | 10.86 | 10.86 | 225957.1 KB | 16.46 |  |  | 986.1% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable-core | EPPlus 4.5.3.3 | 617.24 ms |  |  | 12.35 | 12.35 |  |  |  |  | 1134.6% slower than OfficeIMO |
+| 25000 | speed-comparison | other | Report workbook | report-workbook-datatable-core | ClosedXML | 1091.46 ms | 21.77 ms | 12.57 ms | 21.83 | 21.83 | 832225.9 KB | 60.64 |  |  | 2083.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | OfficeIMO.Excel | 19.08 ms | 0.90 ms | 0.52 ms | 1.00 | 1.00 | 6219.0 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | EPPlus 4.5.3.3 | 73.40 ms |  |  | 3.85 | 3.85 |  |  |  |  | 284.7% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | EPPlus | 151.27 ms | 9.05 ms | 5.23 ms | 7.93 | 7.93 | 70814.5 KB | 11.39 |  |  | 692.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Formula write/read | formula-heavy-read | ClosedXML | 170.22 ms | 9.54 ms | 5.51 ms | 8.92 | 8.92 | 79515.6 KB | 12.79 |  |  | 792.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-column-read | OfficeIMO.Excel | 0.84 ms | 0.02 ms | 0.01 ms | 1.00 | 1.00 | 177.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | read | Other | large-sparse-column-read | Sylvan.Data.Excel | 1.04 ms | 0.09 ms | 0.05 ms | 1.24 | 1.24 | 316.6 KB | 1.79 |  |  | 23.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-column-read | ExcelDataReader | 1.80 ms | 0.61 ms | 0.35 ms | 2.14 | 2.14 | 4062.2 KB | 22.91 |  |  | 113.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-column-read | ClosedXML | 3.70 ms | 0.19 ms | 0.11 ms | 4.39 | 4.39 | 4392.8 KB | 24.77 |  |  | 339.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-column-read | MiniExcel | 12.33 ms | 1.26 ms | 0.73 ms | 14.66 | 14.66 | 46194.9 KB | 260.53 |  |  | 1366.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-column-read | EPPlus 4.5.3.3 | 32.60 ms |  |  | 38.76 | 38.76 |  |  |  |  | 3775.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-column-read | EPPlus | 93.94 ms | 2.73 ms | 1.58 ms | 111.68 | 111.68 | 43071.0 KB | 242.91 |  |  | 11067.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-row-read | OfficeIMO.Excel | 0.83 ms | 0.01 ms | 0.01 ms | 1.00 | 1.00 | 177.4 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | read | Other | large-sparse-row-read | Sylvan.Data.Excel | 1.02 ms | 0.04 ms | 0.02 ms | 1.23 | 1.23 | 316.6 KB | 1.78 |  |  | 22.8% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-row-read | ExcelDataReader | 1.97 ms | 0.46 ms | 0.27 ms | 2.37 | 2.37 | 4062.2 KB | 22.90 |  |  | 136.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-row-read | ClosedXML | 3.36 ms | 0.18 ms | 0.10 ms | 4.04 | 4.04 | 4392.8 KB | 24.76 |  |  | 304.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-row-read | MiniExcel | 12.87 ms | 0.77 ms | 0.45 ms | 15.49 | 15.49 | 46194.9 KB | 260.43 |  |  | 1448.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-row-read | EPPlus 4.5.3.3 | 36.10 ms |  |  | 43.43 | 43.43 |  |  |  |  | 4243.3% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | large-sparse-row-read | EPPlus | 94.92 ms | 2.59 ms | 1.50 ms | 114.21 | 114.21 | 43071.0 KB | 242.81 |  |  | 11321.0% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | shared-string-read | Sylvan.Data.Excel | 15.68 ms | 0.19 ms | 0.11 ms | 0.87 | 1.00 | 1936.7 KB | 0.21 |  |  | 12.6% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Other | shared-string-read | OfficeIMO.Excel | 17.94 ms | 0.29 ms | 0.17 ms | 1.00 | 1.14 | 9218.0 KB | 1.00 |  |  | Loss +14.4% |
+| 25000 | speed-comparison | read | Other | shared-string-read | ExcelDataReader | 41.52 ms | 0.26 ms | 0.15 ms | 2.31 | 2.65 | 25020.8 KB | 2.71 |  |  | 131.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | shared-string-read | MiniExcel | 46.74 ms | 0.65 ms | 0.38 ms | 2.61 | 2.98 | 74405.3 KB | 8.07 |  |  | 160.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | shared-string-read | EPPlus 4.5.3.3 | 83.96 ms |  |  | 4.68 | 5.35 |  |  |  |  | 368.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | shared-string-read | EPPlus | 146.12 ms | 3.03 ms | 1.75 ms | 8.15 | 9.32 | 89346.0 KB | 9.69 |  |  | 714.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Other | shared-string-read | ClosedXML | 151.07 ms | 6.65 ms | 3.84 ms | 8.42 | 9.63 | 90414.4 KB | 9.81 |  |  | 742.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-bottom-range | OfficeIMO.Excel | 37.82 ms | 7.24 ms | 4.18 ms | 1.00 | 1.00 | 1122.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | read | Range and table read | read-bottom-range | Sylvan.Data.Excel | 58.11 ms | 1.70 ms | 0.98 ms | 1.54 | 1.54 | 3534.8 KB | 3.15 |  |  | 53.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-bottom-range | ExcelDataReader | 148.27 ms | 16.27 ms | 9.39 ms | 3.92 | 3.92 | 61201.9 KB | 54.53 |  |  | 292.0% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-bottom-range | MiniExcel | 165.33 ms | 4.49 ms | 2.59 ms | 4.37 | 4.37 | 186420.9 KB | 166.11 |  |  | 337.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-bottom-range | EPPlus | 276.62 ms | 9.88 ms | 5.71 ms | 7.31 | 7.31 | 105609.0 KB | 94.10 |  |  | 631.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-bottom-range | ClosedXML | 407.13 ms | 24.08 ms | 13.90 ms | 10.76 | 10.76 | 149389.9 KB | 133.11 |  |  | 976.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-datatable | Sylvan.Data.Excel | 80.47 ms | 6.71 ms | 3.87 ms | 0.98 | 1.00 | 18394.2 KB | 0.53 |  |  | 2.4% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-datatable | OfficeIMO.Excel | 82.41 ms | 8.33 ms | 4.81 ms | 1.00 | 1.02 | 34645.8 KB | 1.00 |  |  | Loss +2.4% |
+| 25000 | speed-comparison | read | Range and table read | read-datatable | ExcelDataReader | 177.66 ms | 9.90 ms | 5.71 ms | 2.16 | 2.21 | 76061.4 KB | 2.20 |  |  | 115.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-datatable | MiniExcel | 203.27 ms | 1.45 ms | 0.84 ms | 2.47 | 2.53 | 181285.0 KB | 5.23 |  |  | 146.7% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-datatable | EPPlus 4.5.3.3 | 210.09 ms |  |  | 2.55 | 2.61 |  |  |  |  | 154.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-datatable | EPPlus | 382.50 ms | 86.76 ms | 50.09 ms | 4.64 | 4.75 | 202250.2 KB | 5.84 |  |  | 364.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-datatable | ClosedXML | 450.16 ms | 8.39 ms | 4.85 ms | 5.46 | 5.59 | 178450.1 KB | 5.15 |  |  | 446.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | OfficeIMO.Excel | 41.76 ms | 5.89 ms | 3.40 ms | 1.00 | 1.00 | 4034.6 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | Sylvan.Data.Excel | 52.65 ms | 7.00 ms | 4.04 ms | 1.26 | 1.26 | 4316.2 KB | 1.07 |  |  | 26.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | MiniExcel | 131.17 ms | 4.85 ms | 2.80 ms | 3.14 | 3.14 | 158612.9 KB | 39.31 |  |  | 214.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | ExcelDataReader | 153.14 ms | 5.66 ms | 3.27 ms | 3.67 | 3.67 | 61202.0 KB | 15.17 |  |  | 266.7% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | EPPlus | 279.75 ms | 5.30 ms | 3.06 ms | 6.70 | 6.70 | 115541.6 KB | 28.64 |  |  | 569.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-first-column-from-wide-sheet | ClosedXML | 405.28 ms | 11.01 ms | 6.35 ms | 9.71 | 9.71 | 150898.7 KB | 37.40 |  |  | 870.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range | Sylvan.Data.Excel | 62.62 ms | 1.85 ms | 1.07 ms | 0.88 | 1.00 | 3534.8 KB | 0.14 |  |  | 11.8% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range | OfficeIMO.Excel | 70.99 ms | 9.88 ms | 5.71 ms | 1.00 | 1.13 | 26098.2 KB | 1.00 |  |  | Loss +13.4% |
+| 25000 | speed-comparison | read | Range and table read | read-range | ExcelDataReader | 155.87 ms | 5.04 ms | 2.91 ms | 2.20 | 2.49 | 61201.9 KB | 2.35 |  |  | 119.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range | MiniExcel | 159.61 ms | 12.24 ms | 7.06 ms | 2.25 | 2.55 | 186421.5 KB | 7.14 |  |  | 124.8% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range | EPPlus 4.5.3.3 | 235.32 ms |  |  | 3.31 | 3.76 |  |  |  |  | 231.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range | EPPlus | 306.92 ms | 4.85 ms | 2.80 ms | 4.32 | 4.90 | 187390.9 KB | 7.18 |  |  | 332.3% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range | ClosedXML | 402.78 ms | 39.73 ms | 22.94 ms | 5.67 | 6.43 | 163589.1 KB | 6.27 |  |  | 467.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range-decimal | Sylvan.Data.Excel | 61.40 ms | 7.38 ms | 4.26 ms | 0.83 | 1.00 | 4484.9 KB | 0.17 |  |  | 17.4% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range-decimal | OfficeIMO.Excel | 74.37 ms | 7.05 ms | 4.07 ms | 1.00 | 1.21 | 26684.1 KB | 1.00 |  |  | Loss +21.1% |
+| 25000 | speed-comparison | read | Range and table read | read-range-decimal | ExcelDataReader | 136.18 ms | 7.14 ms | 4.12 ms | 1.83 | 2.22 | 61201.9 KB | 2.29 |  |  | 83.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range-decimal | MiniExcel | 162.06 ms | 5.43 ms | 3.14 ms | 2.18 | 2.64 | 186421.5 KB | 6.99 |  |  | 117.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range-decimal | EPPlus | 393.26 ms | 12.41 ms | 7.17 ms | 5.29 | 6.41 | 187390.9 KB | 7.02 |  |  | 428.8% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-range-decimal | ClosedXML | 427.27 ms | 31.06 ms | 17.93 ms | 5.74 | 6.96 | 163589.3 KB | 6.13 |  |  | 474.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-top-range | Sylvan.Data.Excel | 0.51 ms | 0.08 ms | 0.05 ms | 0.76 | 1.00 | 348.5 KB | 1.18 |  |  | 24.0% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-top-range | OfficeIMO.Excel | 0.67 ms | 0.02 ms | 0.01 ms | 1.00 | 1.32 | 296.0 KB | 1.00 |  |  | Loss +31.6% |
+| 25000 | speed-comparison | read | Range and table read | read-top-range | MiniExcel | 0.96 ms | 0.08 ms | 0.05 ms | 1.43 | 1.88 | 869.0 KB | 2.94 |  |  | 42.8% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-top-range | ExcelDataReader | 50.63 ms | 7.30 ms | 4.21 ms | 75.36 | 99.18 | 17115.3 KB | 57.83 |  |  | 7436.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-top-range | EPPlus 4.5.3.3 | 259.78 ms |  |  | 386.69 | 508.90 |  |  |  |  | 38568.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-top-range | EPPlus | 273.27 ms | 3.65 ms | 2.11 ms | 406.78 | 535.34 | 105577.9 KB | 356.74 |  |  | 40578.0% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-top-range | ClosedXML | 400.35 ms | 27.25 ms | 15.73 ms | 595.93 | 784.27 | 149391.8 KB | 504.78 |  |  | 59492.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-used-range | Sylvan.Data.Excel | 66.41 ms | 4.80 ms | 2.77 ms | 0.92 | 1.00 | 3534.8 KB | 0.14 |  |  | 8.1% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-used-range | OfficeIMO.Excel | 72.30 ms | 10.79 ms | 6.23 ms | 1.00 | 1.09 | 26156.0 KB | 1.00 |  |  | Loss +8.9% |
+| 25000 | speed-comparison | read | Range and table read | read-used-range | ExcelDataReader | 148.97 ms | 9.01 ms | 5.20 ms | 2.06 | 2.24 | 61201.9 KB | 2.34 |  |  | 106.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-used-range | MiniExcel | 158.05 ms | 11.14 ms | 6.43 ms | 2.19 | 2.38 | 186421.5 KB | 7.13 |  |  | 118.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-used-range | EPPlus | 297.28 ms | 34.61 ms | 19.98 ms | 4.11 | 4.48 | 187390.9 KB | 7.16 |  |  | 311.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Range and table read | read-used-range | ClosedXML | 450.53 ms | 2.68 ms | 1.55 ms | 6.23 | 6.78 | 163586.6 KB | 6.25 |  |  | 523.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | OfficeIMO.Excel | 31.74 ms | 0.28 ms | 0.16 ms | 1.00 | 1.00 | 1125.7 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | Sylvan.Data.Excel | 38.23 ms | 0.79 ms | 0.45 ms | 1.20 | 1.20 | 3534.8 KB | 3.14 |  |  | 20.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | ExcelDataReader | 104.82 ms | 1.77 ms | 1.02 ms | 3.30 | 3.30 | 61201.9 KB | 54.37 |  |  | 230.3% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | MiniExcel | 116.31 ms | 5.01 ms | 2.89 ms | 3.66 | 3.66 | 186420.9 KB | 165.61 |  |  | 266.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | EPPlus | 230.07 ms | 20.29 ms | 11.71 ms | 7.25 | 7.25 | 105609.0 KB | 93.82 |  |  | 624.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-bottom-range-stream | ClosedXML | 310.27 ms | 23.08 ms | 13.32 ms | 9.78 | 9.78 | 149391.3 KB | 132.71 |  |  | 877.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-range-stream | Sylvan.Data.Excel | 45.29 ms | 3.88 ms | 2.24 ms | 0.77 | 1.00 | 3534.8 KB | 0.13 |  |  | 22.7% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-range-stream | OfficeIMO.Excel | 58.57 ms | 13.74 ms | 7.93 ms | 1.00 | 1.29 | 26885.3 KB | 1.00 |  |  | Loss +29.3% |
+| 25000 | speed-comparison | read | Streaming read | read-range-stream | ExcelDataReader | 116.60 ms | 10.69 ms | 6.17 ms | 1.99 | 2.57 | 61201.9 KB | 2.28 |  |  | 99.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-range-stream | MiniExcel | 121.85 ms | 11.84 ms | 6.84 ms | 2.08 | 2.69 | 186421.5 KB | 6.93 |  |  | 108.0% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-range-stream | EPPlus 4.5.3.3 | 167.71 ms |  |  | 2.86 | 3.70 |  |  |  |  | 186.4% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-range-stream | EPPlus | 340.04 ms | 56.93 ms | 32.87 ms | 5.81 | 7.51 | 187390.9 KB | 6.97 |  |  | 480.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-range-stream | ClosedXML | 368.83 ms | 43.85 ms | 25.32 ms | 6.30 | 8.14 | 163591.4 KB | 6.08 |  |  | 529.7% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | Sylvan.Data.Excel | 0.42 ms | 0.02 ms | 0.01 ms | 0.80 | 1.00 | 348.5 KB | 1.16 |  |  | 19.8% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | OfficeIMO.Excel | 0.53 ms | 0.01 ms | 0.01 ms | 1.00 | 1.25 | 299.3 KB | 1.00 |  |  | Loss +24.7% |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | MiniExcel | 0.82 ms | 0.24 ms | 0.14 ms | 1.56 | 1.95 | 869.0 KB | 2.90 |  |  | 56.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | ExcelDataReader | 36.07 ms | 0.46 ms | 0.27 ms | 68.42 | 85.32 | 17115.3 KB | 57.18 |  |  | 6741.8% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | EPPlus 4.5.3.3 | 169.07 ms |  |  | 320.69 | 399.90 |  |  |  |  | 31968.8% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | EPPlus | 228.12 ms | 17.90 ms | 10.33 ms | 432.69 | 539.58 | 105577.7 KB | 352.70 |  |  | 43169.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream | ClosedXML | 315.57 ms | 33.05 ms | 19.08 ms | 598.58 | 746.44 | 149390.2 KB | 499.06 |  |  | 59757.7% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | Sylvan.Data.Excel | 0.41 ms | 0.01 ms | 0.01 ms | 0.75 | 1.00 | 348.5 KB | 1.16 |  |  | 25.0% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | OfficeIMO.Excel | 0.54 ms | 0.02 ms | 0.01 ms | 1.00 | 1.33 | 300.0 KB | 1.00 |  |  | Loss +33.3% |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | MiniExcel | 0.83 ms | 0.21 ms | 0.12 ms | 1.52 | 2.03 | 869.0 KB | 2.90 |  |  | 52.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | ExcelDataReader | 39.64 ms | 3.67 ms | 2.12 ms | 73.10 | 97.44 | 17115.3 KB | 57.05 |  |  | 7210.0% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | EPPlus | 224.36 ms | 3.48 ms | 2.01 ms | 413.72 | 551.48 | 105577.8 KB | 351.90 |  |  | 41271.8% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Streaming read | read-top-range-stream-small-chunks | ClosedXML | 317.56 ms | 8.32 ms | 4.81 ms | 585.59 | 780.57 | 149391.0 KB | 497.93 |  |  | 58458.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects | Sylvan.Data.Excel | 43.41 ms | 1.98 ms | 1.14 ms | 0.77 | 1.00 | 5805.0 KB | 0.25 |  |  | 22.6% faster than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects | OfficeIMO.Excel | 56.11 ms | 7.91 ms | 4.57 ms | 1.00 | 1.29 | 23562.3 KB | 1.00 |  |  | Loss +29.3% |
+| 25000 | speed-comparison | read | Typed object read | read-objects | ExcelDataReader | 116.41 ms | 4.56 ms | 2.63 ms | 2.07 | 2.68 | 63472.1 KB | 2.69 |  |  | 107.5% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects | MiniExcel | 143.73 ms | 7.06 ms | 4.08 ms | 2.56 | 3.31 | 183656.4 KB | 7.79 |  |  | 156.1% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects | EPPlus 4.5.3.3 | 242.79 ms |  |  | 4.33 | 5.59 |  |  |  |  | 332.7% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects | EPPlus | 336.83 ms | 14.85 ms | 8.57 ms | 6.00 | 7.76 | 199608.2 KB | 8.47 |  |  | 500.3% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects | ClosedXML | 361.17 ms | 17.65 ms | 10.19 ms | 6.44 | 8.32 | 165540.4 KB | 7.03 |  |  | 543.7% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects-stream | OfficeIMO.Excel | 57.68 ms | 21.28 ms | 12.29 ms | 1.00 | 1.00 | 23367.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | read | Typed object read | read-objects-stream | Sylvan.Data.Excel | 86.11 ms | 38.86 ms | 22.43 ms | 1.49 | 1.49 | 5292.6 KB | 0.23 |  |  | 49.3% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects-stream | ExcelDataReader | 152.38 ms | 18.87 ms | 10.89 ms | 2.64 | 2.64 | 62959.7 KB | 2.69 |  |  | 164.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects-stream | MiniExcel | 224.89 ms | 37.07 ms | 21.40 ms | 3.90 | 3.90 | 183144.1 KB | 7.84 |  |  | 289.9% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects-stream | EPPlus 4.5.3.3 | 244.91 ms |  |  | 4.25 | 4.25 |  |  |  |  | 324.6% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects-stream | EPPlus | 403.29 ms | 13.31 ms | 7.68 ms | 6.99 | 6.99 | 199412.8 KB | 8.53 |  |  | 599.2% slower than OfficeIMO |
+| 25000 | speed-comparison | read | Typed object read | read-objects-stream | ClosedXML | 470.11 ms | 56.58 ms | 32.67 ms | 8.15 | 8.15 | 165348.9 KB | 7.08 |  |  | 715.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | OfficeIMO.Excel | 48.83 ms | 3.38 ms | 1.95 ms | 1.00 | 1.00 | 13026.6 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | MiniExcel | 99.23 ms | 1.56 ms | 0.90 ms | 2.03 | 2.03 | 124495.5 KB | 9.56 |  |  | 103.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | EPPlus | 432.69 ms | 5.36 ms | 3.10 ms | 8.86 | 8.86 | 159741.8 KB | 12.26 |  |  | 786.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | EPPlus 4.5.3.3 | 479.10 ms |  |  | 9.81 | 9.81 |  |  |  |  | 881.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-datareader-table-autofit | ClosedXML | 965.39 ms | 25.63 ms | 14.80 ms | 19.77 | 19.77 | 566142.6 KB | 43.46 |  |  | 1877.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | OfficeIMO.Excel | 47.84 ms | 4.37 ms | 2.52 ms | 1.00 | 1.00 | 10300.7 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | MiniExcel | 105.19 ms | 4.15 ms | 2.40 ms | 2.20 | 2.20 | 128875.0 KB | 12.51 |  |  | 119.9% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | EPPlus | 512.22 ms | 40.25 ms | 23.24 ms | 10.71 | 10.71 | 195407.9 KB | 18.97 |  |  | 970.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-dataset-tables-autofit | ClosedXML | 953.09 ms | 119.05 ms | 68.73 ms | 19.92 | 19.92 | 550092.4 KB | 53.40 |  |  | 1892.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | OfficeIMO.Excel | 44.97 ms | 4.78 ms | 2.76 ms | 1.00 | 1.00 | 11501.6 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | EPPlus | 448.91 ms | 6.51 ms | 3.76 ms | 9.98 | 9.98 | 159742.3 KB | 13.89 |  |  | 898.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-autofitcolumnsfor-direct | ClosedXML | 851.90 ms | 23.79 ms | 13.73 ms | 18.94 | 18.94 | 496956.9 KB | 43.21 |  |  | 1794.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | OfficeIMO.Excel | 51.37 ms | 6.09 ms | 3.52 ms | 1.00 | 1.00 | 10187.2 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | EPPlus | 442.64 ms | 12.74 ms | 7.36 ms | 8.62 | 8.62 | 159742.3 KB | 15.68 |  |  | 761.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-flat-dictionaries-autofitcolumnsfor-direct | ClosedXML | 815.38 ms | 26.63 ms | 15.38 ms | 15.87 | 15.87 | 496956.9 KB | 48.78 |  |  | 1487.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | OfficeIMO.Excel | 39.87 ms | 6.21 ms | 3.58 ms | 1.00 | 1.00 | 11500.9 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | EPPlus | 424.75 ms | 1.01 ms | 0.58 ms | 10.65 | 10.65 | 138360.4 KB | 12.03 |  |  | 965.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | AutoFit and mutation | write-insertobjects-partial-autofitcolumnsfor-direct | ClosedXML | 507.98 ms | 17.97 ms | 10.37 ms | 12.74 | 12.74 | 275422.3 KB | 23.95 |  |  | 1174.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | OfficeIMO.Excel | 18.17 ms | 0.44 ms | 0.26 ms | 1.00 | 1.00 | 6896.4 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | ClosedXML | 150.23 ms | 2.13 ms | 1.23 ms | 8.27 | 8.27 | 92902.1 KB | 13.47 |  |  | 726.9% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-empty-strings | EPPlus | 190.35 ms | 10.83 ms | 6.25 ms | 10.48 | 10.48 | 74492.8 KB | 10.80 |  |  | 947.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | OfficeIMO.Excel | 21.13 ms | 0.62 ms | 0.36 ms | 1.00 | 1.00 | 5970.9 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | EPPlus 4.5.3.3 | 101.78 ms |  |  | 4.82 | 4.82 |  |  |  |  | 381.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | ClosedXML | 126.71 ms | 1.69 ms | 0.98 ms | 6.00 | 6.00 | 84206.7 KB | 14.10 |  |  | 499.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-numbers | EPPlus | 222.06 ms | 14.69 ms | 8.48 ms | 10.51 | 10.51 | 86377.5 KB | 14.47 |  |  | 951.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | OfficeIMO.Excel | 26.87 ms | 0.81 ms | 0.46 ms | 1.00 | 1.00 | 8332.9 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | EPPlus 4.5.3.3 | 120.69 ms |  |  | 4.49 | 4.49 |  |  |  |  | 349.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | ClosedXML | 209.39 ms | 16.66 ms | 9.62 ms | 7.79 | 7.79 | 111118.7 KB | 13.33 |  |  | 679.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-mixed | EPPlus | 253.86 ms | 5.04 ms | 2.91 ms | 9.45 | 9.45 | 113245.1 KB | 13.59 |  |  | 844.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | OfficeIMO.Excel | 25.88 ms | 2.40 ms | 1.39 ms | 1.00 | 1.00 | 7416.2 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | ClosedXML | 175.49 ms | 12.21 ms | 7.05 ms | 6.78 | 6.78 | 105223.9 KB | 14.19 |  |  | 578.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse | EPPlus | 243.66 ms | 10.81 ms | 6.24 ms | 9.42 | 9.42 | 106316.9 KB | 14.34 |  |  | 841.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | OfficeIMO.Excel | 20.35 ms | 3.18 ms | 1.84 ms | 1.00 | 1.00 | 7416.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | ClosedXML | 183.44 ms | 4.03 ms | 2.33 ms | 9.01 | 9.01 | 105223.9 KB | 14.19 |  |  | 801.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-object-sparse-batch | EPPlus | 249.45 ms | 12.65 ms | 7.30 ms | 12.26 | 12.26 | 106316.9 KB | 14.34 |  |  | 1125.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | OfficeIMO.Excel | 16.44 ms | 0.46 ms | 0.27 ms | 1.00 | 1.00 | 6144.6 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | EPPlus 4.5.3.3 | 103.46 ms |  |  | 6.29 | 6.29 |  |  |  |  | 529.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | ClosedXML | 114.72 ms | 10.92 ms | 6.30 ms | 6.98 | 6.98 | 82591.3 KB | 13.44 |  |  | 597.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-scalars | EPPlus | 219.56 ms | 16.92 ms | 9.77 ms | 13.35 | 13.35 | 85127.4 KB | 13.85 |  |  | 1235.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | OfficeIMO.Excel | 28.12 ms | 0.68 ms | 0.39 ms | 1.00 | 1.00 | 7482.8 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | EPPlus 4.5.3.3 | 121.82 ms |  |  | 4.33 | 4.33 |  |  |  |  | 333.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | ClosedXML | 189.26 ms | 8.90 ms | 5.14 ms | 6.73 | 6.73 | 89323.7 KB | 11.94 |  |  | 573.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Cell writer | write-cellvalue-temporal | EPPlus | 223.14 ms | 18.82 ms | 10.87 ms | 7.94 | 7.94 | 103800.0 KB | 13.87 |  |  | 693.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | OfficeIMO.Excel | 56.02 ms | 7.18 ms | 4.15 ms | 1.00 | 1.00 | 13039.6 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | MiniExcel | 132.28 ms | 4.21 ms | 2.43 ms | 2.36 | 2.36 | 97088.3 KB | 7.45 |  |  | 136.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | ClosedXML | 595.67 ms | 1.44 ms | 0.83 ms | 10.63 | 10.63 | 172016.6 KB | 13.19 |  |  | 963.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-headerless-tables | EPPlus | 679.97 ms | 23.43 ms | 13.53 ms | 12.14 | 12.14 | 111246.0 KB | 8.53 |  |  | 1113.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | OfficeIMO.Excel | 54.08 ms | 1.79 ms | 1.03 ms | 1.00 | 1.00 | 13458.5 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | MiniExcel | 129.31 ms | 3.80 ms | 2.19 ms | 2.39 | 2.39 | 108129.1 KB | 8.03 |  |  | 139.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | EPPlus | 703.23 ms | 19.25 ms | 11.11 ms | 13.00 | 13.00 | 135723.5 KB | 10.08 |  |  | 1200.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-sparse-tables | ClosedXML | 761.84 ms | 66.22 ms | 38.23 ms | 14.09 | 14.09 | 280371.2 KB | 20.83 |  |  | 1308.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | OfficeIMO.Excel | 45.61 ms | 1.82 ms | 1.05 ms | 1.00 | 1.00 | 10288.1 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | MiniExcel | 94.87 ms | 1.09 ms | 0.63 ms | 2.08 | 2.08 | 97085.4 KB | 9.44 |  |  | 108.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | EPPlus 4.5.3.3 | 217.44 ms |  |  | 4.77 | 4.77 |  |  |  |  | 376.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | EPPlus | 424.85 ms | 35.97 ms | 20.77 ms | 9.31 | 9.31 | 110815.9 KB | 10.77 |  |  | 831.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataSet table export | write-dataset-tables | ClosedXML | 444.96 ms | 15.40 ms | 8.89 ms | 9.75 | 9.75 | 171999.7 KB | 16.72 |  |  | 875.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | OfficeIMO.Excel | 46.10 ms | 3.95 ms | 2.28 ms | 1.00 | 1.00 | 13020.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | MiniExcel | 91.11 ms | 8.11 ms | 4.68 ms | 1.98 | 1.98 | 92200.0 KB | 7.08 |  |  | 97.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | EPPlus 4.5.3.3 | 227.93 ms |  |  | 4.94 | 4.94 |  |  |  |  | 394.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | EPPlus | 394.89 ms | 16.05 ms | 9.26 ms | 8.57 | 8.57 | 117437.3 KB | 9.02 |  |  | 756.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datareader-table | ClosedXML | 480.31 ms | 14.58 ms | 8.42 ms | 10.42 | 10.42 | 173397.5 KB | 13.32 |  |  | 941.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | LargeXlsx | 38.39 ms | 2.63 ms | 1.52 ms | 0.97 | 1.00 | 9520.4 KB | 0.75 |  |  | 3.0% faster than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | OfficeIMO.Excel | 39.58 ms | 5.30 ms | 3.06 ms | 1.00 | 1.03 | 12715.7 KB | 1.00 |  |  | Loss +3.1% |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | MiniExcel | 99.26 ms | 6.90 ms | 3.99 ms | 2.51 | 2.59 | 92394.2 KB | 7.27 |  |  | 150.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | EPPlus 4.5.3.3 | 227.07 ms |  |  | 5.74 | 5.92 |  |  |  |  | 473.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | ClosedXML | 348.73 ms | 13.86 ms | 8.00 ms | 8.81 | 9.08 | 104205.0 KB | 8.19 |  |  | 781.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-direct | EPPlus | 400.16 ms | 14.53 ms | 8.39 ms | 10.11 | 10.42 | 117437.3 KB | 9.24 |  |  | 911.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | OfficeIMO.Excel | 44.19 ms | 2.73 ms | 1.57 ms | 1.00 | 1.00 | 9999.4 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | MiniExcel | 103.35 ms | 1.53 ms | 0.88 ms | 2.34 | 2.34 | 89659.2 KB | 8.97 |  |  | 133.9% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | EPPlus | 377.68 ms | 13.36 ms | 7.72 ms | 8.55 | 8.55 | 114703.1 KB | 11.47 |  |  | 754.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-object-table-direct | ClosedXML | 473.81 ms | 8.83 ms | 5.10 ms | 10.72 | 10.72 | 170665.2 KB | 17.07 |  |  | 972.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | OfficeIMO.Excel | 45.13 ms | 0.37 ms | 0.21 ms | 1.00 | 1.00 | 12733.8 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | MiniExcel | 100.46 ms | 7.13 ms | 4.12 ms | 2.23 | 2.23 | 92394.5 KB | 7.26 |  |  | 122.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | EPPlus 4.5.3.3 | 227.11 ms |  |  | 5.03 | 5.03 |  |  |  |  | 403.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | EPPlus | 411.34 ms | 1.07 ms | 0.62 ms | 9.11 | 9.11 | 117437.3 KB | 9.22 |  |  | 811.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | DataTable table export | write-datatable-table-direct | ClosedXML | 429.33 ms | 29.44 ms | 16.99 ms | 9.51 | 9.51 | 173400.0 KB | 13.62 |  |  | 851.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | OfficeIMO.Excel | 43.87 ms | 2.77 ms | 1.60 ms | 1.00 | 1.00 | 11561.8 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | MiniExcel | 86.28 ms | 4.46 ms | 2.58 ms | 1.97 | 1.97 | 125551.6 KB | 10.86 |  |  | 96.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | EPPlus | 461.26 ms | 5.72 ms | 3.30 ms | 10.52 | 10.52 | 254959.0 KB | 22.05 |  |  | 951.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | EPPlus 4.5.3.3 | 515.73 ms |  |  | 11.76 | 11.76 |  |  |  |  | 1075.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Formatted report write | write-bulk-report | ClosedXML | 939.50 ms | 19.69 ms | 11.37 ms | 21.42 | 21.42 | 565953.9 KB | 48.95 |  |  | 2041.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Formula write/read | write-cellformula | OfficeIMO.Excel | 28.29 ms | 0.28 ms | 0.16 ms | 1.00 | 1.00 | 10112.1 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Formula write/read | write-cellformula | EPPlus 4.5.3.3 | 134.02 ms |  |  | 4.74 | 4.74 |  |  |  |  | 373.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Formula write/read | write-cellformula | ClosedXML | 199.57 ms | 28.82 ms | 16.64 ms | 7.05 | 7.05 | 113853.5 KB | 11.26 |  |  | 605.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Formula write/read | write-cellformula | EPPlus | 366.58 ms | 51.86 ms | 29.94 ms | 12.96 | 12.96 | 140731.9 KB | 13.92 |  |  | 1195.9% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-dictionary-objects-table-direct | OfficeIMO.Excel | 57.67 ms | 3.71 ms | 2.14 ms | 1.00 | 1.00 | 15163.8 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | LargeXlsx | 50.66 ms | 0.38 ms | 0.22 ms | 0.96 | 1.00 | 6043.9 KB | 0.57 |  |  | 3.6% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | OfficeIMO.Excel | 52.53 ms | 7.01 ms | 4.05 ms | 1.00 | 1.04 | 10577.2 KB | 1.00 |  |  | Loss +3.7% |
+| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | MiniExcel | 107.39 ms | 3.30 ms | 1.91 ms | 2.04 | 2.12 | 113974.3 KB | 10.78 |  |  | 104.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | ClosedXML | 440.11 ms | 7.10 ms | 4.10 ms | 8.38 | 8.69 | 179552.5 KB | 16.98 |  |  | 737.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-mixed-objects-direct | EPPlus | 517.02 ms | 22.19 ms | 12.81 ms | 9.84 | 10.21 | 144920.0 KB | 13.70 |  |  | 884.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | LargeXlsx | 45.19 ms | 6.42 ms | 3.70 ms | 0.81 | 1.00 | 6043.9 KB | 0.61 |  |  | 18.6% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | OfficeIMO.Excel | 55.52 ms | 0.43 ms | 0.25 ms | 1.00 | 1.23 | 9942.2 KB | 1.00 |  |  | Loss +22.9% |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | MiniExcel | 104.10 ms | 7.70 ms | 4.44 ms | 1.87 | 2.30 | 113974.3 KB | 11.46 |  |  | 87.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | ClosedXML | 438.68 ms | 11.74 ms | 6.78 ms | 7.90 | 9.71 | 179552.5 KB | 18.06 |  |  | 690.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-mixed-direct | EPPlus | 509.73 ms | 17.29 ms | 9.98 ms | 9.18 | 11.28 | 144920.0 KB | 14.58 |  |  | 818.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | OfficeIMO.Excel | 226.59 ms | 8.57 ms | 4.95 ms | 1.00 | 1.00 | 36150.1 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | LargeXlsx | 247.61 ms | 9.62 ms | 5.56 ms | 1.09 | 1.09 | 23211.4 KB | 0.64 |  |  | 9.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | MiniExcel | 437.78 ms | 20.02 ms | 11.56 ms | 1.93 | 1.93 | 347925.7 KB | 9.62 |  |  | 93.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | ClosedXML | 1460.91 ms | 31.61 ms | 18.25 ms | 6.45 | 6.45 | 487446.6 KB | 13.48 |  |  | 544.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Other | write-powershell-psobject-wide-direct | EPPlus | 1817.17 ms | 23.42 ms | 13.52 ms | 8.02 | 8.02 | 562916.0 KB | 15.57 |  |  | 702.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | LargeXlsx | 15.01 ms | 0.07 ms | 0.04 ms | 0.77 | 1.00 | 2771.0 KB | 0.26 |  |  | 22.7% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | OfficeIMO.Excel | 19.42 ms | 1.34 ms | 0.78 ms | 1.00 | 1.29 | 10842.5 KB | 1.00 |  |  | Loss +29.4% |
+| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | MiniExcel | 40.00 ms | 2.57 ms | 1.48 ms | 2.06 | 2.67 | 58242.8 KB | 5.37 |  |  | 106.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | EPPlus 4.5.3.3 | 117.61 ms |  |  | 6.06 | 7.84 |  |  |  |  | 505.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | ClosedXML | 150.45 ms | 12.68 ms | 7.32 ms | 7.75 | 10.03 | 104233.1 KB | 9.61 |  |  | 674.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | append-plain-rows | EPPlus | 226.42 ms | 18.27 ms | 10.55 ms | 11.66 | 15.09 | 100373.5 KB | 9.26 |  |  | 1065.9% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 12.85 ms | 0.38 ms | 0.22 ms | 0.90 | 1.00 | 3444.4 KB | 0.49 |  |  | 10.0% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 14.28 ms | 1.18 ms | 0.68 ms | 1.00 | 1.11 | 6961.7 KB | 1.00 |  |  | Loss +11.2% |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | ClosedXML | 146.01 ms | 10.25 ms | 5.92 ms | 10.22 | 11.36 | 96015.7 KB | 13.79 |  |  | 922.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-headerless-rectangle-direct | EPPlus | 220.48 ms | 5.70 ms | 3.29 ms | 15.44 | 17.16 | 87467.1 KB | 12.56 |  |  | 1443.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | LargeXlsx | 35.54 ms | 3.59 ms | 2.07 ms | 0.90 | 1.00 | 5614.1 KB | 0.35 |  |  | 10.2% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 39.59 ms | 6.04 ms | 3.49 ms | 1.00 | 1.11 | 16036.5 KB | 1.00 |  |  | Loss +11.4% |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | MiniExcel | 85.24 ms | 5.29 ms | 3.06 ms | 2.15 | 2.40 | 93257.1 KB | 5.82 |  |  | 115.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | EPPlus 4.5.3.3 | 247.08 ms |  |  | 6.24 | 6.95 |  |  |  |  | 524.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | ClosedXML | 369.50 ms | 11.46 ms | 6.62 ms | 9.33 | 10.40 | 210646.1 KB | 13.14 |  |  | 833.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-rectangle-direct | EPPlus | 443.19 ms | 9.59 ms | 5.54 ms | 11.20 | 12.47 | 211849.9 KB | 13.21 |  |  | 1019.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | OfficeIMO.Excel | 20.83 ms | 1.35 ms | 0.78 ms | 1.00 | 1.00 | 7866.1 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | ClosedXML | 178.41 ms | 6.76 ms | 3.90 ms | 8.56 | 8.56 | 105223.9 KB | 13.38 |  |  | 756.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain cell export | write-cellvalues-sparse-rectangle-direct | EPPlus | 250.41 ms | 14.74 ms | 8.51 ms | 12.02 | 12.02 | 106316.9 KB | 13.52 |  |  | 1102.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | Sylvan.Data.Excel | 33.41 ms | 5.53 ms | 3.19 ms | 0.81 | 1.00 | 5700.3 KB | 0.44 |  |  | 19.4% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | OfficeIMO.Excel | 41.47 ms | 4.93 ms | 2.85 ms | 1.00 | 1.24 | 13002.3 KB | 1.00 |  |  | Loss +24.1% |
+| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | LargeXlsx | 43.55 ms | 5.28 ms | 3.05 ms | 1.05 | 1.30 | 8349.2 KB | 0.64 |  |  | 5.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | MiniExcel | 87.81 ms | 8.99 ms | 5.19 ms | 2.12 | 2.63 | 92199.8 KB | 7.09 |  |  | 111.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | EPPlus 4.5.3.3 | 235.54 ms |  |  | 5.68 | 7.05 |  |  |  |  | 468.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | ClosedXML | 347.17 ms | 19.21 ms | 11.09 ms | 8.37 | 10.39 | 104205.0 KB | 8.01 |  |  | 737.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-datareader-plain | EPPlus | 394.28 ms | 14.40 ms | 8.31 ms | 9.51 | 11.80 | 117437.7 KB | 9.03 |  |  | 850.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | OfficeIMO.Excel | 45.09 ms | 5.81 ms | 3.35 ms | 1.00 | 1.00 | 9819.7 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | LargeXlsx | 51.49 ms | 3.12 ms | 1.80 ms | 1.14 | 1.14 | 9265.9 KB | 0.94 |  |  | 14.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | MiniExcel | 120.11 ms | 10.23 ms | 5.91 ms | 2.66 | 2.66 | 108129.1 KB | 11.01 |  |  | 166.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | EPPlus | 659.20 ms | 110.75 ms | 63.94 ms | 14.62 | 14.62 | 135723.5 KB | 13.82 |  |  | 1362.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain streaming export | write-dataset-sparse-direct-export | ClosedXML | 686.28 ms | 71.23 ms | 41.12 ms | 15.22 | 15.22 | 280372.7 KB | 28.55 |  |  | 1422.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | LargeXlsx | 51.12 ms | 7.40 ms | 4.27 ms | 0.89 | 1.00 | 10795.2 KB | 0.92 |  |  | 10.7% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | OfficeIMO.Excel | 57.24 ms | 10.48 ms | 6.05 ms | 1.00 | 1.12 | 11708.2 KB | 1.00 |  |  | Loss +12.0% |
+| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | MiniExcel | 191.91 ms | 11.08 ms | 6.40 ms | 3.35 | 3.75 | 226875.6 KB | 19.38 |  |  | 235.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Plain string export | write-blog-2023-20-string-columns | ClosedXML | 1091.01 ms | 48.85 ms | 28.20 ms | 19.06 | 21.34 | 759818.4 KB | 64.90 |  |  | 1806.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | large-shared-strings | OfficeIMO.Excel | 14.54 ms | 0.22 ms | 0.13 ms | 1.00 | 1.00 | 15744.9 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Shared string write | large-shared-strings | MiniExcel | 28.29 ms | 1.37 ms | 0.79 ms | 1.95 | 1.95 | 73760.2 KB | 4.68 |  |  | 94.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | large-shared-strings | EPPlus 4.5.3.3 | 89.78 ms |  |  | 6.17 | 6.17 |  |  |  |  | 517.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | large-shared-strings | ClosedXML | 110.05 ms | 0.69 ms | 0.40 ms | 7.57 | 7.57 | 104241.3 KB | 6.62 |  |  | 656.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | large-shared-strings | EPPlus | 183.41 ms | 5.32 ms | 3.07 ms | 12.61 | 12.61 | 84410.0 KB | 5.36 |  |  | 1161.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | OfficeIMO.Excel | 23.58 ms | 1.09 ms | 0.63 ms | 1.00 | 1.00 | 15360.4 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | EPPlus 4.5.3.3 | 100.17 ms |  |  | 4.25 | 4.25 |  |  |  |  | 324.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | ClosedXML | 133.86 ms | 15.44 ms | 8.91 ms | 5.68 | 5.68 | 104241.3 KB | 6.79 |  |  | 467.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings | EPPlus | 214.83 ms | 5.61 ms | 3.24 ms | 9.11 | 9.11 | 84410.5 KB | 5.50 |  |  | 811.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | OfficeIMO.Excel | 17.30 ms | 3.91 ms | 2.26 ms | 1.00 | 1.00 | 13824.1 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | ClosedXML | 186.98 ms | 13.62 ms | 7.86 ms | 10.81 | 10.81 | 131501.7 KB | 9.51 |  |  | 980.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-distinct | EPPlus | 249.13 ms | 12.93 ms | 7.47 ms | 14.40 | 14.40 | 97729.6 KB | 7.07 |  |  | 1339.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | OfficeIMO.Excel | 18.09 ms | 0.78 ms | 0.45 ms | 1.00 | 1.00 | 7525.3 KB | 1.00 |  |  | Win |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | ClosedXML | 123.25 ms | 6.83 ms | 3.95 ms | 6.81 | 6.81 | 84520.0 KB | 11.23 |  |  | 581.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Shared string write | write-cellvalue-strings-repeated | EPPlus | 188.32 ms | 2.21 ms | 1.28 ms | 10.41 | 10.41 | 70033.4 KB | 9.31 |  |  | 941.0% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | LargeXlsx | 34.79 ms | 2.18 ms | 1.26 ms | 0.88 | 1.00 | 5614.1 KB | 0.43 |  |  | 12.3% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | OfficeIMO.Excel | 39.68 ms | 4.25 ms | 2.46 ms | 1.00 | 1.14 | 12912.0 KB | 1.00 |  |  | Loss +14.1% |
+| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | MiniExcel | 70.71 ms | 9.03 ms | 5.21 ms | 1.78 | 2.03 | 93257.1 KB | 7.22 |  |  | 78.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | EPPlus 4.5.3.3 | 253.69 ms |  |  | 6.39 | 7.29 |  |  |  |  | 539.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | ClosedXML | 323.67 ms | 45.75 ms | 26.41 ms | 8.16 | 9.30 | 104205.0 KB | 8.07 |  |  | 715.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-fluent-rowsfrom-direct | EPPlus | 388.83 ms | 21.89 ms | 12.64 ms | 9.80 | 11.18 | 117437.7 KB | 9.10 |  |  | 879.8% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | LargeXlsx | 33.17 ms | 2.67 ms | 1.54 ms | 0.85 | 1.00 | 5614.1 KB | 0.49 |  |  | 15.4% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | OfficeIMO.Excel | 39.19 ms | 3.78 ms | 2.18 ms | 1.00 | 1.18 | 11493.8 KB | 1.00 |  |  | Loss +18.2% |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | MiniExcel | 74.70 ms | 8.92 ms | 5.15 ms | 1.91 | 2.25 | 93257.1 KB | 8.11 |  |  | 90.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | EPPlus 4.5.3.3 | 235.18 ms |  |  | 6.00 | 7.09 |  |  |  |  | 500.1% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | ClosedXML | 347.88 ms | 5.84 ms | 3.37 ms | 8.88 | 10.49 | 104205.0 KB | 9.07 |  |  | 787.7% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-direct | EPPlus | 396.57 ms | 9.39 ms | 5.42 ms | 10.12 | 11.96 | 117437.3 KB | 10.22 |  |  | 911.9% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | LargeXlsx | 33.47 ms | 5.58 ms | 3.22 ms | 0.70 | 1.00 | 5614.1 KB | 0.55 |  |  | 29.9% faster than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | OfficeIMO.Excel | 47.75 ms | 2.07 ms | 1.20 ms | 1.00 | 1.43 | 10179.4 KB | 1.00 |  |  | Loss +42.6% |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | MiniExcel | 79.99 ms | 0.67 ms | 0.39 ms | 1.68 | 2.39 | 93257.1 KB | 9.16 |  |  | 67.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | ClosedXML | 337.67 ms | 16.36 ms | 9.44 ms | 7.07 | 10.09 | 104205.0 KB | 10.24 |  |  | 607.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write | Typed object export | write-insertobjects-flat-dictionaries-direct | EPPlus | 378.78 ms | 9.07 ms | 5.23 ms | 7.93 | 11.32 | 117437.3 KB | 11.54 |  |  | 693.3% slower than OfficeIMO |

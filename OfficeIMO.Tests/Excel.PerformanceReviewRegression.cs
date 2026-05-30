@@ -2636,7 +2636,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_CellValuesHeaderThenAppend_MaterializesForReadBeforeSave() {
+        public void PerformanceReview_CellValuesHeaderThenAppend_ReadBeforeSavePreservesDirectPackage() {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
@@ -2657,7 +2657,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
             memory.Position = 0;
