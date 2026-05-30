@@ -200,6 +200,20 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TrySetPendingDirectCellValue(int row, int column, object? value) {
+            if (_isBatchOperation || Locking.IsNoLock) {
+                return TrySetPendingDirectCellValueLocked(row, column, value);
+            }
+
+            var lck = _excelDocument.EnsureLock();
+            lck.EnterWriteLock();
+            try {
+                return TrySetPendingDirectCellValueLocked(row, column, value);
+            } finally {
+                lck.ExitWriteLock();
+            }
+        }
+
+        private bool TrySetPendingDirectCellValueLocked(int row, int column, object? value) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             if (!EnablePendingDirectCellValueBuffer
                 || _materializingPendingCellValueDirectSaveBuffer
@@ -212,20 +226,24 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            return TrySetPendingDirectCellValueCore(row, column, directValue);
+        }
+
+        private bool TrySetPendingDirectCellFormula(int row, int column, string formula) {
             if (_isBatchOperation || Locking.IsNoLock) {
-                return TrySetPendingDirectCellValueCore(row, column, directValue);
+                return TrySetPendingDirectCellFormulaLocked(row, column, formula);
             }
 
             var lck = _excelDocument.EnsureLock();
             lck.EnterWriteLock();
             try {
-                return TrySetPendingDirectCellValueCore(row, column, directValue);
+                return TrySetPendingDirectCellFormulaLocked(row, column, formula);
             } finally {
                 lck.ExitWriteLock();
             }
         }
 
-        private bool TrySetPendingDirectCellFormula(int row, int column, string formula) {
+        private bool TrySetPendingDirectCellFormulaLocked(int row, int column, string formula) {
             using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
             if (!EnablePendingDirectCellValueBuffer
                 || _materializingPendingCellValueDirectSaveBuffer
@@ -237,17 +255,7 @@ namespace OfficeIMO.Excel {
             }
 
             var directValue = new DirectFormulaCellValue(Utilities.ExcelSanitizer.SanitizeFormula(formula));
-            if (_isBatchOperation || Locking.IsNoLock) {
-                return TrySetPendingDirectCellValueCore(row, column, directValue);
-            }
-
-            var lck = _excelDocument.EnsureLock();
-            lck.EnterWriteLock();
-            try {
-                return TrySetPendingDirectCellValueCore(row, column, directValue);
-            } finally {
-                lck.ExitWriteLock();
-            }
+            return TrySetPendingDirectCellValueCore(row, column, directValue);
         }
 
         private bool TrySetPendingDirectCellValueCore(int row, int column, object? value) {
@@ -1277,7 +1285,11 @@ namespace OfficeIMO.Excel {
             text = string.Empty;
             try {
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
-                    MaterializeDeferredDataSetImportIfNeeded();
+                    if (_excelDocument.HasDeferredDirectDataSetImport) {
+                        _excelDocument.MaterializeDeferredDataSetImportPreservingFastSaveModel();
+                    } else {
+                        MaterializeDeferredDataSetImportIfNeeded();
+                    }
                 }
 
                 var cell = TryGetCell(row, column);

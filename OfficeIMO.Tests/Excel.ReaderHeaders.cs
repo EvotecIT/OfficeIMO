@@ -730,7 +730,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(4100, rows.Count);
                 Assert.Equal("Row2", rows[0].Name);
                 Assert.Equal("Row3", rows[1].Name);
-                Assert.Equal("Row4101", rows[^1].Name);
+                Assert.Equal("Row4101", rows[rows.Count - 1].Name);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

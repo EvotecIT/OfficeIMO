@@ -1895,11 +1895,6 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (_materializedDirectDataSetFastSaveModel != null) {
-                skipReason = "A materialized direct DataSet fast-save model requires the extended package writer.";
-                return false;
-            }
-
             if (_packagePropertiesDirty) {
                 skipReason = "Package properties changed.";
                 return false;
@@ -1922,15 +1917,25 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsValid) {
-                skipReason = "No valid direct DataSet save candidate is available.";
-                ClearDirectDataSetSaveCandidate();
-                return false;
-            }
+            DirectDataSetWorkbookModel packageModel;
+            if (_materializedDirectDataSetFastSaveModel != null) {
+                if (!TryRefreshMaterializedDirectDataSetFastSaveModel(out skipReason)) {
+                    skipReason ??= "Materialized direct DataSet fast-save metadata could not be refreshed.";
+                    return false;
+                }
 
-            if (!TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel? packageModel, out skipReason)) {
-                return false;
+                packageModel = _materializedDirectDataSetFastSaveModel!;
+            } else {
+                var candidate = _directDataSetSaveCandidate;
+                if (candidate == null || !candidate.IsValid) {
+                    skipReason = "No valid direct DataSet save candidate is available.";
+                    ClearDirectDataSetSaveCandidate();
+                    return false;
+                }
+
+                if (!TryCreateDirectPackageModel(candidate.Model, out packageModel, out skipReason)) {
+                    return false;
+                }
             }
 
             if (ct.CanBeCanceled) {
