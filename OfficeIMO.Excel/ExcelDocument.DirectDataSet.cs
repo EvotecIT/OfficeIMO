@@ -1919,6 +1919,11 @@ namespace OfficeIMO.Excel {
 
             DirectDataSetWorkbookModel packageModel;
             if (_materializedDirectDataSetFastSaveModel != null) {
+                if (!CanWriteMaterializedDirectDataSetPackage(_materializedDirectDataSetFastSaveModel)) {
+                    skipReason = "Materialized direct DataSet content requires the extended package writer.";
+                    return false;
+                }
+
                 if (!TryRefreshMaterializedDirectDataSetFastSaveModel(out skipReason)) {
                     skipReason ??= "Materialized direct DataSet fast-save metadata could not be refreshed.";
                     return false;
@@ -1956,6 +1961,22 @@ namespace OfficeIMO.Excel {
                 _unchangedPackageBytes = null;
                 _packageContentTypesKnownNormalized = true;
                 _simplePackageContentKnown = true;
+            }
+
+            return true;
+        }
+
+        private bool CanWriteMaterializedDirectDataSetPackage(DirectDataSetWorkbookModel model) {
+            for (int i = 0; i < model.Sheets.Count; i++) {
+                var sheetModel = model.Sheets[i];
+                if (!sheetModel.IncludeHeaders) {
+                    return false;
+                }
+
+                ExcelSheet? sheet = TryGetExistingSheet(sheetModel.SheetName);
+                if (sheet?.WorksheetPart.DrawingsPart != null) {
+                    return false;
+                }
             }
 
             return true;

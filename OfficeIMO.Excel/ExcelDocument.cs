@@ -399,6 +399,10 @@ namespace OfficeIMO.Excel {
                && _spreadSheetDocument != null
                && !_spreadSheetDocument.AutoSave;
 
+        internal bool CanDeferDirectCellValuesAppendCandidate
+            => _spreadSheetDocument != null
+               && !_spreadSheetDocument.AutoSave;
+
         internal bool IsPreservingDirectDataSetExternalCellMutation
             => _directDataSetExternalCellMutationPreservationDepth > 0;
 

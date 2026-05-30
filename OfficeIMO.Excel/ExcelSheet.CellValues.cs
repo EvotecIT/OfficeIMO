@@ -52,6 +52,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (appendSaveCandidate != null
+                && _excelDocument.CanDeferDirectCellValuesAppendCandidate
                 && RegisterDeferredDirectCellValuesSaveCandidateIfPossible(appendSaveCandidate)) {
                 return;
             }
