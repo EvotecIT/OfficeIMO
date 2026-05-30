@@ -95,8 +95,9 @@ namespace OfficeIMO.Excel {
                             string rawValue = cell.CellValue?.Text ?? cell.InnerText ?? string.Empty;
                             if (!TryParseSharedStringIndex(rawValue, out int sharedStringIndex)) {
                                 cell.DataType = CellValues.InlineString;
-                                cell.CellValue = null;
-                                cell.InlineString = new InlineString(new Text(rawValue));
+                                cell.RemoveAllChildren<CellValue>();
+                                cell.RemoveAllChildren<InlineString>();
+                                cell.AppendChild(new InlineString(new Text(rawValue)));
                                 worksheetChanged = true;
                                 continue;
                             }

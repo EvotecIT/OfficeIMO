@@ -422,7 +422,7 @@ namespace OfficeIMO.Excel {
                     yield return target;
                     nextDataRow++;
 
-                    while (pendingRows != null && pendingRows.Remove(nextDataRow, out var pending)) {
+                    while (TryRemovePendingRow(pendingRows, nextDataRow, out var pending)) {
                         yield return pending;
                         nextDataRow++;
                     }
@@ -438,7 +438,7 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                if (pendingRows != null && pendingRows.Remove(nextDataRow, out var pending)) {
+                if (TryRemovePendingRow(pendingRows, nextDataRow, out var pending)) {
                     yield return pending;
                 } else {
                     yield return new T();
@@ -446,6 +446,16 @@ namespace OfficeIMO.Excel {
 
                 nextDataRow++;
             }
+        }
+
+        private static bool TryRemovePendingRow<T>(Dictionary<int, T>? pendingRows, int rowIndex, out T pending) {
+            if (pendingRows != null && pendingRows.TryGetValue(rowIndex, out pending!)) {
+                pendingRows.Remove(rowIndex);
+                return true;
+            }
+
+            pending = default!;
+            return false;
         }
 
         private bool TryReadObjectsStreamOrderedXmlFast<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(

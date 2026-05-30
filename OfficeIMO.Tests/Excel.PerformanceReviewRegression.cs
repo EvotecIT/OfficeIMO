@@ -4780,20 +4780,17 @@ namespace OfficeIMO.Tests {
                     "F20",
                     rowFields: new[] { "Name" },
                     dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                sheet.CellValue(2, 4, string.Empty);
+                sheet.CellValue(2, 5, string.Empty);
 
                 var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
                 var row2 = sheetData.Elements<Row>().First(row => row.RowIndex?.Value == 2U);
-                row2.Append(
-                    new Cell {
-                        CellReference = "D2",
-                        DataType = CellValues.Error,
-                        CellValue = new CellValue("#DIV/0!")
-                    },
-                    new Cell {
-                        CellReference = "E2",
-                        DataType = CellValues.Date,
-                        CellValue = new CellValue("2026-05-19")
-                    });
+                var d2 = row2.Elements<Cell>().First(cell => cell.CellReference?.Value == "D2");
+                d2.DataType = CellValues.Error;
+                d2.CellValue = new CellValue("#DIV/0!");
+                var e2 = row2.Elements<Cell>().First(cell => cell.CellReference?.Value == "E2");
+                e2.DataType = CellValues.Date;
+                e2.CellValue = new CellValue("2026-05-19");
 
                 document.Save(memory);
 
