@@ -8,7 +8,7 @@ Branch/worktree: `codex/visio-premium-roadmap` at `C:\Support\GitHub\OfficeIMO-v
 - `dotnet build OfficeIMO.Examples\OfficeIMO.Examples.csproj -c Release --framework net8.0 --no-restore -nodeReuse:false -p:UseSharedCompilation=false`
 - `OfficeIMO.Examples\bin\Release\net8.0\OfficeIMO.Examples.exe --visio-showcase --visio-preview`
 - `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1 dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~VisioPremiumVisualBaseline" --logger "console;verbosity=minimal" /p:NoWarn=CS8600%3BCS8602%3BCS8604`
-- `dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~VisioPremiumVisualBaseline" --logger "console;verbosity=minimal" /p:NoWarn=CS8600%3BCS8602%3BCS8604`
+- `dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~VisioPremiumVisualBaseline" --logger "console;verbosity=minimal" /p:NoWarn=CS1591%3BCS8600%3BCS8602%3BCS8604`
 - Generated summary: `OfficeIMO.Examples\bin\Release\net8.0\Documents\Visio Showcase\showcase-summary.md`
 - Preview gallery: `OfficeIMO.Examples\bin\Release\net8.0\Documents\Visio Showcase\Preview\index.html`
 - Approved premium baselines: `OfficeIMO.Tests\Visio\VisualBaselines\officeimo-visio-premium-*.png` and `.svg`
@@ -22,7 +22,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 - `--visio-showcase --visio-preview` exports reviewable PNG/SVG artifacts when Microsoft Visio is available.
 - `--visio-premium` / `--premium-visio` generates a dedicated six-diagram premium subset.
 - The six-diagram premium set now lives in reusable `OfficeIMO.Visio.VisioPremiumGallery`; the example is a thin caller.
-- `VisioPremiumVisualBaselineTests` exports the six premium diagrams through Microsoft Visio desktop, stores approved PNG/SVG artifacts, and compares regenerated previews against the approved baseline.
+- `VisioPremiumVisualBaselineTests` exports the six premium diagrams through Microsoft Visio desktop, stores approved PNG/SVG artifacts, compares regenerated previews against the approved baseline, and writes expected/actual/diff PNG artifacts with pixel statistics when a PNG preview changes.
 - `CreateInspectionSnapshot()` now captures deterministic document/page/master/shape/connector/Shape Data/User cell structure and `VisioInspectionDiff` reports stable structural differences.
 - `CreateStencilProfile()` now summarizes generated-master, package-backed, and basic-geometry shape usage plus Shape Data keys and semantic kind usage from inspection snapshots, and package-backed stencil provenance survives save/load.
 - Diagram titles now use a readable title style instead of inheriting white text from filled emphasis shapes.
@@ -50,7 +50,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 - Graph zones can overlap or dominate the diagram when groups span nodes across layers; the premium sample avoids zones for now.
 - Stencil-backed visuals are not broad enough. Several examples still rely on basic geometry rather than recognizable first-party/native/external stencil symbols, although the new stencil profile API can now measure this instead of relying on manual inspection.
 - Imported master artwork children are filtered out of stencil profile counts, so package-backed profiles report logical placed stencil shapes instead of internal master artwork.
-- The current baseline comparison is file-level for PNG and canonicalized SVG text comparison for Visio's unstable generated CSS class numbering. A richer pixel-diff report for Visio PNGs is still open.
+- Premium PNG baseline failures now include a rendered `.diff.png`, changed-pixel count, max channel delta, tolerance, and allowed-difference settings; SVGs still use canonicalized text comparison for Visio's unstable generated CSS class numbering.
 
 ## Recommended Next Steps
 
@@ -60,8 +60,8 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 4. Continue theme polish with diagram-specific spacing, title treatment, connector weights, and baseline-reviewed dark/print-safe defaults.
 5. Add richer sequence-diagram features: activations, notes, combined fragments, and visible error/remediation bands.
 6. Expand stencil profile reporting with catalog/category/source-pack metadata once richer metadata extraction is available.
-7. Add a PNG pixel-diff artifact path for premium Visio baselines, similar to the PDF raster baseline lane.
+7. Use inspection diffs next to visual baseline failures so review output explains both structural and rendered changes.
 
 ## Status Call
 
-This branch improves the current state and proves generation, preview export, approved premium visual baselines, structural inspection/diff snapshots, persisted stencil usage profiles, the first obstacle-aware routing pass, and the first premium theme preset slice end to end. It does not finish the full premium Visio goal. The remaining work is real product work in deeper layout, zone-aware routing, labels, stencils, theme polish, richer sequence semantics, richer stencil metadata extraction, and richer diff artifacts.
+This branch improves the current state and proves generation, preview export, approved premium visual baselines with PNG diff artifacts, structural inspection/diff snapshots, persisted stencil usage profiles, the first obstacle-aware routing pass, and the first premium theme preset slice end to end. It does not finish the full premium Visio goal. The remaining work is real product work in deeper layout, zone-aware routing, labels, stencils, theme polish, richer sequence semantics, richer stencil metadata extraction, and richer structural-plus-rendered review artifacts.

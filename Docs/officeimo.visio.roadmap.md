@@ -21,7 +21,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Optional desktop Visio validation/export helpers for local proof, separate from the dependency-free core.
 - Generated showcase examples and preview output for visual inspection.
 - Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
-- A reusable six-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures for Visio desktop preview regression.
+- A reusable six-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
 - Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`.
 - Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, Shape Data key, and semantic-kind summaries that survive save/load for package-backed masters.
 
@@ -77,7 +77,7 @@ That implies three durable layers:
 - External stencil gallery examples.
 - Microsoft Integration/Azure pack example path.
 - Showcase preview generation with optional Visio export proof.
-- Premium gallery baseline proof through `VisioPremiumVisualBaselineTests`, including approved PNG/SVG fixtures and opt-in refresh via `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1`.
+- Premium gallery baseline proof through `VisioPremiumVisualBaselineTests`, including approved PNG/SVG fixtures, PNG pixel-diff artifacts on failure, tolerance knobs for renderer noise, and opt-in refresh via `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1`.
 - Inspection snapshot/diff API for deterministic structure review across pages, masters, shapes, connectors, Shape Data, User cells, semantic tags, and connector waypoints.
 - Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review and persisted package-backed provenance after reload.
 - Obstacle-aware orthogonal routing APIs plus a `PolishDiagram` option for rerouting connectors around unrelated top-level shapes before label cleanup.
@@ -103,7 +103,7 @@ These are the items that still block "premium Visio library" positioning.
    Keep structural package validation, write a machine-readable showcase summary, and make optional desktop Visio SVG/PNG exports easy to review when Visio is available.
 
 4. **Keep visual baselines meaningful.**
-   The premium gallery now has generated SVG/PNG baselines. Keep them reviewable, refresh only deliberately, and extend the lane with richer diff artifacts. The target gallery and proof levels are tracked in [officeimo.visio.premium-showcase.md](./officeimo.visio.premium-showcase.md).
+   The premium gallery now has generated SVG/PNG baselines plus PNG diff artifacts on failure. Keep them reviewable, refresh only deliberately, and pair rendered drift with structural inspection output where useful. The target gallery and proof levels are tracked in [officeimo.visio.premium-showcase.md](./officeimo.visio.premium-showcase.md).
 
 5. **Keep the license story clean.**
    `OfficeIMO.Visio` should continue to match the repository MIT license and NuGet package metadata. Do not reintroduce local package license text that conflicts with `PackageLicenseExpression`.
@@ -182,7 +182,6 @@ Goal: prove quality continuously.
 - Use `OfficeIMO.Pdf` and `OfficeIMO.Drawing` for optional previews where they fit, without making them the VSDX source of truth.
 - Expand desktop Visio validation to collect repair dialogs, export failures, and visual artifacts.
 - Add CI artifacts for generated showcase previews.
-- Extend the premium baseline lane with PNG pixel-diff thresholds and artifact output.
 - Use inspection diffs next to visual baseline failures so review output explains both structural and rendered changes.
 - Track compatibility with Microsoft Visio desktop, Visio web, and common VSDX consumers where practical.
 

@@ -23,6 +23,8 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
    - Compare regenerated previews with `VisioPremiumVisualBaselineTests`.
    - Refresh approved artifacts deliberately with `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1`.
    - Require Visio desktop for this lane with `OFFICEIMO_REQUIRE_VISIO_PREMIUM_BASELINES=1`; otherwise the test skips on machines without Visio.
+   - On PNG drift, write expected, actual, and `.diff.png` artifacts with changed-pixel count and max channel delta.
+   - Use `OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE` and `OFFICEIMO_VISIO_PREMIUM_BASELINE_ALLOWED_DIFF_PIXELS` only for deliberate renderer-noise tolerance.
    - Treat structural validity and visual drift as separate gates.
 
 ## Premium Gallery Targets
