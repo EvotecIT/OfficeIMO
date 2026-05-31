@@ -120,6 +120,7 @@ sheet.InsertObjects(people,
 ### Proof And Compatibility
 
 - benchmark harness lives in `OfficeIMO.Excel.Benchmarks`
+- large workbook guidance lives in `../Docs/officeimo.excel.large-workbook-guidance.md`
 - current feature coverage matrix lives in `COMPATIBILITY.md`
 - release steps live in `../Docs/officeimo.excel.release-checklist.md`
 
@@ -464,30 +465,49 @@ var formulas = doc.InspectFormulas();
 var capabilities = formulas.Capabilities;
 
 // The lightweight evaluator supports same-sheet arithmetic plus common reporting
-// functions such as SUM, AVERAGE, COUNTIF, SUMIF, AVERAGEIF,
-// COUNTIFS, SUMIFS, AVERAGEIFS, PRODUCT, MEDIAN, LARGE, SMALL, SUMPRODUCT,
-// exact-match VLOOKUP, HLOOKUP, and XLOOKUP when the returned value is numeric or text,
-// text helpers such as CONCAT, TEXTJOIN, LEFT, RIGHT, MID, LEN, and TRIM,
+// functions such as SUM, AVERAGE, AVERAGEA, MINA, MAXA, COUNTIF, SUMIF, AVERAGEIF,
+// COUNTIFS, SUMIFS, AVERAGEIFS, MINIFS, MAXIFS, COUNTBLANK, SUBTOTAL,
+// PRODUCT, MEDIAN, LARGE, SMALL, MODE.SNGL, MODE, GEOMEAN, HARMEAN,
+// AVEDEV, DEVSQ, SUMXMY2, SUMX2MY2, SUMX2PY2, COVARIANCE.P, COVARIANCE.S, COVAR, SUMPRODUCT,
+// bounded statistical report formulas such as SUMSQ, STDEV.S, STDEV.P, VAR.S,
+// VAR.P, PERCENTILE.INC, PERCENTILE.EXC, QUARTILE.INC, QUARTILE.EXC,
+// PERCENTRANK.INC, PERCENTRANK.EXC, RANK.EQ, RANK.AVG, CORREL, SLOPE,
+// INTERCEPT, RSQ, and FORECAST.LINEAR,
+// bounded financial report formulas such as PMT, PV, FV, NPER, and NPV,
+// rounding-to-significance helpers such as MROUND, CEILING.MATH, and FLOOR.MATH,
+// exact-match VLOOKUP/HLOOKUP plus MATCH/XMATCH and XLOOKUP exact/next-smaller/next-larger lookups,
+// text helpers such as CONCAT, CONCATENATE, TEXT, TEXTJOIN, TEXTBEFORE, TEXTAFTER, FORMULATEXT, LEFT, RIGHT, MID,
+// LEN, TRIM, SUBSTITUTE, FIND, SEARCH, VALUE, EXACT, REPT, UPPER, LOWER, and PROPER,
+// including bounded TEXT number/date/time formats for report labels,
 // ABS, SIGN, ROUND, ROUNDUP, ROUNDDOWN, TRUNC, INT, CEILING, FLOOR,
+// including negative digit positions for report-scale rounding,
 // POWER, SQRT, LN, LOG10, EXP, PI, RADIANS, DEGREES, MOD,
-// DATE, TIME, TODAY, NOW, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
-// EDATE, EOMONTH, DAYS, WEEKDAY, NETWORKDAYS,
-// simple numeric IF/AND/OR/NOT comparisons, nested formulas,
-// and numeric IFERROR fallbacks.
+// ROW, COLUMN, ROWS, and COLUMNS reference-shape helpers,
+// DATE, TIME, DATEVALUE, TIMEVALUE, TODAY, NOW, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, DATEDIF, YEARFRAC,
+// EDATE, EOMONTH, DAYS, DAYS360, WEEKDAY, WEEKNUM, ISOWEEKNUM, NETWORKDAYS, WORKDAY, WORKDAY.INTL,
+// IF/IFS/SWITCH/CHOOSE with numeric/text comparison or selector branches,
+// ISBLANK/ISNUMBER/ISTEXT/ISERROR/ISERR/ISNA/ISFORMULA report guards, AND/OR/NOT comparisons, nested formulas,
+// IFERROR/IFNA fallbacks returning numbers or text, and formula dependency diagnostics.
 Console.WriteLine($"Formulas: {formulas.TotalFormulas}");
 Console.WriteLine($"OfficeIMO-supported: {formulas.SupportedFormulas}");
 Console.WriteLine($"Need Excel/cache: {formulas.UnsupportedFormulas}");
+Console.WriteLine($"Dependency issues: {formulas.DependencyIssueCount}");
 Console.WriteLine(capabilities.Summary);
+Console.WriteLine(formulas.DependencyGraph.ToMarkdown());
 
 foreach (var formula in formulas.Formulas.Where(f => !f.IsSupportedByOfficeIMO)) {
     Console.WriteLine($"{formula.SheetName}!{formula.CellReference}: {formula.UnsupportedReason}");
+}
+
+foreach (var formula in formulas.Formulas.Where(f => f.HasDependencyIssues)) {
+    Console.WriteLine($"{formula.SheetName}!{formula.CellReference}: {string.Join("; ", formula.DependencyIssues)}");
 }
 
 Console.WriteLine(formulas.ToMarkdown());
 
 // Unsupported formulas are preserved. Inspection reports the likely reason, such as
 // unsupported functions, unsupported argument shapes, semicolon separators, text
-// concatenation operators, or array constants.
+// concatenation operators, array constants, or dependency issues.
 
 // Calculate formulas supported by OfficeIMO's lightweight evaluator and cache results.
 // Supported same-sheet formulas can depend on other supported formula cells.
@@ -495,8 +515,11 @@ Console.WriteLine(formulas.ToMarkdown());
 // are supported in the lightweight evaluator, as are workbook-global and sheet-local
 // named ranges that point to A1 cell/range references, plus simple table structured
 // references such as SalesData[Amount] and SalesData[[#Data],[Amount]]. Text
-// helpers such as CONCAT, TEXTJOIN, LEFT, RIGHT, MID, LEN, and TRIM can also
-// cache text results, and exact-match lookups can return text values.
+// helpers such as CONCAT, CONCATENATE, TEXT, TEXTJOIN, TEXTBEFORE, TEXTAFTER, FORMULATEXT, LEFT, RIGHT, MID, LEN,
+// TRIM, SUBSTITUTE, FIND, SEARCH, VALUE, EXACT, REPT, UPPER, LOWER, and PROPER can also
+// cache text results, ROW/COLUMN/ROWS/COLUMNS can cache reference-shape values,
+// exact-match lookups can return text values, and IF/IFERROR/IFNA
+// can cache text results for common reporting formulas.
 int calculated = doc.Calculate();
 
 // Ask Excel-compatible apps to calculate everything else on open.
@@ -593,6 +616,10 @@ foreach (var missing in template.MissingMarkerNames) {
     Console.WriteLine($"Missing template value: {missing}");
 }
 
+foreach (var marker in template.Markers) {
+    Console.WriteLine($"{marker.SheetName}!{marker.CellReference}: {marker.Name} -> {marker.BoundValueKind}");
+}
+
 template.EnsureAllMarkersBound();
 Console.WriteLine(template.ToMarkdown());
 
@@ -610,6 +637,20 @@ sheet.ApplyTemplateRows(12, lineItems, new ExcelTemplateOptions {
     FormatProvider = CultureInfo.GetCultureInfo("en-US"),
     MissingValueBehavior = ExcelTemplateMissingValueBehavior.Throw
 });
+
+// A worksheet can be repeated into one generated sheet per model. The first
+// generated sheet reuses the template worksheet; additional sheets copy the
+// worksheet structure, including table definitions, external hyperlinks,
+// static images, generated charts with style/package/drawing parts, and legacy
+// comments, and then bind markers.
+doc.ApplyTemplateSheets(
+    "Region Template",
+    regions,
+    (region, index) => region.Name,
+    new ExcelTemplateOptions {
+        FormatProvider = CultureInfo.GetCultureInfo("en-US"),
+        MissingValueBehavior = ExcelTemplateMissingValueBehavior.Throw
+    });
 
 // Optional row sections can be kept and bound, or removed while following rows
 // shift up.

@@ -1312,13 +1312,10 @@ namespace OfficeIMO.Word {
             props.Append(new SdtContentPicture());
 
             var content = new SdtContentRun();
-            var beforeCount = this._paragraph.ChildElements.Count;
-            this.AddImage(filePath, width, height);
-            var newRun = this._paragraph.ChildElements[beforeCount] as Run;
-            newRun?.Remove();
-            if (newRun != null) {
-                content.Append(newRun);
-            }
+            var imageRun = new Run();
+            var imageParagraph = new WordParagraph(this._document, this._paragraph, imageRun);
+            imageParagraph.AddImage(filePath, width, height);
+            content.Append(imageRun);
 
             sdtRun.Append(props);
             sdtRun.Append(content);

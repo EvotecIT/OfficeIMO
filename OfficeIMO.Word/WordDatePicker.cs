@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -34,6 +35,7 @@ namespace OfficeIMO.Word {
                     properties.Append(dp);
                 }
                 dp.FullDate = value.HasValue ? new DateTimeValue(value.Value) : null;
+                UpdateText(value);
             }
         }
 
@@ -81,6 +83,24 @@ namespace OfficeIMO.Word {
             }
 
             return properties;
+        }
+
+        private void UpdateText(DateTime? value) {
+            var content = _sdtRun.SdtContentRun ?? (_sdtRun.SdtContentRun = new SdtContentRun());
+            var run = content.Elements<Run>().FirstOrDefault();
+            if (run == null) {
+                run = new Run();
+                content.Append(run);
+            }
+
+            var text = run.Elements<Text>().FirstOrDefault();
+            if (text == null) {
+                text = new Text();
+                run.Append(text);
+            }
+
+            text.Text = value.HasValue ? value.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) : string.Empty;
+            text.Space = SpaceProcessingModeValues.Preserve;
         }
     }
 }

@@ -1312,6 +1312,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(path)) {
                 var sheet = doc.AddWorkSheet("Strings");
                 sheet.CellValue(1, 1, "Alpha");
+                sheet.MaterializePendingDirectCellValues();
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -1327,7 +1328,7 @@ namespace OfficeIMO.Tests {
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
                 var cell = package.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>().Single();
-                Assert.Equal(CellValues.InlineString, cell.DataType!.Value);
+                Assert.Equal("inlineStr", cell.DataType!.InnerText);
                 Assert.Null(cell.CellValue);
                 Assert.Equal("NotAnIndex", cell.InlineString!.InnerText);
             }

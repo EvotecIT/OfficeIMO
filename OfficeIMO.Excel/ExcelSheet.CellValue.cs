@@ -374,10 +374,6 @@ namespace OfficeIMO.Excel {
 
             _pendingCellValueDirectSaveBuffer = null;
             _excelDocument.ClearPendingDirectCellValueSheet(this);
-            if (MirrorPendingDirectCellValueBufferToWorksheet
-                || buffer.CellCount < PendingDirectCellValueMinimumCellCount) {
-                return;
-            }
 
             _materializingPendingCellValueDirectSaveBuffer = true;
             try {

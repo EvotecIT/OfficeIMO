@@ -1,6 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
 using System.Text;
-using Threaded = DocumentFormat.OpenXml.Office2019.Excel.ThreadedComments;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -317,9 +316,11 @@ namespace OfficeIMO.Excel {
             int oleObjectCount = 0;
             int formControlCount = 0;
             int externalHyperlinkCount = 0;
+            var threadedCommentDetails = new List<string>();
             var oleObjectDetails = new List<string>();
             var formControlDetails = new List<string>();
             var externalHyperlinkDetails = new List<string>();
+            var threadedCommentPeople = BuildThreadedCommentPersonMap(workbookPart);
 
             foreach (var sheet in sheetElements) {
                 if (string.IsNullOrWhiteSpace(sheet.Id?.Value)) {
@@ -337,8 +338,15 @@ namespace OfficeIMO.Excel {
                 conditionalFormattingCount += worksheet?.Elements<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting>().Count() ?? 0;
                 sparklineCount += CountDescendantsByLocalName(worksheet, "sparkline");
                 legacyCommentCount += worksheetPart.WorksheetCommentsPart?.Comments?.CommentList?.Elements<DocumentFormat.OpenXml.Spreadsheet.Comment>().Count() ?? 0;
-                threadedCommentPartCount += worksheetPart.WorksheetThreadedCommentsParts
-                    .Sum(part => part.ThreadedComments?.Elements<Threaded.ThreadedComment>().Count() ?? 0);
+                var threadedComments = BuildThreadedCommentMap(worksheetPart, threadedCommentPeople)
+                    .Values
+                    .SelectMany(comments => comments)
+                    .ToList();
+                threadedCommentPartCount += threadedComments.Count;
+                foreach (var threadedComment in threadedComments) {
+                    string author = string.IsNullOrWhiteSpace(threadedComment.Author) ? threadedComment.PersonId ?? "unknown author" : threadedComment.Author!;
+                    threadedCommentDetails.Add($"{sheet.Name}: {threadedComment.CellReference} by {author}");
+                }
                 imagePartCount += worksheetPart.DrawingsPart?.ImageParts.Count() ?? 0;
                 chartCount += worksheetPart.DrawingsPart?.ChartParts.Count() ?? 0;
                 int sheetOleObjects = CountDescendantsByLocalName(worksheet, "oleObject");
@@ -368,7 +376,8 @@ namespace OfficeIMO.Excel {
             Add(features, "Collaboration", "Legacy comments", ExcelFeatureSupportLevel.PartiallyEditable, legacyCommentCount, null,
                 "Legacy comments can be authored and inspected, including rich-text runs for authored comments; threaded comment workflows remain preserve-only.");
             Add(features, "Collaboration", "Threaded comments", ExcelFeatureSupportLevel.Preserved, threadedCommentPartCount, null,
-                "Threaded comments can be inspected and round-trip preserved, but authoring/editing modern conversations remains preserve-only.");
+                "Threaded comments can be inspected and round-trip preserved, but authoring/editing modern conversations remains preserve-only.",
+                threadedCommentDetails);
             Add(features, "Media", "Images", ExcelFeatureSupportLevel.PartiallyEditable, imagePartCount, null,
                 "Images can be inserted in common worksheet/header/footer scenarios; advanced drawing behaviors remain partial.");
             Add(features, "Compatibility", "OLE objects", ExcelFeatureSupportLevel.Preserved, oleObjectCount, null,
@@ -384,7 +393,7 @@ namespace OfficeIMO.Excel {
             Add(features, "Calculation", "Missing formula caches", ExcelFeatureSupportLevel.Preserved, formulas.MissingCachedResults, null,
                 "Formulas without cached results need OfficeIMO calculation support or Excel recalculation before cached-value reads are reliable.");
 
-            var allParts = EnumerateParts(workbookPart).ToList();
+            var allParts = EnumeratePackageParts(_spreadSheetDocument).ToList();
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
             var slicerDetails = DescribePartsByUriOrContentType(allParts, "slicer");
             var timelineDetails = DescribePartsByUriOrContentType(allParts, "timeline");
@@ -399,6 +408,9 @@ namespace OfficeIMO.Excel {
                 .Concat(DescribePartsByUriOrContentType(allParts, "xmlsignatures"))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
+            if (_spreadSheetDocument.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
+                signatureDetails.Add("Extended application properties contain digital signature metadata.");
+            }
             var externalRelationshipDetails = DescribeExternalRelationships(allParts)
                 .Concat(externalHyperlinkDetails)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -434,12 +446,31 @@ namespace OfficeIMO.Excel {
             features.Add(new ExcelFeatureFinding(category, name, supportLevel, count, scope, note, details));
         }
 
-        private static IEnumerable<OpenXmlPart> EnumerateParts(OpenXmlPartContainer container) {
+        private static IEnumerable<OpenXmlPart> EnumeratePackageParts(OpenXmlPackage package) {
+            var seen = new HashSet<Uri>();
+            foreach (var pair in package.Parts) {
+                foreach (var part in EnumeratePartAndChildren(pair.OpenXmlPart, seen)) {
+                    yield return part;
+                }
+            }
+        }
+
+        private static IEnumerable<OpenXmlPart> EnumeratePartAndChildren(OpenXmlPart part, HashSet<Uri> seen) {
+            if (!seen.Add(part.Uri)) {
+                yield break;
+            }
+
+            yield return part;
+
+            foreach (var child in EnumerateParts(part, seen)) {
+                yield return child;
+            }
+        }
+
+        private static IEnumerable<OpenXmlPart> EnumerateParts(OpenXmlPartContainer container, HashSet<Uri> seen) {
             foreach (var pair in container.Parts) {
                 var part = pair.OpenXmlPart;
-                yield return part;
-
-                foreach (var child in EnumerateParts(part)) {
+                foreach (var child in EnumeratePartAndChildren(part, seen)) {
                     yield return child;
                 }
             }
