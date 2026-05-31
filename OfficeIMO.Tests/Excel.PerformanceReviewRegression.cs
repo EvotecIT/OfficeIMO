@@ -5538,6 +5538,91 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertObjects_PivotTableFallbackAfterDeferredImportKeepsSourceRows() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("Gamma", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C4",
+                    destinationCell: "E2",
+                    name: "ScorePivot",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/pivot-fallback"), true);
+                var hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                if (hyperlinks == null) {
+                    hyperlinks = new Hyperlinks();
+                    InsertHyperlinksBeforeWorksheetTail(sheet.WorksheetPart.Worksheet, hyperlinks);
+                }
+
+                hyperlinks.Append(new Hyperlink { Reference = "D7", Id = relationship.Id });
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Gamma", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Single(worksheetPart.HyperlinkRelationships);
+            Assert.Single(worksheetPart.PivotTableParts);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PivotCacheRawXmlPreservesNonBmpText() {
+            using var memory = new MemoryStream();
+            string emoji = char.ConvertFromUtf32(0x1F600);
+            string rocket = char.ConvertFromUtf32(0x1F680);
+            var rows = new[] {
+                new NullablePerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19), "Emoji " + emoji),
+                new NullablePerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20), "Rocket " + rocket)
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Note", row => row.Note));
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C3",
+                    destinationCell: "E2",
+                    name: "ScorePivot",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var pivotPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.First().PivotTableParts);
+            var cacheRecordsPart = Assert.Single(pivotPart.PivotTableCacheDefinitionPart!.GetPartsOfType<PivotTableCacheRecordsPart>());
+            using var reader = new StreamReader(cacheRecordsPart.GetStream(FileMode.Open, FileAccess.Read));
+            string cacheRecordsXml = reader.ReadToEnd();
+
+            Assert.Contains("Emoji " + emoji, cacheRecordsXml);
+            Assert.Contains("Rocket " + rocket, cacheRecordsXml);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
         public void PerformanceReview_InsertObjects_LargeSimplePivotEmbedsCacheRecords() {
             using var memory = new MemoryStream();
             var rows = Enumerable.Range(1, 5000)
@@ -6893,6 +6978,26 @@ namespace OfficeIMO.Tests {
             var font = stylesheet.Fonts!.Elements<Font>().ElementAt((int)cellFormat.FontId.Value);
             Assert.NotNull(font.Bold);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        private static void InsertHyperlinksBeforeWorksheetTail(Worksheet worksheet, Hyperlinks hyperlinks) {
+            OpenXmlElement? insertBefore =
+                worksheet.Elements<PrintOptions>().Cast<OpenXmlElement>()
+                    .Concat(worksheet.Elements<PageMargins>())
+                    .Concat(worksheet.Elements<PageSetup>())
+                    .Concat(worksheet.Elements<HeaderFooter>())
+                    .Concat(worksheet.Elements<RowBreaks>())
+                    .Concat(worksheet.Elements<ColumnBreaks>())
+                    .Concat(worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>())
+                    .Concat(worksheet.Elements<LegacyDrawing>())
+                    .Concat(worksheet.Elements<TableParts>())
+                    .FirstOrDefault();
+
+            if (insertBefore == null) {
+                worksheet.Append(hyperlinks);
+            } else {
+                worksheet.InsertBefore(hyperlinks, insertBefore);
+            }
         }
 
         private static string? GetCellNumberFormatCode(SpreadsheetDocument spreadsheet, Cell cell) {

@@ -382,7 +382,7 @@ namespace OfficeIMO.Excel {
                 var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
                 ReportPivotTiming("AddPivotTable.BuildFieldValueMap");
                 if (deferredPivotSource != null && canUseDeferredPivotValues) {
-                    _excelDocument.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
+                    _excelDocument.MaterializeDeferredDataSetImportPreservingFastSaveModel();
                 }
                 ReportPivotTiming("AddPivotTable.PreserveFastSaveModel");
 
@@ -1426,6 +1426,19 @@ namespace OfficeIMO.Excel {
                         writer.Write("&#x9;");
                         break;
                     default:
+                        if (char.IsHighSurrogate(current)) {
+                            if (i + 1 < value.Length && char.IsLowSurrogate(value[i + 1])) {
+                                writer.Write(current);
+                                writer.Write(value[++i]);
+                            }
+
+                            break;
+                        }
+
+                        if (char.IsLowSurrogate(current)) {
+                            break;
+                        }
+
                         if (IsLegalXmlChar(current)) {
                             writer.Write(current);
                         }
