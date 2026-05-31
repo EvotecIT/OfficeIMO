@@ -1017,13 +1017,14 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ReadXmlRowIntoChunk8(XmlReader rowReader, object?[] rowValues, int c1, int c2, CancellationToken ct) {
+        private byte ReadXmlRowIntoChunk8(XmlReader rowReader, object?[] rowValues, int c1, int c2, CancellationToken ct) {
             int depth = rowReader.Depth;
             bool canCancel = ct.CanBeCanceled;
             int nextColumnIndex = 1;
             int nextExpectedColumn = c1;
             bool canUseOrderedFullWidthExit = true;
             ulong seenColumns = 0;
+            byte seenColumnMask = 0;
             int visitedNodes = 0;
 
             while (rowReader.Read()) {
@@ -1032,7 +1033,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
-                    return;
+                    return seenColumnMask;
                 }
 
                 if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
@@ -1075,21 +1076,24 @@ namespace OfficeIMO.Excel {
                 }
 
                 rowValues[columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"));
+                seenColumnMask |= (byte)(1 << columnOffset);
 
                 if (canUseOrderedFullWidthExit) {
                     nextExpectedColumn++;
                     if (columnIndex >= c2) {
                         SkipXmlElementContent(rowReader, depth);
-                        return;
+                        return seenColumnMask;
                     }
                 } else {
                     seenColumns |= 1UL << columnOffset;
                     if (seenColumns == 0xFFUL) {
                         SkipXmlElementContent(rowReader, depth);
-                        return;
+                        return seenColumnMask;
                     }
                 }
             }
+
+            return seenColumnMask;
         }
 
         private void ReadXmlRowIntoChunkKnownWidth(XmlReader rowReader, object?[] rowValues, int c1, int c2, int width, ulong allColumnsSeen, CancellationToken ct) {

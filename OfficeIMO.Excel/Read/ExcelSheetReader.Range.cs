@@ -2760,16 +2760,27 @@ namespace OfficeIMO.Excel {
         }
 
         private void ReadXmlRowIntoRange8(XmlReader rowReader, object?[,] result, int rowOffset, int c1, int c2, object?[] rowBuffer, CancellationToken ct) {
-            Array.Clear(rowBuffer, 0, rowBuffer.Length);
-            ReadXmlRowIntoChunk8(rowReader, rowBuffer, c1, c2, ct);
-            result[rowOffset, 0] = rowBuffer[0];
-            result[rowOffset, 1] = rowBuffer[1];
-            result[rowOffset, 2] = rowBuffer[2];
-            result[rowOffset, 3] = rowBuffer[3];
-            result[rowOffset, 4] = rowBuffer[4];
-            result[rowOffset, 5] = rowBuffer[5];
-            result[rowOffset, 6] = rowBuffer[6];
-            result[rowOffset, 7] = rowBuffer[7];
+            byte seenColumns = ReadXmlRowIntoChunk8(rowReader, rowBuffer, c1, c2, ct);
+            if (seenColumns == 0xFF) {
+                result[rowOffset, 0] = rowBuffer[0];
+                result[rowOffset, 1] = rowBuffer[1];
+                result[rowOffset, 2] = rowBuffer[2];
+                result[rowOffset, 3] = rowBuffer[3];
+                result[rowOffset, 4] = rowBuffer[4];
+                result[rowOffset, 5] = rowBuffer[5];
+                result[rowOffset, 6] = rowBuffer[6];
+                result[rowOffset, 7] = rowBuffer[7];
+                return;
+            }
+
+            if ((seenColumns & 0x01) != 0) result[rowOffset, 0] = rowBuffer[0];
+            if ((seenColumns & 0x02) != 0) result[rowOffset, 1] = rowBuffer[1];
+            if ((seenColumns & 0x04) != 0) result[rowOffset, 2] = rowBuffer[2];
+            if ((seenColumns & 0x08) != 0) result[rowOffset, 3] = rowBuffer[3];
+            if ((seenColumns & 0x10) != 0) result[rowOffset, 4] = rowBuffer[4];
+            if ((seenColumns & 0x20) != 0) result[rowOffset, 5] = rowBuffer[5];
+            if ((seenColumns & 0x40) != 0) result[rowOffset, 6] = rowBuffer[6];
+            if ((seenColumns & 0x80) != 0) result[rowOffset, 7] = rowBuffer[7];
         }
 
         private void ReadXmlRowIntoRange3(XmlReader rowReader, object?[,] result, int rowOffset, int c1, int c2, CancellationToken ct) {
