@@ -185,6 +185,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SequenceFragmentPartitionsRenderGuardLabelsAndMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SequenceDiagram("Partitioned Fragment", sequence => sequence
+                    .PageSize(8, 5)
+                    .Margins(0.65, 0.65, 0.65, 0.65)
+                    .ParticipantSize(1, 0.5)
+                    .Spacing(1.4, 0.72, 0.5)
+                    .Actor("support", "Support")
+                    .Control("api", "API")
+                    .Database("ledger", "Ledger")
+                    .Call("support", "api", "Alert", "alert")
+                    .Call("support", "api", "Check health", "check")
+                    .Call("api", "ledger", "Verify settlement", "verify")
+                    .Return("ledger", "api", "Consistent", "consistent")
+                    .Async("api", "support", "Resume drain", "resume")
+                    .Fragment("alt recovery", 1, 4, new[] { "support", "api", "ledger" }, "recovery")
+                    .FragmentGuard("recovery", "[timeout elevated]", 1, "timeout-guard")
+                    .FragmentPartition("recovery", "[settlement confirmed]", 3, "settlement-operand"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape guardLabel = Assert.Single(page.Shapes, shape => shape.Id == "timeout-guard-label");
+            VisioShape partitionLabel = Assert.Single(page.Shapes, shape => shape.Id == "settlement-operand-label");
+            VisioConnector partitionDivider = Assert.Single(page.Connectors, connector => connector.Id == "settlement-operand");
+
+            Assert.Equal("[timeout elevated]", guardLabel.Text);
+            Assert.Equal("[settlement confirmed]", partitionLabel.Text);
+            Assert.Equal("DiagramAdornment", guardLabel.GetUserCellValue("OfficeIMO.Kind"));
+            Assert.Equal("recovery", guardLabel.GetUserCellValue("OfficeIMO.SequenceFragmentId"));
+            Assert.Equal("timeout-guard", guardLabel.GetUserCellValue("OfficeIMO.SequenceFragmentOperandId"));
+            Assert.Equal("1", guardLabel.GetUserCellValue("OfficeIMO.SequenceFragmentOperandRowIndex"));
+            Assert.Equal("false", guardLabel.GetUserCellValue("OfficeIMO.SequenceFragmentOperandDivider"));
+            Assert.Equal("settlement-operand", partitionLabel.GetUserCellValue("OfficeIMO.SequenceFragmentOperandId"));
+            Assert.Equal("3", partitionLabel.GetUserCellValue("OfficeIMO.SequenceFragmentOperandRowIndex"));
+            Assert.Equal("true", partitionLabel.GetUserCellValue("OfficeIMO.SequenceFragmentOperandDivider"));
+            Assert.Equal(2, partitionDivider.LinePattern);
+            Assert.Equal(EndArrow.None, partitionDivider.EndArrow);
+            Assert.True(partitionDivider.From.PinY > partitionLabel.PinY);
+            Assert.Contains("Sequence Fragments", guardLabel.LayerNames);
+            Assert.Contains("Sequence Fragments", partitionLabel.LayerNames);
+
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(), issue =>
+                issue.ShapeId == "timeout-guard-label" ||
+                issue.ShapeId == "settlement-operand-label" ||
+                issue.OtherShapeId == "timeout-guard-label" ||
+                issue.OtherShapeId == "settlement-operand-label");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void SequenceDiagramBuilderRejectsUnknownParticipants() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -230,6 +283,12 @@ namespace OfficeIMO.Tests {
                     .Participant("web", "Web")
                     .Fragment("opt", 0, 1, "same")
                     .Note("web", "Duplicate", 0, id: "same-label")));
+            ArgumentException fragmentOperandLabelCollision = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("opt", 0, 1, "fragment")
+                    .FragmentPartition("fragment", "[else]", 1, "same")
+                    .Note("web", "Duplicate", 0, id: "same-label")));
 
             Assert.Contains("already exists", participantCollision.Message);
             Assert.Contains("already exists", messageCollision.Message);
@@ -237,6 +296,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("already exists", activationCollision.Message);
             Assert.Contains("already exists", fragmentCollision.Message);
             Assert.Contains("already exists", fragmentLabelCollision.Message);
+            Assert.Contains("already exists", fragmentOperandLabelCollision.Message);
         }
 
         [Fact]
@@ -308,6 +368,30 @@ namespace OfficeIMO.Tests {
             Assert.Contains("zero or greater", badStart.Message);
             Assert.Contains("greater than or equal", badEnd.Message);
             Assert.Equal("participantIds", nullParticipants.ParamName);
+        }
+
+        [Fact]
+        public void SequenceDiagramBuilderRejectsInvalidFragmentOperands() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownFragment = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .FragmentGuard("missing", "[guard]", 0)));
+            ArgumentOutOfRangeException guardOutside = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("opt", 1, 2, "fragment")
+                    .FragmentGuard("fragment", "[guard]", 0)));
+            ArgumentOutOfRangeException partitionAtFirstRow = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("alt", 1, 2, "fragment")
+                    .FragmentPartition("fragment", "[else]", 1)));
+
+            Assert.Contains("Unknown sequence fragment id", unknownFragment.Message);
+            Assert.Contains("inside the fragment row range", guardOutside.Message);
+            Assert.Contains("after the first fragment row", partitionAtFirstRow.Message);
         }
 
         [Fact]

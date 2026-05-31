@@ -222,6 +222,8 @@ namespace OfficeIMO.Visio {
                     .Activation("api", 1, 6, "api-active")
                     .Activation("queue", 3, 6, "queue-active")
                     .Fragment("alt recovery", 2, 6, new[] { "support", "api", "queue", "ledger" }, "recovery-fragment")
+                    .FragmentGuard("recovery-fragment", "[timeout elevated]", 2, "latency-guard")
+                    .FragmentPartition("recovery-fragment", "[settlement confirmed]", 5, "settlement-partition")
                     .Note("support", "Runbook active", 2, VisioSide.Right, "runbook-note"));
         }
 

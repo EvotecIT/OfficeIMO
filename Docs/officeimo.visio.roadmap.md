@@ -125,7 +125,7 @@ Goal: generated diagrams should be credible without manual post-editing.
   - network subnets, racks, and device groupings;
   - flowchart continuation and branch retry patterns;
   - swimlane phase/lane readability;
-  - sequence richer guarded/partitioned fragments;
+  - sequence nested fragments and overlapping fragment layout;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
 - Continue connector label cleanup with lifeline-aware placement and denser premium-diagram label strategies.
