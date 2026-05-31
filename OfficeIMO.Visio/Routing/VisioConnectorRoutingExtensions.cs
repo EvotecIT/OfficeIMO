@@ -88,6 +88,19 @@ namespace OfficeIMO.Visio {
         /// <param name="padding">Padding added around each obstacle while testing route intersections.</param>
         /// <param name="maxLanes">Number of positive and negative routing lanes to try on each axis.</param>
         public static VisioConnector RouteOrthogonalAroundShapes(this VisioConnector connector, IEnumerable<VisioShape> obstacles, double padding = 0.15D, int maxLanes = 12) {
+            return connector.RouteOrthogonalAroundShapes(obstacles, new VisioConnectorRoutingOptions {
+                Padding = padding,
+                MaxLanes = maxLanes
+            });
+        }
+
+        /// <summary>
+        /// Generates an orthogonal route that avoids unrelated obstacle shapes when a clear lane is available.
+        /// </summary>
+        /// <param name="connector">Connector to route.</param>
+        /// <param name="obstacles">Shapes that the route should avoid. Source and target shapes are ignored.</param>
+        /// <param name="options">Routing options controlling padding, lane search, and whether zones/containers count as obstacles.</param>
+        public static VisioConnector RouteOrthogonalAroundShapes(this VisioConnector connector, IEnumerable<VisioShape> obstacles, VisioConnectorRoutingOptions options) {
             if (connector == null) {
                 throw new ArgumentNullException(nameof(connector));
             }
@@ -96,17 +109,23 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(obstacles));
             }
 
+            if (options == null) {
+                throw new ArgumentNullException(nameof(options));
+            }
+
+            double padding = options.Padding;
+            int maxLanes = options.MaxLanes;
             if (padding < 0D || double.IsNaN(padding) || double.IsInfinity(padding)) {
-                throw new ArgumentOutOfRangeException(nameof(padding), "Padding must be a non-negative finite value.");
+                throw new ArgumentOutOfRangeException(nameof(options), "Padding must be a non-negative finite value.");
             }
 
             if (maxLanes < 0) {
-                throw new ArgumentOutOfRangeException(nameof(maxLanes), "Lane count cannot be negative.");
+                throw new ArgumentOutOfRangeException(nameof(options), "Lane count cannot be negative.");
             }
 
             ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
             ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
-            List<VisioShapeBounds> obstacleBounds = GetRoutingObstacleBounds(connector, obstacles, padding);
+            List<VisioShapeBounds> obstacleBounds = GetRoutingObstacleBounds(connector, obstacles, padding, options);
             if (obstacleBounds.Count == 0) {
                 return connector;
             }
@@ -145,12 +164,28 @@ namespace OfficeIMO.Visio {
         /// <param name="padding">Padding added around each obstacle while testing route intersections.</param>
         /// <param name="maxLanes">Number of positive and negative routing lanes to try on each axis.</param>
         public static VisioPage RouteConnectorsOrthogonalAroundShapes(this VisioPage page, double padding = 0.15D, int maxLanes = 12) {
+            return page.RouteConnectorsOrthogonalAroundShapes(new VisioConnectorRoutingOptions {
+                Padding = padding,
+                MaxLanes = maxLanes
+            });
+        }
+
+        /// <summary>
+        /// Routes every connector on the page around unrelated top-level shapes using deterministic orthogonal lanes.
+        /// </summary>
+        /// <param name="page">Page whose connectors should be rerouted.</param>
+        /// <param name="options">Routing options controlling padding, lane search, and whether zones/containers count as obstacles.</param>
+        public static VisioPage RouteConnectorsOrthogonalAroundShapes(this VisioPage page, VisioConnectorRoutingOptions options) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
 
+            if (options == null) {
+                throw new ArgumentNullException(nameof(options));
+            }
+
             foreach (VisioConnector connector in page.Connectors) {
-                connector.RouteOrthogonalAroundShapes(page.Shapes, padding, maxLanes);
+                connector.RouteOrthogonalAroundShapes(page.Shapes, options);
             }
 
             return page;
@@ -249,12 +284,29 @@ namespace OfficeIMO.Visio {
         /// <param name="padding">Padding added around each obstacle while testing route intersections.</param>
         /// <param name="maxLanes">Number of positive and negative routing lanes to try on each axis.</param>
         public static VisioConnectorSelection RouteOrthogonalAroundShapes(this VisioConnectorSelection selection, IEnumerable<VisioShape> obstacles, double padding = 0.15D, int maxLanes = 12) {
+            return selection.RouteOrthogonalAroundShapes(obstacles, new VisioConnectorRoutingOptions {
+                Padding = padding,
+                MaxLanes = maxLanes
+            });
+        }
+
+        /// <summary>
+        /// Applies obstacle-aware orthogonal routing to every selected connector.
+        /// </summary>
+        /// <param name="selection">Connector selection.</param>
+        /// <param name="obstacles">Shapes that selected connectors should avoid.</param>
+        /// <param name="options">Routing options controlling padding, lane search, and whether zones/containers count as obstacles.</param>
+        public static VisioConnectorSelection RouteOrthogonalAroundShapes(this VisioConnectorSelection selection, IEnumerable<VisioShape> obstacles, VisioConnectorRoutingOptions options) {
             if (selection == null) {
                 throw new ArgumentNullException(nameof(selection));
             }
 
+            if (options == null) {
+                throw new ArgumentNullException(nameof(options));
+            }
+
             foreach (VisioConnector connector in selection) {
-                connector.RouteOrthogonalAroundShapes(obstacles, padding, maxLanes);
+                connector.RouteOrthogonalAroundShapes(obstacles, options);
             }
 
             return selection;
@@ -321,19 +373,31 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static List<VisioShapeBounds> GetRoutingObstacleBounds(VisioConnector connector, IEnumerable<VisioShape> obstacles, double padding) {
+        private static List<VisioShapeBounds> GetRoutingObstacleBounds(VisioConnector connector, IEnumerable<VisioShape> obstacles, double padding, VisioConnectorRoutingOptions options) {
             List<VisioShapeBounds> bounds = new();
+            VisioShapeBounds fromBounds = connector.From.GetShapeBounds();
+            VisioShapeBounds toBounds = connector.To.GetShapeBounds();
             foreach (VisioShape obstacle in obstacles) {
                 if (ReferenceEquals(obstacle, connector.From) || ReferenceEquals(obstacle, connector.To)) {
                     continue;
                 }
 
-                if (obstacle.IsContainer || obstacle.IsBackgroundSurface || obstacle.IsDiagramAdornment) {
+                if (obstacle.IsContainer && !options.IncludeContainers) {
+                    continue;
+                }
+
+                if (obstacle.IsBackgroundSurface && !options.IncludeBackgroundSurfaces) {
+                    continue;
+                }
+
+                if (obstacle.IsDiagramAdornment && !options.IncludeDiagramAdornments) {
                     continue;
                 }
 
                 VisioShapeBounds shapeBounds = obstacle.GetShapeBounds();
-                if (!shapeBounds.IsEmpty) {
+                if (!shapeBounds.IsEmpty &&
+                    !Contains(shapeBounds, fromBounds) &&
+                    !Contains(shapeBounds, toBounds)) {
                     bounds.Add(Inflate(shapeBounds, padding));
                 }
             }
@@ -487,6 +551,18 @@ namespace OfficeIMO.Visio {
         private static bool PointInside(RoutePoint point, VisioShapeBounds bounds) {
             return point.X > bounds.Left && point.X < bounds.Right &&
                    point.Y > bounds.Bottom && point.Y < bounds.Top;
+        }
+
+        private static bool Contains(VisioShapeBounds outer, VisioShapeBounds inner) {
+            if (outer.IsEmpty || inner.IsEmpty) {
+                return false;
+            }
+
+            const double tolerance = 1e-6;
+            return outer.Left <= inner.Left + tolerance &&
+                   outer.Bottom <= inner.Bottom + tolerance &&
+                   outer.Right + tolerance >= inner.Right &&
+                   outer.Top + tolerance >= inner.Top;
         }
 
         private static bool IsZero(double value) {

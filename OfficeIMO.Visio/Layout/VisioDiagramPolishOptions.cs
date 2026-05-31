@@ -80,6 +80,15 @@ namespace OfficeIMO.Visio {
         /// <summary>Number of positive and negative connector routing lanes to try on each axis.</summary>
         public int ConnectorRoutingMaxLanes { get; set; } = 12;
 
+        /// <summary>Whether connector routing should avoid unrelated Visio containers.</summary>
+        public bool ConnectorRoutingAvoidContainers { get; set; }
+
+        /// <summary>Whether connector routing should avoid unrelated background surfaces such as zones, subnets, and trust boundaries.</summary>
+        public bool ConnectorRoutingAvoidBackgroundSurfaces { get; set; }
+
+        /// <summary>Whether connector routing should avoid generated adornments such as zone captions.</summary>
+        public bool ConnectorRoutingAvoidDiagramAdornments { get; set; }
+
         /// <summary>Search step used when moving overlapping shapes, in inches.</summary>
         public double ShapeOverlapStep { get; set; } = 0.25D;
 

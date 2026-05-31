@@ -7,6 +7,7 @@ using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
+using VisioBounds = OfficeIMO.Visio.VisioShapeBounds;
 
 namespace OfficeIMO.Tests {
     public class VisioRoutingTests {
@@ -138,6 +139,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObstacleAwareRoutingCanAvoidUnrelatedBackgroundZones() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Zone routes", 8, 5);
+            VisioShape source = page.AddRectangle(1, 2.5, 0.8, 0.5, "Source");
+            VisioShape zone = page.AddRectangle(4, 2.5, 2.0, 1.0, "Restricted zone");
+            zone.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
+            VisioShape target = page.AddRectangle(7, 2.5, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            connector.RouteOrthogonalAroundShapes(page.Shapes);
+
+            Assert.Empty(connector.Waypoints);
+            Assert.Equal(ConnectorKind.Straight, connector.Kind);
+
+            connector.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions {
+                IncludeBackgroundSurfaces = true,
+                Padding = 0.15D,
+                MaxLanes = 16
+            });
+
+            Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
+            Assert.Equal(2, connector.Waypoints.Count);
+            VisioBounds paddedZone = Inflate(zone.GetShapeBounds(), 0.15D);
+            Assert.DoesNotContain(connector.Waypoints, waypoint =>
+                waypoint.X > paddedZone.Left &&
+                waypoint.X < paddedZone.Right &&
+                waypoint.Y > paddedZone.Bottom &&
+                waypoint.Y < paddedZone.Top);
+            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, paddedZone));
+        }
+
+        [Fact]
+        public void PolishDiagramCanRouteConnectorsAroundBackgroundZonesWhenRequested() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Zone polish", 8, 5);
+            VisioShape source = page.AddRectangle(1, 2.5, 0.8, 0.5, "Source");
+            VisioShape zone = page.AddRectangle(4, 2.5, 2.0, 1.0, "Restricted zone");
+            zone.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
+            VisioShape target = page.AddRectangle(7, 2.5, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                ResolveConnectorShapeIntersections = true,
+                ConnectorRoutingAvoidBackgroundSurfaces = true,
+                ConnectorRoutingMaxLanes = 16,
+                FitToContent = false
+            });
+
+            Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
+            Assert.Equal(2, connector.Waypoints.Count);
+            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(zone.GetShapeBounds(), 0.15D)));
+        }
+
+        [Fact]
         public void ConnectorLabelPlacementIsWrittenLoadedAndAvailableThroughSelectionsAndFluentApi() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -220,6 +275,116 @@ namespace OfficeIMO.Tests {
                 .Single(cell => string.Equals((string?)cell.Attribute("N"), name, StringComparison.Ordinal))
                 .Attribute("V")
                 ?.Value;
+        }
+
+        private static RouteSegment[] GetRouteSegments(VisioConnector connector) {
+            ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out RoutePoint start);
+            ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out RoutePoint end);
+            RoutePoint[] points = new[] { start }
+                .Concat(connector.Waypoints.Select(waypoint => new RoutePoint(waypoint.X, waypoint.Y)))
+                .Concat(new[] { end })
+                .ToArray();
+            return points.Zip(points.Skip(1), (from, to) => new RouteSegment(from, to)).ToArray();
+        }
+
+        private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out RoutePoint point) {
+            if (connectionPoint != null) {
+                (double x, double y) = shape.GetAbsolutePoint(connectionPoint.X, connectionPoint.Y);
+                point = new RoutePoint(x, y);
+                return;
+            }
+
+            VisioBounds shapeBounds = shape.GetShapeBounds();
+            VisioBounds otherBounds = other.GetShapeBounds();
+            double dx = otherBounds.CenterX - shapeBounds.CenterX;
+            double dy = otherBounds.CenterY - shapeBounds.CenterY;
+            if (Math.Abs(dx) >= Math.Abs(dy)) {
+                point = new RoutePoint(dx >= 0 ? shapeBounds.Right : shapeBounds.Left, shapeBounds.CenterY);
+            } else {
+                point = new RoutePoint(shapeBounds.CenterX, dy >= 0 ? shapeBounds.Top : shapeBounds.Bottom);
+            }
+        }
+
+        private static bool SegmentIntersectsBounds(RoutePoint a, RoutePoint b, VisioBounds bounds) {
+            if (PointInside(a, bounds) || PointInside(b, bounds)) {
+                return true;
+            }
+
+            RoutePoint bottomLeft = new(bounds.Left, bounds.Bottom);
+            RoutePoint bottomRight = new(bounds.Right, bounds.Bottom);
+            RoutePoint topLeft = new(bounds.Left, bounds.Top);
+            RoutePoint topRight = new(bounds.Right, bounds.Top);
+
+            return SegmentsIntersect(a, b, bottomLeft, bottomRight) ||
+                   SegmentsIntersect(a, b, bottomRight, topRight) ||
+                   SegmentsIntersect(a, b, topRight, topLeft) ||
+                   SegmentsIntersect(a, b, topLeft, bottomLeft);
+        }
+
+        private static bool SegmentsIntersect(RoutePoint p1, RoutePoint p2, RoutePoint q1, RoutePoint q2) {
+            double o1 = Orientation(p1, p2, q1);
+            double o2 = Orientation(p1, p2, q2);
+            double o3 = Orientation(q1, q2, p1);
+            double o4 = Orientation(q1, q2, p2);
+
+            if (o1 * o2 < 0D && o3 * o4 < 0D) {
+                return true;
+            }
+
+            return IsZero(o1) && OnSegment(p1, q1, p2) ||
+                   IsZero(o2) && OnSegment(p1, q2, p2) ||
+                   IsZero(o3) && OnSegment(q1, p1, q2) ||
+                   IsZero(o4) && OnSegment(q1, p2, q2);
+        }
+
+        private static double Orientation(RoutePoint a, RoutePoint b, RoutePoint c) {
+            return ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
+        }
+
+        private static bool OnSegment(RoutePoint a, RoutePoint b, RoutePoint c) {
+            return b.X >= Math.Min(a.X, c.X) - 1e-9 &&
+                   b.X <= Math.Max(a.X, c.X) + 1e-9 &&
+                   b.Y >= Math.Min(a.Y, c.Y) - 1e-9 &&
+                   b.Y <= Math.Max(a.Y, c.Y) + 1e-9;
+        }
+
+        private static bool PointInside(RoutePoint point, VisioBounds bounds) {
+            return point.X > bounds.Left && point.X < bounds.Right &&
+                   point.Y > bounds.Bottom && point.Y < bounds.Top;
+        }
+
+        private static bool IsZero(double value) {
+            return Math.Abs(value) < 1e-9;
+        }
+
+        private static VisioBounds Inflate(VisioBounds bounds, double padding) {
+            return new VisioBounds(
+                bounds.Left - padding,
+                bounds.Bottom - padding,
+                bounds.Right + padding,
+                bounds.Top + padding);
+        }
+
+        private readonly struct RoutePoint {
+            public RoutePoint(double x, double y) {
+                X = x;
+                Y = y;
+            }
+
+            public double X { get; }
+
+            public double Y { get; }
+        }
+
+        private readonly struct RouteSegment {
+            public RouteSegment(RoutePoint start, RoutePoint end) {
+                Start = start;
+                End = end;
+            }
+
+            public RoutePoint Start { get; }
+
+            public RoutePoint End { get; }
         }
     }
 }

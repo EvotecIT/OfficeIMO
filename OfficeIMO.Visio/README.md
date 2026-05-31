@@ -456,7 +456,12 @@ route semantics.
 Connectors can also be routed around unrelated top-level shapes with
 `RouteOrthogonalAroundShapes`, or page-wide with
 `RouteConnectorsOrthogonalAroundShapes`, when a generated path would otherwise
-cut through important content.
+cut through important content. The typed `VisioConnectorRoutingOptions` overloads
+can also treat containers, background surfaces such as zones or trust
+boundaries, and generated adornments as obstacles when those surfaces should
+visibly reserve routing space. Containers and background surfaces that contain
+the connector source or target are ignored, so a connector can still start or
+end inside its own zone.
 Pages can also set native Visio routing defaults for connectors that do not
 carry local routing or line-jump settings, plus placement and layout-grid policy
 used by Visio's Re-Layout Page commands.
@@ -513,7 +518,12 @@ page.SelectConnectedConnectors(source)
     .Label("handoff")
     .LabelPosition(0.6, offsetX: 0.15);
 
-page.RouteConnectorsOrthogonalAroundShapes(padding: 0.12, maxLanes: 16);
+page.RouteConnectorsOrthogonalAroundShapes(new VisioConnectorRoutingOptions {
+    Padding = 0.12,
+    MaxLanes = 16,
+    IncludeContainers = true,
+    IncludeBackgroundSurfaces = true
+});
 
 doc.Save();
 ```
@@ -1160,6 +1170,8 @@ page.PolishDiagram(new VisioDiagramPolishOptions {
     ResolveShapeOverlaps = true,
     ResolveConnectorShapeIntersections = true,
     ConnectorRoutingObstaclePadding = 0.12,
+    ConnectorRoutingAvoidContainers = true,
+    ConnectorRoutingAvoidBackgroundSurfaces = true,
     MaximumConnectorLabelWidth = 1.6,
     FitHorizontalMargin = 0.6,
     FitVerticalMargin = 0.45

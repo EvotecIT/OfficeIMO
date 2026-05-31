@@ -13,7 +13,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Fluent page and document authoring for lower-level diagrams.
 - High-level builders for flowcharts, block diagrams, dependency diagrams, architecture diagrams, networks, network topology, swimlanes, org charts, timelines, sequences, and generic graphs.
 - Reusable style themes, premium enterprise/technical/cloud/process/print/dark-safe presets, and local node/edge style overrides.
-- Connector routing, obstacle-aware routing around unrelated shapes, label placement, label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
+- Connector routing, obstacle-aware routing around unrelated shapes, optional zone/container/adornment-aware routing, label placement, label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
 - Header-style region/zone captions for architecture, block, network, topology, and graph builders, including layout clearance and quality-analyzer handling for generated caption adornments.
 - First-party generated stencil catalogs and package-backed stencil catalogs.
 - External `.vssx`, `.vstx`, and `.vsdx` catalog loading, including multi-package external stencil repositories.
@@ -83,7 +83,7 @@ That implies three durable layers:
 - Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review and persisted package-backed provenance after reload.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags into shape and master metadata, so profiles and inspection snapshots can prove which catalog and package supplied a shape after save/load.
 - Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
-- Obstacle-aware orthogonal routing APIs plus a `PolishDiagram` option for rerouting connectors around unrelated top-level shapes before label cleanup.
+- Obstacle-aware orthogonal routing APIs plus `PolishDiagram` options for rerouting connectors around unrelated top-level shapes, containers, background zones/trust boundaries, and generated adornments before label cleanup.
 - Premium style presets for enterprise, technical, cloud, process, print-safe, and dark-safe diagrams, with validated technical/print smoke documents and rendered gallery baseline usage for the current market-facing set.
 
 ## Immediate P0
@@ -125,8 +125,8 @@ Goal: generated diagrams should be credible without manual post-editing.
   - sequence activations and notes;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
-- Extend connector label cleanup to use a second all-label stabilization pass and ignore generated adornments when choosing label positions.
-- Extend orthogonal routing from shape-obstacle cleanup into zone-aware, group-aware, and connector-crossing-aware route planning.
+- Continue connector label cleanup with lifeline-aware and zone-preference placement for dense premium diagrams.
+- Extend orthogonal routing from shape/zone/container obstacle cleanup into group-aware and connector-crossing-aware route planning.
 - Add deterministic "polish passes" that can be applied after any builder.
 
 ## P2: Stencil Platform

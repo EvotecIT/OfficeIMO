@@ -79,9 +79,13 @@ namespace OfficeIMO.Visio {
             }
 
             if (resolvedOptions.ResolveConnectorShapeIntersections) {
-                page.RouteConnectorsOrthogonalAroundShapes(
-                    resolvedOptions.ConnectorRoutingObstaclePadding,
-                    resolvedOptions.ConnectorRoutingMaxLanes);
+                page.RouteConnectorsOrthogonalAroundShapes(new VisioConnectorRoutingOptions {
+                    Padding = resolvedOptions.ConnectorRoutingObstaclePadding,
+                    MaxLanes = resolvedOptions.ConnectorRoutingMaxLanes,
+                    IncludeContainers = resolvedOptions.ConnectorRoutingAvoidContainers,
+                    IncludeBackgroundSurfaces = resolvedOptions.ConnectorRoutingAvoidBackgroundSurfaces,
+                    IncludeDiagramAdornments = resolvedOptions.ConnectorRoutingAvoidDiagramAdornments
+                });
             }
 
             if (resolvedOptions.ResolveConnectorLabelOverlaps) {
