@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel {
                     int rowMinColumn = int.MaxValue;
                     int rowMaxColumn = 0;
                     int rowDepth = reader.Depth;
-                    int lastColumn = 0;
+                    int nextColumnIndex = 1;
                     bool advanceReader = true;
                     while (advanceReader ? reader.Read() : !reader.EOF) {
                         advanceReader = true;
@@ -135,22 +135,22 @@ namespace OfficeIMO.Excel {
                         }
 
                         int column = 0;
-                        string? cellReference = reader.GetAttribute("r");
                         if (hasExplicitRowIndex) {
-                            column = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(cellReference);
-                        } else if (A1.TryParseCellReferenceFast(cellReference, out int parsedRow, out int parsedColumn)) {
+                            column = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
+                        } else if (A1.TryParseCellReferenceFast(reader.GetAttribute("r"), out int parsedRow, out int parsedColumn)) {
                             column = parsedColumn;
                             if (parsedRow > 0) {
                                 if (parsedRow < rowMinRow) rowMinRow = parsedRow;
                                 if (parsedRow > rowMaxRow) rowMaxRow = parsedRow;
                             }
+
+                            nextColumnIndex = parsedColumn + 1;
                         }
 
                         if (column <= 0) {
-                            column = lastColumn + 1;
+                            column = nextColumnIndex;
+                            nextColumnIndex = column + 1;
                         }
-
-                        lastColumn = column;
 
                         if (column > 0) {
                             if (column < rowMinColumn) rowMinColumn = column;
@@ -228,7 +228,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     int rowDepth = reader.Depth;
-                    int lastColumnIndex = 0;
+                    int nextColumnIndex = 1;
                     bool advanceReader = true;
                     while (advanceReader ? reader.Read() : !reader.EOF) {
                         advanceReader = true;
@@ -244,22 +244,22 @@ namespace OfficeIMO.Excel {
 
                         int cellRow = rowIndex;
                         int cellColumn = 0;
-                        string? cellReference = reader.GetAttribute("r");
                         if (hasExplicitRowIndex) {
-                            cellColumn = A1.ParseColumnIndexFromCellReferenceWithKnownRowFast(cellReference);
-                        } else if (A1.TryParseCellReferenceFast(cellReference, out int parsedRow, out int parsedColumn)) {
+                            cellColumn = GetXmlCellColumnIndex(reader, ref nextColumnIndex);
+                        } else if (A1.TryParseCellReferenceFast(reader.GetAttribute("r"), out int parsedRow, out int parsedColumn)) {
                             if (parsedRow > 0) {
                                 cellRow = parsedRow;
                             }
 
                             cellColumn = parsedColumn;
+                            nextColumnIndex = parsedColumn + 1;
                         }
 
                         if (cellColumn <= 0) {
-                            cellColumn = lastColumnIndex + 1;
+                            cellColumn = nextColumnIndex;
+                            nextColumnIndex = cellColumn + 1;
                         }
 
-                        lastColumnIndex = cellColumn;
                         if (cellRow < firstRow || cellRow > lastRow || cellColumn < firstColumn || cellColumn > lastColumn) {
                             return false;
                         }
