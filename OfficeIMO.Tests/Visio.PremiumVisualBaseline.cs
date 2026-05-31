@@ -305,7 +305,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static string NormalizeText(string text) {
-            string normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\r", "\n", StringComparison.Ordinal);
+            string normalized = text.Replace("\r\n", "\n").Replace("\r", "\n");
             return normalized.EndsWith("\n", StringComparison.Ordinal) ? normalized : normalized + "\n";
         }
 
@@ -371,8 +371,8 @@ namespace OfficeIMO.Tests {
 
         private static string CanonicalizeSvg(string path) {
             string svg = File.ReadAllText(path)
-                .Replace("\r\n", "\n", StringComparison.Ordinal)
-                .Replace("\r", "\n", StringComparison.Ordinal);
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n");
 
             Dictionary<string, string> styleByClass = new(StringComparer.Ordinal);
             SortedSet<string> uniqueStyles = new(StringComparer.Ordinal);
@@ -409,7 +409,7 @@ namespace OfficeIMO.Tests {
 
         private static string NormalizeSvgStyle(string style) {
             string normalized = Regex.Replace(style.Trim(), @"\s+", " ", RegexOptions.CultureInvariant);
-            if (normalized.Contains("stroke:none", StringComparison.Ordinal)) {
+            if (normalized.IndexOf("stroke:none", StringComparison.Ordinal) >= 0) {
                 normalized = Regex.Replace(normalized, @";?stroke-width:[^;]+", string.Empty, RegexOptions.CultureInvariant);
             }
 

@@ -82,10 +82,15 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioShape AddBadge(VisioPage page, VisioShape target, VisioDataGraphicItem item, string value, VisioDataGraphic dataGraphic, int itemIndex) {
-            GetItemCenter(target, dataGraphic, itemIndex, item.Width, item.Height, out double x, out double y);
+            VisioMeasurementUnit unit = page.DefaultUnit;
+            double width = item.Width.ToInches(unit);
+            double height = item.Height.ToInches(unit);
+            double gap = dataGraphic.Gap.ToInches(unit);
+            double spacing = dataGraphic.ItemSpacing.ToInches(unit);
+            GetItemCenter(target, itemIndex, width, height, gap, spacing, dataGraphic.Placement, out double x, out double y);
             string id = UniqueId(page, target.Id + "-dg-" + SanitizeId(item.FieldName) + "-" + itemIndex);
             string label = item.FormatText(value);
-            VisioShape badge = new VisioShape(id, x, y, item.Width, item.Height, label) {
+            VisioShape badge = new VisioShape(id, x, y, width, height, label) {
                 Name = "Data Graphic",
                 NameU = "OfficeIMO Data Graphic Badge"
             };
@@ -100,11 +105,16 @@ namespace OfficeIMO.Visio {
         }
 
         private static IReadOnlyList<VisioShape> AddDataBar(VisioPage page, VisioShape target, VisioDataGraphicItem item, string value, VisioDataGraphic dataGraphic, int itemIndex) {
-            GetItemCenter(target, dataGraphic, itemIndex, item.Width, item.Height, out double x, out double y);
+            VisioMeasurementUnit unit = page.DefaultUnit;
+            double width = item.Width.ToInches(unit);
+            double height = item.Height.ToInches(unit);
+            double gap = dataGraphic.Gap.ToInches(unit);
+            double spacing = dataGraphic.ItemSpacing.ToInches(unit);
+            GetItemCenter(target, itemIndex, width, height, gap, spacing, dataGraphic.Placement, out double x, out double y);
             string baseId = target.Id + "-dg-" + SanitizeId(item.FieldName) + "-" + itemIndex;
             double percent = ResolvePercent(value, item);
 
-            VisioShape background = new VisioShape(UniqueId(page, baseId + "-bar"), x, y, item.Width, item.Height, string.Empty) {
+            VisioShape background = new VisioShape(UniqueId(page, baseId + "-bar"), x, y, width, height, string.Empty) {
                 Name = "Data Graphic Bar",
                 NameU = "OfficeIMO Data Graphic Bar"
             };
@@ -112,9 +122,9 @@ namespace OfficeIMO.Visio {
             MarkDataGraphic(background, target, item, value, "BarBackground");
             page.Shapes.Add(background);
 
-            double fillWidth = Math.Max(0.01D, item.Width * percent);
-            double fillCenterX = x - (item.Width / 2D) + (fillWidth / 2D);
-            VisioShape fill = new VisioShape(UniqueId(page, baseId + "-fill"), fillCenterX, y, fillWidth, item.Height, string.Empty) {
+            double fillWidth = Math.Max(0.01D.ToInches(unit), width * percent);
+            double fillCenterX = x - (width / 2D) + (fillWidth / 2D);
+            VisioShape fill = new VisioShape(UniqueId(page, baseId + "-fill"), fillCenterX, y, fillWidth, height, string.Empty) {
                 Name = "Data Graphic Bar Fill",
                 NameU = "OfficeIMO Data Graphic Bar Fill"
             };
@@ -123,7 +133,9 @@ namespace OfficeIMO.Visio {
             fill.SetShapeData("Percent", percent.ToString("0.###", CultureInfo.InvariantCulture), "Percent", VisioShapeDataType.Number);
             page.Shapes.Add(fill);
 
-            VisioShape label = new VisioShape(UniqueId(page, baseId + "-label"), x, y + (item.Height / 2D) + 0.12D, item.Width, 0.22D, item.FormatText(value)) {
+            double labelGap = 0.12D.ToInches(unit);
+            double labelHeight = 0.22D.ToInches(unit);
+            VisioShape label = new VisioShape(UniqueId(page, baseId + "-label"), x, y + (height / 2D) + labelGap, width, labelHeight, item.FormatText(value)) {
                 Name = "Data Graphic Label",
                 NameU = "Text Box",
                 LinePattern = 0,
@@ -176,23 +188,23 @@ namespace OfficeIMO.Visio {
             shape.SetShapeData("DataGraphicRole", role, "Data graphic role", VisioShapeDataType.String);
         }
 
-        private static void GetItemCenter(VisioShape target, VisioDataGraphic dataGraphic, int itemIndex, double width, double height, out double x, out double y) {
-            double offset = itemIndex * dataGraphic.ItemSpacing;
-            switch (dataGraphic.Placement) {
+        private static void GetItemCenter(VisioShape target, int itemIndex, double width, double height, double gap, double itemSpacing, VisioDataGraphicPlacement placement, out double x, out double y) {
+            double offset = itemIndex * itemSpacing;
+            switch (placement) {
                 case VisioDataGraphicPlacement.Left:
-                    x = target.PinX - (target.Width / 2D) - dataGraphic.Gap - (width / 2D);
+                    x = target.PinX - (target.Width / 2D) - gap - (width / 2D);
                     y = target.PinY + offset;
                     break;
                 case VisioDataGraphicPlacement.Top:
                     x = target.PinX + offset;
-                    y = target.PinY + (target.Height / 2D) + dataGraphic.Gap + (height / 2D);
+                    y = target.PinY + (target.Height / 2D) + gap + (height / 2D);
                     break;
                 case VisioDataGraphicPlacement.Bottom:
                     x = target.PinX + offset;
-                    y = target.PinY - (target.Height / 2D) - dataGraphic.Gap - (height / 2D);
+                    y = target.PinY - (target.Height / 2D) - gap - (height / 2D);
                     break;
                 default:
-                    x = target.PinX + (target.Width / 2D) + dataGraphic.Gap + (width / 2D);
+                    x = target.PinX + (target.Width / 2D) + gap + (width / 2D);
                     y = target.PinY - offset;
                     break;
             }

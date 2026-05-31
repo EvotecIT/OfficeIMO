@@ -236,6 +236,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DataGraphicsUsePageUnitsForGeneratedAdornmentGeometry() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Metric Data Graphics", 12, 8, VisioMeasurementUnit.Centimeters);
+            VisioShape service = page.AddRectangle(4, 5, 2, 1, "Service");
+            service.SetShapeData("Status", "Watch", "Status", VisioShapeDataType.String);
+            service.SetShapeData("Slo", "80", "SLO", VisioShapeDataType.Number);
+
+            VisioDataGraphic graphic = VisioDataGraphic.Create();
+            graphic.Gap = 0.5D;
+            graphic.ItemSpacing = 0.8D;
+            graphic.Badge("Status");
+            graphic.Bar("Slo", maximumValue: 100, label: "SLO");
+
+            VisioShape[] generated = page.AddDataGraphics(service, graphic).ToArray();
+            VisioShape badge = generated.Single(shape => shape.GetUserCellValue("OfficeIMO.DataGraphicRole") == "Badge");
+            VisioShape bar = generated.Single(shape => shape.GetUserCellValue("OfficeIMO.DataGraphicRole") == "BarBackground");
+
+            Assert.Equal(1.15D / 2.54D, badge.Width, 3);
+            Assert.Equal(0.28D / 2.54D, badge.Height, 3);
+            Assert.Equal(1.1D / 2.54D, bar.Width, 3);
+            Assert.Equal(0.12D / 2.54D, bar.Height, 3);
+            Assert.Equal(0.5D / 2.54D, badge.PinX - service.PinX - (service.Width / 2D) - (badge.Width / 2D), 3);
+            Assert.Equal(0.8D / 2.54D, badge.PinY - bar.PinY, 3);
+        }
+
+        [Fact]
         public void PremiumGalleryPromotesDataGraphicsIntoExecutiveScenario() {
             string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Premium-DataGraphics-" + Guid.NewGuid().ToString("N"));
             try {

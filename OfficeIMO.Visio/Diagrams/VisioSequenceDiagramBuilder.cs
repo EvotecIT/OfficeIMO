@@ -503,7 +503,7 @@ namespace OfficeIMO.Visio.Diagrams {
             string fragmentId = NormalizeFragmentId(id);
             IReadOnlyList<string> normalizedParticipantIds = GetFragmentParticipantIds(participantIds);
             if (!string.IsNullOrWhiteSpace(parentFragmentId)) {
-                FragmentItem parent = RequireFragment(parentFragmentId);
+                FragmentItem parent = RequireFragment(parentFragmentId!);
                 if (startRowIndex < parent.StartRowIndex || endRowIndex > parent.EndRowIndex) {
                     throw new ArgumentOutOfRangeException(nameof(startRowIndex), "Nested fragment row range must be inside the parent fragment row range.");
                 }
