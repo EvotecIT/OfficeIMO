@@ -176,6 +176,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DataGraphicsCreateVisibleShapeDataAdornments() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Data Graphics", 8.5, 6);
+            VisioShape api = page.AddRectangle(2, 4, 1.5, 0.75, "API");
+            VisioShape database = page.AddRectangle(5, 4, 1.5, 0.75, "Database");
+            api.SetShapeData("Status", "Healthy", "Status", VisioShapeDataType.FixedList, format: "Healthy;Warning;Critical");
+            api.SetShapeData("Slo", "72", "SLO", VisioShapeDataType.Number);
+            database.SetShapeData("Status", "Warning", "Status", VisioShapeDataType.FixedList, format: "Healthy;Warning;Critical");
+            database.SetShapeData("Slo", "41", "SLO", VisioShapeDataType.Number);
+
+            VisioDataGraphic graphic = VisioDataGraphic.Create()
+                .Badge("Status")
+                .Bar("Slo", maximumValue: 100, label: "SLO");
+
+            IReadOnlyList<VisioShape> generated = page.SelectWithShapeData("Status", value => !string.IsNullOrWhiteSpace(value))
+                .AddDataGraphics(graphic);
+
+            Assert.Equal(8, generated.Count);
+            Assert.All(generated, shape => Assert.True(shape.IsDiagramAdornment));
+            Assert.All(generated, shape => Assert.Equal("Data Graphics", shape.LayerNames.Single()));
+            Assert.Contains(generated, shape => shape.Text == "Status: Healthy");
+            Assert.Contains(generated, shape => shape.Text == "SLO: 72");
+
+            VisioShape apiBarFill = generated.Single(shape =>
+                shape.GetUserCellValue("OfficeIMO.DataGraphicTargetId") == api.Id &&
+                shape.GetUserCellValue("OfficeIMO.DataGraphicField") == "Slo" &&
+                shape.GetUserCellValue("OfficeIMO.DataGraphicRole") == "BarFill");
+            Assert.Equal(0.792D, apiBarFill.Width, 3);
+            Assert.Equal("0.72", apiBarFill.GetShapeDataValue("Percent"));
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedFill = loaded.Pages[0].Shapes.Single(shape =>
+                shape.GetUserCellValue("OfficeIMO.DataGraphicTargetId") == api.Id &&
+                shape.GetUserCellValue("OfficeIMO.DataGraphicField") == "Slo" &&
+                shape.GetUserCellValue("OfficeIMO.DataGraphicRole") == "BarFill");
+            Assert.True(loadedFill.IsDiagramAdornment);
+            Assert.Equal("72", loadedFill.GetShapeDataValue("DataGraphicValue"));
+            Assert.Equal("0.72", loadedFill.GetShapeDataValue("Percent"));
+        }
+
+        [Fact]
         public void ConnectorShapeDataSetClearsLoadedValueFormula() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

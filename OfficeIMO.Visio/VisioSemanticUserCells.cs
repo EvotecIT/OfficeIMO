@@ -8,6 +8,10 @@ namespace OfficeIMO.Visio {
         public const string SequenceFragmentKind = "SequenceFragment";
         public const string CalloutTargetId = "OfficeIMO.CalloutTargetId";
         public const string CalloutLeaderId = "OfficeIMO.CalloutLeaderId";
+        public const string DataGraphicTargetId = "OfficeIMO.DataGraphicTargetId";
+        public const string DataGraphicField = "OfficeIMO.DataGraphicField";
+        public const string DataGraphicValue = "OfficeIMO.DataGraphicValue";
+        public const string DataGraphicRole = "OfficeIMO.DataGraphicRole";
         public const string StencilId = "OfficeIMO.StencilId";
         public const string StencilName = "OfficeIMO.StencilName";
         public const string StencilCategory = "OfficeIMO.StencilCategory";

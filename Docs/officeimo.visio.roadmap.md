@@ -181,7 +181,7 @@ Goal: OfficeIMO can safely update diagrams created elsewhere.
 - Add richer selection queries: geometry intersection, contained-in-zone, connected component, path search, and data predicates. Initial query support now includes `ShapesIntersecting(...)`, `ShapesContainedIn(...)`, Shape Data predicate queries, `ConnectedComponent(...)`, and `PathBetween(...)` with matching editable selection helpers.
 - Add comment APIs and richer annotation/callout editing.
 - Add containers and swimlanes as deeper typed concepts.
-- Add data graphics and richer Shape Data schema helpers. Initial schema support now provides reusable `VisioShapeDataSchema` / `VisioShapeDataField` definitions with defaults, labels, prompts, types, list formats, sort keys, required-value validation, allowed-value validation, and bulk application to shapes, connectors, and selections.
+- Add data graphics and richer Shape Data schema helpers. Initial schema support now provides reusable `VisioShapeDataSchema` / `VisioShapeDataField` definitions with defaults, labels, prompts, types, list formats, sort keys, required-value validation, allowed-value validation, and bulk application to shapes, connectors, and selections. Initial data graphic support now turns Shape Data values into generated badge/bar adornments linked back to the target shape, field, value, and role.
 - Add safe relayout of selected subsets while preserving unsupported content.
 - Add round-trip tests against more Visio-authored assets.
 

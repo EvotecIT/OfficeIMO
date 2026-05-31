@@ -1082,6 +1082,24 @@ page.SelectWithShapeData("Owner", value => string.IsNullOrWhiteSpace(value))
 var issues = schema.Validate(api);
 ```
 
+Shape Data can also be surfaced as visible data graphics. Generated badges and
+bars are stored as diagram adornments tied back to the target shape and source
+field, so routing, quality checks, inspection snapshots, and stencil profiles
+can distinguish them from business shapes.
+
+```csharp
+api.SetShapeData("Status", "Healthy", "Status",
+    VisioShapeDataType.FixedList, format: "Healthy;Warning;Critical");
+api.SetShapeData("Slo", "72", "SLO", VisioShapeDataType.Number);
+
+var dataGraphic = VisioDataGraphic.Create()
+    .Badge("Status")
+    .Bar("Slo", maximumValue: 100, label: "SLO");
+
+page.SelectWithShapeData("Status", value => !string.IsNullOrWhiteSpace(value))
+    .AddDataGraphics(dataGraphic);
+```
+
 ## Page settings
 
 Pages expose common print and page-management cells without requiring raw
