@@ -41,13 +41,13 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 - Use semantic builders first; drop to low-level shapes only for deliberate visual accents.
 - Prefer real first-party or package-backed stencil nodes where the domain benefits from recognisable symbols.
 - Use stable IDs, hyperlinks, and Shape Data so diagrams are searchable and regeneration-friendly.
-- Use the premium enterprise, cloud, process, and dark-safe presets as the default gallery palette, then keep typography, spacing, captions, and connector labels consistent across the gallery.
+- Use the premium enterprise, technical, cloud, process, print-safe, and dark-safe preset set as the default theme catalog; promote only visually reviewed scenarios into the rendered gallery baseline.
 - Make every diagram explain a real business or operational scenario, not just API coverage.
 
 ## Next Implementation Slice
 
 1. Extend the new obstacle-aware routing into zone/group-aware routes and add lifeline/zone-aware connector-label cleanup in dense premium diagrams.
 2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it.
-3. Continue baseline review of premium theme presets and promote only baseline-approved diagrams into website documentation and product screenshots.
+3. Add baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
 4. Extend current catalog/category/source-pack stencil profile proof into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
 5. Broaden the gallery from six baseline-approved diagrams toward a larger market-facing set.

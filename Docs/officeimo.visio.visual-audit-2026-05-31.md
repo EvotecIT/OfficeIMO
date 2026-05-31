@@ -31,7 +31,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 - Caption-aware layout reserves top clearance so titles/legends and zone headers do not collide, and the visual quality analyzer treats generated background captions as intentional adornments.
 - Connector label cleanup now runs a second stabilization pass over all current labels and ignores generated adornment shapes, reducing order-sensitive label collisions in dense pages.
 - Explicit obstacle-aware orthogonal routing can now reroute connectors around unrelated top-level shapes, and `PolishDiagram` can opt into that pass before connector-label cleanup.
-- Premium enterprise, cloud, process, and dark-safe style presets now exist in the reusable theme catalog and the premium gallery uses them instead of relying only on the older generic presets.
+- Premium enterprise, technical, cloud, process, print-safe, and dark-safe style presets now exist in the reusable theme catalog; technical and print-safe presets have validated package smoke coverage, and the current premium gallery uses the baseline-approved subset instead of relying only on older generic presets.
 - The first premium examples were tightened after rendered inspection:
   - visible titles on timeline, swimlane, sequence, graph, cloud, and network samples;
   - fewer obvious connector-label collisions in the premium examples;
@@ -57,11 +57,11 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 1. Extend obstacle-aware orthogonal routing into zone-aware, group-aware, and connector-crossing-aware route planning.
 2. Continue connector label cleanup with lifeline/zone-aware preferences and connector-crossing avoidance.
 3. Replace basic geometry in the premium gallery with native/external/first-party stencil-backed nodes where available.
-4. Continue theme polish with diagram-specific spacing, title treatment, connector weights, and baseline-reviewed dark/print-safe defaults.
+4. Promote technical and print-safe theme scenarios into the rendered premium baseline gallery after their example diagrams are visually reviewed.
 5. Add richer sequence-diagram features: activations, notes, combined fragments, and visible error/remediation bands.
 6. Expand stencil extraction beyond current catalog/category/source-pack provenance into connection-point, icon/preview, package-family, and typed stencil-family profiles.
 7. Use inspection diffs next to visual baseline failures so review output explains both structural and rendered changes.
 
 ## Status Call
 
-This branch improves the current state and proves generation, preview export, approved premium visual baselines with PNG diff artifacts, structural inspection/diff snapshots, persisted catalog/category/source-pack stencil usage profiles, the first obstacle-aware routing pass, and the first premium theme preset slice end to end. It does not finish the full premium Visio goal. The remaining work is real product work in deeper layout, zone-aware routing, labels, broader stencils, theme polish, richer sequence semantics, deeper stencil metadata extraction, and richer structural-plus-rendered review artifacts.
+This branch improves the current state and proves generation, preview export, approved premium visual baselines with PNG diff artifacts, structural inspection/diff snapshots, persisted catalog/category/source-pack stencil usage profiles, the first obstacle-aware routing pass, and the six-preset premium theme catalog with technical/print package smoke proof. It does not finish the full premium Visio goal. The remaining work is real product work in deeper layout, zone-aware routing, labels, broader stencils, rendered technical/print gallery promotion, richer sequence semantics, deeper stencil metadata extraction, and richer structural-plus-rendered review artifacts.

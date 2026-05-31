@@ -12,7 +12,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Pages, shapes, connectors, connection points, groups, layers, hyperlinks, User cells, typed Shape Data, protection, page settings, backgrounds, metadata, themes, style sheets, and master-backed page instances.
 - Fluent page and document authoring for lower-level diagrams.
 - High-level builders for flowcharts, block diagrams, dependency diagrams, architecture diagrams, networks, network topology, swimlanes, org charts, timelines, sequences, and generic graphs.
-- Reusable style themes, premium enterprise/cloud/process/dark-safe presets, and local node/edge style overrides.
+- Reusable style themes, premium enterprise/technical/cloud/process/print/dark-safe presets, and local node/edge style overrides.
 - Connector routing, obstacle-aware routing around unrelated shapes, label placement, label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
 - Header-style region/zone captions for architecture, block, network, topology, and graph builders, including layout clearance and quality-analyzer handling for generated caption adornments.
 - First-party generated stencil catalogs and package-backed stencil catalogs.
@@ -82,7 +82,7 @@ That implies three durable layers:
 - Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review and persisted package-backed provenance after reload.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags into shape and master metadata, so profiles and inspection snapshots can prove which catalog and package supplied a shape after save/load.
 - Obstacle-aware orthogonal routing APIs plus a `PolishDiagram` option for rerouting connectors around unrelated top-level shapes before label cleanup.
-- Premium style presets for enterprise, cloud, process, and dark-safe diagrams, now used by the reusable premium gallery.
+- Premium style presets for enterprise, technical, cloud, process, print-safe, and dark-safe diagrams, with validated technical/print smoke documents and gallery usage for the current market-facing set.
 
 ## Immediate P0
 
@@ -114,7 +114,7 @@ These are the items that still block "premium Visio library" positioning.
 Goal: generated diagrams should be credible without manual post-editing.
 
 - Continue tuning the richer theme catalog with diagram-specific margins, typography, connector weights, and label rules.
-- Keep builder-level `Theme(...)` presets for enterprise, technical, cloud, process, print, and dark-safe diagrams covered by gallery and baseline proof.
+- Keep builder-level `Theme(...)` presets for enterprise, technical, cloud, process, print, and dark-safe diagrams covered by package validation, then promote technical/print examples into the rendered baseline gallery once their target scenarios are finalized.
 - Add diagram-specific visual defaults:
   - architecture zones and trust boundaries;
   - network subnets, racks, and device groupings;

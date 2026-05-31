@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
@@ -130,19 +131,19 @@ namespace OfficeIMO.Visio {
             };
         }
 
-        /// <summary>Quiet technical theme for infrastructure and system diagrams.</summary>
+        /// <summary>Premium technical theme for infrastructure, topology, and system diagrams.</summary>
         public static VisioStyleTheme Technical() {
             return new VisioStyleTheme {
                 Name = "OfficeIMO Technical",
-                Primary = Shape(Color.FromRgb(0, 146, 203), Color.FromRgb(0, 106, 160), 0.018, Color.White),
-                Success = Shape(Color.FromRgb(72, 178, 112), Color.FromRgb(46, 125, 79), 0.018, Color.White),
-                Decision = Shape(Color.FromRgb(245, 183, 77), Color.FromRgb(181, 119, 24), 0.018, Color.FromRgb(54, 41, 12)),
-                Marker = Shape(Color.FromRgb(0, 120, 212), Color.FromRgb(0, 90, 158), 0.018, Color.White),
-                Emphasis = Shape(Color.FromRgb(88, 88, 88), Color.FromRgb(64, 64, 64), 0.018, Color.White),
-                Container = Shape(Color.FromRgb(218, 242, 252), Color.FromRgb(146, 202, 224), 0.014, Color.FromRgb(34, 62, 80)),
-                Connector = CreateConnector(Color.FromRgb(0, 120, 212), 0.018, 1, Color.FromRgb(0, 90, 158)),
-                DataConnector = CreateConnector(Color.FromRgb(0, 146, 203), 0.018, 1, Color.FromRgb(0, 106, 160)),
-                ControlConnector = CreateConnector(Color.FromRgb(0, 146, 203), 0.018, 2, Color.FromRgb(0, 106, 160))
+                Primary = Shape(Color.FromRgb(14, 116, 144), Color.FromRgb(12, 74, 110), 0.02, Color.White),
+                Success = Shape(Color.FromRgb(21, 128, 61), Color.FromRgb(22, 101, 52), 0.02, Color.White),
+                Decision = Shape(Color.FromRgb(245, 158, 11), Color.FromRgb(180, 83, 9), 0.02, Color.FromRgb(49, 36, 10)),
+                Marker = Shape(Color.FromRgb(79, 70, 229), Color.FromRgb(55, 48, 163), 0.02, Color.White),
+                Emphasis = Shape(Color.FromRgb(51, 65, 85), Color.FromRgb(30, 41, 59), 0.02, Color.White),
+                Container = Shape(Color.FromRgb(241, 245, 249), Color.FromRgb(148, 163, 184), 0.012, Color.FromRgb(30, 41, 59)),
+                Connector = CreateConnector(Color.FromRgb(12, 74, 110), 0.02, 1, Color.FromRgb(12, 74, 110)),
+                DataConnector = CreateConnector(Color.FromRgb(14, 116, 144), 0.02, 1, Color.FromRgb(12, 74, 110)),
+                ControlConnector = CreateConnector(Color.FromRgb(79, 70, 229), 0.02, 2, Color.FromRgb(55, 48, 163))
             };
         }
 
@@ -242,20 +243,32 @@ namespace OfficeIMO.Visio {
             };
         }
 
-        /// <summary>Black-and-white theme for maximum print compatibility.</summary>
+        /// <summary>Print-safe theme with high-contrast grayscale surfaces and line patterns that do not rely on color.</summary>
         public static VisioStyleTheme Print() {
             return new VisioStyleTheme {
                 Name = "OfficeIMO Print",
-                Primary = Shape(Color.White, Color.Black, 0.012, Color.Black),
-                Success = Shape(Color.White, Color.Black, 0.012, Color.Black),
-                Decision = Shape(Color.White, Color.Black, 0.012, Color.Black),
-                Marker = Shape(Color.White, Color.Black, 0.012, Color.Black),
-                Emphasis = Shape(Color.FromRgb(235, 235, 235), Color.Black, 0.012, Color.Black),
-                Container = Shape(Color.White, Color.FromRgb(128, 128, 128), 0.008, Color.Black),
-                Connector = CreateConnector(Color.Black, 0.012, 1, Color.Black),
-                DataConnector = CreateConnector(Color.Black, 0.012, 1, Color.Black),
-                ControlConnector = CreateConnector(Color.Black, 0.012, 2, Color.Black)
+                Primary = Shape(Color.White, Color.FromRgb(31, 41, 55), 0.016, Color.Black),
+                Success = Shape(Color.FromRgb(245, 245, 245), Color.FromRgb(31, 41, 55), 0.016, Color.Black),
+                Decision = Shape(Color.FromRgb(232, 232, 232), Color.FromRgb(17, 24, 39), 0.018, Color.Black),
+                Marker = Shape(Color.White, Color.FromRgb(17, 24, 39), 0.016, Color.Black, linePattern: 2),
+                Emphasis = Shape(Color.FromRgb(218, 218, 218), Color.FromRgb(17, 24, 39), 0.018, Color.Black),
+                Container = Shape(Color.FromRgb(250, 250, 250), Color.FromRgb(107, 114, 128), 0.012, Color.Black),
+                Connector = CreateConnector(Color.FromRgb(31, 41, 55), 0.016, 1, Color.Black),
+                DataConnector = CreateConnector(Color.FromRgb(17, 24, 39), 0.016, 1, Color.Black),
+                ControlConnector = CreateConnector(Color.FromRgb(17, 24, 39), 0.016, 2, Color.Black)
             };
+        }
+
+        /// <summary>Gets the premium preset set used for professional diagram families.</summary>
+        public static IReadOnlyList<VisioStyleTheme> PremiumPresets() {
+            return new List<VisioStyleTheme> {
+                Enterprise(),
+                Technical(),
+                Cloud(),
+                Process(),
+                Print(),
+                DarkSafe()
+            }.AsReadOnly();
         }
 
         private static VisioShapeStyle Shape(Color fill, Color line, double weight, Color text, int linePattern = 1, int fillPattern = 1) {

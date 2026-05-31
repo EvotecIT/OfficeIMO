@@ -405,7 +405,9 @@ or side-placed semantic callouts from business relationships.
 `VisioStyleTheme` gives diagrams and later editing passes a shared set of
 shape, connector, and readable text styles. The built-in presets are `Modern`,
 `Office`, `Fluent`, `Technical`, `Enterprise`, `Cloud`, `Process`, `Minimal`,
-`Dark`, `DarkSafe`, and `Print`.
+`Dark`, `DarkSafe`, and `Print`. `PremiumPresets()` returns the professional
+set used for market-facing diagrams: enterprise, technical, cloud, process,
+print-safe, and dark-safe.
 
 ```csharp
 using OfficeIMO.Visio;
@@ -413,6 +415,7 @@ using OfficeIMO.Visio.Diagrams;
 
 var process = VisioStyleTheme.Process();
 var darkSafe = VisioStyleTheme.DarkSafe();
+var premiumThemes = VisioStyleTheme.PremiumPresets();
 
 var doc = VisioDocument.Create("styled.vsdx")
     .Flowchart("Styled Approval Flow", flow => flow

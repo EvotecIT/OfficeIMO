@@ -70,33 +70,43 @@ namespace OfficeIMO.Tests {
         public void AdditionalThemePresetsCarryReadableTextStyles() {
             VisioStyleTheme office = VisioStyleTheme.Office();
             VisioStyleTheme fluent = VisioStyleTheme.Fluent();
+            VisioStyleTheme technical = VisioStyleTheme.Technical();
             VisioStyleTheme dark = VisioStyleTheme.Dark();
             VisioStyleTheme enterprise = VisioStyleTheme.Enterprise();
             VisioStyleTheme cloud = VisioStyleTheme.Cloud();
             VisioStyleTheme process = VisioStyleTheme.Process();
+            VisioStyleTheme print = VisioStyleTheme.Print();
             VisioStyleTheme darkSafe = VisioStyleTheme.DarkSafe();
 
             Assert.Equal("OfficeIMO Office", office.Name);
             Assert.Equal("OfficeIMO Fluent", fluent.Name);
+            Assert.Equal("OfficeIMO Technical", technical.Name);
             Assert.Equal("OfficeIMO Dark", dark.Name);
             Assert.Equal("OfficeIMO Enterprise", enterprise.Name);
             Assert.Equal("OfficeIMO Cloud", cloud.Name);
             Assert.Equal("OfficeIMO Process", process.Name);
+            Assert.Equal("OfficeIMO Print", print.Name);
             Assert.Equal("OfficeIMO Dark Safe", darkSafe.Name);
             Assert.NotNull(office.Primary.TextStyle);
             Assert.NotNull(fluent.Decision.TextStyle);
+            Assert.NotNull(technical.ControlConnector.TextStyle);
             Assert.NotNull(dark.Primary.TextStyle);
             Assert.NotNull(enterprise.Container.TextStyle);
             Assert.NotNull(cloud.DataConnector.TextStyle);
             Assert.NotNull(process.ControlConnector.TextStyle);
+            Assert.NotNull(print.Decision.TextStyle);
             Assert.NotNull(darkSafe.Container.TextStyle);
             Assert.Equal(Color.White, dark.Primary.TextStyle!.Color);
             Assert.Equal(Color.White, dark.Success.TextStyle!.Color);
             Assert.NotEqual(dark.Container.FillColor, dark.Container.TextStyle!.Color);
             Assert.NotNull(dark.Connector.TextStyle);
+            Assert.NotEqual(technical.Primary.FillColor, technical.Marker.FillColor);
             Assert.NotEqual(enterprise.Primary.FillColor, enterprise.Decision.FillColor);
             Assert.NotEqual(cloud.Primary.FillColor, cloud.Container.FillColor);
             Assert.NotEqual(process.Primary.FillColor, process.Emphasis.FillColor);
+            Assert.Equal(Color.Black, print.Primary.TextStyle!.Color);
+            Assert.Equal(2, print.Marker.LinePattern);
+            Assert.Equal(2, print.ControlConnector.LinePattern);
             Assert.NotEqual(darkSafe.Container.FillColor, darkSafe.Container.TextStyle!.Color);
             Assert.True(darkSafe.Primary.LineWeight > VisioShape.DefaultLineWeight);
         }
@@ -104,23 +114,77 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PremiumThemePresetsConvertToBuilderThemes() {
             VisioStyleTheme enterprise = VisioStyleTheme.Enterprise();
+            VisioStyleTheme technical = VisioStyleTheme.Technical();
             VisioStyleTheme cloud = VisioStyleTheme.Cloud();
             VisioStyleTheme process = VisioStyleTheme.Process();
+            VisioStyleTheme print = VisioStyleTheme.Print();
             VisioStyleTheme darkSafe = VisioStyleTheme.DarkSafe();
 
             VisioFlowchartTheme enterpriseFlow = enterprise.ToFlowchartTheme();
+            VisioBlockDiagramTheme technicalBlock = technical.ToBlockDiagramTheme();
             VisioBlockDiagramTheme cloudBlock = cloud.ToBlockDiagramTheme();
             VisioFlowchartTheme processFlow = process.ToFlowchartTheme();
+            VisioFlowchartTheme printFlow = print.ToFlowchartTheme();
             VisioBlockDiagramTheme darkSafeBlock = darkSafe.ToBlockDiagramTheme();
 
             Assert.Equal(enterprise.Primary.FillColor, enterpriseFlow.ProcessFill);
             Assert.Equal(enterprise.Decision.FillColor, enterpriseFlow.DecisionFill);
+            Assert.Equal(technical.Primary.FillColor, technicalBlock.BlockFill);
+            Assert.Equal(technical.ControlConnector.LineColor, technicalBlock.ControlFlowColor);
             Assert.Equal(cloud.Container.FillColor, cloudBlock.RegionFill);
             Assert.Equal(cloud.DataConnector.LineColor, cloudBlock.DataFlowColor);
             Assert.Equal(process.Success.FillColor, processFlow.TerminatorFill);
             Assert.Equal(process.Connector.TextStyle!.Color, processFlow.ConnectorTextStyle!.Color);
+            Assert.Equal(print.Decision.FillColor, printFlow.DecisionFill);
+            Assert.Equal(print.ControlConnector.TextStyle!.Color, printFlow.ConnectorTextStyle!.Color);
             Assert.Equal(darkSafe.Emphasis.FillColor, darkSafeBlock.EmphasisFill);
             Assert.Equal(2, darkSafe.ControlConnector.LinePattern);
+        }
+
+        [Fact]
+        public void PremiumPresetSetIncludesTechnicalPrintAndDarkSafeFamilies() {
+            VisioStyleTheme[] presets = VisioStyleTheme.PremiumPresets().ToArray();
+
+            Assert.Equal(new[] {
+                "OfficeIMO Enterprise",
+                "OfficeIMO Technical",
+                "OfficeIMO Cloud",
+                "OfficeIMO Process",
+                "OfficeIMO Print",
+                "OfficeIMO Dark Safe"
+            }, presets.Select(theme => theme.Name).ToArray());
+            Assert.All(presets, theme => Assert.NotNull(theme.Primary.TextStyle));
+            Assert.All(presets, theme => Assert.NotNull(theme.Connector.TextStyle));
+            Assert.All(presets, theme => Assert.True(theme.Primary.LineWeight >= 0.016));
+        }
+
+        [Fact]
+        public void TechnicalAndPrintThemesGenerateValidatedDiagrams() {
+            string technicalPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string printPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument.Create(technicalPath)
+                .BlockDiagram("Technical System", diagram => diagram
+                    .Theme(VisioStyleTheme.Technical())
+                    .Region("platform", "Platform", 0, 0, 3, 1)
+                    .Block("api", "API", 0, 0)
+                    .EmphasisBlock("worker", "Worker", 1, 0)
+                    .Block("queue", "Queue", 2, 0)
+                    .DataFlow("api", "worker", "request")
+                    .ControlFlow("worker", "queue", "dispatch"))
+                .Save();
+
+            VisioDocument.Create(printPath)
+                .Flowchart("Print Safe Approval", flow => flow
+                    .Theme(VisioStyleTheme.Print())
+                    .Start("start", "Request")
+                    .Step("review", "Review")
+                    .Decision("approved", "Approved?")
+                    .End("done", "Done"))
+                .Save();
+
+            Assert.Empty(VisioValidator.Validate(technicalPath));
+            Assert.Empty(VisioValidator.Validate(printPath));
         }
 
         [Fact]
