@@ -94,7 +94,8 @@ namespace OfficeIMO.Visio {
                     resolvedOptions.ConnectorLabelStep,
                     resolvedOptions.ConnectorLabelMaxAttempts,
                     resolvedOptions.AvoidConnectorLabelShapeOverlaps,
-                    resolvedOptions.AvoidConnectorLabelOverlaps);
+                    resolvedOptions.AvoidConnectorLabelOverlaps,
+                    resolvedOptions.PreferConnectorLabelsInsideEndpointZones);
             }
 
             if (resolvedOptions.FitToContent) {

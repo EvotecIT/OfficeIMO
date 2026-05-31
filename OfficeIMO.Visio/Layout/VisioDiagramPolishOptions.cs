@@ -106,5 +106,8 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Whether connector labels should avoid labels that have already been placed.</summary>
         public bool AvoidConnectorLabelOverlaps { get; set; } = true;
+
+        /// <summary>Whether connector labels should prefer common endpoint zones and avoid unrelated background zones.</summary>
+        public bool PreferConnectorLabelsInsideEndpointZones { get; set; }
     }
 }

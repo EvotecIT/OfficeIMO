@@ -370,6 +370,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ResolveConnectorLabelOverlapsCanPreferCommonEndpointZones() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LabelZoneCleanup", 8, 5);
+            VisioShape zone = page.AddRectangle(3, 2, 4, 2, "Shared zone");
+            zone.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
+            VisioShape unrelatedZone = page.AddRectangle(3, 3.55, 4, 0.8, "Unrelated zone");
+            unrelatedZone.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
+            VisioShape source = page.AddRectangle(2, 2, 0.8, 0.5, "Source");
+            VisioShape target = page.AddRectangle(4, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5, offsetY: 1.45, width: 1.2, height: 0.3);
+            connector.Label = "zone label";
+
+            Assert.False(Contains(zone.GetShapeBounds(), GetConnectorLabelBounds(connector)));
+
+            page.ResolveConnectorLabelOverlaps(step: 0.25D, maxAttempts: 8, preferEndpointZones: true);
+
+            Assert.True(Contains(zone.GetShapeBounds(), GetConnectorLabelBounds(connector)));
+            Assert.Equal(0D, OverlapArea(GetConnectorLabelBounds(connector), unrelatedZone.GetShapeBounds()), 6);
+        }
+
+        [Fact]
+        public void PolishDiagramCanPreferConnectorLabelsInsideEndpointZones() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("PolishLabelZones", 8, 5);
+            VisioShape zone = page.AddRectangle(3, 2, 4, 2, "Shared zone");
+            zone.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
+            page.AddRectangle(3, 3.55, 4, 0.8, "Unrelated zone")
+                .SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR");
+            VisioShape source = page.AddRectangle(2, 2, 0.8, 0.5, "Source");
+            VisioShape target = page.AddRectangle(4, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5, offsetY: 1.45, width: 1.2, height: 0.3);
+            connector.Label = "polished zone label";
+
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                PreferConnectorLabelsInsideEndpointZones = true,
+                ConnectorLabelStep = 0.25D,
+                ConnectorLabelMaxAttempts = 8,
+                FitToContent = false
+            });
+
+            Assert.True(Contains(zone.GetShapeBounds(), GetConnectorLabelBounds(connector)));
+        }
+
+        [Fact]
         public void ResolveShapeOverlapsMovesTopLevelShapesApart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -528,6 +574,58 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "first", "second" }, page.Shapes.Select(shape => shape.Id).ToArray());
             Assert.NotEqual(1, first.PinX);
             Assert.NotEqual(2, second.PinY);
+        }
+
+        private static OfficeIMO.Visio.VisioShapeBounds GetConnectorLabelBounds(VisioConnector connector) {
+            VisioConnectorLabelPlacement placement = connector.LabelPlacement ?? VisioConnectorLabelPlacement.Along(0.5D);
+            double pinX;
+            double pinY;
+            if (placement.PinX.HasValue && placement.PinY.HasValue) {
+                pinX = placement.PinX.Value;
+                pinY = placement.PinY.Value;
+            } else {
+                (double startX, double startY) = ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint);
+                (double endX, double endY) = ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint);
+                double position = Math.Max(0D, Math.Min(1D, placement.Position));
+                pinX = startX + ((endX - startX) * position) + placement.OffsetX;
+                pinY = startY + ((endY - startY) * position) + placement.OffsetY;
+            }
+
+            double width = placement.Width;
+            double height = placement.Height;
+            return new OfficeIMO.Visio.VisioShapeBounds(
+                pinX - (width / 2D),
+                pinY - (height / 2D),
+                pinX + (width / 2D),
+                pinY + (height / 2D));
+        }
+
+        private static (double X, double Y) ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint) {
+            if (connectionPoint != null) {
+                return shape.GetAbsolutePoint(connectionPoint.X, connectionPoint.Y);
+            }
+
+            OfficeIMO.Visio.VisioShapeBounds shapeBounds = shape.GetShapeBounds();
+            OfficeIMO.Visio.VisioShapeBounds otherBounds = other.GetShapeBounds();
+            double dx = otherBounds.CenterX - shapeBounds.CenterX;
+            double dy = otherBounds.CenterY - shapeBounds.CenterY;
+            return Math.Abs(dx) >= Math.Abs(dy)
+                ? (dx >= 0 ? shapeBounds.Right : shapeBounds.Left, shapeBounds.CenterY)
+                : (shapeBounds.CenterX, dy >= 0 ? shapeBounds.Top : shapeBounds.Bottom);
+        }
+
+        private static bool Contains(OfficeIMO.Visio.VisioShapeBounds outer, OfficeIMO.Visio.VisioShapeBounds inner) {
+            const double tolerance = 1e-6;
+            return outer.Left <= inner.Left + tolerance &&
+                   outer.Bottom <= inner.Bottom + tolerance &&
+                   outer.Right + tolerance >= inner.Right &&
+                   outer.Top + tolerance >= inner.Top;
+        }
+
+        private static double OverlapArea(OfficeIMO.Visio.VisioShapeBounds first, OfficeIMO.Visio.VisioShapeBounds second) {
+            double width = Math.Max(0D, Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left));
+            double height = Math.Max(0D, Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom));
+            return width * height;
         }
     }
 }

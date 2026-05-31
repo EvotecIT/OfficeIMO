@@ -47,7 +47,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 
 - Premium examples are credible smoke artifacts, not yet market-leading gallery material.
 - Architecture and network zones are still visually large and generic, although captions now use header placement instead of center placement.
-- Connector labels are improved but still not finished. Cleanup now revisits all current labels and ignores generated adornments, but it still does not understand lifeline bands or zone-aware preferences deeply enough for every dense diagram.
+- Connector labels are improved but still not finished. Cleanup now revisits all current labels, ignores generated adornments, and can prefer common endpoint zones, but it still does not understand lifeline bands deeply enough for every dense diagram.
 - Sequence self-message placement was fixed for the reviewed long-label case, but sequence activations, notes, and richer interaction fragments are still missing.
 - Simple connector-to-shape crossings and connector-to-connector crossings are now covered by deterministic obstacle-aware route scoring, but dense network layouts still need group-aware and deeper whole-page route minimization.
 - Graph zones can overlap or dominate the diagram when groups span nodes across layers; the premium sample avoids zones for now.
@@ -59,7 +59,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 ## Recommended Next Steps
 
 1. Extend obstacle-aware orthogonal routing from the current zone/container/crossing-aware options into group-aware and deeper whole-page route minimization.
-2. Continue connector label cleanup with lifeline/zone-aware preferences and connector-crossing avoidance.
+2. Continue connector label cleanup with lifeline-aware preferences and denser premium-diagram label strategies.
 3. Replace more basic geometry in the premium gallery with native/external/first-party stencil-backed nodes where available, while preserving rendered PNG/SVG quality.
 4. Add more theme-specific scenarios beyond the current technical topology and print audit trail, especially cloud/security/data diagrams with stencil-backed nodes.
 5. Add richer sequence-diagram features: activations, notes, combined fragments, and visible error/remediation bands.
@@ -69,4 +69,4 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 
 ## Status Call
 
-This branch improves the current state and proves generation, preview export, approved premium visual baselines with PNG diff artifacts, approved inspection/profile baselines with text diff artifacts, structural inspection/diff snapshots, persisted catalog/category/source-pack stencil usage profiles, obstacle-aware routing with zone/container/crossing-aware options, and the six-preset premium theme catalog with technical/print rendered baseline proof. It does not finish the full premium Visio goal. The remaining work is real product work in deeper layout, group-aware routing, lifeline/zone-aware labels, broader stencils, richer sequence semantics, and deeper stencil metadata extraction.
+This branch improves the current state and proves generation, preview export, approved premium visual baselines with PNG diff artifacts, approved inspection/profile baselines with text diff artifacts, structural inspection/diff snapshots, persisted catalog/category/source-pack stencil usage profiles, obstacle-aware routing with zone/container/crossing-aware options, zone-aware connector label cleanup, and the six-preset premium theme catalog with technical/print rendered baseline proof. It does not finish the full premium Visio goal. The remaining work is real product work in deeper layout, group-aware routing, lifeline-aware labels, broader stencils, richer sequence semantics, and deeper stencil metadata extraction.
