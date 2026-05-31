@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace OfficeIMO.Visio {
     /// <summary>
     /// Options for deterministic connector routing around diagram obstacles.
@@ -18,6 +20,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Whether generated adornments such as zone captions should be treated as route obstacles.</summary>
         public bool IncludeDiagramAdornments { get; set; }
 
+        /// <summary>Whether candidate routes should prefer lanes that reduce crossings with reference connectors.</summary>
+        public bool AvoidConnectorCrossings { get; set; }
+
+        /// <summary>Connectors used as crossing references when <see cref="AvoidConnectorCrossings"/> is enabled.</summary>
+        public IEnumerable<VisioConnector>? ConnectorCrossingReferences { get; set; }
+
         /// <summary>
         /// Creates a detached copy of the options.
         /// </summary>
@@ -27,7 +35,9 @@ namespace OfficeIMO.Visio {
                 MaxLanes = MaxLanes,
                 IncludeContainers = IncludeContainers,
                 IncludeBackgroundSurfaces = IncludeBackgroundSurfaces,
-                IncludeDiagramAdornments = IncludeDiagramAdornments
+                IncludeDiagramAdornments = IncludeDiagramAdornments,
+                AvoidConnectorCrossings = AvoidConnectorCrossings,
+                ConnectorCrossingReferences = ConnectorCrossingReferences
             };
         }
     }

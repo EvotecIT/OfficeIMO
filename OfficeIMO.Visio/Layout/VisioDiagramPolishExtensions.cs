@@ -84,7 +84,8 @@ namespace OfficeIMO.Visio {
                     MaxLanes = resolvedOptions.ConnectorRoutingMaxLanes,
                     IncludeContainers = resolvedOptions.ConnectorRoutingAvoidContainers,
                     IncludeBackgroundSurfaces = resolvedOptions.ConnectorRoutingAvoidBackgroundSurfaces,
-                    IncludeDiagramAdornments = resolvedOptions.ConnectorRoutingAvoidDiagramAdornments
+                    IncludeDiagramAdornments = resolvedOptions.ConnectorRoutingAvoidDiagramAdornments,
+                    AvoidConnectorCrossings = resolvedOptions.ConnectorRoutingAvoidConnectorCrossings
                 });
             }
 

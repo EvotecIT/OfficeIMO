@@ -461,7 +461,9 @@ can also treat containers, background surfaces such as zones or trust
 boundaries, and generated adornments as obstacles when those surfaces should
 visibly reserve routing space. Containers and background surfaces that contain
 the connector source or target are ignored, so a connector can still start or
-end inside its own zone.
+end inside its own zone. The same options can prefer lanes that reduce
+connector-to-connector crossings when reference connectors are supplied; page-wide
+routing supplies the page connector set automatically.
 Pages can also set native Visio routing defaults for connectors that do not
 carry local routing or line-jump settings, plus placement and layout-grid policy
 used by Visio's Re-Layout Page commands.
@@ -522,7 +524,8 @@ page.RouteConnectorsOrthogonalAroundShapes(new VisioConnectorRoutingOptions {
     Padding = 0.12,
     MaxLanes = 16,
     IncludeContainers = true,
-    IncludeBackgroundSurfaces = true
+    IncludeBackgroundSurfaces = true,
+    AvoidConnectorCrossings = true
 });
 
 doc.Save();
@@ -1172,6 +1175,7 @@ page.PolishDiagram(new VisioDiagramPolishOptions {
     ConnectorRoutingObstaclePadding = 0.12,
     ConnectorRoutingAvoidContainers = true,
     ConnectorRoutingAvoidBackgroundSurfaces = true,
+    ConnectorRoutingAvoidConnectorCrossings = true,
     MaximumConnectorLabelWidth = 1.6,
     FitHorizontalMargin = 0.6,
     FitVerticalMargin = 0.45

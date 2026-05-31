@@ -126,23 +126,26 @@ namespace OfficeIMO.Visio {
             ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
             ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
             List<VisioShapeBounds> obstacleBounds = GetRoutingObstacleBounds(connector, obstacles, padding, options);
-            if (obstacleBounds.Count == 0) {
+            List<IReadOnlyList<RoutePoint>> connectorReferencePaths = options.AvoidConnectorCrossings
+                ? GetConnectorReferencePaths(connector, options.ConnectorCrossingReferences)
+                : new List<IReadOnlyList<RoutePoint>>();
+            if (obstacleBounds.Count == 0 && connectorReferencePaths.Count == 0) {
                 return connector;
             }
 
-            RouteScore currentScore = ScoreCurrentRoute(connector, startX, startY, endX, endY, obstacleBounds);
-            if (currentScore.Intersections == 0) {
+            RouteScore currentScore = ScoreCurrentRoute(connector, startX, startY, endX, endY, obstacleBounds, connectorReferencePaths);
+            if (!currentScore.HasConflicts) {
                 return connector;
             }
 
             RouteCandidate? best = null;
             foreach (RouteCandidate candidate in EnumerateOrthogonalRouteCandidates(startX, startY, endX, endY, padding, maxLanes)) {
-                RouteScore score = ScoreRoute(candidate, obstacleBounds);
+                RouteScore score = ScoreRoute(candidate, obstacleBounds, connectorReferencePaths);
                 if (best == null || score.IsBetterThan(best.Value.Score)) {
                     best = candidate.WithScore(score);
                 }
 
-                if (score.Intersections == 0) {
+                if (!score.HasConflicts) {
                     break;
                 }
             }
@@ -184,8 +187,14 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            VisioConnectorRoutingOptions routingOptions = options;
+            if (options.AvoidConnectorCrossings && options.ConnectorCrossingReferences == null) {
+                routingOptions = options.Clone();
+                routingOptions.ConnectorCrossingReferences = page.Connectors;
+            }
+
             foreach (VisioConnector connector in page.Connectors) {
-                connector.RouteOrthogonalAroundShapes(page.Shapes, options);
+                connector.RouteOrthogonalAroundShapes(page.Shapes, routingOptions);
             }
 
             return page;
@@ -305,8 +314,14 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            VisioConnectorRoutingOptions routingOptions = options;
+            if (options.AvoidConnectorCrossings && options.ConnectorCrossingReferences == null) {
+                routingOptions = options.Clone();
+                routingOptions.ConnectorCrossingReferences = selection;
+            }
+
             foreach (VisioConnector connector in selection) {
-                connector.RouteOrthogonalAroundShapes(obstacles, options);
+                connector.RouteOrthogonalAroundShapes(obstacles, routingOptions);
             }
 
             return selection;
@@ -453,7 +468,7 @@ namespace OfficeIMO.Visio {
                 new RoutePoint(endX, endY));
         }
 
-        private static RouteScore ScoreRoute(RouteCandidate candidate, IReadOnlyList<VisioShapeBounds> obstacles) {
+        private static RouteScore ScoreRoute(RouteCandidate candidate, IReadOnlyList<VisioShapeBounds> obstacles, IReadOnlyList<IReadOnlyList<RoutePoint>> connectorReferencePaths) {
             int intersections = 0;
             foreach (VisioShapeBounds obstacle in obstacles) {
                 if (RouteIntersectsBounds(candidate, obstacle)) {
@@ -461,19 +476,11 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            return new RouteScore(intersections, candidate.Length);
+            return new RouteScore(intersections, CountConnectorCrossings(candidate, connectorReferencePaths), candidate.Length);
         }
 
-        private static RouteScore ScoreCurrentRoute(VisioConnector connector, double startX, double startY, double endX, double endY, IReadOnlyList<VisioShapeBounds> obstacles) {
-            List<RoutePoint> points = new() {
-                new RoutePoint(startX, startY)
-            };
-
-            foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                points.Add(new RoutePoint(waypoint.X, waypoint.Y));
-            }
-
-            points.Add(new RoutePoint(endX, endY));
+        private static RouteScore ScoreCurrentRoute(VisioConnector connector, double startX, double startY, double endX, double endY, IReadOnlyList<VisioShapeBounds> obstacles, IReadOnlyList<IReadOnlyList<RoutePoint>> connectorReferencePaths) {
+            List<RoutePoint> points = GetConnectorPath(connector, startX, startY, endX, endY);
             int intersections = 0;
             foreach (VisioShapeBounds obstacle in obstacles) {
                 if (PathIntersectsBounds(points, obstacle)) {
@@ -486,7 +493,42 @@ namespace OfficeIMO.Visio {
                 length += Distance(points[i - 1], points[i]);
             }
 
-            return new RouteScore(intersections, length);
+            return new RouteScore(intersections, CountConnectorCrossings(points, connectorReferencePaths), length);
+        }
+
+        private static List<RoutePoint> GetConnectorPath(VisioConnector connector, double startX, double startY, double endX, double endY) {
+            List<RoutePoint> points = new() {
+                new RoutePoint(startX, startY)
+            };
+
+            foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
+                points.Add(new RoutePoint(waypoint.X, waypoint.Y));
+            }
+
+            points.Add(new RoutePoint(endX, endY));
+            return points;
+        }
+
+        private static List<IReadOnlyList<RoutePoint>> GetConnectorReferencePaths(VisioConnector connector, IEnumerable<VisioConnector>? referenceConnectors) {
+            List<IReadOnlyList<RoutePoint>> paths = new();
+            if (referenceConnectors == null) {
+                return paths;
+            }
+
+            foreach (VisioConnector reference in referenceConnectors) {
+                if (reference == null || ReferenceEquals(reference, connector)) {
+                    continue;
+                }
+
+                ResolveEndpoint(reference.From, reference.To, reference.FromConnectionPoint, out double startX, out double startY);
+                ResolveEndpoint(reference.To, reference.From, reference.ToConnectionPoint, out double endX, out double endY);
+                List<RoutePoint> path = GetConnectorPath(reference, startX, startY, endX, endY);
+                if (path.Count > 1) {
+                    paths.Add(path);
+                }
+            }
+
+            return paths;
         }
 
         private static bool RouteIntersectsBounds(RouteCandidate route, VisioShapeBounds bounds) {
@@ -521,6 +563,39 @@ namespace OfficeIMO.Visio {
                    SegmentsIntersect(a, b, topLeft, bottomLeft);
         }
 
+        private static int CountConnectorCrossings(RouteCandidate candidate, IReadOnlyList<IReadOnlyList<RoutePoint>> connectorReferencePaths) {
+            return CountConnectorCrossings(new[] { candidate.Start, candidate.First, candidate.Second, candidate.End }, connectorReferencePaths);
+        }
+
+        private static int CountConnectorCrossings(IReadOnlyList<RoutePoint> points, IReadOnlyList<IReadOnlyList<RoutePoint>> connectorReferencePaths) {
+            if (connectorReferencePaths.Count == 0) {
+                return 0;
+            }
+
+            int crossings = 0;
+            for (int i = 1; i < points.Count; i++) {
+                RoutePoint from = points[i - 1];
+                RoutePoint to = points[i];
+                foreach (IReadOnlyList<RoutePoint> referencePath in connectorReferencePaths) {
+                    for (int j = 1; j < referencePath.Count; j++) {
+                        if (SegmentsIntersectAwayFromSharedEndpoints(from, to, referencePath[j - 1], referencePath[j])) {
+                            crossings++;
+                        }
+                    }
+                }
+            }
+
+            return crossings;
+        }
+
+        private static bool SegmentsIntersectAwayFromSharedEndpoints(RoutePoint p1, RoutePoint p2, RoutePoint q1, RoutePoint q2) {
+            return SegmentsIntersect(p1, p2, q1, q2) &&
+                   !PointsEqual(p1, q1) &&
+                   !PointsEqual(p1, q2) &&
+                   !PointsEqual(p2, q1) &&
+                   !PointsEqual(p2, q2);
+        }
+
         private static bool SegmentsIntersect(RoutePoint p1, RoutePoint p2, RoutePoint q1, RoutePoint q2) {
             double o1 = Orientation(p1, p2, q1);
             double o2 = Orientation(p1, p2, q2);
@@ -546,6 +621,11 @@ namespace OfficeIMO.Visio {
                    b.X <= Math.Max(a.X, c.X) + 1e-9 &&
                    b.Y >= Math.Min(a.Y, c.Y) - 1e-9 &&
                    b.Y <= Math.Max(a.Y, c.Y) + 1e-9;
+        }
+
+        private static bool PointsEqual(RoutePoint a, RoutePoint b) {
+            return Math.Abs(a.X - b.X) < 1e-9 &&
+                   Math.Abs(a.Y - b.Y) < 1e-9;
         }
 
         private static bool PointInside(RoutePoint point, VisioShapeBounds bounds) {
@@ -590,7 +670,7 @@ namespace OfficeIMO.Visio {
 
         private readonly struct RouteCandidate {
             public RouteCandidate(RoutePoint start, RoutePoint first, RoutePoint second, RoutePoint end)
-                : this(start, first, second, end, new RouteScore(int.MaxValue, double.PositiveInfinity)) {
+                : this(start, first, second, end, new RouteScore(int.MaxValue, int.MaxValue, double.PositiveInfinity)) {
             }
 
             private RouteCandidate(RoutePoint start, RoutePoint first, RoutePoint second, RoutePoint end, RouteScore score) {
@@ -619,18 +699,27 @@ namespace OfficeIMO.Visio {
         }
 
         private readonly struct RouteScore {
-            public RouteScore(int intersections, double length) {
+            public RouteScore(int intersections, int connectorCrossings, double length) {
                 Intersections = intersections;
+                ConnectorCrossings = connectorCrossings;
                 Length = length;
             }
 
             public int Intersections { get; }
 
+            public int ConnectorCrossings { get; }
+
             public double Length { get; }
+
+            public bool HasConflicts => Intersections > 0 || ConnectorCrossings > 0;
 
             public bool IsBetterThan(RouteScore other) {
                 if (Intersections != other.Intersections) {
                     return Intersections < other.Intersections;
+                }
+
+                if (ConnectorCrossings != other.ConnectorCrossings) {
+                    return ConnectorCrossings < other.ConnectorCrossings;
                 }
 
                 return Length < other.Length - 1e-9;

@@ -193,6 +193,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObstacleAwareRoutingCanReduceConnectorCrossingsWhenRequested() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Crossing routes", 8, 6);
+            VisioShape left = page.AddRectangle(1, 3, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(7, 3, 0.8, 0.5, "Right");
+            VisioShape top = page.AddRectangle(4, 5, 0.8, 0.5, "Top");
+            VisioShape bottom = page.AddRectangle(4, 1, 0.8, 0.5, "Bottom");
+            VisioConnector horizontal = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            VisioConnector vertical = page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
+
+            Assert.True(CountRouteCrossings(vertical, horizontal) > 0);
+
+            vertical.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions {
+                AvoidConnectorCrossings = true,
+                ConnectorCrossingReferences = page.Connectors,
+                Padding = 0.15D,
+                MaxLanes = 24
+            });
+
+            Assert.Equal(ConnectorKind.RightAngle, vertical.Kind);
+            Assert.Equal(2, vertical.Waypoints.Count);
+            Assert.Equal(0, CountRouteCrossings(vertical, horizontal));
+        }
+
+        [Fact]
+        public void PolishDiagramCanReduceConnectorCrossingsWhenRequested() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Crossing polish", 8, 6);
+            VisioShape left = page.AddRectangle(1, 3, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(7, 3, 0.8, 0.5, "Right");
+            VisioShape top = page.AddRectangle(4, 5, 0.8, 0.5, "Top");
+            VisioShape bottom = page.AddRectangle(4, 1, 0.8, 0.5, "Bottom");
+            VisioConnector horizontal = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            VisioConnector vertical = page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
+
+            Assert.True(CountRouteCrossings(vertical, horizontal) > 0);
+
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                ResolveConnectorShapeIntersections = true,
+                ConnectorRoutingAvoidConnectorCrossings = true,
+                ConnectorRoutingMaxLanes = 24,
+                FitToContent = false
+            });
+
+            Assert.Equal(0, CountRouteCrossings(vertical, horizontal));
+        }
+
+        [Fact]
         public void ConnectorLabelPlacementIsWrittenLoadedAndAvailableThroughSelectionsAndFluentApi() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -321,6 +369,30 @@ namespace OfficeIMO.Tests {
                    SegmentsIntersect(a, b, topLeft, bottomLeft);
         }
 
+        private static int CountRouteCrossings(VisioConnector connector, params VisioConnector[] references) {
+            RouteSegment[] segments = GetRouteSegments(connector);
+            int crossings = 0;
+            foreach (RouteSegment segment in segments) {
+                foreach (VisioConnector reference in references) {
+                    foreach (RouteSegment referenceSegment in GetRouteSegments(reference)) {
+                        if (SegmentsIntersectAwayFromSharedEndpoints(segment, referenceSegment)) {
+                            crossings++;
+                        }
+                    }
+                }
+            }
+
+            return crossings;
+        }
+
+        private static bool SegmentsIntersectAwayFromSharedEndpoints(RouteSegment segment, RouteSegment referenceSegment) {
+            return SegmentsIntersect(segment.Start, segment.End, referenceSegment.Start, referenceSegment.End) &&
+                   !PointsEqual(segment.Start, referenceSegment.Start) &&
+                   !PointsEqual(segment.Start, referenceSegment.End) &&
+                   !PointsEqual(segment.End, referenceSegment.Start) &&
+                   !PointsEqual(segment.End, referenceSegment.End);
+        }
+
         private static bool SegmentsIntersect(RoutePoint p1, RoutePoint p2, RoutePoint q1, RoutePoint q2) {
             double o1 = Orientation(p1, p2, q1);
             double o2 = Orientation(p1, p2, q2);
@@ -346,6 +418,11 @@ namespace OfficeIMO.Tests {
                    b.X <= Math.Max(a.X, c.X) + 1e-9 &&
                    b.Y >= Math.Min(a.Y, c.Y) - 1e-9 &&
                    b.Y <= Math.Max(a.Y, c.Y) + 1e-9;
+        }
+
+        private static bool PointsEqual(RoutePoint a, RoutePoint b) {
+            return Math.Abs(a.X - b.X) < 1e-9 &&
+                   Math.Abs(a.Y - b.Y) < 1e-9;
         }
 
         private static bool PointInside(RoutePoint point, VisioBounds bounds) {

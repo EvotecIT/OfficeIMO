@@ -51,7 +51,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 
 ## Next Implementation Slice
 
-1. Extend obstacle-aware routing from the current zone/container-aware options into group-aware and connector-crossing-aware routes, and add lifeline/zone-aware connector-label cleanup in dense premium diagrams.
+1. Extend obstacle-aware routing from the current zone/container/crossing-aware options into group-aware and deeper whole-page route minimization, and add lifeline/zone-aware connector-label cleanup in dense premium diagrams.
 2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it.
 3. Keep tightening the baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
 4. Promote the generated-master stencil reference fix into a baseline-reviewed graph gallery scenario so first-party stencils are proven with PNG/SVG quality, not only package structure.

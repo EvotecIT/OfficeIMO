@@ -89,6 +89,9 @@ namespace OfficeIMO.Visio {
         /// <summary>Whether connector routing should avoid generated adornments such as zone captions.</summary>
         public bool ConnectorRoutingAvoidDiagramAdornments { get; set; }
 
+        /// <summary>Whether connector routing should prefer lanes that reduce connector-to-connector crossings.</summary>
+        public bool ConnectorRoutingAvoidConnectorCrossings { get; set; }
+
         /// <summary>Search step used when moving overlapping shapes, in inches.</summary>
         public double ShapeOverlapStep { get; set; } = 0.25D;
 
