@@ -654,6 +654,12 @@ or `InCategory(...)` when you want user-friendly discovery by id, name, master,
 category, keyword, alias, or tag. Each stencil also carries `IconNameU` preview
 metadata for palette and picker UIs.
 
+The built-in catalog set covers basic, flowchart, block-diagram, architecture,
+network, infrastructure, cloud, security/identity, containers/Kubernetes,
+data/platform, collaboration/business process, sequence, swimlane, org-chart,
+and timeline domains. These first-party definitions are dependency-free and
+preserve searchable domain intent in inspection snapshots and stencil profiles.
+
 ```csharp
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Stencils;
@@ -667,6 +673,9 @@ var decision = page.AddStencilShape(VisioStencils.Flowchart, "branch",
     "approved", 5, 4, "Approved?");
 var switchShape = page.AddStencilShape("net.switch", "switch", 8, 6, "Switch");
 var dataStore = VisioStencils.All.Search("data-store").First();
+var identityProvider = VisioStencils.SecurityIdentity.Get("idp");
+var kubernetesCluster = VisioStencils.ContainersKubernetes.Get("kubernetes");
+var dataPipeline = VisioStencils.DataPlatform.Get("etl");
 var networkShapes = VisioStencils.All.InCategory("Network");
 var custom = VisioStencilCatalog.Create("Custom Infrastructure", catalog => catalog
     .Add("custom.cache", "Cache", "Process", "Infrastructure", 1.8, 0.9, "redis")
@@ -1300,7 +1309,7 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
 - 🔗 Connectors: ✅ basic connectors between shapes
 - 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ generic graph builder with cycles, disconnected components, layered/grid/radial layouts, zones, and package-backed stencil nodes, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ sequence builder with participants, lifelines, message types, and self-calls, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
-- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, sequence, swimlane, org-chart, and timeline shapes; ✅ external package catalogs with learned dimensions, preview metadata, source package provenance, and native connection points
+- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, infrastructure, cloud, security/identity, containers/Kubernetes, data/platform, collaboration/business process, sequence, swimlane, org-chart, and timeline shapes; ✅ external package catalogs with learned dimensions, preview metadata, source package provenance, and native connection points
 - 🎨 Style themes: ✅ reusable shape/connector/text styles and Modern/Office/Fluent/Technical/Minimal/Dark/Print authoring presets
 - 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content
 - 🧩 VSDX learning fixtures: ✅ inspect supported masters without treating sample files as runtime templates

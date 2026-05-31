@@ -94,6 +94,104 @@ namespace OfficeIMO.Visio.Stencils {
             });
 
         /// <summary>
+        /// Gets server, device, and infrastructure equipment shapes.
+        /// </summary>
+        public static VisioStencilCatalog Infrastructure { get; } = new(
+            "Infrastructure",
+            new[] {
+                Shape("infra.server", "Server", "Process", "Infrastructure", 1.55, 0.88, "host", "compute", "node"),
+                Shape("infra.rack", "Rack", "Rectangle", "Infrastructure", 1.25, 1.8, "cabinet", "datacenter"),
+                Shape("infra.appliance", "Appliance", "Process", "Infrastructure", 1.65, 0.85, "device", "hardware"),
+                Shape("infra.storage-array", "Storage Array", "Data", "Infrastructure", 1.65, 0.85, "san", "nas", "disk"),
+                Shape("infra.load-balancer", "Load Balancer", "Decision", "Infrastructure", 1.35, 0.95, "traffic", "proxy"),
+                Shape("infra.sensor", "Sensor", "Circle", "Infrastructure", 0.75, 0.75, "iot", "telemetry"),
+                Shape("infra.backup", "Backup Target", "Data", "Infrastructure", 1.65, 0.85, "restore", "archive"),
+                Shape("infra.boundary", "Infrastructure Boundary", "Rectangle", "Infrastructure", 4.0, 2.4, "zone", "datacenter", "container")
+            });
+
+        /// <summary>
+        /// Gets generic cloud architecture shapes.
+        /// </summary>
+        public static VisioStencilCatalog Cloud { get; } = new(
+            "Cloud",
+            new[] {
+                Shape("cloud.subscription", "Subscription", "Rectangle", "Cloud", 4.0, 2.4, "account", "tenant", "boundary"),
+                Shape("cloud.region", "Region", "Rectangle", "Cloud", 3.6, 2.1, "location", "zone"),
+                Shape("cloud.service", "Cloud Service", "Process", "Cloud", 1.8, 0.95, "managed-service", "paas"),
+                Shape("cloud.function", "Function", "Hexagon", "Cloud", 1.55, 0.9, "serverless", "lambda"),
+                Shape("cloud.gateway", "Cloud Gateway", "Decision", "Cloud", 1.45, 1.0, "ingress", "api-gateway"),
+                Shape("cloud.queue", "Cloud Queue", "Data", "Cloud", 1.65, 0.85, "event", "message"),
+                Shape("cloud.secret-store", "Secret Store", "Data", "Cloud", 1.65, 0.85, "vault", "key"),
+                Shape("cloud.monitoring", "Monitoring", "Circle", "Cloud", 0.92, 0.92, "observability", "metrics", "logs")
+            });
+
+        /// <summary>
+        /// Gets security and identity shapes.
+        /// </summary>
+        public static VisioStencilCatalog SecurityIdentity { get; } = new(
+            "Security and Identity",
+            new[] {
+                Shape("sec.identity-provider", "Identity Provider", "Process", "Security and Identity", 1.8, 0.9, "idp", "entra", "azure-ad", "saml", "oidc"),
+                Shape("sec.user", "User Principal", "Circle", "Security and Identity", 0.8, 0.8, "account", "person", "identity"),
+                Shape("sec.group", "Security Group", "Rectangle", "Security and Identity", 1.55, 0.82, "role", "rbac", "principal"),
+                Shape("sec.policy", "Policy", "Decision", "Security and Identity", 1.45, 0.95, "conditional-access", "rule", "control"),
+                Shape("sec.key", "Key", "Diamond", "Security and Identity", 0.9, 0.75, "certificate", "secret", "credential"),
+                Shape("sec.firewall", "Firewall Policy", "Decision", "Security and Identity", 1.45, 0.95, "network-security", "waf", "acl"),
+                Shape("sec.audit", "Audit Log", "Data", "Security and Identity", 1.65, 0.82, "evidence", "compliance", "log"),
+                Shape("sec.trust-boundary", "Trust Boundary", "Rectangle", "Security and Identity", 4.0, 2.2, "boundary", "zone", "threat-model"),
+                Shape("sec.alert", "Security Alert", "Triangle", "Security and Identity", 0.9, 0.78, "incident", "finding", "risk")
+            });
+
+        /// <summary>
+        /// Gets Kubernetes and container platform shapes.
+        /// </summary>
+        public static VisioStencilCatalog ContainersKubernetes { get; } = new(
+            "Containers and Kubernetes",
+            new[] {
+                Shape("k8s.cluster", "Cluster", "Rectangle", "Containers and Kubernetes", 4.0, 2.4, "kubernetes", "aks", "eks", "gke"),
+                Shape("k8s.namespace", "Namespace", "Rectangle", "Containers and Kubernetes", 3.2, 1.8, "scope", "tenant"),
+                Shape("k8s.node", "Node", "Process", "Containers and Kubernetes", 1.55, 0.85, "worker", "host"),
+                Shape("k8s.pod", "Pod", "Hexagon", "Containers and Kubernetes", 1.25, 0.82, "workload", "container"),
+                Shape("k8s.container", "Container", "Process", "Containers and Kubernetes", 1.35, 0.72, "image", "runtime"),
+                Shape("k8s.service", "Service", "Process", "Containers and Kubernetes", 1.55, 0.82, "svc", "endpoint"),
+                Shape("k8s.ingress", "Ingress", "Decision", "Containers and Kubernetes", 1.35, 0.9, "gateway", "route"),
+                Shape("k8s.config", "Config Map", "Data", "Containers and Kubernetes", 1.45, 0.75, "configuration", "settings"),
+                Shape("k8s.secret", "Secret", "Data", "Containers and Kubernetes", 1.45, 0.75, "credential", "key")
+            });
+
+        /// <summary>
+        /// Gets data and platform service shapes.
+        /// </summary>
+        public static VisioStencilCatalog DataPlatform { get; } = new(
+            "Data and Platform",
+            new[] {
+                Shape("data.database", "Database", "Data", "Data and Platform", 1.65, 0.9, "sql", "relational"),
+                Shape("data.lake", "Data Lake", "Data", "Data and Platform", 1.8, 0.9, "analytics", "storage"),
+                Shape("data.warehouse", "Warehouse", "Data", "Data and Platform", 1.8, 0.9, "dwh", "mart"),
+                Shape("data.stream", "Stream", "Data", "Data and Platform", 1.65, 0.82, "event-stream", "kafka"),
+                Shape("data.pipeline", "Pipeline", "Process", "Data and Platform", 1.7, 0.82, "etl", "elt", "job"),
+                Shape("data.catalog", "Data Catalog", "Rectangle", "Data and Platform", 1.7, 0.82, "metadata", "lineage"),
+                Shape("data.api", "Data API", "Process", "Data and Platform", 1.6, 0.82, "query", "endpoint"),
+                Shape("data.quality", "Quality Gate", "Decision", "Data and Platform", 1.35, 0.92, "validation", "dq")
+            });
+
+        /// <summary>
+        /// Gets collaboration and business process symbols.
+        /// </summary>
+        public static VisioStencilCatalog CollaborationBusiness { get; } = new(
+            "Collaboration and Business Process",
+            new[] {
+                Shape("collab.person", "Person", "Circle", "Collaboration and Business Process", 0.8, 0.8, "user", "actor"),
+                Shape("collab.team", "Team", "Rectangle", "Collaboration and Business Process", 1.7, 0.85, "group", "department"),
+                Shape("collab.approval", "Approval", "Decision", "Collaboration and Business Process", 1.35, 0.95, "sign-off", "review"),
+                Shape("collab.document", "Document", "Data", "Collaboration and Business Process", 1.55, 0.82, "file", "record"),
+                Shape("collab.message", "Message", "Parallelogram", "Collaboration and Business Process", 1.55, 0.78, "email", "chat", "notification"),
+                Shape("collab.meeting", "Meeting", "Process", "Collaboration and Business Process", 1.6, 0.82, "workshop", "sync"),
+                Shape("collab.system", "Business System", "Process", "Collaboration and Business Process", 1.8, 0.9, "application", "platform"),
+                Shape("collab.lane", "Responsibility Lane", "Rectangle", "Collaboration and Business Process", 5.0, 1.25, "owner", "role", "swimlane")
+            });
+
+        /// <summary>
         /// Gets cross-functional swimlane and process-map shapes.
         /// </summary>
         public static VisioStencilCatalog Swimlane { get; } = new(
@@ -164,6 +262,12 @@ namespace OfficeIMO.Visio.Stencils {
                 .Concat(BlockDiagram.Shapes)
                 .Concat(Architecture.Shapes)
                 .Concat(Network.Shapes)
+                .Concat(Infrastructure.Shapes)
+                .Concat(Cloud.Shapes)
+                .Concat(SecurityIdentity.Shapes)
+                .Concat(ContainersKubernetes.Shapes)
+                .Concat(DataPlatform.Shapes)
+                .Concat(CollaborationBusiness.Shapes)
                 .Concat(Swimlane.Shapes)
                 .Concat(OrgChart.Shapes)
                 .Concat(Timeline.Shapes)

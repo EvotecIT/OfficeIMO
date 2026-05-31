@@ -53,6 +53,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExpandedBuiltInCatalogsExposePremiumDomainStencilPacks() {
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Infrastructure");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Cloud");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Security and Identity");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Containers and Kubernetes");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Data and Platform");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Collaboration and Business Process");
+            Assert.True(VisioStencils.All.Shapes.Count >= 120);
+
+            Assert.Equal("Load Balancer", VisioStencils.Infrastructure.Get("traffic").Name);
+            Assert.Equal("Function", VisioStencils.Cloud.Get("serverless").Name);
+            Assert.Equal("Policy", VisioStencils.SecurityIdentity.Get("conditional-access").Name);
+            Assert.Equal("Cluster", VisioStencils.ContainersKubernetes.Get("kubernetes").Name);
+            Assert.Equal("Pipeline", VisioStencils.DataPlatform.Get("etl").Name);
+            Assert.Equal("Approval", VisioStencils.CollaborationBusiness.Get("sign-off").Name);
+            Assert.Equal("Security Alert", VisioStencils.All.FindBest("security-alert", "incident").Name);
+
+            IReadOnlyList<VisioStencilShape> identityMatches = VisioStencils.All.Search("identity");
+            Assert.Contains(identityMatches, shape => shape.Id == "sec.identity-provider");
+            Assert.Contains(VisioStencils.All.Search("kubernetes"), shape => shape.Id == "k8s.cluster");
+            Assert.Contains(VisioStencils.All.Search("event-stream"), shape => shape.Id == "data.stream");
+            Assert.All(VisioStencils.All.InCategory("Security and Identity"), shape => Assert.Equal("Security and Identity", shape.Category));
+        }
+
+        [Fact]
+        public void ExpandedBuiltInCatalogShapesArePlaceableAndProfiled() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+            VisioPage page = document.AddPage("Expanded Stencils", 11, 8.5);
+
+            VisioShape idp = page.AddStencilShape(VisioStencils.SecurityIdentity, "idp", "idp", 1.8, 6.3, "Entra ID");
+            VisioShape cluster = page.AddStencilShape(VisioStencils.ContainersKubernetes, "kubernetes", "cluster", 4.3, 6.3, "AKS Cluster");
+            VisioShape lake = page.AddStencilShape(VisioStencils.DataPlatform, "data.lake", "lake", 6.9, 6.3, "Lake");
+            VisioShape team = page.AddStencilShape(VisioStencils.CollaborationBusiness, "team", "team", 9.1, 6.3, "Ops Team");
+            page.AddConnector(idp, cluster, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).Label = "tokens";
+            page.AddConnector(cluster, lake, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).Label = "events";
+            page.AddConnector(team, cluster, ConnectorKind.Dynamic, VisioSide.Left, VisioSide.Right).Label = "runbook";
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal(4, loaded.Pages[0].Shapes.Count);
+            Assert.Equal("sec.identity-provider", GetUserCellValue(loaded.Pages[0].Shapes.Single(shape => shape.Id == "idp"), "OfficeIMO.StencilId"));
+            Assert.Equal("k8s.cluster", GetUserCellValue(loaded.Pages[0].Shapes.Single(shape => shape.Id == "cluster"), "OfficeIMO.StencilId"));
+            Assert.Equal("data.lake", GetUserCellValue(loaded.Pages[0].Shapes.Single(shape => shape.Id == "lake"), "OfficeIMO.StencilId"));
+            Assert.Equal("collab.team", GetUserCellValue(loaded.Pages[0].Shapes.Single(shape => shape.Id == "team"), "OfficeIMO.StencilId"));
+
+            string profile = loaded.CreateStencilProfile().ToText();
+            Assert.Contains("Security and Identity", profile);
+            Assert.Contains("Containers and Kubernetes", profile);
+            Assert.Contains("Data and Platform", profile);
+            Assert.Contains("Collaboration and Business Process", profile);
+        }
+
+        [Fact]
         public void PageCanPlaceStencilShapeWithGeneratedMaster() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -920,6 +977,12 @@ namespace OfficeIMO.Tests {
             KeyNotFoundException exception = Assert.Throws<KeyNotFoundException>(() => VisioStencils.BasicShapes.Get("not-here"));
 
             Assert.Contains("not-here", exception.Message);
+        }
+
+        private static string? GetUserCellValue(VisioShape shape, string name) {
+            return shape.UserCells
+                .FirstOrDefault(cell => string.Equals(cell.Name, name, StringComparison.OrdinalIgnoreCase))
+                ?.Value;
         }
 
         private static void CreatePackageWithMasters(string path, params string[] masterNames) {

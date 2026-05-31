@@ -143,12 +143,12 @@ Goal: native and external stencil packs feel first-class, not like shortcuts.
 - Improve master metadata extraction: categories, keywords, preview/icon relationship metadata, dimensions, connection points, and aliases. Initial package preview metadata now records image relationship id, target, content type, extension, and embedded byte length when package masters expose image relationships, controlled by `VisioStencilPackageLoadOptions.ExtractPreviewImageMetadata`; native master connection points are learned by `ExtractConnectionPointMetadata` and persisted through catalog manifests; callers can also extract embedded preview/icon payloads with `VisioStencilPackageCatalog.ExtractPreviewImages(...)`, write them with `ExtractPreviewImagesToDirectory(...)`, or generate a reviewable HTML preview-payload gallery with deterministic SVG thumbnail artifacts for browser-renderable payloads through `CreatePreviewGallery(...)`.
 - Add package-backed master reuse without forcing generated fallback where a real master exists.
 - Add first-party generated stencil packs for:
-  - servers and devices;
-  - cloud generic;
-  - security and identity;
-  - containers/Kubernetes generic;
-  - data/platform services;
-  - collaboration/business process symbols.
+  - servers and devices: initial Infrastructure catalog added;
+  - cloud generic: initial Cloud catalog added;
+  - security and identity: initial Security and Identity catalog added;
+  - containers/Kubernetes generic: initial Containers and Kubernetes catalog added;
+  - data/platform services: initial Data and Platform catalog added;
+  - collaboration/business process symbols: initial Collaboration and Business Process catalog added.
 - Add a real stencil gallery document builder for catalog review and debugging. Initial support now creates overview/category-paginated `.vsdx` review documents with visible Shape Data rows for stencil id, catalog/category, master, search metadata, source package, preview image, and connection-point counts.
 - Add custom stencil export, ideally to reusable package-backed stencil form when feasible.
 - Broaden typed stencil profiles from catalog/category/source-pack/family, alias/keyword/tag, placed/source dimensions, icon identity, preview-image content type/extension, extracted package preview/icon payloads, reviewable preview-payload gallery artifacts with deterministic SVG thumbnails for browser-renderable payloads, generated paginated gallery `.vsdx` documents with Shape Data metadata, learned native connection-point metadata, and placed connection-point summaries into richer package-family and native metadata.
