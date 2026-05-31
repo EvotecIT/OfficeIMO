@@ -45,6 +45,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "jenkins" && shape.NameU == "Process");
             Assert.Contains(page.Shapes, shape => shape.Id == "data" && shape.NameU == "Data");
             Assert.Contains(page.Shapes, shape => shape.Id == "vault" && shape.NameU == "Decision");
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(7, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Architecture" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "arch.service" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "arch.compute" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "arch.security" && usage.Count == 1);
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
             Assert.All(page.Connectors.Where(connector => !string.IsNullOrWhiteSpace(connector.Label)), connector => Assert.NotNull(connector.LabelPlacement));
             string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();
@@ -64,6 +70,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Compute", VisioStencils.Architecture.Get("vm").Name);
             Assert.Equal("Security", VisioStencils.Architecture.Get("identity").Name);
             Assert.Equal("Queue", VisioStencils.All.Get("arch.queue").Name);
+            Assert.Equal("External System", VisioStencils.Architecture.Get("third-party").Name);
         }
 
         [Fact]

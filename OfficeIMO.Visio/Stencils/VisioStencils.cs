@@ -66,6 +66,7 @@ namespace OfficeIMO.Visio.Stencils {
                 Shape("arch.queue", "Queue", "Data", "Architecture", 1.8, 1.0, "bus", "stream", "broker"),
                 Shape("arch.security", "Security", "Decision", "Architecture", 1.7, 1.1, "identity", "key", "policy"),
                 Shape("arch.network", "Network", "Rectangle", "Architecture", 2.2, 1.0, "subnet", "vnet", "route"),
+                Shape("arch.external", "External System", "Process", "Architecture", 1.8, 1.0, "external", "third-party", "partner"),
                 Shape("arch.region", "Region", "Rectangle", "Architecture", 4.0, 2.4, "container", "boundary")
             });
 

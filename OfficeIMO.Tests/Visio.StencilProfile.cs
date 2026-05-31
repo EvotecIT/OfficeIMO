@@ -68,11 +68,13 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(first.ToText(), second.ToText());
             Assert.Equal(2, first.GeneratedMasterBackedShapeCount);
+            Assert.Equal(2, first.StencilBackedShapeCount);
             Assert.Equal(2, first.TotalConnectionPoints);
             Assert.Equal(2, first.ConnectionPointShapeCount);
             Assert.Equal(new[] { "Criticality" }, first.ShapeDataKeys);
             Assert.Equal(new[] { "Protocol" }, first.ConnectorShapeDataKeys);
             Assert.Contains("profile.generatedMasterBackedShapeCount=2", text, StringComparison.Ordinal);
+            Assert.Contains("profile.stencilBackedShapeCount=2", text, StringComparison.Ordinal);
             Assert.Contains(first.Usages, usage => usage.MasterNameU == "Decision" && usage.StencilId == "flow.decision" && usage.Count == 1 && usage.ConnectionPointCount == 1);
             Assert.Contains(first.Usages, usage => usage.MasterNameU == "Process" && usage.StencilId == "flow.process" && usage.ShapeDataKeys.Count == 0 && usage.ConnectionPointCount == 1);
             Assert.Contains("profile.totalConnectionPoints=2", text, StringComparison.Ordinal);

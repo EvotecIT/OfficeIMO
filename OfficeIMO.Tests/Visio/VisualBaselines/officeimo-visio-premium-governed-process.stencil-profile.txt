@@ -6,6 +6,7 @@ profile.masterBackedShapeCount=0
 profile.packageBackedShapeCount=0
 profile.generatedMasterBackedShapeCount=0
 profile.basicGeometryShapeCount=20
+profile.stencilBackedShapeCount=0
 profile.semanticOnlyShapeCount=0
 profile.shapeDataKeys=
 profile.connectorShapeDataKeys=

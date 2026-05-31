@@ -93,6 +93,11 @@ namespace OfficeIMO.Visio {
             .Where(usage => usage.Kind == VisioStencilProfileUsageKind.BasicGeometry)
             .Sum(usage => usage.Count);
 
+        /// <summary>Number of inspected shapes that carry OfficeIMO stencil identity metadata.</summary>
+        public int StencilBackedShapeCount => Usages
+            .Where(usage => !string.IsNullOrWhiteSpace(usage.StencilId))
+            .Sum(usage => usage.Count);
+
         /// <summary>Number of shapes grouped only by OfficeIMO semantic kind.</summary>
         public int SemanticOnlyShapeCount => Usages
             .Where(usage => usage.Kind == VisioStencilProfileUsageKind.SemanticOnly)
@@ -173,6 +178,7 @@ namespace OfficeIMO.Visio {
             AppendLine(builder, "profile.packageBackedShapeCount", PackageBackedShapeCount);
             AppendLine(builder, "profile.generatedMasterBackedShapeCount", GeneratedMasterBackedShapeCount);
             AppendLine(builder, "profile.basicGeometryShapeCount", BasicGeometryShapeCount);
+            AppendLine(builder, "profile.stencilBackedShapeCount", StencilBackedShapeCount);
             AppendLine(builder, "profile.semanticOnlyShapeCount", SemanticOnlyShapeCount);
             AppendLine(builder, "profile.shapeDataKeys", string.Join(",", ShapeDataKeys));
             AppendLine(builder, "profile.connectorShapeDataKeys", string.Join(",", ConnectorShapeDataKeys));

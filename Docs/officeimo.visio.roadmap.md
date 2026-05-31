@@ -23,7 +23,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
 - A reusable eight-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
 - Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`.
-- Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, Shape Data key, semantic-kind, catalog, category, tag, source-package, and connection-point summaries that survive save/load for package-backed masters and generated stencil placements.
+- Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, stencil-backed, Shape Data key, semantic-kind, catalog, category, tag, source-package, and connection-point summaries that survive save/load for package-backed masters and generated stencil placements.
 
 The external stencil and graph slice from PR #1865 is merged. The next checkpoint is no longer proving that the Visio core can generate useful diagrams; it is making the public package story clean, the showcase reproducible, and the generated output visually strong enough to support premium positioning.
 
@@ -69,7 +69,7 @@ That implies three durable layers:
 - External multi-file stencil-pack examples.
 - Catalog query helpers: `FindBest`, `TryFindBest`, category/tag/alias search, and graph node overloads.
 - Stencil gallery robustness around generated IDs, connector IDs, metric-page sizing, and optional-pack probing.
-- Graph stencil nodes selected from a catalog preserve catalog provenance in stencil profiles, and built-in catalog stencil nodes inherit diagram theme styling unless they come from package-backed external artwork.
+- Graph and architecture stencil nodes selected from a catalog preserve catalog provenance in stencil profiles, and built-in catalog stencil nodes inherit diagram theme styling unless they come from package-backed external artwork.
 
 ### Examples And Showcase
 
@@ -81,6 +81,7 @@ That implies three durable layers:
 - Premium gallery baseline proof through `VisioPremiumVisualBaselineTests`, including approved PNG/SVG fixtures, PNG pixel-diff artifacts on failure, tolerance knobs for renderer noise, and opt-in refresh via `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1`.
 - Inspection snapshot/diff API for deterministic structure review across pages, masters, shapes, connectors, Shape Data, User cells, semantic tags, shape connection points, and connector waypoints.
 - Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review, connection-point richness summaries, and persisted package-backed provenance after reload.
+- Architecture builder components now use the first-party architecture stencil catalog for provenance, so cloud architecture gallery output is baseline-reviewed as stencil-backed diagram content rather than anonymous geometry.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags into shape and master metadata, so profiles and inspection snapshots can prove which catalog and package supplied a shape after save/load.
 - Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
 - Obstacle-aware orthogonal routing APIs plus `PolishDiagram` options for rerouting connectors around unrelated top-level shapes, containers, background zones/trust boundaries, generated adornments, and existing connector paths before label cleanup.

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
@@ -438,12 +439,19 @@ namespace OfficeIMO.Visio.Diagrams {
         private void AddComponents(VisioPage page) {
             foreach (ComponentItem component in _components) {
                 GetComponentShape(component.Kind, out string masterNameU, out double width, out double height);
-                VisioShape shape = new(component.Id, GridX(component.Column, 1), GridY(component.Row, 1), width, height, component.Text) {
-                    NameU = masterNameU,
-                };
+                string stencilId = GetComponentStencilId(component.Kind);
+                VisioShape shape = page.AddStencilShape(
+                    VisioStencils.Architecture,
+                    stencilId,
+                    component.Id,
+                    GridX(component.Column, 1),
+                    GridY(component.Row, 1),
+                    width,
+                    height,
+                    component.Text);
+                shape.NameU = masterNameU;
                 GetComponentStyle(component.Kind).ApplyTo(shape);
                 component.Shape = shape;
-                page.Shapes.Add(shape);
             }
         }
 
@@ -522,6 +530,31 @@ namespace OfficeIMO.Visio.Diagrams {
                 default:
                     masterNameU = "Process";
                     break;
+            }
+        }
+
+        private static string GetComponentStencilId(VisioArchitectureShapeKind kind) {
+            switch (kind) {
+                case VisioArchitectureShapeKind.Actor:
+                    return "actor";
+                case VisioArchitectureShapeKind.Compute:
+                    return "compute";
+                case VisioArchitectureShapeKind.Gateway:
+                    return "gateway";
+                case VisioArchitectureShapeKind.Database:
+                    return "database";
+                case VisioArchitectureShapeKind.Storage:
+                    return "storage";
+                case VisioArchitectureShapeKind.Queue:
+                    return "queue";
+                case VisioArchitectureShapeKind.Security:
+                    return "security";
+                case VisioArchitectureShapeKind.Network:
+                    return "network";
+                case VisioArchitectureShapeKind.External:
+                    return "external";
+                default:
+                    return "service";
             }
         }
 
