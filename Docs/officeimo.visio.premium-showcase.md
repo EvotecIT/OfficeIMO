@@ -34,7 +34,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 
 - **Cloud architecture:** zones, trust boundaries, gateway, eventing, data store, runbook links, Shape Data.
 - **Network segmentation:** internet, firewall, core switch, server zone, client zone, monitoring, labeled links.
-- **Executive dependency graph:** layered service graph with owners, critical path, external dependencies, and grouped runtime zone.
+- **Executive dependency graph:** layered first-party architecture stencil graph with owners, critical path, external dependencies, and grouped runtime zone.
 - **Technical topology:** zero-trust runtime mesh, edge/runtime/state zones, policy path, eventing, cache, and secrets flow.
 - **Print audit trail:** print-safe access-review flow with monochrome-safe typography and compliance-friendly spacing.
 - **Incident sequence:** actor/system/service participants, activations, notes, error path, and remediation path.
@@ -54,5 +54,6 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 1. Extend the new obstacle-aware routing into zone/group-aware routes and add lifeline/zone-aware connector-label cleanup in dense premium diagrams.
 2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it.
 3. Keep tightening the baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
-4. Extend current premium inspection/profile baselines into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
-5. Broaden the gallery from eight baseline-approved diagrams toward a larger market-facing set.
+4. Fix generated-master stencil rendering for graph nodes so the gallery can prove master-backed first-party stencils without sacrificing PNG/SVG quality.
+5. Extend current premium inspection/profile baselines into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
+6. Broaden the gallery from eight baseline-approved diagrams toward a larger market-facing set.

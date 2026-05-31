@@ -28,6 +28,10 @@ namespace OfficeIMO.Visio.Stencils {
             return AddStencilShape(page, stencil, id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: null);
         }
 
+        internal static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text, string? catalogName) {
+            return AddStencilShape(page, stencil, id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: catalogName);
+        }
+
         /// <summary>
         /// Adds a stencil shape using an explicit size and measurement unit.
         /// </summary>

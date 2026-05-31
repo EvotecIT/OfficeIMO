@@ -10,11 +10,12 @@ namespace OfficeIMO.Visio.Diagrams {
     /// </summary>
     public sealed class VisioGraphDiagramBuilder {
         private sealed class NodeItem {
-            public NodeItem(string id, string text, VisioGraphNodeKind kind, VisioStencilShape? stencil) {
+            public NodeItem(string id, string text, VisioGraphNodeKind kind, VisioStencilShape? stencil, string? stencilCatalogName) {
                 Id = id;
                 Text = text;
                 Kind = kind;
                 Stencil = stencil;
+                StencilCatalogName = stencilCatalogName;
             }
 
             public string Id { get; }
@@ -24,6 +25,8 @@ namespace OfficeIMO.Visio.Diagrams {
             public VisioGraphNodeKind Kind { get; }
 
             public VisioStencilShape? Stencil { get; }
+
+            public string? StencilCatalogName { get; }
 
             public int Layer { get; set; }
 
@@ -276,7 +279,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentOutOfRangeException(nameof(kind));
             }
 
-            NodeItem node = new(normalizedId, text ?? string.Empty, kind, null);
+            NodeItem node = new(normalizedId, text ?? string.Empty, kind, null, null);
             _nodes.Add(node);
             _nodesById.Add(normalizedId, node);
             return this;
@@ -290,7 +293,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException($"A graph diagram item with id '{normalizedId}' already exists.", nameof(id));
             }
 
-            NodeItem node = new(normalizedId, text ?? string.Empty, VisioGraphNodeKind.Process, stencil);
+            NodeItem node = new(normalizedId, text ?? string.Empty, InferStencilNodeKind(stencil), stencil, null);
             _nodes.Add(node);
             _nodesById.Add(normalizedId, node);
             return this;
@@ -299,7 +302,16 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Adds a graph node backed by the first matching stencil in a catalog.</summary>
         public VisioGraphDiagramBuilder StencilNode(string id, string text, VisioStencilCatalog catalog, params string[] stencilQueries) {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
-            return StencilNode(id, text, catalog.FindBest(stencilQueries));
+            VisioStencilShape stencil = catalog.FindBest(stencilQueries);
+            string normalizedId = RequireId(id, nameof(id), "Node id");
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A graph diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            NodeItem node = new(normalizedId, text ?? string.Empty, InferStencilNodeKind(stencil), stencil, catalog.Name);
+            _nodes.Add(node);
+            _nodesById.Add(normalizedId, node);
+            return this;
         }
 
         /// <summary>Adds or updates Shape Data metadata that will be written to a graph node.</summary>
@@ -747,10 +759,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetNodeShape(node, out string masterNameU, out double width, out double height);
                 VisioShape shape;
                 if (node.Stencil != null) {
-                    shape = page.AddStencilShape(node.Stencil, node.Id, node.PinX, node.PinY, width, height, string.Empty);
-                    if (node.StyleOverride != null) {
-                        node.StyleOverride.ApplyTo(shape);
-                    }
+                    shape = page.AddStencilShape(node.Stencil, node.Id, node.PinX, node.PinY, width, height, string.Empty, node.StencilCatalogName);
+                    VisioShapeStyle? stencilStyle = node.StyleOverride ?? GetBuiltInStencilNodeStyle(node);
+                    stencilStyle?.ApplyTo(shape);
                 } else {
                     shape = new VisioShape(node.Id, node.PinX, node.PinY, width, height, node.Text) {
                         NameU = masterNameU,
@@ -986,6 +997,14 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
+        private VisioShapeStyle? GetBuiltInStencilNodeStyle(NodeItem node) {
+            if (node.Stencil == null || !string.IsNullOrWhiteSpace(node.Stencil.SourcePackagePath)) {
+                return null;
+            }
+
+            return GetNodeStyle(node.Kind);
+        }
+
         private static bool HasStencilCaption(NodeItem node) {
             return node.Stencil != null && !string.IsNullOrWhiteSpace(node.Text);
         }
@@ -1033,6 +1052,24 @@ namespace OfficeIMO.Visio.Diagrams {
                 default:
                     return _theme.Primary;
             }
+        }
+
+        private static VisioGraphNodeKind InferStencilNodeKind(VisioStencilShape stencil) {
+            string masterName = stencil.MasterNameU ?? string.Empty;
+            if (string.Equals(masterName, "Data", StringComparison.OrdinalIgnoreCase)) {
+                return VisioGraphNodeKind.Data;
+            }
+
+            if (string.Equals(masterName, "Decision", StringComparison.OrdinalIgnoreCase)) {
+                return VisioGraphNodeKind.Decision;
+            }
+
+            if (string.Equals(masterName, "Circle", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(stencil.Category, "Network", StringComparison.OrdinalIgnoreCase) && string.Equals(stencil.Id, "net.internet", StringComparison.OrdinalIgnoreCase)) {
+                return VisioGraphNodeKind.External;
+            }
+
+            return VisioGraphNodeKind.Process;
         }
 
         private VisioConnectorStyle GetConnectorStyle(VisioGraphConnectorKind kind, bool directed) {

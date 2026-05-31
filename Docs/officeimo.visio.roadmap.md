@@ -69,6 +69,7 @@ That implies three durable layers:
 - External multi-file stencil-pack examples.
 - Catalog query helpers: `FindBest`, `TryFindBest`, category/tag/alias search, and graph node overloads.
 - Stencil gallery robustness around generated IDs, connector IDs, metric-page sizing, and optional-pack probing.
+- Graph stencil nodes selected from a catalog preserve catalog provenance in stencil profiles, and built-in catalog stencil nodes inherit diagram theme styling unless they come from package-backed external artwork.
 
 ### Examples And Showcase
 

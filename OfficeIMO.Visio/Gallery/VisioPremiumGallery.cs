@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using OfficeIMO.Visio.Diagrams;
+using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -131,13 +132,13 @@ namespace OfficeIMO.Visio {
                     .Margins(0.8, 0.85, 0.8, 0.9)
                     .NodeSize(1.35, 0.78)
                     .Spacing(0.72, 0.9)
-                    .Node("sales", "Sales", VisioGraphNodeKind.External)
-                    .Node("portal", "Portal", VisioGraphNodeKind.Emphasis)
-                    .Node("checkout", "Checkout", VisioGraphNodeKind.Process)
-                    .Node("risk", "Risk", VisioGraphNodeKind.Decision)
-                    .Node("payments", "Payments", VisioGraphNodeKind.Process)
-                    .Node("ledger", "Ledger", VisioGraphNodeKind.Data)
-                    .Node("warehouse", "Warehouse", VisioGraphNodeKind.Data)
+                    .StencilNode("sales", "Sales", VisioStencils.Architecture, "actor", "client")
+                    .StencilNode("portal", "Portal", VisioStencils.Architecture, "service", "app")
+                    .StencilNode("checkout", "Checkout", VisioStencils.Architecture, "service", "api")
+                    .StencilNode("risk", "Risk", VisioStencils.Architecture, "security", "policy")
+                    .StencilNode("payments", "Payments", VisioStencils.Architecture, "service", "api")
+                    .StencilNode("ledger", "Ledger", VisioStencils.Architecture, "database", "sql")
+                    .StencilNode("warehouse", "Warehouse", VisioStencils.Architecture, "storage", "object-store")
                     .Root("sales")
                     .ControlEdge("sales-portal", "sales", "portal", "qualified lead")
                     .ControlEdge("portal-checkout", "portal", "checkout", "order")

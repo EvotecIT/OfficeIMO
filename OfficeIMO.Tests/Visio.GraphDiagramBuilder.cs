@@ -139,6 +139,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Circle", page.Shapes.Single(shape => shape.Id == "client").MasterNameU);
             Assert.Equal("Process", page.Shapes.Single(shape => shape.Id == "service").MasterNameU);
             Assert.Contains(page.Shapes, shape => shape.Id == "client-label" && shape.Text == "Client");
+            Assert.NotEqual(Color.White, page.Shapes.Single(shape => shape.Id == "service").FillColor);
+
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Contains("Network", profile.StencilCatalogs);
+            Assert.Contains("Flowchart", profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "net.wireless" && usage.StencilCatalogName == "Network");
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "flow.process" && usage.StencilCatalogName == "Flowchart");
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
