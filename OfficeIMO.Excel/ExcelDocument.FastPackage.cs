@@ -494,7 +494,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, copyRawPart: false);
+                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, copyRawPart: false, rawBytes: null);
                 }
 
                 parts.Add(model);
@@ -511,12 +511,13 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class ExtendedPartModel {
-            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, bool copyRawPart) {
+            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, bool copyRawPart, byte[]? rawBytes) {
                 Part = part;
                 Path = path;
                 ContentType = contentType;
                 RootElement = rootElement;
                 CopyRawPart = copyRawPart;
+                RawBytes = rawBytes;
             }
 
             internal OpenXmlPart Part { get; }
@@ -528,6 +529,8 @@ namespace OfficeIMO.Excel {
             internal OpenXmlElement? RootElement { get; }
 
             internal bool CopyRawPart { get; }
+
+            internal byte[]? RawBytes { get; }
         }
 
         private sealed class ExtendedRelationshipModel {
@@ -596,12 +599,22 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            using var source = part.GetStream(FileMode.Open, FileAccess.Read);
-            if (source.CanSeek && source.Length == 0) {
-                return false;
+            byte[] rawBytes;
+            using (var source = part.GetStream(FileMode.Open, FileAccess.Read)) {
+                if (source.CanSeek && source.Length == 0) {
+                    return false;
+                }
+
+                using var buffer = new MemoryStream();
+                source.CopyTo(buffer);
+                if (buffer.Length == 0) {
+                    return false;
+                }
+
+                rawBytes = buffer.ToArray();
             }
 
-            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, copyRawPart: true);
+            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, copyRawPart: true, rawBytes);
             return true;
         }
 
@@ -762,7 +775,7 @@ namespace OfficeIMO.Excel {
                         WriteWorksheetEntry(archive, worksheetModel);
                         ReportTiming("Save.ExtendedPackage.WriteSimpleWorksheet");
                     } else if (part.CopyRawPart) {
-                        WriteRawPartEntry(archive, part.Path, part.Part);
+                        WriteRawPartEntry(archive, part.Path, part.RawBytes!);
                         ReportTiming("Save.ExtendedPackage.WriteRawPart");
                     } else {
                         WriteOpenXmlElementEntry(archive, part.Path, part.RootElement!);
@@ -1618,11 +1631,10 @@ namespace OfficeIMO.Excel {
             stream.Write(bytes, 0, bytes.Length);
         }
 
-        private static void WriteRawPartEntry(ZipArchive archive, string path, OpenXmlPart part) {
+        private static void WriteRawPartEntry(ZipArchive archive, string path, byte[] bytes) {
             var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
-            using var source = part.GetStream(FileMode.Open, FileAccess.Read);
             using var stream = entry.Open();
-            source.CopyTo(stream);
+            stream.Write(bytes, 0, bytes.Length);
         }
 
         private static void WriteWorksheetRelationshipsEntry(ZipArchive archive, FastWorksheetPackageModel worksheet) {

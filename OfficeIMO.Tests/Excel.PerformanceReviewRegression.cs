@@ -5032,8 +5032,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal("20", cells["B3"].CellValue!.Text);
 
             var chartPart = dataPart.DrawingsPart!.ChartParts.Single();
-            Assert.NotNull(chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault());
-            Assert.NotNull(chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault());
+            var stylePart = Assert.Single(chartPart.GetPartsOfType<ChartStylePart>());
+            var colorStylePart = Assert.Single(chartPart.GetPartsOfType<ChartColorStylePart>());
+            using (var styleStream = stylePart.GetStream(FileMode.Open, FileAccess.Read)) {
+                Assert.True(styleStream.Length > 0);
+            }
+            using (var colorStyleStream = colorStylePart.GetStream(FileMode.Open, FileAccess.Read)) {
+                Assert.True(colorStyleStream.Length > 0);
+            }
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
