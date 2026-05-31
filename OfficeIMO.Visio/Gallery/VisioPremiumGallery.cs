@@ -122,8 +122,10 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioDocument CreateExecutiveDependencyGraph(string filePath) {
-            return VisioDocument.Create(filePath)
-                .GraphDiagram("Premium Executive Dependencies", graph => graph
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+
+            return document.GraphDiagram("Premium Executive Dependencies", graph => graph
                     .Title("Revenue Platform - Critical Path")
                     .Theme(VisioStyleTheme.Enterprise())
                     .Layout(VisioGraphLayout.Layered)

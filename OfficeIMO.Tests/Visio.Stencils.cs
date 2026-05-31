@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void GeneratedStencilMasterInstancesUseRendererFriendlyShapeReferences() {
+        public void GeneratedStencilShapesUseRendererFriendlyLocalGeometry() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
@@ -97,15 +97,16 @@ namespace OfficeIMO.Tests {
             XElement serviceShape = pageShapes.Single(shape => GetOriginalId(shape, v) == "service");
             XElement databaseShape = pageShapes.Single(shape => GetOriginalId(shape, v) == "database");
 
-            Assert.NotNull(serviceShape.Attribute("Master"));
-            Assert.NotNull(databaseShape.Attribute("Master"));
+            Assert.Null(serviceShape.Attribute("Master"));
+            Assert.Null(databaseShape.Attribute("Master"));
             Assert.Null(serviceShape.Attribute("MasterShape"));
             Assert.Null(databaseShape.Attribute("MasterShape"));
             Assert.Equal("#1F77B4", GetCellValue(serviceShape, v, "FillForegnd"));
             Assert.Equal("#0A4678", GetCellValue(serviceShape, v, "LineColor"));
             Assert.Equal("#2EA043", GetCellValue(databaseShape, v, "FillForegnd"));
             Assert.Equal("#125C2B", GetCellValue(databaseShape, v, "LineColor"));
-            Assert.DoesNotContain(serviceShape.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Geometry");
+            Assert.Contains(serviceShape.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Geometry");
+            Assert.Contains(databaseShape.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Geometry");
 
             XDocument mastersXml = XDocument.Load(zip.GetEntry("visio/masters/masters.xml")!.Open());
             Assert.Contains(mastersXml.Root!.Elements(v + "Master"), master => (string?)master.Attribute("NameU") == "Process");

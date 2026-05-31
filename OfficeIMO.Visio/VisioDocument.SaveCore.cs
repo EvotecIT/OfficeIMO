@@ -265,10 +265,10 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Name", masterShapeName);
                             writer.WriteAttributeString("NameU", master.NameU);
                             writer.WriteAttributeString("Type", "Shape");
-                            writer.WriteAttributeString("LineStyle", "0");
-                            writer.WriteAttributeString("FillStyle", "0");
-                            writer.WriteAttributeString("TextStyle", "0");
                             if (masterDefinition?.GeometryKind == BuiltinGeometryKind.DynamicConnector) {
+                                writer.WriteAttributeString("LineStyle", "0");
+                                writer.WriteAttributeString("FillStyle", "0");
+                                writer.WriteAttributeString("TextStyle", "0");
                                 WriteXForm1D(writer, ns, 0, 0, 1, 0);
                                 WriteCell(writer, ns, "OneD", 1);
                                 WriteCell(writer, ns, "ObjType", 2);
@@ -286,6 +286,9 @@ namespace OfficeIMO.Visio {
                                 WriteCell(writer, ns, "LayerMember", 0);
                                 WriteConnectorControlSection(writer, ns, masterHeight);
                             } else {
+                                writer.WriteAttributeString("LineStyle", "1");
+                                writer.WriteAttributeString("FillStyle", "1");
+                                writer.WriteAttributeString("TextStyle", "1");
                                 WriteXForm(writer, ns, s.PinX, s.PinY, masterWidth, masterHeight, masterLocPinX, masterLocPinY, s.Angle);
                                 WriteCell(writer, ns, "ObjType", 1);
                                 if (masterDefinition?.LockAspect == true) {
@@ -710,6 +713,9 @@ namespace OfficeIMO.Visio {
             writer.WriteAttributeString("NameU", shape.NameU ?? effectiveMaster?.NameU ?? shapeName);
 
             bool isRawMasterBackedShape = effectiveMaster?.RawMasterContentXml != null;
+            bool useLocalGeometryForGeneratedStencil = effectiveMaster != null &&
+                                                       effectiveMaster.RawMasterContentXml == null &&
+                                                       VisioStencilMetadata.HasStencilMetadata(shape);
             bool isRawMasterGroup = isRawMasterBackedShape &&
                                     string.Equals(effectiveMaster!.Shape.Type, "Group", StringComparison.OrdinalIgnoreCase);
             bool isGroup = string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase) ||
@@ -722,7 +728,7 @@ namespace OfficeIMO.Visio {
                 writer.WriteAttributeString("TextStyle", "0");
             }
 
-            if (effectiveMaster != null) {
+            if (effectiveMaster != null && !useLocalGeometryForGeneratedStencil) {
                 writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, effectiveMaster));
                 if (shape.MasterShapeId != null) {
                     writer.WriteAttributeString("MasterShape", shape.MasterShapeId);
@@ -731,7 +737,7 @@ namespace OfficeIMO.Visio {
 
             KeyValuePair<string, string>? originalIdEntry = GetOriginalIdEntry(persistedIds, shape.Id);
             bool wroteChildShapesInBody = false;
-            if (effectiveMaster != null && (isRawMasterBackedShape || !isGroup)) {
+            if (effectiveMaster != null && !useLocalGeometryForGeneratedStencil && (isRawMasterBackedShape || !isGroup)) {
                 WriteMasterBackedShapeBody(writer, ns, shape, effectiveMaster, originalIdEntry, persistedIds, layerIndexes);
                 wroteChildShapesInBody = isRawMasterBackedShape;
             } else if (shape.PreservedShapeChildren.Count > 0) {

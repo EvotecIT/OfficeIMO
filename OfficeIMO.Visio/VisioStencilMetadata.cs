@@ -58,6 +58,17 @@ namespace OfficeIMO.Visio {
             return cells.AsReadOnly();
         }
 
+        internal static bool HasStencilMetadata(VisioShape shape) {
+            if (shape == null) {
+                return false;
+            }
+
+            return shape.UserCells.Any(cell =>
+                string.Equals(cell.Name, VisioSemanticUserCells.StencilId, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cell.Name, VisioSemanticUserCells.StencilName, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(cell.Name, VisioSemanticUserCells.StencilCatalog, StringComparison.OrdinalIgnoreCase));
+        }
+
         internal static string? GetUserCellValue(IEnumerable<VisioInspectionUserCellSnapshot> userCells, string name) {
             return userCells
                 .FirstOrDefault(cell => string.Equals(cell.Name, name, StringComparison.OrdinalIgnoreCase))
