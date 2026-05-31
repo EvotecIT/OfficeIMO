@@ -35,23 +35,40 @@ namespace OfficeIMO.Excel {
                     if (adaptiveRows.TryGetSparseRows(out var sparseOffsets, out var sparseValues)) {
                         int sparseIndex = 0;
                         if (canCancel) {
-                            for (int r = 0; r < adaptiveRows.Count; r++) {
+                            int r = 0;
+                            while (r < adaptiveRows.Count) {
                                 ct.ThrowIfCancellationRequested();
 
                                 if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == r) {
                                     yield return sparseValues[sparseIndex];
                                     sparseIndex++;
+                                    r++;
                                 } else {
-                                    yield return null;
+                                    int nextPopulatedOffset = sparseIndex < sparseOffsets.Length
+                                        ? sparseOffsets[sparseIndex]
+                                        : adaptiveRows.Count;
+                                    while (r < nextPopulatedOffset) {
+                                        ct.ThrowIfCancellationRequested();
+                                        yield return null;
+                                        r++;
+                                    }
                                 }
                             }
                         } else {
-                            for (int r = 0; r < adaptiveRows.Count; r++) {
+                            int r = 0;
+                            while (r < adaptiveRows.Count) {
                                 if (sparseIndex < sparseOffsets.Length && sparseOffsets[sparseIndex] == r) {
                                     yield return sparseValues[sparseIndex];
                                     sparseIndex++;
+                                    r++;
                                 } else {
-                                    yield return null;
+                                    int nextPopulatedOffset = sparseIndex < sparseOffsets.Length
+                                        ? sparseOffsets[sparseIndex]
+                                        : adaptiveRows.Count;
+                                    while (r < nextPopulatedOffset) {
+                                        yield return null;
+                                        r++;
+                                    }
                                 }
                             }
                         }
