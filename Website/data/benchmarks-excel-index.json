@@ -1,25 +1,25 @@
 {
-    "schemaVersion":  1,
-    "entries":  [
-                    {
-                        "generatedUtc":  "2026-05-30T20:39:03.2248083Z",
-                        "runMode":  "quick",
-                        "publish":  false,
-                        "framework":  ".NET 8.0.27",
-                        "summaryPath":  ".\\Website\\data\\benchmarks-excel-summary.json",
-                        "dataPath":  ".\\Website\\data\\benchmarks-excel.json",
-                        "markdownPath":  ".\\Docs\\benchmarks\\officeimo.excel.comparison-report.md",
-                        "meta":  {
-                                     "commit":  "4d0bc4e30cc28fb2ef8c0d947def0f4e71dbb570",
-                                     "branch":  "codex/excel-performance-worst-offenders",
-                                     "dotnetSdk":  "10.0.300",
-                                     "runtime":  ".NET Framework 4.8.9325.0",
-                                     "osDescription":  "Microsoft Windows 10.0.26200 ",
-                                     "osArchitecture":  "X64",
-                                     "processArchitecture":  "X64",
-                                     "machineName":  "EVOMAGIC",
-                                     "processorCount":  32
-                                 }
-                    }
-                ]
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "generatedUtc": "2026-05-31T06:37:06.3174278Z",
+      "runMode": "quick",
+      "publish": false,
+      "framework": ".NET 8.0.27",
+      "summaryPath": ".\\Website\\data\\benchmarks-excel-summary.json",
+      "dataPath": ".\\Website\\data\\benchmarks-excel.json",
+      "markdownPath": ".\\Docs\\benchmarks\\officeimo.excel.comparison-report.md",
+      "meta": {
+        "commit": "6a5cf18cec2d1959ee842f039ae8a3d479d6f0f6",
+        "branch": "codex/excel-performance-worst-offenders",
+        "dotnetSdk": "10.0.300",
+        "runtime": ".NET 9.0.14",
+        "osDescription": "Microsoft Windows 10.0.26200",
+        "osArchitecture": "X64",
+        "processArchitecture": "X64",
+        "machineName": "EVOMAGIC",
+        "processorCount": 32
+      }
+    }
+  ]
 }

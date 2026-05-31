@@ -1,6 +1,6 @@
 # OfficeIMO.Excel Benchmark Report
 
-Generated: 2026-05-30T20:39:03.2248083Z
+Generated: 2026-05-31T06:37:06.3174278Z
 Run mode: quick
 Publish: False
 Machine: EVOMAGIC (32 processors)
@@ -164,15 +164,6 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | package-profile | write-cellvalue-scalars | OfficeIMO.Excel | 2.13 ms | 1.1 MB | 46.3 KB | OfficeIMO.Excel | Win |
 | 2500 | package-profile | write-cellvalue-scalars | ClosedXML | 14.10 ms | 8.8 MB | 45.4 KB | OfficeIMO.Excel | 563.0% slower than OfficeIMO |
 | 2500 | package-profile | write-cellvalue-scalars | EPPlus | 27.22 ms | 12.5 MB | 42.4 KB | OfficeIMO.Excel | 1179.7% slower than OfficeIMO |
-| 2500 | package-profile | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 1.39 ms | 447.0 KB | 47.3 KB | LargeXlsx | 18.9% faster than OfficeIMO |
-| 2500 | package-profile | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 1.71 ms | 1.1 MB | 48.2 KB | LargeXlsx | Loss +23.2% |
-| 2500 | package-profile | write-cellvalues-headerless-rectangle-direct | ClosedXML | 13.32 ms | 10.0 MB | 53.0 KB | LargeXlsx | 678.7% slower than OfficeIMO |
-| 2500 | package-profile | write-cellvalues-headerless-rectangle-direct | EPPlus | 25.99 ms | 12.7 MB | 52.5 KB | LargeXlsx | 1420.0% slower than OfficeIMO |
-| 2500 | package-profile | write-cellvalues-rectangle-direct | LargeXlsx | 3.87 ms | 758.3 KB | 138.4 KB | LargeXlsx | 16.5% faster than OfficeIMO |
-| 2500 | package-profile | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 4.64 ms | 2.0 MB | 138.0 KB | LargeXlsx | Loss +19.8% |
-| 2500 | package-profile | write-cellvalues-rectangle-direct | MiniExcel | 9.47 ms | 22.7 MB | 153.7 KB | LargeXlsx | 104.0% slower than OfficeIMO |
-| 2500 | package-profile | write-cellvalues-rectangle-direct | ClosedXML | 40.20 ms | 21.7 MB | 120.1 KB | LargeXlsx | 766.4% slower than OfficeIMO |
-| 2500 | package-profile | write-cellvalues-rectangle-direct | EPPlus | 45.62 ms | 24.1 MB | 114.1 KB | LargeXlsx | 883.2% slower than OfficeIMO |
 | 2500 | package-profile | write-cellvalue-strings | OfficeIMO.Excel | 3.87 ms | 2.6 MB | 55.1 KB | OfficeIMO.Excel | Win |
 | 2500 | package-profile | write-cellvalue-strings | ClosedXML | 14.43 ms | 11.0 MB | 50.3 KB | OfficeIMO.Excel | 272.7% slower than OfficeIMO |
 | 2500 | package-profile | write-cellvalue-strings | EPPlus | 25.28 ms | 12.5 MB | 48.1 KB | OfficeIMO.Excel | 553.1% slower than OfficeIMO |
@@ -185,6 +176,15 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | package-profile | write-cellvalue-temporal | OfficeIMO.Excel | 2.80 ms | 1.4 MB | 63.3 KB | OfficeIMO.Excel | Win |
 | 2500 | package-profile | write-cellvalue-temporal | ClosedXML | 18.76 ms | 9.5 MB | 54.5 KB | OfficeIMO.Excel | 571.0% slower than OfficeIMO |
 | 2500 | package-profile | write-cellvalue-temporal | EPPlus | 30.46 ms | 14.4 MB | 53.1 KB | OfficeIMO.Excel | 989.6% slower than OfficeIMO |
+| 2500 | package-profile | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 1.39 ms | 447.0 KB | 47.3 KB | LargeXlsx | 18.9% faster than OfficeIMO |
+| 2500 | package-profile | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 1.71 ms | 1.1 MB | 48.2 KB | LargeXlsx | Loss +23.2% |
+| 2500 | package-profile | write-cellvalues-headerless-rectangle-direct | ClosedXML | 13.32 ms | 10.0 MB | 53.0 KB | LargeXlsx | 678.7% slower than OfficeIMO |
+| 2500 | package-profile | write-cellvalues-headerless-rectangle-direct | EPPlus | 25.99 ms | 12.7 MB | 52.5 KB | LargeXlsx | 1420.0% slower than OfficeIMO |
+| 2500 | package-profile | write-cellvalues-rectangle-direct | LargeXlsx | 3.87 ms | 758.3 KB | 138.4 KB | LargeXlsx | 16.5% faster than OfficeIMO |
+| 2500 | package-profile | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 4.64 ms | 2.0 MB | 138.0 KB | LargeXlsx | Loss +19.8% |
+| 2500 | package-profile | write-cellvalues-rectangle-direct | MiniExcel | 9.47 ms | 22.7 MB | 153.7 KB | LargeXlsx | 104.0% slower than OfficeIMO |
+| 2500 | package-profile | write-cellvalues-rectangle-direct | ClosedXML | 40.20 ms | 21.7 MB | 120.1 KB | LargeXlsx | 766.4% slower than OfficeIMO |
+| 2500 | package-profile | write-cellvalues-rectangle-direct | EPPlus | 45.62 ms | 24.1 MB | 114.1 KB | LargeXlsx | 883.2% slower than OfficeIMO |
 | 2500 | package-profile | write-datareader-plain | Sylvan.Data.Excel | 3.69 ms | 758.7 KB | 78.5 KB | Sylvan.Data.Excel | 17.3% faster than OfficeIMO |
 | 2500 | package-profile | write-datareader-plain | OfficeIMO.Excel | 4.46 ms | 1.7 MB | 138.0 KB | Sylvan.Data.Excel | Loss +21.0% |
 | 2500 | package-profile | write-datareader-plain | LargeXlsx | 4.51 ms | 1.0 MB | 138.4 KB | Sylvan.Data.Excel | Tie vs OfficeIMO |
@@ -316,14 +316,14 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | speed-comparison | large-sparse-row-read | EPPlus 4.5.3.3 | 13.49 ms | 0 B |  | Sylvan.Data.Excel | 478.8% slower than OfficeIMO |
 | 2500 | speed-comparison | large-sparse-row-read | MiniExcel | 14.22 ms | 45.1 MB |  | Sylvan.Data.Excel | 510.0% slower than OfficeIMO |
 | 2500 | speed-comparison | large-sparse-row-read | EPPlus | 47.28 ms | 42.1 MB |  | Sylvan.Data.Excel | 1928.1% slower than OfficeIMO |
-| 2500 | speed-comparison | read-bottom-range | Sylvan.Data.Excel | 5.13 ms | 655.3 KB |  | Sylvan.Data.Excel | 18.8% faster than OfficeIMO |
+| 2500 | speed-comparison | read-bottom-range | Sylvan.Data.Excel | 5.13 ms | 655.2 KB |  | Sylvan.Data.Excel | 18.8% faster than OfficeIMO |
 | 2500 | speed-comparison | read-bottom-range | OfficeIMO.Excel | 6.31 ms | 374.5 KB |  | Sylvan.Data.Excel | Loss +23.2% |
 | 2500 | speed-comparison | read-bottom-range | ExcelDataReader | 14.84 ms | 5.9 MB |  | Sylvan.Data.Excel | 135.0% slower than OfficeIMO |
 | 2500 | speed-comparison | read-bottom-range | MiniExcel | 17.45 ms | 18.2 MB |  | Sylvan.Data.Excel | 176.4% slower than OfficeIMO |
 | 2500 | speed-comparison | read-bottom-range | EPPlus | 31.90 ms | 12.1 MB |  | Sylvan.Data.Excel | 405.3% slower than OfficeIMO |
 | 2500 | speed-comparison | read-bottom-range | ClosedXML | 40.72 ms | 15.0 MB |  | Sylvan.Data.Excel | 544.8% slower than OfficeIMO |
 | 2500 | speed-comparison | read-bottom-range-stream | OfficeIMO.Excel | 5.85 ms | 377.9 KB |  | OfficeIMO.Excel | Win |
-| 2500 | speed-comparison | read-bottom-range-stream | Sylvan.Data.Excel | 6.08 ms | 655.3 KB |  | OfficeIMO.Excel | 4.0% slower than OfficeIMO |
+| 2500 | speed-comparison | read-bottom-range-stream | Sylvan.Data.Excel | 6.08 ms | 655.2 KB |  | OfficeIMO.Excel | 4.0% slower than OfficeIMO |
 | 2500 | speed-comparison | read-bottom-range-stream | ExcelDataReader | 17.06 ms | 5.9 MB |  | OfficeIMO.Excel | 191.8% slower than OfficeIMO |
 | 2500 | speed-comparison | read-bottom-range-stream | MiniExcel | 20.60 ms | 18.2 MB |  | OfficeIMO.Excel | 252.3% slower than OfficeIMO |
 | 2500 | speed-comparison | read-bottom-range-stream | EPPlus | 35.11 ms | 12.1 MB |  | OfficeIMO.Excel | 500.5% slower than OfficeIMO |
@@ -368,7 +368,7 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | speed-comparison | read-range-decimal | MiniExcel | 16.22 ms | 18.2 MB |  | OfficeIMO.Excel | 151.1% slower than OfficeIMO |
 | 2500 | speed-comparison | read-range-decimal | EPPlus | 33.72 ms | 19.7 MB |  | OfficeIMO.Excel | 421.9% slower than OfficeIMO |
 | 2500 | speed-comparison | read-range-decimal | ClosedXML | 38.28 ms | 16.3 MB |  | OfficeIMO.Excel | 492.6% slower than OfficeIMO |
-| 2500 | speed-comparison | read-range-stream | Sylvan.Data.Excel | 6.84 ms | 655.3 KB |  | Sylvan.Data.Excel | 58.8% faster than OfficeIMO |
+| 2500 | speed-comparison | read-range-stream | Sylvan.Data.Excel | 6.84 ms | 655.2 KB |  | Sylvan.Data.Excel | 58.8% faster than OfficeIMO |
 | 2500 | speed-comparison | read-range-stream | OfficeIMO.Excel | 16.61 ms | 2.7 MB |  | Sylvan.Data.Excel | Loss +142.7% |
 | 2500 | speed-comparison | read-range-stream | ExcelDataReader | 17.35 ms | 5.9 MB |  | Sylvan.Data.Excel | 4.5% slower than OfficeIMO |
 | 2500 | speed-comparison | read-range-stream | MiniExcel | 19.48 ms | 18.2 MB |  | Sylvan.Data.Excel | 17.3% slower than OfficeIMO |
@@ -395,7 +395,7 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | speed-comparison | read-top-range-stream-small-chunks | ExcelDataReader | 6.03 ms | 1.9 MB |  | Sylvan.Data.Excel | 742.9% slower than OfficeIMO |
 | 2500 | speed-comparison | read-top-range-stream-small-chunks | EPPlus | 31.18 ms | 12.1 MB |  | Sylvan.Data.Excel | 4258.1% slower than OfficeIMO |
 | 2500 | speed-comparison | read-top-range-stream-small-chunks | ClosedXML | 45.49 ms | 15.0 MB |  | Sylvan.Data.Excel | 6259.0% slower than OfficeIMO |
-| 2500 | speed-comparison | read-used-range | Sylvan.Data.Excel | 6.77 ms | 655.3 KB |  | Sylvan.Data.Excel | 20.5% faster than OfficeIMO |
+| 2500 | speed-comparison | read-used-range | Sylvan.Data.Excel | 6.77 ms | 655.2 KB |  | Sylvan.Data.Excel | 20.5% faster than OfficeIMO |
 | 2500 | speed-comparison | read-used-range | OfficeIMO.Excel | 8.52 ms | 2.7 MB |  | Sylvan.Data.Excel | Loss +25.8% |
 | 2500 | speed-comparison | read-used-range | ExcelDataReader | 14.77 ms | 5.9 MB |  | Sylvan.Data.Excel | 73.4% slower than OfficeIMO |
 | 2500 | speed-comparison | read-used-range | MiniExcel | 19.20 ms | 18.2 MB |  | Sylvan.Data.Excel | 125.5% slower than OfficeIMO |
@@ -461,7 +461,7 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | speed-comparison | report-workbook-datatable-core | ClosedXML | 119.46 ms | 80.9 MB |  | OfficeIMO.Excel | 1476.7% slower than OfficeIMO |
 | 2500 | speed-comparison | shared-string-read | Sylvan.Data.Excel | 2.41 ms | 518.6 KB |  | Sylvan.Data.Excel | 38.0% faster than OfficeIMO |
 | 2500 | speed-comparison | shared-string-read | OfficeIMO.Excel | 3.89 ms | 1.0 MB |  | Sylvan.Data.Excel | Loss +61.4% |
-| 2500 | speed-comparison | shared-string-read | ExcelDataReader | 6.74 ms | 2.6 MB |  | Sylvan.Data.Excel | 73.0% slower than OfficeIMO |
+| 2500 | speed-comparison | shared-string-read | ExcelDataReader | 6.73 ms | 2.6 MB |  | Sylvan.Data.Excel | 73.0% slower than OfficeIMO |
 | 2500 | speed-comparison | shared-string-read | MiniExcel | 7.48 ms | 7.4 MB |  | Sylvan.Data.Excel | 92.2% slower than OfficeIMO |
 | 2500 | speed-comparison | shared-string-read | ClosedXML | 20.53 ms | 9.3 MB |  | Sylvan.Data.Excel | 427.1% slower than OfficeIMO |
 | 2500 | speed-comparison | shared-string-read | EPPlus 4.5.3.3 | 20.53 ms | 0 B |  | Sylvan.Data.Excel | 427.3% slower than OfficeIMO |
@@ -500,19 +500,6 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | speed-comparison | write-cellvalue-scalars | ClosedXML | 10.26 ms | 8.8 MB |  | OfficeIMO.Excel | 453.3% slower than OfficeIMO |
 | 2500 | speed-comparison | write-cellvalue-scalars | EPPlus 4.5.3.3 | 12.40 ms | 0 B |  | OfficeIMO.Excel | 568.8% slower than OfficeIMO |
 | 2500 | speed-comparison | write-cellvalue-scalars | EPPlus | 22.34 ms | 12.5 MB |  | OfficeIMO.Excel | 1104.9% slower than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 1.24 ms | 447.0 KB |  | LargeXlsx | 21.3% faster than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 1.57 ms | 1.1 MB |  | LargeXlsx | Loss +27.0% |
-| 2500 | speed-comparison | write-cellvalues-headerless-rectangle-direct | ClosedXML | 12.07 ms | 10.0 MB |  | LargeXlsx | 667.2% slower than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-headerless-rectangle-direct | EPPlus | 23.40 ms | 12.7 MB |  | LargeXlsx | 1386.8% slower than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-rectangle-direct | LargeXlsx | 3.20 ms | 758.3 KB |  | LargeXlsx | 22.9% faster than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 4.14 ms | 2.0 MB |  | LargeXlsx | Loss +29.7% |
-| 2500 | speed-comparison | write-cellvalues-rectangle-direct | MiniExcel | 9.01 ms | 22.7 MB |  | LargeXlsx | 117.6% slower than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-rectangle-direct | EPPlus 4.5.3.3 | 31.77 ms | 0 B |  | LargeXlsx | 667.0% slower than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-rectangle-direct | ClosedXML | 32.28 ms | 21.7 MB |  | LargeXlsx | 679.3% slower than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-rectangle-direct | EPPlus | 43.19 ms | 24.1 MB |  | LargeXlsx | 942.5% slower than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-sparse-rectangle-direct | OfficeIMO.Excel | 2.27 ms | 1.5 MB |  | OfficeIMO.Excel | Win |
-| 2500 | speed-comparison | write-cellvalues-sparse-rectangle-direct | ClosedXML | 14.29 ms | 11.0 MB |  | OfficeIMO.Excel | 530.1% slower than OfficeIMO |
-| 2500 | speed-comparison | write-cellvalues-sparse-rectangle-direct | EPPlus | 24.41 ms | 14.6 MB |  | OfficeIMO.Excel | 976.2% slower than OfficeIMO |
 | 2500 | speed-comparison | write-cellvalue-strings | OfficeIMO.Excel | 2.78 ms | 2.6 MB |  | OfficeIMO.Excel | Win |
 | 2500 | speed-comparison | write-cellvalue-strings | ClosedXML | 10.96 ms | 11.0 MB |  | OfficeIMO.Excel | 294.6% slower than OfficeIMO |
 | 2500 | speed-comparison | write-cellvalue-strings | EPPlus 4.5.3.3 | 14.80 ms | 0 B |  | OfficeIMO.Excel | 432.8% slower than OfficeIMO |
@@ -527,6 +514,19 @@ Machine: EVOMAGIC (32 processors)
 | 2500 | speed-comparison | write-cellvalue-temporal | EPPlus 4.5.3.3 | 15.51 ms | 0 B |  | OfficeIMO.Excel | 399.4% slower than OfficeIMO |
 | 2500 | speed-comparison | write-cellvalue-temporal | ClosedXML | 15.59 ms | 9.5 MB |  | OfficeIMO.Excel | 402.1% slower than OfficeIMO |
 | 2500 | speed-comparison | write-cellvalue-temporal | EPPlus | 24.48 ms | 14.4 MB |  | OfficeIMO.Excel | 688.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 1.24 ms | 447.0 KB |  | LargeXlsx | 21.3% faster than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 1.57 ms | 1.1 MB |  | LargeXlsx | Loss +27.0% |
+| 2500 | speed-comparison | write-cellvalues-headerless-rectangle-direct | ClosedXML | 12.07 ms | 10.0 MB |  | LargeXlsx | 667.2% slower than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-headerless-rectangle-direct | EPPlus | 23.40 ms | 12.7 MB |  | LargeXlsx | 1386.8% slower than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-rectangle-direct | LargeXlsx | 3.20 ms | 758.3 KB |  | LargeXlsx | 22.9% faster than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 4.14 ms | 2.0 MB |  | LargeXlsx | Loss +29.7% |
+| 2500 | speed-comparison | write-cellvalues-rectangle-direct | MiniExcel | 9.01 ms | 22.7 MB |  | LargeXlsx | 117.6% slower than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-rectangle-direct | EPPlus 4.5.3.3 | 31.77 ms | 0 B |  | LargeXlsx | 667.0% slower than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-rectangle-direct | ClosedXML | 32.28 ms | 21.7 MB |  | LargeXlsx | 679.3% slower than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-rectangle-direct | EPPlus | 43.19 ms | 24.1 MB |  | LargeXlsx | 942.5% slower than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-sparse-rectangle-direct | OfficeIMO.Excel | 2.27 ms | 1.5 MB |  | OfficeIMO.Excel | Win |
+| 2500 | speed-comparison | write-cellvalues-sparse-rectangle-direct | ClosedXML | 14.29 ms | 11.0 MB |  | OfficeIMO.Excel | 530.1% slower than OfficeIMO |
+| 2500 | speed-comparison | write-cellvalues-sparse-rectangle-direct | EPPlus | 24.41 ms | 14.6 MB |  | OfficeIMO.Excel | 976.2% slower than OfficeIMO |
 | 2500 | speed-comparison | write-datareader-plain | Sylvan.Data.Excel | 3.92 ms | 758.6 KB |  | Sylvan.Data.Excel | 12.3% faster than OfficeIMO |
 | 2500 | speed-comparison | write-datareader-plain | OfficeIMO.Excel | 4.47 ms | 1.7 MB |  | Sylvan.Data.Excel | Loss +14.0% |
 | 2500 | speed-comparison | write-datareader-plain | LargeXlsx | 8.05 ms | 1.0 MB |  | Sylvan.Data.Excel | 80.0% slower than OfficeIMO |
@@ -713,15 +713,6 @@ Machine: EVOMAGIC (32 processors)
 | 25000 | package-profile | write-cellvalue-scalars | OfficeIMO.Excel | 14.54 ms | 6.0 MB | 441.9 KB | OfficeIMO.Excel | Win |
 | 25000 | package-profile | write-cellvalue-scalars | ClosedXML | 125.06 ms | 80.7 MB | 394.9 KB | OfficeIMO.Excel | 760.3% slower than OfficeIMO |
 | 25000 | package-profile | write-cellvalue-scalars | EPPlus | 227.11 ms | 83.1 MB | 379.3 KB | OfficeIMO.Excel | 1462.3% slower than OfficeIMO |
-| 25000 | package-profile | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 13.10 ms | 3.4 MB | 443.4 KB | LargeXlsx | 11.4% faster than OfficeIMO |
-| 25000 | package-profile | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 14.79 ms | 6.8 MB | 455.5 KB | LargeXlsx | Loss +12.9% |
-| 25000 | package-profile | write-cellvalues-headerless-rectangle-direct | ClosedXML | 161.16 ms | 93.8 MB | 467.5 KB | LargeXlsx | 989.8% slower than OfficeIMO |
-| 25000 | package-profile | write-cellvalues-headerless-rectangle-direct | EPPlus | 227.82 ms | 85.4 MB | 484.1 KB | LargeXlsx | 1440.6% slower than OfficeIMO |
-| 25000 | package-profile | write-cellvalues-rectangle-direct | LargeXlsx | 33.84 ms | 5.5 MB | 1.4 MB | LargeXlsx | 24.7% faster than OfficeIMO |
-| 25000 | package-profile | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 44.94 ms | 15.7 MB | 1.4 MB | LargeXlsx | Loss +32.8% |
-| 25000 | package-profile | write-cellvalues-rectangle-direct | MiniExcel | 89.91 ms | 91.1 MB | 1.5 MB | LargeXlsx | 100.1% slower than OfficeIMO |
-| 25000 | package-profile | write-cellvalues-rectangle-direct | ClosedXML | 356.62 ms | 205.7 MB | 1.1 MB | LargeXlsx | 693.6% slower than OfficeIMO |
-| 25000 | package-profile | write-cellvalues-rectangle-direct | EPPlus | 431.05 ms | 206.9 MB | 1.1 MB | LargeXlsx | 859.2% slower than OfficeIMO |
 | 25000 | package-profile | write-cellvalue-strings | OfficeIMO.Excel | 21.69 ms | 15.0 MB | 527.8 KB | OfficeIMO.Excel | Win |
 | 25000 | package-profile | write-cellvalue-strings | ClosedXML | 155.26 ms | 101.8 MB | 460.1 KB | OfficeIMO.Excel | 616.0% slower than OfficeIMO |
 | 25000 | package-profile | write-cellvalue-strings | EPPlus | 217.36 ms | 82.4 MB | 444.7 KB | OfficeIMO.Excel | 902.3% slower than OfficeIMO |
@@ -734,6 +725,15 @@ Machine: EVOMAGIC (32 processors)
 | 25000 | package-profile | write-cellvalue-temporal | OfficeIMO.Excel | 27.28 ms | 7.3 MB | 620.5 KB | OfficeIMO.Excel | Win |
 | 25000 | package-profile | write-cellvalue-temporal | ClosedXML | 196.97 ms | 87.2 MB | 483.0 KB | OfficeIMO.Excel | 622.1% slower than OfficeIMO |
 | 25000 | package-profile | write-cellvalue-temporal | EPPlus | 273.95 ms | 101.4 MB | 495.1 KB | OfficeIMO.Excel | 904.3% slower than OfficeIMO |
+| 25000 | package-profile | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 13.10 ms | 3.4 MB | 443.4 KB | LargeXlsx | 11.4% faster than OfficeIMO |
+| 25000 | package-profile | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 14.79 ms | 6.8 MB | 455.5 KB | LargeXlsx | Loss +12.9% |
+| 25000 | package-profile | write-cellvalues-headerless-rectangle-direct | ClosedXML | 161.16 ms | 93.8 MB | 467.5 KB | LargeXlsx | 989.8% slower than OfficeIMO |
+| 25000 | package-profile | write-cellvalues-headerless-rectangle-direct | EPPlus | 227.82 ms | 85.4 MB | 484.1 KB | LargeXlsx | 1440.6% slower than OfficeIMO |
+| 25000 | package-profile | write-cellvalues-rectangle-direct | LargeXlsx | 33.84 ms | 5.5 MB | 1.4 MB | LargeXlsx | 24.7% faster than OfficeIMO |
+| 25000 | package-profile | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 44.94 ms | 15.7 MB | 1.4 MB | LargeXlsx | Loss +32.8% |
+| 25000 | package-profile | write-cellvalues-rectangle-direct | MiniExcel | 89.91 ms | 91.1 MB | 1.5 MB | LargeXlsx | 100.1% slower than OfficeIMO |
+| 25000 | package-profile | write-cellvalues-rectangle-direct | ClosedXML | 356.62 ms | 205.7 MB | 1.1 MB | LargeXlsx | 693.6% slower than OfficeIMO |
+| 25000 | package-profile | write-cellvalues-rectangle-direct | EPPlus | 431.05 ms | 206.9 MB | 1.1 MB | LargeXlsx | 859.2% slower than OfficeIMO |
 | 25000 | package-profile | write-datareader-plain | Sylvan.Data.Excel | 38.53 ms | 5.6 MB | 755.4 KB | Sylvan.Data.Excel | 18.8% faster than OfficeIMO |
 | 25000 | package-profile | write-datareader-plain | LargeXlsx | 45.15 ms | 8.2 MB | 1.4 MB | Sylvan.Data.Excel | 4.9% faster than OfficeIMO |
 | 25000 | package-profile | write-datareader-plain | OfficeIMO.Excel | 47.47 ms | 12.7 MB | 1.4 MB | Sylvan.Data.Excel | Loss +23.2% |
@@ -1049,19 +1049,6 @@ Machine: EVOMAGIC (32 processors)
 | 25000 | speed-comparison | write-cellvalue-scalars | EPPlus 4.5.3.3 | 103.46 ms | 0 B |  | OfficeIMO.Excel | 529.2% slower than OfficeIMO |
 | 25000 | speed-comparison | write-cellvalue-scalars | ClosedXML | 114.72 ms | 80.7 MB |  | OfficeIMO.Excel | 597.7% slower than OfficeIMO |
 | 25000 | speed-comparison | write-cellvalue-scalars | EPPlus | 219.56 ms | 83.1 MB |  | OfficeIMO.Excel | 1235.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 12.85 ms | 3.4 MB |  | LargeXlsx | 10.0% faster than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 14.28 ms | 6.8 MB |  | LargeXlsx | Loss +11.2% |
-| 25000 | speed-comparison | write-cellvalues-headerless-rectangle-direct | ClosedXML | 146.01 ms | 93.8 MB |  | LargeXlsx | 922.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-headerless-rectangle-direct | EPPlus | 220.48 ms | 85.4 MB |  | LargeXlsx | 1443.6% slower than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-rectangle-direct | LargeXlsx | 35.54 ms | 5.5 MB |  | LargeXlsx | 10.2% faster than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 39.59 ms | 15.7 MB |  | LargeXlsx | Loss +11.4% |
-| 25000 | speed-comparison | write-cellvalues-rectangle-direct | MiniExcel | 85.24 ms | 91.1 MB |  | LargeXlsx | 115.3% slower than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-rectangle-direct | EPPlus 4.5.3.3 | 247.08 ms | 0 B |  | LargeXlsx | 524.2% slower than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-rectangle-direct | ClosedXML | 369.50 ms | 205.7 MB |  | LargeXlsx | 833.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-rectangle-direct | EPPlus | 443.19 ms | 206.9 MB |  | LargeXlsx | 1019.5% slower than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-sparse-rectangle-direct | OfficeIMO.Excel | 20.83 ms | 7.7 MB |  | OfficeIMO.Excel | Win |
-| 25000 | speed-comparison | write-cellvalues-sparse-rectangle-direct | ClosedXML | 178.41 ms | 102.8 MB |  | OfficeIMO.Excel | 756.4% slower than OfficeIMO |
-| 25000 | speed-comparison | write-cellvalues-sparse-rectangle-direct | EPPlus | 250.41 ms | 103.8 MB |  | OfficeIMO.Excel | 1102.0% slower than OfficeIMO |
 | 25000 | speed-comparison | write-cellvalue-strings | OfficeIMO.Excel | 23.58 ms | 15.0 MB |  | OfficeIMO.Excel | Win |
 | 25000 | speed-comparison | write-cellvalue-strings | EPPlus 4.5.3.3 | 100.17 ms | 0 B |  | OfficeIMO.Excel | 324.8% slower than OfficeIMO |
 | 25000 | speed-comparison | write-cellvalue-strings | ClosedXML | 133.86 ms | 101.8 MB |  | OfficeIMO.Excel | 467.7% slower than OfficeIMO |
@@ -1076,6 +1063,19 @@ Machine: EVOMAGIC (32 processors)
 | 25000 | speed-comparison | write-cellvalue-temporal | EPPlus 4.5.3.3 | 121.82 ms | 0 B |  | OfficeIMO.Excel | 333.2% slower than OfficeIMO |
 | 25000 | speed-comparison | write-cellvalue-temporal | ClosedXML | 189.26 ms | 87.2 MB |  | OfficeIMO.Excel | 573.1% slower than OfficeIMO |
 | 25000 | speed-comparison | write-cellvalue-temporal | EPPlus | 223.14 ms | 101.4 MB |  | OfficeIMO.Excel | 693.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-headerless-rectangle-direct | LargeXlsx | 12.85 ms | 3.4 MB |  | LargeXlsx | 10.0% faster than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-headerless-rectangle-direct | OfficeIMO.Excel | 14.28 ms | 6.8 MB |  | LargeXlsx | Loss +11.2% |
+| 25000 | speed-comparison | write-cellvalues-headerless-rectangle-direct | ClosedXML | 146.01 ms | 93.8 MB |  | LargeXlsx | 922.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-headerless-rectangle-direct | EPPlus | 220.48 ms | 85.4 MB |  | LargeXlsx | 1443.6% slower than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-rectangle-direct | LargeXlsx | 35.54 ms | 5.5 MB |  | LargeXlsx | 10.2% faster than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-rectangle-direct | OfficeIMO.Excel | 39.59 ms | 15.7 MB |  | LargeXlsx | Loss +11.4% |
+| 25000 | speed-comparison | write-cellvalues-rectangle-direct | MiniExcel | 85.24 ms | 91.1 MB |  | LargeXlsx | 115.3% slower than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-rectangle-direct | EPPlus 4.5.3.3 | 247.08 ms | 0 B |  | LargeXlsx | 524.2% slower than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-rectangle-direct | ClosedXML | 369.50 ms | 205.7 MB |  | LargeXlsx | 833.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-rectangle-direct | EPPlus | 443.19 ms | 206.9 MB |  | LargeXlsx | 1019.5% slower than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-sparse-rectangle-direct | OfficeIMO.Excel | 20.83 ms | 7.7 MB |  | OfficeIMO.Excel | Win |
+| 25000 | speed-comparison | write-cellvalues-sparse-rectangle-direct | ClosedXML | 178.41 ms | 102.8 MB |  | OfficeIMO.Excel | 756.4% slower than OfficeIMO |
+| 25000 | speed-comparison | write-cellvalues-sparse-rectangle-direct | EPPlus | 250.41 ms | 103.8 MB |  | OfficeIMO.Excel | 1102.0% slower than OfficeIMO |
 | 25000 | speed-comparison | write-datareader-plain | Sylvan.Data.Excel | 33.41 ms | 5.6 MB |  | Sylvan.Data.Excel | 19.4% faster than OfficeIMO |
 | 25000 | speed-comparison | write-datareader-plain | OfficeIMO.Excel | 41.47 ms | 12.7 MB |  | Sylvan.Data.Excel | Loss +24.1% |
 | 25000 | speed-comparison | write-datareader-plain | LargeXlsx | 43.55 ms | 8.2 MB |  | Sylvan.Data.Excel | 5.0% slower than OfficeIMO |
@@ -1093,7 +1093,7 @@ Machine: EVOMAGIC (32 processors)
 | 25000 | speed-comparison | write-datareader-table-autofit | EPPlus | 432.69 ms | 156.0 MB |  | OfficeIMO.Excel | 786.1% slower than OfficeIMO |
 | 25000 | speed-comparison | write-datareader-table-autofit | EPPlus 4.5.3.3 | 479.10 ms | 0 B |  | OfficeIMO.Excel | 881.2% slower than OfficeIMO |
 | 25000 | speed-comparison | write-datareader-table-autofit | ClosedXML | 965.39 ms | 552.9 MB |  | OfficeIMO.Excel | 1877.0% slower than OfficeIMO |
-| 25000 | speed-comparison | write-dataset-headerless-tables | OfficeIMO.Excel | 56.03 ms | 12.7 MB |  | OfficeIMO.Excel | Win |
+| 25000 | speed-comparison | write-dataset-headerless-tables | OfficeIMO.Excel | 56.02 ms | 12.7 MB |  | OfficeIMO.Excel | Win |
 | 25000 | speed-comparison | write-dataset-headerless-tables | MiniExcel | 132.28 ms | 94.8 MB |  | OfficeIMO.Excel | 136.1% slower than OfficeIMO |
 | 25000 | speed-comparison | write-dataset-headerless-tables | ClosedXML | 595.67 ms | 168.0 MB |  | OfficeIMO.Excel | 963.2% slower than OfficeIMO |
 | 25000 | speed-comparison | write-dataset-headerless-tables | EPPlus | 679.97 ms | 108.6 MB |  | OfficeIMO.Excel | 1113.7% slower than OfficeIMO |
