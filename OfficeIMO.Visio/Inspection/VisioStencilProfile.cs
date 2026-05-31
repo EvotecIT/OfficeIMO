@@ -47,6 +47,8 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<string> stencilCatalogs,
             IReadOnlyList<string> stencilCategories,
             IReadOnlyList<string> stencilSourcePackagePaths,
+            IReadOnlyList<string> stencilKeywords,
+            IReadOnlyList<string> stencilAliases,
             IReadOnlyList<string> stencilTags,
             IReadOnlyList<VisioStencilFamilyProfile> stencilFamilies) {
             TotalShapes = totalShapes;
@@ -58,6 +60,8 @@ namespace OfficeIMO.Visio {
             StencilCatalogs = stencilCatalogs;
             StencilCategories = stencilCategories;
             StencilSourcePackagePaths = stencilSourcePackagePaths;
+            StencilKeywords = stencilKeywords;
+            StencilAliases = stencilAliases;
             StencilTags = stencilTags;
             StencilFamilies = stencilFamilies;
         }
@@ -129,6 +133,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Distinct source package paths represented by inspected shapes.</summary>
         public IReadOnlyList<string> StencilSourcePackagePaths { get; }
 
+        /// <summary>Distinct stencil keywords represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilKeywords { get; }
+
+        /// <summary>Distinct stencil aliases represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilAliases { get; }
+
         /// <summary>Distinct stencil tags represented by inspected shapes.</summary>
         public IReadOnlyList<string> StencilTags { get; }
 
@@ -168,6 +178,8 @@ namespace OfficeIMO.Visio {
                 CollectUsageValues(usages, usage => usage.StencilCatalogName).AsReadOnly(),
                 CollectUsageValues(usages, usage => usage.StencilCategory).AsReadOnly(),
                 CollectUsageValues(usages, usage => usage.StencilSourcePackagePath).AsReadOnly(),
+                CollectUsageListValues(usages, usage => usage.StencilKeywords).AsReadOnly(),
+                CollectUsageListValues(usages, usage => usage.StencilAliases).AsReadOnly(),
                 CollectUsageListValues(usages, usage => usage.StencilTags).AsReadOnly(),
                 stencilFamilies.AsReadOnly());
         }
@@ -193,6 +205,8 @@ namespace OfficeIMO.Visio {
             AppendLine(builder, "profile.stencilCatalogs", string.Join(",", StencilCatalogs));
             AppendLine(builder, "profile.stencilCategories", string.Join(",", StencilCategories));
             AppendLine(builder, "profile.stencilSourcePackagePaths", string.Join(",", StencilSourcePackagePaths));
+            AppendLine(builder, "profile.stencilKeywords", string.Join(",", StencilKeywords));
+            AppendLine(builder, "profile.stencilAliases", string.Join(",", StencilAliases));
             AppendLine(builder, "profile.stencilTags", string.Join(",", StencilTags));
             AppendLine(builder, "profile.stencilFamilyCount", StencilFamilies.Count);
             AppendLine(builder, "profile.usageCount", Usages.Count);
@@ -408,6 +422,9 @@ namespace OfficeIMO.Visio {
             string? stencilCatalogName,
             string? stencilCategory,
             IReadOnlyList<string> stencilSourcePackagePaths,
+            IReadOnlyList<string> stencilKeywords,
+            IReadOnlyList<string> stencilAliases,
+            IReadOnlyList<string> stencilTags,
             IReadOnlyList<string> stencilIds,
             IReadOnlyList<string> usageKeys,
             int shapeCount,
@@ -417,11 +434,18 @@ namespace OfficeIMO.Visio {
             int generatedMasterBackedShapeCount,
             int basicGeometryShapeCount,
             int connectionPointCount,
-            int connectionPointShapeCount) {
+            int connectionPointShapeCount,
+            double placedWidthMinimum,
+            double placedWidthMaximum,
+            double placedHeightMinimum,
+            double placedHeightMaximum) {
             Key = key;
             StencilCatalogName = stencilCatalogName;
             StencilCategory = stencilCategory;
             StencilSourcePackagePaths = stencilSourcePackagePaths;
+            StencilKeywords = stencilKeywords;
+            StencilAliases = stencilAliases;
+            StencilTags = stencilTags;
             StencilIds = stencilIds;
             UsageKeys = usageKeys;
             ShapeCount = shapeCount;
@@ -432,6 +456,10 @@ namespace OfficeIMO.Visio {
             BasicGeometryShapeCount = basicGeometryShapeCount;
             ConnectionPointCount = connectionPointCount;
             ConnectionPointShapeCount = connectionPointShapeCount;
+            PlacedWidthMinimum = placedWidthMinimum;
+            PlacedWidthMaximum = placedWidthMaximum;
+            PlacedHeightMinimum = placedHeightMinimum;
+            PlacedHeightMaximum = placedHeightMaximum;
         }
 
         /// <summary>Stable family key used in profile snapshots.</summary>
@@ -445,6 +473,15 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Distinct source package paths represented by this family.</summary>
         public IReadOnlyList<string> StencilSourcePackagePaths { get; }
+
+        /// <summary>Distinct stencil keywords represented by this family.</summary>
+        public IReadOnlyList<string> StencilKeywords { get; }
+
+        /// <summary>Distinct stencil aliases represented by this family.</summary>
+        public IReadOnlyList<string> StencilAliases { get; }
+
+        /// <summary>Distinct stencil tags represented by this family.</summary>
+        public IReadOnlyList<string> StencilTags { get; }
 
         /// <summary>Distinct stencil identifiers represented by this family.</summary>
         public IReadOnlyList<string> StencilIds { get; }
@@ -476,6 +513,18 @@ namespace OfficeIMO.Visio {
         /// <summary>Number of shapes in this family that expose at least one connection point.</summary>
         public int ConnectionPointShapeCount { get; }
 
+        /// <summary>Minimum placed width for shapes in this family.</summary>
+        public double PlacedWidthMinimum { get; }
+
+        /// <summary>Maximum placed width for shapes in this family.</summary>
+        public double PlacedWidthMaximum { get; }
+
+        /// <summary>Minimum placed height for shapes in this family.</summary>
+        public double PlacedHeightMinimum { get; }
+
+        /// <summary>Maximum placed height for shapes in this family.</summary>
+        public double PlacedHeightMaximum { get; }
+
         internal static List<VisioStencilFamilyProfile> FromUsages(IEnumerable<VisioStencilUsageProfile> usages) {
             return usages
                 .Where(IsStencilFamilyUsage)
@@ -490,6 +539,9 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilCatalog", StencilCatalogName);
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilCategory", StencilCategory);
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilSourcePackagePaths", string.Join(",", StencilSourcePackagePaths));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilKeywords", string.Join(",", StencilKeywords));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilAliases", string.Join(",", StencilAliases));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilTags", string.Join(",", StencilTags));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilIds", string.Join(",", StencilIds));
             VisioStencilProfile.AppendLine(builder, prefix + ".usageKeys", string.Join(",", UsageKeys));
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeCount", ShapeCount);
@@ -500,6 +552,10 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".basicGeometryShapeCount", BasicGeometryShapeCount);
             VisioStencilProfile.AppendLine(builder, prefix + ".connectionPointCount", ConnectionPointCount);
             VisioStencilProfile.AppendLine(builder, prefix + ".connectionPointShapeCount", ConnectionPointShapeCount);
+            VisioStencilProfile.AppendLine(builder, prefix + ".placedWidthMinimum", PlacedWidthMinimum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".placedWidthMaximum", PlacedWidthMaximum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".placedHeightMinimum", PlacedHeightMinimum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".placedHeightMaximum", PlacedHeightMaximum);
         }
 
         private static VisioStencilFamilyProfile FromUsageGroup(string key, IEnumerable<VisioStencilUsageProfile> usages) {
@@ -509,6 +565,9 @@ namespace OfficeIMO.Visio {
                 FirstDistinctValue(usageList, usage => usage.StencilCatalogName),
                 FirstDistinctValue(usageList, usage => usage.StencilCategory),
                 CollectDistinctValues(usageList, usage => usage.StencilSourcePackagePath),
+                CollectDistinctListValues(usageList, usage => usage.StencilKeywords),
+                CollectDistinctListValues(usageList, usage => usage.StencilAliases),
+                CollectDistinctListValues(usageList, usage => usage.StencilTags),
                 CollectDistinctValues(usageList, usage => usage.StencilId),
                 usageList.Select(usage => usage.Key).OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToList().AsReadOnly(),
                 usageList.Sum(usage => usage.Count),
@@ -518,7 +577,11 @@ namespace OfficeIMO.Visio {
                 usageList.Where(usage => usage.Kind == VisioStencilProfileUsageKind.GeneratedMaster).Sum(usage => usage.Count),
                 usageList.Where(usage => usage.Kind == VisioStencilProfileUsageKind.BasicGeometry).Sum(usage => usage.Count),
                 usageList.Sum(usage => usage.ConnectionPointCount),
-                usageList.Sum(usage => usage.ConnectionPointShapeCount));
+                usageList.Sum(usage => usage.ConnectionPointShapeCount),
+                usageList.Min(usage => usage.PlacedWidthMinimum),
+                usageList.Max(usage => usage.PlacedWidthMaximum),
+                usageList.Min(usage => usage.PlacedHeightMinimum),
+                usageList.Max(usage => usage.PlacedHeightMaximum));
         }
 
         private static bool IsStencilFamilyUsage(VisioStencilUsageProfile usage) {
@@ -568,6 +631,16 @@ namespace OfficeIMO.Visio {
                 .ToList()
                 .AsReadOnly();
         }
+
+        private static IReadOnlyList<string> CollectDistinctListValues(IEnumerable<VisioStencilUsageProfile> usages, Func<VisioStencilUsageProfile, IReadOnlyList<string>> selector) {
+            return usages
+                .SelectMany(selector)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+                .ToList()
+                .AsReadOnly();
+        }
     }
 
     /// <summary>
@@ -594,7 +667,11 @@ namespace OfficeIMO.Visio {
             int connectionPointShapeCount,
             IReadOnlyList<string> shapeIds,
             IReadOnlyList<string> pageNames,
-            IReadOnlyList<string> shapeDataKeys) {
+            IReadOnlyList<string> shapeDataKeys,
+            double placedWidthMinimum,
+            double placedWidthMaximum,
+            double placedHeightMinimum,
+            double placedHeightMaximum) {
             Key = key;
             Kind = kind;
             MasterId = masterId;
@@ -615,6 +692,10 @@ namespace OfficeIMO.Visio {
             ShapeIds = shapeIds;
             PageNames = pageNames;
             ShapeDataKeys = shapeDataKeys;
+            PlacedWidthMinimum = placedWidthMinimum;
+            PlacedWidthMaximum = placedWidthMaximum;
+            PlacedHeightMinimum = placedHeightMinimum;
+            PlacedHeightMaximum = placedHeightMaximum;
         }
 
         /// <summary>Stable usage key.</summary>
@@ -677,6 +758,18 @@ namespace OfficeIMO.Visio {
         /// <summary>Distinct Shape Data keys used by shapes in this group.</summary>
         public IReadOnlyList<string> ShapeDataKeys { get; }
 
+        /// <summary>Minimum placed width for shapes in this usage group.</summary>
+        public double PlacedWidthMinimum { get; }
+
+        /// <summary>Maximum placed width for shapes in this usage group.</summary>
+        public double PlacedWidthMaximum { get; }
+
+        /// <summary>Minimum placed height for shapes in this usage group.</summary>
+        public double PlacedHeightMinimum { get; }
+
+        /// <summary>Maximum placed height for shapes in this usage group.</summary>
+        public double PlacedHeightMaximum { get; }
+
         internal static VisioStencilUsageProfile FromShapes(
             VisioStencilUsageKey key,
             IEnumerable<VisioInspectionShapeSnapshot> shapes,
@@ -727,7 +820,11 @@ namespace OfficeIMO.Visio {
                 shapeList.Count(shape => shape.ConnectionPointCount > 0),
                 shapeIds,
                 pageNames,
-                shapeDataKeys);
+                shapeDataKeys,
+                shapeList.Min(shape => shape.Width),
+                shapeList.Max(shape => shape.Width),
+                shapeList.Min(shape => shape.Height),
+                shapeList.Max(shape => shape.Height));
         }
 
         internal void AppendText(StringBuilder builder) {
@@ -751,6 +848,10 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeIds", string.Join(",", ShapeIds));
             VisioStencilProfile.AppendLine(builder, prefix + ".pages", string.Join(",", PageNames));
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeDataKeys", string.Join(",", ShapeDataKeys));
+            VisioStencilProfile.AppendLine(builder, prefix + ".placedWidthMinimum", PlacedWidthMinimum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".placedWidthMaximum", PlacedWidthMaximum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".placedHeightMinimum", PlacedHeightMinimum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".placedHeightMaximum", PlacedHeightMaximum);
         }
     }
 

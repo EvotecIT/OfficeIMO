@@ -15,7 +15,16 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             document.UseMastersByDefault = true;
             VisioStencilCatalog catalog = VisioStencilCatalog.Create("Profile Catalog", builder => builder
-                .Add("profile.cache", "Cache", "Process", "Infrastructure", 1.4, 0.8));
+                .AddWithMetadata(
+                    "profile.cache",
+                    "Cache",
+                    "Process",
+                    "Infrastructure",
+                    1.4,
+                    0.8,
+                    new[] { "memory", "redis" },
+                    new[] { "fast-cache" },
+                    new[] { "critical" }));
             VisioPage page = document.AddPage("Profile", 8, 5);
 
             VisioShape cache = page.AddStencilShape(catalog, "profile.cache", "cache", 2, 3, "Cache");
@@ -34,17 +43,27 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Annotation", profile.SemanticKinds);
             Assert.Equal(new[] { "Profile Catalog" }, profile.StencilCatalogs);
             Assert.Equal(new[] { "Infrastructure" }, profile.StencilCategories);
+            Assert.Equal(new[] { "memory", "redis" }, profile.StencilKeywords);
+            Assert.Equal(new[] { "cache", "fast-cache", "memory", "redis" }, profile.StencilAliases);
             Assert.Contains("profile", profile.StencilTags);
+            Assert.Contains("critical", profile.StencilTags);
             VisioStencilFamilyProfile family = Assert.Single(profile.StencilFamilies);
             Assert.Equal("stencil-family:Profile Catalog/Infrastructure", family.Key);
             Assert.Equal("Profile Catalog", family.StencilCatalogName);
             Assert.Equal("Infrastructure", family.StencilCategory);
+            Assert.Equal(new[] { "memory", "redis" }, family.StencilKeywords);
+            Assert.Equal(new[] { "cache", "fast-cache", "memory", "redis" }, family.StencilAliases);
+            Assert.Contains("critical", family.StencilTags);
             Assert.Equal(1, family.ShapeCount);
             Assert.Equal(1, family.StencilBackedShapeCount);
             Assert.Equal(1, family.MasterBackedShapeCount);
             Assert.Equal(1, family.GeneratedMasterBackedShapeCount);
             Assert.Equal(0, family.ConnectionPointCount);
             Assert.Equal(new[] { "profile.cache" }, family.StencilIds);
+            Assert.Equal(1.4, family.PlacedWidthMinimum);
+            Assert.Equal(1.4, family.PlacedWidthMaximum);
+            Assert.Equal(0.8, family.PlacedHeightMinimum);
+            Assert.Equal(0.8, family.PlacedHeightMaximum);
             VisioStencilUsageProfile generated = Assert.Single(profile.Usages, usage => usage.Kind == VisioStencilProfileUsageKind.GeneratedMaster);
             Assert.Equal("stencil:profile.cache", generated.Key);
             Assert.Equal("Process", generated.MasterNameU);
@@ -52,8 +71,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Cache", generated.StencilName);
             Assert.Equal("Infrastructure", generated.StencilCategory);
             Assert.Equal("Profile Catalog", generated.StencilCatalogName);
+            Assert.Equal(new[] { "memory", "redis" }, generated.StencilKeywords);
+            Assert.Equal(new[] { "cache", "fast-cache", "memory", "redis" }, generated.StencilAliases);
             Assert.Contains("Process", generated.StencilTags);
+            Assert.Contains("critical", generated.StencilTags);
             Assert.Equal(new[] { "cache" }, generated.ShapeIds);
+            Assert.Equal(1.4, generated.PlacedWidthMinimum);
+            Assert.Equal(1.4, generated.PlacedWidthMaximum);
+            Assert.Equal(0.8, generated.PlacedHeightMinimum);
+            Assert.Equal(0.8, generated.PlacedHeightMaximum);
             VisioStencilUsageProfile geometry = Assert.Single(profile.Usages, usage => usage.Kind == VisioStencilProfileUsageKind.BasicGeometry);
             Assert.Equal("geometry:Annotation", geometry.Key);
             Assert.Equal("Annotation", geometry.ShapeNameU);
@@ -90,18 +116,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, flowchartFamily.GeneratedMasterBackedShapeCount);
             Assert.Equal(2, flowchartFamily.ConnectionPointCount);
             Assert.Equal(2, flowchartFamily.ConnectionPointShapeCount);
+            Assert.Equal(2.0, flowchartFamily.PlacedWidthMinimum);
+            Assert.Equal(2.4, flowchartFamily.PlacedWidthMaximum);
+            Assert.Equal(1.0, flowchartFamily.PlacedHeightMinimum);
+            Assert.Equal(1.4, flowchartFamily.PlacedHeightMaximum);
             Assert.Equal(new[] { "flow.decision", "flow.process" }, flowchartFamily.StencilIds);
             Assert.Equal(new[] { "Criticality" }, first.ShapeDataKeys);
             Assert.Equal(new[] { "Protocol" }, first.ConnectorShapeDataKeys);
             Assert.Contains("profile.generatedMasterBackedShapeCount=2", text, StringComparison.Ordinal);
             Assert.Contains("profile.stencilBackedShapeCount=2", text, StringComparison.Ordinal);
             Assert.Contains("profile.stencilFamilyCount=1", text, StringComparison.Ordinal);
+            Assert.Contains("profile.stencilAliases=", text, StringComparison.Ordinal);
             Assert.Contains("family[stencil-family:Flowchart].shapeCount=2", text, StringComparison.Ordinal);
             Assert.Contains("family[stencil-family:Flowchart].connectionPointCount=2", text, StringComparison.Ordinal);
+            Assert.Contains("family[stencil-family:Flowchart].placedWidthMaximum=2.4", text, StringComparison.Ordinal);
             Assert.Contains(first.Usages, usage => usage.MasterNameU == "Decision" && usage.StencilId == "flow.decision" && usage.Count == 1 && usage.ConnectionPointCount == 1);
             Assert.Contains(first.Usages, usage => usage.MasterNameU == "Process" && usage.StencilId == "flow.process" && usage.ShapeDataKeys.Count == 0 && usage.ConnectionPointCount == 1);
             Assert.Contains("profile.totalConnectionPoints=2", text, StringComparison.Ordinal);
             Assert.Contains("usage[stencil:flow.process].connectionPointShapeCount=1", text, StringComparison.Ordinal);
+            Assert.Contains("usage[stencil:flow.process].placedHeightMaximum=1", text, StringComparison.Ordinal);
             Assert.Contains("profile.stencilCategories=Flowchart", text, StringComparison.Ordinal);
             Assert.Contains("usage[stencil:flow.decision].stencilCatalog=", text, StringComparison.Ordinal);
         }
