@@ -117,6 +117,7 @@ namespace OfficeIMO.Visio {
                 CreateShapeDataSnapshot(shape.ShapeData),
                 CreateUserCellSnapshot(shape.UserCells),
                 CreateDataSnapshot(shape.Data),
+                CreateConnectionPointSnapshot(shape.ConnectionPoints),
                 shape.Children.Select(child => child.Id).OrderBy(id => id, StringComparer.OrdinalIgnoreCase).ToList().AsReadOnly());
         }
 
@@ -154,6 +155,13 @@ namespace OfficeIMO.Visio {
             return rows
                 .OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(row => new VisioInspectionUserCellSnapshot(row.Name, row.Value, row.Formula, row.Prompt))
+                .ToList()
+                .AsReadOnly();
+        }
+
+        private static IReadOnlyList<VisioInspectionConnectionPointSnapshot> CreateConnectionPointSnapshot(IEnumerable<VisioConnectionPoint> points) {
+            return points
+                .Select((point, index) => new VisioInspectionConnectionPointSnapshot(index, point.SectionIndex, point.X, point.Y, point.DirX, point.DirY))
                 .ToList()
                 .AsReadOnly();
         }
@@ -487,6 +495,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<VisioInspectionShapeDataSnapshot> shapeData,
             IReadOnlyList<VisioInspectionUserCellSnapshot> userCells,
             IReadOnlyDictionary<string, string> data,
+            IReadOnlyList<VisioInspectionConnectionPointSnapshot> connectionPoints,
             IReadOnlyList<string> childIds) {
             Id = id;
             Name = name;
@@ -516,6 +525,7 @@ namespace OfficeIMO.Visio {
             ShapeData = shapeData;
             UserCells = userCells;
             Data = data;
+            ConnectionPoints = connectionPoints;
             ChildIds = childIds;
         }
 
@@ -603,6 +613,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Arbitrary data attached to the shape.</summary>
         public IReadOnlyDictionary<string, string> Data { get; }
 
+        /// <summary>Connection points attached to the shape.</summary>
+        public IReadOnlyList<VisioInspectionConnectionPointSnapshot> ConnectionPoints { get; }
+
+        /// <summary>Number of connection points attached to the shape.</summary>
+        public int ConnectionPointCount => ConnectionPoints.Count;
+
         /// <summary>Child shape identifiers when this shape is a group.</summary>
         public IReadOnlyList<string> ChildIds { get; }
 
@@ -632,10 +648,23 @@ namespace OfficeIMO.Visio {
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".isDiagramAdornment", IsDiagramAdornment);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".calloutTargetId", CalloutTargetId);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".layers", string.Join(",", Layers));
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".connectionPointCount", ConnectionPointCount);
+            AppendConnectionPoints(builder, prefix, ConnectionPoints);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".children", string.Join(",", ChildIds));
             AppendShapeData(builder, prefix, ShapeData);
             AppendUserCells(builder, prefix, UserCells);
             AppendData(builder, prefix, Data);
+        }
+
+        internal static void AppendConnectionPoints(StringBuilder builder, string prefix, IReadOnlyList<VisioInspectionConnectionPointSnapshot> points) {
+            foreach (VisioInspectionConnectionPointSnapshot point in points) {
+                string pointPrefix = prefix + ".connectionPoint[" + point.Index.ToString(CultureInfo.InvariantCulture) + "]";
+                VisioInspectionSnapshot.AppendLine(builder, pointPrefix + ".sectionIndex", point.SectionIndex);
+                VisioInspectionSnapshot.AppendLine(builder, pointPrefix + ".x", point.X);
+                VisioInspectionSnapshot.AppendLine(builder, pointPrefix + ".y", point.Y);
+                VisioInspectionSnapshot.AppendLine(builder, pointPrefix + ".dirX", point.DirX);
+                VisioInspectionSnapshot.AppendLine(builder, pointPrefix + ".dirY", point.DirY);
+            }
         }
 
         internal static void AppendShapeData(StringBuilder builder, string prefix, IReadOnlyList<VisioInspectionShapeDataSnapshot> rows) {
@@ -842,6 +871,38 @@ namespace OfficeIMO.Visio {
 
         /// <summary>User cell prompt.</summary>
         public string? Prompt { get; }
+    }
+
+    /// <summary>
+    /// Snapshot of one Visio shape connection point.
+    /// </summary>
+    public sealed class VisioInspectionConnectionPointSnapshot {
+        internal VisioInspectionConnectionPointSnapshot(int index, int? sectionIndex, double x, double y, double dirX, double dirY) {
+            Index = index;
+            SectionIndex = sectionIndex;
+            X = x;
+            Y = y;
+            DirX = dirX;
+            DirY = dirY;
+        }
+
+        /// <summary>Zero-based position in the shape connection point collection.</summary>
+        public int Index { get; }
+
+        /// <summary>Original Visio Connection section row index, when loaded or assigned.</summary>
+        public int? SectionIndex { get; }
+
+        /// <summary>X coordinate relative to the shape.</summary>
+        public double X { get; }
+
+        /// <summary>Y coordinate relative to the shape.</summary>
+        public double Y { get; }
+
+        /// <summary>Directional X component.</summary>
+        public double DirX { get; }
+
+        /// <summary>Directional Y component.</summary>
+        public double DirY { get; }
     }
 
     /// <summary>

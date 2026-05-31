@@ -83,6 +83,11 @@ namespace OfficeIMO.Visio {
             }
 
             VisioShape updated = page.ReplaceMaster(shape, stencil.MasterNameU, resizeToMaster: false);
+            if (updated.Master != null) {
+                VisioStencilMetadata.Apply(updated.Master, stencil, catalogName: null);
+            }
+
+            VisioStencilMetadata.Apply(updated, stencil, catalogName: null);
             if (resizeToMaster) {
                 ResizeToStencil(updated, stencil, page.DefaultUnit);
             }
@@ -155,6 +160,7 @@ namespace OfficeIMO.Visio {
             shape.NameU = masterNameU;
             shape.MasterShapeId = null;
             shape.MasterShape = null;
+            VisioStencilMetadata.Clear(shape);
 
             // Local geometry from an old standalone/custom shape would otherwise
             // fight the replacement master when saving master deltas.

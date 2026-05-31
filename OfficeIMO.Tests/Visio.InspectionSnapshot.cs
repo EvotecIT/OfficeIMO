@@ -38,7 +38,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Gateway", gatewaySnapshot.UserCells.Single(cell => cell.Name == VisioSemanticUserCells.Kind).Value);
             Assert.Equal("Platform", gatewaySnapshot.ShapeData.Single(row => row.Name == "Owner").Value);
             Assert.Equal("Edge", gatewaySnapshot.Data["Tier"]);
+            Assert.Single(gatewaySnapshot.ConnectionPoints);
+            Assert.Equal(1.4, gatewaySnapshot.ConnectionPoints[0].X, 6);
+            Assert.Equal(0.35, gatewaySnapshot.ConnectionPoints[0].Y, 6);
             Assert.Contains("document.title=Inspection sample", text, StringComparison.Ordinal);
+            Assert.Contains("page[Topology].shape[" + gateway.Id + "].connectionPointCount=1", text, StringComparison.Ordinal);
+            Assert.Contains("page[Topology].shape[" + gateway.Id + "].connectionPoint[0].dirX=-1", text, StringComparison.Ordinal);
             Assert.Contains("page[Topology].shape[" + gateway.Id + "].shapeData[Owner].value=Platform", text, StringComparison.Ordinal);
             Assert.Contains("page[Topology].connector[" + connector.Id + "].label=HTTPS", text, StringComparison.Ordinal);
             Assert.Contains("isCallout=true", text, StringComparison.Ordinal);

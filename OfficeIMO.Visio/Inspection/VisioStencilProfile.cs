@@ -66,6 +66,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Total number of inspected connectors.</summary>
         public int ConnectorCount { get; }
 
+        /// <summary>Total number of connection points exposed by inspected shapes.</summary>
+        public int TotalConnectionPoints => Usages.Sum(usage => usage.ConnectionPointCount);
+
+        /// <summary>Number of inspected shapes that expose at least one connection point.</summary>
+        public int ConnectionPointShapeCount => Usages.Sum(usage => usage.ConnectionPointShapeCount);
+
         /// <summary>Number of shapes backed by any registered master.</summary>
         public int MasterBackedShapeCount => Usages
             .Where(usage => usage.Kind == VisioStencilProfileUsageKind.PackageBackedMaster ||
@@ -161,6 +167,8 @@ namespace OfficeIMO.Visio {
             StringBuilder builder = new();
             AppendLine(builder, "profile.totalShapes", TotalShapes);
             AppendLine(builder, "profile.connectorCount", ConnectorCount);
+            AppendLine(builder, "profile.totalConnectionPoints", TotalConnectionPoints);
+            AppendLine(builder, "profile.connectionPointShapeCount", ConnectionPointShapeCount);
             AppendLine(builder, "profile.masterBackedShapeCount", MasterBackedShapeCount);
             AppendLine(builder, "profile.packageBackedShapeCount", PackageBackedShapeCount);
             AppendLine(builder, "profile.generatedMasterBackedShapeCount", GeneratedMasterBackedShapeCount);
@@ -393,6 +401,8 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<string> stencilAliases,
             IReadOnlyList<string> stencilTags,
             int count,
+            int connectionPointCount,
+            int connectionPointShapeCount,
             IReadOnlyList<string> shapeIds,
             IReadOnlyList<string> pageNames,
             IReadOnlyList<string> shapeDataKeys) {
@@ -411,6 +421,8 @@ namespace OfficeIMO.Visio {
             StencilAliases = stencilAliases;
             StencilTags = stencilTags;
             Count = count;
+            ConnectionPointCount = connectionPointCount;
+            ConnectionPointShapeCount = connectionPointShapeCount;
             ShapeIds = shapeIds;
             PageNames = pageNames;
             ShapeDataKeys = shapeDataKeys;
@@ -460,6 +472,12 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Number of shapes in this usage group.</summary>
         public int Count { get; }
+
+        /// <summary>Total number of connection points exposed by shapes in this usage group.</summary>
+        public int ConnectionPointCount { get; }
+
+        /// <summary>Number of shapes in this usage group that expose at least one connection point.</summary>
+        public int ConnectionPointShapeCount { get; }
 
         /// <summary>Shape identifiers included in this usage group.</summary>
         public IReadOnlyList<string> ShapeIds { get; }
@@ -516,6 +534,8 @@ namespace OfficeIMO.Visio {
                 key.StencilAliases,
                 key.StencilTags,
                 shapeList.Count,
+                shapeList.Sum(shape => shape.ConnectionPointCount),
+                shapeList.Count(shape => shape.ConnectionPointCount > 0),
                 shapeIds,
                 pageNames,
                 shapeDataKeys);
@@ -537,6 +557,8 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilAliases", string.Join(",", StencilAliases));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilTags", string.Join(",", StencilTags));
             VisioStencilProfile.AppendLine(builder, prefix + ".count", Count);
+            VisioStencilProfile.AppendLine(builder, prefix + ".connectionPointCount", ConnectionPointCount);
+            VisioStencilProfile.AppendLine(builder, prefix + ".connectionPointShapeCount", ConnectionPointShapeCount);
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeIds", string.Join(",", ShapeIds));
             VisioStencilProfile.AppendLine(builder, prefix + ".pages", string.Join(",", PageNames));
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeDataKeys", string.Join(",", ShapeDataKeys));

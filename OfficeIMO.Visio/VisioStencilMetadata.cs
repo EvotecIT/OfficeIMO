@@ -69,6 +69,26 @@ namespace OfficeIMO.Visio {
                 string.Equals(cell.Name, VisioSemanticUserCells.StencilCatalog, StringComparison.OrdinalIgnoreCase));
         }
 
+        internal static void Clear(VisioShape shape) {
+            if (shape == null) {
+                return;
+            }
+
+            for (int i = shape.UserCells.Count - 1; i >= 0; i--) {
+                string name = shape.UserCells[i].Name;
+                if (string.Equals(name, VisioSemanticUserCells.StencilId, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilName, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilCategory, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilCatalog, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilSourcePackagePath, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilKeywords, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilAliases, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilTags, StringComparison.OrdinalIgnoreCase)) {
+                    shape.UserCells.RemoveAt(i);
+                }
+            }
+        }
+
         internal static string? GetUserCellValue(IEnumerable<VisioInspectionUserCellSnapshot> userCells, string name) {
             return userCells
                 .FirstOrDefault(cell => string.Equals(cell.Name, name, StringComparison.OrdinalIgnoreCase))
