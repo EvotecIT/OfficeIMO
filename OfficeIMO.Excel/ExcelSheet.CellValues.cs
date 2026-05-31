@@ -908,6 +908,7 @@ namespace OfficeIMO.Excel {
 
             Dictionary<string, int>? sharedStringIndexes = null;
             bool useDirectStringCells = source.Count >= 4096 && maxColumn > 1;
+            List<Row> pendingRows = new List<Row>();
             Row? row = null;
             int rowIndex = 0;
             string rowReference = string.Empty;
@@ -922,7 +923,7 @@ namespace OfficeIMO.Excel {
 
                 if (item.Row != rowIndex) {
                     if (row != null) {
-                        sheetData.Append(row);
+                        pendingRows.Add(row);
                     }
 
                     rowIndex = item.Row;
@@ -935,7 +936,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (row != null) {
-                sheetData.Append(row);
+                pendingRows.Add(row);
+            }
+
+            foreach (var pendingRow in pendingRows) {
+                sheetData.Append(pendingRow);
             }
 
             ClearHeaderCacheForPreparedAppend();

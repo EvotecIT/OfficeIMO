@@ -517,7 +517,7 @@ namespace OfficeIMO.Excel {
             Dictionary<string, int>? sharedStringIndexes = null;
             int rowIndex = startRow;
             bool canCancel = ct.CanBeCanceled;
-            List<Row>? pendingRows = canCancel ? new List<Row>(rowCount + (includeHeaders ? 1 : 0)) : null;
+            List<Row> pendingRows = new List<Row>(rowCount + (includeHeaders ? 1 : 0));
             object?[]? flatValues = null;
             bool useFlatValues = source.TryGetFlatValues(out var sourceFlatValues, out int flatColumnCount) && flatColumnCount == columnCount;
             if (useFlatValues) {
@@ -526,11 +526,7 @@ namespace OfficeIMO.Excel {
 
             if (includeHeaders) {
                 Row headerRow = CreateTabularRowSourceHeaderRow(rowIndex++, columnReferencePrefixes, source, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
-                if (pendingRows != null) {
-                    pendingRows.Add(headerRow);
-                } else {
-                    sheetData.Append(headerRow);
-                }
+                pendingRows.Add(headerRow);
             }
 
             for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
@@ -551,17 +547,11 @@ namespace OfficeIMO.Excel {
                     valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, source, sourceRowIndex, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
                 }
 
-                if (pendingRows != null) {
-                    pendingRows.Add(valueRow);
-                } else {
-                    sheetData.Append(valueRow);
-                }
+                pendingRows.Add(valueRow);
             }
 
-            if (pendingRows != null) {
-                foreach (var pendingRow in pendingRows) {
-                    sheetData.Append(pendingRow);
-                }
+            foreach (var pendingRow in pendingRows) {
+                sheetData.Append(pendingRow);
             }
 
             ClearHeaderCacheForPreparedAppend();

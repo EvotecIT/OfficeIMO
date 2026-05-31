@@ -161,6 +161,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_InsertTabularRowSourceForDeferredMaterialization_FailedSourceDoesNotMutateWorksheet() {
+            string filePath = Path.Combine(_directoryWithFiles, "TabularSourceFailedImportAtomic.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Existing");
+
+                var source = new ThrowingTabularRowSource();
+                var exception = Assert.Throws<InvalidOperationException>(() =>
+                    sheet.TryInsertTabularRowSourceForDeferredMaterialization(source, startRow: 2, startColumn: 1, includeHeaders: true));
+
+                Assert.Equal("Synthetic row failure.", exception.Message);
+                Assert.True(sheet.TryGetCellText(1, 1, out var existing));
+                Assert.Equal("Existing", existing);
+                Assert.False(sheet.TryGetCellText(2, 1, out _));
+                Assert.False(sheet.TryGetCellText(3, 1, out _));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void Test_InsertDataSet_CreatesWorksheetPerTableWithSafeNames() {
             string filePath = Path.Combine(_directoryWithFiles, "DataSetImport.xlsx");
 
@@ -831,6 +853,35 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
+        }
+
+        private sealed class ThrowingTabularRowSource : IExcelSheetTabularRowSource {
+            public int ColumnCount => 2;
+
+            public int RowCount => 3;
+
+            public string GetColumnName(int index) => index == 0 ? "Name" : "Amount";
+
+            public Type GetColumnType(int index) => index == 0 ? typeof(string) : typeof(int);
+
+            public object? GetValue(int rowIndex, int columnIndex) {
+                return columnIndex == 0 ? "Alpha" : 10;
+            }
+
+            public bool TryGetBufferedRow(int rowIndex, out object?[]? values) {
+                if (rowIndex == 1) {
+                    throw new InvalidOperationException("Synthetic row failure.");
+                }
+
+                values = new object?[] { "Alpha", 10 };
+                return true;
+            }
+
+            public bool TryGetFlatValues(out object?[] values, out int columnCount) {
+                values = Array.Empty<object?>();
+                columnCount = 0;
+                return false;
+            }
         }
     }
 }
