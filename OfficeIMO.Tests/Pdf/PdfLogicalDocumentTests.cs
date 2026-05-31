@@ -162,6 +162,51 @@ public class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void ToMarkdown_EscapesMarkdownControlSyntaxFromPdfText() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 260,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("# Literal heading marker"))
+            .Paragraph(p => p.Text("[not a link](https://example.test)"))
+            .ToBytes();
+
+        string markdown = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }).ToMarkdown();
+
+        string normalized = Normalize(markdown);
+        Assert.Contains("\\#Literalheadingmarker", normalized, StringComparison.Ordinal);
+        Assert.Contains("\\[notalink\\](https://example.test)", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToMarkdown_DoesNotRenderLeaderRowsTwiceWhenTableAlreadyContainsThem() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 260,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Chapter One ........ 3"))
+            .ToBytes();
+
+        string markdown = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }).ToMarkdown();
+
+        Assert.Equal(1, CountOccurrences(markdown, "Chapter One"));
+    }
+
+    [Fact]
     public void LoadPageRanges_BuildsLogicalModelForSelectedSourcePagesInCallerOrder() {
         byte[] pdf = BuildThreePageLogicalPdf();
 
@@ -762,6 +807,20 @@ public class PdfLogicalDocumentTests {
     private static bool RowContains(IReadOnlyList<string> row, params string[] expectedTokens) {
         string rowText = Normalize(string.Join(" ", row));
         return expectedTokens.All(token => rowText.Contains(token, StringComparison.Ordinal));
+    }
+
+    private static int CountOccurrences(string text, string value) {
+        int count = 0;
+        int index = 0;
+        while (true) {
+            index = text.IndexOf(value, index, StringComparison.Ordinal);
+            if (index < 0) {
+                return count;
+            }
+
+            count++;
+            index += value.Length;
+        }
     }
 
     private static void AssertContainsInOrder(string text, params string[] expectedTokens) {

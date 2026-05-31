@@ -76,6 +76,10 @@ public static class PdfLogicalMarkdownExtensions {
 
         for (int i = 0; i < page.Paragraphs.Count; i++) {
             PdfLogicalParagraph paragraph = page.Paragraphs[i];
+            if (IsParagraphRepresentedByStructuredElement(paragraph, page)) {
+                continue;
+            }
+
             items.Add(new MarkdownItem(paragraph.YTop, paragraph.XStart, sequence++, EscapeInline(paragraph.Text)));
         }
 
@@ -97,9 +101,15 @@ public static class PdfLogicalMarkdownExtensions {
         IReadOnlyList<IPdfLogicalElement> leaderRows = page.GetElements(PdfLogicalElementKind.LeaderRow);
         for (int i = 0; i < leaderRows.Count; i++) {
             if (leaderRows[i] is PdfLogicalLeaderRow leaderRow) {
+                if (IsLeaderRowRepresentedByTable(leaderRow, page.Tables)) {
+                    continue;
+                }
+
                 items.Add(new MarkdownItem(null, 0, sequence++, EscapeInline(leaderRow.Label) + " | " + EscapeInline(leaderRow.Value)));
             }
         }
+
+        AppendUnmatchedTextBlocks(page, items, ref sequence);
 
         if (options.IncludeImagePlaceholders) {
             for (int i = 0; i < page.Images.Count; i++) {
@@ -141,6 +151,146 @@ public static class PdfLogicalMarkdownExtensions {
         }
 
         return items;
+    }
+
+    private static void AppendUnmatchedTextBlocks(PdfLogicalPage page, List<MarkdownItem> items, ref int sequence) {
+        for (int i = 0; i < page.TextBlocks.Count; i++) {
+            PdfLogicalTextBlock block = page.TextBlocks[i];
+            if (IsTextBlockRepresented(block, page)) {
+                continue;
+            }
+
+            items.Add(new MarkdownItem(block.BaselineY, block.XStart, sequence++, EscapeInline(block.Text)));
+        }
+    }
+
+    private static bool IsTextBlockRepresented(PdfLogicalTextBlock block, PdfLogicalPage page) {
+        if (block.Kind == PdfLogicalElementKind.Heading || block.Kind == PdfLogicalElementKind.ListItem) {
+            return true;
+        }
+
+        for (int i = 0; i < page.Paragraphs.Count; i++) {
+            PdfLogicalParagraph paragraph = page.Paragraphs[i];
+            for (int lineIndex = 0; lineIndex < paragraph.Lines.Count; lineIndex++) {
+                if (ReferenceEquals(paragraph.Lines[lineIndex], block)) {
+                    return true;
+                }
+            }
+        }
+
+        for (int i = 0; i < page.Tables.Count; i++) {
+            if (IsTextBlockRepresentedByTable(block, page.Tables[i])) {
+                return true;
+            }
+        }
+
+        if (IsTextBlockRepresentedByLeaderRow(block, page)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsParagraphRepresentedByStructuredElement(PdfLogicalParagraph paragraph, PdfLogicalPage page) {
+        if (paragraph.Lines.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < paragraph.Lines.Count; i++) {
+            PdfLogicalTextBlock line = paragraph.Lines[i];
+            bool represented = false;
+
+            for (int tableIndex = 0; tableIndex < page.Tables.Count; tableIndex++) {
+                if (IsTextBlockRepresentedByTable(line, page.Tables[tableIndex])) {
+                    represented = true;
+                    break;
+                }
+            }
+
+            if (!represented && IsTextBlockRepresentedByLeaderRow(line, page)) {
+                represented = true;
+            }
+
+            if (!represented) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsTextBlockRepresentedByTable(PdfLogicalTextBlock block, PdfLogicalTable table) {
+        double top = Math.Max(table.YTop, table.YBottom);
+        double bottom = Math.Min(table.YTop, table.YBottom);
+        if (block.BaselineY > top + 1D || block.BaselineY < bottom - 1D) {
+            return false;
+        }
+
+        string blockText = NormalizeMarkdownComparison(block.Text);
+        if (blockText.Length == 0) {
+            return true;
+        }
+
+        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            string rowText = NormalizeMarkdownComparison(string.Join(" ", table.Rows[rowIndex]));
+            if (rowText.Length == 0) {
+                continue;
+            }
+
+            if (ContainsOrdinal(rowText, blockText) ||
+                ContainsOrdinal(blockText, rowText)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsTextBlockRepresentedByLeaderRow(PdfLogicalTextBlock block, PdfLogicalPage page) {
+        IReadOnlyList<IPdfLogicalElement> leaderRows = page.GetElements(PdfLogicalElementKind.LeaderRow);
+        if (leaderRows.Count == 0) {
+            return false;
+        }
+
+        string blockText = NormalizeMarkdownComparison(block.Text);
+        for (int i = 0; i < leaderRows.Count; i++) {
+            if (leaderRows[i] is not PdfLogicalLeaderRow leaderRow) {
+                continue;
+            }
+
+            string label = NormalizeMarkdownComparison(leaderRow.Label);
+            string value = NormalizeMarkdownComparison(leaderRow.Value);
+            if (label.Length == 0 || value.Length == 0) {
+                continue;
+            }
+
+            if (ContainsOrdinal(blockText, label) && ContainsOrdinal(blockText, value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsLeaderRowRepresentedByTable(PdfLogicalLeaderRow leaderRow, IReadOnlyList<PdfLogicalTable> tables) {
+        string label = NormalizeMarkdownComparison(leaderRow.Label);
+        string value = NormalizeMarkdownComparison(leaderRow.Value);
+        for (int tableIndex = 0; tableIndex < tables.Count; tableIndex++) {
+            PdfLogicalTable table = tables[tableIndex];
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                IReadOnlyList<string> row = table.Rows[rowIndex];
+                if (row.Count < 2) {
+                    continue;
+                }
+
+                if (NormalizeMarkdownComparison(row[0]) == label &&
+                    NormalizeMarkdownComparison(row[row.Count - 1]) == value) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static int CompareMarkdownItems(MarkdownItem left, MarkdownItem right) {
@@ -258,7 +408,30 @@ public static class PdfLogicalMarkdownExtensions {
             return string.Empty;
         }
 
-        return text.Replace("\r", " ").Replace("\n", " ").Trim();
+        string value = text.Replace("\r", " ").Replace("\n", " ").Trim();
+        if (value.Length == 0) {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder(value.Length + 8);
+        for (int i = 0; i < value.Length; i++) {
+            char ch = value[i];
+            if (ch == '\\' ||
+                ch == '`' ||
+                ch == '*' ||
+                ch == '_' ||
+                ch == '[' ||
+                ch == ']' ||
+                ch == '<' ||
+                ch == '>') {
+                builder.Append('\\');
+            }
+
+            builder.Append(ch);
+        }
+
+        EscapeLinePrefix(builder);
+        return builder.ToString();
     }
 
     private static string EscapeTableCell(string text) {
@@ -267,6 +440,70 @@ public static class PdfLogicalMarkdownExtensions {
 
     private static string EscapeLinkTarget(string uri) {
         return uri.Replace(")", "%29");
+    }
+
+    private static void EscapeLinePrefix(StringBuilder builder) {
+        int index = 0;
+        while (index < builder.Length && char.IsWhiteSpace(builder[index])) {
+            index++;
+        }
+
+        if (index >= builder.Length) {
+            return;
+        }
+
+        char first = builder[index];
+        if (first == '#' || first == '-' || first == '+' || first == '>') {
+            builder.Insert(index, '\\');
+            return;
+        }
+
+        if (!char.IsDigit(first)) {
+            return;
+        }
+
+        int digitEnd = index + 1;
+        while (digitEnd < builder.Length && char.IsDigit(builder[digitEnd])) {
+            digitEnd++;
+        }
+
+        if (digitEnd < builder.Length && (builder[digitEnd] == '.' || builder[digitEnd] == ')')) {
+            builder.Insert(digitEnd, '\\');
+        }
+    }
+
+    private static string NormalizeMarkdownComparison(string? text) {
+        if (string.IsNullOrWhiteSpace(text)) {
+            return string.Empty;
+        }
+
+        var builder = new StringBuilder(text!.Length);
+        for (int i = 0; i < text.Length; i++) {
+            char ch = text[i];
+            if (!char.IsWhiteSpace(ch)) {
+                builder.Append(char.ToUpperInvariant(ch));
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool ContainsOrdinal(string text, string value) {
+        if (value.Length == 0) {
+            return true;
+        }
+
+        if (value.Length > text.Length) {
+            return false;
+        }
+
+        for (int i = 0; i <= text.Length - value.Length; i++) {
+            if (string.Compare(text, i, value, 0, value.Length, StringComparison.Ordinal) == 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private sealed class MarkdownItem {
