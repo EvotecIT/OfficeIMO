@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -180,6 +181,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Data Graphics", 8.5, 6);
             VisioShape api = page.AddRectangle(2, 4, 1.5, 0.75, "API");
             VisioShape database = page.AddRectangle(5, 4, 1.5, 0.75, "Database");
@@ -211,6 +213,18 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             Assert.Empty(VisioValidator.Validate(filePath));
+            using (ZipArchive archive = ZipFile.OpenRead(filePath)) {
+                XDocument pageXml = ReadXml(archive, "visio/pages/page1.xml");
+                XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+                XElement[] graphicShapeElements = pageXml.Descendants(ns + "Shape")
+                    .Where(shape => ((string?)shape.Attribute("NameU"))?.StartsWith("OfficeIMO Data Graphic", StringComparison.Ordinal) == true)
+                    .ToArray();
+
+                Assert.Equal(6, graphicShapeElements.Length);
+                Assert.All(graphicShapeElements, shape => Assert.Null(shape.Attribute("Master")));
+                Assert.All(graphicShapeElements, shape => Assert.Contains(shape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Geometry"));
+            }
+
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioShape loadedFill = loaded.Pages[0].Shapes.Single(shape =>
                 shape.GetUserCellValue("OfficeIMO.DataGraphicTargetId") == api.Id &&
@@ -219,6 +233,39 @@ namespace OfficeIMO.Tests {
             Assert.True(loadedFill.IsDiagramAdornment);
             Assert.Equal("72", loadedFill.GetShapeDataValue("DataGraphicValue"));
             Assert.Equal("0.72", loadedFill.GetShapeDataValue("Percent"));
+        }
+
+        [Fact]
+        public void PremiumGalleryPromotesDataGraphicsIntoExecutiveScenario() {
+            string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Premium-DataGraphics-" + Guid.NewGuid().ToString("N"));
+            try {
+                IReadOnlyList<VisioGalleryResult> results = VisioPremiumGallery.Create(folderPath);
+                VisioGalleryResult executive = results.Single(result => result.Name == "Premium Executive Dependencies");
+
+                Assert.True(executive.IsClean, string.Join(Environment.NewLine, executive.PackageIssues.Concat(executive.QualityIssues.Select(issue => issue.ToString()))));
+
+                VisioDocument loaded = VisioDocument.Load(executive.FilePath);
+                VisioPage page = loaded.Pages.Single();
+                VisioShape target = page.FindShapeById("warehouse")!;
+                Assert.NotNull(target);
+                Assert.Equal("Watch", target.GetShapeDataValue("Status"));
+                Assert.Equal("91", target.GetShapeDataValue("Slo"));
+
+                VisioShape[] dataGraphics = page.Shapes
+                    .Where(shape => shape.GetUserCellValue("OfficeIMO.DataGraphicTargetId") == target.Id)
+                    .OrderBy(shape => shape.GetUserCellValue("OfficeIMO.DataGraphicRole"), StringComparer.Ordinal)
+                    .ToArray();
+
+                Assert.Equal(4, dataGraphics.Length);
+                Assert.All(dataGraphics, shape => Assert.True(shape.IsDiagramAdornment));
+                Assert.Contains(dataGraphics, shape => shape.Text == "Status: Watch");
+                Assert.Contains(dataGraphics, shape => shape.Text == "SLO: 91");
+                Assert.Contains(dataGraphics, shape => shape.GetUserCellValue("OfficeIMO.DataGraphicRole") == "BarFill" && shape.GetShapeDataValue("Percent") == "0.91");
+            } finally {
+                if (Directory.Exists(folderPath)) {
+                    Directory.Delete(folderPath, recursive: true);
+                }
+            }
         }
 
         [Fact]

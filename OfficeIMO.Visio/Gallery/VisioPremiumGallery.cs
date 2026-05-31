@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using OfficeIMO.Visio.Diagrams;
 using OfficeIMO.Visio.Stencils;
+using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -125,7 +126,7 @@ namespace OfficeIMO.Visio {
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
 
-            return document.GraphDiagram("Premium Executive Dependencies", graph => graph
+            VisioDocument result = document.GraphDiagram("Premium Executive Dependencies", graph => graph
                     .Title("Revenue Platform - Critical Path")
                     .Theme(VisioStyleTheme.Enterprise())
                     .Layout(VisioGraphLayout.Layered)
@@ -150,7 +151,29 @@ namespace OfficeIMO.Visio {
                     .DataEdge("checkout-warehouse", "checkout", "warehouse", "reserve")
                     .NodeShapeData("portal", "Owner", "Digital", "Owner", VisioShapeDataType.String)
                     .NodeShapeData("payments", "Criticality", "Tier 0", "Criticality", VisioShapeDataType.String)
+                    .NodeShapeData("warehouse", "Status", "Watch", "Status", VisioShapeDataType.FixedList, "Operational health", "Healthy;Watch;Critical")
+                    .NodeShapeData("warehouse", "Slo", "91", "SLO", VisioShapeDataType.Number, "Current service objective score")
                     .EdgeShapeData("payments-ledger", "Sla", "15 minutes", "SLA", VisioShapeDataType.String));
+
+            VisioPage page = result.Pages[0];
+            VisioDataGraphic graphic = VisioDataGraphic.Create();
+            graphic.Placement = VisioDataGraphicPlacement.Right;
+            graphic.Gap = 0.42D;
+            graphic.ItemSpacing = 0.62D;
+            graphic.Badge("Status", style: new VisioShapeStyle(Color.FromRgb(255, 247, 237), Color.FromRgb(234, 88, 12), 0.01D) {
+                TextStyle = new VisioTextStyle {
+                    FontFamily = "Aptos",
+                    Size = 7.5D,
+                    Bold = true,
+                    Color = Color.FromRgb(124, 45, 18),
+                    HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                    VerticalAlignment = VisioTextVerticalAlignment.Middle
+                }
+            });
+            graphic.Bar("Slo", maximumValue: 100, label: "SLO", fillStyle: new VisioShapeStyle(Color.FromRgb(14, 165, 233), Color.FromRgb(2, 132, 199), 0.006D));
+            page.SelectWithShapeData("Status", "Watch").AddDataGraphics(graphic);
+
+            return result;
         }
 
         private static VisioDocument CreateTechnicalTopology(string filePath) {

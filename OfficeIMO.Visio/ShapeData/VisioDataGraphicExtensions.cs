@@ -87,7 +87,7 @@ namespace OfficeIMO.Visio {
             string label = item.FormatText(value);
             VisioShape badge = new VisioShape(id, x, y, item.Width, item.Height, label) {
                 Name = "Data Graphic",
-                NameU = "Rectangle"
+                NameU = "OfficeIMO Data Graphic Badge"
             };
             item.GetBadgeStyle().ApplyTo(badge);
             MarkDataGraphic(badge, target, item, value, "Badge");
@@ -106,7 +106,7 @@ namespace OfficeIMO.Visio {
 
             VisioShape background = new VisioShape(UniqueId(page, baseId + "-bar"), x, y, item.Width, item.Height, string.Empty) {
                 Name = "Data Graphic Bar",
-                NameU = "Rectangle"
+                NameU = "OfficeIMO Data Graphic Bar"
             };
             item.GetBarBackgroundStyle().ApplyTo(background);
             MarkDataGraphic(background, target, item, value, "BarBackground");
@@ -116,7 +116,7 @@ namespace OfficeIMO.Visio {
             double fillCenterX = x - (item.Width / 2D) + (fillWidth / 2D);
             VisioShape fill = new VisioShape(UniqueId(page, baseId + "-fill"), fillCenterX, y, fillWidth, item.Height, string.Empty) {
                 Name = "Data Graphic Bar Fill",
-                NameU = "Rectangle"
+                NameU = "OfficeIMO Data Graphic Bar Fill"
             };
             item.GetBarFillStyle().ApplyTo(fill);
             MarkDataGraphic(fill, target, item, value, "BarFill");
