@@ -108,6 +108,10 @@ namespace OfficeIMO.Visio.Stencils {
                     iconHeight,
                     string.Empty,
                     VisioMeasurementUnit.Inches);
+                if (effectiveOptions.IncludeStencilMetadataShapeData) {
+                    ApplyGalleryShapeData(icon, catalog, stencil, i);
+                }
+
                 placed.Add(icon);
 
                 AddLabel(page, ReserveId(reservedIds, itemPrefix, "name"), centerX, cellTop - 1.05D, effectiveOptions.CellWidth - 0.22D, 0.3D, stencil.Name, 9.2D, true, OfficeColor.FromRgb(28, 38, 48));
@@ -117,6 +121,54 @@ namespace OfficeIMO.Visio.Stencils {
             }
 
             return placed.AsReadOnly();
+        }
+
+        private static void ApplyGalleryShapeData(VisioShape shape, VisioStencilCatalog catalog, VisioStencilShape stencil, int index) {
+            shape.SetShapeData("GalleryIndex", index.ToString(CultureInfo.InvariantCulture), "Gallery index", VisioShapeDataType.Number);
+            shape.SetShapeData("StencilId", stencil.Id, "Stencil id", VisioShapeDataType.String);
+            shape.SetShapeData("StencilName", stencil.Name, "Stencil name", VisioShapeDataType.String);
+            shape.SetShapeData("StencilCategory", stencil.Category, "Stencil category", VisioShapeDataType.String);
+            shape.SetShapeData("StencilCatalog", catalog.Name, "Stencil catalog", VisioShapeDataType.String);
+            shape.SetShapeData("MasterNameU", stencil.MasterNameU, "Master NameU", VisioShapeDataType.String);
+            shape.SetShapeData("IconNameU", stencil.IconNameU, "Icon NameU", VisioShapeDataType.String);
+            shape.SetShapeData("DefaultSize", FormatDefaultSize(stencil), "Default size", VisioShapeDataType.String);
+            if (stencil.Keywords.Count > 0) {
+                shape.SetShapeData("Keywords", string.Join("; ", stencil.Keywords), "Keywords", VisioShapeDataType.String);
+            }
+
+            if (stencil.Aliases.Count > 0) {
+                shape.SetShapeData("Aliases", string.Join("; ", stencil.Aliases), "Aliases", VisioShapeDataType.String);
+            }
+
+            if (stencil.Tags.Count > 0) {
+                shape.SetShapeData("Tags", string.Join("; ", stencil.Tags), "Tags", VisioShapeDataType.String);
+            }
+
+            if (!string.IsNullOrWhiteSpace(stencil.SourcePackagePath)) {
+                shape.SetShapeData("SourcePackagePath", stencil.SourcePackagePath, "Source package path", VisioShapeDataType.String);
+            }
+
+            if (stencil.PreviewImage != null) {
+                string? preview = string.IsNullOrWhiteSpace(stencil.PreviewImage.ContentType)
+                    ? stencil.PreviewImage.Extension
+                    : stencil.PreviewImage.ContentType;
+                if (!string.IsNullOrWhiteSpace(preview)) {
+                    shape.SetShapeData("PreviewImage", preview, "Preview image", VisioShapeDataType.String);
+                }
+            }
+
+            if (stencil.SourceConnectionPoints.Count > 0) {
+                shape.SetShapeData("SourceConnectionPoints", stencil.SourceConnectionPoints.Count.ToString(CultureInfo.InvariantCulture), "Source connection points", VisioShapeDataType.Number);
+            }
+        }
+
+        private static string FormatDefaultSize(VisioStencilShape stencil) {
+            string unit = stencil.DefaultUnit?.ToString() ?? "PageUnit";
+            return stencil.DefaultWidth.ToString("0.###", CultureInfo.InvariantCulture) +
+                   " x " +
+                   stencil.DefaultHeight.ToString("0.###", CultureInfo.InvariantCulture) +
+                   " " +
+                   unit;
         }
 
         private static void AddLabel(VisioPage page, string id, double x, double y, double width, double height, string text, double size, bool bold, OfficeColor color) {

@@ -263,6 +263,71 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilGalleryDocumentCreatesPagedCategoryReviewDocument() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
+                .AddWithMetadata("review.worker", "Worker", "Process", "Compute", 1.6, 0.9, keywords: new[] { "service" }, aliases: new[] { "processor" }, tags: new[] { "runtime" })
+                .AddWithMetadata("review.runtime", "Runtime", "Rectangle", "Compute", 1.6, 0.9, keywords: new[] { "container" })
+                .AddWithMetadata("review.api", "API", "Process", "Integration", 1.7, 0.9, keywords: new[] { "gateway" })
+                .AddWithMetadata("review.queue", "Queue", "Data", "Integration", 1.5, 0.85, keywords: new[] { "broker" })
+                .AddWithMetadata("review.topic", "Topic", "Data", "Integration", 1.5, 0.85, keywords: new[] { "event" }));
+
+            VisioDocument document = VisioStencilGalleryDocument.Create(filePath, catalog, new VisioStencilGalleryDocumentOptions {
+                Title = "Reusable stencil review",
+                IdPrefix = "review",
+                Columns = 2,
+                ShapesPerPage = 2,
+                PageWidth = 7,
+                PageHeight = 5,
+                IncludeStencilMetadataShapeData = true
+            });
+
+            Assert.Equal("Reusable stencil review", document.Title);
+            Assert.Equal("OfficeIMO.Visio", document.Author);
+            Assert.True(document.UseMastersByDefault);
+            Assert.Equal(4, document.Pages.Count);
+            Assert.Equal("Stencil Gallery Overview", document.Pages[0].Name);
+            Assert.Equal("01 Compute", document.Pages[1].Name);
+            Assert.Equal("02 Integration (1 of 2)", document.Pages[2].Name);
+            Assert.Equal("03 Integration (2 of 2)", document.Pages[3].Name);
+            Assert.Contains(document.Pages[0].Shapes, shape => shape.Id == "review-overview-summary" && shape.Text == "5 stencils across 2 categories");
+
+            VisioShape firstComputeShape = document.Pages[1].Shapes.Single(shape => shape.Id == "review-01-0-shape");
+            Assert.Equal("Runtime", firstComputeShape.GetShapeDataValue("StencilName"));
+            Assert.Equal("Compute", firstComputeShape.GetShapeDataValue("StencilCategory"));
+            Assert.Equal("Review Catalog - Compute", firstComputeShape.GetShapeDataValue("StencilCatalog"));
+            Assert.Equal("Rectangle", firstComputeShape.GetShapeDataValue("MasterNameU"));
+            Assert.Equal("0", firstComputeShape.GetShapeDataValue("GalleryIndex"));
+            Assert.Equal("Rectangle", firstComputeShape.MasterNameU);
+
+            VisioShape integrationShape = document.Pages[2].Shapes.Single(shape => shape.Id == "review-02-1-shape");
+            Assert.Equal("Queue", integrationShape.GetShapeDataValue("StencilName"));
+            Assert.Equal("broker", integrationShape.GetShapeDataValue("Keywords"));
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal(4, loaded.Pages.Count);
+            Assert.Equal("Runtime", loaded.Pages[1].Shapes.Single(shape => shape.Id == "review-01-0-shape").GetShapeDataValue("StencilName"));
+            Assert.Equal("Queue", loaded.Pages[2].Shapes.Single(shape => shape.Id == "review-02-1-shape").GetShapeDataValue("StencilName"));
+        }
+
+        [Fact]
+        public void StencilGalleryDocumentValidatesPagingOptions() {
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
+                .Add("review.worker", "Worker", "Process", "Compute", 1.6, 0.9));
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => VisioStencilGalleryDocument.Create(filePath, catalog, new VisioStencilGalleryDocumentOptions {
+                ShapesPerPage = 0
+            }));
+            Assert.Throws<ArgumentException>(() => VisioStencilGalleryDocument.Create(filePath, catalog, new VisioStencilGalleryDocumentOptions {
+                IdPrefix = " "
+            }));
+        }
+
+        [Fact]
         public void CustomStencilCatalogBuilderCreatesSearchablePaletteAndPlaceableShapes() {
             VisioStencilCatalog catalog = VisioStencilCatalog.Create("Custom Infrastructure", builder => builder
                 .Add("custom.cache", "Cache", "Process", "Infrastructure", 1.8, 0.9, "redis", "memory-store")

@@ -754,9 +754,28 @@ var page = doc.AddPage("Gallery", 11, 8.5);
 page.AddStencilGallery(integration, new VisioStencilGalleryOptions {
     Title = "Microsoft Integration and Azure",
     Columns = 4,
-    MaxShapes = 24
+    MaxShapes = 24,
+    IncludeStencilMetadataShapeData = true
 });
 doc.Save();
+```
+
+For a complete catalog review artifact, create a paginated gallery document. It
+adds an overview page, splits large catalogs by category, and stamps each
+preview shape with Shape Data rows such as stencil id, category, catalog,
+master, keywords, aliases, tags, default size, source package, preview image, and
+connection-point counts where available:
+
+```csharp
+var gallery = VisioStencilGalleryDocument.Create("stencil-gallery.vsdx",
+    integration,
+    new VisioStencilGalleryDocumentOptions {
+        Title = "Microsoft Integration and Azure review",
+        Columns = 4,
+        ShapesPerPage = 24,
+        IncludeStencilMetadataShapeData = true
+    });
+gallery.Save();
 ```
 
 For package-backed masters that carry embedded preview/icon payloads, export a

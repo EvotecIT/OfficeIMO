@@ -149,9 +149,9 @@ Goal: native and external stencil packs feel first-class, not like shortcuts.
   - containers/Kubernetes generic;
   - data/platform services;
   - collaboration/business process symbols.
-- Add a real stencil gallery document builder for catalog review and debugging.
+- Add a real stencil gallery document builder for catalog review and debugging. Initial support now creates overview/category-paginated `.vsdx` review documents with visible Shape Data rows for stencil id, catalog/category, master, search metadata, source package, preview image, and connection-point counts.
 - Add custom stencil export, ideally to reusable package-backed stencil form when feasible.
-- Broaden typed stencil profiles from catalog/category/source-pack/family, alias/keyword/tag, placed/source dimensions, icon identity, preview-image content type/extension, extracted package preview/icon payloads, reviewable preview-payload gallery artifacts with deterministic SVG thumbnails for browser-renderable payloads, learned native connection-point metadata, and placed connection-point summaries into richer package-family and native metadata.
+- Broaden typed stencil profiles from catalog/category/source-pack/family, alias/keyword/tag, placed/source dimensions, icon identity, preview-image content type/extension, extracted package preview/icon payloads, reviewable preview-payload gallery artifacts with deterministic SVG thumbnails for browser-renderable payloads, generated paginated gallery `.vsdx` documents with Shape Data metadata, learned native connection-point metadata, and placed connection-point summaries into richer package-family and native metadata.
 - Document native Visio stencil discovery paths and external pack usage patterns.
 
 ## P3: Real Graphs And Data-Driven Diagrams
