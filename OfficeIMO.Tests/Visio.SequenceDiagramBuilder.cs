@@ -25,7 +25,8 @@ namespace OfficeIMO.Tests {
                     .Call("web", "api", "POST /orders", "post-order")
                     .Async("api", "db", "Persist order", "persist")
                     .Return("api", "web", "201 Created", "created")
-                    .SelfMessage("web", "Render receipt", id: "render"));
+                    .SelfMessage("web", "Render receipt", id: "render")
+                    .Note("api", "Retry path observed", 2, VisioSide.Right, "retry-note"));
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Checkout Sequence", page.Name);
@@ -46,6 +47,19 @@ namespace OfficeIMO.Tests {
             Assert.True(api.PinX < db.PinX);
             Assert.Equal("SequenceParticipant", customer.GetUserCellValue("OfficeIMO.Kind"));
             Assert.Equal("Database", db.GetUserCellValue("OfficeIMO.SequenceParticipantKind"));
+            VisioShape note = Assert.Single(page.Shapes, shape => shape.Id == "retry-note");
+            Assert.Equal("Rectangle", note.MasterNameU);
+            Assert.Equal("SequenceNote", note.GetUserCellValue("OfficeIMO.Kind"));
+            Assert.Equal("api", note.GetUserCellValue("OfficeIMO.SequenceParticipantId"));
+            Assert.Contains("Sequence Notes", note.LayerNames);
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(5, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Sequence Diagram" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.actor" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.participant" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.control" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.database" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.note" && usage.Count == 1);
 
             VisioConnector[] messageConnectors = page.Connectors
                 .Where(connector => !string.IsNullOrWhiteSpace(connector.Label))
@@ -123,9 +137,37 @@ namespace OfficeIMO.Tests {
                     .Participant("api", "API")
                     .Call("web", "api", "first", "same")
                     .Return("api", "web", "second", "same")));
+            ArgumentException noteCollision = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Note("web", "First", 0, id: "same")
+                    .Call("web", "web", "Duplicate", "same")));
 
             Assert.Contains("already exists", participantCollision.Message);
             Assert.Contains("already exists", messageCollision.Message);
+            Assert.Contains("already exists", noteCollision.Message);
+        }
+
+        [Fact]
+        public void SequenceDiagramBuilderRejectsInvalidNotes() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Note("missing", "No target", 0)));
+            ArgumentOutOfRangeException badRow = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Note("web", "Bad row", -1)));
+            ArgumentOutOfRangeException badPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Note("web", "Bad placement", 0, VisioSide.Top)));
+
+            Assert.Contains("Unknown sequence participant id", unknownTarget.Message);
+            Assert.Contains("zero or greater", badRow.Message);
+            Assert.Contains("left or right", badPlacement.Message);
         }
 
         [Fact]

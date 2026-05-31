@@ -175,7 +175,7 @@
 			<v:textRect cx="755.64" cy="181.08" width="54.45" height="20.34"/>
 			<path d="M727.92 199.8 L766.44 199.8 L783.36 199.8 L727.92 199.8 Z" class="st9"/>
 			<path d="M727.92 199.8 L766.44 199.8 L783.36 199.8" class="st10"/>
-			<rect v:rectContext="textBkgnd" x="738.178" y="175.68" width="34.9233" height="10.7998" class="st12"/>
+			<rect v:rectContext="textBkgnd" x="738.178" y="175.68" width="34.9233" height="10.7998" class="st3"/>
 			<text x="738.18" y="183.78" class="st13" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>approved</text>		</g>
 		<g id="shape20-71" v:mID="20" v:groupContext="shape">
 			<title>Sheet.20</title>
@@ -193,7 +193,7 @@
 			<v:textRect cx="581.04" cy="235.08" width="47.08" height="20.34"/>
 			<path d="M550.08 199.8 L550.08 253.8 L601.92 253.8 L601.92 343.8 L550.08 199.8 Z" class="st9"/>
 			<path d="M550.08 199.8 L550.08 253.8 L601.92 253.8 L601.92 343.8" class="st14"/>
-			<rect v:rectContext="textBkgnd" x="567.393" y="229.68" width="27.2944" height="10.7998" class="st12"/>
+			<rect v:rectContext="textBkgnd" x="567.393" y="229.68" width="27.2944" height="10.7998" class="st3"/>
 			<text x="567.39" y="237.78" class="st16" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>reserve</text>		</g>
 	</g>
 </svg>

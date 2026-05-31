@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Drawing;
+using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
@@ -10,6 +11,7 @@ namespace OfficeIMO.Visio.Diagrams {
     public sealed class VisioSequenceDiagramBuilder {
         private const string LifelineLayer = "Sequence Lifelines";
         private const string MessageLayer = "Sequence Messages";
+        private const string NoteLayer = "Sequence Notes";
         private const string GuideLayer = "Sequence Guides";
 
         private sealed class ParticipantItem {
@@ -55,11 +57,32 @@ namespace OfficeIMO.Visio.Diagrams {
             public bool SelfMessage { get; }
         }
 
+        private sealed class NoteItem {
+            public NoteItem(string id, string participantId, string text, int rowIndex, VisioSide placement) {
+                Id = id;
+                ParticipantId = participantId;
+                Text = text;
+                RowIndex = rowIndex;
+                Placement = placement;
+            }
+
+            public string Id { get; }
+
+            public string ParticipantId { get; }
+
+            public string Text { get; }
+
+            public int RowIndex { get; }
+
+            public VisioSide Placement { get; }
+        }
+
         private readonly VisioDocument _document;
         private readonly string _pageName;
         private readonly List<ParticipantItem> _participants = new();
         private readonly Dictionary<string, ParticipantItem> _participantsById = new(StringComparer.Ordinal);
         private readonly List<MessageItem> _messages = new();
+        private readonly List<NoteItem> _notes = new();
         private VisioStyleTheme _theme = VisioStyleTheme.Technical();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private double _pageWidth = 11;
@@ -77,6 +100,9 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _selfMessageHeight = 0.36;
         private const double SelfMessageLabelGap = 0.18D;
         private const double SelfMessageLabelHeight = 0.3D;
+        private const double NoteWidth = 1.85D;
+        private const double NoteHeight = 0.72D;
+        private const double NoteGap = 0.22D;
         private string? _titleText;
         private string _titleId = "title";
         private double _titleHeight = 0.45;
@@ -231,6 +257,23 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a semantic note near a participant at a message row.</summary>
+        public VisioSequenceDiagramBuilder Note(string participantId, string text, int rowIndex, VisioSide placement = VisioSide.Right, string? id = null) {
+            string normalizedParticipantId = RequireId(participantId, nameof(participantId), "Participant id");
+            EnsureKnownParticipant(normalizedParticipantId, nameof(participantId));
+            if (rowIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(rowIndex), "Row index must be zero or greater.");
+            }
+
+            if (placement != VisioSide.Left && placement != VisioSide.Right) {
+                throw new ArgumentOutOfRangeException(nameof(placement), "Sequence notes must be placed to the left or right of a participant.");
+            }
+
+            string noteId = NormalizeNoteId(id);
+            _notes.Add(new NoteItem(noteId, normalizedParticipantId, text ?? string.Empty, rowIndex, placement));
+            return this;
+        }
+
         internal VisioPage Build() {
             if (_built) {
                 throw new InvalidOperationException("This sequence diagram builder has already produced a page.");
@@ -258,11 +301,16 @@ namespace OfficeIMO.Visio.Diagrams {
                 page.Grid(visible: false, snap: true);
                 page.AddLayer(LifelineLayer);
                 page.AddLayer(MessageLayer);
+                if (_notes.Count > 0) {
+                    page.AddLayer(NoteLayer);
+                }
+
                 page.AddLayer(GuideLayer).Print = false;
 
                 AddTitle(page, pageWidth, pageHeight);
                 PlaceParticipants(page, pageWidth, headerY, lifelineBottomY);
                 AddMessages(page, firstMessageY);
+                AddNotes(page, firstMessageY);
                 _document.RequestRecalcOnOpen();
                 return page;
             } finally {
@@ -301,14 +349,10 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioShape CreateParticipantHeader(VisioPage page, ParticipantItem participant, double x, double y) {
-            string masterNameU = GetParticipantMaster(participant.Kind);
-            VisioShape shape = new(participant.Id, x, y, _participantWidth, _participantHeight, participant.Text) {
-                NameU = masterNameU,
-            };
+            VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, GetParticipantStencilId(participant.Kind), participant.Id, x, y, _participantWidth, _participantHeight, participant.Text);
             GetParticipantStyle(participant.Kind).ApplyTo(shape);
             shape.SetUserCell(VisioSemanticUserCells.Kind, "SequenceParticipant", "STR", prompt: "OfficeIMO semantic kind");
             shape.SetUserCell("OfficeIMO.SequenceParticipantKind", participant.Kind.ToString(), "STR", prompt: "OfficeIMO sequence participant kind");
-            page.Shapes.Add(shape);
             page.AddToLayer(LifelineLayer, shape);
             return shape;
         }
@@ -366,6 +410,24 @@ namespace OfficeIMO.Visio.Diagrams {
             double labelCenterY = y - (labelHeight / 2D);
             connector.PlaceLabelAt(labelCenterX, labelCenterY, labelWidth, labelHeight);
             page.AddToLayer(MessageLayer, connector);
+        }
+
+        private void AddNotes(VisioPage page, double firstMessageY) {
+            foreach (NoteItem note in _notes) {
+                ParticipantItem participant = _participantsById[note.ParticipantId];
+                double direction = note.Placement == VisioSide.Right ? 1D : -1D;
+                double x = participant.PinX + (direction * ((_participantWidth / 2D) + NoteGap + (NoteWidth / 2D)));
+                x = Math.Max(_leftMargin + (NoteWidth / 2D), Math.Min(page.Width - _rightMargin - (NoteWidth / 2D), x));
+                double y = firstMessageY - (note.RowIndex * _messageSpacing) - (_messageSpacing / 2D);
+                y = Math.Max(_bottomMargin + (NoteHeight / 2D), Math.Min(page.Height - _topMargin - _participantHeight - NoteGap - (NoteHeight / 2D), y));
+
+                VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, "seq.note", note.Id, x, y, NoteWidth, NoteHeight, note.Text);
+                _theme.Container.ApplyTo(shape);
+                shape.SetUserCell(VisioSemanticUserCells.Kind, "SequenceNote", "STR", prompt: "OfficeIMO semantic kind");
+                shape.SetUserCell("OfficeIMO.SequenceParticipantId", note.ParticipantId, "STR", prompt: "OfficeIMO sequence note target participant");
+                shape.SetUserCell("OfficeIMO.SequenceRowIndex", note.RowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence note row");
+                page.AddToLayer(NoteLayer, shape);
+            }
         }
 
         private void ResolveSelfMessageLabelPlacement(VisioPage page, ParticipantItem participant, string label, out double direction, out double labelWidth, out double labelHeight) {
@@ -457,16 +519,28 @@ namespace OfficeIMO.Visio.Diagrams {
             };
         }
 
-        private static string GetParticipantMaster(VisioSequenceParticipantKind kind) {
+        private static string GetParticipantStencilId(VisioSequenceParticipantKind kind) {
             return kind switch {
-                VisioSequenceParticipantKind.Actor => "Circle",
-                VisioSequenceParticipantKind.Database => "Data",
-                _ => "Rectangle"
+                VisioSequenceParticipantKind.Actor => "seq.actor",
+                VisioSequenceParticipantKind.Boundary => "seq.boundary",
+                VisioSequenceParticipantKind.Control => "seq.control",
+                VisioSequenceParticipantKind.Entity => "seq.entity",
+                VisioSequenceParticipantKind.Database => "seq.database",
+                _ => "seq.participant"
             };
         }
 
         private string NormalizeMessageId(string? id) {
             string normalizedId = string.IsNullOrWhiteSpace(id) ? "message-" + (_messages.Count + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) : id!.Trim();
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            return normalizedId;
+        }
+
+        private string NormalizeNoteId(string? id) {
+            string normalizedId = string.IsNullOrWhiteSpace(id) ? "note-" + (_notes.Count + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) : id!.Trim();
             if (IsIdInUse(normalizedId)) {
                 throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
             }
@@ -492,6 +566,12 @@ namespace OfficeIMO.Visio.Diagrams {
 
             foreach (MessageItem message in _messages) {
                 if (string.Equals(message.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            foreach (NoteItem note in _notes) {
+                if (string.Equals(note.Id, id, StringComparison.Ordinal)) {
                     return true;
                 }
             }
