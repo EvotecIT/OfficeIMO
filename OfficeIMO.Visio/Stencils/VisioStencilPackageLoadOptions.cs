@@ -39,6 +39,12 @@ namespace OfficeIMO.Visio.Stencils {
         public bool LearnMasterDimensions { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets whether preview/icon image relationship metadata should be learned from master parts when available.
+        /// Defaults to true.
+        /// </summary>
+        public bool ExtractPreviewImageMetadata { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the default stencil width in the caller's placement unit.
         /// </summary>
         public double DefaultWidth { get; set; } = 1.8;

@@ -547,6 +547,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilCatalogExtractsPreviewImageMetadataFromMasterRelationships() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                Category = "External",
+                IdPrefix = "preview"
+            });
+            VisioStencilShape stencil = catalog.Get("fancy-cloud");
+            VisioStencilCatalog metadataWithoutDimensions = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                LearnMasterDimensions = false
+            });
+            VisioStencilCatalog metadataDisabled = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                ExtractPreviewImageMetadata = false
+            });
+
+            Assert.NotNull(stencil.PreviewImage);
+            Assert.Equal("rIdImage", stencil.PreviewImage!.RelationshipId);
+            Assert.Equal("../media/image1.emf", stencil.PreviewImage.Target);
+            Assert.Equal("image/x-emf", stencil.PreviewImage.ContentType);
+            Assert.Equal(".emf", stencil.PreviewImage.Extension);
+            Assert.Equal(8, stencil.PreviewImage.ByteLength);
+            Assert.Equal(".emf", metadataWithoutDimensions.Get("fancy-cloud").PreviewImage?.Extension);
+            Assert.Null(metadataDisabled.Get("fancy-cloud").PreviewImage);
+
+            using MemoryStream manifest = new();
+            catalog.Save(manifest);
+            manifest.Position = 0;
+            VisioStencilCatalog reloadedCatalog = VisioStencilCatalog.Load(manifest);
+            Assert.Equal(".emf", reloadedCatalog.Get("fancy-cloud").PreviewImage?.Extension);
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Preview Metadata");
+            page.AddStencilShape(catalog, "fancy-cloud", "cloud", 2, 4);
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioInspectionMasterSnapshot master = Assert.Single(loaded.CreateInspectionSnapshot().Masters, item => item.NameU == "FancyCloud");
+            Assert.Equal("rIdImage", master.StencilPreviewImageRelationshipId);
+            Assert.Equal("../media/image1.emf", master.StencilPreviewImageTarget);
+            Assert.Equal("image/x-emf", master.StencilPreviewImageContentType);
+            Assert.Equal(".emf", master.StencilPreviewImageExtension);
+            Assert.Equal(8, master.StencilPreviewImageByteLength);
+
+            VisioStencilProfile profile = loaded.CreateStencilProfile();
+            Assert.Equal(new[] { "image/x-emf" }, profile.StencilPreviewImageContentTypes);
+            Assert.Equal(new[] { ".emf" }, profile.StencilPreviewImageExtensions);
+            VisioStencilUsageProfile usage = Assert.Single(profile.Usages, item => item.Kind == VisioStencilProfileUsageKind.PackageBackedMaster);
+            Assert.Equal("image/x-emf", usage.StencilPreviewImageContentType);
+            Assert.Equal(".emf", usage.StencilPreviewImageExtension);
+        }
+
+        [Fact]
         public void ImportedStencilMastersPreserveExternalMasterArtwork() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");

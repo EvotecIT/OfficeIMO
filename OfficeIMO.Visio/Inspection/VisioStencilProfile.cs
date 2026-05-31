@@ -52,6 +52,8 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<string> stencilTags,
             IReadOnlyList<string> stencilIconNameUs,
             IReadOnlyList<string> stencilDefaultUnits,
+            IReadOnlyList<string> stencilPreviewImageContentTypes,
+            IReadOnlyList<string> stencilPreviewImageExtensions,
             IReadOnlyList<VisioStencilFamilyProfile> stencilFamilies) {
             TotalShapes = totalShapes;
             ConnectorCount = connectorCount;
@@ -67,6 +69,8 @@ namespace OfficeIMO.Visio {
             StencilTags = stencilTags;
             StencilIconNameUs = stencilIconNameUs;
             StencilDefaultUnits = stencilDefaultUnits;
+            StencilPreviewImageContentTypes = stencilPreviewImageContentTypes;
+            StencilPreviewImageExtensions = stencilPreviewImageExtensions;
             StencilFamilies = stencilFamilies;
         }
 
@@ -152,6 +156,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Distinct source default-size units represented by inspected shapes.</summary>
         public IReadOnlyList<string> StencilDefaultUnits { get; }
 
+        /// <summary>Distinct stencil preview image content types represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilPreviewImageContentTypes { get; }
+
+        /// <summary>Distinct stencil preview image extensions represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilPreviewImageExtensions { get; }
+
         /// <summary>
         /// Creates a stencil profile from an inspection snapshot.
         /// </summary>
@@ -193,6 +203,8 @@ namespace OfficeIMO.Visio {
                 CollectUsageListValues(usages, usage => usage.StencilTags).AsReadOnly(),
                 CollectUsageValues(usages, usage => usage.StencilIconNameU).AsReadOnly(),
                 CollectUsageValues(usages, usage => usage.StencilDefaultUnit).AsReadOnly(),
+                CollectUsageValues(usages, usage => usage.StencilPreviewImageContentType).AsReadOnly(),
+                CollectUsageValues(usages, usage => usage.StencilPreviewImageExtension).AsReadOnly(),
                 stencilFamilies.AsReadOnly());
         }
 
@@ -222,6 +234,8 @@ namespace OfficeIMO.Visio {
             AppendLine(builder, "profile.stencilTags", string.Join(",", StencilTags));
             AppendLine(builder, "profile.stencilIconNameUs", string.Join(",", StencilIconNameUs));
             AppendLine(builder, "profile.stencilDefaultUnits", string.Join(",", StencilDefaultUnits));
+            AppendLine(builder, "profile.stencilPreviewImageContentTypes", string.Join(",", StencilPreviewImageContentTypes));
+            AppendLine(builder, "profile.stencilPreviewImageExtensions", string.Join(",", StencilPreviewImageExtensions));
             AppendLine(builder, "profile.stencilFamilyCount", StencilFamilies.Count);
             AppendLine(builder, "profile.usageCount", Usages.Count);
 
@@ -273,7 +287,9 @@ namespace OfficeIMO.Visio {
                     GetStencilIconNameU(shape, master),
                     GetStencilDefaultWidth(shape, master),
                     GetStencilDefaultHeight(shape, master),
-                    GetStencilDefaultUnit(shape, master));
+                    GetStencilDefaultUnit(shape, master),
+                    GetStencilPreviewImageContentType(shape, master),
+                    GetStencilPreviewImageExtension(shape, master));
             }
 
             if (!string.IsNullOrWhiteSpace(shape.NameU)) {
@@ -296,7 +312,9 @@ namespace OfficeIMO.Visio {
                     GetStencilIconNameU(shape, null),
                     GetStencilDefaultWidth(shape, null),
                     GetStencilDefaultHeight(shape, null),
-                    GetStencilDefaultUnit(shape, null));
+                    GetStencilDefaultUnit(shape, null),
+                    GetStencilPreviewImageContentType(shape, null),
+                    GetStencilPreviewImageExtension(shape, null));
             }
 
             if (!string.IsNullOrWhiteSpace(semanticKind)) {
@@ -318,6 +336,8 @@ namespace OfficeIMO.Visio {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null);
         }
 
@@ -336,6 +356,8 @@ namespace OfficeIMO.Visio {
                 Array.Empty<string>(),
                 Array.Empty<string>(),
                 Array.Empty<string>(),
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -458,6 +480,14 @@ namespace OfficeIMO.Visio {
             return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilDefaultUnit) ?? master?.StencilDefaultUnit;
         }
 
+        private static string? GetStencilPreviewImageContentType(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilPreviewImageContentType) ?? master?.StencilPreviewImageContentType;
+        }
+
+        private static string? GetStencilPreviewImageExtension(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilPreviewImageExtension) ?? master?.StencilPreviewImageExtension;
+        }
+
         private static double? GetUserCellDouble(VisioInspectionShapeSnapshot shape, string name) {
             string? value = VisioStencilMetadata.GetUserCellValue(shape.UserCells, name);
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
@@ -480,6 +510,8 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<string> stencilTags,
             IReadOnlyList<string> stencilIconNameUs,
             IReadOnlyList<string> stencilDefaultUnits,
+            IReadOnlyList<string> stencilPreviewImageContentTypes,
+            IReadOnlyList<string> stencilPreviewImageExtensions,
             IReadOnlyList<string> stencilIds,
             IReadOnlyList<string> usageKeys,
             int shapeCount,
@@ -507,6 +539,8 @@ namespace OfficeIMO.Visio {
             StencilTags = stencilTags;
             StencilIconNameUs = stencilIconNameUs;
             StencilDefaultUnits = stencilDefaultUnits;
+            StencilPreviewImageContentTypes = stencilPreviewImageContentTypes;
+            StencilPreviewImageExtensions = stencilPreviewImageExtensions;
             StencilIds = stencilIds;
             UsageKeys = usageKeys;
             ShapeCount = shapeCount;
@@ -553,6 +587,12 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Distinct source default-size units represented by this family.</summary>
         public IReadOnlyList<string> StencilDefaultUnits { get; }
+
+        /// <summary>Distinct preview image content types represented by this family.</summary>
+        public IReadOnlyList<string> StencilPreviewImageContentTypes { get; }
+
+        /// <summary>Distinct preview image extensions represented by this family.</summary>
+        public IReadOnlyList<string> StencilPreviewImageExtensions { get; }
 
         /// <summary>Distinct stencil identifiers represented by this family.</summary>
         public IReadOnlyList<string> StencilIds { get; }
@@ -627,6 +667,8 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilTags", string.Join(",", StencilTags));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilIconNameUs", string.Join(",", StencilIconNameUs));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilDefaultUnits", string.Join(",", StencilDefaultUnits));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilPreviewImageContentTypes", string.Join(",", StencilPreviewImageContentTypes));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilPreviewImageExtensions", string.Join(",", StencilPreviewImageExtensions));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilIds", string.Join(",", StencilIds));
             VisioStencilProfile.AppendLine(builder, prefix + ".usageKeys", string.Join(",", UsageKeys));
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeCount", ShapeCount);
@@ -659,6 +701,8 @@ namespace OfficeIMO.Visio {
                 CollectDistinctListValues(usageList, usage => usage.StencilTags),
                 CollectDistinctValues(usageList, usage => usage.StencilIconNameU),
                 CollectDistinctValues(usageList, usage => usage.StencilDefaultUnit),
+                CollectDistinctValues(usageList, usage => usage.StencilPreviewImageContentType),
+                CollectDistinctValues(usageList, usage => usage.StencilPreviewImageExtension),
                 CollectDistinctValues(usageList, usage => usage.StencilId),
                 usageList.Select(usage => usage.Key).OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToList().AsReadOnly(),
                 usageList.Sum(usage => usage.Count),
@@ -779,6 +823,8 @@ namespace OfficeIMO.Visio {
             double? sourceDefaultWidth,
             double? sourceDefaultHeight,
             string? stencilDefaultUnit,
+            string? stencilPreviewImageContentType,
+            string? stencilPreviewImageExtension,
             int count,
             int connectionPointCount,
             int connectionPointShapeCount,
@@ -807,6 +853,8 @@ namespace OfficeIMO.Visio {
             SourceDefaultWidth = sourceDefaultWidth;
             SourceDefaultHeight = sourceDefaultHeight;
             StencilDefaultUnit = stencilDefaultUnit;
+            StencilPreviewImageContentType = stencilPreviewImageContentType;
+            StencilPreviewImageExtension = stencilPreviewImageExtension;
             Count = count;
             ConnectionPointCount = connectionPointCount;
             ConnectionPointShapeCount = connectionPointShapeCount;
@@ -872,6 +920,12 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Source stencil default-size unit, when known.</summary>
         public string? StencilDefaultUnit { get; }
+
+        /// <summary>Preview image content type represented by this usage group, when known.</summary>
+        public string? StencilPreviewImageContentType { get; }
+
+        /// <summary>Preview image extension represented by this usage group, when known.</summary>
+        public string? StencilPreviewImageExtension { get; }
 
         /// <summary>Number of shapes in this usage group.</summary>
         public int Count { get; }
@@ -952,6 +1006,8 @@ namespace OfficeIMO.Visio {
                 key.SourceDefaultWidth,
                 key.SourceDefaultHeight,
                 key.StencilDefaultUnit,
+                key.StencilPreviewImageContentType,
+                key.StencilPreviewImageExtension,
                 shapeList.Count,
                 shapeList.Sum(shape => shape.ConnectionPointCount),
                 shapeList.Count(shape => shape.ConnectionPointCount > 0),
@@ -983,6 +1039,8 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".sourceDefaultWidth", SourceDefaultWidth);
             VisioStencilProfile.AppendLine(builder, prefix + ".sourceDefaultHeight", SourceDefaultHeight);
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilDefaultUnit", StencilDefaultUnit);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilPreviewImageContentType", StencilPreviewImageContentType);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilPreviewImageExtension", StencilPreviewImageExtension);
             VisioStencilProfile.AppendLine(builder, prefix + ".count", Count);
             VisioStencilProfile.AppendLine(builder, prefix + ".connectionPointCount", ConnectionPointCount);
             VisioStencilProfile.AppendLine(builder, prefix + ".connectionPointShapeCount", ConnectionPointShapeCount);
@@ -1032,7 +1090,9 @@ namespace OfficeIMO.Visio {
             string? stencilIconNameU,
             double? sourceDefaultWidth,
             double? sourceDefaultHeight,
-            string? stencilDefaultUnit) {
+            string? stencilDefaultUnit,
+            string? stencilPreviewImageContentType,
+            string? stencilPreviewImageExtension) {
             Kind = kind;
             Key = key;
             MasterId = masterId;
@@ -1051,6 +1111,8 @@ namespace OfficeIMO.Visio {
             SourceDefaultWidth = sourceDefaultWidth;
             SourceDefaultHeight = sourceDefaultHeight;
             StencilDefaultUnit = stencilDefaultUnit;
+            StencilPreviewImageContentType = stencilPreviewImageContentType;
+            StencilPreviewImageExtension = stencilPreviewImageExtension;
         }
 
         public VisioStencilProfileUsageKind Kind { get; }
@@ -1089,6 +1151,10 @@ namespace OfficeIMO.Visio {
 
         public string? StencilDefaultUnit { get; }
 
+        public string? StencilPreviewImageContentType { get; }
+
+        public string? StencilPreviewImageExtension { get; }
+
         public static IEqualityComparer<VisioStencilUsageKey> Comparer { get; } = new VisioStencilUsageKeyComparer();
 
         private sealed class VisioStencilUsageKeyComparer : IEqualityComparer<VisioStencilUsageKey> {
@@ -1118,7 +1184,9 @@ namespace OfficeIMO.Visio {
                        string.Equals(x.StencilIconNameU, y.StencilIconNameU, StringComparison.OrdinalIgnoreCase) &&
                        Nullable.Equals(x.SourceDefaultWidth, y.SourceDefaultWidth) &&
                        Nullable.Equals(x.SourceDefaultHeight, y.SourceDefaultHeight) &&
-                       string.Equals(x.StencilDefaultUnit, y.StencilDefaultUnit, StringComparison.OrdinalIgnoreCase);
+                       string.Equals(x.StencilDefaultUnit, y.StencilDefaultUnit, StringComparison.OrdinalIgnoreCase) &&
+                       string.Equals(x.StencilPreviewImageContentType, y.StencilPreviewImageContentType, StringComparison.OrdinalIgnoreCase) &&
+                       string.Equals(x.StencilPreviewImageExtension, y.StencilPreviewImageExtension, StringComparison.OrdinalIgnoreCase);
             }
 
             public int GetHashCode(VisioStencilUsageKey obj) {
@@ -1142,6 +1210,8 @@ namespace OfficeIMO.Visio {
                     hash = (hash * 31) + (obj.SourceDefaultWidth?.GetHashCode() ?? 0);
                     hash = (hash * 31) + (obj.SourceDefaultHeight?.GetHashCode() ?? 0);
                     hash = (hash * 31) + (obj.StencilDefaultUnit == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilDefaultUnit));
+                    hash = (hash * 31) + (obj.StencilPreviewImageContentType == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilPreviewImageContentType));
+                    hash = (hash * 31) + (obj.StencilPreviewImageExtension == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilPreviewImageExtension));
                     return hash;
                 }
             }

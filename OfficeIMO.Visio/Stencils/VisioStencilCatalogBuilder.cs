@@ -94,7 +94,27 @@ namespace OfficeIMO.Visio.Stencils {
             string? iconNameU,
             VisioMeasurementUnit? defaultUnit,
             string? sourcePackagePath) {
-            return Add(CreateShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath));
+            return AddWithMetadata(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath, null);
+        }
+
+        /// <summary>
+        /// Adds a stencil shape with explicit search metadata, default-size unit, source package path, and preview image metadata.
+        /// </summary>
+        public VisioStencilCatalogBuilder AddWithMetadata(
+            string id,
+            string name,
+            string masterNameU,
+            string category,
+            double defaultWidth,
+            double defaultHeight,
+            IEnumerable<string>? keywords,
+            IEnumerable<string>? aliases,
+            IEnumerable<string>? tags,
+            string? iconNameU,
+            VisioMeasurementUnit? defaultUnit,
+            string? sourcePackagePath,
+            VisioStencilPreviewImage? previewImage) {
+            return Add(CreateShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath, previewImage));
         }
 
         /// <summary>
@@ -129,7 +149,8 @@ namespace OfficeIMO.Visio.Stencils {
             IEnumerable<string>? tags,
             string? iconNameU,
             VisioMeasurementUnit? defaultUnit,
-            string? sourcePackagePath) {
+            string? sourcePackagePath,
+            VisioStencilPreviewImage? previewImage) {
             string prefix = id.Contains(".") ? id.Substring(0, id.IndexOf('.')) : id;
             string localId = id.Contains(".") ? id.Substring(id.IndexOf('.') + 1) : id;
             IEnumerable<string> effectiveKeywords = keywords ?? Enumerable.Empty<string>();
@@ -155,7 +176,8 @@ namespace OfficeIMO.Visio.Stencils {
                 effectiveTags,
                 iconNameU ?? masterNameU,
                 defaultUnit,
-                sourcePackagePath);
+                sourcePackagePath,
+                previewImage);
         }
     }
 }

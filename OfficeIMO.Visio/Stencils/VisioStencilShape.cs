@@ -24,7 +24,14 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>
         /// Initializes a new stencil shape definition with source package metadata.
         /// </summary>
-        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit, string? sourcePackagePath) {
+        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit, string? sourcePackagePath)
+            : this(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath, null) {
+        }
+
+        /// <summary>
+        /// Initializes a new stencil shape definition with source package and preview image metadata.
+        /// </summary>
+        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit, string? sourcePackagePath, VisioStencilPreviewImage? previewImage) {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Stencil shape id cannot be null or whitespace.", nameof(id));
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Stencil shape name cannot be null or whitespace.", nameof(name));
             if (string.IsNullOrWhiteSpace(masterNameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(masterNameU));
@@ -56,6 +63,7 @@ namespace OfficeIMO.Visio.Stencils {
             IconNameU = string.IsNullOrWhiteSpace(iconNameU) ? masterNameU : iconNameU!;
             DefaultUnit = defaultUnit;
             SourcePackagePath = string.IsNullOrWhiteSpace(sourcePackagePath) ? null : sourcePackagePath;
+            PreviewImage = previewImage;
         }
 
         /// <summary>
@@ -98,6 +106,11 @@ namespace OfficeIMO.Visio.Stencils {
         /// Gets the source `.vssx`, `.vstx`, or `.vsdx` package path when this shape was cataloged from a package.
         /// </summary>
         public string? SourcePackagePath { get; }
+
+        /// <summary>
+        /// Gets preview/icon image metadata discovered from a source package master, when available.
+        /// </summary>
+        public VisioStencilPreviewImage? PreviewImage { get; }
 
         /// <summary>
         /// Gets searchable keywords.

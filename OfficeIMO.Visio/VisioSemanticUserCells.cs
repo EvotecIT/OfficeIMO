@@ -20,5 +20,10 @@ namespace OfficeIMO.Visio {
         public const string StencilDefaultWidth = "OfficeIMO.StencilDefaultWidth";
         public const string StencilDefaultHeight = "OfficeIMO.StencilDefaultHeight";
         public const string StencilDefaultUnit = "OfficeIMO.StencilDefaultUnit";
+        public const string StencilPreviewImageRelationshipId = "OfficeIMO.StencilPreviewImageRelationshipId";
+        public const string StencilPreviewImageTarget = "OfficeIMO.StencilPreviewImageTarget";
+        public const string StencilPreviewImageContentType = "OfficeIMO.StencilPreviewImageContentType";
+        public const string StencilPreviewImageExtension = "OfficeIMO.StencilPreviewImageExtension";
+        public const string StencilPreviewImageByteLength = "OfficeIMO.StencilPreviewImageByteLength";
     }
 }

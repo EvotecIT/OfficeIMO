@@ -41,7 +41,7 @@ namespace OfficeIMO.Visio.Stencils {
             HashSet<string>? filter = options.MasterNames != null
                 ? new HashSet<string>(options.MasterNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase)
                 : null;
-            Dictionary<string, VisioAssets.MasterContent> masterContents = options.LearnMasterDimensions
+            Dictionary<string, VisioAssets.MasterContent> masterContents = options.LearnMasterDimensions || options.ExtractPreviewImageMetadata
                 ? VisioAssets.LoadMasterContents(packagePath)
                     .GroupBy(master => master.Id, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase)
@@ -77,11 +77,18 @@ namespace OfficeIMO.Visio.Stencils {
                 double defaultWidth = options.DefaultWidth;
                 double defaultHeight = options.DefaultHeight;
                 VisioMeasurementUnit? defaultUnit = null;
-                if (masterContents.TryGetValue(master.Id, out VisioAssets.MasterContent? content) &&
-                    TryReadMasterDimensions(content, out double masterWidth, out double masterHeight)) {
-                    defaultWidth = masterWidth;
-                    defaultHeight = masterHeight;
-                    defaultUnit = VisioMeasurementUnit.Inches;
+                VisioStencilPreviewImage? previewImage = null;
+                if (masterContents.TryGetValue(master.Id, out VisioAssets.MasterContent? content)) {
+                    if (options.LearnMasterDimensions &&
+                        TryReadMasterDimensions(content, out double masterWidth, out double masterHeight)) {
+                        defaultWidth = masterWidth;
+                        defaultHeight = masterHeight;
+                        defaultUnit = VisioMeasurementUnit.Inches;
+                    }
+
+                    if (options.ExtractPreviewImageMetadata) {
+                        previewImage = ReadPreviewImage(content);
+                    }
                 }
 
                 builder.AddWithMetadata(
@@ -96,7 +103,8 @@ namespace OfficeIMO.Visio.Stencils {
                     tags,
                     master.NameU,
                     defaultUnit,
-                    Path.GetFullPath(packagePath));
+                    Path.GetFullPath(packagePath),
+                    previewImage);
             }
 
             return builder.Build();
@@ -210,6 +218,56 @@ namespace OfficeIMO.Visio.Stencils {
             return false;
         }
 
+        private static VisioStencilPreviewImage? ReadPreviewImage(VisioAssets.MasterContent content) {
+            HashSet<string> preferredRelationshipIds = GetPreferredPreviewRelationshipIds(content);
+            VisioAssets.MasterRelationshipContent? relationship = content.Relationships
+                .Where(IsImageRelationship)
+                .OrderByDescending(item => preferredRelationshipIds.Contains(item.Id))
+                .ThenBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
+
+            if (relationship == null) {
+                return null;
+            }
+
+            return new VisioStencilPreviewImage(
+                relationship.Id,
+                relationship.Target,
+                relationship.ContentType,
+                relationship.Extension,
+                relationship.Data?.LongLength,
+                relationship.IsExternal);
+        }
+
+        private static HashSet<string> GetPreferredPreviewRelationshipIds(VisioAssets.MasterContent content) {
+            XNamespace rel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            return content.MasterXml
+                .Descendants()
+                .Where(element => string.Equals(element.Name.LocalName, "ForeignData", StringComparison.OrdinalIgnoreCase))
+                .Select(element => (string?)element.Attribute(rel + "id"))
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static bool IsImageRelationship(VisioAssets.MasterRelationshipContent relationship) {
+            return relationship.Type.EndsWith("/image", StringComparison.OrdinalIgnoreCase) ||
+                   relationship.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase) ||
+                   IsImageExtension(relationship.Extension) ||
+                   IsImageExtension(Path.GetExtension(relationship.Target));
+        }
+
+        private static bool IsImageExtension(string? extension) {
+            if (string.IsNullOrWhiteSpace(extension)) {
+                return false;
+            }
+
+            return extension.TrimStart('.').ToLowerInvariant() switch {
+                "emf" or "wmf" or "png" or "jpg" or "jpeg" or "gif" or "svg" or "tif" or "tiff" or "bmp" => true,
+                _ => false
+            };
+        }
+
         private static VisioStencilPackageLoadOptions CloneOptionsForPackage(VisioStencilPackageLoadOptions options, string packagePath) {
             string fileName = Path.GetFileNameWithoutExtension(packagePath);
             return new VisioStencilPackageLoadOptions {
@@ -219,6 +277,7 @@ namespace OfficeIMO.Visio.Stencils {
                 MasterNames = options.MasterNames,
                 IncludeUnsupportedMasters = options.IncludeUnsupportedMasters,
                 LearnMasterDimensions = options.LearnMasterDimensions,
+                ExtractPreviewImageMetadata = options.ExtractPreviewImageMetadata,
                 DefaultWidth = options.DefaultWidth,
                 DefaultHeight = options.DefaultHeight
             };

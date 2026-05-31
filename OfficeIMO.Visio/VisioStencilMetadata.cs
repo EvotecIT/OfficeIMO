@@ -22,6 +22,11 @@ namespace OfficeIMO.Visio {
             Set(shape, VisioSemanticUserCells.StencilDefaultWidth, FormatDouble(stencil.DefaultWidth));
             Set(shape, VisioSemanticUserCells.StencilDefaultHeight, FormatDouble(stencil.DefaultHeight));
             Set(shape, VisioSemanticUserCells.StencilDefaultUnit, stencil.DefaultUnit?.ToString());
+            Set(shape, VisioSemanticUserCells.StencilPreviewImageRelationshipId, stencil.PreviewImage?.RelationshipId);
+            Set(shape, VisioSemanticUserCells.StencilPreviewImageTarget, stencil.PreviewImage?.Target);
+            Set(shape, VisioSemanticUserCells.StencilPreviewImageContentType, stencil.PreviewImage?.ContentType);
+            Set(shape, VisioSemanticUserCells.StencilPreviewImageExtension, stencil.PreviewImage?.Extension);
+            Set(shape, VisioSemanticUserCells.StencilPreviewImageByteLength, FormatLong(stencil.PreviewImage?.ByteLength));
         }
 
         internal static void Apply(VisioMaster master, VisioStencilShape stencil, string? catalogName) {
@@ -37,6 +42,11 @@ namespace OfficeIMO.Visio {
             master.StencilDefaultWidth = stencil.DefaultWidth;
             master.StencilDefaultHeight = stencil.DefaultHeight;
             master.StencilDefaultUnit = stencil.DefaultUnit;
+            master.StencilPreviewImageRelationshipId = stencil.PreviewImage?.RelationshipId;
+            master.StencilPreviewImageTarget = stencil.PreviewImage?.Target;
+            master.StencilPreviewImageContentType = stencil.PreviewImage?.ContentType;
+            master.StencilPreviewImageExtension = stencil.PreviewImage?.Extension;
+            master.StencilPreviewImageByteLength = stencil.PreviewImage?.ByteLength;
         }
 
         internal static void Apply(VisioMaster master, IEnumerable<VisioUserCell> userCells) {
@@ -56,6 +66,11 @@ namespace OfficeIMO.Visio {
             master.StencilDefaultWidth = GetDouble(values, VisioSemanticUserCells.StencilDefaultWidth) ?? master.StencilDefaultWidth;
             master.StencilDefaultHeight = GetDouble(values, VisioSemanticUserCells.StencilDefaultHeight) ?? master.StencilDefaultHeight;
             master.StencilDefaultUnit = GetUnit(values, VisioSemanticUserCells.StencilDefaultUnit) ?? master.StencilDefaultUnit;
+            master.StencilPreviewImageRelationshipId = Get(values, VisioSemanticUserCells.StencilPreviewImageRelationshipId) ?? master.StencilPreviewImageRelationshipId;
+            master.StencilPreviewImageTarget = Get(values, VisioSemanticUserCells.StencilPreviewImageTarget) ?? master.StencilPreviewImageTarget;
+            master.StencilPreviewImageContentType = Get(values, VisioSemanticUserCells.StencilPreviewImageContentType) ?? master.StencilPreviewImageContentType;
+            master.StencilPreviewImageExtension = Get(values, VisioSemanticUserCells.StencilPreviewImageExtension) ?? master.StencilPreviewImageExtension;
+            master.StencilPreviewImageByteLength = GetLong(values, VisioSemanticUserCells.StencilPreviewImageByteLength) ?? master.StencilPreviewImageByteLength;
         }
 
         internal static IReadOnlyList<VisioUserCell> CreateMasterUserCells(VisioMaster master) {
@@ -72,6 +87,11 @@ namespace OfficeIMO.Visio {
             Add(cells, VisioSemanticUserCells.StencilDefaultWidth, FormatDouble(master.StencilDefaultWidth));
             Add(cells, VisioSemanticUserCells.StencilDefaultHeight, FormatDouble(master.StencilDefaultHeight));
             Add(cells, VisioSemanticUserCells.StencilDefaultUnit, master.StencilDefaultUnit?.ToString());
+            Add(cells, VisioSemanticUserCells.StencilPreviewImageRelationshipId, master.StencilPreviewImageRelationshipId);
+            Add(cells, VisioSemanticUserCells.StencilPreviewImageTarget, master.StencilPreviewImageTarget);
+            Add(cells, VisioSemanticUserCells.StencilPreviewImageContentType, master.StencilPreviewImageContentType);
+            Add(cells, VisioSemanticUserCells.StencilPreviewImageExtension, master.StencilPreviewImageExtension);
+            Add(cells, VisioSemanticUserCells.StencilPreviewImageByteLength, FormatLong(master.StencilPreviewImageByteLength));
             return cells.AsReadOnly();
         }
 
@@ -104,7 +124,12 @@ namespace OfficeIMO.Visio {
                     string.Equals(name, VisioSemanticUserCells.StencilIconNameU, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilDefaultWidth, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilDefaultHeight, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name, VisioSemanticUserCells.StencilDefaultUnit, StringComparison.OrdinalIgnoreCase)) {
+                    string.Equals(name, VisioSemanticUserCells.StencilDefaultUnit, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilPreviewImageRelationshipId, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilPreviewImageTarget, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilPreviewImageContentType, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilPreviewImageExtension, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilPreviewImageByteLength, StringComparison.OrdinalIgnoreCase)) {
                     shape.UserCells.RemoveAt(i);
                 }
             }
@@ -189,9 +214,22 @@ namespace OfficeIMO.Visio {
                 : null;
         }
 
+        private static long? GetLong(IReadOnlyDictionary<string, string?> values, string key) {
+            string? value = Get(values, key);
+            return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long parsed)
+                ? parsed
+                : null;
+        }
+
         private static string? FormatDouble(double? value) {
             return value.HasValue
                 ? value.Value.ToString("0.######", CultureInfo.InvariantCulture)
+                : null;
+        }
+
+        private static string? FormatLong(long? value) {
+            return value.HasValue
+                ? value.Value.ToString(CultureInfo.InvariantCulture)
                 : null;
         }
 

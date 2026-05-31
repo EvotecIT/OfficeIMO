@@ -94,6 +94,31 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioMeasurementUnit? StencilDefaultUnit { get; internal set; }
 
+        /// <summary>
+        /// Gets the source preview image relationship id, when known.
+        /// </summary>
+        public string? StencilPreviewImageRelationshipId { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image relationship target, when known.
+        /// </summary>
+        public string? StencilPreviewImageTarget { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image content type, when known.
+        /// </summary>
+        public string? StencilPreviewImageContentType { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image extension, when known.
+        /// </summary>
+        public string? StencilPreviewImageExtension { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image byte length, when known.
+        /// </summary>
+        public long? StencilPreviewImageByteLength { get; internal set; }
+
         internal IList<XAttribute> PreservedMasterAttributes { get; } = new List<XAttribute>();
 
         internal IList<XAttribute> PreservedPageSheetAttributes { get; } = new List<XAttribute>();

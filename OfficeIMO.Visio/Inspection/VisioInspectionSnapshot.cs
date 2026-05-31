@@ -40,7 +40,12 @@ namespace OfficeIMO.Visio {
                     master.StencilIconNameU,
                     master.StencilDefaultWidth,
                     master.StencilDefaultHeight,
-                    master.StencilDefaultUnit?.ToString()))
+                    master.StencilDefaultUnit?.ToString(),
+                    master.StencilPreviewImageRelationshipId,
+                    master.StencilPreviewImageTarget,
+                    master.StencilPreviewImageContentType,
+                    master.StencilPreviewImageExtension,
+                    master.StencilPreviewImageByteLength))
                 .ToList()
                 .AsReadOnly();
 
@@ -281,6 +286,11 @@ namespace OfficeIMO.Visio {
                 AppendLine(builder, prefix + ".stencilDefaultWidth", master.StencilDefaultWidth);
                 AppendLine(builder, prefix + ".stencilDefaultHeight", master.StencilDefaultHeight);
                 AppendLine(builder, prefix + ".stencilDefaultUnit", master.StencilDefaultUnit);
+                AppendLine(builder, prefix + ".stencilPreviewImageRelationshipId", master.StencilPreviewImageRelationshipId);
+                AppendLine(builder, prefix + ".stencilPreviewImageTarget", master.StencilPreviewImageTarget);
+                AppendLine(builder, prefix + ".stencilPreviewImageContentType", master.StencilPreviewImageContentType);
+                AppendLine(builder, prefix + ".stencilPreviewImageExtension", master.StencilPreviewImageExtension);
+                AppendLine(builder, prefix + ".stencilPreviewImageByteLength", master.StencilPreviewImageByteLength);
             }
 
             foreach (VisioInspectionPageSnapshot page in Pages) {
@@ -348,7 +358,12 @@ namespace OfficeIMO.Visio {
             string? stencilIconNameU,
             double? stencilDefaultWidth,
             double? stencilDefaultHeight,
-            string? stencilDefaultUnit) {
+            string? stencilDefaultUnit,
+            string? stencilPreviewImageRelationshipId,
+            string? stencilPreviewImageTarget,
+            string? stencilPreviewImageContentType,
+            string? stencilPreviewImageExtension,
+            long? stencilPreviewImageByteLength) {
             Id = id;
             NameU = nameU;
             ShapeNameU = shapeNameU;
@@ -368,6 +383,11 @@ namespace OfficeIMO.Visio {
             StencilDefaultWidth = stencilDefaultWidth;
             StencilDefaultHeight = stencilDefaultHeight;
             StencilDefaultUnit = stencilDefaultUnit;
+            StencilPreviewImageRelationshipId = stencilPreviewImageRelationshipId;
+            StencilPreviewImageTarget = stencilPreviewImageTarget;
+            StencilPreviewImageContentType = stencilPreviewImageContentType;
+            StencilPreviewImageExtension = stencilPreviewImageExtension;
+            StencilPreviewImageByteLength = stencilPreviewImageByteLength;
         }
 
         /// <summary>Master identifier.</summary>
@@ -426,6 +446,21 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Source stencil default size unit, when known.</summary>
         public string? StencilDefaultUnit { get; }
+
+        /// <summary>Preview image relationship id, when known.</summary>
+        public string? StencilPreviewImageRelationshipId { get; }
+
+        /// <summary>Preview image relationship target, when known.</summary>
+        public string? StencilPreviewImageTarget { get; }
+
+        /// <summary>Preview image content type, when known.</summary>
+        public string? StencilPreviewImageContentType { get; }
+
+        /// <summary>Preview image extension, when known.</summary>
+        public string? StencilPreviewImageExtension { get; }
+
+        /// <summary>Preview image byte length, when known.</summary>
+        public long? StencilPreviewImageByteLength { get; }
     }
 
     /// <summary>
