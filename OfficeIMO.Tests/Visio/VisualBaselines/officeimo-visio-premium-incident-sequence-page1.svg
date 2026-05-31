@@ -350,7 +350,7 @@
 			<title>Sheet.43</title>
 			<desc>Alert: timeout spike</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
-			<v:textRect cx="208.8" cy="193.68" width="187.2" height="20.16"/>
+			<v:textRect cx="208.8" cy="193.68" width="128.16" height="20.16"/>
 			<path d="M313.56 205.2 L104.04 205.2 L313.56 205.2 Z" class="st14"/>
 			<path d="M313.56 205.2 L104.04 205.2" class="st16"/>
 			<text x="172.55" y="196.38" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Alert: timeout spike</text>		</g>
@@ -358,23 +358,23 @@
 			<title>Sheet.44</title>
 			<desc>Check health</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
-			<v:textRect cx="315" cy="246.96" width="187.2" height="20.16"/>
+			<v:textRect cx="208.8" cy="246.96" width="90.72" height="20.16"/>
 			<path d="M104.04 258.48 L525.96 258.48 L104.04 258.48 Z" class="st14"/>
 			<path d="M104.04 258.48 L525.96 258.48" class="st16"/>
-			<text x="291.37" y="249.66" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Check health</text>		</g>
+			<text x="185.17" y="249.66" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Check health</text>		</g>
 		<g id="shape45-114" v:mID="45" v:groupContext="shape" v:layerMember="1">
 			<title>Sheet.45</title>
 			<desc>Gateway latency</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
-			<v:textRect cx="315" cy="300.24" width="187.2" height="20.16"/>
+			<v:textRect cx="421.2" cy="300.24" width="104.76" height="20.16"/>
 			<path d="M525.96 311.76 L104.04 311.76 L525.96 311.76 Z" class="st14"/>
 			<path d="M525.96 311.76 L104.04 311.76" class="st19"/>
-			<text x="284.59" y="302.94" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Gateway latency</text>		</g>
+			<text x="390.79" y="302.94" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Gateway latency</text>		</g>
 		<g id="shape46-120" v:mID="46" v:groupContext="shape" v:layerMember="1">
 			<title>Sheet.46</title>
 			<desc>Pause retries</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
-			<v:textRect cx="421.2" cy="353.52" width="187.2" height="20.16"/>
+			<v:textRect cx="421.2" cy="353.52" width="95.4" height="20.16"/>
 			<path d="M104.04 365.04 L738.36 365.04 L104.04 365.04 Z" class="st14"/>
 			<path d="M104.04 365.04 L738.36 365.04" class="st21"/>
 			<text x="397.42" y="356.22" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Pause retries</text>		</g>
@@ -382,23 +382,23 @@
 			<title>Sheet.47</title>
 			<desc>Verify settlement</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
-			<v:textRect cx="739.8" cy="406.8" width="187.2" height="20.16"/>
+			<v:textRect cx="633.6" cy="406.8" width="114.12" height="20.16"/>
 			<path d="M528.84 418.32 L950.76 418.32 L528.84 418.32 Z" class="st14"/>
 			<path d="M528.84 418.32 L950.76 418.32" class="st16"/>
-			<text x="707.99" y="409.5" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Verify settlement</text>		</g>
+			<text x="601.79" y="409.5" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Verify settlement</text>		</g>
 		<g id="shape48-131" v:mID="48" v:groupContext="shape" v:layerMember="1">
 			<title>Sheet.48</title>
 			<desc>Consistent</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
-			<v:textRect cx="739.8" cy="460.08" width="187.2" height="20.16"/>
+			<v:textRect cx="633.6" cy="460.08" width="81.36" height="20.16"/>
 			<path d="M950.76 471.6 L528.84 471.6 L950.76 471.6 Z" class="st14"/>
 			<path d="M950.76 471.6 L528.84 471.6" class="st19"/>
-			<text x="720.49" y="462.78" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Consistent</text>		</g>
+			<text x="614.29" y="462.78" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Consistent</text>		</g>
 		<g id="shape49-136" v:mID="49" v:groupContext="shape" v:layerMember="1">
 			<title>Sheet.49</title>
 			<desc>Resume controlled drain</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
-			<v:textRect cx="633.6" cy="513.36" width="187.2" height="20.16"/>
+			<v:textRect cx="633.6" cy="513.36" width="142.21" height="20.16"/>
 			<path d="M738.36 524.88 L528.84 524.88 L738.36 524.88 Z" class="st14"/>
 			<path d="M738.36 524.88 L528.84 524.88" class="st21"/>
 			<text x="588.68" y="516.06" class="st18" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Resume controlled drain</text>		</g>

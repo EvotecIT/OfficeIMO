@@ -149,6 +149,66 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SequenceMessageLabelsPreferLifelineGapsForLongSpanningMessages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SequenceDiagram("Lifeline Label Placement", sequence => sequence
+                    .PageSize(8, 4.8)
+                    .Margins(0.65, 0.65, 0.65, 0.65)
+                    .ParticipantSize(1.0, 0.5)
+                    .Spacing(1.5, 0.72, 0.5)
+                    .Participant("client", "Client")
+                    .Participant("api", "API")
+                    .Participant("queue", "Queue")
+                    .Activation("api", 0, 1, "api-active")
+                    .Call("client", "queue", "Submit order for asynchronous processing", "submit"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape api = Assert.Single(page.Shapes, shape => shape.Id == "api");
+            VisioShape queue = Assert.Single(page.Shapes, shape => shape.Id == "queue");
+            VisioConnector submit = Assert.Single(page.Connectors, connector => connector.Id == "submit");
+
+            Assert.NotNull(submit.LabelPlacement);
+            double labelLeft = submit.LabelPlacement!.PinX!.Value - (submit.LabelPlacement.Width / 2D);
+            double labelRight = submit.LabelPlacement.PinX.Value + (submit.LabelPlacement.Width / 2D);
+            Assert.NotInRange(submit.LabelPlacement.PinX.Value, api.PinX - 0.08D, api.PinX + 0.08D);
+            Assert.True(labelRight < api.PinX - 0.08D || labelLeft > api.PinX + 0.08D);
+            Assert.True(labelRight < queue.PinX - 0.08D);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void SequenceMessageLabelsAvoidFragmentGuardLabels() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SequenceDiagram("Fragment Label Placement", sequence => sequence
+                    .PageSize(8, 4.8)
+                    .Margins(0.65, 0.65, 0.65, 0.65)
+                    .ParticipantSize(1.0, 0.5)
+                    .Spacing(1.5, 0.72, 0.5)
+                    .Actor("support", "Support")
+                    .Participant("monitor", "Monitor")
+                    .Control("api", "API")
+                    .Call("support", "api", "Gateway latency", "gateway-latency")
+                    .Fragment("alt recovery", 0, 2, new[] { "support", "monitor", "api" }, "recovery")
+                    .FragmentGuard("recovery", "[timeout elevated]", 0, "timeout-guard"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape guardLabel = Assert.Single(page.Shapes, shape => shape.Id == "timeout-guard-label");
+            VisioConnector gatewayLatency = Assert.Single(page.Connectors, connector => connector.Id == "gateway-latency");
+
+            Assert.NotNull(gatewayLatency.LabelPlacement);
+            Assert.False(ConnectorLabelNearShape(gatewayLatency, guardLabel, 0.06D));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void SequenceNotesAvoidConnectorLabelsAndStackOnCrowdedRows() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
@@ -415,6 +475,18 @@ namespace OfficeIMO.Tests {
             double right = Math.Min(first.PinX + (first.Width / 2D), second.PinX + (second.Width / 2D));
             double bottom = Math.Max(first.PinY - (first.Height / 2D), second.PinY - (second.Height / 2D));
             double top = Math.Min(first.PinY + (first.Height / 2D), second.PinY + (second.Height / 2D));
+            return right > left && top > bottom;
+        }
+
+        private static bool ConnectorLabelNearShape(VisioConnector connector, VisioShape shape, double padding) {
+            Assert.NotNull(connector.LabelPlacement);
+            Assert.True(connector.LabelPlacement!.PinX.HasValue);
+            Assert.True(connector.LabelPlacement.PinY.HasValue);
+
+            double left = Math.Max(connector.LabelPlacement.PinX.Value - (connector.LabelPlacement.Width / 2D), shape.PinX - (shape.Width / 2D) - padding);
+            double right = Math.Min(connector.LabelPlacement.PinX.Value + (connector.LabelPlacement.Width / 2D), shape.PinX + (shape.Width / 2D) + padding);
+            double bottom = Math.Max(connector.LabelPlacement.PinY.Value - (connector.LabelPlacement.Height / 2D), shape.PinY - (shape.Height / 2D) - padding);
+            double top = Math.Min(connector.LabelPlacement.PinY.Value + (connector.LabelPlacement.Height / 2D), shape.PinY + (shape.Height / 2D) + padding);
             return right > left && top > bottom;
         }
     }

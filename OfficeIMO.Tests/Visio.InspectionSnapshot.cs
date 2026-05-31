@@ -33,7 +33,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Inspection sample", snapshot.Title);
             VisioInspectionPageSnapshot pageSnapshot = Assert.Single(snapshot.Pages);
             Assert.True(snapshot.ShapeCount >= 3);
-            Assert.Single(pageSnapshot.Connectors, item => item.Label == "HTTPS");
+            VisioInspectionConnectorSnapshot connectorSnapshot = Assert.Single(pageSnapshot.Connectors, item => item.Label == "HTTPS");
+            Assert.True(connectorSnapshot.HasLabelPlacement);
+            Assert.Equal(0.5, connectorSnapshot.LabelPosition);
+            Assert.Equal(0, connectorSnapshot.LabelOffsetX);
+            Assert.Equal(0, connectorSnapshot.LabelOffsetY);
+            Assert.Equal(1.25, connectorSnapshot.LabelWidth);
+            Assert.Equal(0.3, connectorSnapshot.LabelHeight);
             VisioInspectionShapeSnapshot gatewaySnapshot = Assert.Single(pageSnapshot.Shapes, shape => shape.Id == gateway.Id);
             Assert.Equal("Gateway", gatewaySnapshot.UserCells.Single(cell => cell.Name == VisioSemanticUserCells.Kind).Value);
             Assert.Equal("Platform", gatewaySnapshot.ShapeData.Single(row => row.Name == "Owner").Value);
@@ -46,6 +52,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("page[Topology].shape[" + gateway.Id + "].connectionPoint[0].dirX=-1", text, StringComparison.Ordinal);
             Assert.Contains("page[Topology].shape[" + gateway.Id + "].shapeData[Owner].value=Platform", text, StringComparison.Ordinal);
             Assert.Contains("page[Topology].connector[" + connector.Id + "].label=HTTPS", text, StringComparison.Ordinal);
+            Assert.Contains("page[Topology].connector[" + connector.Id + "].labelPosition=0.5", text, StringComparison.Ordinal);
+            Assert.Contains("page[Topology].connector[" + connector.Id + "].labelWidth=1.25", text, StringComparison.Ordinal);
             Assert.Contains("isCallout=true", text, StringComparison.Ordinal);
         }
 

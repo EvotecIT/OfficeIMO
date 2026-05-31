@@ -22,7 +22,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Generated showcase examples and preview output for visual inspection.
 - Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
 - A reusable eight-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
-- Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`.
+- Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`, including connector label placement coordinates for label-layout regression proof.
 - Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, stencil-backed, Shape Data key, semantic-kind, catalog, category, tag, source-package, and connection-point summaries that survive save/load for package-backed masters and generated stencil placements.
 
 The external stencil and graph slice from PR #1865 is merged. The next checkpoint is no longer proving that the Visio core can generate useful diagrams; it is making the public package story clean, the showcase reproducible, and the generated output visually strong enough to support premium positioning.
@@ -87,6 +87,7 @@ That implies three durable layers:
 - Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
 - Obstacle-aware orthogonal routing APIs plus `PolishDiagram` options for rerouting connectors around unrelated top-level shapes, containers, background zones/trust boundaries, generated adornments, and existing connector paths before label cleanup.
 - Zone-aware connector label cleanup that can prefer common endpoint zones and avoid unrelated background surfaces during deterministic label placement.
+- Lifeline-aware and fragment-label-aware normal sequence message label placement now prefers gaps between participant lifelines, activation bands, and fragment guard/adornment labels, with premium incident-sequence rendered and inspection baseline proof.
 - Premium style presets for enterprise, technical, cloud, process, print-safe, and dark-safe diagrams, with validated technical/print smoke documents and rendered gallery baseline usage for the current market-facing set.
 
 ## Immediate P0
@@ -128,7 +129,7 @@ Goal: generated diagrams should be credible without manual post-editing.
   - sequence nested fragments and overlapping fragment layout;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
-- Continue connector label cleanup with lifeline-aware placement and denser premium-diagram label strategies.
+- Continue connector label cleanup beyond the current lifeline-aware and fragment-label-aware sequence message placement with denser graph, whole-page, and deeper sequence edge-case strategies.
 - Extend orthogonal routing from shape/zone/container/crossing-aware cleanup into group-aware route planning and deeper whole-page crossing minimization.
 - Add deterministic "polish passes" that can be applied after any builder.
 

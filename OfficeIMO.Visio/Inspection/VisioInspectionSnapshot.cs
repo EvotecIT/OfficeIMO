@@ -129,6 +129,13 @@ namespace OfficeIMO.Visio {
                 connector.Kind.ToString(),
                 connector.Label,
                 connector.LabelPlacement != null,
+                connector.LabelPlacement?.Position,
+                connector.LabelPlacement?.OffsetX,
+                connector.LabelPlacement?.OffsetY,
+                connector.LabelPlacement?.PinX,
+                connector.LabelPlacement?.PinY,
+                connector.LabelPlacement?.Width,
+                connector.LabelPlacement?.Height,
                 connector.Waypoints
                     .Select(waypoint => new VisioInspectionWaypointSnapshot(waypoint.X, waypoint.Y))
                     .ToList()
@@ -705,6 +712,13 @@ namespace OfficeIMO.Visio {
             string kind,
             string? label,
             bool hasLabelPlacement,
+            double? labelPosition,
+            double? labelOffsetX,
+            double? labelOffsetY,
+            double? labelPinX,
+            double? labelPinY,
+            double? labelWidth,
+            double? labelHeight,
             IReadOnlyList<VisioInspectionWaypointSnapshot> waypoints,
             string lineColor,
             int linePattern,
@@ -720,6 +734,13 @@ namespace OfficeIMO.Visio {
             Kind = kind;
             Label = label;
             HasLabelPlacement = hasLabelPlacement;
+            LabelPosition = labelPosition;
+            LabelOffsetX = labelOffsetX;
+            LabelOffsetY = labelOffsetY;
+            LabelPinX = labelPinX;
+            LabelPinY = labelPinY;
+            LabelWidth = labelWidth;
+            LabelHeight = labelHeight;
             Waypoints = waypoints;
             LineColor = lineColor;
             LinePattern = linePattern;
@@ -748,6 +769,27 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Whether explicit label placement exists.</summary>
         public bool HasLabelPlacement { get; }
+
+        /// <summary>Relative label position along the connector path, when explicit placement exists.</summary>
+        public double? LabelPosition { get; }
+
+        /// <summary>Relative label X offset, when explicit placement exists.</summary>
+        public double? LabelOffsetX { get; }
+
+        /// <summary>Relative label Y offset, when explicit placement exists.</summary>
+        public double? LabelOffsetY { get; }
+
+        /// <summary>Absolute label X coordinate, when the label is pinned to the page.</summary>
+        public double? LabelPinX { get; }
+
+        /// <summary>Absolute label Y coordinate, when the label is pinned to the page.</summary>
+        public double? LabelPinY { get; }
+
+        /// <summary>Explicit label width, when explicit placement exists.</summary>
+        public double? LabelWidth { get; }
+
+        /// <summary>Explicit label height, when explicit placement exists.</summary>
+        public double? LabelHeight { get; }
 
         /// <summary>Explicit connector waypoints.</summary>
         public IReadOnlyList<VisioInspectionWaypointSnapshot> Waypoints { get; }
@@ -783,6 +825,13 @@ namespace OfficeIMO.Visio {
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".kind", Kind);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".label", Label);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".hasLabelPlacement", HasLabelPlacement);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelPosition", LabelPosition);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelOffsetX", LabelOffsetX);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelOffsetY", LabelOffsetY);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelPinX", LabelPinX);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelPinY", LabelPinY);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelWidth", LabelWidth);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelHeight", LabelHeight);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".lineColor", LineColor);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".linePattern", LinePattern);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".lineWeight", LineWeight);
