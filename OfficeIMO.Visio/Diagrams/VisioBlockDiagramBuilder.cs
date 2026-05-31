@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
@@ -380,9 +381,9 @@ namespace OfficeIMO.Visio.Diagrams {
                     break;
             }
 
-            VisioShape shape = new VisioShape(block.Id, x, y, _theme.BlockWidth, height, block.Text) { NameU = nameU };
+            VisioShape shape = page.AddStencilShape(VisioStencils.BlockDiagram, GetBlockStencilId(block.Kind), block.Id, x, y, _theme.BlockWidth, height, block.Text);
+            shape.NameU = nameU;
             ApplyBlockStyle(shape, block.Emphasis);
-            page.Shapes.Add(shape);
             return shape;
         }
 
@@ -393,6 +394,17 @@ namespace OfficeIMO.Visio.Diagrams {
             VisioTextStyle? textStyle = emphasis ? _theme.EmphasisTextStyle : _theme.BlockTextStyle;
             if (textStyle != null) {
                 shape.TextStyle = textStyle.Clone();
+            }
+        }
+
+        private static string GetBlockStencilId(VisioBlockShapeKind kind) {
+            switch (kind) {
+                case VisioBlockShapeKind.Data:
+                    return "storage";
+                case VisioBlockShapeKind.Decision:
+                    return "decision";
+                default:
+                    return "block";
             }
         }
 

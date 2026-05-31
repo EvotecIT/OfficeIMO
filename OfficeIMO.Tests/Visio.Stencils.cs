@@ -29,6 +29,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "basic.rectangle");
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "flow.off-page-reference");
+            Assert.Equal("Block", VisioStencils.BlockDiagram.Get("component").Name);
+            Assert.Equal("Decision Block", VisioStencils.BlockDiagram.Get("branch").Name);
             Assert.Contains("Network", VisioStencils.All.Categories);
         }
 

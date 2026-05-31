@@ -35,6 +35,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Process", page.Shapes[3].NameU);
             Assert.Equal("Data", page.Shapes[4].NameU);
             Assert.Equal("Process", page.Shapes[5].NameU);
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(4, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Block Diagram" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "block.block" && usage.Count == 3);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "block.storage" && usage.Count == 1);
             Assert.Equal(3, page.Connectors.Count);
             Assert.Equal(2, page.Connectors.Count(connector => connector.LinePattern == 1));
             Assert.Single(page.Connectors, connector => connector.LinePattern == 2);
