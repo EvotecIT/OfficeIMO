@@ -351,6 +351,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ResolveConnectorLabelOverlapsMovesLabelsAwayFromUnrelatedConnectorPaths() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LabelConnectorCleanup", 7, 5);
+            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
+            VisioShape top = page.AddRectangle(3, 4.5, 0.8, 0.5, "Top");
+            VisioShape bottom = page.AddRectangle(3, 0.5, 0.8, 0.5, "Bottom");
+            VisioConnector labeled = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
+            labeled.Label = "approval";
+            VisioConnector crossing = page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
+
+            Assert.True(ConnectorPathIntersectsBounds(crossing, GetConnectorLabelBounds(labeled)));
+
+            page.ResolveConnectorLabelOverlaps(step: 0.18D, maxAttempts: 8);
+
+            Assert.NotEqual(3, labeled.LabelPlacement!.AbsolutePinX!.Value);
+            Assert.False(ConnectorPathIntersectsBounds(crossing, GetConnectorLabelBounds(labeled)));
+        }
+
+        [Fact]
+        public void PolishDiagramMovesConnectorLabelsAwayFromConnectorPaths() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("PolishLabelConnectors", 7, 5);
+            VisioShape left = page.AddRectangle(1, 2, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(5, 2, 0.8, 0.5, "Right");
+            VisioShape top = page.AddRectangle(3, 4.5, 0.8, 0.5, "Top");
+            VisioShape bottom = page.AddRectangle(3, 0.5, 0.8, 0.5, "Bottom");
+            VisioConnector labeled = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.2, height: 0.4);
+            labeled.Label = "polished";
+            VisioConnector crossing = page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
+
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                ConnectorLabelStep = 0.18D,
+                ConnectorLabelMaxAttempts = 8,
+                FitToContent = false
+            });
+
+            Assert.False(ConnectorPathIntersectsBounds(crossing, GetConnectorLabelBounds(labeled)));
+        }
+
+        [Fact]
         public void ResolveConnectorLabelOverlapsIgnoresGeneratedAdornmentShapes() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("LabelAdornmentCleanup", 7, 5);
@@ -612,6 +655,45 @@ namespace OfficeIMO.Tests {
             return Math.Abs(dx) >= Math.Abs(dy)
                 ? (dx >= 0 ? shapeBounds.Right : shapeBounds.Left, shapeBounds.CenterY)
                 : (shapeBounds.CenterX, dy >= 0 ? shapeBounds.Top : shapeBounds.Bottom);
+        }
+
+        private static bool ConnectorPathIntersectsBounds(VisioConnector connector, OfficeIMO.Visio.VisioShapeBounds bounds) {
+            (double startX, double startY) = ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint);
+            (double endX, double endY) = ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint);
+            if (connector.Waypoints.Count == 0) {
+                return SegmentIntersectsBounds(startX, startY, endX, endY, bounds);
+            }
+
+            double currentX = startX;
+            double currentY = startY;
+            foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
+                if (SegmentIntersectsBounds(currentX, currentY, waypoint.X, waypoint.Y, bounds)) {
+                    return true;
+                }
+
+                currentX = waypoint.X;
+                currentY = waypoint.Y;
+            }
+
+            return SegmentIntersectsBounds(currentX, currentY, endX, endY, bounds);
+        }
+
+        private static bool SegmentIntersectsBounds(double startX, double startY, double endX, double endY, OfficeIMO.Visio.VisioShapeBounds bounds) {
+            if (Math.Abs(startX - endX) < 1e-9) {
+                return startX > bounds.Left &&
+                       startX < bounds.Right &&
+                       Math.Max(startY, endY) > bounds.Bottom &&
+                       Math.Min(startY, endY) < bounds.Top;
+            }
+
+            if (Math.Abs(startY - endY) < 1e-9) {
+                return startY > bounds.Bottom &&
+                       startY < bounds.Top &&
+                       Math.Max(startX, endX) > bounds.Left &&
+                       Math.Min(startX, endX) < bounds.Right;
+            }
+
+            return false;
         }
 
         private static bool Contains(OfficeIMO.Visio.VisioShapeBounds outer, OfficeIMO.Visio.VisioShapeBounds inner) {
