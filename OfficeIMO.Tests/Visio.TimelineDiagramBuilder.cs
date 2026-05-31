@@ -32,6 +32,16 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "timeline-axis" && shape.NameU == "Rectangle");
             Assert.Contains(page.Shapes, shape => shape.Id == "kickoff" && shape.NameU == "Diamond");
             Assert.Contains(page.Shapes, shape => shape.Id == "preview" && shape.NameU == "Circle");
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(16, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Timeline" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.axis" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.span" && usage.Count == 3);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.label" && usage.Count == 7);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.milestone" && usage.Count == 2);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.decision" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.risk" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.release" && usage.Count == 1);
             Assert.True(page.FindShapeById("kickoff")!.PinX < page.FindShapeById("ga")!.PinX);
             Assert.True(page.FindShapeById("discovery")!.Width < page.FindShapeById("build")!.Width);
             string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();

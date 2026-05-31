@@ -38,7 +38,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 - **Technical topology:** first-party block-diagram stencil runtime mesh with edge/runtime/state zones, policy path, eventing, cache, and secrets flow.
 - **Print audit trail:** first-party flowchart-stencil access-review flow with monochrome-safe typography and compliance-friendly spacing.
 - **Incident sequence:** actor/system/service participants, activations, notes, error path, and remediation path.
-- **Release timeline:** milestones, risks, spans, decisions, callouts, and status metadata.
+- **Release timeline:** first-party timeline-stencil milestones, risks, spans, decisions, callouts, and status metadata.
 - **Swimlane process:** first-party swimlane-stencil roles, phases, handoffs, exception path, compliance callouts, and readable lane headers.
 
 ## Design Bar
@@ -52,7 +52,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 ## Next Implementation Slice
 
 1. Extend obstacle-aware routing from the current zone/container/crossing-aware options into group-aware and deeper whole-page route minimization, and add lifeline-aware connector-label cleanup in dense premium diagrams.
-2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it; architecture, executive dependency, network segmentation, print audit trail, technical topology, and governed process samples now carry first-party stencil provenance.
+2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it; architecture, executive dependency, network segmentation, print audit trail, technical topology, governed process, and release timeline samples now carry first-party stencil provenance.
 3. Keep tightening the baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
 4. Promote the generated-master stencil reference fix into a baseline-reviewed graph gallery scenario so first-party stencils are proven with PNG/SVG quality, not only package structure.
 5. Extend current premium inspection/profile baselines into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
