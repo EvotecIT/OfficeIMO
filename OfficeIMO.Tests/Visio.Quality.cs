@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
 
-            Assert.Equal(11, results.Count);
+            Assert.Equal(12, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
             Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
@@ -256,6 +256,17 @@ namespace OfficeIMO.Tests {
             VisioStencilProfile kubernetesProfile = loadedKubernetes.CreateStencilProfile();
             Assert.Contains("Containers and Kubernetes", kubernetesProfile.StencilCatalogs);
             Assert.Contains("Data and Platform", kubernetesProfile.StencilCatalogs);
+
+            VisioGalleryResult application = results.Single(result => result.Name == "Application Dependency Graph");
+            VisioDocument loadedApplication = VisioDocument.Load(application.FilePath);
+            VisioPage applicationPage = Assert.Single(loadedApplication.Pages);
+            Assert.Contains(applicationPage.Shapes, shape => shape.Id == "runtime-cluster" && shape.GetShapeDataValue("Owner") == "Digital Platform");
+            Assert.Contains(applicationPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(applicationPage.Connectors, connector => connector.Id == "api-data-sql" && connector.GetShapeDataValue("Protocol") == "SQL");
+            VisioStencilProfile applicationProfile = loadedApplication.CreateStencilProfile();
+            Assert.Contains("Cloud", applicationProfile.StencilCatalogs);
+            Assert.Contains("Data and Platform", applicationProfile.StencilCatalogs);
+            Assert.Contains("Security and Identity", applicationProfile.StencilCatalogs);
         }
 
         [Fact]

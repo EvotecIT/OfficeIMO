@@ -1204,7 +1204,9 @@ namespace OfficeIMO.Visio.Diagrams {
             VisioTextStyle style = _theme.Connector.TextStyle?.Clone() ?? new VisioTextStyle();
             style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos" : style.FontFamily;
             style.Size = Math.Max(style.Size ?? 0D, 8.5D);
-            style.Color = _theme.Emphasis.TextStyle?.Color ?? _theme.Emphasis.LineColor;
+            if (!style.Color.HasValue) {
+                style.Color = _theme.Container.TextStyle?.Color ?? _theme.Connector.LineColor;
+            }
             style.BackgroundTransparency = 100;
             style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;

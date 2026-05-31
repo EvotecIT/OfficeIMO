@@ -33,6 +33,7 @@ namespace OfficeIMO.Visio {
             results.Add(CreateResult("CI/CD Inventory Graph", Path.Combine(folderPath, "OfficeIMO Gallery - CI-CD Inventory Graph.vsdx"), CreateCiCdInventoryGraph, resolvedOptions));
             results.Add(CreateResult("Identity Authentication Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Identity Authentication Graph.vsdx"), CreateIdentityAuthenticationGraph, resolvedOptions));
             results.Add(CreateResult("Kubernetes Service Mesh Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Kubernetes Service Mesh Graph.vsdx"), CreateKubernetesServiceMeshGraph, resolvedOptions));
+            results.Add(CreateResult("Application Dependency Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Application Dependency Graph.vsdx"), CreateApplicationDependencyGraph, resolvedOptions));
             return results;
         }
 
@@ -528,6 +529,115 @@ namespace OfficeIMO.Visio {
                         new[] { ingress, frontend, api, worker, config, secrets, stream, database, monitor },
                         new[] { route, callApi, enqueue, consume, write, configFlow, secretFlow, tracesApi, tracesWorker },
                         new[] { mesh, state }));
+        }
+
+        /// <summary>
+        /// Creates a data-driven Azure application dependency graph that demonstrates cloud, security, data, and collaboration stencils.
+        /// </summary>
+        /// <param name="filePath">Target VSDX file path.</param>
+        public static VisioDocument CreateApplicationDependencyGraph(string filePath) {
+            VisioGraphNodeRecord users = CreateNode("users", "Customers", VisioStencils.CollaborationBusiness, "person", "actor");
+            users.IsRoot = true;
+            users.ShapeData.Add("Channel", "Web and mobile");
+
+            VisioGraphNodeRecord edge = CreateNode("edge", "Front Door", VisioStencils.Cloud, "gateway", "ingress");
+            edge.ShapeData.Add("Tier", "Global edge");
+
+            VisioGraphNodeRecord waf = CreateNode("waf", "WAF Policy", VisioStencils.SecurityIdentity, "firewall", "waf");
+            waf.ShapeData.Add("Mode", "Prevention");
+
+            VisioGraphNodeRecord portal = CreateNode("portal", "Portal App", VisioStencils.Cloud, "service", "paas");
+            portal.ShapeData.Add("Owner", "Digital");
+            portal.HyperlinkAddress = "https://example.org/apps/customer-portal";
+            portal.HyperlinkDescription = "Portal app runbook";
+
+            VisioGraphNodeRecord api = CreateNode("api", "Customer API", VisioStencils.DataPlatform, "api", "endpoint");
+            api.ShapeData.Add("Sla", "99.95%");
+
+            VisioGraphNodeRecord events = CreateNode("events", "Event Bus", VisioStencils.Cloud, "queue", "event");
+            events.ShapeData.Add("Topic", "customer-events");
+
+            VisioGraphNodeRecord worker = CreateNode("worker", "Processor", VisioStencils.Cloud, "function", "serverless");
+            worker.ShapeData.Add("Runtime", "Functions");
+
+            VisioGraphNodeRecord sql = CreateNode("sql", "Customer SQL", VisioStencils.DataPlatform, "database", "sql");
+            sql.ShapeData.Add("Classification", "Confidential");
+
+            VisioGraphNodeRecord lake = CreateNode("lake", "Data Lake", VisioStencils.DataPlatform, "lake", "analytics");
+            lake.ShapeData.Add("Retention", "7 years");
+
+            VisioGraphNodeRecord monitor = CreateNode("monitor", "Monitoring", VisioStencils.Cloud, "monitoring", "metrics");
+            monitor.ShapeData.Add("Signal", "Availability, traces, alerts");
+
+            VisioGraphEdgeRecord browse = new("users", "edge") {
+                Label = "HTTPS"
+            };
+            VisioGraphEdgeRecord inspect = new("edge", "waf") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "inspect"
+            };
+            inspect.ShapeData.Add("Policy", "OWASP managed rules");
+
+            VisioGraphEdgeRecord route = new("waf", "portal") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "route"
+            };
+            VisioGraphEdgeRecord call = new("portal", "api") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "REST"
+            };
+            call.ShapeData.Add("Protocol", "HTTPS");
+
+            VisioGraphEdgeRecord query = new("api", "sql") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "query"
+            };
+            query.ShapeData.Add("Protocol", "SQL");
+
+            VisioGraphEdgeRecord publish = new("api", "events") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "publish"
+            };
+            VisioGraphEdgeRecord trigger = new("events", "worker") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "trigger"
+            };
+            VisioGraphEdgeRecord export = new("worker", "lake") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "export"
+            };
+            export.ShapeData.Add("Format", "Parquet");
+
+            VisioGraphEdgeRecord telemetry = new("api", "monitor") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "telemetry"
+            };
+            VisioGraphEdgeRecord ops = new("worker", "monitor") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "metrics"
+            };
+
+            VisioGraphClusterRecord edgeCluster = new("edge-cluster", "Edge Security", new[] { "users", "edge", "waf" });
+            edgeCluster.ShapeData.Add("Owner", "Security");
+
+            VisioGraphClusterRecord runtimeCluster = new("runtime-cluster", "Application Runtime", new[] { "portal", "api", "events", "worker" });
+            runtimeCluster.ShapeData.Add("Owner", "Digital Platform");
+
+            return VisioDocument.Create(filePath)
+                .GraphDiagram("Application Dependency Graph", graph => graph
+                    .Title("Azure Application Dependency Map")
+                    .Theme(VisioStyleTheme.Cloud())
+                    .Layout(VisioGraphLayout.Layered)
+                    .Direction(VisioGraphDirection.LeftToRight)
+                    .Legend()
+                    .PageSize(19.2, 9.4)
+                    .Margins(0.8, 0.85, 0.8, 0.75)
+                    .NodeSize(1.35, 0.74)
+                    .Spacing(0.76, 1.3)
+                    .Import(
+                        new[] { users, edge, waf, portal, api, events, worker, sql, lake, monitor },
+                        new[] { browse, inspect, route, call, query, publish, trigger, export, telemetry, ops },
+                        new[] { edgeCluster, runtimeCluster }));
         }
 
         private static VisioGraphNodeRecord CreateNode(string id, string text, VisioStencilCatalog catalog, params string[] queries) {
