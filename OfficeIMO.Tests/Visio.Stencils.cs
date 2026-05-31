@@ -703,6 +703,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("FancyCloud", entry.Image.MasterNameU);
             Assert.False(entry.IsBrowserRenderable);
             Assert.Equal(0, gallery.BrowserRenderableCount);
+            Assert.Equal(0, gallery.ThumbnailCount);
+            Assert.False(entry.HasThumbnail);
             Assert.True(File.Exists(entry.FilePath));
             Assert.True(File.Exists(gallery.IndexPath));
             Assert.Equal(new byte[] { 1, 0, 0, 0, 32, 69, 77, 70 }, File.ReadAllBytes(entry.FilePath));
@@ -713,6 +715,52 @@ namespace OfficeIMO.Tests {
             Assert.Contains("image/x-emf", html);
             Assert.Contains("assets/42-FancyCloud.emf", html);
             Assert.Contains("<div class=\"fallback\">emf</div>", html);
+        }
+
+        [Fact]
+        public void PackageStencilPreviewGalleryWritesBrowserRenderableThumbnailArtifacts() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lM9sWQAAAABJRU5ErkJggg==");
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud", "png", png);
+            string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+            VisioStencilPreviewGallery gallery = VisioStencilPackageCatalog.CreatePreviewGallery(
+                packagePath,
+                outputDirectory,
+                new VisioStencilPackageLoadOptions {
+                    IncludeUnsupportedMasters = true
+                },
+                new VisioStencilPreviewGalleryOptions {
+                    Title = "Renderable Preview Review",
+                    PreviewDirectoryName = "assets",
+                    ThumbnailDirectoryName = "thumbs",
+                    ThumbnailWidth = 180,
+                    ThumbnailHeight = 120
+                });
+
+            VisioStencilPreviewGalleryEntry entry = Assert.Single(gallery.Entries);
+            Assert.True(entry.IsBrowserRenderable);
+            Assert.True(entry.HasThumbnail);
+            Assert.Equal(1, gallery.BrowserRenderableCount);
+            Assert.Equal(1, gallery.ThumbnailCount);
+            Assert.Equal(Path.Combine(outputDirectory, "thumbs"), gallery.ThumbnailDirectory);
+            Assert.Equal("assets/42-FancyCloud.png", entry.RelativePath);
+            Assert.Equal("thumbs/42-FancyCloud.thumbnail.svg", entry.ThumbnailRelativePath);
+            Assert.True(File.Exists(entry.FilePath));
+            Assert.True(File.Exists(entry.ThumbnailFilePath));
+            Assert.Equal(png, File.ReadAllBytes(entry.FilePath));
+
+            string thumbnail = File.ReadAllText(entry.ThumbnailFilePath!);
+            Assert.Contains("width=\"180\"", thumbnail);
+            Assert.Contains("height=\"120\"", thumbnail);
+            Assert.Contains("data:image/png;base64,", thumbnail);
+            Assert.Contains(Convert.ToBase64String(png), thumbnail);
+            Assert.Contains("Fancy Cloud", thumbnail);
+
+            string html = File.ReadAllText(gallery.IndexPath!);
+            Assert.Contains("<strong>1</strong> thumbnails", html);
+            Assert.Contains("thumbs/42-FancyCloud.thumbnail.svg", html);
+            Assert.Contains("assets/42-FancyCloud.png", html);
         }
 
         [Fact]
@@ -836,10 +884,12 @@ namespace OfficeIMO.Tests {
             writer.Write(document.Declaration + Environment.NewLine + document.ToString(SaveOptions.DisableFormatting));
         }
 
-        private static void CreatePackageWithRawGroupMaster(string path, string nameU, string name) {
+        private static void CreatePackageWithRawGroupMaster(string path, string nameU, string name, string imageExtension = "emf", byte[]? imageData = null) {
             const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
             const string officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
             const string packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+            string normalizedExtension = imageExtension.TrimStart('.');
+            byte[] media = imageData ?? new byte[] { 1, 0, 0, 0, 32, 69, 77, 70 };
 
             using ZipArchive zip = ZipFile.Open(path, ZipArchiveMode.Create);
             XNamespace ns = visioNamespace;
@@ -935,12 +985,11 @@ namespace OfficeIMO.Tests {
                 new XElement(packageRel + "Relationship",
                     new XAttribute("Id", "rIdImage"),
                     new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"),
-                    new XAttribute("Target", "../media/image1.emf")));
+                    new XAttribute("Target", "../media/image1." + normalizedExtension)));
             WriteZipXml(zip, "visio/masters/_rels/master42.xml.rels", new XDocument(masterRelRoot));
 
-            ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1.emf");
+            ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1." + normalizedExtension);
             using Stream mediaStream = mediaEntry.Open();
-            byte[] media = { 1, 0, 0, 0, 32, 69, 77, 70 };
             mediaStream.Write(media, 0, media.Length);
         }
 

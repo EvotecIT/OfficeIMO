@@ -343,13 +343,13 @@ namespace OfficeIMO.Visio.Stencils {
 
         private static HashSet<string> GetPreferredPreviewRelationshipIds(VisioAssets.MasterContent content) {
             XNamespace rel = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
-            return content.MasterXml
+            return new HashSet<string>(content.MasterXml
                 .Descendants()
                 .Where(element => string.Equals(element.Name.LocalName, "ForeignData", StringComparison.OrdinalIgnoreCase))
                 .Select(element => (string?)element.Attribute(rel + "id"))
                 .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Select(value => value!)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                .Select(value => value!),
+                StringComparer.OrdinalIgnoreCase);
         }
 
         private static bool IsImageRelationship(VisioAssets.MasterRelationshipContent relationship) {
@@ -364,7 +364,8 @@ namespace OfficeIMO.Visio.Stencils {
                 return false;
             }
 
-            return extension.TrimStart('.').ToLowerInvariant() switch {
+            string normalized = extension!.TrimStart('.').ToLowerInvariant();
+            return normalized switch {
                 "emf" or "wmf" or "png" or "jpg" or "jpeg" or "gif" or "svg" or "tif" or "tiff" or "bmp" => true,
                 _ => false
             };

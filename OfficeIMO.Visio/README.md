@@ -776,7 +776,10 @@ Console.WriteLine(previewGallery.IndexPath);
 Browser-friendly payloads such as PNG, JPG, SVG, GIF, BMP, and WebP render
 inline in the generated index. Other native Visio/Office payloads such as EMF
 are still extracted and listed with their content type, relationship target,
-byte length, and saved file link for external review tools.
+byte length, and saved file link for external review tools. Browser-renderable
+payloads also receive deterministic SVG thumbnail wrappers in the `thumbnails`
+directory by default, so catalog review output has stable visual artifacts that
+can be archived or diffed beside the raw embedded media.
 
 `DiscoverInstalledVisioPackages()` finds the local Microsoft Visio `.vssx` and
 `.vstx` content folders without automating Visio, letting you build diagrams from
