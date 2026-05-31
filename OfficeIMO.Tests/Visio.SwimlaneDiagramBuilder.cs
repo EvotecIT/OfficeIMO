@@ -45,6 +45,13 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "start" && shape.NameU == "Ellipse");
             Assert.Contains(page.Shapes, shape => shape.Id == "approved" && shape.NameU == "Decision");
             Assert.Contains(page.Shapes, shape => shape.Id == "invoice" && shape.NameU == "Data");
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(14, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Swimlane" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "swim.lane" && usage.Count == 3);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "swim.phase" && usage.Count == 4);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "swim.activity" && usage.Count == 3);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "swim.start-end" && usage.Count == 2);
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
             Assert.Contains(page.Connectors, connector => connector.Label == "yes" && connector.LinePattern == 1);
             Assert.Contains(page.Connectors, connector => connector.Label == "no" && connector.LinePattern == 2);
