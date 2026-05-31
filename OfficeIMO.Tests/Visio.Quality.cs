@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
 
-            Assert.Equal(13, results.Count);
+            Assert.Equal(14, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
             Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
@@ -279,6 +279,16 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Sequence Diagram", incidentProfile.StencilCatalogs);
             Assert.Contains("SequenceActivation", incidentProfile.SemanticKinds);
             Assert.Contains("SequenceFragment", incidentProfile.SemanticKinds);
+
+            VisioGalleryResult networkSegmentation = results.Single(result => result.Name == "Network Segmentation Diagram");
+            VisioDocument loadedNetworkSegmentation = VisioDocument.Load(networkSegmentation.FilePath);
+            VisioPage networkSegmentationPage = Assert.Single(loadedNetworkSegmentation.Pages);
+            Assert.Contains(networkSegmentationPage.Shapes, shape => shape.Id == "perimeter" && shape.GetShapeDataValue("Owner") == "Network Security");
+            Assert.Contains(networkSegmentationPage.Shapes, shape => shape.Id == "db" && shape.GetShapeDataValue("Classification") == "Confidential");
+            Assert.Contains(networkSegmentationPage.Connectors, connector => connector.Id == "app-db" && connector.GetShapeDataValue("Port") == "1433");
+            VisioStencilProfile networkSegmentationProfile = loadedNetworkSegmentation.CreateStencilProfile();
+            Assert.Contains("Network", networkSegmentationProfile.StencilCatalogs);
+            Assert.Contains(networkSegmentationProfile.Usages, usage => usage.StencilId == "net.firewall" && usage.Count == 1);
         }
 
         [Fact]

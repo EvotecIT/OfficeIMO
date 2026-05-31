@@ -227,6 +227,65 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkDiagramBuilderImportsRecordSetsWithMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioNetworkZoneRecord zone = new("perimeter", "Perimeter", 0, 0, 3, 1);
+            zone.ShapeData.Add("Owner", "Network Security");
+            VisioNetworkNodeRecord internet = new("internet", "Internet", 0, 0, VisioNetworkNodeKind.Internet);
+            VisioNetworkNodeRecord firewall = new("firewall", "Firewall", 1, 0, VisioNetworkNodeKind.Firewall);
+            firewall.ShapeData.Add("Policy", "Deny inbound");
+            firewall.HyperlinkAddress = "https://example.org/firewall";
+            VisioNetworkNodeRecord core = new("core", "Core", 2, 0, VisioNetworkNodeKind.Switch);
+            VisioNetworkLinkRecord wan = new("internet-firewall", "internet", "firewall", VisioNetworkLinkKind.Ethernet, "WAN");
+            wan.ShapeData.Add("Policy", "filtered");
+            VisioNetworkLinkRecord uplink = new("firewall-core", "firewall", "core", VisioNetworkLinkKind.Trunk, "uplink");
+            VisioNetworkCalloutRecord callout = new("core-note", "core", "Segmented trunk", VisioSide.Top) {
+                Width = 2.2,
+                Height = 0.62
+            };
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .NetworkDiagram("Imported Network", network => network
+                    .PageSize(8, 5)
+                    .Import(
+                        new[] { zone },
+                        new[] { internet, firewall, core },
+                        new[] { wan, uplink },
+                        new[] { callout }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "perimeter" && shape.GetShapeDataValue("Owner") == "Network Security");
+            VisioShape firewallShape = Assert.Single(page.Shapes, shape => shape.Id == "firewall");
+            Assert.Equal("Deny inbound", firewallShape.GetShapeDataValue("Policy"));
+            Assert.Contains(firewallShape.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/firewall");
+            Assert.Contains(page.Connectors, connector => connector.Id == "internet-firewall" && connector.GetShapeDataValue("Policy") == "filtered");
+            VisioShape coreNote = Assert.Single(page.Callouts(), shape => shape.Id == "core-note");
+            Assert.Equal(2.2, coreNote.Width);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void NetworkDiagramBuilderRejectsImportedLinkIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioNetworkNodeRecord firewall = new("firewall", "Firewall", 0, 0, VisioNetworkNodeKind.Firewall);
+            VisioNetworkNodeRecord core = new("core", "Core", 1, 0, VisioNetworkNodeKind.Switch);
+            VisioNetworkLinkRecord first = new("uplink", "firewall", "core", VisioNetworkLinkKind.Trunk);
+            VisioNetworkLinkRecord duplicate = new("uplink", "firewall", "core", VisioNetworkLinkKind.Ethernet);
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.NetworkDiagram("Invalid", network => network
+                    .Import(
+                        Array.Empty<VisioNetworkZoneRecord>(),
+                        new[] { firewall, core },
+                        new[] { first, duplicate })));
+
+            Assert.Contains("already exists", exception.Message);
+        }
+
+        [Fact]
         public void NetworkDiagramBuilderRejectsTitleIdCollisions() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

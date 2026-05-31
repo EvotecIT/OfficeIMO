@@ -160,6 +160,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
 
 - Add graph import helpers from simple node/edge records. Initial `VisioGraphNodeRecord` / `VisioGraphEdgeRecord` support imports data-driven graph nodes and edges, including stencil catalog lookup, Shape Data, hyperlinks, roots, directed/undirected edges, and stable generated edge ids.
 - Add sequence import helpers from simple participant/message/activation/fragment/note records. Initial `VisioSequence*Record` support imports data-driven runbook sequences with participants, self-messages, activations, guarded fragments, partitions, and semantic notes.
+- Add network import helpers from simple zone/node/link/callout records. Initial `VisioNetwork*Record` support imports data-driven network segmentation diagrams with Shape Data, hyperlinks, stable link ids, zones, stencil-backed nodes, and semantic callouts.
 - Add stable ID and diff-friendly regeneration guidance. Initial graph-record imports derive missing connector ids from endpoint ids and connector kind.
 - Add graph clustering/grouping APIs. Initial `Cluster(...)` / `Clusters(...)` support renders semantic graph clusters as background zones with Shape Data and hyperlinks, and `VisioGraphClusterRecord` can be imported with node/edge records for inventory-driven diagrams.
 - Add dependency cycle presentation instead of only rejection where the diagram type allows cycles.
@@ -170,7 +171,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
   - CI/CD pipeline and build-agent topology: initial reusable `VisioGallery` example added with stencil-backed node records, edge records, cluster records, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - Kubernetes/service-mesh topology: initial reusable `VisioGallery` and official `--visio-showcase` example added with Kubernetes/data/cloud stencils, service-mesh clusters, mTLS/control/data flows, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - incident/runbook sequence: initial reusable `VisioGallery` and official `--visio-showcase` example added with sequence record imports, actor/control/entity/database participants, activations, guarded recovery fragments, runbook notes, validation, quality analysis, and sequence-stencil profile coverage;
-  - network segmentation diagram.
+  - network segmentation diagram: initial reusable `VisioGallery` and official `--visio-showcase` example added with network record imports, segmented zones, stencil-backed network nodes, Shape Data, hyperlinks, stable link ids, callouts, validation, quality analysis, and network-stencil profile coverage.
 
 ## P4: Editing Existing Diagrams
 

@@ -9,12 +9,15 @@ namespace OfficeIMO.Visio.Diagrams {
     /// </summary>
     public sealed class VisioNetworkDiagramBuilder {
         private sealed class NodeItem {
-            public NodeItem(string id, string text, int column, int row, VisioNetworkNodeKind kind) {
+            public NodeItem(string id, string text, int column, int row, VisioNetworkNodeKind kind, IDictionary<string, string?>? shapeData = null, string? hyperlinkAddress = null, string? hyperlinkDescription = null) {
                 Id = id;
                 Text = text;
                 Column = column;
                 Row = row;
                 Kind = kind;
+                ShapeData = CopyShapeData(shapeData);
+                HyperlinkAddress = hyperlinkAddress;
+                HyperlinkDescription = hyperlinkDescription;
             }
 
             public string Id { get; }
@@ -28,16 +31,25 @@ namespace OfficeIMO.Visio.Diagrams {
             public VisioNetworkNodeKind Kind { get; }
 
             public VisioShape? Shape { get; set; }
+
+            public IReadOnlyDictionary<string, string?> ShapeData { get; }
+
+            public string? HyperlinkAddress { get; }
+
+            public string? HyperlinkDescription { get; }
         }
 
         private sealed class ZoneItem {
-            public ZoneItem(string id, string text, int column, int row, int columnSpan, int rowSpan) {
+            public ZoneItem(string id, string text, int column, int row, int columnSpan, int rowSpan, IDictionary<string, string?>? shapeData = null, string? hyperlinkAddress = null, string? hyperlinkDescription = null) {
                 Id = id;
                 Text = text;
                 Column = column;
                 Row = row;
                 ColumnSpan = columnSpan;
                 RowSpan = rowSpan;
+                ShapeData = CopyShapeData(shapeData);
+                HyperlinkAddress = hyperlinkAddress;
+                HyperlinkDescription = hyperlinkDescription;
             }
 
             public string Id { get; }
@@ -51,15 +63,27 @@ namespace OfficeIMO.Visio.Diagrams {
             public int ColumnSpan { get; }
 
             public int RowSpan { get; }
+
+            public IReadOnlyDictionary<string, string?> ShapeData { get; }
+
+            public string? HyperlinkAddress { get; }
+
+            public string? HyperlinkDescription { get; }
         }
 
         private sealed class LinkItem {
-            public LinkItem(string fromId, string toId, VisioNetworkLinkKind kind, string? label) {
+            public LinkItem(string? id, string fromId, string toId, VisioNetworkLinkKind kind, string? label, IDictionary<string, string?>? shapeData = null, string? hyperlinkAddress = null, string? hyperlinkDescription = null) {
+                Id = id;
                 FromId = fromId;
                 ToId = toId;
                 Kind = kind;
                 Label = label;
+                ShapeData = CopyShapeData(shapeData);
+                HyperlinkAddress = hyperlinkAddress;
+                HyperlinkDescription = hyperlinkDescription;
             }
+
+            public string? Id { get; }
 
             public string FromId { get; }
 
@@ -68,6 +92,12 @@ namespace OfficeIMO.Visio.Diagrams {
             public VisioNetworkLinkKind Kind { get; }
 
             public string? Label { get; }
+
+            public IReadOnlyDictionary<string, string?> ShapeData { get; }
+
+            public string? HyperlinkAddress { get; }
+
+            public string? HyperlinkDescription { get; }
         }
 
         private sealed class CalloutItem {
@@ -115,6 +145,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly Dictionary<string, NodeItem> _nodesById = new(StringComparer.Ordinal);
         private readonly List<ZoneItem> _zones = new();
         private readonly List<LinkItem> _links = new();
+        private readonly HashSet<string> _linkIds = new(StringComparer.Ordinal);
         private readonly List<CalloutItem> _callouts = new();
         private VisioStyleTheme _theme = VisioStyleTheme.Technical();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
@@ -286,7 +317,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentOutOfRangeException(nameof(kind));
             }
 
-            _links.Add(new LinkItem(normalizedFromId, normalizedToId, kind, label));
+            _links.Add(new LinkItem(null, normalizedFromId, normalizedToId, kind, label));
             return this;
         }
 
@@ -342,6 +373,113 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Imports zone records into the network diagram.</summary>
+        public VisioNetworkDiagramBuilder Zones(IEnumerable<VisioNetworkZoneRecord> zones) {
+            if (zones == null) {
+                throw new ArgumentNullException(nameof(zones));
+            }
+
+            foreach (VisioNetworkZoneRecord zone in zones) {
+                string normalizedId = RequireId(zone.Id, nameof(zones), "Zone id");
+                if (IsIdInUse(normalizedId)) {
+                    throw new ArgumentException($"A network item with id '{normalizedId}' already exists.", nameof(zones));
+                }
+
+                ValidateGridPosition(zone.Column, zone.Row);
+                if (zone.ColumnSpan <= 0) throw new ArgumentOutOfRangeException(nameof(zones), "Column span must be positive.");
+                if (zone.RowSpan <= 0) throw new ArgumentOutOfRangeException(nameof(zones), "Row span must be positive.");
+                _zones.Add(new ZoneItem(normalizedId, zone.Text, zone.Column, zone.Row, zone.ColumnSpan, zone.RowSpan, zone.ShapeData, zone.HyperlinkAddress, zone.HyperlinkDescription));
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports node records into the network diagram.</summary>
+        public VisioNetworkDiagramBuilder Nodes(IEnumerable<VisioNetworkNodeRecord> nodes) {
+            if (nodes == null) {
+                throw new ArgumentNullException(nameof(nodes));
+            }
+
+            foreach (VisioNetworkNodeRecord node in nodes) {
+                string normalizedId = RequireId(node.Id, nameof(nodes), "Node id");
+                if (IsIdInUse(normalizedId)) {
+                    throw new ArgumentException($"A network item with id '{normalizedId}' already exists.", nameof(nodes));
+                }
+
+                ValidateGridPosition(node.Column, node.Row);
+                if (!Enum.IsDefined(typeof(VisioNetworkNodeKind), node.Kind)) {
+                    throw new ArgumentOutOfRangeException(nameof(nodes));
+                }
+
+                NodeItem item = new(normalizedId, node.Text, node.Column, node.Row, node.Kind, node.ShapeData, node.HyperlinkAddress, node.HyperlinkDescription);
+                _nodes.Add(item);
+                _nodesById.Add(normalizedId, item);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports link records into the network diagram.</summary>
+        public VisioNetworkDiagramBuilder Links(IEnumerable<VisioNetworkLinkRecord> links) {
+            if (links == null) {
+                throw new ArgumentNullException(nameof(links));
+            }
+
+            foreach (VisioNetworkLinkRecord link in links) {
+                string normalizedId = RequireId(link.Id, nameof(links), "Link id");
+                string normalizedFromId = RequireId(link.FromId, nameof(links), "From node id");
+                string normalizedToId = RequireId(link.ToId, nameof(links), "To node id");
+                if (IsIdInUse(normalizedId)) {
+                    throw new ArgumentException($"A network item with id '{normalizedId}' already exists.", nameof(links));
+                }
+
+                EnsureKnownNode(normalizedFromId, nameof(links));
+                EnsureKnownNode(normalizedToId, nameof(links));
+                if (!Enum.IsDefined(typeof(VisioNetworkLinkKind), link.Kind)) {
+                    throw new ArgumentOutOfRangeException(nameof(links));
+                }
+
+                _links.Add(new LinkItem(normalizedId, normalizedFromId, normalizedToId, link.Kind, link.Label, link.ShapeData, link.HyperlinkAddress, link.HyperlinkDescription));
+                _linkIds.Add(normalizedId);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports callout records into the network diagram.</summary>
+        public VisioNetworkDiagramBuilder Callouts(IEnumerable<VisioNetworkCalloutRecord> callouts) {
+            if (callouts == null) {
+                throw new ArgumentNullException(nameof(callouts));
+            }
+
+            foreach (VisioNetworkCalloutRecord callout in callouts) {
+                Action<VisioCalloutOptions>? configure = callout.CreateOptionsConfigurator();
+                if (callout.UsePlacement) {
+                    Callout(callout.TargetId, callout.Id, callout.Text, callout.Placement, callout.Gap, configure);
+                } else {
+                    Callout(callout.TargetId, callout.Id, callout.Text, callout.PinX, callout.PinY, configure);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports network zones, nodes, links, and callouts from simple data records.</summary>
+        public VisioNetworkDiagramBuilder Import(
+            IEnumerable<VisioNetworkZoneRecord> zones,
+            IEnumerable<VisioNetworkNodeRecord> nodes,
+            IEnumerable<VisioNetworkLinkRecord> links,
+            IEnumerable<VisioNetworkCalloutRecord>? callouts = null) {
+            Zones(zones);
+            Nodes(nodes);
+            Links(links);
+            if (callouts != null) {
+                Callouts(callouts);
+            }
+
+            return this;
+        }
+
         internal VisioPage Build() {
             if (_built) {
                 throw new InvalidOperationException("This network diagram builder has already produced a page.");
@@ -391,6 +529,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     string.Empty,
                     _theme);
                 page.Shapes.Add(shape);
+                ApplyMetadata(shape, zone.ShapeData, zone.HyperlinkAddress, zone.HyperlinkDescription);
                 VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
                     page,
                     CreateGeneratedAdornmentId(VisioNetworkDiagramVisuals.CreateBackgroundZoneCaptionId(zone.Id), page),
@@ -416,6 +555,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     node.Text);
                 shape.NameU = masterNameU;
                 VisioNetworkDiagramVisuals.GetNodeStyle(_theme, node.Kind).ApplyTo(shape);
+                ApplyMetadata(shape, node.ShapeData, node.HyperlinkAddress, node.HyperlinkDescription);
                 node.Shape = shape;
             }
         }
@@ -431,8 +571,13 @@ namespace OfficeIMO.Visio.Diagrams {
 
                 VisioNetworkDiagramVisuals.ResolveSides(from.Shape, to.Shape, out VisioSide fromSide, out VisioSide toSide);
                 VisioConnector connector = page.AddConnector(from.Shape, to.Shape, ConnectorKind.RightAngle, fromSide, toSide);
+                if (!string.IsNullOrWhiteSpace(link.Id)) {
+                    connector.Id = link.Id!;
+                }
+
                 VisioNetworkDiagramVisuals.GetConnectorStyle(_theme, link.Kind).ApplyTo(connector);
                 connector.Label = link.Label;
+                ApplyMetadata(connector, link.ShapeData, link.HyperlinkAddress, link.HyperlinkDescription);
                 connector.RouteOrthogonal(offset: (routeIndex % 4) * 0.06);
                 if (!string.IsNullOrWhiteSpace(link.Label)) {
                     connector.PlaceLabel(0.5, offsetY: 0.15);
@@ -498,6 +643,40 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
+        private static IReadOnlyDictionary<string, string?> CopyShapeData(IDictionary<string, string?>? shapeData) {
+            if (shapeData == null || shapeData.Count == 0) {
+                return new Dictionary<string, string?>(StringComparer.Ordinal);
+            }
+
+            return shapeData.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal);
+        }
+
+        private static void ApplyMetadata(VisioShape shape, IReadOnlyDictionary<string, string?> shapeData, string? hyperlinkAddress, string? hyperlinkDescription) {
+            foreach (KeyValuePair<string, string?> pair in shapeData) {
+                if (!string.IsNullOrWhiteSpace(pair.Key)) {
+                    shape.SetShapeData(pair.Key, pair.Value);
+                }
+            }
+
+            string? address = hyperlinkAddress;
+            if (!string.IsNullOrWhiteSpace(address)) {
+                shape.AddHyperlink(address!, hyperlinkDescription);
+            }
+        }
+
+        private static void ApplyMetadata(VisioConnector connector, IReadOnlyDictionary<string, string?> shapeData, string? hyperlinkAddress, string? hyperlinkDescription) {
+            foreach (KeyValuePair<string, string?> pair in shapeData) {
+                if (!string.IsNullOrWhiteSpace(pair.Key)) {
+                    connector.SetShapeData(pair.Key, pair.Value);
+                }
+            }
+
+            string? address = hyperlinkAddress;
+            if (!string.IsNullOrWhiteSpace(address)) {
+                connector.AddHyperlink(address!, hyperlinkDescription);
+            }
+        }
+
         private static string RequireId(string id, string parameterName, string label) {
             if (string.IsNullOrWhiteSpace(id)) {
                 throw new ArgumentException(label + " cannot be null or whitespace.", parameterName);
@@ -519,6 +698,10 @@ namespace OfficeIMO.Visio.Diagrams {
                 if (string.Equals(zone.Id, id, StringComparison.Ordinal)) {
                     return true;
                 }
+            }
+
+            if (_linkIds.Contains(id)) {
+                return true;
             }
 
             foreach (CalloutItem callout in _callouts) {

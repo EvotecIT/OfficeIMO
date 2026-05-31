@@ -35,6 +35,7 @@ namespace OfficeIMO.Visio {
             results.Add(CreateResult("Kubernetes Service Mesh Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Kubernetes Service Mesh Graph.vsdx"), CreateKubernetesServiceMeshGraph, resolvedOptions));
             results.Add(CreateResult("Application Dependency Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Application Dependency Graph.vsdx"), CreateApplicationDependencyGraph, resolvedOptions));
             results.Add(CreateResult("Incident Runbook Sequence", Path.Combine(folderPath, "OfficeIMO Gallery - Incident Runbook Sequence.vsdx"), CreateIncidentRunbookSequence, resolvedOptions));
+            results.Add(CreateResult("Network Segmentation Diagram", Path.Combine(folderPath, "OfficeIMO Gallery - Network Segmentation Diagram.vsdx"), CreateNetworkSegmentationDiagram, resolvedOptions));
             return results;
         }
 
@@ -700,6 +701,96 @@ namespace OfficeIMO.Visio {
                     .ParticipantSize(1.25, 0.62)
                     .Spacing(1.45, 0.7, 0.68)
                     .Import(participants, messages, activations, fragments, operands, notes));
+        }
+
+        /// <summary>
+        /// Creates a data-driven network segmentation diagram that demonstrates imported zones, nodes, links, callouts, Shape Data, and stencil profiles.
+        /// </summary>
+        /// <param name="filePath">Target VSDX file path.</param>
+        public static VisioDocument CreateNetworkSegmentationDiagram(string filePath) {
+            VisioNetworkZoneRecord perimeter = new("perimeter", "Perimeter", 0, 0, 3, 2);
+            perimeter.ShapeData.Add("Owner", "Network Security");
+            perimeter.HyperlinkAddress = "https://example.org/runbooks/perimeter";
+            perimeter.HyperlinkDescription = "Perimeter runbook";
+
+            VisioNetworkZoneRecord serverZone = new("server-zone", "Server Zone", 3, 0, 3, 2);
+            serverZone.ShapeData.Add("Owner", "Infrastructure");
+
+            VisioNetworkZoneRecord dataZone = new("data-zone", "Data Zone", 6, 0, 2, 2);
+            dataZone.ShapeData.Add("Classification", "Restricted");
+
+            VisioNetworkZoneRecord clientZone = new("client-zone", "Client LAN", 0, 3, 4, 2);
+            clientZone.ShapeData.Add("VLAN", "20, 30");
+
+            VisioNetworkZoneRecord guestZone = new("guest-zone", "Guest Access", 4, 3, 2, 2);
+            guestZone.ShapeData.Add("Policy", "Internet only");
+
+            VisioNetworkZoneRecord opsZone = new("ops-zone", "Operations", 6, 3, 2, 2);
+            opsZone.ShapeData.Add("Owner", "SRE");
+
+            VisioNetworkNodeRecord internet = CreateNetworkNode("internet", "Internet", 0, 1, VisioNetworkNodeKind.Internet, "Zone", "External");
+            VisioNetworkNodeRecord edge = CreateNetworkNode("edge", "Edge Firewall", 1, 1, VisioNetworkNodeKind.Firewall, "Policy", "Deny inbound by default");
+            edge.HyperlinkAddress = "https://example.org/runbooks/firewall";
+            edge.HyperlinkDescription = "Firewall policy";
+            VisioNetworkNodeRecord core = CreateNetworkNode("core", "Core Switch", 2, 1, VisioNetworkNodeKind.Switch, "Role", "L3 routing");
+            VisioNetworkNodeRecord jump = CreateNetworkNode("jump", "Jump Host", 3, 0, VisioNetworkNodeKind.Server, "Access", "Privileged admin");
+            VisioNetworkNodeRecord app = CreateNetworkNode("app", "App Server", 4, 1, VisioNetworkNodeKind.Server, "Tier", "Application");
+            VisioNetworkNodeRecord db = CreateNetworkNode("db", "Customer DB", 6, 1, VisioNetworkNodeKind.Database, "Classification", "Confidential");
+            VisioNetworkNodeRecord backup = CreateNetworkNode("backup", "Backup NAS", 5, 0, VisioNetworkNodeKind.Storage, "Retention", "35 days");
+            VisioNetworkNodeRecord access = CreateNetworkNode("access", "Access Switch", 2, 3, VisioNetworkNodeKind.Switch, "Role", "User access");
+            VisioNetworkNodeRecord finance = CreateNetworkNode("finance", "Finance PC", 0, 4, VisioNetworkNodeKind.Workstation, "VLAN", "20");
+            VisioNetworkNodeRecord support = CreateNetworkNode("support", "Support PC", 3, 4, VisioNetworkNodeKind.Workstation, "VLAN", "30");
+            VisioNetworkNodeRecord wifi = CreateNetworkNode("wifi", "Guest Wi-Fi", 4, 3, VisioNetworkNodeKind.Wireless, "VLAN", "90");
+            VisioNetworkNodeRecord siem = CreateNetworkNode("siem", "SIEM", 6, 3, VisioNetworkNodeKind.Server, "Signal", "Firewall, switch, server logs");
+            VisioNetworkNodeRecord admin = CreateNetworkNode("admin", "Admin Console", 7, 3, VisioNetworkNodeKind.Workstation, "Access", "Privileged");
+            VisioNetworkNodeRecord legend = CreateNetworkNode("legend", "solid: allowed\ndashed: admin\nwave: guest", 7, 4, VisioNetworkNodeKind.Note, "Purpose", "Legend");
+
+            VisioNetworkLinkRecord wan = CreateNetworkLink("internet-edge", "internet", "edge", VisioNetworkLinkKind.Ethernet, "WAN", "Policy", "filtered inbound");
+            VisioNetworkLinkRecord uplink = CreateNetworkLink("edge-core", "edge", "core", VisioNetworkLinkKind.Trunk, "uplink", "Protocol", "802.1Q");
+            VisioNetworkLinkRecord adminPath = CreateNetworkLink("core-jump", "core", "jump", VisioNetworkLinkKind.Management, "admin", "Policy", "MFA required");
+            VisioNetworkLinkRecord appPath = CreateNetworkLink("core-app", "core", "app", VisioNetworkLinkKind.Trunk, "server trunk", "Protocol", "10Gb");
+            VisioNetworkLinkRecord sqlPath = CreateNetworkLink("app-db", "app", "db", VisioNetworkLinkKind.Ethernet, "SQL", "Port", "1433");
+            VisioNetworkLinkRecord backupPath = CreateNetworkLink("app-backup", "app", "backup", VisioNetworkLinkKind.Management, "backup", "Schedule", "nightly");
+            VisioNetworkLinkRecord clientTrunk = CreateNetworkLink("core-access", "core", "access", VisioNetworkLinkKind.Trunk, "client trunk", "VLANs", "20, 30, 90");
+            VisioNetworkLinkRecord financeAccess = CreateNetworkLink("access-finance", "access", "finance", VisioNetworkLinkKind.Ethernet, string.Empty, "VLAN", "20");
+            VisioNetworkLinkRecord supportAccess = CreateNetworkLink("access-support", "access", "support", VisioNetworkLinkKind.Ethernet, string.Empty, "VLAN", "30");
+            VisioNetworkLinkRecord guestAccess = CreateNetworkLink("access-wifi", "access", "wifi", VisioNetworkLinkKind.Wireless, "guest", "VLAN", "90");
+            VisioNetworkLinkRecord telemetry = CreateNetworkLink("siem-admin", "siem", "admin", VisioNetworkLinkKind.Management, "ops", "Signal", "syslog");
+
+            VisioNetworkCalloutRecord segmentation = new("segmentation-note", "wifi", "VLAN 20/30; guest isolated", VisioSide.Bottom, 0.45) {
+                Width = 2.7,
+                Height = 0.72
+            };
+            VisioNetworkCalloutRecord database = new("db-note", "db", "Restricted data path", VisioSide.Bottom, 0.35) {
+                Width = 2.3,
+                Height = 0.62
+            };
+
+            return VisioDocument.Create(filePath)
+                .NetworkDiagram("Network Segmentation Diagram", network => network
+                    .Title("Branch Network - Segmented Access")
+                    .Theme(VisioStyleTheme.Enterprise())
+                    .PageSize(21.0, 10.8)
+                    .Margins(0.85, 0.85)
+                    .Spacing(1.18, 0.95)
+                    .NodeSize(1.35, 0.78)
+                    .Import(
+                        new[] { perimeter, serverZone, dataZone, clientZone, guestZone, opsZone },
+                        new[] { internet, edge, core, jump, app, db, backup, access, finance, support, wifi, siem, admin, legend },
+                        new[] { wan, uplink, adminPath, appPath, sqlPath, backupPath, clientTrunk, financeAccess, supportAccess, guestAccess, telemetry },
+                        new[] { segmentation, database }));
+        }
+
+        private static VisioNetworkNodeRecord CreateNetworkNode(string id, string text, int column, int row, VisioNetworkNodeKind kind, string dataName, string dataValue) {
+            VisioNetworkNodeRecord record = new(id, text, column, row, kind);
+            record.ShapeData.Add(dataName, dataValue);
+            return record;
+        }
+
+        private static VisioNetworkLinkRecord CreateNetworkLink(string id, string fromId, string toId, VisioNetworkLinkKind kind, string label, string dataName, string dataValue) {
+            VisioNetworkLinkRecord record = new(id, fromId, toId, kind, label);
+            record.ShapeData.Add(dataName, dataValue);
+            return record;
         }
 
         private static VisioGraphNodeRecord CreateNode(string id, string text, VisioStencilCatalog catalog, params string[] queries) {
