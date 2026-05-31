@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
                 decided = policy.Decide("ReadRangeStream", estRows);
             }
 
-            if (CanUseAutomaticXmlStreamFastPath(automaticDecision, decided)) {
+            if (automaticDecision && CanAttemptRangeStreamXmlReader()) {
                 if (chunkRows >= estRows) {
                     if (TryReadSingleRangeChunkXmlFast(r1, c1, r2, c2, ct, out var chunk)) {
                         if (chunk != null) {
@@ -64,7 +64,8 @@ namespace OfficeIMO.Excel {
                     yield break;
                 }
 
-                if (RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                if (decided != OfficeIMO.Excel.ExecutionMode.Parallel
+                    && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
                     foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
                         yield return chunk;
                     }
@@ -427,12 +428,6 @@ namespace OfficeIMO.Excel {
                 && ((long)estimatedRows * width) <= OrderedBufferedRangeStreamCellLimit;
         }
 
-        private bool CanUseAutomaticXmlStreamFastPath(bool automaticDecision, OfficeIMO.Excel.ExecutionMode decided) {
-            return automaticDecision
-                && decided != OfficeIMO.Excel.ExecutionMode.Parallel
-                && CanAttemptRangeStreamXmlReader();
-        }
-
         private bool CanUseRangeStreamXmlReader() {
             return (_opt.CellValueConverter != null || _opt.Culture == System.Globalization.CultureInfo.InvariantCulture)
                 && CanStreamWorksheetPart();
@@ -675,7 +670,9 @@ namespace OfficeIMO.Excel {
             out RangeChunk[] chunks) {
             chunks = Array.Empty<RangeChunk>();
             int width = c2 - c1 + 1;
-            var chunkMap = new Dictionary<int, RangeChunk>(Math.Max(1, Math.Min(((estimatedRows - 1) / chunkRows) + 1, 256)));
+            int windowCount = ((estimatedRows - 1) / chunkRows) + 1;
+            var chunksByWindow = new RangeChunk?[windowCount];
+            int populatedWindows = 0;
 
             try {
                 using var stream = _wsPart.GetStream(FileMode.Open, FileAccess.Read);
@@ -709,7 +706,13 @@ namespace OfficeIMO.Excel {
                     }
 
                     int window = (rowIndex - r1) / chunkRows;
-                    if (!chunkMap.TryGetValue(window, out var chunk)) {
+                    if ((uint)window >= (uint)chunksByWindow.Length) {
+                        SkipXmlElement(reader, "row");
+                        continue;
+                    }
+
+                    var chunk = chunksByWindow[window];
+                    if (chunk == null) {
                         int startRow = r1 + (window * chunkRows);
                         int rowCount = Math.Min(chunkRows, r2 - startRow + 1);
                         var rows = new object?[rowCount][];
@@ -718,7 +721,8 @@ namespace OfficeIMO.Excel {
                         }
 
                         chunk = new RangeChunk(startRow, rowCount, c1, width, rows);
-                        chunkMap.Add(window, chunk);
+                        chunksByWindow[window] = chunk;
+                        populatedWindows++;
                     }
 
                     ReadXmlRowIntoChunk(reader, chunk.Rows, rowIndex, chunk.StartRow, c1, c2, ct);
@@ -728,17 +732,17 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (chunkMap.Count == 0) {
+                if (populatedWindows == 0) {
                     return true;
                 }
 
                 int index = 0;
-                chunks = new RangeChunk[chunkMap.Count];
-                int[] windows = new int[chunkMap.Count];
-                chunkMap.Keys.CopyTo(windows, 0);
-                Array.Sort(windows);
-                foreach (int window in windows) {
-                    chunks[index++] = chunkMap[window];
+                chunks = new RangeChunk[populatedWindows];
+                for (int window = 0; window < chunksByWindow.Length; window++) {
+                    var chunk = chunksByWindow[window];
+                    if (chunk != null) {
+                        chunks[index++] = chunk;
+                    }
                 }
 
                 return true;
