@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "entries": [
     {
-      "generatedUtc": "2026-05-31T06:37:06.3174278Z",
+      "generatedUtc": "2026-05-31T10:12:18.6622834Z",
       "runMode": "quick",
       "publish": false,
       "framework": ".NET 8.0.27",
@@ -10,10 +10,10 @@
       "dataPath": ".\\Website\\data\\benchmarks-excel.json",
       "markdownPath": ".\\Docs\\benchmarks\\officeimo.excel.comparison-report.md",
       "meta": {
-        "commit": "6a5cf18cec2d1959ee842f039ae8a3d479d6f0f6",
+        "commit": "5cdde411449a7f48ccf84b1f332bf050681b14ad",
         "branch": "codex/excel-performance-worst-offenders",
         "dotnetSdk": "10.0.300",
-        "runtime": ".NET 9.0.14",
+        "runtime": ".NET 10.0.8",
         "osDescription": "Microsoft Windows 10.0.26200",
         "osArchitecture": "X64",
         "processArchitecture": "X64",

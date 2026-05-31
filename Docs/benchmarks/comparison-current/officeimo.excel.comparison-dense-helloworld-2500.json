@@ -1,5 +1,5 @@
 {
-  "GeneratedAtUtc": "2026-05-30T20:24:50.4241589Z",
+  "GeneratedAtUtc": "2026-05-31T09:54:26.9068705Z",
   "Framework": ".NET 8.0.27",
   "MachineName": "EVOMAGIC",
   "BuildConfiguration": "Release",
@@ -13,21 +13,21 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Read A1:J(row count) HelloWorld grid with ReadRange.",
       "OutputMetric": -1724161088,
-      "AverageMilliseconds": 8.119066666666667,
-      "MedianMilliseconds": 7.7833,
-      "StandardDeviationMilliseconds": 1.3434955017912538,
-      "StandardErrorMilliseconds": 0.7756674896142317,
+      "AverageMilliseconds": 5.517800000000001,
+      "MedianMilliseconds": 5.4961,
+      "StandardDeviationMilliseconds": 0.08203164023716701,
+      "StandardErrorMilliseconds": 0.047360989572994915,
       "SamplesMilliseconds": [
-        7.7833,
-        9.5986,
-        6.9753
+        5.6085,
+        5.4488,
+        5.4961
       ],
-      "AverageAllocatedBytes": 2468768,
-      "MedianAllocatedBytes": 2468768,
+      "AverageAllocatedBytes": 2468696,
+      "MedianAllocatedBytes": 2468696,
       "SamplesAllocatedBytes": [
-        2468768,
-        2468768,
-        2468768
+        2468696,
+        2468696,
+        2468696
       ]
     },
     {
@@ -35,14 +35,14 @@
       "Library": "MiniExcel",
       "Notes": "Stream A1:J(row count) HelloWorld grid with QueryRange.",
       "OutputMetric": -1724161088,
-      "AverageMilliseconds": 20.713066666666666,
-      "MedianMilliseconds": 21.3102,
-      "StandardDeviationMilliseconds": 3.7256642794719608,
-      "StandardErrorMilliseconds": 2.1510132746633097,
+      "AverageMilliseconds": 15.891200000000003,
+      "MedianMilliseconds": 15.0858,
+      "StandardDeviationMilliseconds": 2.2421500128225142,
+      "StandardErrorMilliseconds": 1.2945059134666015,
       "SamplesMilliseconds": [
-        21.3102,
-        16.7249,
-        24.1041
+        14.163,
+        15.0858,
+        18.4248
       ],
       "AverageAllocatedBytes": 22023512,
       "MedianAllocatedBytes": 22023512,
@@ -57,14 +57,14 @@
       "Library": "ExcelDataReader",
       "Notes": "Forward-only IExcelDataReader scan of A1:J(row count) HelloWorld grid.",
       "OutputMetric": -1724161088,
-      "AverageMilliseconds": 16.653366666666667,
-      "MedianMilliseconds": 16.8725,
-      "StandardDeviationMilliseconds": 1.044878372507219,
-      "StandardErrorMilliseconds": 0.603260809637461,
+      "AverageMilliseconds": 11.234933333333332,
+      "MedianMilliseconds": 11.1042,
+      "StandardDeviationMilliseconds": 0.3097342301608477,
+      "StandardErrorMilliseconds": 0.17882514116060694,
       "SamplesMilliseconds": [
-        16.8725,
-        17.5713,
-        15.5163
+        11.5886,
+        11.012,
+        11.1042
       ],
       "AverageAllocatedBytes": 7052725.333333333,
       "MedianAllocatedBytes": 7055464,
@@ -79,14 +79,14 @@
       "Library": "Sylvan.Data.Excel",
       "Notes": "Forward-only DbDataReader scan of A1:J(row count) HelloWorld grid.",
       "OutputMetric": -1724161088,
-      "AverageMilliseconds": 6.7424333333333335,
-      "MedianMilliseconds": 6.7965,
-      "StandardDeviationMilliseconds": 0.3784080513590236,
-      "StandardErrorMilliseconds": 0.21847399031565404,
+      "AverageMilliseconds": 3.8966,
+      "MedianMilliseconds": 3.7419,
+      "StandardDeviationMilliseconds": 0.2809508319973446,
+      "StandardErrorMilliseconds": 0.16220703848271625,
       "SamplesMilliseconds": [
-        6.3399,
-        7.0909,
-        6.7965
+        4.2209,
+        3.7419,
+        3.727
       ],
       "AverageAllocatedBytes": 371000,
       "MedianAllocatedBytes": 371000,
@@ -101,21 +101,21 @@
       "Library": "OfficeIMO.Excel",
       "Notes": "Stream A1:J(row count) HelloWorld grid with ReadRangeStream.",
       "OutputMetric": -1724161088,
-      "AverageMilliseconds": 7.3755,
-      "MedianMilliseconds": 7.6596,
-      "StandardDeviationMilliseconds": 1.1661992154001821,
-      "StandardErrorMilliseconds": 0.6733054309400256,
+      "AverageMilliseconds": 5.576899999999999,
+      "MedianMilliseconds": 5.5962,
+      "StandardDeviationMilliseconds": 0.045064287412539525,
+      "StandardErrorMilliseconds": 0.02601787846846836,
       "SamplesMilliseconds": [
-        8.3734,
-        7.6596,
-        6.0935
+        5.6091,
+        5.5962,
+        5.5254
       ],
-      "AverageAllocatedBytes": 2549112,
-      "MedianAllocatedBytes": 2549112,
+      "AverageAllocatedBytes": 2549040,
+      "MedianAllocatedBytes": 2549040,
       "SamplesAllocatedBytes": [
-        2549112,
-        2549112,
-        2549112
+        2549040,
+        2549040,
+        2549040
       ]
     },
     {
@@ -123,14 +123,14 @@
       "Library": "MiniExcel",
       "Notes": "Stream A1:J(row count) HelloWorld grid with QueryRange.",
       "OutputMetric": -1724161088,
-      "AverageMilliseconds": 20.401966666666667,
-      "MedianMilliseconds": 20.7814,
-      "StandardDeviationMilliseconds": 1.2806257467868332,
-      "StandardErrorMilliseconds": 0.7393696196385436,
+      "AverageMilliseconds": 15.785566666666666,
+      "MedianMilliseconds": 14.9565,
+      "StandardDeviationMilliseconds": 1.6550501784940934,
+      "StandardErrorMilliseconds": 0.955543666075903,
       "SamplesMilliseconds": [
-        21.45,
-        18.9745,
-        20.7814
+        14.7089,
+        14.9565,
+        17.6913
       ],
       "AverageAllocatedBytes": 22023512,
       "MedianAllocatedBytes": 22023512,
@@ -145,14 +145,14 @@
       "Library": "ExcelDataReader",
       "Notes": "Forward-only IExcelDataReader stream of A1:J(row count) HelloWorld grid.",
       "OutputMetric": -1724161088,
-      "AverageMilliseconds": 15.687233333333333,
-      "MedianMilliseconds": 16.356,
-      "StandardDeviationMilliseconds": 2.0610004471938703,
-      "StandardErrorMilliseconds": 1.1899191629873203,
+      "AverageMilliseconds": 11.0159,
+      "MedianMilliseconds": 11.1111,
+      "StandardDeviationMilliseconds": 0.2030877642793874,
+      "StandardErrorMilliseconds": 0.11725277537582358,
       "SamplesMilliseconds": [
-        17.3308,
-        16.356,
-        13.3749
+        10.7827,
+        11.1539,
+        11.1111
       ],
       "AverageAllocatedBytes": 7052725.333333333,
       "MedianAllocatedBytes": 7055464,
@@ -167,14 +167,14 @@
       "Library": "Sylvan.Data.Excel",
       "Notes": "Forward-only DbDataReader stream of A1:J(row count) HelloWorld grid.",
       "OutputMetric": -1724161088,
-      "AverageMilliseconds": 6.242333333333334,
-      "MedianMilliseconds": 6.2305,
-      "StandardDeviationMilliseconds": 0.14830449532409126,
-      "StandardErrorMilliseconds": 0.08562364029739569,
+      "AverageMilliseconds": 3.7751,
+      "MedianMilliseconds": 3.7558,
+      "StandardDeviationMilliseconds": 0.03694685372261085,
+      "StandardErrorMilliseconds": 0.0213312759424591,
       "SamplesMilliseconds": [
-        6.3962,
-        6.2305,
-        6.1003
+        3.7518,
+        3.7558,
+        3.8177
       ],
       "AverageAllocatedBytes": 371000,
       "MedianAllocatedBytes": 371000,

@@ -522,6 +522,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeWidthEight_ClearsReusedRowBufferForSparseRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderReadRangeWidthEightSparseRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    for (int column = 1; column <= 8; column++) {
+                        sheet.CellValue(1, column, "R1C" + column.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    sheet.CellValue(2, 1, "R2C1");
+                    sheet.CellValue(2, 8, "R2C8");
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] range = reader.GetSheet("Data").ReadRange("A1:H2");
+
+                for (int column = 0; column < 8; column++) {
+                    Assert.Equal("R1C" + (column + 1).ToString(CultureInfo.InvariantCulture), range[0, column]);
+                }
+
+                Assert.Equal("R2C1", range[1, 0]);
+                for (int column = 1; column < 7; column++) {
+                    Assert.Null(range[1, column]);
+                }
+
+                Assert.Equal("R2C8", range[1, 7]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_DataTable_NoHeadersNoInference_UsesGeneratedObjectColumns() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderDataTableNoHeadersNoInference.xlsx");
 

@@ -2339,6 +2339,7 @@ namespace OfficeIMO.Excel {
                 int width = result.GetLength(1);
                 int height = result.GetLength(0);
                 var seenRows = CreateCompletedRowTracker(height);
+                object?[]? rowBuffer8 = width == 8 ? new object?[8] : null;
                 bool orderedRows = true;
                 int orderedRowsSeen = 0;
                 if (canCancel) {
@@ -2365,7 +2366,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, ct);
+                        ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, rowBuffer8, ct);
                         if (orderedRows && rowIndex == r1 + orderedRowsSeen) {
                             orderedRowsSeen++;
                             if (orderedRowsSeen == height) {
@@ -2410,7 +2411,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, CancellationToken.None);
+                        ReadXmlRowIntoRange(reader, result, rowIndex, r1, c1, c2, width, rowBuffer8, CancellationToken.None);
                         if (orderedRows && rowIndex == r1 + orderedRowsSeen) {
                             orderedRowsSeen++;
                             if (orderedRowsSeen == height) {
@@ -2658,7 +2659,7 @@ namespace OfficeIMO.Excel {
             return seenColumns == allColumnsSeen;
         }
 
-        private void ReadXmlRowIntoRange(XmlReader rowReader, object?[,] result, int rowIndex, int r1, int c1, int c2, int width, CancellationToken ct) {
+        private void ReadXmlRowIntoRange(XmlReader rowReader, object?[,] result, int rowIndex, int r1, int c1, int c2, int width, object?[]? rowBuffer8, CancellationToken ct) {
             if (rowReader.IsEmptyElement) {
                 return;
             }
@@ -2669,8 +2670,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            if (width == 8) {
-                ReadXmlRowIntoRange8(rowReader, result, rr, c1, c2, ct);
+            if (width == 8 && rowBuffer8 != null) {
+                ReadXmlRowIntoRange8(rowReader, result, rr, c1, c2, rowBuffer8, ct);
                 return;
             }
 
@@ -2758,72 +2759,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ReadXmlRowIntoRange8(XmlReader rowReader, object?[,] result, int rowOffset, int c1, int c2, CancellationToken ct) {
-            int depth = rowReader.Depth;
-            bool canCancel = ct.CanBeCanceled;
-            int nextColumnIndex = 1;
-            int nextExpectedColumn = c1;
-            bool canUseOrderedFullWidthExit = true;
-            ulong seenColumns = 0;
-            int visitedNodes = 0;
-
-            while (rowReader.Read()) {
-                if (canCancel && (++visitedNodes & 1023) == 0) {
-                    ct.ThrowIfCancellationRequested();
-                }
-
-                if (rowReader.NodeType == XmlNodeType.EndElement && rowReader.Depth == depth && rowReader.LocalName == "row") {
-                    return;
-                }
-
-                if (rowReader.NodeType != XmlNodeType.Element || rowReader.LocalName != "c") {
-                    continue;
-                }
-
-                int columnIndex = GetXmlCellColumnIndex(rowReader, ref nextColumnIndex);
-                if (columnIndex <= 0) {
-                    canUseOrderedFullWidthExit = false;
-                    SkipXmlElement(rowReader, "c");
-                    continue;
-                }
-
-                if (columnIndex < c1 || columnIndex > c2) {
-                    if (canUseOrderedFullWidthExit && columnIndex > c2 && nextExpectedColumn <= c2) {
-                        canUseOrderedFullWidthExit = false;
-                    }
-
-                    SkipXmlElement(rowReader, "c");
-                    continue;
-                }
-
-                int columnOffset = columnIndex - c1;
-                if ((uint)columnOffset >= 8U) {
-                    SkipXmlElement(rowReader, "c");
-                    continue;
-                }
-
-                if (canUseOrderedFullWidthExit && columnIndex != nextExpectedColumn) {
-                    int orderedSeen = nextExpectedColumn - c1;
-                    seenColumns = orderedSeen <= 0 ? 0UL : CreateAllColumnsSeenMask(orderedSeen);
-                    canUseOrderedFullWidthExit = false;
-                }
-
-                result[rowOffset, columnOffset] = ReadXmlCellValue(rowReader, rowReader.GetAttribute("t"));
-
-                if (canUseOrderedFullWidthExit) {
-                    nextExpectedColumn++;
-                    if (columnIndex >= c2) {
-                        SkipXmlElementContent(rowReader, depth);
-                        return;
-                    }
-                } else {
-                    seenColumns |= 1UL << columnOffset;
-                    if (seenColumns == 0xFFUL) {
-                        SkipXmlElementContent(rowReader, depth);
-                        return;
-                    }
-                }
-            }
+        private void ReadXmlRowIntoRange8(XmlReader rowReader, object?[,] result, int rowOffset, int c1, int c2, object?[] rowBuffer, CancellationToken ct) {
+            Array.Clear(rowBuffer, 0, rowBuffer.Length);
+            ReadXmlRowIntoChunk8(rowReader, rowBuffer, c1, c2, ct);
+            result[rowOffset, 0] = rowBuffer[0];
+            result[rowOffset, 1] = rowBuffer[1];
+            result[rowOffset, 2] = rowBuffer[2];
+            result[rowOffset, 3] = rowBuffer[3];
+            result[rowOffset, 4] = rowBuffer[4];
+            result[rowOffset, 5] = rowBuffer[5];
+            result[rowOffset, 6] = rowBuffer[6];
+            result[rowOffset, 7] = rowBuffer[7];
         }
 
         private void ReadXmlRowIntoRange3(XmlReader rowReader, object?[,] result, int rowOffset, int c1, int c2, CancellationToken ct) {
