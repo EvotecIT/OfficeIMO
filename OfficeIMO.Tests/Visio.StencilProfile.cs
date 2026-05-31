@@ -32,9 +32,17 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, profile.BasicGeometryShapeCount);
             Assert.Equal(new[] { "Owner" }, profile.ShapeDataKeys);
             Assert.Contains("Annotation", profile.SemanticKinds);
+            Assert.Equal(new[] { "Profile Catalog" }, profile.StencilCatalogs);
+            Assert.Equal(new[] { "Infrastructure" }, profile.StencilCategories);
+            Assert.Contains("profile", profile.StencilTags);
             VisioStencilUsageProfile generated = Assert.Single(profile.Usages, usage => usage.Kind == VisioStencilProfileUsageKind.GeneratedMaster);
-            Assert.Equal("master:Process", generated.Key);
+            Assert.Equal("stencil:profile.cache", generated.Key);
             Assert.Equal("Process", generated.MasterNameU);
+            Assert.Equal("profile.cache", generated.StencilId);
+            Assert.Equal("Cache", generated.StencilName);
+            Assert.Equal("Infrastructure", generated.StencilCategory);
+            Assert.Equal("Profile Catalog", generated.StencilCatalogName);
+            Assert.Contains("Process", generated.StencilTags);
             Assert.Equal(new[] { "cache" }, generated.ShapeIds);
             VisioStencilUsageProfile geometry = Assert.Single(profile.Usages, usage => usage.Kind == VisioStencilProfileUsageKind.BasicGeometry);
             Assert.Equal("geometry:Annotation", geometry.Key);
@@ -63,8 +71,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Criticality" }, first.ShapeDataKeys);
             Assert.Equal(new[] { "Protocol" }, first.ConnectorShapeDataKeys);
             Assert.Contains("profile.generatedMasterBackedShapeCount=2", text, StringComparison.Ordinal);
-            Assert.Contains("usage[master:Decision].count=1", text, StringComparison.Ordinal);
-            Assert.Contains("usage[master:Process].shapeDataKeys=", text, StringComparison.Ordinal);
+            Assert.Contains(first.Usages, usage => usage.MasterNameU == "Decision" && usage.StencilId == "flow.decision" && usage.Count == 1);
+            Assert.Contains(first.Usages, usage => usage.MasterNameU == "Process" && usage.StencilId == "flow.process" && usage.ShapeDataKeys.Count == 0);
+            Assert.Contains("profile.stencilCategories=Flowchart", text, StringComparison.Ordinal);
+            Assert.Contains("usage[stencil:flow.decision].stencilCatalog=", text, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -88,9 +98,21 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(1, profile.TotalShapes);
             Assert.Equal(1, profile.PackageBackedShapeCount);
+            Assert.Equal(new[] { "External" }, profile.StencilCategories);
+            Assert.Equal(new[] { Path.GetFullPath(packagePath) }, profile.StencilSourcePackagePaths);
             VisioStencilUsageProfile usage = Assert.Single(profile.Usages, item => item.Kind == VisioStencilProfileUsageKind.PackageBackedMaster);
             Assert.Equal("FancyCloud", usage.MasterNameU);
+            Assert.Equal("profile.fancycloud", usage.StencilId);
+            Assert.Equal("External", usage.StencilCategory);
+            Assert.Equal(Path.GetFileNameWithoutExtension(packagePath), usage.StencilCatalogName);
+            Assert.Equal(Path.GetFullPath(packagePath), usage.StencilSourcePackagePath);
+            Assert.Contains("package", usage.StencilTags);
             Assert.Equal(new[] { "source" }, usage.ShapeIds);
+
+            VisioInspectionMasterSnapshot master = Assert.Single(loaded.CreateInspectionSnapshot().Masters, item => item.NameU == "FancyCloud");
+            Assert.True(master.IsPackageBacked);
+            Assert.Equal("profile.fancycloud", master.StencilId);
+            Assert.Equal(Path.GetFullPath(packagePath), master.StencilSourcePackagePath);
         }
 
         private static void CreatePackageWithRawGroupMaster(string path, string nameU, string name) {

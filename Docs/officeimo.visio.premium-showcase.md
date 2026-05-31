@@ -49,5 +49,5 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 1. Extend the new obstacle-aware routing into zone/group-aware routes and add lifeline/zone-aware connector-label cleanup in dense premium diagrams.
 2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it.
 3. Continue baseline review of premium theme presets and promote only baseline-approved diagrams into website documentation and product screenshots.
-4. Extend stencil profile reporting with richer catalog/category/source-pack metadata as external metadata extraction improves.
+4. Extend current catalog/category/source-pack stencil profile proof into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
 5. Broaden the gallery from six baseline-approved diagrams toward a larger market-facing set.

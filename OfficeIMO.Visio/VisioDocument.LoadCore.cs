@@ -193,6 +193,7 @@ namespace OfficeIMO.Visio {
                                 List<VisioUserCell> userCells = new();
                                 ParseUserCells(section, ns, userCells);
                                 master.IsPackageBacked = userCells.Any(IsPackageBackedMasterUserCell);
+                                VisioStencilMetadata.Apply(master, userCells);
                             }
                             master.PreservedPageSheetSections.Add(new XElement(section));
                         }

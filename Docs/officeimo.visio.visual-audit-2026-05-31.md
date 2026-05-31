@@ -24,7 +24,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 - The six-diagram premium set now lives in reusable `OfficeIMO.Visio.VisioPremiumGallery`; the example is a thin caller.
 - `VisioPremiumVisualBaselineTests` exports the six premium diagrams through Microsoft Visio desktop, stores approved PNG/SVG artifacts, compares regenerated previews against the approved baseline, and writes expected/actual/diff PNG artifacts with pixel statistics when a PNG preview changes.
 - `CreateInspectionSnapshot()` now captures deterministic document/page/master/shape/connector/Shape Data/User cell structure and `VisioInspectionDiff` reports stable structural differences.
-- `CreateStencilProfile()` now summarizes generated-master, package-backed, and basic-geometry shape usage plus Shape Data keys and semantic kind usage from inspection snapshots, and package-backed stencil provenance survives save/load.
+- `CreateStencilProfile()` now summarizes generated-master, package-backed, and basic-geometry shape usage plus Shape Data keys, semantic kind usage, stencil catalogs, categories, tags, and source package paths from inspection snapshots; generated and package-backed stencil provenance survives save/load.
 - Diagram titles now use a readable title style instead of inheriting white text from filled emphasis shapes.
 - Sequence self-message labels are now sized, kept outside the loop, and flipped left when the participant is near the page edge.
 - Architecture regions, block regions, network zones, graph zones, and topology subnets now use separate header-style caption adornments instead of centered background text.
@@ -48,7 +48,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 - Sequence self-message placement was fixed for the reviewed long-label case, but sequence activations, notes, and richer interaction fragments are still missing.
 - Simple connector-to-shape crossings are now covered by deterministic obstacle-aware routing, but dense network layouts still need zone-aware and crossing-aware route planning.
 - Graph zones can overlap or dominate the diagram when groups span nodes across layers; the premium sample avoids zones for now.
-- Stencil-backed visuals are not broad enough. Several examples still rely on basic geometry rather than recognizable first-party/native/external stencil symbols, although the new stencil profile API can now measure this instead of relying on manual inspection.
+- Stencil-backed visuals are not broad enough. Several examples still rely on basic geometry rather than recognizable first-party/native/external stencil symbols, although the richer stencil profile API can now measure catalog/category/source-pack coverage instead of relying on manual inspection.
 - Imported master artwork children are filtered out of stencil profile counts, so package-backed profiles report logical placed stencil shapes instead of internal master artwork.
 - Premium PNG baseline failures now include a rendered `.diff.png`, changed-pixel count, max channel delta, tolerance, and allowed-difference settings; SVGs still use canonicalized text comparison for Visio's unstable generated CSS class numbering.
 
@@ -59,9 +59,9 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 3. Replace basic geometry in the premium gallery with native/external/first-party stencil-backed nodes where available.
 4. Continue theme polish with diagram-specific spacing, title treatment, connector weights, and baseline-reviewed dark/print-safe defaults.
 5. Add richer sequence-diagram features: activations, notes, combined fragments, and visible error/remediation bands.
-6. Expand stencil profile reporting with catalog/category/source-pack metadata once richer metadata extraction is available.
+6. Expand stencil extraction beyond current catalog/category/source-pack provenance into connection-point, icon/preview, package-family, and typed stencil-family profiles.
 7. Use inspection diffs next to visual baseline failures so review output explains both structural and rendered changes.
 
 ## Status Call
 
-This branch improves the current state and proves generation, preview export, approved premium visual baselines with PNG diff artifacts, structural inspection/diff snapshots, persisted stencil usage profiles, the first obstacle-aware routing pass, and the first premium theme preset slice end to end. It does not finish the full premium Visio goal. The remaining work is real product work in deeper layout, zone-aware routing, labels, stencils, theme polish, richer sequence semantics, richer stencil metadata extraction, and richer structural-plus-rendered review artifacts.
+This branch improves the current state and proves generation, preview export, approved premium visual baselines with PNG diff artifacts, structural inspection/diff snapshots, persisted catalog/category/source-pack stencil usage profiles, the first obstacle-aware routing pass, and the first premium theme preset slice end to end. It does not finish the full premium Visio goal. The remaining work is real product work in deeper layout, zone-aware routing, labels, broader stencils, theme polish, richer sequence semantics, deeper stencil metadata extraction, and richer structural-plus-rendered review artifacts.

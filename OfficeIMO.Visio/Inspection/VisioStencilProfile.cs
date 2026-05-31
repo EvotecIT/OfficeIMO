@@ -43,13 +43,21 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<VisioStencilUsageProfile> usages,
             IReadOnlyList<string> shapeDataKeys,
             IReadOnlyList<string> connectorShapeDataKeys,
-            IReadOnlyList<string> semanticKinds) {
+            IReadOnlyList<string> semanticKinds,
+            IReadOnlyList<string> stencilCatalogs,
+            IReadOnlyList<string> stencilCategories,
+            IReadOnlyList<string> stencilSourcePackagePaths,
+            IReadOnlyList<string> stencilTags) {
             TotalShapes = totalShapes;
             ConnectorCount = connectorCount;
             Usages = usages;
             ShapeDataKeys = shapeDataKeys;
             ConnectorShapeDataKeys = connectorShapeDataKeys;
             SemanticKinds = semanticKinds;
+            StencilCatalogs = stencilCatalogs;
+            StencilCategories = stencilCategories;
+            StencilSourcePackagePaths = stencilSourcePackagePaths;
+            StencilTags = stencilTags;
         }
 
         /// <summary>Total number of inspected shapes.</summary>
@@ -96,6 +104,18 @@ namespace OfficeIMO.Visio {
         /// <summary>Distinct OfficeIMO semantic kind values used by inspected shapes.</summary>
         public IReadOnlyList<string> SemanticKinds { get; }
 
+        /// <summary>Distinct stencil catalog names represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilCatalogs { get; }
+
+        /// <summary>Distinct stencil categories represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilCategories { get; }
+
+        /// <summary>Distinct source package paths represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilSourcePackagePaths { get; }
+
+        /// <summary>Distinct stencil tags represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilTags { get; }
+
         /// <summary>
         /// Creates a stencil profile from an inspection snapshot.
         /// </summary>
@@ -127,7 +147,11 @@ namespace OfficeIMO.Visio {
                 usages.AsReadOnly(),
                 CollectShapeDataKeys(shapes).AsReadOnly(),
                 CollectConnectorShapeDataKeys(connectors).AsReadOnly(),
-                CollectSemanticKinds(shapes).AsReadOnly());
+                CollectSemanticKinds(shapes).AsReadOnly(),
+                CollectUsageValues(usages, usage => usage.StencilCatalogName).AsReadOnly(),
+                CollectUsageValues(usages, usage => usage.StencilCategory).AsReadOnly(),
+                CollectUsageValues(usages, usage => usage.StencilSourcePackagePath).AsReadOnly(),
+                CollectUsageListValues(usages, usage => usage.StencilTags).AsReadOnly());
         }
 
         /// <summary>
@@ -145,6 +169,10 @@ namespace OfficeIMO.Visio {
             AppendLine(builder, "profile.shapeDataKeys", string.Join(",", ShapeDataKeys));
             AppendLine(builder, "profile.connectorShapeDataKeys", string.Join(",", ConnectorShapeDataKeys));
             AppendLine(builder, "profile.semanticKinds", string.Join(",", SemanticKinds));
+            AppendLine(builder, "profile.stencilCatalogs", string.Join(",", StencilCatalogs));
+            AppendLine(builder, "profile.stencilCategories", string.Join(",", StencilCategories));
+            AppendLine(builder, "profile.stencilSourcePackagePaths", string.Join(",", StencilSourcePackagePaths));
+            AppendLine(builder, "profile.stencilTags", string.Join(",", StencilTags));
             AppendLine(builder, "profile.usageCount", Usages.Count);
 
             foreach (VisioStencilUsageProfile usage in Usages) {
@@ -172,34 +200,60 @@ namespace OfficeIMO.Visio {
                 VisioStencilProfileUsageKind kind = master.IsPackageBacked
                     ? VisioStencilProfileUsageKind.PackageBackedMaster
                     : VisioStencilProfileUsageKind.GeneratedMaster;
+                string? stencilId = GetStencilId(shape, master);
                 return new VisioStencilUsageKey(
                     kind,
-                    "master:" + master.NameU,
+                    !string.IsNullOrWhiteSpace(stencilId) ? "stencil:" + stencilId : "master:" + master.NameU,
                     master.Id,
                     master.NameU,
                     master.ShapeNameU,
-                    semanticKind);
+                    semanticKind,
+                    stencilId,
+                    GetStencilName(shape, master),
+                    GetStencilCategory(shape, master),
+                    GetStencilCatalogName(shape, master),
+                    GetStencilSourcePackagePath(shape, master),
+                    GetStencilKeywords(shape, master),
+                    GetStencilAliases(shape, master),
+                    GetStencilTags(shape, master));
             }
 
             if (!string.IsNullOrWhiteSpace(shape.NameU)) {
+                string? stencilId = GetStencilId(shape, null);
                 return new VisioStencilUsageKey(
                     VisioStencilProfileUsageKind.BasicGeometry,
-                    "geometry:" + shape.NameU,
+                    !string.IsNullOrWhiteSpace(stencilId) ? "stencil:" + stencilId : "geometry:" + shape.NameU,
                     null,
                     null,
                     shape.NameU,
-                    semanticKind);
+                    semanticKind,
+                    stencilId,
+                    GetStencilName(shape, null),
+                    GetStencilCategory(shape, null),
+                    GetStencilCatalogName(shape, null),
+                    GetStencilSourcePackagePath(shape, null),
+                    GetStencilKeywords(shape, null),
+                    GetStencilAliases(shape, null),
+                    GetStencilTags(shape, null));
             }
 
             if (!string.IsNullOrWhiteSpace(semanticKind)) {
                 return new VisioStencilUsageKey(
                     VisioStencilProfileUsageKind.SemanticOnly,
                     "semantic:" + semanticKind,
-                    null,
-                    null,
-                    null,
-                    semanticKind);
-            }
+                null,
+                null,
+                null,
+                semanticKind,
+                null,
+                null,
+                null,
+                null,
+                null,
+                Array.Empty<string>(),
+                Array.Empty<string>(),
+                Array.Empty<string>());
+        }
 
             return new VisioStencilUsageKey(
                 VisioStencilProfileUsageKind.BasicGeometry,
@@ -207,7 +261,15 @@ namespace OfficeIMO.Visio {
                 null,
                 null,
                 null,
-                null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                Array.Empty<string>(),
+                Array.Empty<string>(),
+                Array.Empty<string>());
         }
 
         internal static string? GetSemanticKind(VisioInspectionShapeSnapshot shape) {
@@ -255,6 +317,60 @@ namespace OfficeIMO.Visio {
                 .OrderBy(kind => kind, StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
+
+        private static List<string> CollectUsageValues(IEnumerable<VisioStencilUsageProfile> usages, Func<VisioStencilUsageProfile, string?> selector) {
+            return usages
+                .Select(selector)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static List<string> CollectUsageListValues(IEnumerable<VisioStencilUsageProfile> usages, Func<VisioStencilUsageProfile, IReadOnlyList<string>> selector) {
+            return usages
+                .SelectMany(selector)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private static string? GetStencilId(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilId) ?? master?.StencilId;
+        }
+
+        private static string? GetStencilName(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilName) ?? master?.StencilName;
+        }
+
+        private static string? GetStencilCategory(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilCategory) ?? master?.StencilCategory;
+        }
+
+        private static string? GetStencilCatalogName(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilCatalog) ?? master?.StencilCatalogName;
+        }
+
+        private static string? GetStencilSourcePackagePath(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilSourcePackagePath) ?? master?.StencilSourcePackagePath;
+        }
+
+        private static IReadOnlyList<string> GetStencilKeywords(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            IReadOnlyList<string> values = VisioStencilMetadata.GetUserCellList(shape.UserCells, VisioSemanticUserCells.StencilKeywords);
+            return values.Count > 0 ? values : master?.StencilKeywords ?? Array.Empty<string>();
+        }
+
+        private static IReadOnlyList<string> GetStencilAliases(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            IReadOnlyList<string> values = VisioStencilMetadata.GetUserCellList(shape.UserCells, VisioSemanticUserCells.StencilAliases);
+            return values.Count > 0 ? values : master?.StencilAliases ?? Array.Empty<string>();
+        }
+
+        private static IReadOnlyList<string> GetStencilTags(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            IReadOnlyList<string> values = VisioStencilMetadata.GetUserCellList(shape.UserCells, VisioSemanticUserCells.StencilTags);
+            return values.Count > 0 ? values : master?.StencilTags ?? Array.Empty<string>();
+        }
     }
 
     /// <summary>
@@ -268,6 +384,14 @@ namespace OfficeIMO.Visio {
             string? masterNameU,
             string? shapeNameU,
             string? semanticKind,
+            string? stencilId,
+            string? stencilName,
+            string? stencilCategory,
+            string? stencilCatalogName,
+            string? stencilSourcePackagePath,
+            IReadOnlyList<string> stencilKeywords,
+            IReadOnlyList<string> stencilAliases,
+            IReadOnlyList<string> stencilTags,
             int count,
             IReadOnlyList<string> shapeIds,
             IReadOnlyList<string> pageNames,
@@ -278,6 +402,14 @@ namespace OfficeIMO.Visio {
             MasterNameU = masterNameU;
             ShapeNameU = shapeNameU;
             SemanticKind = semanticKind;
+            StencilId = stencilId;
+            StencilName = stencilName;
+            StencilCategory = stencilCategory;
+            StencilCatalogName = stencilCatalogName;
+            StencilSourcePackagePath = stencilSourcePackagePath;
+            StencilKeywords = stencilKeywords;
+            StencilAliases = stencilAliases;
+            StencilTags = stencilTags;
             Count = count;
             ShapeIds = shapeIds;
             PageNames = pageNames;
@@ -301,6 +433,30 @@ namespace OfficeIMO.Visio {
 
         /// <summary>OfficeIMO semantic kind assigned to the grouped shapes, when consistent.</summary>
         public string? SemanticKind { get; }
+
+        /// <summary>OfficeIMO stencil identifier, when known.</summary>
+        public string? StencilId { get; }
+
+        /// <summary>OfficeIMO stencil display name, when known.</summary>
+        public string? StencilName { get; }
+
+        /// <summary>OfficeIMO stencil category, when known.</summary>
+        public string? StencilCategory { get; }
+
+        /// <summary>Stencil catalog name, when known.</summary>
+        public string? StencilCatalogName { get; }
+
+        /// <summary>Source package path, when known.</summary>
+        public string? StencilSourcePackagePath { get; }
+
+        /// <summary>Searchable stencil keywords represented by this usage group.</summary>
+        public IReadOnlyList<string> StencilKeywords { get; }
+
+        /// <summary>Stencil aliases represented by this usage group.</summary>
+        public IReadOnlyList<string> StencilAliases { get; }
+
+        /// <summary>Semantic stencil tags represented by this usage group.</summary>
+        public IReadOnlyList<string> StencilTags { get; }
 
         /// <summary>Number of shapes in this usage group.</summary>
         public int Count { get; }
@@ -351,6 +507,14 @@ namespace OfficeIMO.Visio {
                 key.MasterNameU,
                 key.ShapeNameU,
                 key.SemanticKind,
+                key.StencilId,
+                key.StencilName,
+                key.StencilCategory,
+                key.StencilCatalogName,
+                key.StencilSourcePackagePath,
+                key.StencilKeywords,
+                key.StencilAliases,
+                key.StencilTags,
                 shapeList.Count,
                 shapeIds,
                 pageNames,
@@ -364,6 +528,14 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".masterNameU", MasterNameU);
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeNameU", ShapeNameU);
             VisioStencilProfile.AppendLine(builder, prefix + ".semanticKind", SemanticKind);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilId", StencilId);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilName", StencilName);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilCategory", StencilCategory);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilCatalog", StencilCatalogName);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilSourcePackagePath", StencilSourcePackagePath);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilKeywords", string.Join(",", StencilKeywords));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilAliases", string.Join(",", StencilAliases));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilTags", string.Join(",", StencilTags));
             VisioStencilProfile.AppendLine(builder, prefix + ".count", Count);
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeIds", string.Join(",", ShapeIds));
             VisioStencilProfile.AppendLine(builder, prefix + ".pages", string.Join(",", PageNames));
@@ -395,13 +567,29 @@ namespace OfficeIMO.Visio {
             string? masterId,
             string? masterNameU,
             string? shapeNameU,
-            string? semanticKind) {
+            string? semanticKind,
+            string? stencilId,
+            string? stencilName,
+            string? stencilCategory,
+            string? stencilCatalogName,
+            string? stencilSourcePackagePath,
+            IReadOnlyList<string> stencilKeywords,
+            IReadOnlyList<string> stencilAliases,
+            IReadOnlyList<string> stencilTags) {
             Kind = kind;
             Key = key;
             MasterId = masterId;
             MasterNameU = masterNameU;
             ShapeNameU = shapeNameU;
             SemanticKind = semanticKind;
+            StencilId = stencilId;
+            StencilName = stencilName;
+            StencilCategory = stencilCategory;
+            StencilCatalogName = stencilCatalogName;
+            StencilSourcePackagePath = stencilSourcePackagePath;
+            StencilKeywords = stencilKeywords;
+            StencilAliases = stencilAliases;
+            StencilTags = stencilTags;
         }
 
         public VisioStencilProfileUsageKind Kind { get; }
@@ -415,6 +603,22 @@ namespace OfficeIMO.Visio {
         public string? ShapeNameU { get; }
 
         public string? SemanticKind { get; }
+
+        public string? StencilId { get; }
+
+        public string? StencilName { get; }
+
+        public string? StencilCategory { get; }
+
+        public string? StencilCatalogName { get; }
+
+        public string? StencilSourcePackagePath { get; }
+
+        public IReadOnlyList<string> StencilKeywords { get; }
+
+        public IReadOnlyList<string> StencilAliases { get; }
+
+        public IReadOnlyList<string> StencilTags { get; }
 
         public static IEqualityComparer<VisioStencilUsageKey> Comparer { get; } = new VisioStencilUsageKeyComparer();
 
@@ -433,7 +637,15 @@ namespace OfficeIMO.Visio {
                        string.Equals(x.MasterId, y.MasterId, StringComparison.OrdinalIgnoreCase) &&
                        string.Equals(x.MasterNameU, y.MasterNameU, StringComparison.OrdinalIgnoreCase) &&
                        string.Equals(x.ShapeNameU, y.ShapeNameU, StringComparison.OrdinalIgnoreCase) &&
-                       string.Equals(x.SemanticKind, y.SemanticKind, StringComparison.OrdinalIgnoreCase);
+                       string.Equals(x.SemanticKind, y.SemanticKind, StringComparison.OrdinalIgnoreCase) &&
+                       string.Equals(x.StencilId, y.StencilId, StringComparison.OrdinalIgnoreCase) &&
+                       string.Equals(x.StencilName, y.StencilName, StringComparison.OrdinalIgnoreCase) &&
+                       string.Equals(x.StencilCategory, y.StencilCategory, StringComparison.OrdinalIgnoreCase) &&
+                       string.Equals(x.StencilCatalogName, y.StencilCatalogName, StringComparison.OrdinalIgnoreCase) &&
+                       string.Equals(x.StencilSourcePackagePath, y.StencilSourcePackagePath, StringComparison.OrdinalIgnoreCase) &&
+                       SequenceEqual(x.StencilKeywords, y.StencilKeywords) &&
+                       SequenceEqual(x.StencilAliases, y.StencilAliases) &&
+                       SequenceEqual(x.StencilTags, y.StencilTags);
             }
 
             public int GetHashCode(VisioStencilUsageKey obj) {
@@ -445,8 +657,39 @@ namespace OfficeIMO.Visio {
                     hash = (hash * 31) + (obj.MasterNameU == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.MasterNameU));
                     hash = (hash * 31) + (obj.ShapeNameU == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.ShapeNameU));
                     hash = (hash * 31) + (obj.SemanticKind == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.SemanticKind));
+                    hash = (hash * 31) + (obj.StencilId == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilId));
+                    hash = (hash * 31) + (obj.StencilName == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilName));
+                    hash = (hash * 31) + (obj.StencilCategory == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilCategory));
+                    hash = (hash * 31) + (obj.StencilCatalogName == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilCatalogName));
+                    hash = (hash * 31) + (obj.StencilSourcePackagePath == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilSourcePackagePath));
+                    hash = AddListHash(hash, obj.StencilKeywords);
+                    hash = AddListHash(hash, obj.StencilAliases);
+                    hash = AddListHash(hash, obj.StencilTags);
                     return hash;
                 }
+            }
+
+            private static bool SequenceEqual(IReadOnlyList<string> left, IReadOnlyList<string> right) {
+                if (left.Count != right.Count) {
+                    return false;
+                }
+
+                for (int i = 0; i < left.Count; i++) {
+                    if (!string.Equals(left[i], right[i], StringComparison.OrdinalIgnoreCase)) {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            private static int AddListHash(int seed, IReadOnlyList<string> values) {
+                int hash = seed;
+                foreach (string value in values) {
+                    hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(value);
+                }
+
+                return hash;
             }
         }
     }

@@ -614,9 +614,10 @@ Console.WriteLine(profile.ToText());
 Use inspection snapshots alongside package validation and optional PNG/SVG
 preview baselines: the snapshot explains what changed structurally, while the
 stencil profile reports how much of the diagram is generated-master,
-package-backed, or basic-geometry driven. Package-backed provenance is written
-into the VSDX master metadata and survives reloads, so profiles can audit saved
-files as well as in-memory documents. The rendered preview proves how the
+package-backed, or basic-geometry driven. Stencil placement stamps catalog,
+category, stencil id, tags, and source package path into shape/master metadata,
+so package-backed and generated-stencil profiles survive reloads and can audit
+saved files as well as in-memory documents. The rendered preview proves how the
 diagram looks. The premium PNG baseline lane writes expected, actual, and
 `.diff.png` artifacts with changed-pixel counts when a desktop-exported preview
 drifts, while SVG previews use canonicalized text comparison to account for

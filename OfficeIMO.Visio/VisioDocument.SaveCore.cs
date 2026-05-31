@@ -2967,12 +2967,9 @@ namespace OfficeIMO.Visio {
                 string.Equals(section.Attribute("N")?.Value, "Layer", StringComparison.OrdinalIgnoreCase));
             bool hasPreservedUserSection = master.PreservedPageSheetSections.Any(section =>
                 string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase));
-            if (master.IsPackageBacked && !hasPreservedUserSection) {
-                WriteUserSection(writer, ns, new List<VisioUserCell> {
-                    new("OfficeIMO.PackageBackedMaster", "1") {
-                        Prompt = "OfficeIMO persisted package-backed stencil provenance"
-                    }
-                });
+            IReadOnlyList<VisioUserCell> masterUserCells = CreateMasterPageSheetUserCells(master);
+            if (!hasPreservedUserSection) {
+                WriteUserSection(writer, ns, masterUserCells.ToList());
             }
             if (definition?.AddConnectorLayer == true && !hasPreservedLayerSection) {
                 writer.WriteStartElement("Section", ns);
@@ -2993,8 +2990,71 @@ namespace OfficeIMO.Visio {
                 writer.WriteEndElement();
                 writer.WriteEndElement();
             }
-            WritePreservedElements(writer, master.PreservedPageSheetSections);
+            WriteMasterPageSheetSections(writer, ns, master.PreservedPageSheetSections, masterUserCells);
             writer.WriteEndElement();
+        }
+
+        private static IReadOnlyList<VisioUserCell> CreateMasterPageSheetUserCells(VisioMaster master) {
+            List<VisioUserCell> userCells = new();
+            if (master.IsPackageBacked) {
+                userCells.Add(new VisioUserCell("OfficeIMO.PackageBackedMaster", "1") {
+                    Prompt = "OfficeIMO persisted package-backed stencil provenance"
+                });
+            }
+
+            userCells.AddRange(VisioStencilMetadata.CreateMasterUserCells(master));
+            return userCells.AsReadOnly();
+        }
+
+        private static void WriteMasterPageSheetSections(XmlWriter writer, string ns, IEnumerable<XElement> sections, IReadOnlyList<VisioUserCell> masterUserCells) {
+            foreach (XElement section in sections) {
+                if (!string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase) ||
+                    masterUserCells.Count == 0) {
+                    section.WriteTo(writer);
+                    continue;
+                }
+
+                XElement mergedSection = new(section);
+                HashSet<string> existingRows = new(
+                    mergedSection.Elements(XName.Get("Row", ns))
+                        .Select(row => row.Attribute("N")?.Value)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))!,
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (VisioUserCell userCell in masterUserCells) {
+                    if (existingRows.Add(userCell.Name)) {
+                        mergedSection.Add(CreateUserRowElement(ns, userCell));
+                    }
+                }
+
+                mergedSection.WriteTo(writer);
+            }
+        }
+
+        private static XElement CreateUserRowElement(string ns, VisioUserCell userCell) {
+            XNamespace xns = ns;
+            XElement row = new(xns + "Row", new XAttribute("N", userCell.Name));
+            XElement value = new(xns + "Cell",
+                new XAttribute("N", "Value"),
+                new XAttribute("V", userCell.Value ?? string.Empty));
+            if (!string.IsNullOrEmpty(userCell.Unit)) {
+                value.Add(new XAttribute("U", userCell.Unit));
+            }
+            if (!string.IsNullOrEmpty(userCell.Formula)) {
+                value.Add(new XAttribute("F", userCell.Formula));
+            }
+            row.Add(value);
+
+            if (userCell.Prompt != null || !string.IsNullOrEmpty(userCell.PromptFormula)) {
+                XElement prompt = new(xns + "Cell",
+                    new XAttribute("N", "Prompt"),
+                    new XAttribute("V", userCell.Prompt ?? string.Empty));
+                if (!string.IsNullOrEmpty(userCell.PromptFormula)) {
+                    prompt.Add(new XAttribute("F", userCell.PromptFormula));
+                }
+                row.Add(prompt);
+            }
+
+            return row;
         }
 
         private static void WriteMasterUserSection(XmlWriter writer, string ns) {

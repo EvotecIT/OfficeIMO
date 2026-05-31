@@ -227,7 +227,8 @@ namespace OfficeIMO.Visio {
                 NormalizeImportedMasterRoot(rawMasterXml);
                 VisioMaster master = new(content.Id, content.NameU, shape) {
                     RawMasterContentXml = rawMasterXml,
-                    IsPackageBacked = true
+                    IsPackageBacked = true,
+                    StencilSourcePackagePath = VisioStencilMetadata.NormalizePath(packagePath)
                 };
                 foreach (VisioAssets.MasterRelationshipContent relationship in content.Relationships) {
                     master.RawMasterRelationships.Add(relationship);
@@ -260,7 +261,13 @@ namespace OfficeIMO.Visio {
             foreach (IGrouping<string, VisioStencilShape> group in shapes
                 .Where(shape => shape != null && !string.IsNullOrWhiteSpace(shape.SourcePackagePath))
                 .GroupBy(shape => shape.SourcePackagePath!, StringComparer.OrdinalIgnoreCase)) {
-                imported.AddRange(ImportStencilMastersAndGet(group.Key, group.Select(shape => shape.MasterNameU)));
+                IReadOnlyList<VisioMaster> importedFromPackage = ImportStencilMastersAndGet(group.Key, group.Select(shape => shape.MasterNameU));
+                imported.AddRange(importedFromPackage);
+                foreach (VisioStencilShape shape in group) {
+                    if (TryGetMaster(shape.MasterNameU, out VisioMaster? master) && master != null) {
+                        VisioStencilMetadata.Apply(master, shape, catalogName: null);
+                    }
+                }
             }
 
             return imported.AsReadOnly();

@@ -28,7 +28,15 @@ namespace OfficeIMO.Visio {
                     master.Shape.Text,
                     master.Shape.Width,
                     master.Shape.Height,
-                    master.IsPackageBacked))
+                    master.IsPackageBacked,
+                    master.StencilId,
+                    master.StencilName,
+                    master.StencilCategory,
+                    master.StencilCatalogName,
+                    master.StencilSourcePackagePath,
+                    master.StencilKeywords,
+                    master.StencilAliases,
+                    master.StencilTags))
                 .ToList()
                 .AsReadOnly();
 
@@ -242,6 +250,14 @@ namespace OfficeIMO.Visio {
                 AppendLine(builder, prefix + ".width", master.Width);
                 AppendLine(builder, prefix + ".height", master.Height);
                 AppendLine(builder, prefix + ".packageBacked", master.IsPackageBacked);
+                AppendLine(builder, prefix + ".stencilId", master.StencilId);
+                AppendLine(builder, prefix + ".stencilName", master.StencilName);
+                AppendLine(builder, prefix + ".stencilCategory", master.StencilCategory);
+                AppendLine(builder, prefix + ".stencilCatalog", master.StencilCatalogName);
+                AppendLine(builder, prefix + ".stencilSourcePackagePath", master.StencilSourcePackagePath);
+                AppendLine(builder, prefix + ".stencilKeywords", string.Join(",", master.StencilKeywords));
+                AppendLine(builder, prefix + ".stencilAliases", string.Join(",", master.StencilAliases));
+                AppendLine(builder, prefix + ".stencilTags", string.Join(",", master.StencilTags));
             }
 
             foreach (VisioInspectionPageSnapshot page in Pages) {
@@ -290,7 +306,22 @@ namespace OfficeIMO.Visio {
     /// Snapshot of a registered Visio master.
     /// </summary>
     public sealed class VisioInspectionMasterSnapshot {
-        internal VisioInspectionMasterSnapshot(string id, string nameU, string? shapeNameU, string? text, double width, double height, bool isPackageBacked) {
+        internal VisioInspectionMasterSnapshot(
+            string id,
+            string nameU,
+            string? shapeNameU,
+            string? text,
+            double width,
+            double height,
+            bool isPackageBacked,
+            string? stencilId,
+            string? stencilName,
+            string? stencilCategory,
+            string? stencilCatalogName,
+            string? stencilSourcePackagePath,
+            IReadOnlyList<string> stencilKeywords,
+            IReadOnlyList<string> stencilAliases,
+            IReadOnlyList<string> stencilTags) {
             Id = id;
             NameU = nameU;
             ShapeNameU = shapeNameU;
@@ -298,6 +329,14 @@ namespace OfficeIMO.Visio {
             Width = width;
             Height = height;
             IsPackageBacked = isPackageBacked;
+            StencilId = stencilId;
+            StencilName = stencilName;
+            StencilCategory = stencilCategory;
+            StencilCatalogName = stencilCatalogName;
+            StencilSourcePackagePath = stencilSourcePackagePath;
+            StencilKeywords = stencilKeywords;
+            StencilAliases = stencilAliases;
+            StencilTags = stencilTags;
         }
 
         /// <summary>Master identifier.</summary>
@@ -320,6 +359,30 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Whether the master came from a package-backed stencil or document.</summary>
         public bool IsPackageBacked { get; }
+
+        /// <summary>OfficeIMO stencil identifier, when known.</summary>
+        public string? StencilId { get; }
+
+        /// <summary>OfficeIMO stencil display name, when known.</summary>
+        public string? StencilName { get; }
+
+        /// <summary>OfficeIMO stencil category, when known.</summary>
+        public string? StencilCategory { get; }
+
+        /// <summary>Stencil catalog name, when known.</summary>
+        public string? StencilCatalogName { get; }
+
+        /// <summary>Source package path, when known.</summary>
+        public string? StencilSourcePackagePath { get; }
+
+        /// <summary>Searchable stencil keywords.</summary>
+        public IReadOnlyList<string> StencilKeywords { get; }
+
+        /// <summary>Stencil lookup aliases.</summary>
+        public IReadOnlyList<string> StencilAliases { get; }
+
+        /// <summary>Semantic stencil tags.</summary>
+        public IReadOnlyList<string> StencilTags { get; }
     }
 
     /// <summary>
