@@ -149,6 +149,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SequenceNotesAvoidConnectorLabelsAndStackOnCrowdedRows() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SequenceDiagram("Crowded Notes", sequence => sequence
+                    .PageSize(9, 5)
+                    .Margins(0.65, 0.65, 0.65, 0.65)
+                    .ParticipantSize(1, 0.5)
+                    .Spacing(2.0, 0.82, 0.5)
+                    .Participant("web", "Web")
+                    .Participant("api", "API")
+                    .Participant("db", "DB")
+                    .Call("web", "api", "POST /orders", "post-order")
+                    .Call("api", "db", "Persist", "persist")
+                    .Return("db", "api", "Saved", "saved")
+                    .Note("api", "Retry starts here", 1, VisioSide.Right, "retry-note")
+                    .Note("api", "Escalate if repeated", 1, VisioSide.Right, "escalation-note"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape retryNote = Assert.Single(page.Shapes, shape => shape.Id == "retry-note");
+            VisioShape escalationNote = Assert.Single(page.Shapes, shape => shape.Id == "escalation-note");
+
+            Assert.Equal("Right", retryNote.GetUserCellValue("OfficeIMO.SequenceRequestedPlacement"));
+            Assert.False(ShapesOverlap(retryNote, escalationNote));
+            Assert.True(Math.Abs(retryNote.PinY - escalationNote.PinY) > 0.2D);
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(), issue =>
+                issue.ShapeId == "retry-note" ||
+                issue.ShapeId == "escalation-note" ||
+                issue.OtherShapeId == "retry-note" ||
+                issue.OtherShapeId == "escalation-note");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void SequenceDiagramBuilderRejectsUnknownParticipants() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -288,6 +324,14 @@ namespace OfficeIMO.Tests {
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "seq.database");
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "seq.activation");
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "seq.fragment");
+        }
+
+        private static bool ShapesOverlap(VisioShape first, VisioShape second) {
+            double left = Math.Max(first.PinX - (first.Width / 2D), second.PinX - (second.Width / 2D));
+            double right = Math.Min(first.PinX + (first.Width / 2D), second.PinX + (second.Width / 2D));
+            double bottom = Math.Max(first.PinY - (first.Height / 2D), second.PinY - (second.Height / 2D));
+            double top = Math.Min(first.PinY + (first.Height / 2D), second.PinY + (second.Height / 2D));
+            return right > left && top > bottom;
         }
     }
 }

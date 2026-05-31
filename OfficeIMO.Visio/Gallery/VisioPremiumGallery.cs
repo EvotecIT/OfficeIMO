@@ -201,10 +201,10 @@ namespace OfficeIMO.Visio {
                 .SequenceDiagram("Premium Incident Sequence", sequence => sequence
                     .Title("Payment Timeout - Detection and Recovery")
                     .Theme(VisioStyleTheme.DarkSafe())
-                    .PageSize(12, 6.8)
+                    .PageSize(14, 6.8)
                     .Margins(0.8, 0.75, 0.8, 0.75)
                     .ParticipantSize(1.25, 0.62)
-                    .Spacing(1.35, 0.74, 0.68)
+                    .Spacing(1.7, 0.74, 0.68)
                     .Actor("support", "Support")
                     .Participant("monitor", "Monitor")
                     .Control("api", "Payments API")
@@ -221,7 +221,8 @@ namespace OfficeIMO.Visio {
                     .Activation("support", 0, 7, "support-active")
                     .Activation("api", 1, 6, "api-active")
                     .Activation("queue", 3, 6, "queue-active")
-                    .Fragment("alt recovery", 2, 6, new[] { "support", "api", "queue", "ledger" }, "recovery-fragment"));
+                    .Fragment("alt recovery", 2, 6, new[] { "support", "api", "queue", "ledger" }, "recovery-fragment")
+                    .Note("support", "Runbook active", 2, VisioSide.Right, "runbook-note"));
         }
 
         private static VisioDocument CreateReleaseTimeline(string filePath) {
