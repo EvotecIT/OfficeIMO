@@ -752,6 +752,28 @@ page.AddStencilGallery(integration, new VisioStencilGalleryOptions {
 doc.Save();
 ```
 
+For package-backed masters that carry embedded preview/icon payloads, export a
+reviewable HTML inventory and the raw image payloads:
+
+```csharp
+var previewGallery = VisioStencilPackageCatalog.CreatePreviewGallery(
+    @"C:\StencilPacks\Azure.vssx",
+    @"C:\Temp\AzureStencilPreview",
+    new VisioStencilPackageLoadOptions {
+        IncludeUnsupportedMasters = true
+    },
+    new VisioStencilPreviewGalleryOptions {
+        Title = "Azure stencil preview review"
+    });
+
+Console.WriteLine(previewGallery.IndexPath);
+```
+
+Browser-friendly payloads such as PNG, JPG, SVG, GIF, BMP, and WebP render
+inline in the generated index. Other native Visio/Office payloads such as EMF
+are still extracted and listed with their content type, relationship target,
+byte length, and saved file link for external review tools.
+
 `DiscoverInstalledVisioPackages()` finds the local Microsoft Visio `.vssx` and
 `.vstx` content folders without automating Visio, letting you build diagrams from
 installed Visio stencils while keeping OfficeIMO itself dependency-free:

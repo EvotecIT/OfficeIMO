@@ -624,6 +624,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilPreviewGalleryWritesReviewableHtmlIndex() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
+            string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+            VisioStencilPreviewGallery gallery = VisioStencilPackageCatalog.CreatePreviewGallery(
+                packagePath,
+                outputDirectory,
+                new VisioStencilPackageLoadOptions {
+                    IncludeUnsupportedMasters = true
+                },
+                new VisioStencilPreviewGalleryOptions {
+                    Title = "External Preview Review",
+                    PreviewDirectoryName = "assets",
+                    IndexFileName = "gallery.html"
+                });
+
+            VisioStencilPreviewGalleryEntry entry = Assert.Single(gallery.Entries);
+            Assert.Equal(Path.GetFullPath(packagePath), gallery.PackagePath);
+            Assert.Equal(Path.Combine(outputDirectory, "assets"), gallery.PreviewDirectory);
+            Assert.Equal(Path.Combine(outputDirectory, "gallery.html"), gallery.IndexPath);
+            Assert.Equal("assets/42-FancyCloud.emf", entry.RelativePath);
+            Assert.Equal("FancyCloud", entry.Image.MasterNameU);
+            Assert.False(entry.IsBrowserRenderable);
+            Assert.Equal(0, gallery.BrowserRenderableCount);
+            Assert.True(File.Exists(entry.FilePath));
+            Assert.True(File.Exists(gallery.IndexPath));
+            Assert.Equal(new byte[] { 1, 0, 0, 0, 32, 69, 77, 70 }, File.ReadAllBytes(entry.FilePath));
+
+            string html = File.ReadAllText(gallery.IndexPath!);
+            Assert.Contains("<h1>External Preview Review</h1>", html);
+            Assert.Contains("Fancy Cloud", html);
+            Assert.Contains("image/x-emf", html);
+            Assert.Contains("assets/42-FancyCloud.emf", html);
+            Assert.Contains("<div class=\"fallback\">emf</div>", html);
+        }
+
+        [Fact]
         public void ImportedStencilMastersPreserveExternalMasterArtwork() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");

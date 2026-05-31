@@ -209,6 +209,26 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         /// <summary>
+        /// Extracts embedded preview/icon image payloads and writes a browsable HTML gallery index for review.
+        /// </summary>
+        /// <param name="packagePath">Path to a Visio package.</param>
+        /// <param name="outputDirectory">Directory that receives the gallery index and extracted preview/icon files.</param>
+        /// <param name="options">Load options used for master filtering and unsupported-master inclusion.</param>
+        /// <param name="galleryOptions">Gallery output options.</param>
+        public static VisioStencilPreviewGallery CreatePreviewGallery(
+            string packagePath,
+            string outputDirectory,
+            VisioStencilPackageLoadOptions? options = null,
+            VisioStencilPreviewGalleryOptions? galleryOptions = null) {
+            if (string.IsNullOrWhiteSpace(outputDirectory)) throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(outputDirectory));
+
+            galleryOptions ??= new VisioStencilPreviewGalleryOptions();
+            VisioStencilPreviewGalleryWriter.ValidateOptions(galleryOptions);
+            IReadOnlyList<VisioStencilPreviewImageData> images = ExtractPreviewImages(packagePath, options);
+            return VisioStencilPreviewGalleryWriter.Create(packagePath, outputDirectory, images, galleryOptions);
+        }
+
+        /// <summary>
         /// Enumerates supported Visio package files from a directory.
         /// </summary>
         /// <param name="directoryPath">Directory containing Visio packages.</param>
