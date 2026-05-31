@@ -848,7 +848,7 @@ page[Premium Executive Dependencies].connector[checkout-warehouse].hasLabelPlace
 page[Premium Executive Dependencies].connector[checkout-warehouse].labelPosition=0.5
 page[Premium Executive Dependencies].connector[checkout-warehouse].labelOffsetX=0
 page[Premium Executive Dependencies].connector[checkout-warehouse].labelOffsetY=0
-page[Premium Executive Dependencies].connector[checkout-warehouse].labelPinX=8.07
+page[Premium Executive Dependencies].connector[checkout-warehouse].labelPinX=8.0324
 page[Premium Executive Dependencies].connector[checkout-warehouse].labelPinY=3.535
 page[Premium Executive Dependencies].connector[checkout-warehouse].labelWidth=0.65375
 page[Premium Executive Dependencies].connector[checkout-warehouse].labelHeight=0.2825

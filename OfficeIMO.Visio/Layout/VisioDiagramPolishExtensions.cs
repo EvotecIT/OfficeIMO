@@ -97,7 +97,9 @@ namespace OfficeIMO.Visio {
                     resolvedOptions.AvoidConnectorLabelShapeOverlaps,
                     resolvedOptions.AvoidConnectorLabelOverlaps,
                     resolvedOptions.PreferConnectorLabelsInsideEndpointZones,
-                    resolvedOptions.AvoidConnectorLabelConnectorPathOverlaps);
+                    resolvedOptions.AvoidConnectorLabelConnectorPathOverlaps,
+                    resolvedOptions.ConnectorLabelPositionStep,
+                    resolvedOptions.ConnectorLabelMaxPositionShifts);
             }
 
             if (resolvedOptions.FitToContent) {
@@ -122,6 +124,17 @@ namespace OfficeIMO.Visio {
 
             if (options.ConnectorLabelMaxAttempts < 0) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Connector label attempt count cannot be negative.");
+            }
+
+            if (options.ConnectorLabelPositionStep <= 0D ||
+                options.ConnectorLabelPositionStep > 1D ||
+                double.IsNaN(options.ConnectorLabelPositionStep) ||
+                double.IsInfinity(options.ConnectorLabelPositionStep)) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector label position step must be a positive finite value no greater than 1.");
+            }
+
+            if (options.ConnectorLabelMaxPositionShifts < 0) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector label position shift count cannot be negative.");
             }
 
             if (options.ConnectorRoutingObstaclePadding < 0D ||

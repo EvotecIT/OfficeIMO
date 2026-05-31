@@ -1167,13 +1167,14 @@ Selections can also be aligned, distributed, resized to text, centered, and fit
 to page bounds. Page fitting and centering include explicit connector waypoints
 and connector label boxes, so routed labels do not get clipped. Text sizing uses
 the deterministic `OfficeIMO.Drawing` measurement engine, so it works without
-system font APIs. Connector labels can also be nudged deterministically away
-from page edges, unrelated shapes, and connector labels. The cleanup runs a
-second all-label stabilization pass and ignores generated adornment captions, so
-premium zone headers do not push legitimate connector labels around. It can also
-prefer connector labels inside the shared zone of their endpoints and away from
-unrelated background zones when premium zone diagrams need stronger label
-placement hints.
+system font APIs. Connector labels can also be moved deterministically away
+from page edges, unrelated shapes, and connector labels. The cleanup can slide
+labels along their connector path before falling back to page-coordinate
+offsets, runs a second all-label stabilization pass, and ignores generated
+adornment captions, so premium zone headers do not push legitimate connector
+labels around. It can also prefer connector labels inside the shared zone of
+their endpoints and away from unrelated background zones when premium zone
+diagrams need stronger label placement hints.
 It can also opt into obstacle-aware connector routing before label placement,
 which is useful when a generated diagram has simple connector-to-shape
 intersections.
@@ -1202,6 +1203,8 @@ page.PolishDiagram(new VisioDiagramPolishOptions {
     ConnectorRoutingAvoidBackgroundSurfaces = true,
     ConnectorRoutingAvoidConnectorCrossings = true,
     PreferConnectorLabelsInsideEndpointZones = true,
+    ConnectorLabelPositionStep = 0.08,
+    ConnectorLabelMaxPositionShifts = 4,
     MaximumConnectorLabelWidth = 1.6,
     FitHorizontalMargin = 0.6,
     FitVerticalMargin = 0.45

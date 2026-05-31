@@ -565,7 +565,9 @@ namespace OfficeIMO.Visio {
         /// <param name="avoidLabels">Whether labels should avoid other connector labels.</param>
         /// <param name="preferEndpointZones">Whether labels should prefer common endpoint zones and avoid unrelated background zones.</param>
         /// <param name="avoidConnectorPaths">Whether labels should avoid unrelated connector paths.</param>
-        public static VisioPage ResolveConnectorLabelOverlaps(this VisioPage page, double step = 0.18D, int maxAttempts = 12, bool avoidShapes = true, bool avoidLabels = true, bool preferEndpointZones = false, bool avoidConnectorPaths = true) {
+        /// <param name="positionStep">Connector path-position search step, from 0.0 to 1.0.</param>
+        /// <param name="maxPositionShifts">Number of positive and negative connector path-position shifts to try.</param>
+        public static VisioPage ResolveConnectorLabelOverlaps(this VisioPage page, double step = 0.18D, int maxAttempts = 12, bool avoidShapes = true, bool avoidLabels = true, bool preferEndpointZones = false, bool avoidConnectorPaths = true, double positionStep = 0.08D, int maxPositionShifts = 4) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
@@ -576,6 +578,14 @@ namespace OfficeIMO.Visio {
 
             if (maxAttempts < 0) {
                 throw new ArgumentOutOfRangeException(nameof(maxAttempts), "Attempt count cannot be negative.");
+            }
+
+            if (positionStep <= 0D || positionStep > 1D || double.IsNaN(positionStep) || double.IsInfinity(positionStep)) {
+                throw new ArgumentOutOfRangeException(nameof(positionStep), "Position step must be a positive finite value no greater than 1.");
+            }
+
+            if (maxPositionShifts < 0) {
+                throw new ArgumentOutOfRangeException(nameof(maxPositionShifts), "Position shift count cannot be negative.");
             }
 
             IReadOnlyList<VisioShape> shapes = page.Shapes.ToList();
@@ -604,7 +614,7 @@ namespace OfficeIMO.Visio {
                 VisioShapeBounds bestBounds = currentBounds;
                 CandidateScore bestScore = currentScore;
 
-                foreach (LabelCandidate candidate in EnumerateLabelCandidates(maxAttempts, step)) {
+                foreach (LabelCandidate candidate in EnumerateLabelCandidates(maxAttempts, step, maxPositionShifts, positionStep)) {
                     VisioConnectorLabelPlacement candidatePlacement = CreateCandidatePlacement(placement, candidate);
                     if (!TryGetConnectorLabelBounds(connector, path, candidatePlacement, out VisioShapeBounds candidateBounds)) {
                         continue;
@@ -627,7 +637,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (avoidLabels && page.Connectors.Count > 1) {
-                ResolveConnectorLabelGlobalOverlaps(page, step, maxAttempts, shapes, shapeBounds, connectorPaths, avoidShapes, preferEndpointZones, avoidConnectorPaths);
+                ResolveConnectorLabelGlobalOverlaps(page, step, maxAttempts, positionStep, maxPositionShifts, shapes, shapeBounds, connectorPaths, avoidShapes, preferEndpointZones, avoidConnectorPaths);
             }
 
             return page;
@@ -637,6 +647,8 @@ namespace OfficeIMO.Visio {
             VisioPage page,
             double step,
             int maxAttempts,
+            double positionStep,
+            int maxPositionShifts,
             IReadOnlyList<VisioShape> shapes,
             IReadOnlyDictionary<VisioShape, VisioShapeBounds> shapeBounds,
             IReadOnlyDictionary<VisioConnector, List<Point>> connectorPaths,
@@ -670,7 +682,7 @@ namespace OfficeIMO.Visio {
                 VisioConnectorLabelPlacement bestPlacement = placement.Clone();
                 VisioShapeBounds bestBounds = currentBounds;
                 CandidateScore bestScore = currentScore;
-                foreach (LabelCandidate candidate in EnumerateLabelCandidates(maxAttempts, step)) {
+                foreach (LabelCandidate candidate in EnumerateLabelCandidates(maxAttempts, step, maxPositionShifts, positionStep)) {
                     VisioConnectorLabelPlacement candidatePlacement = CreateCandidatePlacement(placement, candidate);
                     if (!TryGetConnectorLabelBounds(connector, path, candidatePlacement, out VisioShapeBounds candidateBounds)) {
                         continue;
@@ -943,18 +955,24 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
-        private static IEnumerable<LabelCandidate> EnumerateLabelCandidates(int maxAttempts, double step) {
-            yield return new LabelCandidate(0D, 0D);
+        private static IEnumerable<LabelCandidate> EnumerateLabelCandidates(int maxAttempts, double step, int maxPositionShifts, double positionStep) {
+            yield return new LabelCandidate(0D, 0D, 0D);
+            for (int shift = 1; shift <= maxPositionShifts; shift++) {
+                double delta = shift * positionStep;
+                yield return new LabelCandidate(0D, 0D, delta);
+                yield return new LabelCandidate(0D, 0D, -delta);
+            }
+
             for (int ring = 1; ring <= maxAttempts; ring++) {
                 double distance = ring * step;
-                yield return new LabelCandidate(0D, distance);
-                yield return new LabelCandidate(0D, -distance);
-                yield return new LabelCandidate(distance, 0D);
-                yield return new LabelCandidate(-distance, 0D);
-                yield return new LabelCandidate(distance, distance);
-                yield return new LabelCandidate(-distance, distance);
-                yield return new LabelCandidate(distance, -distance);
-                yield return new LabelCandidate(-distance, -distance);
+                yield return new LabelCandidate(0D, distance, 0D);
+                yield return new LabelCandidate(0D, -distance, 0D);
+                yield return new LabelCandidate(distance, 0D, 0D);
+                yield return new LabelCandidate(-distance, 0D, 0D);
+                yield return new LabelCandidate(distance, distance, 0D);
+                yield return new LabelCandidate(-distance, distance, 0D);
+                yield return new LabelCandidate(distance, -distance, 0D);
+                yield return new LabelCandidate(-distance, -distance, 0D);
             }
         }
 
@@ -979,6 +997,7 @@ namespace OfficeIMO.Visio {
                 placement.AbsolutePinX += candidate.OffsetX;
                 placement.AbsolutePinY += candidate.OffsetY;
             } else {
+                placement.Position = VisioConnectorLabelPlacement.ClampPosition(placement.Position + candidate.PositionDelta);
                 placement.OffsetX += candidate.OffsetX;
                 placement.OffsetY += candidate.OffsetY;
             }
@@ -1396,14 +1415,17 @@ namespace OfficeIMO.Visio {
         }
 
         private readonly struct LabelCandidate {
-            public LabelCandidate(double offsetX, double offsetY) {
+            public LabelCandidate(double offsetX, double offsetY, double positionDelta) {
                 OffsetX = offsetX;
                 OffsetY = offsetY;
+                PositionDelta = positionDelta;
             }
 
             public double OffsetX { get; }
 
             public double OffsetY { get; }
+
+            public double PositionDelta { get; }
         }
 
         private readonly struct ShapeCandidate {

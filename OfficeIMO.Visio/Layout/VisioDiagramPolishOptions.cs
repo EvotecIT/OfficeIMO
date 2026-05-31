@@ -74,6 +74,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Number of search rings to try when moving connector labels.</summary>
         public int ConnectorLabelMaxAttempts { get; set; } = 12;
 
+        /// <summary>Connector path-position search step used when sliding labels along their connector path.</summary>
+        public double ConnectorLabelPositionStep { get; set; } = 0.08D;
+
+        /// <summary>Number of positive and negative connector path-position shifts to try when moving connector labels.</summary>
+        public int ConnectorLabelMaxPositionShifts { get; set; } = 4;
+
         /// <summary>Padding added around obstacle shapes when rerouting connectors, in inches.</summary>
         public double ConnectorRoutingObstaclePadding { get; set; } = 0.15D;
 

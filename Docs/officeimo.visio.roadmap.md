@@ -130,7 +130,7 @@ Goal: generated diagrams should be credible without manual post-editing.
   - sequence nested fragments and overlapping fragment layout;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
-- Continue connector label cleanup beyond the current connector-path-aware, lifeline-aware, and fragment-label-aware placement with denser graph, whole-page, and deeper sequence edge-case strategies.
+- Continue connector label cleanup beyond the current connector-path-aware, path-position-aware, lifeline-aware, and fragment-label-aware placement with denser graph, whole-page, and deeper sequence edge-case strategies.
 - Extend orthogonal routing from shape/zone/container/group/crossing-aware cleanup into deeper whole-page crossing minimization.
 - Add deterministic "polish passes" that can be applied after any builder.
 

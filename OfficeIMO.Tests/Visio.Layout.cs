@@ -351,6 +351,77 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ResolveConnectorLabelOverlapsCanSlideLabelsAlongConnectorPaths() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LabelPathCleanup", 8, 5);
+            VisioShape left = page.AddRectangle(1, 2.5, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(7, 2.5, 0.8, 0.5, "Right");
+            VisioConnector first = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5, width: 1.0, height: 0.3);
+            first.Label = "first";
+            VisioConnector second = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5, width: 1.0, height: 0.3);
+            second.Label = "second";
+
+            Assert.Contains(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false
+            }), issue => issue.Kind == "ConnectorLabelOverlap");
+
+            page.ResolveConnectorLabelOverlaps(
+                step: 0.25D,
+                maxAttempts: 0,
+                avoidShapes: false,
+                avoidLabels: true,
+                preferEndpointZones: false,
+                avoidConnectorPaths: false,
+                positionStep: 0.25D,
+                maxPositionShifts: 2);
+
+            Assert.Equal(0.5D, first.LabelPlacement!.Position, 6);
+            Assert.NotEqual(0.5D, second.LabelPlacement!.Position);
+            Assert.Equal(0D, second.LabelPlacement.OffsetX, 6);
+            Assert.Equal(0D, second.LabelPlacement.OffsetY, 6);
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false
+            }), issue => issue.Kind == "ConnectorLabelOverlap");
+        }
+
+        [Fact]
+        public void PolishDiagramCanSlideConnectorLabelsAlongPaths() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("PolishLabelPathCleanup", 8, 5);
+            VisioShape left = page.AddRectangle(1, 2.5, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(7, 2.5, 0.8, 0.5, "Right");
+            VisioConnector first = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5, width: 1.0, height: 0.3);
+            first.Label = "first";
+            VisioConnector second = page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5, width: 1.0, height: 0.3);
+            second.Label = "second";
+
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                ConnectorLabelMaxAttempts = 0,
+                ConnectorLabelPositionStep = 0.25D,
+                ConnectorLabelMaxPositionShifts = 2,
+                AvoidConnectorLabelShapeOverlaps = false,
+                AvoidConnectorLabelConnectorPathOverlaps = false,
+                FitToContent = false
+            });
+
+            Assert.NotEqual(0.5D, second.LabelPlacement!.Position);
+            Assert.Equal(0D, second.LabelPlacement.OffsetY, 6);
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false
+            }), issue => issue.Kind == "ConnectorLabelOverlap");
+        }
+
+        [Fact]
         public void ResolveConnectorLabelOverlapsMovesLabelsAwayFromUnrelatedConnectorPaths() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("LabelConnectorCleanup", 7, 5);
