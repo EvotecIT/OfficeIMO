@@ -100,7 +100,8 @@ namespace OfficeIMO.Visio {
                     resolvedOptions.PreferConnectorLabelsInsideEndpointZones,
                     resolvedOptions.AvoidConnectorLabelConnectorPathOverlaps,
                     resolvedOptions.ConnectorLabelPositionStep,
-                    resolvedOptions.ConnectorLabelMaxPositionShifts);
+                    resolvedOptions.ConnectorLabelMaxPositionShifts,
+                    resolvedOptions.ConnectorLabelOptimizationPasses);
             }
 
             if (resolvedOptions.FitToContent) {
@@ -136,6 +137,10 @@ namespace OfficeIMO.Visio {
 
             if (options.ConnectorLabelMaxPositionShifts < 0) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Connector label position shift count cannot be negative.");
+            }
+
+            if (options.ConnectorLabelOptimizationPasses < 1) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector label optimization pass count must be at least one.");
             }
 
             if (options.ConnectorRoutingObstaclePadding < 0D ||

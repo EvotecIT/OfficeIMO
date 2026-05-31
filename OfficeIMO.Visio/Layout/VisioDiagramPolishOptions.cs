@@ -80,6 +80,9 @@ namespace OfficeIMO.Visio {
         /// <summary>Number of positive and negative connector path-position shifts to try when moving connector labels.</summary>
         public int ConnectorLabelMaxPositionShifts { get; set; } = 4;
 
+        /// <summary>Number of deterministic whole-page connector label optimization passes.</summary>
+        public int ConnectorLabelOptimizationPasses { get; set; } = 1;
+
         /// <summary>Padding added around obstacle shapes when rerouting connectors, in inches.</summary>
         public double ConnectorRoutingObstaclePadding { get; set; } = 0.15D;
 

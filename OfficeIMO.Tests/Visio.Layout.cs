@@ -351,6 +351,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ResolveConnectorLabelOverlapsCanRunWholePageOptimizationPasses() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("DenseLabelCleanup", 8, 6);
+            VisioShape left = page.AddRectangle(1, 3, 0.8, 0.5, "Left");
+            VisioShape center = page.AddRectangle(4, 3, 0.8, 0.5, "Center");
+            VisioShape right = page.AddRectangle(7, 3, 0.8, 0.5, "Right");
+            VisioShape top = page.AddRectangle(4, 5.2, 0.8, 0.5, "Top");
+            VisioShape bottom = page.AddRectangle(4, 0.8, 0.8, 0.5, "Bottom");
+            VisioConnector first = page.AddConnector(left, center, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(4, 3.7, width: 1.2, height: 0.35);
+            first.Label = "left-center";
+            VisioConnector second = page.AddConnector(center, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(4, 3.7, width: 1.2, height: 0.35);
+            second.Label = "center-right";
+            VisioConnector third = page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top)
+                .PlaceLabelAt(4, 3.7, width: 1.2, height: 0.35);
+            third.Label = "top-bottom";
+
+            Assert.Contains(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false
+            }), issue => issue.Kind == "ConnectorLabelOverlap");
+
+            page.ResolveConnectorLabelOverlaps(
+                step: 0.2D,
+                maxAttempts: 10,
+                avoidShapes: false,
+                avoidLabels: true,
+                preferEndpointZones: false,
+                avoidConnectorPaths: false,
+                positionStep: 0.2D,
+                maxPositionShifts: 2,
+                optimizationPasses: 3);
+
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false,
+                CheckConnectorLabelShapeOverlaps = false
+            }), issue => issue.Kind == "ConnectorLabelOverlap");
+            Assert.NotEqual(second.LabelPlacement!.AbsolutePinY, third.LabelPlacement!.AbsolutePinY);
+        }
+
+        [Fact]
+        public void PolishDiagramValidatesConnectorLabelOptimizationPasses() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Invalid label polish");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => page.PolishDiagram(new VisioDiagramPolishOptions {
+                ConnectorLabelOptimizationPasses = 0
+            }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => page.ResolveConnectorLabelOverlaps(optimizationPasses: 0));
+        }
+
+        [Fact]
         public void ResolveConnectorLabelOverlapsCanSlideLabelsAlongConnectorPaths() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("LabelPathCleanup", 8, 5);

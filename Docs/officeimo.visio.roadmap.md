@@ -13,7 +13,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Fluent page and document authoring for lower-level diagrams.
 - High-level builders for flowcharts, block diagrams, dependency diagrams, architecture diagrams, networks, network topology, swimlanes, org charts, timelines, sequences, and generic graphs.
 - Reusable style themes, premium enterprise/technical/cloud/process/print/dark-safe presets, and local node/edge style overrides.
-- Connector routing, obstacle-aware routing around unrelated shapes, optional zone/container/group/adornment-aware routing, connector-crossing-aware route scoring, deterministic page-level routing optimization passes, multi-waypoint dogleg candidates for dense crossings, label placement, zone-aware and connector-path-aware label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
+- Connector routing, obstacle-aware routing around unrelated shapes, optional zone/container/group/adornment-aware routing, connector-crossing-aware route scoring, deterministic page-level routing optimization passes, multi-waypoint dogleg candidates for dense crossings, label placement, whole-page connector label optimization passes, zone-aware and connector-path-aware label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
 - Header-style region/zone captions for architecture, block, network, topology, and graph builders, including layout clearance and quality-analyzer handling for generated caption adornments.
 - First-party generated stencil catalogs and package-backed stencil catalogs.
 - External `.vssx`, `.vstx`, and `.vsdx` catalog loading, including multi-package external stencil repositories.
@@ -88,7 +88,7 @@ That implies three durable layers:
 - Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
 - Obstacle-aware orthogonal routing APIs plus `PolishDiagram` options for rerouting connectors around unrelated top-level shapes, containers, background zones/trust boundaries, generated adornments, and existing connector paths before label cleanup, including deterministic page-level optimization passes and multi-waypoint dogleg candidates for crossing-aware routing sweeps.
 - Group-aware obstacle routing can include nested group children while ignoring endpoint ancestors/descendants, so connectors into grouped content can avoid unrelated sibling member shapes.
-- Zone-aware and connector-path-aware connector label cleanup that can prefer common endpoint zones, avoid unrelated background surfaces, and move labels away from unrelated connector paths during deterministic label placement.
+- Zone-aware and connector-path-aware connector label cleanup that can prefer common endpoint zones, avoid unrelated background surfaces, move labels away from unrelated connector paths, and run whole-page optimization passes that revisit the most conflicted labels first during deterministic label placement.
 - Lifeline-aware and fragment-label-aware normal sequence message label placement now prefers gaps between participant lifelines, activation bands, and fragment guard/adornment labels, with premium incident-sequence rendered and inspection baseline proof.
 - Premium style presets for enterprise, technical, cloud, process, print-safe, and dark-safe diagrams, with validated technical/print smoke documents and rendered gallery baseline usage for the current market-facing set.
 
@@ -131,7 +131,7 @@ Goal: generated diagrams should be credible without manual post-editing.
   - sequence nested fragments and overlapping fragment layout;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
-- Continue connector label cleanup beyond the current connector-path-aware, path-position-aware, lifeline-aware, and fragment-label-aware placement with denser graph, whole-page, and deeper sequence edge-case strategies.
+- Continue connector label cleanup beyond the current connector-path-aware, path-position-aware, whole-page optimization, lifeline-aware, and fragment-label-aware placement with denser graph and deeper sequence edge-case strategies.
 - Extend orthogonal routing beyond deterministic page-level sweeps and dogleg candidates into deeper global dense-page crossing minimization.
 - Add deterministic "polish passes" that can be applied after any builder.
 
