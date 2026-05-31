@@ -2421,6 +2421,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_TypedObjectsStream_PreservesSortedGapAfterHeader() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedObjectsStreamSortedGapAfterHeader.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Score");
+                    sheet.CellValue(3, 1, 43);
+                    sheet.CellValue(4, 1, 44);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                using var rows = reader.GetSheet("Data").ReadObjectsStream<NullableTypedRow>("A1:A4").GetEnumerator();
+
+                Assert.True(rows.MoveNext());
+                Assert.Null(rows.Current.Score);
+                Assert.True(rows.MoveNext());
+                Assert.Equal(43, rows.Current.Score);
+                Assert.True(rows.MoveNext());
+                Assert.Equal(44, rows.Current.Score);
+                Assert.False(rows.MoveNext());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_TypedObjectsStream_HonorsHandledConverters() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedObjectsStreamConverters.xlsx");
 

@@ -371,6 +371,8 @@ namespace OfficeIMO.Excel {
             int nextRowIndex = 1;
             int nextDataRow = r1 + 1;
             Dictionary<int, T>? pendingRows = null;
+            bool checkedSortedGap = false;
+            bool useSortedGapStreaming = false;
 
             while (reader.Read()) {
                 if (canCancel) {
@@ -427,6 +429,26 @@ namespace OfficeIMO.Excel {
                         nextDataRow++;
                     }
                 } else if (rowIndex > nextDataRow) {
+                    if (!checkedSortedGap) {
+                        checkedSortedGap = true;
+                        useSortedGapStreaming = RowsAreSortedWithinRangeXmlFast(r1, r2, ct);
+                    }
+
+                    if (useSortedGapStreaming) {
+                        while (nextDataRow < rowIndex && nextDataRow <= r2) {
+                            if (canCancel && ((nextDataRow - r1) & 1023) == 0) {
+                                ct.ThrowIfCancellationRequested();
+                            }
+
+                            yield return new T();
+                            nextDataRow++;
+                        }
+
+                        yield return target;
+                        nextDataRow = rowIndex + 1;
+                        continue;
+                    }
+
                     pendingRows ??= new Dictionary<int, T>();
                     pendingRows[rowIndex] = target;
                 }
