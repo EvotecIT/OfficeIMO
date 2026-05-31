@@ -916,6 +916,15 @@ page.SelectOutgoingConnectors(review)
     .LineColor(Color.DodgerBlue)
     .EndArrow(EndArrow.Triangle);
 
+page.SelectContainedIn(page.ShapesWithData("Owner", "Ops").First().GetShapeBounds())
+    .ShapeData("ReviewScope", "Operations");
+
+page.SelectConnectedComponent(review)
+    .ShapeData("Component", "Approval");
+
+page.SelectWithShapeData("Risk", value => int.TryParse(value, out int risk) && risk >= 4)
+    .Stroke(Color.Red, 0.025);
+
 doc.Save();
 ```
 
@@ -923,6 +932,12 @@ Selection duplication remaps copied shape identifiers and duplicates only the
 connectors whose endpoints are both inside the copied selection. Shape styling,
 layers, hyperlinks, User cells, typed Shape Data, protection, layout hints, and
 connector routing metadata move with the copy.
+
+The same query surface supports editing loaded diagrams by geometry and graph
+structure: `ShapesIntersecting(...)`, `ShapesContainedIn(...)`,
+`ShapesWithShapeData(...)`, `ConnectedComponent(...)`, and `PathBetween(...)` can find contained shapes,
+overlapping annotations, connected islands, and shortest connected paths before
+applying bulk style or metadata edits.
 
 Whole pages can be duplicated as well. The copy receives fresh shape and
 connector IDs while keeping page settings, layers, background-page linkage,

@@ -125,6 +125,24 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Returns shapes whose Shape Data value for the provided key matches a predicate.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="key">Data key.</param>
+        /// <param name="predicate">Predicate that receives the current Shape Data value.</param>
+        public static IReadOnlyList<VisioShape> ShapesWithData(this VisioPage page, string key, Func<string?, bool> predicate) {
+            if (string.IsNullOrWhiteSpace(key)) {
+                throw new ArgumentException("Data key cannot be empty.", nameof(key));
+            }
+
+            if (predicate == null) {
+                throw new ArgumentNullException(nameof(predicate));
+            }
+
+            return FilterShapes(page, shape => predicate(shape.GetShapeDataValue(key)));
+        }
+
+        /// <summary>
         /// Returns shapes that contain a Visio Shape Data row.
         /// </summary>
         /// <param name="page">Page to query.</param>
@@ -142,6 +160,16 @@ namespace OfficeIMO.Visio {
         /// <param name="comparison">String comparison used for matching.</param>
         public static IReadOnlyList<VisioShape> ShapesWithShapeData(this VisioPage page, string name, string value, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
             return page.ShapesWithData(name, value, comparison);
+        }
+
+        /// <summary>
+        /// Returns shapes whose Visio Shape Data value for the provided row name matches a predicate.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="name">Shape Data row name.</param>
+        /// <param name="predicate">Predicate that receives the current Shape Data value.</param>
+        public static IReadOnlyList<VisioShape> ShapesWithShapeData(this VisioPage page, string name, Func<string?, bool> predicate) {
+            return page.ShapesWithData(name, predicate);
         }
 
         /// <summary>
@@ -250,6 +278,124 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Returns shapes whose bounds intersect the provided bounds.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="bounds">Bounds to test against.</param>
+        public static IReadOnlyList<VisioShape> ShapesIntersecting(this VisioPage page, VisioShapeBounds bounds) {
+            if (bounds.IsEmpty) {
+                return Array.Empty<VisioShape>();
+            }
+
+            return FilterShapes(page, shape => Intersects(shape.GetShapeBounds(), bounds));
+        }
+
+        /// <summary>
+        /// Returns shapes whose bounds intersect the provided shape.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="shape">Shape whose bounds are used for the test.</param>
+        /// <param name="includeSelf">Whether the reference shape itself should be included.</param>
+        public static IReadOnlyList<VisioShape> ShapesIntersecting(this VisioPage page, VisioShape shape, bool includeSelf = false) {
+            EnsureShapeBelongsToPage(page, shape);
+            VisioShapeBounds bounds = shape.GetShapeBounds();
+            return FilterShapes(page, candidate => (includeSelf || !ReferenceEquals(candidate, shape)) && Intersects(candidate.GetShapeBounds(), bounds));
+        }
+
+        /// <summary>
+        /// Returns shapes whose bounds are fully contained by the provided bounds.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="bounds">Containing bounds.</param>
+        public static IReadOnlyList<VisioShape> ShapesContainedIn(this VisioPage page, VisioShapeBounds bounds) {
+            if (bounds.IsEmpty) {
+                return Array.Empty<VisioShape>();
+            }
+
+            return FilterShapes(page, shape => Contains(bounds, shape.GetShapeBounds()));
+        }
+
+        /// <summary>
+        /// Returns shapes whose bounds are fully contained by the provided shape.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="container">Shape whose bounds are used as the containing area.</param>
+        /// <param name="includeContainer">Whether the containing shape itself should be included.</param>
+        public static IReadOnlyList<VisioShape> ShapesContainedIn(this VisioPage page, VisioShape container, bool includeContainer = false) {
+            EnsureShapeBelongsToPage(page, container);
+            VisioShapeBounds bounds = container.GetShapeBounds();
+            return FilterShapes(page, shape => (includeContainer || !ReferenceEquals(shape, container)) && Contains(bounds, shape.GetShapeBounds()));
+        }
+
+        /// <summary>
+        /// Returns every shape reachable from the provided shape through connectors.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="shape">Starting shape.</param>
+        /// <param name="includeStart">Whether the starting shape should be included in the returned component.</param>
+        public static IReadOnlyList<VisioShape> ConnectedComponent(this VisioPage page, VisioShape shape, bool includeStart = true) {
+            EnsureShapeBelongsToPage(page, shape);
+            List<VisioShape> component = new();
+            Queue<VisioShape> queue = new();
+            HashSet<VisioShape> seen = new();
+            queue.Enqueue(shape);
+            seen.Add(shape);
+
+            while (queue.Count > 0) {
+                VisioShape current = queue.Dequeue();
+                if (includeStart || !ReferenceEquals(current, shape)) {
+                    component.Add(current);
+                }
+
+                foreach (VisioShape connected in page.ConnectedShapes(current)) {
+                    if (seen.Add(connected)) {
+                        queue.Enqueue(connected);
+                    }
+                }
+            }
+
+            return component;
+        }
+
+        /// <summary>
+        /// Returns the shortest shape path between two connected shapes, or an empty list when no path exists.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="from">Starting shape.</param>
+        /// <param name="to">Target shape.</param>
+        /// <param name="includeEndpoints">Whether the starting and target shapes should be included.</param>
+        public static IReadOnlyList<VisioShape> PathBetween(this VisioPage page, VisioShape from, VisioShape to, bool includeEndpoints = true) {
+            EnsureShapeBelongsToPage(page, from);
+            EnsureShapeBelongsToPage(page, to);
+            if (ReferenceEquals(from, to)) {
+                return includeEndpoints ? new[] { from } : Array.Empty<VisioShape>();
+            }
+
+            Queue<VisioShape> queue = new();
+            Dictionary<VisioShape, VisioShape?> previous = new();
+            queue.Enqueue(from);
+            previous[from] = null;
+
+            while (queue.Count > 0) {
+                VisioShape current = queue.Dequeue();
+                foreach (VisioShape connected in page.ConnectedShapes(current)) {
+                    if (previous.ContainsKey(connected)) {
+                        continue;
+                    }
+
+                    previous[connected] = current;
+                    if (ReferenceEquals(connected, to)) {
+                        return BuildPath(previous, from, to, includeEndpoints);
+                    }
+
+                    queue.Enqueue(connected);
+                }
+            }
+
+            return Array.Empty<VisioShape>();
+        }
+
+        /// <summary>
         /// Selects shapes matching a predicate for bulk editing.
         /// </summary>
         /// <param name="page">Page to query.</param>
@@ -323,6 +469,16 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Selects shapes whose Shape Data value for the provided key matches a predicate.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="key">Data key.</param>
+        /// <param name="predicate">Predicate that receives the current Shape Data value.</param>
+        public static VisioShapeSelection SelectWithData(this VisioPage page, string key, Func<string?, bool> predicate) {
+            return new VisioShapeSelection(page.ShapesWithData(key, predicate), page);
+        }
+
+        /// <summary>
         /// Selects shapes that contain a Visio Shape Data row.
         /// </summary>
         /// <param name="page">Page to query.</param>
@@ -340,6 +496,16 @@ namespace OfficeIMO.Visio {
         /// <param name="comparison">String comparison used for matching.</param>
         public static VisioShapeSelection SelectWithShapeData(this VisioPage page, string name, string value, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
             return new VisioShapeSelection(page.ShapesWithShapeData(name, value, comparison), page);
+        }
+
+        /// <summary>
+        /// Selects shapes whose Visio Shape Data value for the provided row name matches a predicate.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="name">Shape Data row name.</param>
+        /// <param name="predicate">Predicate that receives the current Shape Data value.</param>
+        public static VisioShapeSelection SelectWithShapeData(this VisioPage page, string name, Func<string?, bool> predicate) {
+            return new VisioShapeSelection(page.ShapesWithShapeData(name, predicate), page);
         }
 
         /// <summary>
@@ -421,6 +587,65 @@ namespace OfficeIMO.Visio {
         /// <param name="predicate">Protection predicate.</param>
         public static VisioShapeSelection SelectWithProtection(this VisioPage page, Func<VisioShapeProtection, bool> predicate) {
             return new VisioShapeSelection(page.ShapesWithProtection(predicate), page);
+        }
+
+        /// <summary>
+        /// Selects shapes whose bounds intersect the provided bounds.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="bounds">Bounds to test against.</param>
+        public static VisioShapeSelection SelectIntersecting(this VisioPage page, VisioShapeBounds bounds) {
+            return new VisioShapeSelection(page.ShapesIntersecting(bounds), page);
+        }
+
+        /// <summary>
+        /// Selects shapes whose bounds intersect the provided shape.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="shape">Shape whose bounds are used for the test.</param>
+        /// <param name="includeSelf">Whether the reference shape itself should be included.</param>
+        public static VisioShapeSelection SelectIntersecting(this VisioPage page, VisioShape shape, bool includeSelf = false) {
+            return new VisioShapeSelection(page.ShapesIntersecting(shape, includeSelf), page);
+        }
+
+        /// <summary>
+        /// Selects shapes whose bounds are fully contained by the provided bounds.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="bounds">Containing bounds.</param>
+        public static VisioShapeSelection SelectContainedIn(this VisioPage page, VisioShapeBounds bounds) {
+            return new VisioShapeSelection(page.ShapesContainedIn(bounds), page);
+        }
+
+        /// <summary>
+        /// Selects shapes whose bounds are fully contained by the provided shape.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="container">Shape whose bounds are used as the containing area.</param>
+        /// <param name="includeContainer">Whether the containing shape itself should be included.</param>
+        public static VisioShapeSelection SelectContainedIn(this VisioPage page, VisioShape container, bool includeContainer = false) {
+            return new VisioShapeSelection(page.ShapesContainedIn(container, includeContainer), page);
+        }
+
+        /// <summary>
+        /// Selects every shape reachable from the provided shape through connectors.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="shape">Starting shape.</param>
+        /// <param name="includeStart">Whether the starting shape should be included in the returned component.</param>
+        public static VisioShapeSelection SelectConnectedComponent(this VisioPage page, VisioShape shape, bool includeStart = true) {
+            return new VisioShapeSelection(page.ConnectedComponent(shape, includeStart), page);
+        }
+
+        /// <summary>
+        /// Selects the shortest shape path between two connected shapes.
+        /// </summary>
+        /// <param name="page">Page to query.</param>
+        /// <param name="from">Starting shape.</param>
+        /// <param name="to">Target shape.</param>
+        /// <param name="includeEndpoints">Whether the starting and target shapes should be included.</param>
+        public static VisioShapeSelection SelectPathBetween(this VisioPage page, VisioShape from, VisioShape to, bool includeEndpoints = true) {
+            return new VisioShapeSelection(page.PathBetween(from, to, includeEndpoints), page);
         }
 
         /// <summary>
@@ -645,6 +870,46 @@ namespace OfficeIMO.Visio {
             }
 
             return ReferenceEquals(candidate, shape);
+        }
+
+        private static IReadOnlyList<VisioShape> BuildPath(IReadOnlyDictionary<VisioShape, VisioShape?> previous, VisioShape from, VisioShape to, bool includeEndpoints) {
+            List<VisioShape> path = new();
+            VisioShape? current = to;
+            while (current != null) {
+                path.Add(current);
+                current = previous[current];
+            }
+
+            path.Reverse();
+            if (!includeEndpoints && path.Count > 0) {
+                path.RemoveAt(path.Count - 1);
+                if (path.Count > 0) {
+                    path.RemoveAt(0);
+                }
+            }
+
+            return path;
+        }
+
+        private static bool Intersects(VisioShapeBounds first, VisioShapeBounds second) {
+            if (first.IsEmpty || second.IsEmpty) {
+                return false;
+            }
+
+            double width = Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left);
+            double height = Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom);
+            return width > 0D && height > 0D;
+        }
+
+        private static bool Contains(VisioShapeBounds outer, VisioShapeBounds inner) {
+            if (outer.IsEmpty || inner.IsEmpty) {
+                return false;
+            }
+
+            return inner.Left >= outer.Left &&
+                   inner.Right <= outer.Right &&
+                   inner.Bottom >= outer.Bottom &&
+                   inner.Top <= outer.Top;
         }
 
         private static void EnsureShapeBelongsToPage(VisioPage page, VisioShape shape) {

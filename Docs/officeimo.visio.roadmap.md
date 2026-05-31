@@ -178,7 +178,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
 Goal: OfficeIMO can safely update diagrams created elsewhere.
 
 - Expand replace-master operations for loaded external masters.
-- Add richer selection queries: geometry intersection, contained-in-zone, connected component, path search, and data predicates.
+- Add richer selection queries: geometry intersection, contained-in-zone, connected component, path search, and data predicates. Initial query support now includes `ShapesIntersecting(...)`, `ShapesContainedIn(...)`, Shape Data predicate queries, `ConnectedComponent(...)`, and `PathBetween(...)` with matching editable selection helpers.
 - Add comment APIs and richer annotation/callout editing.
 - Add containers and swimlanes as deeper typed concepts.
 - Add data graphics and richer Shape Data schema helpers.
