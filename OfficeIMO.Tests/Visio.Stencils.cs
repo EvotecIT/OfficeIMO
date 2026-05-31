@@ -575,6 +575,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(".emf", metadataWithoutDimensions.Get("fancy-cloud").PreviewImage?.Extension);
             Assert.Null(metadataDisabled.Get("fancy-cloud").PreviewImage);
 
+            VisioStencilPreviewImageData extracted = Assert.Single(VisioStencilPackageCatalog.ExtractPreviewImages(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true
+            }));
+            Assert.Equal("42", extracted.MasterId);
+            Assert.Equal("FancyCloud", extracted.MasterNameU);
+            Assert.Equal("Fancy Cloud", extracted.MasterName);
+            Assert.Equal("42-FancyCloud.emf", extracted.SuggestedFileName);
+            Assert.Equal(new byte[] { 1, 0, 0, 0, 32, 69, 77, 70 }, extracted.Data);
+            Assert.Empty(VisioStencilPackageCatalog.ExtractPreviewImages(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                ExtractPreviewImageMetadata = false
+            }));
+
+            string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string extractedPath = Assert.Single(VisioStencilPackageCatalog.ExtractPreviewImagesToDirectory(packagePath, outputDirectory, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true
+            }));
+            Assert.True(File.Exists(extractedPath));
+            Assert.Equal(extracted.Data, File.ReadAllBytes(extractedPath));
+
             using MemoryStream manifest = new();
             catalog.Save(manifest);
             manifest.Position = 0;

@@ -144,6 +144,71 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         /// <summary>
+        /// Extracts embedded preview/icon image payloads from package-backed masters.
+        /// </summary>
+        /// <param name="packagePath">Path to a Visio package.</param>
+        /// <param name="options">Load options used for master filtering and unsupported-master inclusion.</param>
+        public static IReadOnlyList<VisioStencilPreviewImageData> ExtractPreviewImages(string packagePath, VisioStencilPackageLoadOptions? options = null) {
+            if (string.IsNullOrWhiteSpace(packagePath)) throw new ArgumentException("Package path cannot be null or whitespace.", nameof(packagePath));
+            if (!File.Exists(packagePath)) throw new FileNotFoundException("Visio package was not found.", packagePath);
+
+            options ??= new VisioStencilPackageLoadOptions();
+            if (!options.ExtractPreviewImageMetadata) {
+                return Array.Empty<VisioStencilPreviewImageData>();
+            }
+
+            HashSet<string>? filter = options.MasterNames != null
+                ? new HashSet<string>(options.MasterNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase)
+                : null;
+            List<VisioAssets.MasterInfo> masters = VisioAssets.ListMasters(packagePath)
+                .Where(master => VisioMasterIdentity.MatchesAny(master, filter))
+                .Where(master => options.IncludeUnsupportedMasters || VisioDocument.IsBuiltinMasterSupported(master.NameU))
+                .ToList();
+            if (masters.Count == 0) {
+                return Array.Empty<VisioStencilPreviewImageData>();
+            }
+
+            Dictionary<string, VisioAssets.MasterContent> masterContents = VisioAssets.LoadMasterContents(packagePath, masters.Select(master => master.NameU))
+                .GroupBy(master => master.Id, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            List<VisioStencilPreviewImageData> images = new();
+            foreach (VisioAssets.MasterInfo master in masters) {
+                if (!masterContents.TryGetValue(master.Id, out VisioAssets.MasterContent? content)) {
+                    continue;
+                }
+
+                VisioAssets.MasterRelationshipContent? relationship = FindPreviewImageRelationship(content);
+                if (relationship?.Data == null || relationship.Data.Length == 0) {
+                    continue;
+                }
+
+                images.Add(new VisioStencilPreviewImageData(
+                    master.Id,
+                    master.NameU,
+                    master.Name,
+                    CreatePreviewImage(relationship),
+                    relationship.Data));
+            }
+
+            return images.AsReadOnly();
+        }
+
+        /// <summary>
+        /// Extracts embedded preview/icon image payloads from package-backed masters and saves them to a directory.
+        /// </summary>
+        /// <param name="packagePath">Path to a Visio package.</param>
+        /// <param name="outputDirectory">Directory that receives extracted preview/icon files.</param>
+        /// <param name="options">Load options used for master filtering and unsupported-master inclusion.</param>
+        public static IReadOnlyList<string> ExtractPreviewImagesToDirectory(string packagePath, string outputDirectory, VisioStencilPackageLoadOptions? options = null) {
+            if (string.IsNullOrWhiteSpace(outputDirectory)) throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(outputDirectory));
+
+            return ExtractPreviewImages(packagePath, options)
+                .Select(image => image.SaveToDirectory(outputDirectory))
+                .ToList()
+                .AsReadOnly();
+        }
+
+        /// <summary>
         /// Enumerates supported Visio package files from a directory.
         /// </summary>
         /// <param name="directoryPath">Directory containing Visio packages.</param>
@@ -219,17 +284,11 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         private static VisioStencilPreviewImage? ReadPreviewImage(VisioAssets.MasterContent content) {
-            HashSet<string> preferredRelationshipIds = GetPreferredPreviewRelationshipIds(content);
-            VisioAssets.MasterRelationshipContent? relationship = content.Relationships
-                .Where(IsImageRelationship)
-                .OrderByDescending(item => preferredRelationshipIds.Contains(item.Id))
-                .ThenBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
-                .FirstOrDefault();
+            VisioAssets.MasterRelationshipContent? relationship = FindPreviewImageRelationship(content);
+            return relationship == null ? null : CreatePreviewImage(relationship);
+        }
 
-            if (relationship == null) {
-                return null;
-            }
-
+        private static VisioStencilPreviewImage CreatePreviewImage(VisioAssets.MasterRelationshipContent relationship) {
             return new VisioStencilPreviewImage(
                 relationship.Id,
                 relationship.Target,
@@ -237,6 +296,15 @@ namespace OfficeIMO.Visio.Stencils {
                 relationship.Extension,
                 relationship.Data?.LongLength,
                 relationship.IsExternal);
+        }
+
+        private static VisioAssets.MasterRelationshipContent? FindPreviewImageRelationship(VisioAssets.MasterContent content) {
+            HashSet<string> preferredRelationshipIds = GetPreferredPreviewRelationshipIds(content);
+            return content.Relationships
+                .Where(IsImageRelationship)
+                .OrderByDescending(item => preferredRelationshipIds.Contains(item.Id))
+                .ThenBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+                .FirstOrDefault();
         }
 
         private static HashSet<string> GetPreferredPreviewRelationshipIds(VisioAssets.MasterContent content) {
