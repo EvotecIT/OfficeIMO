@@ -23,7 +23,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
 - A reusable eight-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
 - Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`, including connector label placement coordinates for label-layout regression proof.
-- Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, stencil-backed, Shape Data key, semantic-kind, catalog, category, keyword, alias, tag, source-package, placed-dimension, and connection-point summaries that survive save/load for package-backed masters and generated stencil placements.
+- Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, stencil-backed, Shape Data key, semantic-kind, catalog, category, keyword, alias, tag, icon identity, source default dimensions/units, source-package, placed/source-dimension, and connection-point summaries that survive save/load for package-backed masters and generated stencil placements.
 
 The external stencil and graph slice from PR #1865 is merged. The next checkpoint is no longer proving that the Visio core can generate useful diagrams; it is making the public package story clean, the showcase reproducible, and the generated output visually strong enough to support premium positioning.
 
@@ -80,7 +80,7 @@ That implies three durable layers:
 - Showcase preview generation with optional Visio export proof.
 - Premium gallery baseline proof through `VisioPremiumVisualBaselineTests`, including approved PNG/SVG fixtures, PNG pixel-diff artifacts on failure, tolerance knobs for renderer noise, and opt-in refresh via `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1`.
 - Inspection snapshot/diff API for deterministic structure review across pages, masters, shapes, connectors, Shape Data, User cells, semantic tags, shape connection points, and connector waypoints.
-- Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review, aliases/keywords/tags, placed dimension ranges, connection-point richness summaries, and persisted package-backed provenance after reload.
+- Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review, aliases/keywords/tags, icon identity, placed/source dimension ranges, connection-point richness summaries, and persisted package-backed provenance after reload.
 - Architecture, network, flowchart, block-diagram, swimlane, timeline, and sequence builder components now use first-party stencil catalogs for provenance, so cloud architecture, network segmentation, print audit trail, technical topology, governed process, release timeline, and incident sequence gallery output are baseline-reviewed as stencil-backed diagram content rather than anonymous geometry.
 - Sequence diagrams now include first-party activation bars with dedicated builder API, stencil profile metadata, and gallery coverage.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags into shape and master metadata, so profiles and inspection snapshots can prove which catalog and package supplied a shape after save/load.
@@ -149,7 +149,7 @@ Goal: native and external stencil packs feel first-class, not like shortcuts.
   - collaboration/business process symbols.
 - Add a real stencil gallery document builder for catalog review and debugging.
 - Add custom stencil export, ideally to reusable package-backed stencil form when feasible.
-- Broaden typed stencil profiles from catalog/category/source-pack/family, alias/keyword/tag, placed-dimension, and connection-point metadata into richer icon/preview, default-source dimension, and package-family profiles as metadata extraction expands.
+- Broaden typed stencil profiles from catalog/category/source-pack/family, alias/keyword/tag, placed/source dimensions, icon identity, and connection-point metadata into richer preview thumbnail, package-family, and native metadata as metadata extraction expands.
 - Document native Visio stencil discovery paths and external pack usage patterns.
 
 ## P3: Real Graphs And Data-Driven Diagrams

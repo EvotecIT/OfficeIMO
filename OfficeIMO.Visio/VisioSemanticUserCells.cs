@@ -16,5 +16,9 @@ namespace OfficeIMO.Visio {
         public const string StencilKeywords = "OfficeIMO.StencilKeywords";
         public const string StencilAliases = "OfficeIMO.StencilAliases";
         public const string StencilTags = "OfficeIMO.StencilTags";
+        public const string StencilIconNameU = "OfficeIMO.StencilIconNameU";
+        public const string StencilDefaultWidth = "OfficeIMO.StencilDefaultWidth";
+        public const string StencilDefaultHeight = "OfficeIMO.StencilDefaultHeight";
+        public const string StencilDefaultUnit = "OfficeIMO.StencilDefaultUnit";
     }
 }

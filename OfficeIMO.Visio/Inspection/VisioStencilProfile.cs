@@ -50,6 +50,8 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<string> stencilKeywords,
             IReadOnlyList<string> stencilAliases,
             IReadOnlyList<string> stencilTags,
+            IReadOnlyList<string> stencilIconNameUs,
+            IReadOnlyList<string> stencilDefaultUnits,
             IReadOnlyList<VisioStencilFamilyProfile> stencilFamilies) {
             TotalShapes = totalShapes;
             ConnectorCount = connectorCount;
@@ -63,6 +65,8 @@ namespace OfficeIMO.Visio {
             StencilKeywords = stencilKeywords;
             StencilAliases = stencilAliases;
             StencilTags = stencilTags;
+            StencilIconNameUs = stencilIconNameUs;
+            StencilDefaultUnits = stencilDefaultUnits;
             StencilFamilies = stencilFamilies;
         }
 
@@ -142,6 +146,12 @@ namespace OfficeIMO.Visio {
         /// <summary>Distinct stencil tags represented by inspected shapes.</summary>
         public IReadOnlyList<string> StencilTags { get; }
 
+        /// <summary>Distinct stencil icon master universal names represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilIconNameUs { get; }
+
+        /// <summary>Distinct source default-size units represented by inspected shapes.</summary>
+        public IReadOnlyList<string> StencilDefaultUnits { get; }
+
         /// <summary>
         /// Creates a stencil profile from an inspection snapshot.
         /// </summary>
@@ -181,6 +191,8 @@ namespace OfficeIMO.Visio {
                 CollectUsageListValues(usages, usage => usage.StencilKeywords).AsReadOnly(),
                 CollectUsageListValues(usages, usage => usage.StencilAliases).AsReadOnly(),
                 CollectUsageListValues(usages, usage => usage.StencilTags).AsReadOnly(),
+                CollectUsageValues(usages, usage => usage.StencilIconNameU).AsReadOnly(),
+                CollectUsageValues(usages, usage => usage.StencilDefaultUnit).AsReadOnly(),
                 stencilFamilies.AsReadOnly());
         }
 
@@ -208,6 +220,8 @@ namespace OfficeIMO.Visio {
             AppendLine(builder, "profile.stencilKeywords", string.Join(",", StencilKeywords));
             AppendLine(builder, "profile.stencilAliases", string.Join(",", StencilAliases));
             AppendLine(builder, "profile.stencilTags", string.Join(",", StencilTags));
+            AppendLine(builder, "profile.stencilIconNameUs", string.Join(",", StencilIconNameUs));
+            AppendLine(builder, "profile.stencilDefaultUnits", string.Join(",", StencilDefaultUnits));
             AppendLine(builder, "profile.stencilFamilyCount", StencilFamilies.Count);
             AppendLine(builder, "profile.usageCount", Usages.Count);
 
@@ -255,7 +269,11 @@ namespace OfficeIMO.Visio {
                     GetStencilSourcePackagePath(shape, master),
                     GetStencilKeywords(shape, master),
                     GetStencilAliases(shape, master),
-                    GetStencilTags(shape, master));
+                    GetStencilTags(shape, master),
+                    GetStencilIconNameU(shape, master),
+                    GetStencilDefaultWidth(shape, master),
+                    GetStencilDefaultHeight(shape, master),
+                    GetStencilDefaultUnit(shape, master));
             }
 
             if (!string.IsNullOrWhiteSpace(shape.NameU)) {
@@ -274,7 +292,11 @@ namespace OfficeIMO.Visio {
                     GetStencilSourcePackagePath(shape, null),
                     GetStencilKeywords(shape, null),
                     GetStencilAliases(shape, null),
-                    GetStencilTags(shape, null));
+                    GetStencilTags(shape, null),
+                    GetStencilIconNameU(shape, null),
+                    GetStencilDefaultWidth(shape, null),
+                    GetStencilDefaultHeight(shape, null),
+                    GetStencilDefaultUnit(shape, null));
             }
 
             if (!string.IsNullOrWhiteSpace(semanticKind)) {
@@ -292,7 +314,11 @@ namespace OfficeIMO.Visio {
                 null,
                 Array.Empty<string>(),
                 Array.Empty<string>(),
-                Array.Empty<string>());
+                Array.Empty<string>(),
+                null,
+                null,
+                null,
+                null);
         }
 
             return new VisioStencilUsageKey(
@@ -309,7 +335,11 @@ namespace OfficeIMO.Visio {
                 null,
                 Array.Empty<string>(),
                 Array.Empty<string>(),
-                Array.Empty<string>());
+                Array.Empty<string>(),
+                null,
+                null,
+                null,
+                null);
         }
 
         internal static string? GetSemanticKind(VisioInspectionShapeSnapshot shape) {
@@ -411,6 +441,29 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<string> values = VisioStencilMetadata.GetUserCellList(shape.UserCells, VisioSemanticUserCells.StencilTags);
             return values.Count > 0 ? values : master?.StencilTags ?? Array.Empty<string>();
         }
+
+        private static string? GetStencilIconNameU(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilIconNameU) ?? master?.StencilIconNameU;
+        }
+
+        private static double? GetStencilDefaultWidth(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return GetUserCellDouble(shape, VisioSemanticUserCells.StencilDefaultWidth) ?? master?.StencilDefaultWidth;
+        }
+
+        private static double? GetStencilDefaultHeight(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return GetUserCellDouble(shape, VisioSemanticUserCells.StencilDefaultHeight) ?? master?.StencilDefaultHeight;
+        }
+
+        private static string? GetStencilDefaultUnit(VisioInspectionShapeSnapshot shape, VisioInspectionMasterSnapshot? master) {
+            return VisioStencilMetadata.GetUserCellValue(shape.UserCells, VisioSemanticUserCells.StencilDefaultUnit) ?? master?.StencilDefaultUnit;
+        }
+
+        private static double? GetUserCellDouble(VisioInspectionShapeSnapshot shape, string name) {
+            string? value = VisioStencilMetadata.GetUserCellValue(shape.UserCells, name);
+            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+                ? parsed
+                : null;
+        }
     }
 
     /// <summary>
@@ -425,6 +478,8 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<string> stencilKeywords,
             IReadOnlyList<string> stencilAliases,
             IReadOnlyList<string> stencilTags,
+            IReadOnlyList<string> stencilIconNameUs,
+            IReadOnlyList<string> stencilDefaultUnits,
             IReadOnlyList<string> stencilIds,
             IReadOnlyList<string> usageKeys,
             int shapeCount,
@@ -438,7 +493,11 @@ namespace OfficeIMO.Visio {
             double placedWidthMinimum,
             double placedWidthMaximum,
             double placedHeightMinimum,
-            double placedHeightMaximum) {
+            double placedHeightMaximum,
+            double? sourceDefaultWidthMinimum,
+            double? sourceDefaultWidthMaximum,
+            double? sourceDefaultHeightMinimum,
+            double? sourceDefaultHeightMaximum) {
             Key = key;
             StencilCatalogName = stencilCatalogName;
             StencilCategory = stencilCategory;
@@ -446,6 +505,8 @@ namespace OfficeIMO.Visio {
             StencilKeywords = stencilKeywords;
             StencilAliases = stencilAliases;
             StencilTags = stencilTags;
+            StencilIconNameUs = stencilIconNameUs;
+            StencilDefaultUnits = stencilDefaultUnits;
             StencilIds = stencilIds;
             UsageKeys = usageKeys;
             ShapeCount = shapeCount;
@@ -460,6 +521,10 @@ namespace OfficeIMO.Visio {
             PlacedWidthMaximum = placedWidthMaximum;
             PlacedHeightMinimum = placedHeightMinimum;
             PlacedHeightMaximum = placedHeightMaximum;
+            SourceDefaultWidthMinimum = sourceDefaultWidthMinimum;
+            SourceDefaultWidthMaximum = sourceDefaultWidthMaximum;
+            SourceDefaultHeightMinimum = sourceDefaultHeightMinimum;
+            SourceDefaultHeightMaximum = sourceDefaultHeightMaximum;
         }
 
         /// <summary>Stable family key used in profile snapshots.</summary>
@@ -482,6 +547,12 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Distinct stencil tags represented by this family.</summary>
         public IReadOnlyList<string> StencilTags { get; }
+
+        /// <summary>Distinct stencil icon master universal names represented by this family.</summary>
+        public IReadOnlyList<string> StencilIconNameUs { get; }
+
+        /// <summary>Distinct source default-size units represented by this family.</summary>
+        public IReadOnlyList<string> StencilDefaultUnits { get; }
 
         /// <summary>Distinct stencil identifiers represented by this family.</summary>
         public IReadOnlyList<string> StencilIds { get; }
@@ -525,6 +596,18 @@ namespace OfficeIMO.Visio {
         /// <summary>Maximum placed height for shapes in this family.</summary>
         public double PlacedHeightMaximum { get; }
 
+        /// <summary>Minimum source default width represented by this family, when known.</summary>
+        public double? SourceDefaultWidthMinimum { get; }
+
+        /// <summary>Maximum source default width represented by this family, when known.</summary>
+        public double? SourceDefaultWidthMaximum { get; }
+
+        /// <summary>Minimum source default height represented by this family, when known.</summary>
+        public double? SourceDefaultHeightMinimum { get; }
+
+        /// <summary>Maximum source default height represented by this family, when known.</summary>
+        public double? SourceDefaultHeightMaximum { get; }
+
         internal static List<VisioStencilFamilyProfile> FromUsages(IEnumerable<VisioStencilUsageProfile> usages) {
             return usages
                 .Where(IsStencilFamilyUsage)
@@ -542,6 +625,8 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilKeywords", string.Join(",", StencilKeywords));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilAliases", string.Join(",", StencilAliases));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilTags", string.Join(",", StencilTags));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilIconNameUs", string.Join(",", StencilIconNameUs));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilDefaultUnits", string.Join(",", StencilDefaultUnits));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilIds", string.Join(",", StencilIds));
             VisioStencilProfile.AppendLine(builder, prefix + ".usageKeys", string.Join(",", UsageKeys));
             VisioStencilProfile.AppendLine(builder, prefix + ".shapeCount", ShapeCount);
@@ -556,6 +641,10 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".placedWidthMaximum", PlacedWidthMaximum);
             VisioStencilProfile.AppendLine(builder, prefix + ".placedHeightMinimum", PlacedHeightMinimum);
             VisioStencilProfile.AppendLine(builder, prefix + ".placedHeightMaximum", PlacedHeightMaximum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".sourceDefaultWidthMinimum", SourceDefaultWidthMinimum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".sourceDefaultWidthMaximum", SourceDefaultWidthMaximum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".sourceDefaultHeightMinimum", SourceDefaultHeightMinimum);
+            VisioStencilProfile.AppendLine(builder, prefix + ".sourceDefaultHeightMaximum", SourceDefaultHeightMaximum);
         }
 
         private static VisioStencilFamilyProfile FromUsageGroup(string key, IEnumerable<VisioStencilUsageProfile> usages) {
@@ -568,6 +657,8 @@ namespace OfficeIMO.Visio {
                 CollectDistinctListValues(usageList, usage => usage.StencilKeywords),
                 CollectDistinctListValues(usageList, usage => usage.StencilAliases),
                 CollectDistinctListValues(usageList, usage => usage.StencilTags),
+                CollectDistinctValues(usageList, usage => usage.StencilIconNameU),
+                CollectDistinctValues(usageList, usage => usage.StencilDefaultUnit),
                 CollectDistinctValues(usageList, usage => usage.StencilId),
                 usageList.Select(usage => usage.Key).OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToList().AsReadOnly(),
                 usageList.Sum(usage => usage.Count),
@@ -581,7 +672,11 @@ namespace OfficeIMO.Visio {
                 usageList.Min(usage => usage.PlacedWidthMinimum),
                 usageList.Max(usage => usage.PlacedWidthMaximum),
                 usageList.Min(usage => usage.PlacedHeightMinimum),
-                usageList.Max(usage => usage.PlacedHeightMaximum));
+                usageList.Max(usage => usage.PlacedHeightMaximum),
+                MinNullable(usageList, usage => usage.SourceDefaultWidth),
+                MaxNullable(usageList, usage => usage.SourceDefaultWidth),
+                MinNullable(usageList, usage => usage.SourceDefaultHeight),
+                MaxNullable(usageList, usage => usage.SourceDefaultHeight));
         }
 
         private static bool IsStencilFamilyUsage(VisioStencilUsageProfile usage) {
@@ -641,6 +736,24 @@ namespace OfficeIMO.Visio {
                 .ToList()
                 .AsReadOnly();
         }
+
+        private static double? MinNullable(IEnumerable<VisioStencilUsageProfile> usages, Func<VisioStencilUsageProfile, double?> selector) {
+            List<double> values = usages
+                .Select(selector)
+                .Where(value => value.HasValue)
+                .Select(value => value!.Value)
+                .ToList();
+            return values.Count == 0 ? null : values.Min();
+        }
+
+        private static double? MaxNullable(IEnumerable<VisioStencilUsageProfile> usages, Func<VisioStencilUsageProfile, double?> selector) {
+            List<double> values = usages
+                .Select(selector)
+                .Where(value => value.HasValue)
+                .Select(value => value!.Value)
+                .ToList();
+            return values.Count == 0 ? null : values.Max();
+        }
     }
 
     /// <summary>
@@ -662,6 +775,10 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<string> stencilKeywords,
             IReadOnlyList<string> stencilAliases,
             IReadOnlyList<string> stencilTags,
+            string? stencilIconNameU,
+            double? sourceDefaultWidth,
+            double? sourceDefaultHeight,
+            string? stencilDefaultUnit,
             int count,
             int connectionPointCount,
             int connectionPointShapeCount,
@@ -686,6 +803,10 @@ namespace OfficeIMO.Visio {
             StencilKeywords = stencilKeywords;
             StencilAliases = stencilAliases;
             StencilTags = stencilTags;
+            StencilIconNameU = stencilIconNameU;
+            SourceDefaultWidth = sourceDefaultWidth;
+            SourceDefaultHeight = sourceDefaultHeight;
+            StencilDefaultUnit = stencilDefaultUnit;
             Count = count;
             ConnectionPointCount = connectionPointCount;
             ConnectionPointShapeCount = connectionPointShapeCount;
@@ -739,6 +860,18 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Semantic stencil tags represented by this usage group.</summary>
         public IReadOnlyList<string> StencilTags { get; }
+
+        /// <summary>Stencil preview icon master universal name represented by this usage group.</summary>
+        public string? StencilIconNameU { get; }
+
+        /// <summary>Source stencil default width before placement scaling, when known.</summary>
+        public double? SourceDefaultWidth { get; }
+
+        /// <summary>Source stencil default height before placement scaling, when known.</summary>
+        public double? SourceDefaultHeight { get; }
+
+        /// <summary>Source stencil default-size unit, when known.</summary>
+        public string? StencilDefaultUnit { get; }
 
         /// <summary>Number of shapes in this usage group.</summary>
         public int Count { get; }
@@ -815,6 +948,10 @@ namespace OfficeIMO.Visio {
                 key.StencilKeywords,
                 key.StencilAliases,
                 key.StencilTags,
+                key.StencilIconNameU,
+                key.SourceDefaultWidth,
+                key.SourceDefaultHeight,
+                key.StencilDefaultUnit,
                 shapeList.Count,
                 shapeList.Sum(shape => shape.ConnectionPointCount),
                 shapeList.Count(shape => shape.ConnectionPointCount > 0),
@@ -842,6 +979,10 @@ namespace OfficeIMO.Visio {
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilKeywords", string.Join(",", StencilKeywords));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilAliases", string.Join(",", StencilAliases));
             VisioStencilProfile.AppendLine(builder, prefix + ".stencilTags", string.Join(",", StencilTags));
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilIconNameU", StencilIconNameU);
+            VisioStencilProfile.AppendLine(builder, prefix + ".sourceDefaultWidth", SourceDefaultWidth);
+            VisioStencilProfile.AppendLine(builder, prefix + ".sourceDefaultHeight", SourceDefaultHeight);
+            VisioStencilProfile.AppendLine(builder, prefix + ".stencilDefaultUnit", StencilDefaultUnit);
             VisioStencilProfile.AppendLine(builder, prefix + ".count", Count);
             VisioStencilProfile.AppendLine(builder, prefix + ".connectionPointCount", ConnectionPointCount);
             VisioStencilProfile.AppendLine(builder, prefix + ".connectionPointShapeCount", ConnectionPointShapeCount);
@@ -887,7 +1028,11 @@ namespace OfficeIMO.Visio {
             string? stencilSourcePackagePath,
             IReadOnlyList<string> stencilKeywords,
             IReadOnlyList<string> stencilAliases,
-            IReadOnlyList<string> stencilTags) {
+            IReadOnlyList<string> stencilTags,
+            string? stencilIconNameU,
+            double? sourceDefaultWidth,
+            double? sourceDefaultHeight,
+            string? stencilDefaultUnit) {
             Kind = kind;
             Key = key;
             MasterId = masterId;
@@ -902,6 +1047,10 @@ namespace OfficeIMO.Visio {
             StencilKeywords = stencilKeywords;
             StencilAliases = stencilAliases;
             StencilTags = stencilTags;
+            StencilIconNameU = stencilIconNameU;
+            SourceDefaultWidth = sourceDefaultWidth;
+            SourceDefaultHeight = sourceDefaultHeight;
+            StencilDefaultUnit = stencilDefaultUnit;
         }
 
         public VisioStencilProfileUsageKind Kind { get; }
@@ -932,6 +1081,14 @@ namespace OfficeIMO.Visio {
 
         public IReadOnlyList<string> StencilTags { get; }
 
+        public string? StencilIconNameU { get; }
+
+        public double? SourceDefaultWidth { get; }
+
+        public double? SourceDefaultHeight { get; }
+
+        public string? StencilDefaultUnit { get; }
+
         public static IEqualityComparer<VisioStencilUsageKey> Comparer { get; } = new VisioStencilUsageKeyComparer();
 
         private sealed class VisioStencilUsageKeyComparer : IEqualityComparer<VisioStencilUsageKey> {
@@ -957,7 +1114,11 @@ namespace OfficeIMO.Visio {
                        string.Equals(x.StencilSourcePackagePath, y.StencilSourcePackagePath, StringComparison.OrdinalIgnoreCase) &&
                        SequenceEqual(x.StencilKeywords, y.StencilKeywords) &&
                        SequenceEqual(x.StencilAliases, y.StencilAliases) &&
-                       SequenceEqual(x.StencilTags, y.StencilTags);
+                       SequenceEqual(x.StencilTags, y.StencilTags) &&
+                       string.Equals(x.StencilIconNameU, y.StencilIconNameU, StringComparison.OrdinalIgnoreCase) &&
+                       Nullable.Equals(x.SourceDefaultWidth, y.SourceDefaultWidth) &&
+                       Nullable.Equals(x.SourceDefaultHeight, y.SourceDefaultHeight) &&
+                       string.Equals(x.StencilDefaultUnit, y.StencilDefaultUnit, StringComparison.OrdinalIgnoreCase);
             }
 
             public int GetHashCode(VisioStencilUsageKey obj) {
@@ -977,6 +1138,10 @@ namespace OfficeIMO.Visio {
                     hash = AddListHash(hash, obj.StencilKeywords);
                     hash = AddListHash(hash, obj.StencilAliases);
                     hash = AddListHash(hash, obj.StencilTags);
+                    hash = (hash * 31) + (obj.StencilIconNameU == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilIconNameU));
+                    hash = (hash * 31) + (obj.SourceDefaultWidth?.GetHashCode() ?? 0);
+                    hash = (hash * 31) + (obj.SourceDefaultHeight?.GetHashCode() ?? 0);
+                    hash = (hash * 31) + (obj.StencilDefaultUnit == null ? 0 : StringComparer.OrdinalIgnoreCase.GetHashCode(obj.StencilDefaultUnit));
                     return hash;
                 }
             }

@@ -74,6 +74,26 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public IReadOnlyList<string> StencilTags { get; internal set; } = Enumerable.Empty<string>().ToList().AsReadOnly();
 
+        /// <summary>
+        /// Gets the preview icon master universal name associated with this stencil, when known.
+        /// </summary>
+        public string? StencilIconNameU { get; internal set; }
+
+        /// <summary>
+        /// Gets the source stencil default width, before caller placement scaling, when known.
+        /// </summary>
+        public double? StencilDefaultWidth { get; internal set; }
+
+        /// <summary>
+        /// Gets the source stencil default height, before caller placement scaling, when known.
+        /// </summary>
+        public double? StencilDefaultHeight { get; internal set; }
+
+        /// <summary>
+        /// Gets the unit for the source stencil default size, when known.
+        /// </summary>
+        public VisioMeasurementUnit? StencilDefaultUnit { get; internal set; }
+
         internal IList<XAttribute> PreservedMasterAttributes { get; } = new List<XAttribute>();
 
         internal IList<XAttribute> PreservedPageSheetAttributes { get; } = new List<XAttribute>();

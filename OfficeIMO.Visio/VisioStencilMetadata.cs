@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using OfficeIMO.Visio.Stencils;
@@ -17,6 +18,10 @@ namespace OfficeIMO.Visio {
             Set(shape, VisioSemanticUserCells.StencilKeywords, Join(stencil.Keywords));
             Set(shape, VisioSemanticUserCells.StencilAliases, Join(stencil.Aliases));
             Set(shape, VisioSemanticUserCells.StencilTags, Join(stencil.Tags));
+            Set(shape, VisioSemanticUserCells.StencilIconNameU, stencil.IconNameU);
+            Set(shape, VisioSemanticUserCells.StencilDefaultWidth, FormatDouble(stencil.DefaultWidth));
+            Set(shape, VisioSemanticUserCells.StencilDefaultHeight, FormatDouble(stencil.DefaultHeight));
+            Set(shape, VisioSemanticUserCells.StencilDefaultUnit, stencil.DefaultUnit?.ToString());
         }
 
         internal static void Apply(VisioMaster master, VisioStencilShape stencil, string? catalogName) {
@@ -28,6 +33,10 @@ namespace OfficeIMO.Visio {
             master.StencilKeywords = Normalize(stencil.Keywords);
             master.StencilAliases = Normalize(stencil.Aliases);
             master.StencilTags = Normalize(stencil.Tags);
+            master.StencilIconNameU = stencil.IconNameU;
+            master.StencilDefaultWidth = stencil.DefaultWidth;
+            master.StencilDefaultHeight = stencil.DefaultHeight;
+            master.StencilDefaultUnit = stencil.DefaultUnit;
         }
 
         internal static void Apply(VisioMaster master, IEnumerable<VisioUserCell> userCells) {
@@ -43,6 +52,10 @@ namespace OfficeIMO.Visio {
             master.StencilKeywords = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilKeywords)), master.StencilKeywords);
             master.StencilAliases = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilAliases)), master.StencilAliases);
             master.StencilTags = Coalesce(Split(Get(values, VisioSemanticUserCells.StencilTags)), master.StencilTags);
+            master.StencilIconNameU = Get(values, VisioSemanticUserCells.StencilIconNameU) ?? master.StencilIconNameU;
+            master.StencilDefaultWidth = GetDouble(values, VisioSemanticUserCells.StencilDefaultWidth) ?? master.StencilDefaultWidth;
+            master.StencilDefaultHeight = GetDouble(values, VisioSemanticUserCells.StencilDefaultHeight) ?? master.StencilDefaultHeight;
+            master.StencilDefaultUnit = GetUnit(values, VisioSemanticUserCells.StencilDefaultUnit) ?? master.StencilDefaultUnit;
         }
 
         internal static IReadOnlyList<VisioUserCell> CreateMasterUserCells(VisioMaster master) {
@@ -55,6 +68,10 @@ namespace OfficeIMO.Visio {
             Add(cells, VisioSemanticUserCells.StencilKeywords, Join(master.StencilKeywords));
             Add(cells, VisioSemanticUserCells.StencilAliases, Join(master.StencilAliases));
             Add(cells, VisioSemanticUserCells.StencilTags, Join(master.StencilTags));
+            Add(cells, VisioSemanticUserCells.StencilIconNameU, master.StencilIconNameU);
+            Add(cells, VisioSemanticUserCells.StencilDefaultWidth, FormatDouble(master.StencilDefaultWidth));
+            Add(cells, VisioSemanticUserCells.StencilDefaultHeight, FormatDouble(master.StencilDefaultHeight));
+            Add(cells, VisioSemanticUserCells.StencilDefaultUnit, master.StencilDefaultUnit?.ToString());
             return cells.AsReadOnly();
         }
 
@@ -83,7 +100,11 @@ namespace OfficeIMO.Visio {
                     string.Equals(name, VisioSemanticUserCells.StencilSourcePackagePath, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilKeywords, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(name, VisioSemanticUserCells.StencilAliases, StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(name, VisioSemanticUserCells.StencilTags, StringComparison.OrdinalIgnoreCase)) {
+                    string.Equals(name, VisioSemanticUserCells.StencilTags, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilIconNameU, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilDefaultWidth, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilDefaultHeight, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(name, VisioSemanticUserCells.StencilDefaultUnit, StringComparison.OrdinalIgnoreCase)) {
                     shape.UserCells.RemoveAt(i);
                 }
             }
@@ -151,6 +172,26 @@ namespace OfficeIMO.Visio {
         private static string? Get(IReadOnlyDictionary<string, string?> values, string key) {
             return values.TryGetValue(key, out string? value) && !string.IsNullOrWhiteSpace(value)
                 ? value
+                : null;
+        }
+
+        private static double? GetDouble(IReadOnlyDictionary<string, string?> values, string key) {
+            string? value = Get(values, key);
+            return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+                ? parsed
+                : null;
+        }
+
+        private static VisioMeasurementUnit? GetUnit(IReadOnlyDictionary<string, string?> values, string key) {
+            string? value = Get(values, key);
+            return Enum.TryParse(value, ignoreCase: true, out VisioMeasurementUnit unit)
+                ? unit
+                : null;
+        }
+
+        private static string? FormatDouble(double? value) {
+            return value.HasValue
+                ? value.Value.ToString("0.######", CultureInfo.InvariantCulture)
                 : null;
         }
 

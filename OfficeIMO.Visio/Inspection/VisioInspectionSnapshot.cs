@@ -36,7 +36,11 @@ namespace OfficeIMO.Visio {
                     master.StencilSourcePackagePath,
                     master.StencilKeywords,
                     master.StencilAliases,
-                    master.StencilTags))
+                    master.StencilTags,
+                    master.StencilIconNameU,
+                    master.StencilDefaultWidth,
+                    master.StencilDefaultHeight,
+                    master.StencilDefaultUnit?.ToString()))
                 .ToList()
                 .AsReadOnly();
 
@@ -273,6 +277,10 @@ namespace OfficeIMO.Visio {
                 AppendLine(builder, prefix + ".stencilKeywords", string.Join(",", master.StencilKeywords));
                 AppendLine(builder, prefix + ".stencilAliases", string.Join(",", master.StencilAliases));
                 AppendLine(builder, prefix + ".stencilTags", string.Join(",", master.StencilTags));
+                AppendLine(builder, prefix + ".stencilIconNameU", master.StencilIconNameU);
+                AppendLine(builder, prefix + ".stencilDefaultWidth", master.StencilDefaultWidth);
+                AppendLine(builder, prefix + ".stencilDefaultHeight", master.StencilDefaultHeight);
+                AppendLine(builder, prefix + ".stencilDefaultUnit", master.StencilDefaultUnit);
             }
 
             foreach (VisioInspectionPageSnapshot page in Pages) {
@@ -336,7 +344,11 @@ namespace OfficeIMO.Visio {
             string? stencilSourcePackagePath,
             IReadOnlyList<string> stencilKeywords,
             IReadOnlyList<string> stencilAliases,
-            IReadOnlyList<string> stencilTags) {
+            IReadOnlyList<string> stencilTags,
+            string? stencilIconNameU,
+            double? stencilDefaultWidth,
+            double? stencilDefaultHeight,
+            string? stencilDefaultUnit) {
             Id = id;
             NameU = nameU;
             ShapeNameU = shapeNameU;
@@ -352,6 +364,10 @@ namespace OfficeIMO.Visio {
             StencilKeywords = stencilKeywords;
             StencilAliases = stencilAliases;
             StencilTags = stencilTags;
+            StencilIconNameU = stencilIconNameU;
+            StencilDefaultWidth = stencilDefaultWidth;
+            StencilDefaultHeight = stencilDefaultHeight;
+            StencilDefaultUnit = stencilDefaultUnit;
         }
 
         /// <summary>Master identifier.</summary>
@@ -398,6 +414,18 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Semantic stencil tags.</summary>
         public IReadOnlyList<string> StencilTags { get; }
+
+        /// <summary>Preview icon master universal name, when known.</summary>
+        public string? StencilIconNameU { get; }
+
+        /// <summary>Source stencil default width, when known.</summary>
+        public double? StencilDefaultWidth { get; }
+
+        /// <summary>Source stencil default height, when known.</summary>
+        public double? StencilDefaultHeight { get; }
+
+        /// <summary>Source stencil default size unit, when known.</summary>
+        public string? StencilDefaultUnit { get; }
     }
 
     /// <summary>
