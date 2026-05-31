@@ -31,6 +31,7 @@ namespace OfficeIMO.Visio {
             results.Add(CreateResult("Timeline Roadmap", Path.Combine(folderPath, "OfficeIMO Gallery - Timeline Roadmap.vsdx"), CreateTimelineRoadmap, resolvedOptions));
             results.Add(CreateResult("Routed Decision Flow", Path.Combine(folderPath, "OfficeIMO Gallery - Routed Decision Flow.vsdx"), CreateRoutedDecisionFlow, resolvedOptions));
             results.Add(CreateResult("CI/CD Inventory Graph", Path.Combine(folderPath, "OfficeIMO Gallery - CI-CD Inventory Graph.vsdx"), CreateCiCdInventoryGraph, resolvedOptions));
+            results.Add(CreateResult("Identity Authentication Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Identity Authentication Graph.vsdx"), CreateIdentityAuthenticationGraph, resolvedOptions));
             return results;
         }
 
@@ -323,6 +324,106 @@ namespace OfficeIMO.Visio {
                         new[] { engineer, repository, pipeline, agent, registry, cluster, secrets, monitor },
                         new[] { commit, trigger, schedule, publish, deploy, secretFlow, telemetry, onCall },
                         new[] { delivery, runtime }));
+        }
+
+        /// <summary>
+        /// Creates a data-driven identity authentication graph that demonstrates trust boundaries, control/data flows, Shape Data, and stencil profiles.
+        /// </summary>
+        /// <param name="filePath">Target VSDX file path.</param>
+        public static VisioDocument CreateIdentityAuthenticationGraph(string filePath) {
+            VisioGraphNodeRecord user = CreateNode("user", "User", VisioStencils.SecurityIdentity, "user", "person");
+            user.IsRoot = true;
+            user.ShapeData.Add("AuthType", "Interactive");
+
+            VisioGraphNodeRecord device = CreateNode("device", "Managed Device", VisioStencils.Network, "workstation", "endpoint");
+            device.ShapeData.Add("Compliance", "Required");
+
+            VisioGraphNodeRecord app = CreateNode("app", "SaaS App", VisioStencils.CollaborationBusiness, "system", "application");
+            app.ShapeData.Add("Audience", "Employees");
+
+            VisioGraphNodeRecord idp = CreateNode("idp", "Identity Provider", VisioStencils.SecurityIdentity, "idp", "entra", "oidc");
+            idp.ShapeData.Add("Protocol", "OIDC");
+            idp.HyperlinkAddress = "https://example.org/runbooks/identity-provider";
+            idp.HyperlinkDescription = "Identity provider runbook";
+
+            VisioGraphNodeRecord policy = CreateNode("policy", "Conditional Access", VisioStencils.SecurityIdentity, "policy", "conditional-access");
+            policy.ShapeData.Add("Decision", "Allow, challenge, or block");
+
+            VisioGraphNodeRecord mfa = CreateNode("mfa", "MFA Challenge", VisioStencils.SecurityIdentity, "key", "credential");
+            mfa.ShapeData.Add("Factor", "FIDO2 or app approval");
+
+            VisioGraphNodeRecord groups = CreateNode("groups", "RBAC Groups", VisioStencils.SecurityIdentity, "group", "role");
+            groups.ShapeData.Add("Source", "Directory groups");
+
+            VisioGraphNodeRecord audit = CreateNode("audit", "Audit Log", VisioStencils.SecurityIdentity, "audit", "evidence");
+            audit.ShapeData.Add("Retention", "365 days");
+            audit.HyperlinkAddress = "https://example.org/security/audit";
+            audit.HyperlinkDescription = "Audit workspace";
+
+            VisioGraphEdgeRecord launch = new("user", "device") {
+                Label = "sign in"
+            };
+            VisioGraphEdgeRecord request = new("device", "app") {
+                Label = "access request"
+            };
+            VisioGraphEdgeRecord redirect = new("app", "idp") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "redirect"
+            };
+            redirect.ShapeData.Add("Protocol", "OIDC");
+
+            VisioGraphEdgeRecord evaluate = new("idp", "policy") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "evaluate"
+            };
+            evaluate.ShapeData.Add("Signals", "user, device, risk");
+
+            VisioGraphEdgeRecord challenge = new("policy", "mfa") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "challenge"
+            };
+            VisioGraphEdgeRecord claims = new("groups", "idp") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "claims"
+            };
+            VisioGraphEdgeRecord token = new("idp", "app") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "token"
+            };
+            token.ShapeData.Add("Lifetime", "60 minutes");
+
+            VisioGraphEdgeRecord evidence = new("idp", "audit") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "sign-in log"
+            };
+            VisioGraphEdgeRecord review = new("groups", "audit") {
+                Label = "access review",
+                Directed = false
+            };
+
+            VisioGraphClusterRecord userContext = new("user-context", "User Context", new[] { "user", "device" });
+            userContext.ShapeData.Add("Boundary", "Managed endpoint");
+
+            VisioGraphClusterRecord trustBoundary = new("trust-boundary", "Identity Trust Boundary", new[] { "idp", "policy", "mfa", "groups", "audit" });
+            trustBoundary.ShapeData.Add("Owner", "Identity Security");
+            trustBoundary.HyperlinkAddress = "https://example.org/runbooks/conditional-access";
+            trustBoundary.HyperlinkDescription = "Conditional access runbook";
+
+            return VisioDocument.Create(filePath)
+                .GraphDiagram("Identity Authentication Graph", graph => graph
+                    .Title("Active Directory Identity Authentication Flow")
+                    .Theme(VisioStyleTheme.Enterprise())
+                    .Layout(VisioGraphLayout.Layered)
+                    .Direction(VisioGraphDirection.LeftToRight)
+                    .Legend()
+                    .PageSize(17.2, 7.8)
+                    .Margins(0.8, 0.85, 0.8, 0.75)
+                    .NodeSize(1.35, 0.74)
+                    .Spacing(0.78, 0.86)
+                    .Import(
+                        new[] { user, device, app, idp, policy, mfa, groups, audit },
+                        new[] { launch, request, redirect, evaluate, challenge, claims, token, evidence, review },
+                        new[] { userContext, trustBoundary }));
         }
 
         private static VisioGraphNodeRecord CreateNode(string id, string text, VisioStencilCatalog catalog, params string[] queries) {

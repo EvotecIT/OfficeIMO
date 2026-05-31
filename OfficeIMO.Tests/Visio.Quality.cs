@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
 
-            Assert.Equal(9, results.Count);
+            Assert.Equal(10, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
             Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
@@ -236,6 +236,16 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Containers and Kubernetes", profile.StencilCatalogs);
             Assert.Contains("Cloud", profile.StencilCatalogs);
             Assert.Contains("Infrastructure", profile.StencilCatalogs);
+
+            VisioGalleryResult identity = results.Single(result => result.Name == "Identity Authentication Graph");
+            VisioDocument loadedIdentity = VisioDocument.Load(identity.FilePath);
+            VisioPage identityPage = Assert.Single(loadedIdentity.Pages);
+            Assert.Contains(identityPage.Shapes, shape => shape.Id == "trust-boundary" && shape.GetShapeDataValue("Owner") == "Identity Security");
+            Assert.Contains(identityPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(identityPage.Connectors, connector => connector.Id == "idp-data-app" && connector.GetShapeDataValue("Lifetime") == "60 minutes");
+            VisioStencilProfile identityProfile = loadedIdentity.CreateStencilProfile();
+            Assert.Contains("Security and Identity", identityProfile.StencilCatalogs);
+            Assert.Contains("Collaboration and Business Process", identityProfile.StencilCatalogs);
         }
 
         [Fact]

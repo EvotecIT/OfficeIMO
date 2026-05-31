@@ -165,7 +165,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
 - Add legends based on used node/edge types. Initial generic graph `Legend(...)` support derives node-kind and connector-kind entries from the actual graph, reserves header layout space, and marks legend samples/text as generated diagram adornments.
 - Add data-driven examples:
   - Azure/application dependency map;
-  - Active Directory identity/authentication flow;
+  - Active Directory identity/authentication flow: initial reusable `VisioGallery` and official `--visio-showcase` example added with security/identity stencils, trust-boundary clusters, auth token/control/data flows, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - CI/CD pipeline and build-agent topology: initial reusable `VisioGallery` example added with stencil-backed node records, edge records, cluster records, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - Kubernetes/service-mesh topology;
   - incident/runbook sequence;
