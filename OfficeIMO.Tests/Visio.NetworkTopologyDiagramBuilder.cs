@@ -37,13 +37,17 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Branch Topology", page.Name);
-            Assert.Equal(12, page.Shapes.Count);
+            Assert.Equal(15, page.Shapes.Count);
             Assert.Equal(8, page.Connectors.Count);
             Assert.True(page.Shapes.Single(shape => shape.Id == "internet").PinX < page.Shapes.Single(shape => shape.Id == "firewall").PinX);
             Assert.True(page.Shapes.Single(shape => shape.Id == "firewall").PinX < page.Shapes.Single(shape => shape.Id == "core").PinX);
             Assert.True(page.Shapes.Single(shape => shape.Id == "app").PinX < page.Shapes.Single(shape => shape.Id == "db").PinX);
-            Assert.Contains(page.Shapes, shape => shape.Id == "server-zone" && shape.IsBackgroundSurface);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "server-zone").Width > page.Shapes.Single(shape => shape.Id == "app").Width);
+            VisioShape serverZone = Assert.Single(page.Shapes, shape => shape.Id == "server-zone" && shape.IsBackgroundSurface);
+            VisioShape serverZoneLabel = Assert.Single(page.Shapes, shape => shape.Id == "server-zone-label" && shape.Text == "Server Zone");
+            Assert.Equal(string.Empty, serverZone.Text);
+            Assert.Equal("Text Box", serverZoneLabel.NameU);
+            Assert.True(serverZoneLabel.PinY > serverZone.PinY + serverZone.Height / 2D);
+            Assert.True(serverZone.Width > page.Shapes.Single(shape => shape.Id == "app").Width);
             Assert.Contains(page.Shapes, shape => shape.Id == "firewall" && shape.NameU == "Decision");
             Assert.Contains(page.Shapes, shape => shape.Id == "core" && shape.NameU == "Rectangle");
             Assert.Contains(page.Shapes, shape => shape.Id == "db" && shape.NameU == "Data");
@@ -57,7 +61,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(12, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(15, loaded.Pages[0].Shapes.Count);
             Assert.Equal(8, loaded.Pages[0].Connectors.Count);
         }
 

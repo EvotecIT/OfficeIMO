@@ -38,6 +38,18 @@ namespace OfficeIMO.Visio {
         /// <summary>Label text box height in page units.</summary>
         public double Height { get; set; } = 0.3D;
 
+        /// <summary>Absolute page X coordinate for labels placed with <see cref="At(double, double, double, double)"/>.</summary>
+        public double? PinX {
+            get => AbsolutePinX;
+            set => AbsolutePinX = value;
+        }
+
+        /// <summary>Absolute page Y coordinate for labels placed with <see cref="At(double, double, double, double)"/>.</summary>
+        public double? PinY {
+            get => AbsolutePinY;
+            set => AbsolutePinY = value;
+        }
+
         internal double? AbsolutePinX { get; set; }
 
         internal double? AbsolutePinY { get; set; }

@@ -17,6 +17,9 @@ namespace OfficeIMO.Visio {
         /// <summary>Whether top-level shapes should be moved apart when their bounds overlap.</summary>
         public bool ResolveShapeOverlaps { get; set; }
 
+        /// <summary>Whether deterministic connector routes should be nudged around unrelated shapes.</summary>
+        public bool ResolveConnectorShapeIntersections { get; set; }
+
         /// <summary>Whether the page should be moved and optionally resized around the polished content.</summary>
         public bool FitToContent { get; set; } = true;
 
@@ -70,6 +73,12 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Number of search rings to try when moving connector labels.</summary>
         public int ConnectorLabelMaxAttempts { get; set; } = 12;
+
+        /// <summary>Padding added around obstacle shapes when rerouting connectors, in inches.</summary>
+        public double ConnectorRoutingObstaclePadding { get; set; } = 0.15D;
+
+        /// <summary>Number of positive and negative connector routing lanes to try on each axis.</summary>
+        public int ConnectorRoutingMaxLanes { get; set; } = 12;
 
         /// <summary>Search step used when moving overlapping shapes, in inches.</summary>
         public double ShapeOverlapStep { get; set; } = 0.25D;

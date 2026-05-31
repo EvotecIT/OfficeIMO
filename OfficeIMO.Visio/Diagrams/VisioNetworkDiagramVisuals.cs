@@ -2,6 +2,8 @@ using System;
 
 namespace OfficeIMO.Visio.Diagrams {
     internal static class VisioNetworkDiagramVisuals {
+        internal const double BackgroundZoneCaptionHeaderClearance = 0.42D;
+
         internal static void GetNodeShape(VisioNetworkNodeKind kind, double nodeWidth, double nodeHeight, out string masterNameU, out double width, out double height) {
             width = nodeWidth;
             height = nodeHeight;
@@ -87,6 +89,45 @@ namespace OfficeIMO.Visio.Diagrams {
             theme.Container.ApplyTo(shape);
             shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
             return shape;
+        }
+
+        internal static VisioShape? AddBackgroundZoneCaption(
+            VisioPage page,
+            string id,
+            string text,
+            double left,
+            double top,
+            double width,
+            VisioStyleTheme theme) {
+            if (string.IsNullOrWhiteSpace(text)) {
+                return null;
+            }
+
+            VisioShape label = page.AddTextBox(
+                id,
+                left + width / 2D,
+                top + 0.16D,
+                Math.Max(0.8D, width - 0.3D),
+                0.3D,
+                text);
+            label.TextStyle = CreateBackgroundZoneCaptionTextStyle(theme);
+            return label;
+        }
+
+        internal static string CreateBackgroundZoneCaptionId(string zoneId) => zoneId + "-label";
+
+        private static VisioTextStyle CreateBackgroundZoneCaptionTextStyle(VisioStyleTheme theme) {
+            VisioTextStyle style = theme.Container.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 9.5D);
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            style.LeftMargin = 0.08D;
+            style.RightMargin = 0.08D;
+            style.TopMargin = 0D;
+            style.BottomMargin = 0D;
+            return style;
         }
 
         internal static void ResolveSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {

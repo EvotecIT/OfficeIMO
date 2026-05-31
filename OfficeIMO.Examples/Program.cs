@@ -185,6 +185,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--visio-premium") || HasArgument(args, "--premium-visio")) {
+                Visio.PremiumVisioShowcase.Example_PremiumVisioShowcase(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"));
+                return;
+            }
+
             if (HasArgument(args, "--visio-showcase") || HasArgument(args, "--visio")) {
                 RunVisioShowcaseExamples(folderPath, args);
                 return;

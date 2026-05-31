@@ -23,7 +23,8 @@ namespace OfficeIMO.Examples.Visio {
                 new VisioShowcaseExample("08 Generic graph builder", () => GraphDiagramBuilder.Example_GraphDiagramBuilder(showcasePath, false)),
                 new VisioShowcaseExample("09 Editing and data", () => ShapeDataEditing.Example_ShapeDataEditing(showcasePath, false)),
                 new VisioShowcaseExample("10 Containers and routing", () => ContainerEditing.Example_ContainerEditing(showcasePath, false)),
-                new VisioShowcaseExample("11 Visual quality gallery", () => VisualQualityGallery.Example_VisualQualityGallery(showcasePath, false))
+                new VisioShowcaseExample("11 Visual quality gallery", () => VisualQualityGallery.Example_VisualQualityGallery(showcasePath, false)),
+                new VisioShowcaseExample("12 Premium scenario showcase", () => PremiumVisioShowcase.Example_PremiumVisioShowcase(showcasePath, false))
             };
             string? externalStencilPack = Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_STENCIL_PACK");
             if (!string.IsNullOrWhiteSpace(externalStencilPack) && File.Exists(externalStencilPack)) {
@@ -52,11 +53,17 @@ namespace OfficeIMO.Examples.Visio {
                 .OrderBy(file => file, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            ValidateGeneratedPackages(generatedFiles);
-
-            if (exportPreviews || string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_DESKTOP_SHOWCASE"), "1", StringComparison.OrdinalIgnoreCase)) {
-                ExportPreviewFiles(showcasePath, generatedFiles);
+            if (generatedFiles.Count == 0) {
+                throw new InvalidOperationException("Visio showcase did not generate any .vsdx files.");
             }
+
+            ValidateGeneratedPackages(generatedFiles);
+            IReadOnlyList<string> previewFiles = Array.Empty<string>();
+            if (exportPreviews || string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_DESKTOP_SHOWCASE"), "1", StringComparison.OrdinalIgnoreCase)) {
+                previewFiles = ExportPreviewFiles(showcasePath, generatedFiles);
+            }
+
+            WriteShowcaseSummary(showcasePath, generatedFiles, previewFiles);
 
             if (openVisio && generatedFiles.Count > 0) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(generatedFiles[0]) { UseShellExecute = true });
@@ -88,10 +95,10 @@ namespace OfficeIMO.Examples.Visio {
             }
         }
 
-        private static void ExportPreviewFiles(string showcasePath, IReadOnlyList<string> generatedFiles) {
+        private static IReadOnlyList<string> ExportPreviewFiles(string showcasePath, IReadOnlyList<string> generatedFiles) {
             if (!VisioDesktopValidator.IsAvailable()) {
                 Console.WriteLine("    Visio desktop preview export skipped: Microsoft Visio automation is not available.");
-                return;
+                return Array.Empty<string>();
             }
 
             string previewPath = Path.Combine(showcasePath, "Preview");
@@ -120,6 +127,34 @@ namespace OfficeIMO.Examples.Visio {
 
             string galleryPath = WritePreviewGallery(previewPath, previewFiles);
             Console.WriteLine($"    gallery: {galleryPath}");
+            return previewFiles;
+        }
+
+        private static void WriteShowcaseSummary(string showcasePath, IReadOnlyList<string> generatedFiles, IReadOnlyList<string> previewFiles) {
+            string summaryPath = Path.Combine(showcasePath, "showcase-summary.md");
+            using StreamWriter writer = new(summaryPath, false);
+            writer.WriteLine("# OfficeIMO Visio Showcase Summary");
+            writer.WriteLine();
+            writer.WriteLine($"Generated: {DateTimeOffset.UtcNow:O}");
+            writer.WriteLine($"VSDX files: {generatedFiles.Count}");
+            writer.WriteLine($"Preview files: {previewFiles.Count}");
+            writer.WriteLine();
+            writer.WriteLine("## Packages");
+            writer.WriteLine();
+            foreach (string filePath in generatedFiles.OrderBy(file => file, StringComparer.OrdinalIgnoreCase)) {
+                writer.WriteLine($"- `{Path.GetRelativePath(showcasePath, filePath)}`");
+            }
+
+            if (previewFiles.Count > 0) {
+                writer.WriteLine();
+                writer.WriteLine("## Previews");
+                writer.WriteLine();
+                foreach (string filePath in previewFiles.OrderBy(file => file, StringComparer.OrdinalIgnoreCase)) {
+                    writer.WriteLine($"- `{Path.GetRelativePath(showcasePath, filePath)}`");
+                }
+            }
+
+            Console.WriteLine($"    summary: {summaryPath}");
         }
 
         private static string WritePreviewGallery(string previewPath, IEnumerable<string> previewFiles) {

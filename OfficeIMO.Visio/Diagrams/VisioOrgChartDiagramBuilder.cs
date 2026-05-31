@@ -530,15 +530,7 @@ namespace OfficeIMO.Visio.Diagrams {
             title.TextStyle = CreateTitleTextStyle();
         }
 
-        private VisioTextStyle CreateTitleTextStyle() {
-            VisioTextStyle style = _theme.Emphasis.TextStyle?.Clone() ?? new VisioTextStyle();
-            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
-            style.Size = Math.Max(style.Size ?? 0D, 20D);
-            style.Bold = true;
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
-            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
-            return style;
-        }
+        private VisioTextStyle CreateTitleTextStyle() => VisioDiagramTitleStyles.Create(_theme);
 
         private void AddNodes(VisioPage page) {
             foreach (OrgNode node in _nodes) {

@@ -41,20 +41,26 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Branch Network", page.Name);
-            Assert.Equal(14, page.Shapes.Count);
+            Assert.Equal(17, page.Shapes.Count);
             Assert.Equal(9, page.Connectors.Count);
+            VisioShape perimeter = Assert.Single(page.Shapes, shape => shape.Id == "perimeter" && shape.IsBackgroundSurface);
+            VisioShape perimeterLabel = Assert.Single(page.Shapes, shape => shape.Id == "perimeter-label" && shape.Text == "Perimeter");
+            Assert.Equal(string.Empty, perimeter.Text);
+            Assert.Equal("Text Box", perimeterLabel.NameU);
+            Assert.True(perimeterLabel.PinY > perimeter.PinY + perimeter.Height / 2D);
             Assert.Contains(page.Shapes, shape => shape.Id == "firewall" && shape.NameU == "Decision");
             Assert.Contains(page.Shapes, shape => shape.Id == "core" && shape.NameU == "Rectangle");
             Assert.Contains(page.Shapes, shape => shape.Id == "db" && shape.NameU == "Data");
             Assert.Contains(page.Shapes, shape => shape.Id == "wifi" && shape.NameU == "Circle");
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
-            Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
+            string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();
+            Assert.True(qualityIssues.Length == 0, string.Join(Environment.NewLine, qualityIssues));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(14, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(17, loaded.Pages[0].Shapes.Count);
             Assert.Equal(9, loaded.Pages[0].Connectors.Count);
         }
 
@@ -86,9 +92,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Branch Network", title.Text);
             Assert.True(title.PinY > zone.PinY);
-            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+            string[] qualityIssues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckConnectorShapeIntersections = false
-            }).Select(issue => issue.ToString()));
+            }).Select(issue => issue.ToString()).ToArray();
+            Assert.True(qualityIssues.Length == 0, string.Join(Environment.NewLine, qualityIssues));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));

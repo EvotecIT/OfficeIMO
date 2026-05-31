@@ -75,6 +75,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _messageSpacing = 0.62;
         private double _selfMessageWidth = 0.75;
         private double _selfMessageHeight = 0.36;
+        private const double SelfMessageLabelGap = 0.18D;
+        private const double SelfMessageLabelHeight = 0.3D;
         private string? _titleText;
         private string _titleId = "title";
         private double _titleHeight = 0.45;
@@ -275,9 +277,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double y = pageHeight - _topMargin - (_titleHeight / 2D);
             VisioShape title = page.AddTextBox(_titleId, pageWidth / 2D, y, Math.Max(1D, pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
-            if (_theme.Emphasis.TextStyle != null) {
-                title.TextStyle = _theme.Emphasis.TextStyle.Clone();
-            }
+            title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
         }
 
         private void PlaceParticipants(VisioPage page, double pageWidth, double headerY, double lifelineBottomY) {
@@ -352,15 +352,64 @@ namespace OfficeIMO.Visio.Diagrams {
             double lowerY = y - Math.Min(_selfMessageHeight, _messageSpacing * 0.55D);
             VisioShape fromAnchor = CreateAnchor(page, message.Id + "-from", participant.PinX, y);
             VisioShape toAnchor = CreateAnchor(page, message.Id + "-to", participant.PinX, lowerY);
-            VisioConnector connector = page.AddConnector(fromAnchor, toAnchor, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Right);
+            ResolveSelfMessageLabelPlacement(page, participant, message.Label, out double direction, out double labelWidth, out double labelHeight);
+            VisioSide connectorSide = direction > 0D ? VisioSide.Right : VisioSide.Left;
+            double loopX = participant.PinX + (direction * _selfMessageWidth);
+            VisioConnector connector = page.AddConnector(fromAnchor, toAnchor, ConnectorKind.RightAngle, connectorSide, connectorSide);
             connector.Id = message.Id;
             ApplyMessageStyle(connector, message.Kind);
             connector.Label = message.Label;
             connector.RouteThrough(
-                VisioConnectorWaypoint.At(participant.PinX + _selfMessageWidth, y),
-                VisioConnectorWaypoint.At(participant.PinX + _selfMessageWidth, lowerY));
-            connector.PlaceLabelAt(participant.PinX + _selfMessageWidth + 0.55D, y - 0.12D, 1.4D, 0.28D);
+                VisioConnectorWaypoint.At(loopX, y),
+                VisioConnectorWaypoint.At(loopX, lowerY));
+            double labelCenterX = loopX + (direction * (SelfMessageLabelGap + (labelWidth / 2D)));
+            double labelCenterY = y - (labelHeight / 2D);
+            connector.PlaceLabelAt(labelCenterX, labelCenterY, labelWidth, labelHeight);
             page.AddToLayer(MessageLayer, connector);
+        }
+
+        private void ResolveSelfMessageLabelPlacement(VisioPage page, ParticipantItem participant, string label, out double direction, out double labelWidth, out double labelHeight) {
+            double desiredWidth = EstimateSelfMessageLabelWidth(label);
+            double rightAvailable = GetSelfMessageLabelAvailableWidth(page, participant, rightSide: true);
+            double leftAvailable = GetSelfMessageLabelAvailableWidth(page, participant, rightSide: false);
+            bool useRight = rightAvailable >= Math.Min(desiredWidth, 1.1D) || rightAvailable >= leftAvailable;
+            double available = Math.Max(0D, useRight ? rightAvailable : leftAvailable);
+
+            direction = useRight ? 1D : -1D;
+            labelWidth = Math.Max(0.9D, Math.Min(desiredWidth, available));
+            labelHeight = desiredWidth > labelWidth + 0.05D ? 0.46D : SelfMessageLabelHeight;
+        }
+
+        private double GetSelfMessageLabelAvailableWidth(VisioPage page, ParticipantItem participant, bool rightSide) {
+            double direction = rightSide ? 1D : -1D;
+            double loopX = participant.PinX + (direction * _selfMessageWidth);
+            double pageLimit = rightSide
+                ? page.Width - _rightMargin - loopX - SelfMessageLabelGap
+                : loopX - _leftMargin - SelfMessageLabelGap;
+            double nearestParticipantLimit = double.PositiveInfinity;
+
+            foreach (ParticipantItem other in _participants) {
+                if (ReferenceEquals(other, participant)) {
+                    continue;
+                }
+
+                if (rightSide && other.PinX > participant.PinX) {
+                    nearestParticipantLimit = Math.Min(nearestParticipantLimit, other.PinX - loopX - SelfMessageLabelGap - 0.18D);
+                } else if (!rightSide && other.PinX < participant.PinX) {
+                    nearestParticipantLimit = Math.Min(nearestParticipantLimit, loopX - other.PinX - SelfMessageLabelGap - 0.18D);
+                }
+            }
+
+            return Math.Max(0D, Math.Min(pageLimit, nearestParticipantLimit));
+        }
+
+        private static double EstimateSelfMessageLabelWidth(string label) {
+            if (string.IsNullOrWhiteSpace(label)) {
+                return 1.2D;
+            }
+
+            double estimatedWidth = 0.55D + (label.Trim().Length * 0.075D);
+            return Math.Max(1.2D, Math.Min(2.4D, estimatedWidth));
         }
 
         private VisioShape CreateAnchor(VisioPage page, string id, double x, double y) {

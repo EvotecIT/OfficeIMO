@@ -1,8 +1,8 @@
 # OfficeIMO.Visio Roadmap
 
-Date: 2026-05-28
-Branch/worktree: `codex/visio-external-stencil-packs` at `C:\Support\GitHub\OfficeIMO-visio-external-stencil-packs`
-Active PR: https://github.com/EvotecIT/OfficeIMO/pull/1865
+Date: 2026-05-31
+Current branch/worktree: `codex/visio-premium-roadmap` at `C:\Support\GitHub\OfficeIMO-visio-premium-roadmap`
+Last major Visio PR merged: https://github.com/EvotecIT/OfficeIMO/pull/1865
 
 ## Where We Are
 
@@ -12,15 +12,20 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Pages, shapes, connectors, connection points, groups, layers, hyperlinks, User cells, typed Shape Data, protection, page settings, backgrounds, metadata, themes, style sheets, and master-backed page instances.
 - Fluent page and document authoring for lower-level diagrams.
 - High-level builders for flowcharts, block diagrams, dependency diagrams, architecture diagrams, networks, network topology, swimlanes, org charts, timelines, sequences, and generic graphs.
-- Reusable style themes and local node/edge style overrides.
-- Connector routing, label placement, label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
+- Reusable style themes, premium enterprise/cloud/process/dark-safe presets, and local node/edge style overrides.
+- Connector routing, obstacle-aware routing around unrelated shapes, label placement, label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
+- Header-style region/zone captions for architecture, block, network, topology, and graph builders, including layout clearance and quality-analyzer handling for generated caption adornments.
 - First-party generated stencil catalogs and package-backed stencil catalogs.
 - External `.vssx`, `.vstx`, and `.vsdx` catalog loading, including multi-package external stencil repositories.
 - Native/installed Visio stencil discovery when Visio is available, without making Office automation part of the core library.
 - Optional desktop Visio validation/export helpers for local proof, separate from the dependency-free core.
 - Generated showcase examples and preview output for visual inspection.
+- Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
+- A reusable six-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures for Visio desktop preview regression.
+- Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`.
+- Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, Shape Data key, and semantic-kind summaries that survive save/load for package-backed masters.
 
-The branch is green at this checkpoint, but it should be treated as the current staged PR, not the final Visio destination.
+The external stencil and graph slice from PR #1865 is merged. The next checkpoint is no longer proving that the Visio core can generate useful diagrams; it is making the public package story clean, the showcase reproducible, and the generated output visually strong enough to support premium positioning.
 
 ## Product Definition
 
@@ -72,18 +77,20 @@ That implies three durable layers:
 - External stencil gallery examples.
 - Microsoft Integration/Azure pack example path.
 - Showcase preview generation with optional Visio export proof.
+- Premium gallery baseline proof through `VisioPremiumVisualBaselineTests`, including approved PNG/SVG fixtures and opt-in refresh via `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1`.
+- Inspection snapshot/diff API for deterministic structure review across pages, masters, shapes, connectors, Shape Data, User cells, semantic tags, and connector waypoints.
+- Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review and persisted package-backed provenance after reload.
+- Obstacle-aware orthogonal routing APIs plus a `PolishDiagram` option for rerouting connectors around unrelated top-level shapes before label cleanup.
+- Premium style presets for enterprise, cloud, process, and dark-safe diagrams, now used by the reusable premium gallery.
 
 ## Immediate P0
 
 These are the items that still block "premium Visio library" positioning.
 
-1. **Merge the current green PR.**
-   Keep PR #1865 as the active external stencil/graph slice unless new review feedback appears.
-
-2. **Fix the public docs to match the real API.**
+1. **Keep the public docs matched to the real API.**
    Website and product docs should use `VisioDocument`, diagram builders, and stencil catalogs, not older pseudo-APIs.
 
-3. **Make examples visibly better.**
+2. **Make examples visibly better.**
    The library now supports richer output, but the gallery needs stronger art direction:
    - fewer plain rectangles;
    - more external/native stencil usage;
@@ -92,18 +99,21 @@ These are the items that still block "premium Visio library" positioning.
    - restrained but polished themes;
    - examples that show actual business value, not only API coverage.
 
-4. **Add a visual baseline workflow.**
-   Keep XML validation, but add generated SVG/PNG baselines for the showcase so regressions are visible.
+3. **Harden the showcase proof workflow.**
+   Keep structural package validation, write a machine-readable showcase summary, and make optional desktop Visio SVG/PNG exports easy to review when Visio is available.
 
-5. **Resolve the Visio license conflict.**
-   The package metadata says MIT, while `OfficeIMO.Visio/LICENSE.MD` is restrictive. This must be corrected before public messaging claims a clean open-source package story.
+4. **Keep visual baselines meaningful.**
+   The premium gallery now has generated SVG/PNG baselines. Keep them reviewable, refresh only deliberately, and extend the lane with richer diff artifacts. The target gallery and proof levels are tracked in [officeimo.visio.premium-showcase.md](./officeimo.visio.premium-showcase.md).
+
+5. **Keep the license story clean.**
+   `OfficeIMO.Visio` should continue to match the repository MIT license and NuGet package metadata. Do not reintroduce local package license text that conflicts with `PackageLicenseExpression`.
 
 ## P1: Premium Diagram Experience
 
 Goal: generated diagrams should be credible without manual post-editing.
 
-- Add a richer theme catalog with tuned typography, margins, contrast, connector styling, and label rules.
-- Add builder-level `Theme(...)` presets for enterprise, technical, cloud, process, print, and dark-safe diagrams.
+- Continue tuning the richer theme catalog with diagram-specific margins, typography, connector weights, and label rules.
+- Keep builder-level `Theme(...)` presets for enterprise, technical, cloud, process, print, and dark-safe diagrams covered by gallery and baseline proof.
 - Add diagram-specific visual defaults:
   - architecture zones and trust boundaries;
   - network subnets, racks, and device groupings;
@@ -112,7 +122,8 @@ Goal: generated diagrams should be credible without manual post-editing.
   - sequence activations and notes;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
-- Improve orthogonal routing around zones and large node groups.
+- Extend connector label cleanup to use a second all-label stabilization pass and ignore generated adornments when choosing label positions.
+- Extend orthogonal routing from shape-obstacle cleanup into zone-aware, group-aware, and connector-crossing-aware route planning.
 - Add deterministic "polish passes" that can be applied after any builder.
 
 ## P2: Stencil Platform
@@ -131,6 +142,7 @@ Goal: native and external stencil packs feel first-class, not like shortcuts.
   - collaboration/business process symbols.
 - Add a real stencil gallery document builder for catalog review and debugging.
 - Add custom stencil export, ideally to reusable package-backed stencil form when feasible.
+- Expand typed stencil profiles with richer catalog/category/source-pack metadata after metadata extraction is broadened.
 - Document native Visio stencil discovery paths and external pack usage patterns.
 
 ## P3: Real Graphs And Data-Driven Diagrams
@@ -170,7 +182,8 @@ Goal: prove quality continuously.
 - Use `OfficeIMO.Pdf` and `OfficeIMO.Drawing` for optional previews where they fit, without making them the VSDX source of truth.
 - Expand desktop Visio validation to collect repair dialogs, export failures, and visual artifacts.
 - Add CI artifacts for generated showcase previews.
-- Add visual-diff thresholds for premium examples.
+- Extend the premium baseline lane with PNG pixel-diff thresholds and artifact output.
+- Use inspection diffs next to visual baseline failures so review output explains both structural and rendered changes.
 - Track compatibility with Microsoft Visio desktop, Visio web, and common VSDX consumers where practical.
 
 ## API Shape To Prefer

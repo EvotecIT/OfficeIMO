@@ -2965,6 +2965,15 @@ namespace OfficeIMO.Visio {
             }
             bool hasPreservedLayerSection = master.PreservedPageSheetSections.Any(section =>
                 string.Equals(section.Attribute("N")?.Value, "Layer", StringComparison.OrdinalIgnoreCase));
+            bool hasPreservedUserSection = master.PreservedPageSheetSections.Any(section =>
+                string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase));
+            if (master.IsPackageBacked && !hasPreservedUserSection) {
+                WriteUserSection(writer, ns, new List<VisioUserCell> {
+                    new("OfficeIMO.PackageBackedMaster", "1") {
+                        Prompt = "OfficeIMO persisted package-backed stencil provenance"
+                    }
+                });
+            }
             if (definition?.AddConnectorLayer == true && !hasPreservedLayerSection) {
                 writer.WriteStartElement("Section", ns);
                 writer.WriteAttributeString("N", "Layer");

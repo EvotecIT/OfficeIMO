@@ -83,6 +83,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void VisualQualityAnalyzerIgnoresGeneratedBackgroundCaptionAdornments() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("BackgroundCaption", 7, 5);
+            VisioShape background = new("zone", 3, 2, 4, 2, string.Empty) { NameU = "Rectangle" };
+            page.Shapes.Add(background);
+            background.SetUserCell("OfficeIMO.Kind", "BackgroundSurface", "STR");
+            VisioShape caption = page.AddTextBox("zone-label", 3, 2.85, 3.6, 0.3, "Zone");
+            VisioShape source = page.AddRectangle(0.45, 2.85, 0.6, 0.4, "Source");
+            VisioShape target = page.AddRectangle(5.55, 2.85, 0.6, 0.4, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality();
+
+            Assert.True(caption.IsDiagramAdornment);
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ShapeOverlap" && (issue.ShapeId == background.Id || issue.OtherShapeId == background.Id));
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == caption.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerIgnoresCalloutsPlacedOnBackgroundSurfaces() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("BackgroundCallout", 7, 5);
+            VisioShape background = new("lane", 3, 2.5, 5, 2.5, string.Empty) { NameU = "Rectangle" };
+            page.Shapes.Add(background);
+            background.SetUserCell("OfficeIMO.Kind", "BackgroundSurface", "STR");
+            VisioShape target = page.AddRectangle(3, 2.4, 0.8, 0.5, "Target");
+            VisioShape callout = page.AddCallout(target, "target-note", "Evidence note", VisioSide.Bottom);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality();
+
+            Assert.True(callout.IsCallout);
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ShapeOverlap" && (issue.ShapeId == background.Id || issue.OtherShapeId == background.Id));
+        }
+
+        [Fact]
         public void VisualQualityAnalyzerReportsConnectorLabelOverlaps() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("LabelLabels", 7, 5);

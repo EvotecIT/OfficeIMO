@@ -226,7 +226,8 @@ namespace OfficeIMO.Visio {
                 XDocument rawMasterXml = new(content.MasterXml);
                 NormalizeImportedMasterRoot(rawMasterXml);
                 VisioMaster master = new(content.Id, content.NameU, shape) {
-                    RawMasterContentXml = rawMasterXml
+                    RawMasterContentXml = rawMasterXml,
+                    IsPackageBacked = true
                 };
                 foreach (VisioAssets.MasterRelationshipContent relationship in content.Relationships) {
                     master.RawMasterRelationships.Add(relationship);

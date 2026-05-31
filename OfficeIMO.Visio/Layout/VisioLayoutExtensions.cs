@@ -623,7 +623,87 @@ namespace OfficeIMO.Visio {
                 placedLabels.Add(new ConnectorLabelBounds(connector, bestBounds));
             }
 
+            if (avoidLabels && page.Connectors.Count > 1) {
+                ResolveConnectorLabelGlobalOverlaps(page, step, maxAttempts, shapes, shapeBounds, avoidShapes);
+            }
+
             return page;
+        }
+
+        private static void ResolveConnectorLabelGlobalOverlaps(
+            VisioPage page,
+            double step,
+            int maxAttempts,
+            IReadOnlyList<VisioShape> shapes,
+            IReadOnlyDictionary<VisioShape, VisioShapeBounds> shapeBounds,
+            bool avoidShapes) {
+            List<ConnectorLabelBounds> labelBounds = GetConnectorLabelBounds(page);
+            if (labelBounds.Count < 2) {
+                return;
+            }
+
+            foreach (VisioConnector connector in page.Connectors) {
+                VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+                if (placement == null || string.IsNullOrWhiteSpace(connector.Label)) {
+                    continue;
+                }
+
+                List<Point> path = BuildConnectorPath(connector);
+                if (!TryGetConnectorLabelBounds(connector, path, placement, out VisioShapeBounds currentBounds)) {
+                    continue;
+                }
+
+                List<ConnectorLabelBounds> otherLabels = labelBounds
+                    .Where(label => !ReferenceEquals(label.Connector, connector))
+                    .ToList();
+                CandidateScore currentScore = ScoreConnectorLabel(page, connector, currentBounds, shapes, shapeBounds, otherLabels, avoidShapes, avoidLabels: true);
+                if (!currentScore.HasConflict) {
+                    continue;
+                }
+
+                VisioConnectorLabelPlacement bestPlacement = placement.Clone();
+                VisioShapeBounds bestBounds = currentBounds;
+                CandidateScore bestScore = currentScore;
+                foreach (LabelCandidate candidate in EnumerateLabelCandidates(maxAttempts, step)) {
+                    VisioConnectorLabelPlacement candidatePlacement = CreateCandidatePlacement(placement, candidate);
+                    if (!TryGetConnectorLabelBounds(connector, path, candidatePlacement, out VisioShapeBounds candidateBounds)) {
+                        continue;
+                    }
+
+                    CandidateScore candidateScore = ScoreConnectorLabel(page, connector, candidateBounds, shapes, shapeBounds, otherLabels, avoidShapes, avoidLabels: true);
+                    if (candidateScore.IsBetterThan(bestScore)) {
+                        bestPlacement = candidatePlacement;
+                        bestBounds = candidateBounds;
+                        bestScore = candidateScore;
+                    }
+
+                    if (!candidateScore.HasConflict) {
+                        break;
+                    }
+                }
+
+                connector.LabelPlacement = bestPlacement;
+                labelBounds = labelBounds
+                    .Where(label => !ReferenceEquals(label.Connector, connector))
+                    .Concat(new[] { new ConnectorLabelBounds(connector, bestBounds) })
+                    .ToList();
+            }
+        }
+
+        private static List<ConnectorLabelBounds> GetConnectorLabelBounds(VisioPage page) {
+            List<ConnectorLabelBounds> labels = new();
+            foreach (VisioConnector connector in page.Connectors) {
+                if (string.IsNullOrWhiteSpace(connector.Label)) {
+                    continue;
+                }
+
+                List<Point> path = BuildConnectorPath(connector);
+                if (TryGetConnectorLabelBounds(connector, path, out VisioShapeBounds bounds)) {
+                    labels.Add(new ConnectorLabelBounds(connector, bounds));
+                }
+            }
+
+            return labels;
         }
 
         private static void ValidateSelectionLayoutOptions(VisioSelectionLayoutOptions options) {
@@ -908,7 +988,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    if (shape.IsContainer || shape.IsBackgroundSurface) {
+                    if (shape.IsContainer || shape.IsBackgroundSurface || shape.IsDiagramAdornment) {
                         continue;
                     }
 

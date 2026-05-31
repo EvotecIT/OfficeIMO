@@ -404,33 +404,34 @@ or side-placed semantic callouts from business relationships.
 
 `VisioStyleTheme` gives diagrams and later editing passes a shared set of
 shape, connector, and readable text styles. The built-in presets are `Modern`,
-`Office`, `Fluent`, `Technical`, `Minimal`, `Dark`, and `Print`.
+`Office`, `Fluent`, `Technical`, `Enterprise`, `Cloud`, `Process`, `Minimal`,
+`Dark`, `DarkSafe`, and `Print`.
 
 ```csharp
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 
-var theme = VisioStyleTheme.Minimal();
-var dark = VisioStyleTheme.Dark();
+var process = VisioStyleTheme.Process();
+var darkSafe = VisioStyleTheme.DarkSafe();
 
 var doc = VisioDocument.Create("styled.vsdx")
     .Flowchart("Styled Approval Flow", flow => flow
-        .Theme(theme)
+        .Theme(process)
         .Start("start", "Request received")
         .Step("review", "Review request")
         .Decision("approved", "Approved?")
         .End("done", "Done"));
 
 var page = doc.Pages[0];
-page.SelectByMaster("Decision").Style(theme.Decision);
+page.SelectByMaster("Decision").Style(process.Decision);
 page.SelectConnectedConnectors(page.FindShapeById("approved")!)
-    .Style(theme.ControlConnector);
+    .Style(process.ControlConnector);
 page.FitToContent(0.6, 0.45);
 doc.Save();
 
 VisioDocument.Create("dark-styled.vsdx")
-    .BlockDiagram("Dark System Blocks", diagram => diagram
-        .Theme(dark)
+    .BlockDiagram("Dark-Safe System Blocks", diagram => diagram
+        .Theme(darkSafe)
         .Region("zone", "Processing Zone", 0, 0, 3, 1)
         .Block("input", "Input", 0, 0)
         .EmphasisBlock("processor", "Processor", 1, 0)
@@ -449,6 +450,10 @@ documents where a few important lines must avoid crossing the main content.
 OfficeIMO-authored explicit waypoint routes also load back into the connector
 model, so routed diagrams can be edited and saved again without losing the
 route semantics.
+Connectors can also be routed around unrelated top-level shapes with
+`RouteOrthogonalAroundShapes`, or page-wide with
+`RouteConnectorsOrthogonalAroundShapes`, when a generated path would otherwise
+cut through important content.
 Pages can also set native Visio routing defaults for connectors that do not
 carry local routing or line-jump settings, plus placement and layout-grid policy
 used by Visio's Re-Layout Page commands.
@@ -504,6 +509,8 @@ page.SelectConnectedConnectors(source)
         VisioConnectorWaypoint.At(4.5, 3))
     .Label("handoff")
     .LabelPosition(0.6, offsetX: 0.15);
+
+page.RouteConnectorsOrthogonalAroundShapes(padding: 0.12, maxLanes: 16);
 
 doc.Save();
 ```
@@ -577,6 +584,40 @@ doc.PolishDiagrams();
 `EnsureVisualQuality(...)` throws `VisioDiagramQualityException` with the
 blocking issues, which makes it practical to use generated diagrams in tests or
 CI without writing custom issue-loop code.
+
+## Inspection snapshots and structural diffs
+
+Inspection snapshots give tests, review tools, and stencil/profile tooling a
+deterministic view of a generated or loaded diagram without requiring Visio
+desktop automation. The snapshot includes document metadata, pages, masters,
+shapes, connectors, Shape Data, User cells, semantic OfficeIMO tags, layers,
+waypoints, and stable text output.
+
+```csharp
+using OfficeIMO.Visio;
+
+VisioInspectionSnapshot before = doc.CreateInspectionSnapshot();
+string snapshotText = before.ToText();
+
+// ... change, reload, or regenerate the diagram ...
+
+VisioInspectionSnapshot after = doc.CreateInspectionSnapshot();
+VisioInspectionDiff diff = before.Diff(after);
+if (diff.HasDifferences) {
+    Console.WriteLine(diff.ToText());
+}
+
+VisioStencilProfile profile = after.CreateStencilProfile();
+Console.WriteLine(profile.ToText());
+```
+
+Use inspection snapshots alongside package validation and optional PNG/SVG
+preview baselines: the snapshot explains what changed structurally, while the
+stencil profile reports how much of the diagram is generated-master,
+package-backed, or basic-geometry driven. Package-backed provenance is written
+into the VSDX master metadata and survives reloads, so profiles can audit saved
+files as well as in-memory documents. The rendered preview proves how the
+diagram looks.
 
 ## Native stencil catalogs
 
@@ -1082,7 +1123,12 @@ to page bounds. Page fitting and centering include explicit connector waypoints
 and connector label boxes, so routed labels do not get clipped. Text sizing uses
 the deterministic `OfficeIMO.Drawing` measurement engine, so it works without
 system font APIs. Connector labels can also be nudged deterministically away
-from page edges, unrelated shapes, and labels that were already placed.
+from page edges, unrelated shapes, and connector labels. The cleanup runs a
+second all-label stabilization pass and ignores generated adornment captions, so
+premium zone headers do not push legitimate connector labels around.
+It can also opt into obstacle-aware connector routing before label placement,
+which is useful when a generated diagram has simple connector-to-shape
+intersections.
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -1102,6 +1148,8 @@ page.SelectConnectedConnectors(page.FindShapeById("approved")!)
 
 page.PolishDiagram(new VisioDiagramPolishOptions {
     ResolveShapeOverlaps = true,
+    ResolveConnectorShapeIntersections = true,
+    ConnectorRoutingObstaclePadding = 0.12,
     MaximumConnectorLabelWidth = 1.6,
     FitHorizontalMargin = 0.6,
     FitVerticalMargin = 0.45
@@ -1113,8 +1161,9 @@ doc.Save();
 are deterministic and can reroute connectors whose endpoints are both inside a
 page-backed selection.
 `PolishDiagram` can also move crowded top-level shapes apart before it resolves
-connector labels and fits the page, which is useful when a generated diagram has
-reasonable structure but still needs a final visual cleanup pass.
+connector routes, connector labels, and page fitting, which is useful when a
+generated diagram has reasonable structure but still needs a final visual cleanup
+pass.
 
 ## Learning from VSDX fixtures
 

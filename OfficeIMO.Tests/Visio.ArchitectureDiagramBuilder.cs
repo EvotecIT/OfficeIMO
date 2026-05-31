@@ -34,21 +34,27 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Jenkins on Azure", page.Name);
-            Assert.Equal(9, page.Shapes.Count);
+            Assert.Equal(11, page.Shapes.Count);
             Assert.Equal(6, page.Connectors.Count);
-            Assert.Contains(page.Shapes, shape => shape.Id == "vnet" && shape.NameU == "Rectangle");
+            VisioShape vnet = Assert.Single(page.Shapes, shape => shape.Id == "vnet" && shape.NameU == "Rectangle");
+            VisioShape vnetLabel = Assert.Single(page.Shapes, shape => shape.Id == "vnet-label" && shape.Text == "Virtual Network");
+            Assert.True(vnet.IsBackgroundSurface);
+            Assert.Equal(string.Empty, vnet.Text);
+            Assert.Equal("Text Box", vnetLabel.NameU);
+            Assert.True(vnetLabel.PinY > vnet.PinY + vnet.Height / 2D);
             Assert.Contains(page.Shapes, shape => shape.Id == "jenkins" && shape.NameU == "Process");
             Assert.Contains(page.Shapes, shape => shape.Id == "data" && shape.NameU == "Data");
             Assert.Contains(page.Shapes, shape => shape.Id == "vault" && shape.NameU == "Decision");
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
             Assert.All(page.Connectors.Where(connector => !string.IsNullOrWhiteSpace(connector.Label)), connector => Assert.NotNull(connector.LabelPlacement));
-            Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
+            string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();
+            Assert.True(qualityIssues.Length == 0, string.Join(Environment.NewLine, qualityIssues));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(9, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(11, loaded.Pages[0].Shapes.Count);
             Assert.Equal(6, loaded.Pages[0].Connectors.Count);
         }
 

@@ -71,17 +71,56 @@ namespace OfficeIMO.Tests {
             VisioStyleTheme office = VisioStyleTheme.Office();
             VisioStyleTheme fluent = VisioStyleTheme.Fluent();
             VisioStyleTheme dark = VisioStyleTheme.Dark();
+            VisioStyleTheme enterprise = VisioStyleTheme.Enterprise();
+            VisioStyleTheme cloud = VisioStyleTheme.Cloud();
+            VisioStyleTheme process = VisioStyleTheme.Process();
+            VisioStyleTheme darkSafe = VisioStyleTheme.DarkSafe();
 
             Assert.Equal("OfficeIMO Office", office.Name);
             Assert.Equal("OfficeIMO Fluent", fluent.Name);
             Assert.Equal("OfficeIMO Dark", dark.Name);
+            Assert.Equal("OfficeIMO Enterprise", enterprise.Name);
+            Assert.Equal("OfficeIMO Cloud", cloud.Name);
+            Assert.Equal("OfficeIMO Process", process.Name);
+            Assert.Equal("OfficeIMO Dark Safe", darkSafe.Name);
             Assert.NotNull(office.Primary.TextStyle);
             Assert.NotNull(fluent.Decision.TextStyle);
             Assert.NotNull(dark.Primary.TextStyle);
+            Assert.NotNull(enterprise.Container.TextStyle);
+            Assert.NotNull(cloud.DataConnector.TextStyle);
+            Assert.NotNull(process.ControlConnector.TextStyle);
+            Assert.NotNull(darkSafe.Container.TextStyle);
             Assert.Equal(Color.White, dark.Primary.TextStyle!.Color);
             Assert.Equal(Color.White, dark.Success.TextStyle!.Color);
             Assert.NotEqual(dark.Container.FillColor, dark.Container.TextStyle!.Color);
             Assert.NotNull(dark.Connector.TextStyle);
+            Assert.NotEqual(enterprise.Primary.FillColor, enterprise.Decision.FillColor);
+            Assert.NotEqual(cloud.Primary.FillColor, cloud.Container.FillColor);
+            Assert.NotEqual(process.Primary.FillColor, process.Emphasis.FillColor);
+            Assert.NotEqual(darkSafe.Container.FillColor, darkSafe.Container.TextStyle!.Color);
+            Assert.True(darkSafe.Primary.LineWeight > VisioShape.DefaultLineWeight);
+        }
+
+        [Fact]
+        public void PremiumThemePresetsConvertToBuilderThemes() {
+            VisioStyleTheme enterprise = VisioStyleTheme.Enterprise();
+            VisioStyleTheme cloud = VisioStyleTheme.Cloud();
+            VisioStyleTheme process = VisioStyleTheme.Process();
+            VisioStyleTheme darkSafe = VisioStyleTheme.DarkSafe();
+
+            VisioFlowchartTheme enterpriseFlow = enterprise.ToFlowchartTheme();
+            VisioBlockDiagramTheme cloudBlock = cloud.ToBlockDiagramTheme();
+            VisioFlowchartTheme processFlow = process.ToFlowchartTheme();
+            VisioBlockDiagramTheme darkSafeBlock = darkSafe.ToBlockDiagramTheme();
+
+            Assert.Equal(enterprise.Primary.FillColor, enterpriseFlow.ProcessFill);
+            Assert.Equal(enterprise.Decision.FillColor, enterpriseFlow.DecisionFill);
+            Assert.Equal(cloud.Container.FillColor, cloudBlock.RegionFill);
+            Assert.Equal(cloud.DataConnector.LineColor, cloudBlock.DataFlowColor);
+            Assert.Equal(process.Success.FillColor, processFlow.TerminatorFill);
+            Assert.Equal(process.Connector.TextStyle!.Color, processFlow.ConnectorTextStyle!.Color);
+            Assert.Equal(darkSafe.Emphasis.FillColor, darkSafeBlock.EmphasisFill);
+            Assert.Equal(2, darkSafe.ControlConnector.LinePattern);
         }
 
         [Fact]

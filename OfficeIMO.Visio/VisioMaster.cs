@@ -57,6 +57,8 @@ namespace OfficeIMO.Visio {
 
         internal XDocument? RawMasterContentXml { get; set; }
 
+        internal bool IsPackageBacked { get; set; }
+
         internal IList<VisioAssets.MasterRelationshipContent> RawMasterRelationships { get; } = new List<VisioAssets.MasterRelationshipContent>();
     }
 }

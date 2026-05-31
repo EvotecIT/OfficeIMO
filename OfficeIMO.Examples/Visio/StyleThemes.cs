@@ -7,14 +7,14 @@ namespace OfficeIMO.Examples.Visio {
     public static class StyleThemes {
         public static void Example_StyleThemes(string folderPath, bool openVisio) {
             Console.WriteLine("[*] Visio - Reusable style themes");
-            string flowchartPath = Path.Combine(folderPath, "Styled Flowchart.vsdx");
-            string blockPath = Path.Combine(folderPath, "Styled Block Diagram.vsdx");
-            string darkPath = Path.Combine(folderPath, "Styled Dark Diagram.vsdx");
+            string flowchartPath = Path.Combine(folderPath, "Styled Process Flowchart.vsdx");
+            string blockPath = Path.Combine(folderPath, "Styled Enterprise Block Diagram.vsdx");
+            string darkPath = Path.Combine(folderPath, "Styled Dark-Safe Diagram.vsdx");
 
-            VisioStyleTheme minimal = VisioStyleTheme.Minimal();
+            VisioStyleTheme process = VisioStyleTheme.Process();
             VisioDocument flowchart = VisioDocument.Create(flowchartPath)
                 .Flowchart("Styled Approval Flow", flow => flow
-                    .Theme(minimal)
+                    .Theme(process)
                     .Start("start", "Request received")
                     .Step("review", "Review request")
                     .Decision("approved", "Approved?")
@@ -23,15 +23,15 @@ namespace OfficeIMO.Examples.Visio {
                     .Branch("approved", "No", "review"));
 
             VisioPage flowPage = flowchart.Pages[0];
-            flowPage.SelectByMaster("Decision").Style(minimal.Decision);
-            flowPage.SelectConnectedConnectors(flowPage.FindShapeById("approved")!).Style(minimal.ControlConnector);
+            flowPage.SelectByMaster("Decision").Style(process.Decision);
+            flowPage.SelectConnectedConnectors(flowPage.FindShapeById("approved")!).Style(process.ControlConnector);
             flowPage.FitToContent(0.6, 0.45);
             flowchart.Save();
 
-            VisioStyleTheme technical = VisioStyleTheme.Technical();
+            VisioStyleTheme enterprise = VisioStyleTheme.Enterprise();
             VisioDocument.Create(blockPath)
                 .BlockDiagram("Styled System Blocks", diagram => diagram
-                    .Theme(technical)
+                    .Theme(enterprise)
                     .Region("zone", "Processing Zone", 0, 0, 3, 1)
                     .Block("input", "Input", 0, 0)
                     .EmphasisBlock("processor", "Processor", 1, 0)
@@ -40,10 +40,10 @@ namespace OfficeIMO.Examples.Visio {
                     .ControlFlow("processor", "output", "control"))
                 .Save();
 
-            VisioStyleTheme dark = VisioStyleTheme.Dark();
+            VisioStyleTheme darkSafe = VisioStyleTheme.DarkSafe();
             VisioDocument.Create(darkPath)
-                .Flowchart("Dark Theme Approval", flow => flow
-                    .Theme(dark)
+                .Flowchart("Dark-Safe Theme Approval", flow => flow
+                    .Theme(darkSafe)
                     .Start("start", "New request")
                     .Step("triage", "Triage")
                     .Decision("ready", "Ready?")

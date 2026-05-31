@@ -551,6 +551,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 FitToContent = false,
                 ResizeShapesToText = false,
                 ResizeConnectorLabelsToText = true,
+                ResolveConnectorShapeIntersections = _layout != VisioGraphLayout.Radial,
                 ResolveConnectorLabelOverlaps = true
             });
             _document.RequestRecalcOnOpen();
@@ -730,14 +731,14 @@ namespace OfficeIMO.Visio.Diagrams {
                     string.Empty,
                     _theme);
                 page.Shapes.Add(shape);
-                VisioShape label = page.AddTextBox(CreateGeneratedId(zone.Id + "-label"), left + width / 2D, top - 0.18D, Math.Max(0.8D, width - 0.25D), 0.28D, zone.Text);
-                VisioTextStyle labelStyle = _theme.Container.TextStyle?.Clone() ?? new VisioTextStyle();
-                labelStyle.FontFamily = string.IsNullOrWhiteSpace(labelStyle.FontFamily) ? "Aptos" : labelStyle.FontFamily;
-                labelStyle.Size = Math.Max(labelStyle.Size ?? 0D, 9.5D);
-                labelStyle.Bold = true;
-                labelStyle.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
-                labelStyle.VerticalAlignment = VisioTextVerticalAlignment.Middle;
-                label.TextStyle = labelStyle;
+                VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
+                    page,
+                    CreateGeneratedId(VisioNetworkDiagramVisuals.CreateBackgroundZoneCaptionId(zone.Id)),
+                    zone.Text,
+                    left,
+                    top,
+                    width,
+                    _theme);
             }
         }
 
@@ -898,14 +899,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
             VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
-            VisioTextStyle style = _theme.Emphasis.TextStyle?.Clone() ?? new VisioTextStyle();
-            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
-            style.Size = Math.Max(style.Size ?? 0D, 20D);
-            style.Bold = true;
-            style.Color = Color.FromRgb(32, 55, 75);
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
-            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
-            title.TextStyle = style;
+            title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
         }
 
         private void GetZoneBounds(ZoneItem zone, out double left, out double bottom, out double right, out double top) {
@@ -981,7 +975,16 @@ namespace OfficeIMO.Visio.Diagrams {
             return height;
         }
 
-        private double HeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+        private double HeaderHeight {
+            get {
+                double height = string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+                if (_zones.Any(zone => !string.IsNullOrWhiteSpace(zone.Text))) {
+                    height += VisioNetworkDiagramVisuals.BackgroundZoneCaptionHeaderClearance;
+                }
+
+                return height;
+            }
+        }
 
         private static bool HasStencilCaption(NodeItem node) {
             return node.Stencil != null && !string.IsNullOrWhiteSpace(node.Text);

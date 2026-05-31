@@ -56,6 +56,7 @@ namespace OfficeIMO.Tests {
             VisioConnector selfMessage = Assert.Single(messageConnectors, connector => connector.Id == "render");
             Assert.Equal(2, selfMessage.Waypoints.Count);
             Assert.NotNull(selfMessage.LabelPlacement);
+            Assert.True(selfMessage.LabelPlacement.PinX > selfMessage.Waypoints.Max(waypoint => waypoint.X));
             Assert.Contains(page.Layers, layer => layer.Name == "Sequence Lifelines");
             Assert.Contains(page.Layers, layer => layer.Name == "Sequence Messages");
 
@@ -65,6 +66,35 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Label == "POST /orders");
             Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Label == "Render receipt" && connector.Waypoints.Count == 2);
+        }
+
+        [Fact]
+        public void SequenceSelfMessageLabelStaysOutsideLoopAndFlipsNearRightEdge() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SequenceDiagram("Self Message Placement", sequence => sequence
+                    .PageSize(5, 4)
+                    .Margins(0.65, 0.65, 0.65, 0.65)
+                    .ParticipantSize(1, 0.5)
+                    .Spacing(0.8, 0.62, 0.5)
+                    .Participant("left", "Left")
+                    .Participant("right", "Right")
+                    .SelfMessage("left", "Short", id: "left-loop")
+                    .SelfMessage("right", "Update incident record", id: "right-loop"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioConnector leftLoop = Assert.Single(page.Connectors, connector => connector.Id == "left-loop");
+            VisioConnector rightLoop = Assert.Single(page.Connectors, connector => connector.Id == "right-loop");
+
+            Assert.NotNull(leftLoop.LabelPlacement);
+            Assert.NotNull(rightLoop.LabelPlacement);
+            Assert.True(leftLoop.LabelPlacement.PinX > leftLoop.Waypoints.Max(waypoint => waypoint.X));
+            Assert.True(rightLoop.LabelPlacement.PinX < rightLoop.Waypoints.Min(waypoint => waypoint.X));
+            Assert.InRange(rightLoop.LabelPlacement.Width, 0.9D, 2.4D);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
         }
 
         [Fact]

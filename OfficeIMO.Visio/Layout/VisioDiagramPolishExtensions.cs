@@ -78,6 +78,12 @@ namespace OfficeIMO.Visio {
                     resolvedOptions.IncludeContainersInShapeOverlapResolution);
             }
 
+            if (resolvedOptions.ResolveConnectorShapeIntersections) {
+                page.RouteConnectorsOrthogonalAroundShapes(
+                    resolvedOptions.ConnectorRoutingObstaclePadding,
+                    resolvedOptions.ConnectorRoutingMaxLanes);
+            }
+
             if (resolvedOptions.ResolveConnectorLabelOverlaps) {
                 page.ResolveConnectorLabelOverlaps(
                     resolvedOptions.ConnectorLabelStep,
@@ -108,6 +114,16 @@ namespace OfficeIMO.Visio {
 
             if (options.ConnectorLabelMaxAttempts < 0) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Connector label attempt count cannot be negative.");
+            }
+
+            if (options.ConnectorRoutingObstaclePadding < 0D ||
+                double.IsNaN(options.ConnectorRoutingObstaclePadding) ||
+                double.IsInfinity(options.ConnectorRoutingObstaclePadding)) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector routing obstacle padding must be a non-negative finite value.");
+            }
+
+            if (options.ConnectorRoutingMaxLanes < 0) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector routing lane count cannot be negative.");
             }
 
             if (options.ShapeOverlapStep <= 0D || double.IsNaN(options.ShapeOverlapStep) || double.IsInfinity(options.ShapeOverlapStep)) {

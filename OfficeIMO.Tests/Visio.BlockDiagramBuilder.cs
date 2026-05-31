@@ -24,13 +24,17 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("System", page.Name);
-            Assert.Equal(5, page.Shapes.Count);
-            Assert.Equal(new[] { "compute", "input", "memory", "storage", "output" }, page.Shapes.Select(shape => shape.Id).ToArray());
+            Assert.Equal(6, page.Shapes.Count);
+            Assert.Equal(new[] { "compute", "compute-label", "input", "memory", "storage", "output" }, page.Shapes.Select(shape => shape.Id).ToArray());
             Assert.Equal("Rectangle", page.Shapes[0].NameU);
-            Assert.Equal("Process", page.Shapes[1].NameU);
+            Assert.Equal(string.Empty, page.Shapes[0].Text);
+            Assert.Equal("Text Box", page.Shapes[1].NameU);
+            Assert.Equal("Compute", page.Shapes[1].Text);
+            Assert.True(page.Shapes[1].PinY > page.Shapes[0].PinY + page.Shapes[0].Height / 2D);
             Assert.Equal("Process", page.Shapes[2].NameU);
-            Assert.Equal("Data", page.Shapes[3].NameU);
-            Assert.Equal("Process", page.Shapes[4].NameU);
+            Assert.Equal("Process", page.Shapes[3].NameU);
+            Assert.Equal("Data", page.Shapes[4].NameU);
+            Assert.Equal("Process", page.Shapes[5].NameU);
             Assert.Equal(3, page.Connectors.Count);
             Assert.Equal(2, page.Connectors.Count(connector => connector.LinePattern == 1));
             Assert.Single(page.Connectors, connector => connector.LinePattern == 2);
@@ -41,7 +45,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(5, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(6, loaded.Pages[0].Shapes.Count);
             Assert.Equal(3, loaded.Pages[0].Connectors.Count);
             Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Label == "Control");
         }

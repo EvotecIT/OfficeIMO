@@ -351,6 +351,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ResolveConnectorLabelOverlapsIgnoresGeneratedAdornmentShapes() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LabelAdornmentCleanup", 7, 5);
+            VisioShape adornment = page.AddTextBox("zone-caption", 3, 2, 2, 0.35, "Zone caption");
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.2, height: 0.35);
+            connector.Label = "inside zone";
+
+            Assert.True(adornment.IsDiagramAdornment);
+
+            page.ResolveConnectorLabelOverlaps();
+
+            Assert.Equal(3, connector.LabelPlacement!.AbsolutePinX!.Value, 6);
+            Assert.Equal(2, connector.LabelPlacement.AbsolutePinY!.Value, 6);
+        }
+
+        [Fact]
         public void ResolveShapeOverlapsMovesTopLevelShapesApart() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -415,6 +434,30 @@ namespace OfficeIMO.Tests {
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void PolishDiagramCanRouteConnectorsAroundShapesBeforeLabelCleanup() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Route polish", 8, 5);
+            VisioShape source = page.AddRectangle(1, 2.5, 0.8, 0.5, "Source");
+            VisioShape obstacle = page.AddRectangle(4, 2.5, 1.2, 1.0, "Obstacle");
+            VisioShape target = page.AddRectangle(7, 2.5, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5, width: 1.0, height: 0.3);
+            connector.Label = "approved";
+
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                ResolveConnectorShapeIntersections = true,
+                FitToContent = false
+            });
+
+            Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
+            Assert.Equal(2, connector.Waypoints.Count);
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorLabels = false
+            }), issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == obstacle.Id);
         }
 
         [Fact]

@@ -333,7 +333,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 double y = GridY(region.Row, region.RowSpan);
                 double width = region.ColumnSpan * _theme.BlockWidth + (region.ColumnSpan - 1) * _theme.ColumnGap + 0.7;
                 double height = region.RowSpan * _theme.BlockHeight + (region.RowSpan - 1) * _theme.RowGap + 0.55;
-                VisioShape shape = new VisioShape(region.Id, x, y, width, height, region.Text) { NameU = "Rectangle" };
+                VisioShape shape = new VisioShape(region.Id, x, y, width, height, string.Empty) { NameU = "Rectangle" };
                 shape.FillColor = _theme.RegionFill;
                 shape.LineColor = _theme.RegionStroke;
                 shape.LineWeight = _theme.LineWeight;
@@ -342,6 +342,14 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
                 shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
                 page.Shapes.Add(shape);
+                VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
+                    page,
+                    CreateGeneratedAdornmentId(VisioNetworkDiagramVisuals.CreateBackgroundZoneCaptionId(region.Id), page),
+                    region.Text,
+                    x - width / 2D,
+                    y + height / 2D,
+                    width,
+                    CreateCaptionTheme());
             }
         }
 
@@ -493,7 +501,12 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private double HeaderHeight {
             get {
-                return TitleHeaderHeight + (_showLegend ? LegendHeaderHeight : 0D);
+                double height = TitleHeaderHeight + (_showLegend ? LegendHeaderHeight : 0D);
+                if (_regions.Any(region => !string.IsNullOrWhiteSpace(region.Text))) {
+                    height += VisioNetworkDiagramVisuals.BackgroundZoneCaptionHeaderClearance;
+                }
+
+                return height;
             }
         }
 
@@ -556,6 +569,25 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return id + "-" + index;
+        }
+
+        private string CreateGeneratedAdornmentId(string baseId, VisioPage page) {
+            string id = baseId;
+            int index = 2;
+            while (IsIdInUse(id) || page.Shapes.Any(shape => string.Equals(shape.Id, id, StringComparison.Ordinal))) {
+                id = baseId + "-" + index;
+                index++;
+            }
+
+            return id;
+        }
+
+        private VisioStyleTheme CreateCaptionTheme() {
+            VisioStyleTheme theme = VisioStyleTheme.Fluent();
+            theme.Container = new VisioShapeStyle(_theme.RegionFill, _theme.RegionStroke, _theme.LineWeight) {
+                TextStyle = _theme.RegionTextStyle?.Clone()
+            };
+            return theme;
         }
 
         private static void ValidateGridPosition(int column, int row) {
