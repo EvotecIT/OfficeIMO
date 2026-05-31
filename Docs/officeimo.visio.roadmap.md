@@ -148,7 +148,7 @@ Goal: native and external stencil packs feel first-class, not like shortcuts.
   - collaboration/business process symbols.
 - Add a real stencil gallery document builder for catalog review and debugging.
 - Add custom stencil export, ideally to reusable package-backed stencil form when feasible.
-- Broaden typed stencil profiles from catalog/category/source-pack and connection-point metadata into richer icon/preview and package-family profiles as metadata extraction expands.
+- Broaden typed stencil profiles from catalog/category/source-pack/family and connection-point metadata into richer icon/preview, alias, dimension, and package-family profiles as metadata extraction expands.
 - Document native Visio stencil discovery paths and external pack usage patterns.
 
 ## P3: Real Graphs And Data-Driven Diagrams

@@ -55,5 +55,5 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 2. Keep replacing anonymous basic geometry with stencil-backed premium symbols where the domain supports it; all eight current premium baselines now carry first-party stencil provenance for their domain shapes, with sequence activations, guarded/partitioned combined fragments, and collision-aware notes now promoted while deeper nested sequence fragments still need stronger layout.
 3. Keep tightening the baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
 4. Promote the generated-master stencil reference fix into a baseline-reviewed graph gallery scenario so first-party stencils are proven with PNG/SVG quality, not only package structure.
-5. Extend current premium inspection/profile baselines into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
+5. Extend current premium inspection/profile baselines beyond typed family and connection-point rollups into icon/preview metadata, richer package-family details, aliases, dimensions, and deeper native-pack metadata as external metadata extraction improves.
 6. Broaden the gallery from eight baseline-approved diagrams toward a larger market-facing set.
