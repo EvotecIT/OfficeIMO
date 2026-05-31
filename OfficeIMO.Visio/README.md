@@ -222,9 +222,15 @@ var flow = new VisioGraphEdgeRecord("idp", "cluster") {
 };
 flow.ShapeData.Add("Protocol", "OIDC");
 
+var runtime = new VisioGraphClusterRecord("runtime", "Runtime", new[] { "cluster" });
+runtime.ShapeData.Add("Owner", "Platform");
+runtime.HyperlinkAddress = "https://example.org/runtime-runbook";
+
 VisioDocument.Create("inventory-graph.vsdx")
     .GraphDiagram("Imported Inventory", graph => graph
-        .Import(new[] { idp, cluster }, new[] { flow }))
+        .Import(new[] { idp, cluster }, new[] { flow }, new[] { runtime })
+        .Cluster("identity", "Identity", "idp", "cluster")
+        .ZoneShapeData("identity", "Owner", "IAM"))
     .Save();
 ```
 

@@ -101,4 +101,52 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Optional hyperlink sub-address.</summary>
         public string? HyperlinkSubAddress { get; set; }
     }
+
+    /// <summary>
+    /// Simple data record used to import graph clusters into <see cref="VisioGraphDiagramBuilder"/>.
+    /// </summary>
+    public sealed class VisioGraphClusterRecord {
+        /// <summary>
+        /// Initializes a graph cluster import record.
+        /// </summary>
+        public VisioGraphClusterRecord(string id, string text, IEnumerable<string> nodeIds) {
+            if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Cluster id cannot be null or whitespace.", nameof(id));
+            if (nodeIds == null) throw new ArgumentNullException(nameof(nodeIds));
+
+            Id = id;
+            Text = text ?? string.Empty;
+            foreach (string nodeId in nodeIds) {
+                if (string.IsNullOrWhiteSpace(nodeId)) {
+                    throw new ArgumentException("Cluster node ids cannot contain null or whitespace values.", nameof(nodeIds));
+                }
+
+                NodeIds.Add(nodeId);
+            }
+
+            if (NodeIds.Count == 0) {
+                throw new ArgumentException("A graph cluster requires at least one node id.", nameof(nodeIds));
+            }
+        }
+
+        /// <summary>Stable cluster id used for the generated background shape.</summary>
+        public string Id { get; }
+
+        /// <summary>Cluster caption text.</summary>
+        public string Text { get; }
+
+        /// <summary>Node ids contained by the cluster.</summary>
+        public IList<string> NodeIds { get; } = new List<string>();
+
+        /// <summary>Shape Data rows to apply to the generated cluster background.</summary>
+        public IDictionary<string, string?> ShapeData { get; } = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>Optional hyperlink address to attach to the generated cluster background.</summary>
+        public string? HyperlinkAddress { get; set; }
+
+        /// <summary>Optional hyperlink description.</summary>
+        public string? HyperlinkDescription { get; set; }
+
+        /// <summary>Optional hyperlink sub-address.</summary>
+        public string? HyperlinkSubAddress { get; set; }
+    }
 }

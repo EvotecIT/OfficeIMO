@@ -160,7 +160,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
 
 - Add graph import helpers from simple node/edge records. Initial `VisioGraphNodeRecord` / `VisioGraphEdgeRecord` support imports data-driven graph nodes and edges, including stencil catalog lookup, Shape Data, hyperlinks, roots, directed/undirected edges, and stable generated edge ids.
 - Add stable ID and diff-friendly regeneration guidance. Initial graph-record imports derive missing connector ids from endpoint ids and connector kind.
-- Add graph clustering/grouping APIs.
+- Add graph clustering/grouping APIs. Initial `Cluster(...)` / `Clusters(...)` support renders semantic graph clusters as background zones with Shape Data and hyperlinks, and `VisioGraphClusterRecord` can be imported with node/edge records for inventory-driven diagrams.
 - Add dependency cycle presentation instead of only rejection where the diagram type allows cycles.
 - Add legends based on used node/edge types.
 - Add data-driven examples:

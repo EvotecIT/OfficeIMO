@@ -109,6 +109,10 @@ namespace OfficeIMO.Visio.Diagrams {
             public string Text { get; }
 
             public IReadOnlyList<string> NodeIds { get; }
+
+            public List<NodeShapeDataItem> ShapeData { get; } = new();
+
+            public List<VisioHyperlink> Hyperlinks { get; } = new();
         }
 
         private readonly VisioDocument _document;
@@ -121,6 +125,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly List<string> _rootIds = new();
         private readonly HashSet<string> _rootIdSet = new(StringComparer.Ordinal);
         private readonly List<ZoneItem> _zones = new();
+        private readonly Dictionary<string, ZoneItem> _zonesById = new(StringComparer.Ordinal);
         private readonly HashSet<string> _zoneIds = new(StringComparer.Ordinal);
         private readonly HashSet<string> _generatedIds = new(StringComparer.Ordinal);
         private VisioStyleTheme _theme = VisioStyleTheme.Technical();
@@ -247,11 +252,17 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException($"A graph diagram item with id '{normalizedId}' already exists.", nameof(id));
             }
 
-            IReadOnlyList<string> normalizedNodeIds = NormalizeZoneNodeIds(nodeIds);
-            _zones.Add(new ZoneItem(normalizedId, text ?? string.Empty, normalizedNodeIds));
+            IReadOnlyList<string> normalizedNodeIds = NormalizeZoneNodeIds(nodeIds, nameof(nodeIds), "Zone node id");
+            ZoneItem zone = new(normalizedId, text ?? string.Empty, normalizedNodeIds);
+            _zones.Add(zone);
+            _zonesById.Add(normalizedId, zone);
             _zoneIds.Add(normalizedId);
             return this;
         }
+
+        /// <summary>Adds a semantic cluster around graph nodes. Clusters render as graph background zones and can carry Shape Data and hyperlinks.</summary>
+        public VisioGraphDiagramBuilder Cluster(string id, string text, params string[] nodeIds) =>
+            Zone(id, text, nodeIds);
 
         /// <summary>Adds and marks a root node used by layered and radial layout.</summary>
         public VisioGraphDiagramBuilder Root(string id, string text, VisioGraphNodeKind kind = VisioGraphNodeKind.External) {
@@ -337,6 +348,21 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Imports graph nodes and edges from simple data records.</summary>
         public VisioGraphDiagramBuilder Import(IEnumerable<VisioGraphNodeRecord> nodes, IEnumerable<VisioGraphEdgeRecord> edges) {
             return Nodes(nodes).Edges(edges);
+        }
+
+        /// <summary>Imports graph clusters from simple data records.</summary>
+        public VisioGraphDiagramBuilder Clusters(IEnumerable<VisioGraphClusterRecord> clusters) {
+            if (clusters == null) throw new ArgumentNullException(nameof(clusters));
+            foreach (VisioGraphClusterRecord cluster in clusters) {
+                AddClusterRecord(cluster);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports graph nodes, edges, and clusters from simple data records.</summary>
+        public VisioGraphDiagramBuilder Import(IEnumerable<VisioGraphNodeRecord> nodes, IEnumerable<VisioGraphEdgeRecord> edges, IEnumerable<VisioGraphClusterRecord> clusters) {
+            return Nodes(nodes).Edges(edges).Clusters(clusters);
         }
 
         /// <summary>Adds or updates Shape Data metadata that will be written to a graph node.</summary>
@@ -546,6 +572,41 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds or replaces Shape Data on a graph zone or cluster background.</summary>
+        public VisioGraphDiagramBuilder ZoneShapeData(string zoneId, string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
+            string normalizedZoneId = RequireId(zoneId, nameof(zoneId), "Zone id");
+            ZoneItem zone = GetKnownZone(normalizedZoneId, nameof(zoneId));
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentException("Shape data name cannot be null or whitespace.", nameof(name));
+            }
+
+            string normalizedName = name.Trim();
+            zone.ShapeData.RemoveAll(row => string.Equals(row.Name, normalizedName, StringComparison.OrdinalIgnoreCase));
+            zone.ShapeData.Add(new NodeShapeDataItem(normalizedName, value, label, type, prompt, format));
+            return this;
+        }
+
+        /// <summary>Adds a hyperlink that will be written to a graph zone or cluster background.</summary>
+        public VisioGraphDiagramBuilder ZoneHyperlink(string zoneId, string address, string? description = null, string? subAddress = null) {
+            string normalizedZoneId = RequireId(zoneId, nameof(zoneId), "Zone id");
+            ZoneItem zone = GetKnownZone(normalizedZoneId, nameof(zoneId));
+            if (string.IsNullOrWhiteSpace(address)) {
+                throw new ArgumentException("Hyperlink address cannot be null or whitespace.", nameof(address));
+            }
+
+            zone.Hyperlinks.Add(new VisioHyperlink(address, description, subAddress));
+            return this;
+        }
+
+        /// <summary>Adds a hyperlink that will be written to a graph zone or cluster background.</summary>
+        public VisioGraphDiagramBuilder ZoneHyperlink(string zoneId, Uri address, string? description = null, string? subAddress = null) {
+            if (address == null) {
+                throw new ArgumentNullException(nameof(address));
+            }
+
+            return ZoneHyperlink(zoneId, address.ToString(), description, subAddress);
+        }
+
         private void AddNodeRecord(VisioGraphNodeRecord record) {
             if (record == null) throw new ArgumentNullException(nameof(record));
             if (record.Stencil != null) {
@@ -581,6 +642,19 @@ namespace OfficeIMO.Visio.Diagrams {
 
             if (!string.IsNullOrWhiteSpace(record.HyperlinkAddress)) {
                 EdgeHyperlink(edgeId, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
+            }
+        }
+
+        private void AddClusterRecord(VisioGraphClusterRecord record) {
+            if (record == null) throw new ArgumentNullException(nameof(record));
+            IReadOnlyList<string> nodeIds = NormalizeZoneNodeIds(record.NodeIds, nameof(record.NodeIds), "Cluster node id");
+            Cluster(record.Id, record.Text, nodeIds.ToArray());
+            foreach (KeyValuePair<string, string?> item in record.ShapeData) {
+                ZoneShapeData(record.Id, item.Key, item.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(record.HyperlinkAddress)) {
+                ZoneHyperlink(record.Id, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
             }
         }
 
@@ -822,6 +896,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     string.Empty,
                     _theme);
                 page.Shapes.Add(shape);
+                ApplyZoneMetadata(shape, zone);
                 VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
                     page,
                     CreateGeneratedId(VisioNetworkDiagramVisuals.CreateBackgroundZoneCaptionId(zone.Id)),
@@ -1076,6 +1151,17 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
+        private static void ApplyZoneMetadata(VisioShape shape, ZoneItem zone) {
+            foreach (NodeShapeDataItem data in zone.ShapeData) {
+                shape.SetShapeData(data.Name, data.Value, data.Label, data.Type, data.Prompt, data.Format);
+            }
+
+            foreach (VisioHyperlink hyperlink in zone.Hyperlinks) {
+                VisioHyperlink target = shape.AddHyperlink(hyperlink.Address ?? string.Empty, hyperlink.Description, hyperlink.SubAddress);
+                CopyHyperlinkSettings(hyperlink, target);
+            }
+        }
+
         private VisioShapeStyle? GetBuiltInStencilNodeStyle(NodeItem node) {
             if (node.Stencil == null || !string.IsNullOrWhiteSpace(node.Stencil.SourcePackagePath)) {
                 return null;
@@ -1228,19 +1314,27 @@ namespace OfficeIMO.Visio.Diagrams {
             throw new ArgumentException($"Unknown graph edge id '{id}'.", parameterName);
         }
 
-        private static IReadOnlyList<string> NormalizeZoneNodeIds(string[] nodeIds) {
+        private ZoneItem GetKnownZone(string id, string parameterName) {
+            if (_zonesById.TryGetValue(id, out ZoneItem? zone)) {
+                return zone;
+            }
+
+            throw new ArgumentException($"Unknown graph zone id '{id}'.", parameterName);
+        }
+
+        private static IReadOnlyList<string> NormalizeZoneNodeIds(IEnumerable<string> nodeIds, string parameterName, string label) {
             if (nodeIds == null) throw new ArgumentNullException(nameof(nodeIds));
             List<string> normalizedNodeIds = new();
             HashSet<string> seen = new(StringComparer.Ordinal);
-            for (int i = 0; i < nodeIds.Length; i++) {
-                string normalizedId = RequireId(nodeIds[i], nameof(nodeIds), "Zone node id");
+            foreach (string nodeId in nodeIds) {
+                string normalizedId = RequireId(nodeId, parameterName, label);
                 if (seen.Add(normalizedId)) {
                     normalizedNodeIds.Add(normalizedId);
                 }
             }
 
             if (normalizedNodeIds.Count == 0) {
-                throw new ArgumentException("A graph zone requires at least one node id.", nameof(nodeIds));
+                throw new ArgumentException("A graph zone or cluster requires at least one node id.", parameterName);
             }
 
             return normalizedNodeIds.AsReadOnly();

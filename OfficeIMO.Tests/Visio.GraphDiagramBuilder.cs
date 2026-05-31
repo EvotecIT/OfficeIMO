@@ -360,6 +360,83 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderImportsClustersWithMetadataAndHyperlinks() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioGraphNodeRecord idp = new("idp", "Entra ID") {
+                StencilCatalog = VisioStencils.SecurityIdentity,
+                IsRoot = true
+            };
+            idp.StencilQueries.Add("idp");
+
+            VisioGraphNodeRecord api = new("api", "API Gateway") {
+                StencilCatalog = VisioStencils.Cloud
+            };
+            api.StencilQueries.Add("api");
+
+            VisioGraphNodeRecord worker = new("worker", "Processor") {
+                Kind = VisioGraphNodeKind.Process
+            };
+
+            VisioGraphNodeRecord database = new("db", "Customer Data") {
+                StencilCatalog = VisioStencils.DataPlatform
+            };
+            database.StencilQueries.Add("database");
+
+            VisioGraphEdgeRecord auth = new("idp", "api") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "authorize"
+            };
+            VisioGraphEdgeRecord process = new("api", "worker") {
+                Label = "enqueue"
+            };
+            VisioGraphEdgeRecord persist = new("worker", "db") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "write"
+            };
+
+            VisioGraphClusterRecord runtime = new("runtime-cluster", "Runtime Tier", new[] { "api", "worker", "db", "api" }) {
+                HyperlinkAddress = "https://example.org/runtime",
+                HyperlinkDescription = "Runtime runbook"
+            };
+            runtime.ShapeData.Add("Owner", "Platform");
+            runtime.ShapeData.Add("Tier", "Production");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Clustered Inventory Graph", graph => graph
+                    .Title()
+                    .Import(
+                        new[] { idp, api, worker, database },
+                        new[] { auth, process, persist },
+                        new[] { runtime })
+                    .Cluster("identity-cluster", "Identity", "idp", "api")
+                    .ZoneShapeData("identity-cluster", "Owner", "IAM")
+                    .ZoneHyperlink("identity-cluster", "https://example.org/identity", "Identity runbook"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape runtimeShape = page.Shapes.Single(shape => shape.Id == "runtime-cluster");
+            VisioShape identityShape = page.Shapes.Single(shape => shape.Id == "identity-cluster");
+            Assert.True(runtimeShape.IsBackgroundSurface);
+            Assert.True(identityShape.IsBackgroundSurface);
+            Assert.Equal("Platform", runtimeShape.GetShapeDataValue("Owner"));
+            Assert.Equal("Production", runtimeShape.GetShapeDataValue("Tier"));
+            Assert.Contains(runtimeShape.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runtime" && hyperlink.Description == "Runtime runbook");
+            Assert.Equal("IAM", identityShape.GetShapeDataValue("Owner"));
+            Assert.Contains(identityShape.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/identity" && hyperlink.Description == "Identity runbook");
+            Assert.Contains(page.Shapes, shape => shape.Id == "runtime-cluster-label" && shape.Text == "Runtime Tier");
+            Assert.Contains(page.Shapes, shape => shape.Id == "identity-cluster-label" && shape.Text == "Identity");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedRuntime = loaded.Pages[0].Shapes.Single(shape => shape.Id == "runtime-cluster");
+            VisioShape loadedIdentity = loaded.Pages[0].Shapes.Single(shape => shape.Id == "identity-cluster");
+            Assert.Equal("Platform", loadedRuntime.GetShapeDataValue("Owner"));
+            Assert.Contains(loadedRuntime.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/runtime");
+            Assert.Equal("IAM", loadedIdentity.GetShapeDataValue("Owner"));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderCanOverrideNodeAndNamedEdgeStyles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             Color nodeFill = Color.FromRgb(245, 104, 85);
