@@ -3,7 +3,6 @@ using System;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Word;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -41,21 +40,7 @@ public partial class Word {
         }
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
-        byte[] startPattern = Encoding.ASCII.GetBytes("stream\n");
-        byte[] endPattern = Encoding.ASCII.GetBytes("\nendstream");
-        int start = IndexOf(bytes, startPattern, 0);
-        Assert.True(start >= 0, "stream marker not found");
-        start += startPattern.Length;
-        int end = IndexOf(bytes, endPattern, start);
-        Assert.True(end >= 0, "endstream marker not found");
-        int length = end - start;
-        int deflateLength = length - 6;
-        byte[] deflateData = new byte[deflateLength];
-        Array.Copy(bytes, start + 2, deflateData, 0, deflateLength);
-        using MemoryStream ms = new MemoryStream(deflateData);
-        using DeflateStream ds = new DeflateStream(ms, CompressionMode.Decompress);
-        using StreamReader reader = new StreamReader(ds, Encoding.GetEncoding("ISO-8859-1"));
-        string content = reader.ReadToEnd();
+        string content = ReadFirstPdfStreamContent(bytes);
         Assert.Contains("1 0 0 rg", content);
         Assert.Contains("0 0 1 RG", content);
     }

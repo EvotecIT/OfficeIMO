@@ -234,6 +234,42 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Filters_Images_And_Charts_Outside_Print_Area() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPrintAreaMedia.xlsx");
+        byte[] imageBytes = CreateMinimalRgbPng();
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(2, 2, "Category");
+            sheet.Cell(2, 3, "Value");
+            sheet.Cell(3, 2, "Inside");
+            sheet.Cell(3, 3, 10);
+            sheet.Cell(10, 1, "OutsideData");
+            sheet.AddImage(3, 2, imageBytes, "image/png", widthPixels: 12, heightPixels: 12, name: "Inside image");
+            sheet.AddImage(10, 1, imageBytes, "image/png", widthPixels: 12, heightPixels: 12, name: "Outside image");
+            sheet.AddChartFromRange("B2:C3", row: 3, column: 2, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Inside Chart");
+            sheet.AddChartFromRange("B2:C3", row: 10, column: 1, widthPixels: 220, heightPixels: 120, type: ExcelChartType.ColumnClustered, title: "Outside Chart");
+            document.SetPrintArea(sheet, "B2:C3");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                UseWorksheetPrintAreas = true,
+                PageSize = new PdfCore.PageSize(420, 320),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Inside Chart", text);
+        Assert.DoesNotContain("Outside Chart", text);
+        Assert.DoesNotContain("OutsideData", text);
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(bytes));
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Uses_Worksheet_Orientation_And_Margins() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetPageSetup.xlsx");
 
@@ -1068,6 +1104,8 @@ public partial class Excel {
             sheet.CellAt(3, 2).SetValue(0.257).Percent(1);
             sheet.Cell(4, 1, "Date");
             sheet.CellAt(4, 2).SetValue(new DateTime(2026, 1, 15)).Date("yyyy-mm-dd");
+            sheet.Cell(5, 1, "Minutes");
+            sheet.CellAt(5, 2).SetValue(new DateTime(2026, 1, 15, 0, 30, 5)).SetNumberFormat("mm:ss");
 
             ExcelCellStyleSnapshot currencyStyle = sheet.CellAt(2, 2).GetStyle();
             Assert.Equal("\"$\"#,##0.00", currencyStyle.NumberFormatCode);
@@ -1092,6 +1130,8 @@ public partial class Excel {
         Assert.Contains("$1,234.50", text);
         Assert.Contains("25.7%", text);
         Assert.Contains("2026-01-15", text);
+        Assert.Contains("30:05", text);
+        Assert.DoesNotContain("01:05", text);
         Assert.DoesNotContain("1234.5", text);
         Assert.DoesNotContain("0.257", text);
     }

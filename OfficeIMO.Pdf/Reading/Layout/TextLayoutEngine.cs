@@ -267,12 +267,12 @@ internal static class TextLayoutEngine {
                     else {
                         // Fallback: if both look like full words and there is a visible gap, insert a space
                         bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) && prev.Text.Length >= 2 && s.Text.Length >= 2;
-                        if (bothAlphaLong && gap > 0.8 && (text.Length > 0 && text[text.Length - 1] != ' ')) text.Append(' ');
+                        if ((bothAlphaLong || ShouldRespectVisibleGap(prev.Text, s.Text)) && IsVisibleWordGap(gap, s.FontSize) && (text.Length > 0 && text[text.Length - 1] != ' ')) text.Append(' ');
                     }
                 } else if (!isLeader) {
                     // Guard: if both chunks look like full words (>=2 letters) and there is any visible gap, emit a space
                     bool bothAlphaLong = AllWordish(prev.Text) && AllWordish(s.Text) && prev.Text.Length >= 2 && s.Text.Length >= 2;
-                    if (bothAlphaLong && gap > 0.8 && (text.Length > 0 && text[text.Length - 1] != ' ')) {
+                    if ((bothAlphaLong || ShouldRespectVisibleGap(prev.Text, s.Text)) && IsVisibleWordGap(gap, s.FontSize) && (text.Length > 0 && text[text.Length - 1] != ' ')) {
                         text.Append(' ');
                     }
                     if (gap > threshold) text.Append(' ');
@@ -359,6 +359,16 @@ internal static class TextLayoutEngine {
     private static bool IsWordish(char c) => char.IsLetter(c) || c == '\'' || c == '-' || c == '/';
     private static bool AllWordish(string s) { if (string.IsNullOrEmpty(s)) return false; for (int i = 0; i < s.Length; i++) if (!IsWordish(s[i])) return false; return true; }
     private static bool IsShortAbbrev(string s) { if (string.IsNullOrEmpty(s) || s.Length > 3) return false; for (int i = 0; i < s.Length; i++) if (!char.IsUpper(s[i])) return false; return true; }
+    private static bool IsVisibleWordGap(double gap, double fontSize) =>
+        gap > System.Math.Max(0.8, System.Math.Min(2.0, fontSize * 0.18));
+    private static bool ShouldRespectVisibleGap(string left, string right) {
+        if (string.IsNullOrEmpty(left) || string.IsNullOrEmpty(right)) return false;
+        char a = left[left.Length - 1];
+        char b = right[0];
+        bool leftBoundary = char.IsLetterOrDigit(a) || a == ':' || a == ';' || a == ',' || a == '.' || a == ')' || a == '"' || a == '\'';
+        bool rightBoundary = char.IsLetterOrDigit(b) || b == '(' || b == '"' || b == '\'';
+        return leftBoundary && rightBoundary;
+    }
     private static string NormalizeLineText(string s) {
         if (string.IsNullOrEmpty(s)) return s;
         s = System.Text.RegularExpressions.Regex.Replace(s, "\\s+", " ").Trim();

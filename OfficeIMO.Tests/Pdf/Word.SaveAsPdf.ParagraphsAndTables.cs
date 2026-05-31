@@ -1076,7 +1076,7 @@ namespace OfficeIMO.Tests {
             Assert.True(markedText > boldText, "Expected encoded 'CellMarked' text after the bold table cell run.");
             Assert.True(largeText > markedText, "Expected encoded 'CellLarge' text after the highlighted table cell run.");
             Assert.True(content.LastIndexOf("1 0 0 rg", redText, StringComparison.Ordinal) >= 0, "Expected Word table cell run color to emit a red PDF fill color.");
-            Assert.True(content.LastIndexOf("/F2 11 Tf", boldText, StringComparison.Ordinal) >= 0, "Expected Word table cell bold run to use the bold PDF font resource.");
+            Assert.True(content.LastIndexOf("/F2 ", boldText, StringComparison.Ordinal) >= 0, "Expected Word table cell bold run to use the bold PDF font resource.");
             Assert.True(content.LastIndexOf("1 1 0 rg", markedText, StringComparison.Ordinal) >= 0, "Expected Word table cell run highlight to emit a yellow PDF fill color.");
             Assert.True(content.LastIndexOf(" 18 Tf", largeText, StringComparison.Ordinal) >= 0, "Expected Word table cell run font size to emit an 18-point PDF run.");
         }

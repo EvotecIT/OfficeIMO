@@ -123,8 +123,6 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelSheet.HeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? workbookSheet?.GetHeaderFooter() : null;
                 string exportRange = GetExportRange(sheet, workbookSheet, options);
                 SheetExportData exportData = ReadSheetExportData(sheet, workbookSheet, exportRange, options);
-                IReadOnlyList<WorksheetImageExportData> images = ReadWorksheetImages(workbookSheet, options, sheetName);
-                IReadOnlyList<WorksheetChartExportData> charts = ReadWorksheetCharts(workbookSheet, options, sheetName);
                 IReadOnlyList<int> manualRowBreaks = options.UseWorksheetPageBreaks && workbookSheet != null
                     ? workbookSheet.GetManualRowPageBreaks()
                     : Array.Empty<int>();
@@ -135,10 +133,6 @@ namespace OfficeIMO.Excel.Pdf {
                 int rows = values.GetLength(0);
                 int columns = values.GetLength(1);
                 bool hasTable = rows > 0 && columns > 0;
-                if (!hasTable && images.Count == 0 && charts.Count == 0) {
-                    continue;
-                }
-
                 int exportedRows = options.MaxRowsPerSheet.HasValue
                     ? Math.Min(rows, options.MaxRowsPerSheet.Value)
                     : rows;
@@ -148,6 +142,13 @@ namespace OfficeIMO.Excel.Pdf {
                         sheetName,
                         "WorksheetRows",
                         $"Worksheet export was truncated from {rows.ToString(CultureInfo.InvariantCulture)} to {exportedRows.ToString(CultureInfo.InvariantCulture)} rows because MaxRowsPerSheet is set.");
+                }
+
+                ISet<string>? exportedCellReferences = CreateExportedCellReferenceSet(exportData.CellReferences, exportedRows);
+                IReadOnlyList<WorksheetImageExportData> images = FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences);
+                IReadOnlyList<WorksheetChartExportData> charts = FilterChartsByExportedCells(ReadWorksheetCharts(workbookSheet, options, sheetName), exportedCellReferences);
+                if (!hasTable && images.Count == 0 && charts.Count == 0) {
+                    continue;
                 }
 
                 plans.Add(new WorksheetPdfExportPlan(
@@ -2673,6 +2674,46 @@ namespace OfficeIMO.Excel.Pdf {
             return result;
         }
 
+        private static ISet<string>? CreateExportedCellReferenceSet(string?[,]? cellReferences, int exportedRows) {
+            if (cellReferences == null) {
+                return null;
+            }
+
+            var exported = new HashSet<string>(StringComparer.Ordinal);
+            int rows = Math.Min(exportedRows, cellReferences.GetLength(0));
+            int columns = cellReferences.GetLength(1);
+            for (int row = 0; row < rows; row++) {
+                for (int column = 0; column < columns; column++) {
+                    string? reference = cellReferences[row, column];
+                    if (!string.IsNullOrWhiteSpace(reference)) {
+                        exported.Add(NormalizeCellReference(reference!));
+                    }
+                }
+            }
+
+            return exported;
+        }
+
+        private static IReadOnlyList<WorksheetImageExportData> FilterImagesByExportedCells(IReadOnlyList<WorksheetImageExportData> images, ISet<string>? exportedCellReferences) {
+            if (images.Count == 0 || exportedCellReferences == null) {
+                return images;
+            }
+
+            return images
+                .Where(image => exportedCellReferences.Contains(NormalizeCellReference(image.CellReference)))
+                .ToList();
+        }
+
+        private static IReadOnlyList<WorksheetChartExportData> FilterChartsByExportedCells(IReadOnlyList<WorksheetChartExportData> charts, ISet<string>? exportedCellReferences) {
+            if (charts.Count == 0 || exportedCellReferences == null) {
+                return charts;
+            }
+
+            return charts
+                .Where(chart => exportedCellReferences.Contains(A1.CellReference(chart.Snapshot.RowIndex, chart.Snapshot.ColumnIndex)))
+                .ToList();
+        }
+
         private static string NormalizeCellReference(string cellReference) {
             return cellReference.Replace("$", string.Empty).ToUpperInvariant();
         }
@@ -3739,7 +3780,7 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 string token = format.Substring(start, i - start);
-                builder.Append(ConvertExcelDateToken(token, builder));
+                builder.Append(ConvertExcelDateToken(token, builder, format, i));
             }
 
             return builder.ToString();
@@ -3758,7 +3799,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static string ConvertExcelDateToken(string token, System.Text.StringBuilder output) {
+        private static string ConvertExcelDateToken(string token, System.Text.StringBuilder output, string format, int nextIndex) {
             char lower = char.ToLowerInvariant(token[0]);
             switch (lower) {
                 case 'y':
@@ -3770,7 +3811,7 @@ namespace OfficeIMO.Excel.Pdf {
                 case 's':
                     return token.Length <= 1 ? "s" : "ss";
                 case 'm':
-                    bool timeMinute = PreviousNonSpace(output) == ':';
+                    bool timeMinute = PreviousNonSpace(output) == ':' || NextNonSpace(format, nextIndex) == ':';
                     if (timeMinute) {
                         return token.Length <= 1 ? "m" : "mm";
                     }
@@ -3785,6 +3826,16 @@ namespace OfficeIMO.Excel.Pdf {
             for (int i = builder.Length - 1; i >= 0; i--) {
                 if (!char.IsWhiteSpace(builder[i])) {
                     return builder[i];
+                }
+            }
+
+            return '\0';
+        }
+
+        private static char NextNonSpace(string value, int startIndex) {
+            for (int i = startIndex; i < value.Length; i++) {
+                if (!char.IsWhiteSpace(value[i])) {
+                    return value[i];
                 }
             }
 

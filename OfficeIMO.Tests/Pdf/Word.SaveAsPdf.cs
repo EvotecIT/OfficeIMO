@@ -461,6 +461,59 @@ public partial class Word {
         return -1;
     }
 
+    private static string ReadFirstPdfStreamContent(byte[] bytes) {
+        int start = FindPdfStreamDataStart(bytes);
+        Assert.True(start >= 0, "stream marker not found");
+
+        byte[] endPattern = Encoding.ASCII.GetBytes("endstream");
+        int end = IndexOf(bytes, endPattern, start);
+        Assert.True(end >= 0, "endstream marker not found");
+
+        int length = end - start;
+        while (length > 0 && (bytes[start + length - 1] == '\r' || bytes[start + length - 1] == '\n')) {
+            length--;
+        }
+
+        byte[] streamData = new byte[length];
+        Array.Copy(bytes, start, streamData, 0, length);
+
+        if (TryInflatePdfStream(streamData, 0, streamData.Length, out string inflated)) {
+            return inflated;
+        }
+
+        if (streamData.Length > 6 &&
+            TryInflatePdfStream(streamData, 2, streamData.Length - 6, out inflated)) {
+            return inflated;
+        }
+
+        return Encoding.GetEncoding("ISO-8859-1").GetString(streamData);
+    }
+
+    private static int FindPdfStreamDataStart(byte[] bytes) {
+        byte[] lfPattern = Encoding.ASCII.GetBytes("stream\n");
+        int lfStart = IndexOf(bytes, lfPattern, 0);
+        if (lfStart >= 0) {
+            return lfStart + lfPattern.Length;
+        }
+
+        byte[] crlfPattern = Encoding.ASCII.GetBytes("stream\r\n");
+        int crlfStart = IndexOf(bytes, crlfPattern, 0);
+        return crlfStart >= 0 ? crlfStart + crlfPattern.Length : -1;
+    }
+
+    private static bool TryInflatePdfStream(byte[] bytes, int offset, int count, out string content) {
+        try {
+            using var source = new MemoryStream(bytes, offset, count);
+            using var deflate = new System.IO.Compression.DeflateStream(source, System.IO.Compression.CompressionMode.Decompress);
+            using var reader = new StreamReader(deflate, Encoding.GetEncoding("ISO-8859-1"));
+            content = reader.ReadToEnd();
+            return !string.IsNullOrEmpty(content);
+        } catch (InvalidDataException) {
+            content = string.Empty;
+            return false;
+        }
+    }
+
     private static void AssertPdfUsesFont(string pdfPath, string expectedFontNamePart) {
         using PdfDocument pdf = PdfDocument.Open(pdfPath);
         Assert.Contains(pdf.GetPage(1).Letters, letter =>

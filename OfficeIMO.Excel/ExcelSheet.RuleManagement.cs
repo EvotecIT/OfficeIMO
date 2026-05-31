@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel {
                     list.Add(new ExcelConditionalFormattingInfo {
                         Range = range,
                         Type = ReadConditionalFormatType(rule),
-                        Operator = rule.Operator?.Value.ToString(),
+                        Operator = ReadConditionalFormatOperator(rule),
                         Priority = (int)(rule.Priority?.Value ?? 0),
                         StopIfTrue = rule.StopIfTrue?.Value ?? false,
                         Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
@@ -65,6 +65,28 @@ namespace OfficeIMO.Excel {
             if (value == ConditionalFormatValues.AboveAverage) return nameof(ConditionalFormatValues.AboveAverage);
 
             return rule.Type.InnerText ?? string.Empty;
+        }
+
+        private static string? ReadConditionalFormatOperator(ConditionalFormattingRule rule) {
+            if (rule.Operator == null) {
+                return null;
+            }
+
+            ConditionalFormattingOperatorValues value = rule.Operator.Value;
+            if (value == ConditionalFormattingOperatorValues.Between) return nameof(ConditionalFormattingOperatorValues.Between);
+            if (value == ConditionalFormattingOperatorValues.NotBetween) return nameof(ConditionalFormattingOperatorValues.NotBetween);
+            if (value == ConditionalFormattingOperatorValues.Equal) return nameof(ConditionalFormattingOperatorValues.Equal);
+            if (value == ConditionalFormattingOperatorValues.NotEqual) return nameof(ConditionalFormattingOperatorValues.NotEqual);
+            if (value == ConditionalFormattingOperatorValues.GreaterThan) return nameof(ConditionalFormattingOperatorValues.GreaterThan);
+            if (value == ConditionalFormattingOperatorValues.LessThan) return nameof(ConditionalFormattingOperatorValues.LessThan);
+            if (value == ConditionalFormattingOperatorValues.GreaterThanOrEqual) return nameof(ConditionalFormattingOperatorValues.GreaterThanOrEqual);
+            if (value == ConditionalFormattingOperatorValues.LessThanOrEqual) return nameof(ConditionalFormattingOperatorValues.LessThanOrEqual);
+            if (value == ConditionalFormattingOperatorValues.ContainsText) return nameof(ConditionalFormattingOperatorValues.ContainsText);
+            if (value == ConditionalFormattingOperatorValues.NotContains) return nameof(ConditionalFormattingOperatorValues.NotContains);
+            if (value == ConditionalFormattingOperatorValues.BeginsWith) return nameof(ConditionalFormattingOperatorValues.BeginsWith);
+            if (value == ConditionalFormattingOperatorValues.EndsWith) return nameof(ConditionalFormattingOperatorValues.EndsWith);
+
+            return rule.Operator.InnerText;
         }
 
         private static IReadOnlyList<string> ReadColorScaleColors(ConditionalFormattingRule rule) {

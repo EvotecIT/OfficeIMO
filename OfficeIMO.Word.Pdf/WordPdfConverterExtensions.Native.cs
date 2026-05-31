@@ -2474,20 +2474,6 @@ namespace OfficeIMO.Word.Pdf {
                         consumedOnPage = 0D;
                     }
 
-                    if (element is WordParagraph headingParagraph) {
-                        int headingLevel = GetNativeTableOfContentsHeadingLevel(headingParagraph);
-                        if (headingLevel > 0) {
-                            string headingText = GetNativeParagraphDisplayText(headingParagraph);
-                            if (!string.IsNullOrWhiteSpace(headingText)) {
-                                string? destinationName = headingParagraph._paragraph != null &&
-                                    headingDestinations.TryGetValue(headingParagraph._paragraph, out string? foundDestination)
-                                        ? foundDestination
-                                        : null;
-                                entries.Add(new NativeTableOfContentsEntry(headingText, headingLevel, currentPage, destinationName));
-                            }
-                        }
-                    }
-
                     if (element is WordParagraph pageBreakParagraph && pageBreakParagraph.IsPageBreak) {
                         currentPage++;
                         consumedOnPage = 0D;
@@ -2508,6 +2494,20 @@ namespace OfficeIMO.Word.Pdf {
                     if (consumedOnPage > 0D && consumedOnPage + estimatedHeight > contentHeight) {
                         currentPage++;
                         consumedOnPage = 0D;
+                    }
+
+                    if (element is WordParagraph headingParagraph) {
+                        int headingLevel = GetNativeTableOfContentsHeadingLevel(headingParagraph);
+                        if (headingLevel > 0) {
+                            string headingText = GetNativeParagraphDisplayText(headingParagraph);
+                            if (!string.IsNullOrWhiteSpace(headingText)) {
+                                string? destinationName = headingParagraph._paragraph != null &&
+                                    headingDestinations.TryGetValue(headingParagraph._paragraph, out string? foundDestination)
+                                        ? foundDestination
+                                        : null;
+                                entries.Add(new NativeTableOfContentsEntry(headingText, headingLevel, currentPage, destinationName));
+                            }
+                        }
                     }
 
                     consumedOnPage += estimatedHeight;
@@ -2708,7 +2708,7 @@ namespace OfficeIMO.Word.Pdf {
                     RenderNativeTable(pdf, table, getMarker, footnoteNumbersById, options);
                     break;
                 case WordImage image:
-                    RenderNativeImage(pdf, image);
+                    RenderNativeImage(pdf, image, options: options, source: "body image");
                     break;
                 case WordHyperLink link:
                     RenderNativeHyperLink(pdf, link);
@@ -2782,12 +2782,12 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (paragraph.Image != null) {
-                RenderNativeImage(pdf, paragraph.Image, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false));
+                RenderNativeImage(pdf, paragraph.Image, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body paragraph image");
             }
 
             WordImage? pictureControlImage = paragraph.PictureControl?.Image;
             if (pictureControlImage != null) {
-                RenderNativeImage(pdf, pictureControlImage, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false));
+                RenderNativeImage(pdf, pictureControlImage, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body picture control image");
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
@@ -3020,6 +3020,10 @@ namespace OfficeIMO.Word.Pdf {
         private static IReadOnlyList<PdfCore.PdfTableCellImage> CreateNativeTableCellImages(WordTableCell cell) {
             var images = new List<PdfCore.PdfTableCellImage>();
             foreach (WordParagraph paragraph in GetNativeCellParagraphs(cell)) {
+                if (paragraph.Image != null) {
+                    AddNativeTableCellImage(images, paragraph.Image);
+                }
+
                 foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
                     var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
                     WordImage? pictureControlImage = pictureParagraph.PictureControl?.Image;
@@ -3027,14 +3031,22 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    byte[] bytes = ImageEmbedder.GetImageBytes(pictureControlImage);
-                    double width = pictureControlImage.Width.HasValue ? pictureControlImage.Width.Value * 72D / 96D : 144D;
-                    double height = pictureControlImage.Height.HasValue ? pictureControlImage.Height.Value * 72D / 96D : 144D;
-                    images.Add(new PdfCore.PdfTableCellImage(bytes, width, height));
+                    AddNativeTableCellImage(images, pictureControlImage);
                 }
             }
 
             return images;
+        }
+
+        private static void AddNativeTableCellImage(List<PdfCore.PdfTableCellImage> images, WordImage image) {
+            byte[] bytes = ImageEmbedder.GetImageBytes(image);
+            if (!IsNativePdfSupportedImageBytes(bytes, out _)) {
+                return;
+            }
+
+            double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
+            double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
+            images.Add(new PdfCore.PdfTableCellImage(bytes, width, height));
         }
 
         private static void AddNativeParagraphContent(
@@ -4721,7 +4733,7 @@ namespace OfficeIMO.Word.Pdf {
             int currentTabIndex = tabIndex;
             AddNativeTextSegments(
                 text,
-                value => target.Add(createRun(value)),
+                value => AddOrMergeNativeCellTextRun(target, createRun(value)),
                 () => target.Add(PdfCore.TextRun.LineBreak()),
                 () => {
                     target.Add(CreateNativeCellTabRun(tabStops, currentTabIndex));
@@ -4730,6 +4742,49 @@ namespace OfficeIMO.Word.Pdf {
                 () => currentTabIndex = 0);
             tabIndex = currentTabIndex;
         }
+
+        private static void AddOrMergeNativeCellTextRun(List<PdfCore.TextRun> target, PdfCore.TextRun run) {
+            if (target.Count == 0 || !CanMergeNativeCellTextRuns(target[target.Count - 1], run)) {
+                target.Add(run);
+                return;
+            }
+
+            PdfCore.TextRun previous = target[target.Count - 1];
+            target[target.Count - 1] = new PdfCore.TextRun(
+                previous.Text + run.Text,
+                bold: previous.Bold,
+                underline: previous.Underline,
+                color: previous.Color,
+                italic: previous.Italic,
+                strike: previous.Strike,
+                fontSize: previous.FontSize,
+                font: previous.Font,
+                baseline: previous.Baseline,
+                backgroundColor: previous.BackgroundColor);
+        }
+
+        private static bool CanMergeNativeCellTextRuns(PdfCore.TextRun left, PdfCore.TextRun right) =>
+            left.LinkUri == null &&
+            left.LinkDestinationName == null &&
+            right.LinkUri == null &&
+            right.LinkDestinationName == null &&
+            left.TabLeader == PdfCore.PdfTabLeaderStyle.None &&
+            right.TabLeader == PdfCore.PdfTabLeaderStyle.None &&
+            left.TabAlignment == PdfCore.PdfTabAlignment.Left &&
+            right.TabAlignment == PdfCore.PdfTabAlignment.Left &&
+            left.Text != "\n" &&
+            left.Text != "\t" &&
+            right.Text != "\n" &&
+            right.Text != "\t" &&
+            left.Bold == right.Bold &&
+            left.Underline == right.Underline &&
+            left.Italic == right.Italic &&
+            left.Strike == right.Strike &&
+            NullableDoubleEquals(left.FontSize, right.FontSize) &&
+            left.Font == right.Font &&
+            left.Baseline == right.Baseline &&
+            Equals(left.Color, right.Color) &&
+            Equals(left.BackgroundColor, right.BackgroundColor);
 
         private static PdfCore.TextRun CreateNativeCellTextRun(string text, WordParagraph paragraph) =>
             new PdfCore.TextRun(
@@ -5024,15 +5079,42 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left) {
+        private static void RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, PdfSaveOptions? options = null, string source = "body image") {
             if (image == null) {
                 return;
             }
 
             byte[] bytes = ImageEmbedder.GetImageBytes(image);
+            if (!IsNativePdfSupportedImageBytes(bytes, out string? unsupportedReason)) {
+                if (options != null) {
+                    AddNativeExportWarning(
+                        options,
+                        "NativeBodyImageUnsupported",
+                        source,
+                        "Word image was not exported because the first-party PDF image writer supports JPEG and simple PNG images only. " + unsupportedReason);
+                }
+
+                return;
+            }
+
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
             pdf.Image(bytes, width, height, align);
+        }
+
+        private static bool IsNativePdfSupportedImageBytes(byte[] bytes, out string? unsupportedReason) {
+            unsupportedReason = null;
+            if (!OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info)) {
+                unsupportedReason = "The image format could not be identified.";
+                return false;
+            }
+
+            if (info.Format == OfficeImageFormat.Jpeg || info.Format == OfficeImageFormat.Png) {
+                return true;
+            }
+
+            unsupportedReason = "Detected " + info.Format + " (" + info.MimeType + ").";
+            return false;
         }
 
         private static PdfCore.PdfParagraphStyle CreateNativeParagraphStyle(WordParagraph paragraph) {

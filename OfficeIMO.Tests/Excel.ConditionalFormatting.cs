@@ -34,8 +34,9 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
                 ExcelConditionalFormattingInfo info = Assert.Single(document.Sheets[0].GetConditionalFormattingRules("A1:A3"));
-                Assert.Equal("DataBar", info.Type);
-                Assert.Equal("FF0000FF", info.DataBarColor);
+                Assert.Equal("CellIs", info.Type);
+                Assert.Equal(nameof(ConditionalFormattingOperatorValues.GreaterThan), info.Operator);
+                Assert.Equal(new[] { "10" }, info.Formulas);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -69,9 +70,13 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
                 var sheet = document.Sheets[0];
-                ExcelConditionalFormattingInfo info = Assert.Single(sheet.GetConditionalFormattingRules("A1:A3"));
-                Assert.Equal("ColorScale", info.Type);
-                Assert.Equal(new[] { "FFFF0000", "FF00FF00" }, info.ColorScaleColors);
+                var rules = sheet.GetConditionalFormattingRules("A1:A3");
+                ExcelConditionalFormattingInfo colorScale = Assert.Single(rules, info => info.Type == "ColorScale");
+                ExcelConditionalFormattingInfo dataBar = Assert.Single(rules, info => info.Type == "DataBar");
+                ExcelConditionalFormattingInfo top = Assert.Single(rules, info => info.Type == "Top10");
+                Assert.Equal(new[] { "FFFF0000", "FF00FF00" }, colorScale.ColorScaleColors);
+                Assert.Equal("FF0000FF", dataBar.DataBarColor);
+                Assert.True(top.Priority > 0);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
