@@ -724,8 +724,8 @@ namespace OfficeIMO.Visio {
 
             if (effectiveMaster != null) {
                 writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, effectiveMaster));
-                if (shape.MasterShapeId != null || effectiveMaster.RawMasterContentXml == null) {
-                    writer.WriteAttributeString("MasterShape", shape.MasterShapeId ?? effectiveMaster.Shape.Id);
+                if (shape.MasterShapeId != null) {
+                    writer.WriteAttributeString("MasterShape", shape.MasterShapeId);
                 }
             }
 

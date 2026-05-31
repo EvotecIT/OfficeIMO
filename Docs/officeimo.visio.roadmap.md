@@ -82,6 +82,7 @@ That implies three durable layers:
 - Inspection snapshot/diff API for deterministic structure review across pages, masters, shapes, connectors, Shape Data, User cells, semantic tags, and connector waypoints.
 - Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review and persisted package-backed provenance after reload.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags into shape and master metadata, so profiles and inspection snapshots can prove which catalog and package supplied a shape after save/load.
+- Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
 - Obstacle-aware orthogonal routing APIs plus a `PolishDiagram` option for rerouting connectors around unrelated top-level shapes before label cleanup.
 - Premium style presets for enterprise, technical, cloud, process, print-safe, and dark-safe diagrams, with validated technical/print smoke documents and rendered gallery baseline usage for the current market-facing set.
 

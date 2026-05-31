@@ -52,7 +52,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 - Simple connector-to-shape crossings are now covered by deterministic obstacle-aware routing, but dense network layouts still need zone-aware and crossing-aware route planning.
 - Graph zones can overlap or dominate the diagram when groups span nodes across layers; the premium sample avoids zones for now.
 - Stencil-backed visuals are not broad enough. The premium executive dependency graph now uses first-party architecture stencil metadata, but most premium samples still rely on basic geometry rather than recognizable first-party/native/external stencil symbols.
-- Master-backed generated stencil graph nodes currently profile correctly but export through Visio Desktop without visible node artwork in the reviewed premium scenario, so the gallery keeps visible themed stencil geometry until that rendering path is fixed.
+- Generated stencil master instances now use renderer-friendly page references: generated first-party stencil shapes keep `Master` and local style deltas but no longer force `MasterShape="1"`, matching Visio-authored simple master instances. The gallery still needs a refreshed PNG/SVG baseline that promotes this path into a market-facing graph scenario.
 - Imported master artwork children are filtered out of stencil profile counts, so package-backed profiles report logical placed stencil shapes instead of internal master artwork.
 - Premium PNG baseline failures now include a rendered `.diff.png`, changed-pixel count, max channel delta, tolerance, allowed-difference settings, and the matching inspection/profile expected, actual, and `.diff.txt` context; SVGs still use canonicalized text comparison for Visio's unstable generated CSS class numbering.
 
@@ -63,7 +63,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 3. Replace more basic geometry in the premium gallery with native/external/first-party stencil-backed nodes where available, while preserving rendered PNG/SVG quality.
 4. Add more theme-specific scenarios beyond the current technical topology and print audit trail, especially cloud/security/data diagrams with stencil-backed nodes.
 5. Add richer sequence-diagram features: activations, notes, combined fragments, and visible error/remediation bands.
-6. Fix generated-master stencil rendering for graph nodes, then promote master-backed stencil usage into the premium gallery baselines.
+6. Promote generated-master stencil usage into a premium gallery baseline now that generated stencil instances use renderer-friendly master references.
 7. Expand stencil extraction beyond current catalog/category/source-pack provenance into connection-point, icon/preview, package-family, and typed stencil-family profiles.
 8. Use the new inspection/profile baseline artifacts to decide whether each visual drift is a rendering-only change, a shape/layout regression, or a stencil/profile regression.
 

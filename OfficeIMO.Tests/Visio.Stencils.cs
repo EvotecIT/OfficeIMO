@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
@@ -69,6 +70,62 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Equal(2, loaded.Pages[0].Shapes.Count);
             Assert.Single(loaded.Pages[0].Connectors);
+        }
+
+        [Fact]
+        public void GeneratedStencilMasterInstancesUseRendererFriendlyShapeReferences() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+            VisioPage page = document.AddPage("Stencil Page");
+
+            VisioShape service = page.AddStencilShape(VisioStencils.Architecture.Get("service"), "service", 2, 5, "Service");
+            service.FillColor = OfficeColor.FromRgb(31, 119, 180);
+            service.LineColor = OfficeColor.FromRgb(10, 70, 120);
+            VisioShape database = page.AddStencilShape(VisioStencils.Architecture.Get("database"), "database", 5, 5, "Database");
+            database.FillColor = OfficeColor.FromRgb(46, 160, 67);
+            database.LineColor = OfficeColor.FromRgb(18, 92, 43);
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            using ZipArchive zip = ZipFile.OpenRead(filePath);
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument pageXml = XDocument.Load(zip.GetEntry("visio/pages/page1.xml")!.Open());
+            XElement[] pageShapes = pageXml.Root!.Element(v + "Shapes")!.Elements(v + "Shape").ToArray();
+            XElement serviceShape = pageShapes.Single(shape => GetOriginalId(shape, v) == "service");
+            XElement databaseShape = pageShapes.Single(shape => GetOriginalId(shape, v) == "database");
+
+            Assert.NotNull(serviceShape.Attribute("Master"));
+            Assert.NotNull(databaseShape.Attribute("Master"));
+            Assert.Null(serviceShape.Attribute("MasterShape"));
+            Assert.Null(databaseShape.Attribute("MasterShape"));
+            Assert.Equal("#1F77B4", GetCellValue(serviceShape, v, "FillForegnd"));
+            Assert.Equal("#0A4678", GetCellValue(serviceShape, v, "LineColor"));
+            Assert.Equal("#2EA043", GetCellValue(databaseShape, v, "FillForegnd"));
+            Assert.Equal("#125C2B", GetCellValue(databaseShape, v, "LineColor"));
+            Assert.DoesNotContain(serviceShape.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Geometry");
+
+            XDocument mastersXml = XDocument.Load(zip.GetEntry("visio/masters/masters.xml")!.Open());
+            Assert.Contains(mastersXml.Root!.Elements(v + "Master"), master => (string?)master.Attribute("NameU") == "Process");
+            Assert.Contains(mastersXml.Root!.Elements(v + "Master"), master => (string?)master.Attribute("NameU") == "Data");
+
+            static string? GetCellValue(XElement shape, XNamespace ns, string name) {
+                return (string?)shape.Elements(ns + "Cell")
+                    .FirstOrDefault(cell => (string?)cell.Attribute("N") == name)
+                    ?.Attribute("V");
+            }
+
+            static string? GetOriginalId(XElement shape, XNamespace ns) {
+                return (string?)shape.Elements(ns + "Section")
+                    .Where(section => (string?)section.Attribute("N") == "Prop")
+                    .Elements(ns + "Row")
+                    .FirstOrDefault(row => (string?)row.Attribute("N") == "OfficeIMOOriginalId")
+                    ?.Elements(ns + "Cell")
+                    .FirstOrDefault(cell => (string?)cell.Attribute("N") == "Value")
+                    ?.Attribute("V");
+            }
         }
 
         [Fact]
