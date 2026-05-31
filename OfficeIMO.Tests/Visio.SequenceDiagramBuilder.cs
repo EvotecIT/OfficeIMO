@@ -298,6 +298,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SequenceNestedFragmentsRenderInsideParentWithOverlapLanes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SequenceDiagram("Nested Fragments", sequence => sequence
+                    .PageSize(9.5, 6)
+                    .Margins(0.75, 0.65, 0.75, 0.65)
+                    .ParticipantSize(1, 0.5)
+                    .Spacing(1.35, 0.7, 0.5)
+                    .Actor("support", "Support")
+                    .Control("api", "API")
+                    .Database("ledger", "Ledger")
+                    .Entity("runbook", "Runbook")
+                    .Call("support", "api", "Alert", "alert")
+                    .Call("api", "ledger", "Check state", "check")
+                    .Return("ledger", "api", "Timeout", "timeout")
+                    .Async("support", "runbook", "Open recovery", "open")
+                    .Call("api", "ledger", "Retry payment", "retry")
+                    .Return("ledger", "api", "Accepted", "accepted")
+                    .Fragment("alt incident recovery", 1, 5, new[] { "support", "api", "ledger", "runbook" }, "recovery")
+                    .NestedFragment("recovery", "opt retry payment", 2, 4, new[] { "api", "ledger" }, "retry-fragment")
+                    .NestedFragment("recovery", "par operator evidence", 2, 4, new[] { "support", "api" }, "evidence-fragment")
+                    .FragmentGuard("retry-fragment", "[transient fault]", 2, "retry-guard")
+                    .FragmentGuard("evidence-fragment", "[manual evidence]", 3, "evidence-guard"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape parent = Assert.Single(page.Shapes, shape => shape.Id == "recovery");
+            VisioShape retry = Assert.Single(page.Shapes, shape => shape.Id == "retry-fragment");
+            VisioShape evidence = Assert.Single(page.Shapes, shape => shape.Id == "evidence-fragment");
+
+            Assert.Equal("recovery", retry.GetUserCellValue("OfficeIMO.SequenceParentFragmentId"));
+            Assert.Equal("1", retry.GetUserCellValue("OfficeIMO.SequenceFragmentDepth"));
+            Assert.Equal("0", retry.GetUserCellValue("OfficeIMO.SequenceFragmentOverlapLane"));
+            Assert.Equal("recovery", evidence.GetUserCellValue("OfficeIMO.SequenceParentFragmentId"));
+            Assert.Equal("1", evidence.GetUserCellValue("OfficeIMO.SequenceFragmentDepth"));
+            Assert.Equal("1", evidence.GetUserCellValue("OfficeIMO.SequenceFragmentOverlapLane"));
+            Assert.True(Left(retry) > Left(parent));
+            Assert.True(Right(retry) < Right(parent));
+            Assert.True(Top(retry) < Top(parent));
+            Assert.True(Bottom(retry) > Bottom(parent));
+            Assert.True(evidence.Width < parent.Width);
+            Assert.Contains(page.Shapes, shape => shape.Id == "retry-guard-label" && shape.Text == "[transient fault]");
+            Assert.Contains(page.Shapes, shape => shape.Id == "evidence-guard-label" && shape.Text == "[manual evidence]");
+
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(), issue =>
+                issue.ShapeId == "retry-fragment-label" ||
+                issue.ShapeId == "evidence-fragment-label" ||
+                issue.OtherShapeId == "retry-fragment-label" ||
+                issue.OtherShapeId == "evidence-fragment-label");
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void SequenceDiagramBuilderImportsRecordSets() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
@@ -315,7 +370,8 @@ namespace OfficeIMO.Tests {
                 new("support-active", "support", 0, 2)
             };
             VisioSequenceFragmentRecord[] fragments = {
-                new("recovery", "alt recovery", 0, 2, new[] { "support", "api", "runbook" })
+                new("recovery", "alt recovery", 0, 2, new[] { "support", "api", "runbook" }),
+                new("runbook-check", "opt runbook evidence", 1, 2, new[] { "support", "runbook" }, "recovery")
             };
             VisioSequenceFragmentOperandRecord[] operands = {
                 new("guard", "recovery", "[active incident]", 0)
@@ -333,6 +389,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "support" && shape.GetUserCellValue("OfficeIMO.SequenceParticipantKind") == "Actor");
             Assert.Contains(page.Shapes, shape => shape.Id == "support-active" && shape.GetUserCellValue("OfficeIMO.Kind") == "SequenceActivation");
             Assert.Contains(page.Shapes, shape => shape.Id == "recovery" && shape.GetUserCellValue("OfficeIMO.SequenceParticipantIds") == "support;api;runbook");
+            Assert.Contains(page.Shapes, shape => shape.Id == "runbook-check" && shape.GetUserCellValue("OfficeIMO.SequenceParentFragmentId") == "recovery");
             Assert.Contains(page.Shapes, shape => shape.Id == "guard-label" && shape.Text == "[active incident]");
             Assert.Contains(page.Shapes, shape => shape.Id == "runbook-note" && shape.GetUserCellValue("OfficeIMO.SequenceRequestedPlacement") == "Left");
             Assert.Contains(page.Connectors, connector => connector.Id == "record" && connector.Waypoints.Count == 2);
@@ -467,11 +524,29 @@ namespace OfficeIMO.Tests {
                 document.SequenceDiagram("Invalid", sequence => sequence
                     .Participant("web", "Web")
                     .Fragment("alt", 0, 1, participantIds: null!)));
+            ArgumentException unknownParent = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .NestedFragment("missing", "opt", 0, 1, "nested")));
+            ArgumentOutOfRangeException nestedOutsideParent = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("alt", 1, 2, "parent")
+                    .NestedFragment("parent", "opt", 0, 1, "nested")));
+            ArgumentException nestedParticipantOutsideParent = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Participant("api", "API")
+                    .Fragment("alt", 0, 2, new[] { "web" }, "parent")
+                    .NestedFragment("parent", "opt", 1, 2, new[] { "api" }, "nested")));
 
             Assert.Contains("Unknown sequence participant id", unknownParticipant.Message);
             Assert.Contains("zero or greater", badStart.Message);
             Assert.Contains("greater than or equal", badEnd.Message);
             Assert.Equal("participantIds", nullParticipants.ParamName);
+            Assert.Contains("Unknown sequence fragment id", unknownParent.Message);
+            Assert.Contains("inside the parent fragment row range", nestedOutsideParent.Message);
+            Assert.Contains("outside parent fragment", nestedParticipantOutsideParent.Message);
         }
 
         [Fact]
@@ -521,6 +596,14 @@ namespace OfficeIMO.Tests {
             double top = Math.Min(first.PinY + (first.Height / 2D), second.PinY + (second.Height / 2D));
             return right > left && top > bottom;
         }
+
+        private static double Left(VisioShape shape) => shape.PinX - (shape.Width / 2D);
+
+        private static double Right(VisioShape shape) => shape.PinX + (shape.Width / 2D);
+
+        private static double Top(VisioShape shape) => shape.PinY + (shape.Height / 2D);
+
+        private static double Bottom(VisioShape shape) => shape.PinY - (shape.Height / 2D);
 
         private static bool ConnectorLabelNearShape(VisioConnector connector, VisioShape shape, double padding) {
             Assert.NotNull(connector.LabelPlacement);

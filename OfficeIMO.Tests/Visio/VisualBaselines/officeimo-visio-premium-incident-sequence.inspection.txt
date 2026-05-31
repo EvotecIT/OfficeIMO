@@ -1053,6 +1053,12 @@ page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.Kind].pr
 page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceEndRowIndex].value=6
 page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceEndRowIndex].formula=
 page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceEndRowIndex].prompt=OfficeIMO sequence fragment end row
+page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceFragmentDepth].value=0
+page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceFragmentDepth].formula=
+page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceFragmentDepth].prompt=OfficeIMO sequence fragment nesting depth
+page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceFragmentOverlapLane].value=0
+page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceFragmentOverlapLane].formula=
+page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceFragmentOverlapLane].prompt=OfficeIMO sequence fragment overlap lane
 page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceParticipantIds].value=support;api;queue;ledger
 page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceParticipantIds].formula=
 page[Premium Incident Sequence].shape[recovery-fragment].user[OfficeIMO.SequenceParticipantIds].prompt=OfficeIMO sequence fragment participants

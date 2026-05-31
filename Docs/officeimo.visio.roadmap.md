@@ -82,7 +82,7 @@ That implies three durable layers:
 - Inspection snapshot/diff API for deterministic structure review across pages, masters, shapes, connectors, Shape Data, User cells, semantic tags, shape connection points, and connector waypoints.
 - Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review, aliases/keywords/tags, icon identity, placed/source dimension ranges, connection-point richness summaries, and persisted package-backed provenance after reload.
 - Architecture, network, flowchart, block-diagram, swimlane, timeline, and sequence builder components now use first-party stencil catalogs for provenance, so cloud architecture, network segmentation, print audit trail, technical topology, governed process, release timeline, and incident sequence gallery output are baseline-reviewed as stencil-backed diagram content rather than anonymous geometry.
-- Sequence diagrams now include first-party activation bars with dedicated builder API, stencil profile metadata, and gallery coverage.
+- Sequence diagrams now include first-party activation bars, guarded/partitioned fragments, nested/overlapping fragment layout metadata, dedicated builder API, stencil profile metadata, and gallery coverage.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags and package preview-image relationship metadata into shape and master metadata, so profiles and inspection snapshots can prove which catalog, package, and embedded icon media supplied a shape after save/load.
 - Package stencil catalogs now extract native master connection points, persist them in catalog manifests, and scale them onto placed shapes so package-backed stencils expose usable connector attachment profiles after save/load.
 - Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
@@ -128,7 +128,7 @@ Goal: generated diagrams should be credible without manual post-editing.
   - network subnets, racks, and device groupings;
   - flowchart continuation and branch retry patterns;
   - swimlane phase/lane readability;
-  - sequence nested fragments and overlapping fragment layout;
+  - sequence nested fragments and overlapping fragment layout: initial `NestedFragment(...)` and nested `VisioSequenceFragmentRecord.ParentFragmentId` support now inset child/overlapping frames, stamps parent/depth/overlap-lane metadata, and is promoted through the incident/runbook gallery;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
 - Continue connector label cleanup beyond the current connector-path-aware, path-position-aware, whole-page optimization, lifeline-aware, and fragment-label-aware placement with denser graph and deeper sequence edge-case strategies.
@@ -159,7 +159,7 @@ Goal: native and external stencil packs feel first-class, not like shortcuts.
 Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO.Visio.
 
 - Add graph import helpers from simple node/edge records. Initial `VisioGraphNodeRecord` / `VisioGraphEdgeRecord` support imports data-driven graph nodes and edges, including stencil catalog lookup, Shape Data, hyperlinks, roots, directed/undirected edges, and stable generated edge ids.
-- Add sequence import helpers from simple participant/message/activation/fragment/note records. Initial `VisioSequence*Record` support imports data-driven runbook sequences with participants, self-messages, activations, guarded fragments, partitions, and semantic notes.
+- Add sequence import helpers from simple participant/message/activation/fragment/note records. Initial `VisioSequence*Record` support imports data-driven runbook sequences with participants, self-messages, activations, guarded/nested fragments, partitions, parent-fragment metadata, and semantic notes.
 - Add network import helpers from simple zone/node/link/callout records. Initial `VisioNetwork*Record` support imports data-driven network segmentation diagrams with Shape Data, hyperlinks, stable link ids, zones, stencil-backed nodes, and semantic callouts.
 - Add stable ID and diff-friendly regeneration guidance. Initial graph-record imports derive missing connector ids from endpoint ids and connector kind.
 - Add graph clustering/grouping APIs. Initial `Cluster(...)` / `Clusters(...)` support renders semantic graph clusters as background zones with Shape Data and hyperlinks, and `VisioGraphClusterRecord` can be imported with node/edge records for inventory-driven diagrams.
@@ -170,7 +170,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
   - Active Directory identity/authentication flow: initial reusable `VisioGallery` and official `--visio-showcase` example added with security/identity stencils, trust-boundary clusters, auth token/control/data flows, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - CI/CD pipeline and build-agent topology: initial reusable `VisioGallery` example added with stencil-backed node records, edge records, cluster records, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - Kubernetes/service-mesh topology: initial reusable `VisioGallery` and official `--visio-showcase` example added with Kubernetes/data/cloud stencils, service-mesh clusters, mTLS/control/data flows, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
-  - incident/runbook sequence: initial reusable `VisioGallery` and official `--visio-showcase` example added with sequence record imports, actor/control/entity/database participants, activations, guarded recovery fragments, runbook notes, validation, quality analysis, and sequence-stencil profile coverage;
+  - incident/runbook sequence: initial reusable `VisioGallery` and official `--visio-showcase` example added with sequence record imports, actor/control/entity/database participants, activations, guarded/nested recovery fragments, runbook notes, validation, quality analysis, and sequence-stencil profile coverage;
   - network segmentation diagram: initial reusable `VisioGallery` and official `--visio-showcase` example added with network record imports, segmented zones, stencil-backed network nodes, Shape Data, hyperlinks, stable link ids, callouts, validation, quality analysis, and network-stencil profile coverage.
 
 ## P4: Editing Existing Diagrams

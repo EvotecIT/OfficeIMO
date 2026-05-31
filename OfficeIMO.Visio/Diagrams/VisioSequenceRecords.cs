@@ -87,12 +87,13 @@ namespace OfficeIMO.Visio.Diagrams {
     /// </summary>
     public sealed class VisioSequenceFragmentRecord {
         /// <summary>Initializes a sequence fragment import record.</summary>
-        public VisioSequenceFragmentRecord(string id, string text, int startRowIndex, int endRowIndex, IEnumerable<string>? participantIds = null) {
+        public VisioSequenceFragmentRecord(string id, string text, int startRowIndex, int endRowIndex, IEnumerable<string>? participantIds = null, string? parentFragmentId = null) {
             Id = string.IsNullOrWhiteSpace(id) ? throw new ArgumentException("Fragment id cannot be null or whitespace.", nameof(id)) : id;
             Text = text ?? string.Empty;
             StartRowIndex = startRowIndex;
             EndRowIndex = endRowIndex;
             ParticipantIds = (participantIds ?? Array.Empty<string>()).ToArray();
+            ParentFragmentId = string.IsNullOrWhiteSpace(parentFragmentId) ? null : parentFragmentId;
         }
 
         /// <summary>Stable fragment id.</summary>
@@ -109,6 +110,9 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Participant ids spanned by the fragment. Empty means all participants.</summary>
         public IReadOnlyList<string> ParticipantIds { get; }
+
+        /// <summary>Optional parent fragment id for nested combined fragments.</summary>
+        public string? ParentFragmentId { get; }
     }
 
     /// <summary>

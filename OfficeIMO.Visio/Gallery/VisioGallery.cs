@@ -678,12 +678,14 @@ namespace OfficeIMO.Visio {
 
             VisioSequenceFragmentRecord[] fragments = {
                 new("recovery-fragment", "alt recovery", 2, 8, new[] { "support", "api", "queue", "ledger" }),
+                new("retry-fragment", "opt controlled retry", 4, 7, new[] { "api", "queue", "ledger" }, "recovery-fragment"),
                 new("evidence-fragment", "opt evidence", 8, 9, new[] { "support", "runbook" })
             };
 
             VisioSequenceFragmentOperandRecord[] operands = {
                 new("latency-guard", "recovery-fragment", "[timeout elevated]", 2),
                 new("settlement-partition", "recovery-fragment", "[settlement confirmed]", 6, divider: true),
+                new("retry-guard", "retry-fragment", "[retry window open]", 4),
                 new("evidence-guard", "evidence-fragment", "[runbook required]", 8)
             };
 
