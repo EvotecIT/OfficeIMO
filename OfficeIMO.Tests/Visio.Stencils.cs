@@ -101,8 +101,8 @@ namespace OfficeIMO.Tests {
             XElement serviceShape = pageShapes.Single(shape => GetOriginalId(shape, v) == "service");
             XElement databaseShape = pageShapes.Single(shape => GetOriginalId(shape, v) == "database");
 
-            Assert.Null(serviceShape.Attribute("Master"));
-            Assert.Null(databaseShape.Attribute("Master"));
+            Assert.NotNull(serviceShape.Attribute("Master"));
+            Assert.NotNull(databaseShape.Attribute("Master"));
             Assert.Null(serviceShape.Attribute("MasterShape"));
             Assert.Null(databaseShape.Attribute("MasterShape"));
             Assert.Equal("#1F77B4", GetCellValue(serviceShape, v, "FillForegnd"));

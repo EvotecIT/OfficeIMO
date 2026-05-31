@@ -728,9 +728,9 @@ namespace OfficeIMO.Visio {
                 writer.WriteAttributeString("TextStyle", "0");
             }
 
-            if (effectiveMaster != null && !useLocalGeometryForGeneratedStencil) {
+            if (effectiveMaster != null) {
                 writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, effectiveMaster));
-                if (shape.MasterShapeId != null) {
+                if (!useLocalGeometryForGeneratedStencil && shape.MasterShapeId != null) {
                     writer.WriteAttributeString("MasterShape", shape.MasterShapeId);
                 }
             }

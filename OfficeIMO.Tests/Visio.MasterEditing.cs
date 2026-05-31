@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
 
             XElement shape = pageDoc.Descendants(ns + "Shape")
                 .Single(element => element.Element(ns + "Text")?.Value == shapeText);
-            Assert.Null(shape.Attribute("Master"));
+            Assert.NotNull(shape.Attribute("Master"));
             Assert.Null(shape.Attribute("MasterShape"));
             Assert.Equal(expectedNameU, shape.Attribute("NameU")?.Value);
             Assert.Contains(shape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Geometry");
