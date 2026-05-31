@@ -43,6 +43,10 @@ namespace OfficeIMO.Tests {
 
                 foreach (VisioGalleryResult result in results.OrderBy(result => result.Name, StringComparer.Ordinal)) {
                     string prefix = GetBaselinePrefix(result.Name);
+                    VisioPremiumBaselineContext context = CreateBaselineContext(result, prefix);
+                    AssertTextBaseline(context.InspectionBaselineName, context.InspectionText);
+                    AssertTextBaseline(context.StencilProfileBaselineName, context.StencilProfileText);
+
                     VisioDesktopValidationOptions options = new() {
                         ExportDirectory = actualDirectory,
                         ExportFileNamePrefix = prefix
@@ -55,7 +59,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(2, desktop.OutputFiles.Count);
 
                     foreach (string actualPath in desktop.OutputFiles.OrderBy(path => path, StringComparer.OrdinalIgnoreCase)) {
-                        AssertBaseline(Path.GetFileName(actualPath), actualPath);
+                        AssertBaseline(Path.GetFileName(actualPath), actualPath, context);
                     }
                 }
             } finally {
@@ -84,6 +88,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, PngRaster.Decode(comparison.DiffPng).Width);
         }
 
+        [Fact]
+        public void TextDiffReportsAddedRemovedAndChangedLines() {
+            string expected = string.Join(Environment.NewLine, new[] {
+                "document.title=Before",
+                "page[Main].shape[1].text=Keep",
+                "page[Main].shape[2].text=Remove"
+            });
+            string actual = string.Join(Environment.NewLine, new[] {
+                "document.title=After",
+                "page[Main].shape[1].text=Keep",
+                "page[Main].shape[3].text=Add"
+            });
+
+            string diff = CreateLineDiff(expected, actual);
+
+            Assert.Contains("Changed document.title expected=Before actual=After", diff, StringComparison.Ordinal);
+            Assert.Contains("Removed page[Main].shape[2].text expected=Remove actual=", diff, StringComparison.Ordinal);
+            Assert.Contains("Added page[Main].shape[3].text expected= actual=Add", diff, StringComparison.Ordinal);
+        }
+
         private static string GetBaselinePrefix(string name) {
             if (BaselinePrefixes.TryGetValue(name, out string? prefix)) {
                 return prefix;
@@ -92,9 +116,20 @@ namespace OfficeIMO.Tests {
             throw new InvalidOperationException("No premium Visio visual baseline prefix is registered for '" + name + "'.");
         }
 
-        private static void AssertBaseline(string baselineName, string actualPath) {
+        private static VisioPremiumBaselineContext CreateBaselineContext(VisioGalleryResult result, string prefix) {
+            VisioDocument loaded = VisioDocument.Load(result.FilePath);
+            VisioInspectionSnapshot inspection = loaded.CreateInspectionSnapshot();
+            VisioStencilProfile stencilProfile = inspection.CreateStencilProfile();
+            return new VisioPremiumBaselineContext(
+                prefix + ".inspection.txt",
+                inspection.ToText(),
+                prefix + ".stencil-profile.txt",
+                stencilProfile.ToText());
+        }
+
+        private static void AssertBaseline(string baselineName, string actualPath, VisioPremiumBaselineContext context) {
             string expectedPath = Path.Combine(GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
-            if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES"), "1", StringComparison.Ordinal)) {
+            if (IsBaselineUpdateRequested()) {
                 Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
                 File.Copy(actualPath, expectedPath, overwrite: true);
                 return;
@@ -111,7 +146,7 @@ namespace OfficeIMO.Tests {
                     return;
                 }
 
-                ThrowBaselineChanged(baselineName, expectedPath, actualPath, null);
+                ThrowBaselineChanged(baselineName, expectedPath, actualPath, null, context);
                 return;
             }
 
@@ -120,7 +155,7 @@ namespace OfficeIMO.Tests {
                     return;
                 }
 
-                ThrowBaselineChanged(baselineName, expectedPath, actualPath, null);
+                ThrowBaselineChanged(baselineName, expectedPath, actualPath, null, context);
                 return;
             }
 
@@ -129,15 +164,34 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            ThrowBaselineChanged(baselineName, expectedPath, actualPath, comparison);
+            ThrowBaselineChanged(baselineName, expectedPath, actualPath, comparison, context);
         }
 
-        private static void ThrowBaselineChanged(string baselineName, string expectedPath, string actualPath, RasterComparison? comparison) {
-            string artifactDirectory = Path.Combine(
-                Path.GetTempPath(),
-                "OfficeIMO.VisioPremiumBaselines",
-                DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(artifactDirectory);
+        private static void AssertTextBaseline(string baselineName, string actualText) {
+            string expectedPath = Path.Combine(GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
+            if (IsStructuralBaselineUpdateRequested()) {
+                Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
+                File.WriteAllText(expectedPath, NormalizeText(actualText), new UTF8Encoding(false));
+                return;
+            }
+
+            if (!File.Exists(expectedPath)) {
+                throw new FileNotFoundException(
+                    "Premium Visio structural baseline missing. Set OFFICEIMO_UPDATE_VISIO_PREMIUM_STRUCTURAL_BASELINES=1 or OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1 and re-run this test to generate it.",
+                    expectedPath);
+            }
+
+            string expectedText = NormalizeText(File.ReadAllText(expectedPath));
+            string normalizedActual = NormalizeText(actualText);
+            if (string.Equals(expectedText, normalizedActual, StringComparison.Ordinal)) {
+                return;
+            }
+
+            ThrowTextBaselineChanged(baselineName, expectedPath, expectedText, normalizedActual);
+        }
+
+        private static void ThrowBaselineChanged(string baselineName, string expectedPath, string actualPath, RasterComparison? comparison, VisioPremiumBaselineContext context) {
+            string artifactDirectory = CreateArtifactDirectory();
 
             File.Copy(expectedPath, Path.Combine(artifactDirectory, "expected-" + Path.GetFileName(expectedPath)), overwrite: true);
             File.Copy(actualPath, Path.Combine(artifactDirectory, "actual-" + Path.GetFileName(actualPath)), overwrite: true);
@@ -146,6 +200,8 @@ namespace OfficeIMO.Tests {
                     Path.Combine(artifactDirectory, Path.GetFileNameWithoutExtension(actualPath) + ".diff.png"),
                     comparison.DiffPng);
             }
+
+            WriteContextArtifacts(artifactDirectory, context);
 
             FileInfo expectedInfo = new(expectedPath);
             FileInfo actualInfo = new(actualPath);
@@ -160,6 +216,97 @@ namespace OfficeIMO.Tests {
                 "Expected bytes: " + expectedInfo.Length + "; actual bytes: " + actualInfo.Length + ". " +
                 pixelSummary +
                 "Artifacts: " + artifactDirectory + ".");
+        }
+
+        private static void ThrowTextBaselineChanged(string baselineName, string expectedPath, string expectedText, string actualText) {
+            string artifactDirectory = CreateArtifactDirectory();
+            File.Copy(expectedPath, Path.Combine(artifactDirectory, "expected-" + Path.GetFileName(expectedPath)), overwrite: true);
+            File.WriteAllText(Path.Combine(artifactDirectory, "actual-" + baselineName), actualText, new UTF8Encoding(false));
+            File.WriteAllText(Path.Combine(artifactDirectory, Path.GetFileNameWithoutExtension(baselineName) + ".diff.txt"), CreateLineDiff(expectedText, actualText), new UTF8Encoding(false));
+
+            throw new Xunit.Sdk.XunitException(
+                "Premium Visio structural baseline changed for '" + baselineName + "'. " +
+                "Artifacts: " + artifactDirectory + ".");
+        }
+
+        private static void WriteContextArtifacts(string artifactDirectory, VisioPremiumBaselineContext context) {
+            WriteContextArtifact(artifactDirectory, context.InspectionBaselineName, context.InspectionText);
+            WriteContextArtifact(artifactDirectory, context.StencilProfileBaselineName, context.StencilProfileText);
+        }
+
+        private static void WriteContextArtifact(string artifactDirectory, string baselineName, string actualText) {
+            string expectedPath = Path.Combine(GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
+            string normalizedActual = NormalizeText(actualText);
+            File.WriteAllText(Path.Combine(artifactDirectory, "actual-" + baselineName), normalizedActual, new UTF8Encoding(false));
+            if (!File.Exists(expectedPath)) {
+                return;
+            }
+
+            string expectedText = NormalizeText(File.ReadAllText(expectedPath));
+            File.Copy(expectedPath, Path.Combine(artifactDirectory, "expected-" + baselineName), overwrite: true);
+            File.WriteAllText(Path.Combine(artifactDirectory, Path.GetFileNameWithoutExtension(baselineName) + ".diff.txt"), CreateLineDiff(expectedText, normalizedActual), new UTF8Encoding(false));
+        }
+
+        private static string CreateArtifactDirectory() {
+            string artifactDirectory = Path.Combine(
+                Path.GetTempPath(),
+                "OfficeIMO.VisioPremiumBaselines",
+                DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(artifactDirectory);
+            return artifactDirectory;
+        }
+
+        private static string CreateLineDiff(string expectedText, string actualText) {
+            SortedDictionary<string, string> expectedLines = ToLineMap(expectedText);
+            SortedDictionary<string, string> actualLines = ToLineMap(actualText);
+            SortedSet<string> keys = new(expectedLines.Keys, StringComparer.Ordinal);
+            keys.UnionWith(actualLines.Keys);
+
+            StringBuilder builder = new();
+            foreach (string key in keys) {
+                bool hasExpected = expectedLines.TryGetValue(key, out string? expectedValue);
+                bool hasActual = actualLines.TryGetValue(key, out string? actualValue);
+                if (!hasExpected && hasActual) {
+                    builder.Append("Added ");
+                } else if (hasExpected && !hasActual) {
+                    builder.Append("Removed ");
+                } else if (!string.Equals(expectedValue, actualValue, StringComparison.Ordinal)) {
+                    builder.Append("Changed ");
+                } else {
+                    continue;
+                }
+
+                builder.Append(key);
+                builder.Append(" expected=");
+                builder.Append(expectedValue);
+                builder.Append(" actual=");
+                builder.Append(actualValue);
+                builder.AppendLine();
+            }
+
+            return builder.ToString();
+        }
+
+        private static SortedDictionary<string, string> ToLineMap(string text) {
+            SortedDictionary<string, string> map = new(StringComparer.Ordinal);
+            string[] lines = NormalizeText(text).Split('\n');
+            foreach (string line in lines) {
+                if (line.Length == 0) {
+                    continue;
+                }
+
+                int separator = line.IndexOf('=');
+                string key = separator >= 0 ? line.Substring(0, separator) : line;
+                string value = separator >= 0 ? line.Substring(separator + 1) : string.Empty;
+                map[key] = value;
+            }
+
+            return map;
+        }
+
+        private static string NormalizeText(string text) {
+            string normalized = text.Replace("\r\n", "\n", StringComparison.Ordinal).Replace("\r", "\n", StringComparison.Ordinal);
+            return normalized.EndsWith("\n", StringComparison.Ordinal) ? normalized : normalized + "\n";
         }
 
         private static RasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng) {
@@ -287,6 +434,20 @@ namespace OfficeIMO.Tests {
             internal int ChannelTolerance { get; }
             internal int AllowedDifferentPixels { get; }
             internal byte[] DiffPng { get; }
+        }
+
+        private sealed class VisioPremiumBaselineContext {
+            internal VisioPremiumBaselineContext(string inspectionBaselineName, string inspectionText, string stencilProfileBaselineName, string stencilProfileText) {
+                InspectionBaselineName = inspectionBaselineName;
+                InspectionText = inspectionText;
+                StencilProfileBaselineName = stencilProfileBaselineName;
+                StencilProfileText = stencilProfileText;
+            }
+
+            internal string InspectionBaselineName { get; }
+            internal string InspectionText { get; }
+            internal string StencilProfileBaselineName { get; }
+            internal string StencilProfileText { get; }
         }
 
         private sealed class PngRaster {
@@ -597,6 +758,13 @@ namespace OfficeIMO.Tests {
 
         private static bool IsRequired() =>
             string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_VISIO_PREMIUM_BASELINES"), "1", StringComparison.Ordinal);
+
+        private static bool IsBaselineUpdateRequested() =>
+            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES"), "1", StringComparison.Ordinal);
+
+        private static bool IsStructuralBaselineUpdateRequested() =>
+            IsBaselineUpdateRequested() ||
+            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_VISIO_PREMIUM_STRUCTURAL_BASELINES"), "1", StringComparison.Ordinal);
 
         private static string GetTestsProjectRoot() {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);

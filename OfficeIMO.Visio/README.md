@@ -621,10 +621,13 @@ package-backed, or basic-geometry driven. Stencil placement stamps catalog,
 category, stencil id, tags, and source package path into shape/master metadata,
 so package-backed and generated-stencil profiles survive reloads and can audit
 saved files as well as in-memory documents. The rendered preview proves how the
-diagram looks. The premium PNG baseline lane writes expected, actual, and
-`.diff.png` artifacts with changed-pixel counts when a desktop-exported preview
-drifts, while SVG previews use canonicalized text comparison to account for
-Visio's generated CSS class names.
+diagram looks. The premium baseline lane also stores approved inspection and
+stencil-profile text snapshots for each rendered diagram. PNG drift writes
+expected, actual, and `.diff.png` artifacts with changed-pixel counts, while
+inspection/profile drift writes expected, actual, and `.diff.txt` artifacts so
+reviewers can distinguish renderer-only churn from structural or stencil usage
+changes. SVG previews use canonicalized text comparison to account for Visio's
+generated CSS class names.
 
 ## Native stencil catalogs
 

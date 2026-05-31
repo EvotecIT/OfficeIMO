@@ -20,10 +20,13 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 
 3. **Visual baseline proof**
    - Store approved PNG/SVG previews for the core premium gallery under `OfficeIMO.Tests/Visio/VisualBaselines`.
-   - Compare regenerated previews with `VisioPremiumVisualBaselineTests`.
+   - Store approved `.inspection.txt` and `.stencil-profile.txt` snapshots for the same gallery so rendered drift can be reviewed beside structural and stencil-usage drift.
+   - Compare regenerated previews, inspection snapshots, and stencil profiles with `VisioPremiumVisualBaselineTests`.
    - Refresh approved artifacts deliberately with `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1`.
+   - Refresh only inspection/profile baselines with `OFFICEIMO_UPDATE_VISIO_PREMIUM_STRUCTURAL_BASELINES=1`.
    - Require Visio desktop for this lane with `OFFICEIMO_REQUIRE_VISIO_PREMIUM_BASELINES=1`; otherwise the test skips on machines without Visio.
-   - On PNG drift, write expected, actual, and `.diff.png` artifacts with changed-pixel count and max channel delta.
+   - On PNG drift, write expected, actual, and `.diff.png` artifacts with changed-pixel count and max channel delta, plus inspection/profile expected, actual, and `.diff.txt` artifacts for the same diagram.
+   - On structural drift, write inspection/profile expected, actual, and `.diff.txt` artifacts.
    - Use `OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE` and `OFFICEIMO_VISIO_PREMIUM_BASELINE_ALLOWED_DIFF_PIXELS` only for deliberate renderer-noise tolerance.
    - Treat structural validity and visual drift as separate gates.
 
@@ -51,5 +54,5 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 1. Extend the new obstacle-aware routing into zone/group-aware routes and add lifeline/zone-aware connector-label cleanup in dense premium diagrams.
 2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it.
 3. Keep tightening the baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
-4. Extend current catalog/category/source-pack stencil profile proof into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
+4. Extend current premium inspection/profile baselines into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
 5. Broaden the gallery from eight baseline-approved diagrams toward a larger market-facing set.
