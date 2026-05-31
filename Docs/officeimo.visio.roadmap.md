@@ -82,6 +82,7 @@ That implies three durable layers:
 - Inspection snapshot/diff API for deterministic structure review across pages, masters, shapes, connectors, Shape Data, User cells, semantic tags, shape connection points, and connector waypoints.
 - Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review, connection-point richness summaries, and persisted package-backed provenance after reload.
 - Architecture, network, flowchart, block-diagram, swimlane, timeline, and sequence builder components now use first-party stencil catalogs for provenance, so cloud architecture, network segmentation, print audit trail, technical topology, governed process, release timeline, and incident sequence gallery output are baseline-reviewed as stencil-backed diagram content rather than anonymous geometry.
+- Sequence diagrams now include first-party activation bars with dedicated builder API, stencil profile metadata, and gallery coverage.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags into shape and master metadata, so profiles and inspection snapshots can prove which catalog and package supplied a shape after save/load.
 - Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
 - Obstacle-aware orthogonal routing APIs plus `PolishDiagram` options for rerouting connectors around unrelated top-level shapes, containers, background zones/trust boundaries, generated adornments, and existing connector paths before label cleanup.
@@ -124,7 +125,7 @@ Goal: generated diagrams should be credible without manual post-editing.
   - network subnets, racks, and device groupings;
   - flowchart continuation and branch retry patterns;
   - swimlane phase/lane readability;
-  - sequence activations, note collision avoidance, and richer fragments;
+  - sequence note collision avoidance and richer fragments;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
 - Continue connector label cleanup with lifeline-aware placement and denser premium-diagram label strategies.

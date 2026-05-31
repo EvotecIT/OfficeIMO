@@ -10,16 +10,16 @@
 	<![CDATA[
 		.st1 {fill:#43a047;stroke:#2a6f30;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
 		.st2 {fill:none;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
-		.st3 {fill:#ffffff;stroke:none;stroke-linecap:butt;stroke-width:7.2}
+		.st3 {fill:#ffffff;stroke:none;stroke-linecap:butt}
 		.st4 {fill:#19232d;font-family:Calibri;font-size:0.791656em}
 		.st5 {fill:#1f4e79;stroke:#18395a;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
 		.st6 {fill:#efab33;stroke:#b17114;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
-		.st7 {fill:#2c7be5;stroke:#1a56b0;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
-		.st8 {fill:#20374b;font-family:Calibri;font-size:1.66667em;font-weight:bold}
-		.st9 {fill:none}
-		.st10 {stroke:#515d71;stroke-dasharray:10.08,7.2;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
-		.st11 {fill:#515d71;fill-opacity:1;stroke:#515d71;stroke-opacity:1;stroke-width:0.36363636363636}
-		.st12 {fill:#ffffff;stroke:none;stroke-linecap:butt}
+		.st7 {fill:#ffffff;stroke:none;stroke-linecap:butt;stroke-width:7.2}
+		.st8 {fill:#2c7be5;stroke:#1a56b0;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
+		.st9 {fill:#20374b;font-family:Calibri;font-size:1.66667em;font-weight:bold}
+		.st10 {fill:none}
+		.st11 {stroke:#515d71;stroke-dasharray:10.08,7.2;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
+		.st12 {fill:#515d71;fill-opacity:1;stroke:#515d71;stroke-opacity:1;stroke-width:0.36363636363636}
 		.st13 {fill:#344054;font-family:Calibri;font-size:0.75em}
 		.st14 {stroke:#007ea7;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.44}
 		.st15 {fill:#007ea7;fill-opacity:1;stroke:#007ea7;stroke-opacity:1;stroke-width:0.36363636363636}
@@ -32,7 +32,7 @@
 		<g id="lend13">
 			<path d="M 3 1 L 0 0 L 3 -1 L 3 1 " style="stroke:none"/>
 		</g>
-		<marker id="mrkr13-50" class="st11" v:arrowType="13" v:arrowSize="2" v:setback="8.25" refX="-8.25" orient="auto"
+		<marker id="mrkr13-50" class="st12" v:arrowType="13" v:arrowSize="2" v:setback="8.25" refX="-8.25" orient="auto"
 				markerUnits="strokeWidth" overflow="visible">
 			<use xlink:href="#lend13" transform="scale(-2.75,-2.75) "/>
 		</marker>
@@ -108,11 +108,11 @@
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="84.6" cy="477.36" width="169.2" height="24.48"/>
 			<rect x="0" y="465.12" width="169.2" height="24.48" class="st2"/>
-			<rect v:rectContext="textBkgnd" x="65.6186" y="471.66" width="37.9627" height="11.3997" class="st3"/>
+			<rect v:rectContext="textBkgnd" x="65.6186" y="471.66" width="37.9627" height="11.3997" class="st7"/>
 			<text x="65.62" y="480.21" class="st4" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Payments</text>		</g>
 		<g id="shape11-31" v:mID="11" v:groupContext="shape" transform="translate(964.8,-253.8)">
 			<title>Data</title>
-			<path d="M24 489.6 L129.6 489.6 L105.6 417.6 L0 417.6 L24 489.6 Z" class="st7"/>
+			<path d="M24 489.6 L129.6 489.6 L105.6 417.6 L0 417.6 L24 489.6 Z" class="st8"/>
 		</g>
 		<g id="shape12-33" v:mID="12" v:groupContext="shape" transform="translate(945,-222.84)">
 			<title>Sheet.12</title>
@@ -120,11 +120,11 @@
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="84.6" cy="477.36" width="169.2" height="24.48"/>
 			<rect x="0" y="465.12" width="169.2" height="24.48" class="st2"/>
-			<rect v:rectContext="textBkgnd" x="71.4886" y="471.66" width="26.2224" height="11.3997" class="st3"/>
+			<rect v:rectContext="textBkgnd" x="71.4886" y="471.66" width="26.2224" height="11.3997" class="st7"/>
 			<text x="71.49" y="480.21" class="st4" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Ledger</text>		</g>
 		<g id="shape13-37" v:mID="13" v:groupContext="shape" transform="translate(601.92,-109.8)">
 			<title>Sheet.13</title>
-			<path d="M24 489.6 L129.6 489.6 L105.6 417.6 L0 417.6 L24 489.6 Z" class="st7"/>
+			<path d="M24 489.6 L129.6 489.6 L105.6 417.6 L0 417.6 L24 489.6 Z" class="st8"/>
 		</g>
 		<g id="shape14-39" v:mID="14" v:groupContext="shape" transform="translate(582.12,-78.84)">
 			<title>Sheet.14</title>
@@ -132,7 +132,7 @@
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="84.6" cy="477.36" width="169.2" height="24.48"/>
 			<rect x="0" y="465.12" width="169.2" height="24.48" class="st2"/>
-			<rect v:rectContext="textBkgnd" x="62.3622" y="471.66" width="44.4754" height="11.3997" class="st3"/>
+			<rect v:rectContext="textBkgnd" x="62.3622" y="471.66" width="44.4754" height="11.3997" class="st7"/>
 			<text x="62.36" y="480.21" class="st4" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Warehouse</text>		</g>
 		<g id="shape15-43" v:mID="15" v:groupContext="shape" transform="translate(57.6,-396)">
 			<title>Sheet.15</title>
@@ -140,23 +140,23 @@
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="536.4" cy="473.4" width="1072.8" height="32.4"/>
 			<rect x="0" y="457.2" width="1072.8" height="32.4" class="st2"/>
-			<text x="403.79" y="479.4" class="st8" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Revenue Platform - Critical Path</text>		</g>
+			<text x="403.79" y="479.4" class="st9" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>Revenue Platform - Critical Path</text>		</g>
 		<g id="shape16-46" v:mID="16" v:groupContext="shape">
 			<title>Connector</title>
 			<desc>qualified lead</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="196.92" cy="181.08" width="72.55" height="20.34"/>
-			<path d="M154.8 199.8 L196.92 199.8 L239.04 199.8 L154.8 199.8 Z" class="st9"/>
-			<path d="M154.8 199.8 L196.92 199.8 L239.04 199.8" class="st10"/>
-			<rect v:rectContext="textBkgnd" x="172.152" y="175.68" width="49.5352" height="10.7998" class="st12"/>
+			<path d="M154.8 199.8 L196.92 199.8 L239.04 199.8 L154.8 199.8 Z" class="st10"/>
+			<path d="M154.8 199.8 L196.92 199.8 L239.04 199.8" class="st11"/>
+			<rect v:rectContext="textBkgnd" x="172.152" y="175.68" width="49.5352" height="10.7998" class="st7"/>
 			<text x="172.15" y="183.78" class="st13" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>qualified lead</text>		</g>
 		<g id="shape17-53" v:mID="17" v:groupContext="shape">
 			<title>Sheet.17</title>
 			<desc>order</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="394.56" cy="181.08" width="37.17" height="20.34"/>
-			<path d="M368.64 199.8 L398.16 199.8 L420.48 199.8 L368.64 199.8 Z" class="st9"/>
-			<path d="M368.64 199.8 L398.16 199.8 L420.48 199.8" class="st10"/>
+			<path d="M368.64 199.8 L398.16 199.8 L420.48 199.8 L368.64 199.8 Z" class="st10"/>
+			<path d="M368.64 199.8 L398.16 199.8 L420.48 199.8" class="st11"/>
 			<rect v:rectContext="textBkgnd" x="384.446" y="175.68" width="20.228" height="10.7998" class="st3"/>
 			<text x="384.45" y="183.78" class="st13" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>order</text>		</g>
 		<g id="shape18-59" v:mID="18" v:groupContext="shape">
@@ -164,34 +164,34 @@
 			<desc>score</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="577.8" cy="181.08" width="39.6" height="20.34"/>
-			<path d="M550.08 199.8 L585 199.8 L605.52 199.8 L550.08 199.8 Z" class="st9"/>
-			<path d="M550.08 199.8 L585 199.8 L605.52 199.8" class="st10"/>
-			<rect v:rectContext="textBkgnd" x="567.956" y="175.68" width="19.6875" height="10.7998" class="st3"/>
+			<path d="M550.08 199.8 L585 199.8 L605.52 199.8 L550.08 199.8 Z" class="st10"/>
+			<path d="M550.08 199.8 L585 199.8 L605.52 199.8" class="st11"/>
+			<rect v:rectContext="textBkgnd" x="567.956" y="175.68" width="19.6875" height="10.7998" class="st7"/>
 			<text x="567.96" y="183.78" class="st13" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>score</text>		</g>
 		<g id="shape19-65" v:mID="19" v:groupContext="shape">
 			<title>Sheet.19</title>
 			<desc>approved</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="755.64" cy="181.08" width="54.45" height="20.34"/>
-			<path d="M727.92 199.8 L766.44 199.8 L783.36 199.8 L727.92 199.8 Z" class="st9"/>
-			<path d="M727.92 199.8 L766.44 199.8 L783.36 199.8" class="st10"/>
-			<rect v:rectContext="textBkgnd" x="738.178" y="175.68" width="34.9233" height="10.7998" class="st3"/>
+			<path d="M727.92 199.8 L766.44 199.8 L783.36 199.8 L727.92 199.8 Z" class="st10"/>
+			<path d="M727.92 199.8 L766.44 199.8 L783.36 199.8" class="st11"/>
+			<rect v:rectContext="textBkgnd" x="738.178" y="175.68" width="34.9233" height="10.7998" class="st7"/>
 			<text x="738.18" y="183.78" class="st13" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>approved</text>		</g>
 		<g id="shape20-71" v:mID="20" v:groupContext="shape">
 			<title>Sheet.20</title>
 			<desc>settle</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="938.88" cy="181.08" width="39.69" height="20.34"/>
-			<path d="M912.96 199.8 L953.28 199.8 L964.8 199.8 L912.96 199.8 Z" class="st9"/>
+			<path d="M912.96 199.8 L953.28 199.8 L964.8 199.8 L912.96 199.8 Z" class="st10"/>
 			<path d="M912.96 199.8 L953.28 199.8 L964.8 199.8" class="st14"/>
-			<rect v:rectContext="textBkgnd" x="928.594" y="175.68" width="20.5708" height="10.7998" class="st3"/>
+			<rect v:rectContext="textBkgnd" x="928.594" y="175.68" width="20.5708" height="10.7998" class="st7"/>
 			<text x="928.59" y="183.78" class="st16" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>settle</text>		</g>
 		<g id="shape21-78" v:mID="21" v:groupContext="shape">
 			<title>Sheet.21</title>
 			<desc>reserve</desc>
 			<v:textBlock v:margins="rect(0,0,0,0)" v:tabSpace="42.5197"/>
 			<v:textRect cx="581.04" cy="235.08" width="47.08" height="20.34"/>
-			<path d="M550.08 199.8 L550.08 253.8 L601.92 253.8 L601.92 343.8 L550.08 199.8 Z" class="st9"/>
+			<path d="M550.08 199.8 L550.08 253.8 L601.92 253.8 L601.92 343.8 L550.08 199.8 Z" class="st10"/>
 			<path d="M550.08 199.8 L550.08 253.8 L601.92 253.8 L601.92 343.8" class="st14"/>
 			<rect v:rectContext="textBkgnd" x="567.393" y="229.68" width="27.2944" height="10.7998" class="st3"/>
 			<text x="567.39" y="237.78" class="st16" v:langID="1033"><v:paragraph v:horizAlign="1"/><v:tabList/>reserve</text>		</g>

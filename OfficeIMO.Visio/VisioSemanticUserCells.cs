@@ -4,6 +4,7 @@ namespace OfficeIMO.Visio {
         public const string CalloutKind = "Callout";
         public const string DiagramAdornmentKind = "DiagramAdornment";
         public const string BackgroundSurfaceKind = "BackgroundSurface";
+        public const string SequenceActivationKind = "SequenceActivation";
         public const string CalloutTargetId = "OfficeIMO.CalloutTargetId";
         public const string CalloutLeaderId = "OfficeIMO.CalloutLeaderId";
         public const string StencilId = "OfficeIMO.StencilId";

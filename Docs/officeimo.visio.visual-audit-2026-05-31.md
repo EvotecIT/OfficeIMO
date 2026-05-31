@@ -29,11 +29,13 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 - Graph, architecture, network, flowchart, block-diagram, swimlane, timeline, and sequence stencil nodes selected from a catalog now keep their catalog name in inspection/profile output and built-in catalog stencil nodes inherit theme styling, so the premium executive dependency graph, cloud architecture gallery, network segmentation gallery, print audit trail gallery, technical topology gallery, governed process gallery, release timeline gallery, and incident sequence gallery can use first-party stencils without losing the polished rendered look.
 - Diagram titles now use a readable title style instead of inheriting white text from filled emphasis shapes.
 - Sequence self-message labels are now sized, kept outside the loop, and flipped left when the participant is near the page edge.
+- Sequence activations now exist as first-party sequence-stencil shapes with semantic profile metadata, dedicated layers, and premium incident-sequence gallery coverage.
 - Architecture regions, block regions, network zones, graph zones, and topology subnets now use separate header-style caption adornments instead of centered background text.
 - Caption-aware layout reserves top clearance so titles/legends and zone headers do not collide, and the visual quality analyzer treats generated background captions as intentional adornments.
 - Connector label cleanup now runs a second stabilization pass over all current labels and ignores generated adornment shapes, reducing order-sensitive label collisions in dense pages.
 - Explicit obstacle-aware orthogonal routing can now reroute connectors around unrelated top-level shapes, optional zones/containers, and existing connector paths, and `PolishDiagram` can opt into those passes before connector-label cleanup.
 - Premium enterprise, technical, cloud, process, print-safe, and dark-safe style presets now exist in the reusable theme catalog, and the current premium gallery uses the baseline-approved preset set instead of relying only on older generic presets.
+- The dark-safe preset now uses readable connector-label text on white exported pages while keeping high-contrast connector lines and dark filled shapes.
 - The premium gallery now includes rendered technical topology and print audit trail scenarios, so the technical and print-safe theme presets have PNG/SVG baseline proof instead of only package-level smoke coverage.
 - The first premium examples were tightened after rendered inspection:
   - visible titles on timeline, swimlane, sequence, graph, cloud, and network samples;
@@ -48,10 +50,10 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 - Premium examples are credible smoke artifacts, not yet market-leading gallery material.
 - Architecture and network zones are still visually large and generic, although captions now use header placement instead of center placement.
 - Connector labels are improved but still not finished. Cleanup now revisits all current labels, ignores generated adornments, and can prefer common endpoint zones, but it still does not understand lifeline bands deeply enough for every dense diagram.
-- Sequence self-message placement was fixed for the reviewed long-label case, and semantic notes now exist as first-party sequence-stencil shapes. Sequence activations, note collision avoidance in compact premium layouts, and richer interaction fragments are still missing.
+- Sequence self-message placement was fixed for the reviewed long-label case, semantic notes now exist as first-party sequence-stencil shapes, and activation bars now have first-party stencil/profile coverage. Note collision avoidance in compact premium layouts and richer interaction fragments are still missing.
 - Simple connector-to-shape crossings and connector-to-connector crossings are now covered by deterministic obstacle-aware route scoring, but dense network layouts still need group-aware and deeper whole-page route minimization.
 - Graph zones can overlap or dominate the diagram when groups span nodes across layers; the premium sample avoids zones for now.
-- Stencil-backed visuals are not broad enough. All eight current premium baselines now carry first-party stencil catalog provenance for their domain shapes, including Sequence Diagram provenance for incident participants, but deeper sequence constructs still need first-party activations, fragments, and collision-safe notes before the sequence gallery can be called fully premium.
+- Stencil-backed visuals are not broad enough. All eight current premium baselines now carry first-party stencil catalog provenance for their domain shapes, including Sequence Diagram provenance for incident participants and activations, but deeper sequence constructs still need fragments and collision-safe notes before the sequence gallery can be called fully premium.
 - Generated stencil master instances now use renderer-friendly page references: generated first-party stencil shapes keep `Master` and local style deltas but no longer force `MasterShape="1"`, matching Visio-authored simple master instances. The gallery still needs a refreshed PNG/SVG baseline that promotes this path into a market-facing graph scenario.
 - Imported master artwork children are filtered out of stencil profile counts, so package-backed profiles report logical placed stencil shapes instead of internal master artwork.
 - Premium PNG baseline failures now include a rendered `.diff.png`, changed-pixel count, max channel delta, tolerance, allowed-difference settings, and the matching inspection/profile expected, actual, and `.diff.txt` context; SVGs still use canonicalized text comparison for Visio's unstable generated CSS class numbering.
@@ -62,7 +64,7 @@ The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview f
 2. Continue connector label cleanup with lifeline-aware preferences and denser premium-diagram label strategies.
 3. Replace more basic geometry in the premium gallery with native/external/first-party stencil-backed nodes where available, while preserving rendered PNG/SVG quality.
 4. Add more theme-specific scenarios beyond the current technical topology and print audit trail, especially cloud/security/data diagrams with stencil-backed nodes.
-5. Add richer sequence-diagram features: activations, collision-safe notes, combined fragments, and visible error/remediation bands.
+5. Add richer sequence-diagram features: collision-safe notes, combined fragments, and visible error/remediation bands.
 6. Promote generated-master stencil usage into a premium gallery baseline now that generated stencil instances use renderer-friendly master references.
 7. Expand stencil extraction beyond current catalog/category/source-pack provenance into connection-point, icon/preview, package-family, and typed stencil-family profiles.
 8. Use the new inspection/profile baseline artifacts to decide whether each visual drift is a rendering-only change, a shape/layout regression, or a stencil/profile regression.

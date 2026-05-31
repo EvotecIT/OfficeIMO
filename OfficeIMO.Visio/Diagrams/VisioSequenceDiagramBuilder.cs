@@ -11,6 +11,7 @@ namespace OfficeIMO.Visio.Diagrams {
     public sealed class VisioSequenceDiagramBuilder {
         private const string LifelineLayer = "Sequence Lifelines";
         private const string MessageLayer = "Sequence Messages";
+        private const string ActivationLayer = "Sequence Activations";
         private const string NoteLayer = "Sequence Notes";
         private const string GuideLayer = "Sequence Guides";
 
@@ -77,11 +78,29 @@ namespace OfficeIMO.Visio.Diagrams {
             public VisioSide Placement { get; }
         }
 
+        private sealed class ActivationItem {
+            public ActivationItem(string id, string participantId, int startRowIndex, int endRowIndex) {
+                Id = id;
+                ParticipantId = participantId;
+                StartRowIndex = startRowIndex;
+                EndRowIndex = endRowIndex;
+            }
+
+            public string Id { get; }
+
+            public string ParticipantId { get; }
+
+            public int StartRowIndex { get; }
+
+            public int EndRowIndex { get; }
+        }
+
         private readonly VisioDocument _document;
         private readonly string _pageName;
         private readonly List<ParticipantItem> _participants = new();
         private readonly Dictionary<string, ParticipantItem> _participantsById = new(StringComparer.Ordinal);
         private readonly List<MessageItem> _messages = new();
+        private readonly List<ActivationItem> _activations = new();
         private readonly List<NoteItem> _notes = new();
         private VisioStyleTheme _theme = VisioStyleTheme.Technical();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
@@ -100,6 +119,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _selfMessageHeight = 0.36;
         private const double SelfMessageLabelGap = 0.18D;
         private const double SelfMessageLabelHeight = 0.3D;
+        private const double ActivationWidth = 0.16D;
+        private const double ActivationMinimumHeight = 0.32D;
         private const double NoteWidth = 1.85D;
         private const double NoteHeight = 0.72D;
         private const double NoteGap = 0.22D;
@@ -257,6 +278,23 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds an execution/focus activation bar on a known participant over a range of message rows.</summary>
+        public VisioSequenceDiagramBuilder Activation(string participantId, int startRowIndex, int endRowIndex, string? id = null) {
+            string normalizedParticipantId = RequireId(participantId, nameof(participantId), "Participant id");
+            EnsureKnownParticipant(normalizedParticipantId, nameof(participantId));
+            if (startRowIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(startRowIndex), "Start row index must be zero or greater.");
+            }
+
+            if (endRowIndex < startRowIndex) {
+                throw new ArgumentOutOfRangeException(nameof(endRowIndex), "End row index must be greater than or equal to the start row index.");
+            }
+
+            string activationId = NormalizeActivationId(id);
+            _activations.Add(new ActivationItem(activationId, normalizedParticipantId, startRowIndex, endRowIndex));
+            return this;
+        }
+
         /// <summary>Adds a semantic note near a participant at a message row.</summary>
         public VisioSequenceDiagramBuilder Note(string participantId, string text, int rowIndex, VisioSide placement = VisioSide.Right, string? id = null) {
             string normalizedParticipantId = RequireId(participantId, nameof(participantId), "Participant id");
@@ -286,7 +324,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double titleBand = string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
             double requiredWidth = _leftMargin + _rightMargin + (_participants.Count * _participantWidth) + ((_participants.Count - 1) * _participantGap);
-            double messageRows = Math.Max(1, _messages.Count);
+            double messageRows = Math.Max(1, GetRequiredRowCount());
             double requiredHeight = _topMargin + titleBand + _participantHeight + _messageGap + (messageRows * _messageSpacing) + _bottomMargin;
             double pageWidth = Math.Max(_pageWidth, requiredWidth);
             double pageHeight = Math.Max(_pageHeight, requiredHeight);
@@ -301,6 +339,10 @@ namespace OfficeIMO.Visio.Diagrams {
                 page.Grid(visible: false, snap: true);
                 page.AddLayer(LifelineLayer);
                 page.AddLayer(MessageLayer);
+                if (_activations.Count > 0) {
+                    page.AddLayer(ActivationLayer);
+                }
+
                 if (_notes.Count > 0) {
                     page.AddLayer(NoteLayer);
                 }
@@ -309,6 +351,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
                 AddTitle(page, pageWidth, pageHeight);
                 PlaceParticipants(page, pageWidth, headerY, lifelineBottomY);
+                AddActivations(page, firstMessageY);
                 AddMessages(page, firstMessageY);
                 AddNotes(page, firstMessageY);
                 _document.RequestRecalcOnOpen();
@@ -316,6 +359,19 @@ namespace OfficeIMO.Visio.Diagrams {
             } finally {
                 _document.UseMastersByDefault = previousMastersByDefault;
             }
+        }
+
+        private int GetRequiredRowCount() {
+            int rows = _messages.Count;
+            foreach (ActivationItem activation in _activations) {
+                rows = Math.Max(rows, activation.EndRowIndex + 1);
+            }
+
+            foreach (NoteItem note in _notes) {
+                rows = Math.Max(rows, note.RowIndex + 1);
+            }
+
+            return rows;
         }
 
         private void AddTitle(VisioPage page, double pageWidth, double pageHeight) {
@@ -366,6 +422,23 @@ namespace OfficeIMO.Visio.Diagrams {
                 } else {
                     AddParticipantMessage(page, message, y);
                 }
+            }
+        }
+
+        private void AddActivations(VisioPage page, double firstMessageY) {
+            foreach (ActivationItem activation in _activations) {
+                ParticipantItem participant = _participantsById[activation.ParticipantId];
+                double topY = firstMessageY - (activation.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.32D);
+                double bottomY = firstMessageY - (activation.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.32D);
+                double height = Math.Max(ActivationMinimumHeight, topY - bottomY);
+                double y = (topY + bottomY) / 2D;
+                VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, "seq.activation", activation.Id, participant.PinX, y, ActivationWidth, height, string.Empty);
+                _theme.Marker.ApplyTo(shape);
+                shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SequenceActivationKind, "STR", prompt: "OfficeIMO semantic kind");
+                shape.SetUserCell("OfficeIMO.SequenceParticipantId", activation.ParticipantId, "STR", prompt: "OfficeIMO sequence activation participant");
+                shape.SetUserCell("OfficeIMO.SequenceStartRowIndex", activation.StartRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence activation start row");
+                shape.SetUserCell("OfficeIMO.SequenceEndRowIndex", activation.EndRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence activation end row");
+                page.AddToLayer(ActivationLayer, shape);
             }
         }
 
@@ -548,6 +621,15 @@ namespace OfficeIMO.Visio.Diagrams {
             return normalizedId;
         }
 
+        private string NormalizeActivationId(string? id) {
+            string normalizedId = string.IsNullOrWhiteSpace(id) ? "activation-" + (_activations.Count + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) : id!.Trim();
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            return normalizedId;
+        }
+
         private void EnsureKnownParticipant(string id, string parameterName) {
             string normalizedId = RequireId(id, parameterName, "Participant id");
             if (!_participantsById.ContainsKey(normalizedId)) {
@@ -566,6 +648,12 @@ namespace OfficeIMO.Visio.Diagrams {
 
             foreach (MessageItem message in _messages) {
                 if (string.Equals(message.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            foreach (ActivationItem activation in _activations) {
+                if (string.Equals(activation.Id, id, StringComparison.Ordinal)) {
                     return true;
                 }
             }

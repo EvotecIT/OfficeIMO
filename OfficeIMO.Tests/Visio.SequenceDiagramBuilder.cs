@@ -26,6 +26,8 @@ namespace OfficeIMO.Tests {
                     .Async("api", "db", "Persist order", "persist")
                     .Return("api", "web", "201 Created", "created")
                     .SelfMessage("web", "Render receipt", id: "render")
+                    .Activation("web", 1, 4, "web-active")
+                    .Activation("api", 2, 3, "api-active")
                     .Note("api", "Retry path observed", 2, VisioSide.Right, "retry-note"));
 
             VisioPage page = Assert.Single(document.Pages);
@@ -52,13 +54,23 @@ namespace OfficeIMO.Tests {
             Assert.Equal("SequenceNote", note.GetUserCellValue("OfficeIMO.Kind"));
             Assert.Equal("api", note.GetUserCellValue("OfficeIMO.SequenceParticipantId"));
             Assert.Contains("Sequence Notes", note.LayerNames);
+            VisioShape webActivation = Assert.Single(page.Shapes, shape => shape.Id == "web-active");
+            Assert.Equal("Rectangle", webActivation.MasterNameU);
+            Assert.Equal("SequenceActivation", webActivation.GetUserCellValue("OfficeIMO.Kind"));
+            Assert.Equal("web", webActivation.GetUserCellValue("OfficeIMO.SequenceParticipantId"));
+            Assert.Equal("1", webActivation.GetUserCellValue("OfficeIMO.SequenceStartRowIndex"));
+            Assert.Equal("4", webActivation.GetUserCellValue("OfficeIMO.SequenceEndRowIndex"));
+            Assert.Contains("Sequence Activations", webActivation.LayerNames);
+            Assert.True(webActivation.Height > webActivation.Width);
             VisioStencilProfile profile = document.CreateStencilProfile();
-            Assert.Equal(5, profile.StencilBackedShapeCount);
+            Assert.Equal(7, profile.StencilBackedShapeCount);
             Assert.Equal(new[] { "Sequence Diagram" }, profile.StencilCatalogs);
+            Assert.Contains("SequenceActivation", profile.SemanticKinds);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.actor" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.participant" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.control" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.database" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.activation" && usage.Count == 2);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.note" && usage.Count == 1);
 
             VisioConnector[] messageConnectors = page.Connectors
@@ -73,6 +85,8 @@ namespace OfficeIMO.Tests {
             Assert.True(selfMessage.LabelPlacement.PinX > selfMessage.Waypoints.Max(waypoint => waypoint.X));
             Assert.Contains(page.Layers, layer => layer.Name == "Sequence Lifelines");
             Assert.Contains(page.Layers, layer => layer.Name == "Sequence Messages");
+            Assert.Contains(page.Layers, layer => layer.Name == "Sequence Activations");
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(), issue => issue.ShapeId == "web-active" || issue.ShapeId == "api-active");
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -142,10 +156,16 @@ namespace OfficeIMO.Tests {
                     .Participant("web", "Web")
                     .Note("web", "First", 0, id: "same")
                     .Call("web", "web", "Duplicate", "same")));
+            ArgumentException activationCollision = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Activation("web", 0, 1, "same")
+                    .Note("web", "Duplicate", 0, id: "same")));
 
             Assert.Contains("already exists", participantCollision.Message);
             Assert.Contains("already exists", messageCollision.Message);
             Assert.Contains("already exists", noteCollision.Message);
+            Assert.Contains("already exists", activationCollision.Message);
         }
 
         [Fact]
@@ -171,13 +191,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SequenceDiagramBuilderRejectsInvalidActivations() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Activation("missing", 0, 1)));
+            ArgumentOutOfRangeException badStart = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Activation("web", -1, 1)));
+            ArgumentOutOfRangeException badEnd = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Activation("web", 2, 1)));
+
+            Assert.Contains("Unknown sequence participant id", unknownTarget.Message);
+            Assert.Contains("zero or greater", badStart.Message);
+            Assert.Contains("greater than or equal", badEnd.Message);
+        }
+
+        [Fact]
         public void SequenceStencilsAreSearchableAndIncludedInAllCatalog() {
             VisioStencilShape participant = VisioStencils.Sequence.Get("seq.participant");
             VisioStencilShape actor = Assert.Single(VisioStencils.Sequence.Search("person"));
+            VisioStencilShape activation = Assert.Single(VisioStencils.Sequence.Search("execution"));
 
             Assert.Equal("Rectangle", participant.MasterNameU);
             Assert.Equal("Actor", actor.Name);
+            Assert.Equal("Activation", activation.Name);
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "seq.database");
+            Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "seq.activation");
         }
     }
 }

@@ -205,9 +205,9 @@ namespace OfficeIMO.Visio {
                 Marker = Shape(Color.FromRgb(109, 40, 217), Color.FromRgb(196, 181, 253), 0.02, Color.White),
                 Emphasis = Shape(Color.FromRgb(30, 41, 59), Color.FromRgb(203, 213, 225), 0.02, Color.White),
                 Container = Shape(Color.FromRgb(17, 24, 39), Color.FromRgb(100, 116, 139), 0.014, Color.FromRgb(241, 245, 249)),
-                Connector = CreateConnector(Color.FromRgb(147, 197, 253), 0.02, 1, Color.FromRgb(219, 234, 254)),
-                DataConnector = CreateConnector(Color.FromRgb(94, 234, 212), 0.02, 1, Color.FromRgb(204, 251, 241)),
-                ControlConnector = CreateConnector(Color.FromRgb(216, 180, 254), 0.02, 2, Color.FromRgb(243, 232, 255))
+                Connector = CreateConnector(Color.FromRgb(147, 197, 253), 0.02, 1, Color.FromRgb(30, 41, 59)),
+                DataConnector = CreateConnector(Color.FromRgb(94, 234, 212), 0.02, 1, Color.FromRgb(30, 41, 59)),
+                ControlConnector = CreateConnector(Color.FromRgb(216, 180, 254), 0.02, 2, Color.FromRgb(30, 41, 59))
             };
         }
 

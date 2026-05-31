@@ -217,7 +217,10 @@ namespace OfficeIMO.Visio {
                     .Call("api", "ledger", "Verify settlement", "verify")
                     .Return("ledger", "api", "Consistent")
                     .Async("queue", "api", "Resume controlled drain", "resume")
-                    .SelfMessage("support", "Update incident record", id: "record"));
+                    .SelfMessage("support", "Update incident record", id: "record")
+                    .Activation("support", 0, 7, "support-active")
+                    .Activation("api", 1, 6, "api-active")
+                    .Activation("queue", 3, 6, "queue-active"));
         }
 
         private static VisioDocument CreateReleaseTimeline(string filePath) {
