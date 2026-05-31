@@ -27,6 +27,7 @@ namespace OfficeIMO.Visio {
             Set(shape, VisioSemanticUserCells.StencilPreviewImageContentType, stencil.PreviewImage?.ContentType);
             Set(shape, VisioSemanticUserCells.StencilPreviewImageExtension, stencil.PreviewImage?.Extension);
             Set(shape, VisioSemanticUserCells.StencilPreviewImageByteLength, FormatLong(stencil.PreviewImage?.ByteLength));
+            ApplyConnectionPoints(shape, stencil);
         }
 
         internal static void Apply(VisioMaster master, VisioStencilShape stencil, string? catalogName) {
@@ -231,6 +232,30 @@ namespace OfficeIMO.Visio {
             return value.HasValue
                 ? value.Value.ToString(CultureInfo.InvariantCulture)
                 : null;
+        }
+
+        private static void ApplyConnectionPoints(VisioShape shape, VisioStencilShape stencil) {
+            if (shape.ConnectionPoints.Count > 0 ||
+                stencil.SourceConnectionPoints.Count == 0) {
+                return;
+            }
+
+            double baseWidth = GetDefaultSizeInInches(stencil.DefaultWidth, stencil.DefaultUnit);
+            double baseHeight = GetDefaultSizeInInches(stencil.DefaultHeight, stencil.DefaultUnit);
+            double scaleX = baseWidth > 0 ? shape.Width / baseWidth : 1D;
+            double scaleY = baseHeight > 0 ? shape.Height / baseHeight : 1D;
+
+            foreach (VisioStencilConnectionPoint point in stencil.SourceConnectionPoints) {
+                shape.ConnectionPoints.Add(new VisioConnectionPoint(point.X * scaleX, point.Y * scaleY, point.DirX, point.DirY) {
+                    SectionIndex = point.SectionIndex
+                });
+            }
+        }
+
+        private static double GetDefaultSizeInInches(double value, VisioMeasurementUnit? unit) {
+            return unit.HasValue
+                ? value.ToInches(unit.Value)
+                : value;
         }
 
         private static IReadOnlyList<string> Coalesce(IReadOnlyList<string> candidate, IReadOnlyList<string> fallback) {

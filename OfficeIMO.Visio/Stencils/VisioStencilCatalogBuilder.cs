@@ -114,7 +114,28 @@ namespace OfficeIMO.Visio.Stencils {
             VisioMeasurementUnit? defaultUnit,
             string? sourcePackagePath,
             VisioStencilPreviewImage? previewImage) {
-            return Add(CreateShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath, previewImage));
+            return AddWithMetadata(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath, previewImage, null);
+        }
+
+        /// <summary>
+        /// Adds a stencil shape with explicit search metadata, default-size unit, source package path, preview image, and native connection point metadata.
+        /// </summary>
+        public VisioStencilCatalogBuilder AddWithMetadata(
+            string id,
+            string name,
+            string masterNameU,
+            string category,
+            double defaultWidth,
+            double defaultHeight,
+            IEnumerable<string>? keywords,
+            IEnumerable<string>? aliases,
+            IEnumerable<string>? tags,
+            string? iconNameU,
+            VisioMeasurementUnit? defaultUnit,
+            string? sourcePackagePath,
+            VisioStencilPreviewImage? previewImage,
+            IEnumerable<VisioStencilConnectionPoint>? sourceConnectionPoints) {
+            return Add(CreateShape(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath, previewImage, sourceConnectionPoints));
         }
 
         /// <summary>
@@ -150,7 +171,8 @@ namespace OfficeIMO.Visio.Stencils {
             string? iconNameU,
             VisioMeasurementUnit? defaultUnit,
             string? sourcePackagePath,
-            VisioStencilPreviewImage? previewImage) {
+            VisioStencilPreviewImage? previewImage,
+            IEnumerable<VisioStencilConnectionPoint>? sourceConnectionPoints) {
             string prefix = id.Contains(".") ? id.Substring(0, id.IndexOf('.')) : id;
             string localId = id.Contains(".") ? id.Substring(id.IndexOf('.') + 1) : id;
             IEnumerable<string> effectiveKeywords = keywords ?? Enumerable.Empty<string>();
@@ -177,7 +199,8 @@ namespace OfficeIMO.Visio.Stencils {
                 iconNameU ?? masterNameU,
                 defaultUnit,
                 sourcePackagePath,
-                previewImage);
+                previewImage,
+                sourceConnectionPoints);
         }
     }
 }

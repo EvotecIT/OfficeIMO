@@ -31,7 +31,14 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>
         /// Initializes a new stencil shape definition with source package and preview image metadata.
         /// </summary>
-        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit, string? sourcePackagePath, VisioStencilPreviewImage? previewImage) {
+        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit, string? sourcePackagePath, VisioStencilPreviewImage? previewImage)
+            : this(id, name, masterNameU, category, defaultWidth, defaultHeight, keywords, aliases, tags, iconNameU, defaultUnit, sourcePackagePath, previewImage, null) {
+        }
+
+        /// <summary>
+        /// Initializes a new stencil shape definition with source package, preview image, and connection point metadata.
+        /// </summary>
+        public VisioStencilShape(string id, string name, string masterNameU, string category, double defaultWidth, double defaultHeight, IEnumerable<string>? keywords, IEnumerable<string>? aliases, IEnumerable<string>? tags, string? iconNameU, VisioMeasurementUnit? defaultUnit, string? sourcePackagePath, VisioStencilPreviewImage? previewImage, IEnumerable<VisioStencilConnectionPoint>? sourceConnectionPoints) {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Stencil shape id cannot be null or whitespace.", nameof(id));
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Stencil shape name cannot be null or whitespace.", nameof(name));
             if (string.IsNullOrWhiteSpace(masterNameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(masterNameU));
@@ -64,6 +71,10 @@ namespace OfficeIMO.Visio.Stencils {
             DefaultUnit = defaultUnit;
             SourcePackagePath = string.IsNullOrWhiteSpace(sourcePackagePath) ? null : sourcePackagePath;
             PreviewImage = previewImage;
+            SourceConnectionPoints = (sourceConnectionPoints ?? Enumerable.Empty<VisioStencilConnectionPoint>())
+                .Where(point => point != null)
+                .ToList()
+                .AsReadOnly();
         }
 
         /// <summary>
@@ -111,6 +122,11 @@ namespace OfficeIMO.Visio.Stencils {
         /// Gets preview/icon image metadata discovered from a source package master, when available.
         /// </summary>
         public VisioStencilPreviewImage? PreviewImage { get; }
+
+        /// <summary>
+        /// Gets native connection points discovered from a source package master, when available.
+        /// </summary>
+        public IReadOnlyList<VisioStencilConnectionPoint> SourceConnectionPoints { get; }
 
         /// <summary>
         /// Gets searchable keywords.

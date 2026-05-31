@@ -87,11 +87,11 @@ namespace OfficeIMO.Visio {
                 VisioStencilMetadata.Apply(updated.Master, stencil, catalogName: null);
             }
 
-            VisioStencilMetadata.Apply(updated, stencil, catalogName: null);
             if (resizeToMaster) {
                 ResizeToStencil(updated, stencil, page.DefaultUnit);
             }
 
+            VisioStencilMetadata.Apply(updated, stencil, catalogName: null);
             return updated;
         }
 

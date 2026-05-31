@@ -41,7 +41,9 @@ namespace OfficeIMO.Visio.Stencils {
             HashSet<string>? filter = options.MasterNames != null
                 ? new HashSet<string>(options.MasterNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase)
                 : null;
-            Dictionary<string, VisioAssets.MasterContent> masterContents = options.LearnMasterDimensions || options.ExtractPreviewImageMetadata
+            Dictionary<string, VisioAssets.MasterContent> masterContents = options.LearnMasterDimensions ||
+                                                                            options.ExtractPreviewImageMetadata ||
+                                                                            options.ExtractConnectionPointMetadata
                 ? VisioAssets.LoadMasterContents(packagePath)
                     .GroupBy(master => master.Id, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase)
@@ -78,6 +80,7 @@ namespace OfficeIMO.Visio.Stencils {
                 double defaultHeight = options.DefaultHeight;
                 VisioMeasurementUnit? defaultUnit = null;
                 VisioStencilPreviewImage? previewImage = null;
+                IReadOnlyList<VisioStencilConnectionPoint> sourceConnectionPoints = Array.Empty<VisioStencilConnectionPoint>();
                 if (masterContents.TryGetValue(master.Id, out VisioAssets.MasterContent? content)) {
                     if (options.LearnMasterDimensions &&
                         TryReadMasterDimensions(content, out double masterWidth, out double masterHeight)) {
@@ -88,6 +91,10 @@ namespace OfficeIMO.Visio.Stencils {
 
                     if (options.ExtractPreviewImageMetadata) {
                         previewImage = ReadPreviewImage(content);
+                    }
+
+                    if (options.ExtractConnectionPointMetadata) {
+                        sourceConnectionPoints = ReadConnectionPoints(content);
                     }
                 }
 
@@ -104,7 +111,8 @@ namespace OfficeIMO.Visio.Stencils {
                     master.NameU,
                     defaultUnit,
                     Path.GetFullPath(packagePath),
-                    previewImage);
+                    previewImage,
+                    sourceConnectionPoints);
             }
 
             return builder.Build();
@@ -279,18 +287,7 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         private static bool TryReadMasterDimensions(VisioAssets.MasterContent content, out double width, out double height) {
-            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
-            XElement? shape = content.MasterXml.Root?
-                .Element(v + "Shapes")?
-                .Elements(v + "Shape")
-                .FirstOrDefault();
-            if (shape == null) {
-                shape = content.MasterXml.Root?
-                    .Elements()
-                    .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shapes", StringComparison.OrdinalIgnoreCase))?
-                    .Elements()
-                    .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase));
-            }
+            XElement? shape = GetMasterRootShape(content);
 
             if (shape != null &&
                 TryReadPositiveCell(shape, "Width", out width) &&
@@ -301,6 +298,23 @@ namespace OfficeIMO.Visio.Stencils {
             width = 0;
             height = 0;
             return false;
+        }
+
+        private static XElement? GetMasterRootShape(VisioAssets.MasterContent content) {
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            XElement? shape = content.MasterXml.Root?
+                .Element(v + "Shapes")?
+                .Elements(v + "Shape")
+                .FirstOrDefault();
+            if (shape != null) {
+                return shape;
+            }
+
+            return content.MasterXml.Root?
+                .Elements()
+                .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shapes", StringComparison.OrdinalIgnoreCase))?
+                .Elements()
+                .FirstOrDefault(element => string.Equals(element.Name.LocalName, "Shape", StringComparison.OrdinalIgnoreCase));
         }
 
         private static VisioStencilPreviewImage? ReadPreviewImage(VisioAssets.MasterContent content) {
@@ -366,9 +380,42 @@ namespace OfficeIMO.Visio.Stencils {
                 IncludeUnsupportedMasters = options.IncludeUnsupportedMasters,
                 LearnMasterDimensions = options.LearnMasterDimensions,
                 ExtractPreviewImageMetadata = options.ExtractPreviewImageMetadata,
+                ExtractConnectionPointMetadata = options.ExtractConnectionPointMetadata,
                 DefaultWidth = options.DefaultWidth,
                 DefaultHeight = options.DefaultHeight
             };
+        }
+
+        private static IReadOnlyList<VisioStencilConnectionPoint> ReadConnectionPoints(VisioAssets.MasterContent content) {
+            XElement? shape = GetMasterRootShape(content);
+            XElement? connectionSection = shape?
+                .Elements()
+                .FirstOrDefault(element =>
+                    string.Equals(element.Name.LocalName, "Section", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals((string?)element.Attribute("N"), "Connection", StringComparison.OrdinalIgnoreCase));
+            if (connectionSection == null) {
+                return Array.Empty<VisioStencilConnectionPoint>();
+            }
+
+            List<VisioStencilConnectionPoint> points = new();
+            foreach (XElement row in connectionSection.Elements().Where(element => string.Equals(element.Name.LocalName, "Row", StringComparison.OrdinalIgnoreCase))) {
+                if (!TryReadCell(row, "X", out double x) ||
+                    !TryReadCell(row, "Y", out double y)) {
+                    continue;
+                }
+
+                TryReadCell(row, "DirX", out double dirX);
+                TryReadCell(row, "DirY", out double dirY);
+                int? sectionIndex = null;
+                if (int.TryParse((string?)row.Attribute("IX"), NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsedSectionIndex) &&
+                    parsedSectionIndex >= 0) {
+                    sectionIndex = parsedSectionIndex;
+                }
+
+                points.Add(new VisioStencilConnectionPoint(x, y, dirX, dirY, sectionIndex));
+            }
+
+            return points.AsReadOnly();
         }
 
         private static bool IsSupportedPackagePath(string path) {
@@ -387,14 +434,23 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         private static bool TryReadPositiveCell(XElement shape, string name, out double value) {
-            XElement? cell = shape.Elements()
-                .FirstOrDefault(element =>
-                    string.Equals(element.Name.LocalName, "Cell", StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals((string?)element.Attribute("N"), name, StringComparison.OrdinalIgnoreCase));
+            if (!TryReadCell(shape, name, out value) ||
+                value <= 0) {
+                value = 0;
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryReadCell(XElement element, string name, out double value) {
+            XElement? cell = element.Elements()
+                .FirstOrDefault(child =>
+                    string.Equals(child.Name.LocalName, "Cell", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals((string?)child.Attribute("N"), name, StringComparison.OrdinalIgnoreCase));
             string? rawValue = (string?)cell?.Attribute("V");
             if (string.IsNullOrWhiteSpace(rawValue) ||
                 !double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out value) ||
-                value <= 0 ||
                 double.IsNaN(value) ||
                 double.IsInfinity(value)) {
                 value = 0;

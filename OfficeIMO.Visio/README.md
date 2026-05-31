@@ -693,7 +693,11 @@ doc.Save();
 `.vssx`, `.vstx`, and the macro-enabled package variants. It does not use those
 files as runtime templates. The `MasterNames` filter can target the universal
 name, visible name, relationship id, numeric id, or normalized slug discovered in
-the package.
+the package. Package catalogs can learn native master dimensions, preview/icon
+image relationship metadata, and native connection points; when a package-backed
+stencil is placed, those connection points are scaled onto the page shape so
+connectors, inspection snapshots, and stencil profiles can see the real stencil
+attachment profile.
 
 When you want real external artwork, load the package catalog with
 `IncludeUnsupportedMasters = true` and place shapes from that catalog. Package
@@ -791,7 +795,8 @@ var azure = VisioStencilPackageCatalog.LoadMany(installed,
 `VisioStencilCatalog.Save(...)` and `VisioStencilCatalog.Load(...)` persist
 OfficeIMO-native catalog metadata as a small XML manifest. This is useful for
 reusable first-party or application-specific palettes without requiring Visio
-stencil packages at runtime.
+stencil packages at runtime. The manifest preserves source package paths,
+preview metadata, learned default sizes, and learned source connection points.
 
 ## Query and selection editing
 
@@ -1267,7 +1272,7 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
 - 🔗 Connectors: ✅ basic connectors between shapes
 - 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ generic graph builder with cycles, disconnected components, layered/grid/radial layouts, zones, and package-backed stencil nodes, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ sequence builder with participants, lifelines, message types, and self-calls, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
-- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, sequence, swimlane, org-chart, and timeline shapes
+- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, sequence, swimlane, org-chart, and timeline shapes; ✅ external package catalogs with learned dimensions, preview metadata, source package provenance, and native connection points
 - 🎨 Style themes: ✅ reusable shape/connector/text styles and Modern/Office/Fluent/Technical/Minimal/Dark/Print authoring presets
 - 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content
 - 🧩 VSDX learning fixtures: ✅ inspect supported masters without treating sample files as runtime templates

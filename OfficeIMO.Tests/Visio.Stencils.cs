@@ -482,6 +482,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilCatalogLearnsNativeConnectionPointsAndAppliesThemToPlacedShapes() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithMasterConnectionPoints(packagePath, "Rectangle", "Connected Box");
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                CatalogName = "Connected Stencils",
+                Category = "Connected",
+                IdPrefix = "connected",
+                IncludeUnsupportedMasters = true
+            });
+
+            VisioStencilShape stencil = catalog.Get("connected-box");
+            Assert.Equal(3, stencil.SourceConnectionPoints.Count);
+            Assert.Equal(0, stencil.SourceConnectionPoints[0].SectionIndex);
+            Assert.Equal(3.2, stencil.DefaultWidth, 6);
+            Assert.Equal(1.1, stencil.DefaultHeight, 6);
+
+            using MemoryStream manifest = new();
+            catalog.Save(manifest);
+            manifest.Position = 0;
+            VisioStencilShape reloadedStencil = VisioStencilCatalog.Load(manifest).Get("connected-box");
+            Assert.Equal(3, reloadedStencil.SourceConnectionPoints.Count);
+            Assert.Equal(1.6, reloadedStencil.SourceConnectionPoints[2].X, 6);
+
+            VisioStencilCatalog withoutConnectionMetadata = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                ExtractConnectionPointMetadata = false,
+                IncludeUnsupportedMasters = true
+            });
+            Assert.Empty(withoutConnectionMetadata.Get("connected-box").SourceConnectionPoints);
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Connected Stencils");
+            VisioShape shape = page.AddStencilShape(catalog, "connected-box", "node", 3, 4, 6.4, 2.2, "Connected");
+            document.Save();
+
+            Assert.Equal(3, shape.ConnectionPoints.Count);
+            Assert.Equal(0, shape.ConnectionPoints[0].X, 6);
+            Assert.Equal(1.1, shape.ConnectionPoints[0].Y, 6);
+            Assert.Equal(6.4, shape.ConnectionPoints[1].X, 6);
+            Assert.Equal(1.1, shape.ConnectionPoints[1].Y, 6);
+            Assert.Equal(3.2, shape.ConnectionPoints[2].X, 6);
+            Assert.Equal(2.2, shape.ConnectionPoints[2].Y, 6);
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedShape = Assert.Single(loaded.Pages[0].Shapes);
+            Assert.Equal(3, loadedShape.ConnectionPoints.Count);
+            VisioStencilProfile profile = loaded.CreateStencilProfile();
+            Assert.Equal(3, profile.TotalConnectionPoints);
+            Assert.Equal(1, profile.ConnectionPointShapeCount);
+        }
+
+        [Fact]
         public void PackageStencilCatalogLoadsFromVstxAndCanIncludeUnsupportedMasters() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vstx");
             CreatePackageWithMasters(packagePath, "Rectangle", "FancyCloud");
@@ -927,6 +981,55 @@ namespace OfficeIMO.Tests {
                 XDocument masterDocument = new(new XElement(ns + "MasterContents", new XElement(ns + "Shapes", shape)));
                 WriteZipXml(zip, $"visio/masters/master{index + 1}.xml", masterDocument);
             }
+        }
+
+        private static void CreatePackageWithMasterConnectionPoints(string path, string nameU, string name) {
+            const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
+            const string officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            const string packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+            using ZipArchive zip = ZipFile.Open(path, ZipArchiveMode.Create);
+            XNamespace ns = visioNamespace;
+            XNamespace rel = officeRelationshipNamespace;
+            XElement mastersRoot = new(ns + "Masters",
+                new XElement(ns + "Master",
+                    new XAttribute("ID", "1"),
+                    new XAttribute("Name", name),
+                    new XAttribute("NameU", nameU),
+                    new XElement(ns + "Rel", new XAttribute(rel + "id", "rId1"))));
+            WriteZipXml(zip, "visio/masters/masters.xml", new XDocument(mastersRoot));
+
+            XNamespace packageRel = packageRelationshipNamespace;
+            XElement relationshipsRoot = new(packageRel + "Relationships",
+                new XElement(packageRel + "Relationship",
+                    new XAttribute("Id", "rId1"),
+                    new XAttribute("Type", officeRelationshipNamespace + "/master"),
+                    new XAttribute("Target", "master1.xml")));
+            WriteZipXml(zip, "visio/masters/_rels/masters.xml.rels", new XDocument(relationshipsRoot));
+
+            XElement shape = new(ns + "Shape",
+                new XAttribute("ID", "1"),
+                new XAttribute("Name", name),
+                new XAttribute("NameU", nameU),
+                DimensionCell(ns, "Width", 3.2, null),
+                DimensionCell(ns, "Height", 1.1, null),
+                new XElement(ns + "Section",
+                    new XAttribute("N", "Connection"),
+                    ConnectionRow(ns, 0, 0, 0.55, 1, 0),
+                    ConnectionRow(ns, 1, 3.2, 0.55, -1, 0),
+                    ConnectionRow(ns, 2, 1.6, 1.1, 0, -1)));
+            XDocument masterDocument = new(new XElement(ns + "MasterContents", new XElement(ns + "Shapes", shape)));
+            WriteZipXml(zip, "visio/masters/master1.xml", masterDocument);
+        }
+
+        private static XElement ConnectionRow(XNamespace ns, int index, double x, double y, double dirX, double dirY) {
+            return new XElement(ns + "Row",
+                new XAttribute("T", "Connection"),
+                new XAttribute("IX", index),
+                DimensionCell(ns, "X", x, null),
+                DimensionCell(ns, "Y", y, null),
+                DimensionCell(ns, "DirX", dirX, null),
+                DimensionCell(ns, "DirY", dirY, null));
         }
 
         private static XElement DimensionCell(XNamespace ns, string name, double value, string? unit) {

@@ -23,7 +23,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
 - A reusable eight-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
 - Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`, including connector label placement coordinates for label-layout regression proof.
-- Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, stencil-backed, Shape Data key, semantic-kind, catalog, category, keyword, alias, tag, icon identity, package preview-image content type/extension, source default dimensions/units, source-package, placed/source-dimension, and connection-point summaries that survive save/load for package-backed masters and generated stencil placements.
+- Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, stencil-backed, Shape Data key, semantic-kind, catalog, category, keyword, alias, tag, icon identity, package preview-image content type/extension, learned native connection points, source default dimensions/units, source-package, placed/source-dimension, and connection-point summaries that survive save/load for package-backed masters and generated stencil placements.
 
 The external stencil and graph slice from PR #1865 is merged. The next checkpoint is no longer proving that the Visio core can generate useful diagrams; it is making the public package story clean, the showcase reproducible, and the generated output visually strong enough to support premium positioning.
 
@@ -84,6 +84,7 @@ That implies three durable layers:
 - Architecture, network, flowchart, block-diagram, swimlane, timeline, and sequence builder components now use first-party stencil catalogs for provenance, so cloud architecture, network segmentation, print audit trail, technical topology, governed process, release timeline, and incident sequence gallery output are baseline-reviewed as stencil-backed diagram content rather than anonymous geometry.
 - Sequence diagrams now include first-party activation bars with dedicated builder API, stencil profile metadata, and gallery coverage.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags and package preview-image relationship metadata into shape and master metadata, so profiles and inspection snapshots can prove which catalog, package, and embedded icon media supplied a shape after save/load.
+- Package stencil catalogs now extract native master connection points, persist them in catalog manifests, and scale them onto placed shapes so package-backed stencils expose usable connector attachment profiles after save/load.
 - Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
 - Obstacle-aware orthogonal routing APIs plus `PolishDiagram` options for rerouting connectors around unrelated top-level shapes, containers, background zones/trust boundaries, generated adornments, and existing connector paths before label cleanup.
 - Group-aware obstacle routing can include nested group children while ignoring endpoint ancestors/descendants, so connectors into grouped content can avoid unrelated sibling member shapes.
@@ -139,7 +140,7 @@ Goal: generated diagrams should be credible without manual post-editing.
 Goal: native and external stencil packs feel first-class, not like shortcuts.
 
 - Preserve more imported master/package content for unsupported external masters.
-- Improve master metadata extraction: categories, keywords, preview/icon relationship metadata, dimensions, connection points, and aliases. Initial package preview metadata now records image relationship id, target, content type, extension, and embedded byte length when package masters expose image relationships, controlled by `VisioStencilPackageLoadOptions.ExtractPreviewImageMetadata`; callers can also extract embedded preview/icon payloads with `VisioStencilPackageCatalog.ExtractPreviewImages(...)`, write them with `ExtractPreviewImagesToDirectory(...)`, or generate a reviewable HTML preview-payload gallery with `CreatePreviewGallery(...)`.
+- Improve master metadata extraction: categories, keywords, preview/icon relationship metadata, dimensions, connection points, and aliases. Initial package preview metadata now records image relationship id, target, content type, extension, and embedded byte length when package masters expose image relationships, controlled by `VisioStencilPackageLoadOptions.ExtractPreviewImageMetadata`; native master connection points are learned by `ExtractConnectionPointMetadata` and persisted through catalog manifests; callers can also extract embedded preview/icon payloads with `VisioStencilPackageCatalog.ExtractPreviewImages(...)`, write them with `ExtractPreviewImagesToDirectory(...)`, or generate a reviewable HTML preview-payload gallery with `CreatePreviewGallery(...)`.
 - Add package-backed master reuse without forcing generated fallback where a real master exists.
 - Add first-party generated stencil packs for:
   - servers and devices;
@@ -150,7 +151,7 @@ Goal: native and external stencil packs feel first-class, not like shortcuts.
   - collaboration/business process symbols.
 - Add a real stencil gallery document builder for catalog review and debugging.
 - Add custom stencil export, ideally to reusable package-backed stencil form when feasible.
-- Broaden typed stencil profiles from catalog/category/source-pack/family, alias/keyword/tag, placed/source dimensions, icon identity, preview-image content type/extension, extracted package preview/icon payloads, reviewable preview-payload gallery artifacts, and connection-point metadata into richer package-family, native metadata, and rendered thumbnails for payload formats OfficeIMO can render directly.
+- Broaden typed stencil profiles from catalog/category/source-pack/family, alias/keyword/tag, placed/source dimensions, icon identity, preview-image content type/extension, extracted package preview/icon payloads, reviewable preview-payload gallery artifacts, learned native connection-point metadata, and placed connection-point summaries into richer package-family, native metadata, and rendered thumbnails for payload formats OfficeIMO can render directly.
 - Document native Visio stencil discovery paths and external pack usage patterns.
 
 ## P3: Real Graphs And Data-Driven Diagrams

@@ -83,6 +83,7 @@ namespace OfficeIMO.Visio.Stencils {
                         shape.DefaultUnit.HasValue ? new XAttribute("DefaultUnit", shape.DefaultUnit.Value.ToString()) : null,
                         string.IsNullOrWhiteSpace(shape.SourcePackagePath) ? null : new XAttribute("SourcePackagePath", shape.SourcePackagePath),
                         PreviewImage(shape.PreviewImage),
+                        ConnectionPoints(shape.SourceConnectionPoints),
                         Values("Keywords", shape.Keywords),
                         Values("Aliases", shape.Aliases),
                         Values("Tags", shape.Tags))));
@@ -121,7 +122,8 @@ namespace OfficeIMO.Visio.Stencils {
                     (string?)shape.Attribute("IconNameU"),
                     ReadUnit(shape, "DefaultUnit"),
                     (string?)shape.Attribute("SourcePackagePath"),
-                    ReadPreviewImage(shape));
+                    ReadPreviewImage(shape),
+                    ReadConnectionPoints(shape));
             }
 
             return builder.Build();
@@ -149,6 +151,21 @@ namespace OfficeIMO.Visio.Stencils {
                 previewImage.IsExternal ? new XAttribute("External", true) : null);
         }
 
+        private static XElement? ConnectionPoints(IReadOnlyList<VisioStencilConnectionPoint> points) {
+            if (points.Count == 0) {
+                return null;
+            }
+
+            return new XElement(Ns + "ConnectionPoints",
+                points.Select(point =>
+                    new XElement(Ns + "ConnectionPoint",
+                        point.SectionIndex.HasValue ? new XAttribute("IX", point.SectionIndex.Value) : null,
+                        new XAttribute("X", XmlConvert.ToString(point.X)),
+                        new XAttribute("Y", XmlConvert.ToString(point.Y)),
+                        new XAttribute("DirX", XmlConvert.ToString(point.DirX)),
+                        new XAttribute("DirY", XmlConvert.ToString(point.DirY)))));
+        }
+
         private static VisioStencilPreviewImage? ReadPreviewImage(XElement shape) {
             XElement? preview = shape.Element(Ns + "PreviewImage");
             if (preview == null) {
@@ -162,6 +179,23 @@ namespace OfficeIMO.Visio.Stencils {
                 (string?)preview.Attribute("Extension"),
                 ReadNullableLong(preview, "ByteLength"),
                 ReadBoolean(preview, "External"));
+        }
+
+        private static IReadOnlyList<VisioStencilConnectionPoint> ReadConnectionPoints(XElement shape) {
+            XElement? section = shape.Element(Ns + "ConnectionPoints");
+            if (section == null) {
+                return Array.Empty<VisioStencilConnectionPoint>();
+            }
+
+            return section.Elements(Ns + "ConnectionPoint")
+                .Select(point => new VisioStencilConnectionPoint(
+                    ReadDouble(point, "X"),
+                    ReadDouble(point, "Y"),
+                    ReadDouble(point, "DirX"),
+                    ReadDouble(point, "DirY"),
+                    ReadNullableInt(point, "IX")))
+                .ToList()
+                .AsReadOnly();
         }
 
         private static IReadOnlyList<string> ReadValues(XElement shape, string name) {
@@ -215,6 +249,30 @@ namespace OfficeIMO.Visio.Stencils {
             }
 
             return XmlConvert.ToInt64(value);
+        }
+
+        private static int? ReadNullableInt(XElement element, string attributeName) {
+            string? value = (string?)element.Attribute(attributeName);
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            int parsed = XmlConvert.ToInt32(value);
+            if (parsed < 0) {
+                throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be zero or greater.");
+            }
+
+            return parsed;
+        }
+
+        private static double ReadDouble(XElement element, string attributeName) {
+            string value = Required(element, attributeName);
+            double parsed = XmlConvert.ToDouble(value);
+            if (double.IsNaN(parsed) || double.IsInfinity(parsed)) {
+                throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be finite.");
+            }
+
+            return parsed;
         }
 
         private static bool ReadBoolean(XElement element, string attributeName) {
