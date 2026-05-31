@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
@@ -402,12 +403,12 @@ namespace OfficeIMO.Visio.Diagrams {
                     break;
             }
 
-            VisioShape shape = new VisioShape(node.Id, x, y, width, height, node.Text) { NameU = nameU };
+            VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart, GetNodeStencilId(node.Kind), node.Id, x, y, width, height, node.Text);
+            shape.NameU = nameU;
             ApplyStyle(shape, fill, stroke);
             if (textStyle != null) {
                 shape.TextStyle = textStyle.Clone();
             }
-            page.Shapes.Add(shape);
 
             return shape;
         }
@@ -593,6 +594,24 @@ namespace OfficeIMO.Visio.Diagrams {
             shape.FillColor = fill;
             shape.LineColor = stroke;
             shape.LineWeight = _theme.LineWeight;
+        }
+
+        private static string GetNodeStencilId(VisioFlowchartNodeKind kind) {
+            switch (kind) {
+                case VisioFlowchartNodeKind.Decision:
+                    return "decision";
+                case VisioFlowchartNodeKind.Data:
+                    return "data";
+                case VisioFlowchartNodeKind.OffPageReference:
+                    return "off-page-reference";
+                case VisioFlowchartNodeKind.Continuation:
+                    return "continuation";
+                case VisioFlowchartNodeKind.Start:
+                case VisioFlowchartNodeKind.End:
+                    return "start-end";
+                default:
+                    return "process";
+            }
         }
 
         private static void ResolveSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {

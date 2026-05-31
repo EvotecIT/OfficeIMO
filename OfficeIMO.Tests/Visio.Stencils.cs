@@ -24,6 +24,8 @@ namespace OfficeIMO.Tests {
 
             VisioStencilShape byKeyword = VisioStencils.Flowchart.Get("branch");
             Assert.Equal("Decision", byKeyword.MasterNameU);
+            Assert.Equal("Start/End", VisioStencils.Flowchart.Get("terminator").Name);
+            Assert.Equal("Continuation", VisioStencils.Flowchart.Get("continuation").Name);
 
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "basic.rectangle");
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "flow.off-page-reference");

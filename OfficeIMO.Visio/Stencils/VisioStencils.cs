@@ -31,12 +31,14 @@ namespace OfficeIMO.Visio.Stencils {
         public static VisioStencilCatalog Flowchart { get; } = new(
             "Flowchart",
             new[] {
+                Shape("flow.start-end", "Start/End", "Ellipse", "Flowchart", 2.2, 0.9, "terminator", "start", "end"),
                 Shape("flow.process", "Process", "Process", "Flowchart", 2.4, 1.0, "step", "task"),
                 Shape("flow.decision", "Decision", "Decision", "Flowchart", 2.0, 1.4, "branch", "choice"),
                 Shape("flow.data", "Data", "Data", "Flowchart", 2.4, 1.0, "input", "output"),
                 Shape("flow.preparation", "Preparation", "Preparation", "Flowchart", 2.2, 1.0, "setup"),
                 Shape("flow.manual-operation", "Manual Operation", "Manual operation", "Flowchart", 2.4, 1.0, "manual"),
-                Shape("flow.off-page-reference", "Off-page Reference", "Off-page reference", "Flowchart", 1.0, 1.0, "continuation", "off-page")
+                Shape("flow.off-page-reference", "Off-page Reference", "Off-page reference", "Flowchart", 1.0, 1.0, "off-page"),
+                Shape("flow.continuation", "Continuation", "Circle", "Flowchart", 0.8, 0.8, "connector", "jump")
             });
 
         /// <summary>
