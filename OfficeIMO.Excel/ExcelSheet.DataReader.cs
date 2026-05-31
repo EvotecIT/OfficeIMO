@@ -481,16 +481,11 @@ namespace OfficeIMO.Excel {
             int rowIndex = startRow;
             int appendedRowCount = 0;
             bool canCancel = ct.CanBeCanceled;
-            List<Row>? pendingRows = canCancel ? new List<Row>() : null;
+            List<Row> pendingRows = new List<Row>();
 
             if (includeHeaders) {
                 Row headerRow = CreateDataReaderHeaderRow(rowIndex++, columnReferencePrefixes, headers, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
-                if (pendingRows != null) {
-                    pendingRows.Add(headerRow);
-                } else {
-                    sheetData.Append(headerRow);
-                }
-
+                pendingRows.Add(headerRow);
                 appendedRowCount++;
             }
 
@@ -513,12 +508,7 @@ namespace OfficeIMO.Excel {
                 Row valueRow = canCancel
                     ? CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct)
                     : CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes);
-                if (pendingRows != null) {
-                    pendingRows.Add(valueRow);
-                } else {
-                    sheetData.Append(valueRow);
-                }
-
+                pendingRows.Add(valueRow);
                 appendedRowCount++;
                 dataRows++;
 
@@ -531,10 +521,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (pendingRows != null) {
-                foreach (var pendingRow in pendingRows) {
-                    sheetData.Append(pendingRow);
-                }
+            foreach (var pendingRow in pendingRows) {
+                sheetData.Append(pendingRow);
             }
 
             if (appendedRowCount > 0) {

@@ -6679,6 +6679,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertDataReader_FailedReadDoesNotPartiallyAppendRows() {
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Rows.Add("Alpha", 10);
+            table.Rows.Add("Beta", 20);
+
+            using var reader = new CountingDataReader(table.CreateDataReader(), throwOnReadAfterRows: 1);
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            var sheet = document.AddWorkSheet("Data");
+
+            var exception = Assert.Throws<InvalidOperationException>(() => sheet.InsertDataReader(reader, tableName: "ReaderTable"));
+            Assert.Contains("Simulated reader failure", exception.Message);
+
+            var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            Assert.Empty(sheetData.Elements<Row>());
+        }
+
+        [Fact]
         public void PerformanceReview_WriteDataSet_ObjectColumnDateAndTimeValuesUseValueStyles() {
             using var memory = new MemoryStream();
             var dataSet = new DataSet();
@@ -6797,10 +6816,13 @@ namespace OfficeIMO.Tests {
         private sealed class CountingDataReader : IDataReader {
             private readonly IDataReader _inner;
             private readonly bool _throwOnGetValues;
+            private readonly int _throwOnReadAfterRows;
+            private int _successfulReads;
 
-            internal CountingDataReader(IDataReader inner, bool throwOnGetValues = false) {
+            internal CountingDataReader(IDataReader inner, bool throwOnGetValues = false, int throwOnReadAfterRows = -1) {
                 _inner = inner;
                 _throwOnGetValues = throwOnGetValues;
+                _throwOnReadAfterRows = throwOnReadAfterRows;
             }
 
             internal int GetValuesCalls { get; private set; }
@@ -6881,7 +6903,18 @@ namespace OfficeIMO.Tests {
 
             public bool NextResult() => _inner.NextResult();
 
-            public bool Read() => _inner.Read();
+            public bool Read() {
+                if (_throwOnReadAfterRows >= 0 && _successfulReads >= _throwOnReadAfterRows) {
+                    throw new InvalidOperationException("Simulated reader failure.");
+                }
+
+                bool read = _inner.Read();
+                if (read) {
+                    _successfulReads++;
+                }
+
+                return read;
+            }
         }
 
         private static void RemoveFirstRowIndex(string filePath) {
