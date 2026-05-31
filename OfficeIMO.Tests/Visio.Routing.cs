@@ -302,6 +302,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PageRoutingCanUseDoglegCandidatesForDenseCrossingReduction() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Dense crossing polish", 10, 7);
+            VisioShape left = page.AddRectangle(1, 3.5, 0.8, 0.5, "Left");
+            VisioShape right = page.AddRectangle(9, 3.5, 0.8, 0.5, "Right");
+            VisioShape top = page.AddRectangle(5, 6, 0.8, 0.5, "Top");
+            VisioShape bottom = page.AddRectangle(5, 1, 0.8, 0.5, "Bottom");
+            VisioShape upperLeft = page.AddRectangle(1.4, 5.8, 0.8, 0.5, "Upper left");
+            VisioShape lowerRight = page.AddRectangle(8.6, 1.2, 0.8, 0.5, "Lower right");
+            VisioShape lowerLeft = page.AddRectangle(1.4, 1.2, 0.8, 0.5, "Lower left");
+            VisioShape upperRight = page.AddRectangle(8.6, 5.8, 0.8, 0.5, "Upper right");
+            page.AddConnector(left, right, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
+            page.AddConnector(upperLeft, lowerRight, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            page.AddConnector(lowerLeft, upperRight, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            int before = CountPageRouteCrossings(page);
+
+            page.RouteConnectorsOrthogonalAroundShapes(new VisioConnectorRoutingOptions {
+                AvoidConnectorCrossings = true,
+                PageOptimizationPasses = 4,
+                Padding = 0.18D,
+                MaxLanes = 28
+            });
+
+            int after = CountPageRouteCrossings(page);
+            Assert.True(after < before, $"Expected page routing to reduce crossings from {before}, but found {after}.");
+            Assert.Contains(page.Connectors, connector => connector.Kind == ConnectorKind.RightAngle && connector.Waypoints.Count > 2);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void PolishDiagramValidatesConnectorRoutingOptimizationPasses() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Invalid polish");
@@ -451,6 +486,18 @@ namespace OfficeIMO.Tests {
                             crossings++;
                         }
                     }
+                }
+            }
+
+            return crossings;
+        }
+
+        private static int CountPageRouteCrossings(VisioPage page) {
+            int crossings = 0;
+            VisioConnector[] connectors = page.Connectors.ToArray();
+            for (int i = 0; i < connectors.Length; i++) {
+                for (int j = i + 1; j < connectors.Length; j++) {
+                    crossings += CountRouteCrossings(connectors[i], connectors[j]);
                 }
             }
 

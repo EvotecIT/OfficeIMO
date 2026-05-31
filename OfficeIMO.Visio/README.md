@@ -465,7 +465,8 @@ end inside its own zone. The same options can prefer lanes that reduce
 connector-to-connector crossings when reference connectors are supplied; page-wide
 routing supplies the page connector set automatically and can run deterministic
 page-level optimization passes so the most conflicted connectors are considered
-first on later sweeps.
+first on later sweeps. Dense pages can also use multi-waypoint dogleg candidates
+when a simple three-segment orthogonal route still crosses important content.
 Pages can also set native Visio routing defaults for connectors that do not
 carry local routing or line-jump settings, plus placement and layout-grid policy
 used by Visio's Re-Layout Page commands.

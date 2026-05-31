@@ -163,9 +163,7 @@ namespace OfficeIMO.Visio {
                 return connector;
             }
 
-            return connector.RouteThrough(
-                new VisioConnectorWaypoint(resolved.First.X, resolved.First.Y),
-                new VisioConnectorWaypoint(resolved.Second.X, resolved.Second.Y));
+            return connector.RouteThrough(resolved.Waypoints.Select(point => new VisioConnectorWaypoint(point.X, point.Y)));
         }
 
         /// <summary>
@@ -545,6 +543,18 @@ namespace OfficeIMO.Visio {
                 yield return CreateOrthogonalRouteCandidate(startX, startY, endX, endY, primary, offset);
                 yield return CreateOrthogonalRouteCandidate(startX, startY, endX, endY, secondary, offset);
             }
+
+            double[] offsets = EnumerateLaneOffsets(step, maxLanes).ToArray();
+            foreach (double xOffset in offsets) {
+                foreach (double yOffset in offsets) {
+                    if (Math.Abs(xOffset) < 1e-9 && Math.Abs(yOffset) < 1e-9) {
+                        continue;
+                    }
+
+                    yield return CreateDoglegRouteCandidate(startX, startY, endX, endY, xOffset, yOffset, true);
+                    yield return CreateDoglegRouteCandidate(startX, startY, endX, endY, xOffset, yOffset, false);
+                }
+            }
         }
 
         private static IEnumerable<double> EnumerateLaneOffsets(double step, int maxLanes) {
@@ -578,6 +588,26 @@ namespace OfficeIMO.Visio {
                 new RoutePoint(startX, startY),
                 new RoutePoint(startX, laneY),
                 new RoutePoint(endX, laneY),
+                new RoutePoint(endX, endY));
+        }
+
+        private static RouteCandidate CreateDoglegRouteCandidate(double startX, double startY, double endX, double endY, double xOffset, double yOffset, bool horizontalEscapeFirst) {
+            double laneX = ((startX + endX) / 2D) + xOffset;
+            double laneY = ((startY + endY) / 2D) + yOffset;
+            if (horizontalEscapeFirst) {
+                return new RouteCandidate(
+                    new RoutePoint(startX, startY),
+                    new RoutePoint(laneX, startY),
+                    new RoutePoint(laneX, laneY),
+                    new RoutePoint(endX, laneY),
+                    new RoutePoint(endX, endY));
+            }
+
+            return new RouteCandidate(
+                new RoutePoint(startX, startY),
+                new RoutePoint(startX, laneY),
+                new RoutePoint(laneX, laneY),
+                new RoutePoint(laneX, endY),
                 new RoutePoint(endX, endY));
         }
 
@@ -645,9 +675,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool RouteIntersectsBounds(RouteCandidate route, VisioShapeBounds bounds) {
-            return SegmentIntersectsBounds(route.Start, route.First, bounds) ||
-                   SegmentIntersectsBounds(route.First, route.Second, bounds) ||
-                   SegmentIntersectsBounds(route.Second, route.End, bounds);
+            return PathIntersectsBounds(route.Points, bounds);
         }
 
         private static bool PathIntersectsBounds(IReadOnlyList<RoutePoint> points, VisioShapeBounds bounds) {
@@ -677,7 +705,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static int CountConnectorCrossings(RouteCandidate candidate, IReadOnlyList<IReadOnlyList<RoutePoint>> connectorReferencePaths) {
-            return CountConnectorCrossings(new[] { candidate.Start, candidate.First, candidate.Second, candidate.End }, connectorReferencePaths);
+            return CountConnectorCrossings(candidate.Points, connectorReferencePaths);
         }
 
         private static int CountPageConnectorCrossings(IReadOnlyList<VisioConnector> connectors) {
@@ -800,32 +828,49 @@ namespace OfficeIMO.Visio {
         }
 
         private readonly struct RouteCandidate {
-            public RouteCandidate(RoutePoint start, RoutePoint first, RoutePoint second, RoutePoint end)
-                : this(start, first, second, end, new RouteScore(int.MaxValue, int.MaxValue, double.PositiveInfinity)) {
+            public RouteCandidate(params RoutePoint[] points)
+                : this(points, new RouteScore(int.MaxValue, int.MaxValue, double.PositiveInfinity)) {
             }
 
-            private RouteCandidate(RoutePoint start, RoutePoint first, RoutePoint second, RoutePoint end, RouteScore score) {
-                Start = start;
-                First = first;
-                Second = second;
-                End = end;
+            private RouteCandidate(IReadOnlyList<RoutePoint> points, RouteScore score) {
+                if (points.Count < 2) {
+                    throw new ArgumentException("Route candidates require at least two points.", nameof(points));
+                }
+
+                Points = CollapseDuplicatePoints(points);
                 Score = score;
             }
 
-            public RoutePoint Start { get; }
+            public IReadOnlyList<RoutePoint> Points { get; }
 
-            public RoutePoint First { get; }
-
-            public RoutePoint Second { get; }
-
-            public RoutePoint End { get; }
+            public IReadOnlyList<RoutePoint> Waypoints => Points.Skip(1).Take(Points.Count - 2).ToList();
 
             public RouteScore Score { get; }
 
-            public double Length => Distance(Start, First) + Distance(First, Second) + Distance(Second, End);
+            public double Length {
+                get {
+                    double length = 0D;
+                    for (int i = 1; i < Points.Count; i++) {
+                        length += Distance(Points[i - 1], Points[i]);
+                    }
+
+                    return length;
+                }
+            }
 
             public RouteCandidate WithScore(RouteScore score) {
-                return new RouteCandidate(Start, First, Second, End, score);
+                return new RouteCandidate(Points, score);
+            }
+
+            private static IReadOnlyList<RoutePoint> CollapseDuplicatePoints(IReadOnlyList<RoutePoint> points) {
+                List<RoutePoint> collapsed = new();
+                foreach (RoutePoint point in points) {
+                    if (collapsed.Count == 0 || !PointsEqual(collapsed[collapsed.Count - 1], point)) {
+                        collapsed.Add(point);
+                    }
+                }
+
+                return collapsed;
             }
         }
 
