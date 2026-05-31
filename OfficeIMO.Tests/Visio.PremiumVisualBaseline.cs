@@ -14,6 +14,8 @@ namespace OfficeIMO.Tests {
             ["Premium Cloud Architecture"] = "officeimo-visio-premium-cloud-architecture",
             ["Premium Network Segmentation"] = "officeimo-visio-premium-network-segmentation",
             ["Premium Executive Dependencies"] = "officeimo-visio-premium-executive-dependencies",
+            ["Premium Technical Topology"] = "officeimo-visio-premium-technical-topology",
+            ["Premium Print Audit Trail"] = "officeimo-visio-premium-print-audit-trail",
             ["Premium Incident Sequence"] = "officeimo-visio-premium-incident-sequence",
             ["Premium Release Timeline"] = "officeimo-visio-premium-release-timeline",
             ["Premium Governed Process"] = "officeimo-visio-premium-governed-process"

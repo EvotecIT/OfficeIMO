@@ -24,6 +24,8 @@ namespace OfficeIMO.Visio {
                 CreateResult("Premium Cloud Architecture", Path.Combine(folderPath, "Premium - Cloud Architecture.vsdx"), CreateCloudArchitecture, resolvedOptions),
                 CreateResult("Premium Network Segmentation", Path.Combine(folderPath, "Premium - Network Segmentation.vsdx"), CreateNetworkSegmentation, resolvedOptions),
                 CreateResult("Premium Executive Dependencies", Path.Combine(folderPath, "Premium - Executive Dependencies.vsdx"), CreateExecutiveDependencyGraph, resolvedOptions),
+                CreateResult("Premium Technical Topology", Path.Combine(folderPath, "Premium - Technical Topology.vsdx"), CreateTechnicalTopology, resolvedOptions),
+                CreateResult("Premium Print Audit Trail", Path.Combine(folderPath, "Premium - Print Audit Trail.vsdx"), CreatePrintAuditTrail, resolvedOptions),
                 CreateResult("Premium Incident Sequence", Path.Combine(folderPath, "Premium - Incident Sequence.vsdx"), CreateIncidentSequence, resolvedOptions),
                 CreateResult("Premium Release Timeline", Path.Combine(folderPath, "Premium - Release Timeline.vsdx"), CreateReleaseTimeline, resolvedOptions),
                 CreateResult("Premium Governed Process", Path.Combine(folderPath, "Premium - Governed Process.vsdx"), CreateGovernedSwimlane, resolvedOptions)
@@ -146,6 +148,49 @@ namespace OfficeIMO.Visio {
                     .NodeShapeData("portal", "Owner", "Digital", "Owner", VisioShapeDataType.String)
                     .NodeShapeData("payments", "Criticality", "Tier 0", "Criticality", VisioShapeDataType.String)
                     .EdgeShapeData("payments-ledger", "Sla", "15 minutes", "SLA", VisioShapeDataType.String));
+        }
+
+        private static VisioDocument CreateTechnicalTopology(string filePath) {
+            return VisioDocument.Create(filePath)
+                .BlockDiagram("Premium Technical Topology", diagram => diagram
+                    .Title("Zero Trust Runtime - Technical Topology")
+                    .Theme(VisioStyleTheme.Technical())
+                    .PageSize(17.4, 9.2)
+                    .Margins(0.75, 0.75)
+                    .Region("edge-zone", "Edge", 0, 0, 2, 3)
+                    .Region("runtime-zone", "Runtime Mesh", 2, 0, 2, 3)
+                    .Region("data-zone", "State", 4, 0, 1, 3)
+                    .Block("endpoint", "Endpoint", 0, 1)
+                    .Block("ingress", "Ingress", 1, 1, VisioBlockShapeKind.Decision)
+                    .EmphasisBlock("api", "API Pod", 2, 1)
+                    .Block("policy", "Policy", 3, 0, VisioBlockShapeKind.Decision)
+                    .Block("worker", "Worker Pool", 3, 1)
+                    .Block("events", "Event Bus", 2, 2, VisioBlockShapeKind.Data)
+                    .Block("cache", "Cache", 4, 1, VisioBlockShapeKind.Data)
+                    .Block("vault", "Secrets", 4, 0, VisioBlockShapeKind.Decision)
+                    .ControlFlow("endpoint", "ingress", "mTLS")
+                    .ControlFlow("ingress", "api", "route")
+                    .ControlFlow("api", "policy", "authorize")
+                    .ControlFlow("policy", "worker", "allow")
+                    .ControlFlow("policy", "vault", "secret")
+                    .DataFlow("api", "events", "publish")
+                    .DataFlow("worker", "cache", "read/write"));
+        }
+
+        private static VisioDocument CreatePrintAuditTrail(string filePath) {
+            return VisioDocument.Create(filePath)
+                .Flowchart("Premium Print Audit Trail", flow => flow
+                    .Title("Quarter-End Access Review - Print Audit Trail")
+                    .Theme(VisioStyleTheme.Print())
+                    .PageSize(8.5, 13.5)
+                    .Spacing(0.36)
+                    .Start("start", "Review window opens")
+                    .Data("snapshot", "Export access snapshot")
+                    .Step("owner-review", "Owner review")
+                    .Decision("evidence-complete", "Evidence complete?")
+                    .Step("remediate", "Remediate gaps")
+                    .Step("evidence", "Attach evidence")
+                    .End("archive", "Archive signed record"));
         }
 
         private static VisioDocument CreateIncidentSequence(string filePath) {

@@ -21,7 +21,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Optional desktop Visio validation/export helpers for local proof, separate from the dependency-free core.
 - Generated showcase examples and preview output for visual inspection.
 - Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
-- A reusable six-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
+- A reusable eight-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
 - Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`.
 - Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, Shape Data key, semantic-kind, catalog, category, tag, and source-package summaries that survive save/load for package-backed masters and generated stencil placements.
 
@@ -82,7 +82,7 @@ That implies three durable layers:
 - Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review and persisted package-backed provenance after reload.
 - Stencil placement now stamps stencil id/name/category/catalog/source package/tags into shape and master metadata, so profiles and inspection snapshots can prove which catalog and package supplied a shape after save/load.
 - Obstacle-aware orthogonal routing APIs plus a `PolishDiagram` option for rerouting connectors around unrelated top-level shapes before label cleanup.
-- Premium style presets for enterprise, technical, cloud, process, print-safe, and dark-safe diagrams, with validated technical/print smoke documents and gallery usage for the current market-facing set.
+- Premium style presets for enterprise, technical, cloud, process, print-safe, and dark-safe diagrams, with validated technical/print smoke documents and rendered gallery baseline usage for the current market-facing set.
 
 ## Immediate P0
 
@@ -114,7 +114,7 @@ These are the items that still block "premium Visio library" positioning.
 Goal: generated diagrams should be credible without manual post-editing.
 
 - Continue tuning the richer theme catalog with diagram-specific margins, typography, connector weights, and label rules.
-- Keep builder-level `Theme(...)` presets for enterprise, technical, cloud, process, print, and dark-safe diagrams covered by package validation, then promote technical/print examples into the rendered baseline gallery once their target scenarios are finalized.
+- Keep builder-level `Theme(...)` presets for enterprise, technical, cloud, process, print, and dark-safe diagrams covered by package validation, and keep expanding the rendered baseline gallery beyond the current technical and print-safe scenarios.
 - Add diagram-specific visual defaults:
   - architecture zones and trust boundaries;
   - network subnets, racks, and device groupings;
