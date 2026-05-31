@@ -3248,13 +3248,11 @@ namespace OfficeIMO.Excel {
 
                 if (cellReader.NodeType == XmlNodeType.Element) {
                     if (cellReader.LocalName == "v") {
-                        bool parsedSharedStringIndex = useCachedFormulaResult
-                            ? TryReadXmlSharedStringIndexValueAndSkipCell(cellReader, depth, out int sstIndex, out rawText)
-                            : TryReadXmlSharedStringIndexValue(cellReader, out sstIndex, out rawText);
                         if (useCachedFormulaResult) {
-                            return parsedSharedStringIndex ? GetSharedString(sstIndex, sharedStringItems) : rawText;
+                            return ReadXmlSharedStringTextAndSkipCell(cellReader, depth, sharedStringItems);
                         }
 
+                        bool parsedSharedStringIndex = TryReadXmlSharedStringIndexValue(cellReader, out int sstIndex, out rawText);
                         hasNode = true;
                         continue;
                     }
@@ -3289,6 +3287,58 @@ namespace OfficeIMO.Excel {
             }
 
             return TryParseSharedStringIndex(rawText, out int index) ? GetSharedString(index, sharedStringItems) : rawText;
+        }
+
+        private static string? ReadXmlSharedStringTextAndSkipCell(XmlReader valueReader, int cellDepth, List<string> sharedStringItems) {
+            if (valueReader.IsEmptyElement) {
+                SkipXmlElementContent(valueReader, cellDepth);
+                return string.Empty;
+            }
+
+            int valueDepth = valueReader.Depth;
+            if (!valueReader.Read()) {
+                return null;
+            }
+
+            if (valueReader.NodeType != XmlNodeType.Text
+                && valueReader.NodeType != XmlNodeType.SignificantWhitespace
+                && valueReader.NodeType != XmlNodeType.Whitespace) {
+                SkipXmlElementContent(valueReader, cellDepth);
+                return null;
+            }
+
+            string text = valueReader.Value;
+            int parsed = 0;
+            bool hasDigit = false;
+            bool parsedFast = true;
+            for (int i = 0; i < text.Length; i++) {
+                int digit = text[i] - '0';
+                if ((uint)digit > 9U || parsed > (int.MaxValue - digit) / 10) {
+                    parsedFast = false;
+                    break;
+                }
+
+                parsed = (parsed * 10) + digit;
+                hasDigit = true;
+            }
+
+            bool completedCell = valueReader.Read()
+                && valueReader.NodeType == XmlNodeType.EndElement
+                && valueReader.Depth == valueDepth
+                && valueReader.Read()
+                && valueReader.NodeType == XmlNodeType.EndElement
+                && valueReader.Depth == cellDepth;
+            if (!completedCell) {
+                SkipXmlElementContent(valueReader, cellDepth);
+            }
+
+            if (parsedFast && hasDigit) {
+                return GetSharedString(parsed, sharedStringItems);
+            }
+
+            return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+                ? GetSharedString(index, sharedStringItems)
+                : text;
         }
 
         private static string? ReadXmlValueText(XmlReader valueReader) {
