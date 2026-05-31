@@ -694,6 +694,34 @@ reviewers can distinguish renderer-only churn from structural or stencil usage
 changes. SVG previews use canonicalized text comparison to account for Visio's
 generated CSS class names.
 
+## Headless SVG export
+
+OfficeIMO Visio can render generated pages directly to SVG without Microsoft
+Visio desktop automation. This headless path is intended for CI artifacts,
+documentation previews, web galleries, and quick inspection of generated
+diagrams:
+
+```csharp
+using OfficeIMO.Visio;
+
+VisioDocument document = VisioDocument.Create("pipeline.vsdx");
+VisioPage page = document.AddPage("Pipeline").Size(8, 4);
+VisioShape build = page.AddProcess(1.5, 2, 1.4, 0.7, "Build");
+VisioShape ship = page.AddProcess(5.5, 2, 1.4, 0.7, "Ship");
+page.AddConnector(build, ship, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left).EndArrow = EndArrow.Arrow;
+
+string svg = document.ToSvg();
+document.SaveAsSvg("pipeline.svg", new VisioSvgSaveOptions {
+    PixelsPerInch = 96,
+    BackgroundColor = null
+});
+```
+
+The native SVG renderer covers OfficeIMO-authored shapes, connectors, labels,
+text styles, common flowchart geometry, transparency, dashed strokes, and
+arrowheads. PNG/PDF proof export is still available through the optional
+Microsoft Visio desktop validation path when Visio is installed.
+
 ## Native stencil catalogs
 
 Built-in stencil catalogs give you reusable, searchable shape definitions while

@@ -18,7 +18,7 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - First-party generated stencil catalogs and package-backed stencil catalogs.
 - External `.vssx`, `.vstx`, and `.vsdx` catalog loading, including multi-package external stencil repositories.
 - Native/installed Visio stencil discovery when Visio is available, without making Office automation part of the core library.
-- Optional desktop Visio validation/export helpers for local proof, separate from the dependency-free core.
+- Native headless SVG export for OfficeIMO-authored pages, plus optional desktop Visio validation/export helpers for local proof, separate from the dependency-free core.
 - Generated showcase examples and preview output for visual inspection.
 - Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
 - A reusable eight-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
@@ -190,7 +190,7 @@ Goal: OfficeIMO can safely update diagrams created elsewhere.
 
 Goal: prove quality continuously.
 
-- Add first-party SVG preview/export where feasible.
+- Initial first-party SVG preview/export is available through `ToSvg()` and `SaveAsSvg(...)` without requiring Microsoft Visio; continue expanding fidelity and add a deliberate native PNG raster path next.
 - Use `OfficeIMO.Pdf` and `OfficeIMO.Drawing` for optional previews where they fit, without making them the VSDX source of truth.
 - Expand desktop Visio validation to collect repair dialogs, export failures, and visual artifacts.
 - Add CI artifacts for generated showcase previews.
