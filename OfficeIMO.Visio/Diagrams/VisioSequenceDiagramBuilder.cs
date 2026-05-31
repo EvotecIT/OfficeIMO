@@ -476,6 +476,121 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Imports participant records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Participants(IEnumerable<VisioSequenceParticipantRecord> participants) {
+            if (participants == null) {
+                throw new ArgumentNullException(nameof(participants));
+            }
+
+            foreach (VisioSequenceParticipantRecord participant in participants) {
+                Participant(participant.Id, participant.Text, participant.Kind);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports message records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Messages(IEnumerable<VisioSequenceMessageRecord> messages) {
+            if (messages == null) {
+                throw new ArgumentNullException(nameof(messages));
+            }
+
+            foreach (VisioSequenceMessageRecord message in messages) {
+                if (message.SelfMessage || string.Equals(message.FromId, message.ToId, StringComparison.Ordinal)) {
+                    SelfMessage(message.FromId, message.Label, message.Kind, message.Id);
+                } else {
+                    Message(message.FromId, message.ToId, message.Label, message.Kind, message.Id);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports activation records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Activations(IEnumerable<VisioSequenceActivationRecord> activations) {
+            if (activations == null) {
+                throw new ArgumentNullException(nameof(activations));
+            }
+
+            foreach (VisioSequenceActivationRecord activation in activations) {
+                Activation(activation.ParticipantId, activation.StartRowIndex, activation.EndRowIndex, activation.Id);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports combined-fragment records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Fragments(IEnumerable<VisioSequenceFragmentRecord> fragments) {
+            if (fragments == null) {
+                throw new ArgumentNullException(nameof(fragments));
+            }
+
+            foreach (VisioSequenceFragmentRecord fragment in fragments) {
+                Fragment(fragment.Text, fragment.StartRowIndex, fragment.EndRowIndex, fragment.ParticipantIds, fragment.Id);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports fragment guard and partition records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder FragmentOperands(IEnumerable<VisioSequenceFragmentOperandRecord> operands) {
+            if (operands == null) {
+                throw new ArgumentNullException(nameof(operands));
+            }
+
+            foreach (VisioSequenceFragmentOperandRecord operand in operands) {
+                if (operand.Divider) {
+                    FragmentPartition(operand.FragmentId, operand.Text, operand.RowIndex, operand.Id);
+                } else {
+                    FragmentGuard(operand.FragmentId, operand.Text, operand.RowIndex, operand.Id);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports semantic note records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Notes(IEnumerable<VisioSequenceNoteRecord> notes) {
+            if (notes == null) {
+                throw new ArgumentNullException(nameof(notes));
+            }
+
+            foreach (VisioSequenceNoteRecord note in notes) {
+                Note(note.ParticipantId, note.Text, note.RowIndex, note.Placement, note.Id);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports sequence participants, messages, activations, fragments, fragment operands, and notes from simple data records.</summary>
+        public VisioSequenceDiagramBuilder Import(
+            IEnumerable<VisioSequenceParticipantRecord> participants,
+            IEnumerable<VisioSequenceMessageRecord> messages,
+            IEnumerable<VisioSequenceActivationRecord>? activations = null,
+            IEnumerable<VisioSequenceFragmentRecord>? fragments = null,
+            IEnumerable<VisioSequenceFragmentOperandRecord>? fragmentOperands = null,
+            IEnumerable<VisioSequenceNoteRecord>? notes = null) {
+            Participants(participants);
+            Messages(messages);
+            if (activations != null) {
+                Activations(activations);
+            }
+
+            if (fragments != null) {
+                Fragments(fragments);
+            }
+
+            if (fragmentOperands != null) {
+                FragmentOperands(fragmentOperands);
+            }
+
+            if (notes != null) {
+                Notes(notes);
+            }
+
+            return this;
+        }
+
         internal VisioPage Build() {
             if (_built) {
                 throw new InvalidOperationException("This sequence diagram builder has already produced a page.");

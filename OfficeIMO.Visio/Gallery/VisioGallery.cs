@@ -34,6 +34,7 @@ namespace OfficeIMO.Visio {
             results.Add(CreateResult("Identity Authentication Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Identity Authentication Graph.vsdx"), CreateIdentityAuthenticationGraph, resolvedOptions));
             results.Add(CreateResult("Kubernetes Service Mesh Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Kubernetes Service Mesh Graph.vsdx"), CreateKubernetesServiceMeshGraph, resolvedOptions));
             results.Add(CreateResult("Application Dependency Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Application Dependency Graph.vsdx"), CreateApplicationDependencyGraph, resolvedOptions));
+            results.Add(CreateResult("Incident Runbook Sequence", Path.Combine(folderPath, "OfficeIMO Gallery - Incident Runbook Sequence.vsdx"), CreateIncidentRunbookSequence, resolvedOptions));
             return results;
         }
 
@@ -638,6 +639,67 @@ namespace OfficeIMO.Visio {
                         new[] { users, edge, waf, portal, api, events, worker, sql, lake, monitor },
                         new[] { browse, inspect, route, call, query, publish, trigger, export, telemetry, ops },
                         new[] { edgeCluster, runtimeCluster }));
+        }
+
+        /// <summary>
+        /// Creates a data-driven incident and runbook sequence that demonstrates imported sequence records, activations, fragments, notes, and stencil profiles.
+        /// </summary>
+        /// <param name="filePath">Target VSDX file path.</param>
+        public static VisioDocument CreateIncidentRunbookSequence(string filePath) {
+            VisioSequenceParticipantRecord[] participants = {
+                new("support", "Support", VisioSequenceParticipantKind.Actor),
+                new("monitor", "Monitor", VisioSequenceParticipantKind.Boundary),
+                new("api", "Payments API", VisioSequenceParticipantKind.Control),
+                new("queue", "Retry Queue", VisioSequenceParticipantKind.Participant),
+                new("ledger", "Ledger", VisioSequenceParticipantKind.Database),
+                new("runbook", "Runbook", VisioSequenceParticipantKind.Entity)
+            };
+
+            VisioSequenceMessageRecord[] messages = {
+                new("alert", "monitor", "support", "Alert: timeout spike"),
+                new("open-runbook", "support", "runbook", "Open recovery runbook"),
+                new("check", "support", "api", "Check health"),
+                new("latency", "api", "support", "Gateway latency", VisioSequenceMessageKind.Return),
+                new("pause", "support", "queue", "Pause retries", VisioSequenceMessageKind.Async),
+                new("verify", "api", "ledger", "Verify settlement"),
+                new("consistent", "ledger", "api", "Consistent", VisioSequenceMessageKind.Return),
+                new("resume", "queue", "api", "Resume controlled drain", VisioSequenceMessageKind.Async),
+                new("record", "support", "support", "Update incident record", selfMessage: true),
+                new("close-runbook", "support", "runbook", "Attach evidence", VisioSequenceMessageKind.Async)
+            };
+
+            VisioSequenceActivationRecord[] activations = {
+                new("support-active", "support", 0, 9),
+                new("api-active", "api", 2, 7),
+                new("queue-active", "queue", 4, 7),
+                new("runbook-active", "runbook", 1, 9)
+            };
+
+            VisioSequenceFragmentRecord[] fragments = {
+                new("recovery-fragment", "alt recovery", 2, 8, new[] { "support", "api", "queue", "ledger" }),
+                new("evidence-fragment", "opt evidence", 8, 9, new[] { "support", "runbook" })
+            };
+
+            VisioSequenceFragmentOperandRecord[] operands = {
+                new("latency-guard", "recovery-fragment", "[timeout elevated]", 2),
+                new("settlement-partition", "recovery-fragment", "[settlement confirmed]", 6, divider: true),
+                new("evidence-guard", "evidence-fragment", "[runbook required]", 8)
+            };
+
+            VisioSequenceNoteRecord[] notes = {
+                new("runbook-note", "runbook", "Recovery checklist active", 2, VisioSide.Left),
+                new("evidence-note", "support", "Capture timeline and owner", 8, VisioSide.Right)
+            };
+
+            return VisioDocument.Create(filePath)
+                .SequenceDiagram("Incident Runbook Sequence", sequence => sequence
+                    .Title("Payment Timeout - Incident Runbook Sequence")
+                    .Theme(VisioStyleTheme.DarkSafe())
+                    .PageSize(16, 7.8)
+                    .Margins(0.8, 0.75, 0.8, 0.75)
+                    .ParticipantSize(1.25, 0.62)
+                    .Spacing(1.45, 0.7, 0.68)
+                    .Import(participants, messages, activations, fragments, operands, notes));
         }
 
         private static VisioGraphNodeRecord CreateNode(string id, string text, VisioStencilCatalog catalog, params string[] queries) {

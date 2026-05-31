@@ -298,6 +298,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SequenceDiagramBuilderImportsRecordSets() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioSequenceParticipantRecord[] participants = {
+                new("support", "Support", VisioSequenceParticipantKind.Actor),
+                new("api", "API", VisioSequenceParticipantKind.Control),
+                new("runbook", "Runbook", VisioSequenceParticipantKind.Entity)
+            };
+            VisioSequenceMessageRecord[] messages = {
+                new("alert", "api", "support", "Alert"),
+                new("open", "support", "runbook", "Open runbook"),
+                new("record", "support", "support", "Update record", selfMessage: true)
+            };
+            VisioSequenceActivationRecord[] activations = {
+                new("support-active", "support", 0, 2)
+            };
+            VisioSequenceFragmentRecord[] fragments = {
+                new("recovery", "alt recovery", 0, 2, new[] { "support", "api", "runbook" })
+            };
+            VisioSequenceFragmentOperandRecord[] operands = {
+                new("guard", "recovery", "[active incident]", 0)
+            };
+            VisioSequenceNoteRecord[] notes = {
+                new("runbook-note", "runbook", "Checklist", 1, VisioSide.Left)
+            };
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SequenceDiagram("Imported Incident", sequence => sequence
+                    .PageSize(7, 4.8)
+                    .Import(participants, messages, activations, fragments, operands, notes));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "support" && shape.GetUserCellValue("OfficeIMO.SequenceParticipantKind") == "Actor");
+            Assert.Contains(page.Shapes, shape => shape.Id == "support-active" && shape.GetUserCellValue("OfficeIMO.Kind") == "SequenceActivation");
+            Assert.Contains(page.Shapes, shape => shape.Id == "recovery" && shape.GetUserCellValue("OfficeIMO.SequenceParticipantIds") == "support;api;runbook");
+            Assert.Contains(page.Shapes, shape => shape.Id == "guard-label" && shape.Text == "[active incident]");
+            Assert.Contains(page.Shapes, shape => shape.Id == "runbook-note" && shape.GetUserCellValue("OfficeIMO.SequenceRequestedPlacement") == "Left");
+            Assert.Contains(page.Connectors, connector => connector.Id == "record" && connector.Waypoints.Count == 2);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
         public void SequenceDiagramBuilderRejectsUnknownParticipants() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
 
-            Assert.Equal(12, results.Count);
+            Assert.Equal(13, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
             Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
@@ -267,6 +267,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Cloud", applicationProfile.StencilCatalogs);
             Assert.Contains("Data and Platform", applicationProfile.StencilCatalogs);
             Assert.Contains("Security and Identity", applicationProfile.StencilCatalogs);
+
+            VisioGalleryResult incident = results.Single(result => result.Name == "Incident Runbook Sequence");
+            VisioDocument loadedIncident = VisioDocument.Load(incident.FilePath);
+            VisioPage incidentPage = Assert.Single(loadedIncident.Pages);
+            Assert.Contains(incidentPage.Shapes, shape => shape.Id == "recovery-fragment" && shape.GetUserCellValue("OfficeIMO.Kind") == "SequenceFragment");
+            Assert.Contains(incidentPage.Shapes, shape => shape.Id == "runbook-note" && shape.GetUserCellValue("OfficeIMO.SequenceParticipantId") == "runbook");
+            Assert.Contains(incidentPage.Shapes, shape => shape.Id == "api-active" && shape.GetUserCellValue("OfficeIMO.SequenceParticipantId") == "api");
+            Assert.Contains(incidentPage.Connectors, connector => connector.Id == "record" && connector.Waypoints.Count == 2);
+            VisioStencilProfile incidentProfile = loadedIncident.CreateStencilProfile();
+            Assert.Contains("Sequence Diagram", incidentProfile.StencilCatalogs);
+            Assert.Contains("SequenceActivation", incidentProfile.SemanticKinds);
+            Assert.Contains("SequenceFragment", incidentProfile.SemanticKinds);
         }
 
         [Fact]
