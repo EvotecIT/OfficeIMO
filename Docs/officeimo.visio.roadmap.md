@@ -158,8 +158,8 @@ Goal: native and external stencil packs feel first-class, not like shortcuts.
 
 Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO.Visio.
 
-- Add graph import helpers from simple node/edge records.
-- Add stable ID and diff-friendly regeneration guidance.
+- Add graph import helpers from simple node/edge records. Initial `VisioGraphNodeRecord` / `VisioGraphEdgeRecord` support imports data-driven graph nodes and edges, including stencil catalog lookup, Shape Data, hyperlinks, roots, directed/undirected edges, and stable generated edge ids.
+- Add stable ID and diff-friendly regeneration guidance. Initial graph-record imports derive missing connector ids from endpoint ids and connector kind.
 - Add graph clustering/grouping APIs.
 - Add dependency cycle presentation instead of only rejection where the diagram type allows cycles.
 - Add legends based on used node/edge types.

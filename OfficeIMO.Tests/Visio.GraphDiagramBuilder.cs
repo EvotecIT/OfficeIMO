@@ -280,6 +280,86 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderImportsSimpleNodeAndEdgeRecordsWithStableIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioGraphNodeRecord idp = new("idp", "Entra ID") {
+                StencilCatalog = VisioStencils.SecurityIdentity,
+                IsRoot = true,
+                HyperlinkAddress = "https://example.org/identity",
+                HyperlinkDescription = "Identity runbook"
+            };
+            idp.StencilQueries.Add("idp");
+            idp.ShapeData.Add("Owner", "IAM");
+
+            VisioGraphNodeRecord cluster = new("cluster", "AKS Cluster") {
+                StencilCatalog = VisioStencils.ContainersKubernetes
+            };
+            cluster.StencilQueries.Add("kubernetes");
+            cluster.ShapeData.Add("Environment", "Production");
+
+            VisioGraphNodeRecord lake = new("lake", "Data Lake") {
+                StencilCatalog = VisioStencils.DataPlatform
+            };
+            lake.StencilQueries.Add("data.lake");
+            lake.ShapeData.Add("Classification", "Confidential");
+
+            VisioGraphNodeRecord team = new("ops-team", "Operations") {
+                StencilCatalog = VisioStencils.CollaborationBusiness
+            };
+            team.StencilQueries.Add("team");
+
+            VisioGraphEdgeRecord tokenFlow = new("idp", "cluster") {
+                Label = "tokens",
+                Kind = VisioGraphConnectorKind.Control
+            };
+            tokenFlow.ShapeData.Add("Protocol", "OIDC");
+
+            VisioGraphEdgeRecord eventFlow = new("cluster", "lake") {
+                Label = "events",
+                Kind = VisioGraphConnectorKind.Data,
+                HyperlinkAddress = "https://example.org/pipeline",
+                HyperlinkDescription = "Pipeline"
+            };
+
+            VisioGraphEdgeRecord runbook = new("ops-team-owns-cluster", "ops-team", "cluster") {
+                Label = "owns",
+                Directed = false
+            };
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Imported Inventory Graph", graph => graph
+                    .Title()
+                    .Import(
+                        new[] { idp, cluster, lake, team },
+                        new[] { tokenFlow, eventFlow, runbook })
+                    .Zone("runtime-zone", "Runtime", "cluster", "lake"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "runtime-zone" && shape.IsBackgroundSurface);
+            Assert.Equal("IAM", page.Shapes.Single(shape => shape.Id == "idp").GetShapeDataValue("Owner"));
+            Assert.Equal("Production", page.Shapes.Single(shape => shape.Id == "cluster").GetShapeDataValue("Environment"));
+            Assert.Equal("Confidential", page.Shapes.Single(shape => shape.Id == "lake").GetShapeDataValue("Classification"));
+            Assert.Contains(page.Shapes.Single(shape => shape.Id == "idp").Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/identity");
+            Assert.Contains(page.Connectors, connector => connector.Id == "idp-control-cluster" && connector.Label == "tokens" && connector.GetShapeDataValue("Protocol") == "OIDC");
+            Assert.Contains(page.Connectors, connector => connector.Id == "cluster-data-lake" && connector.Label == "events" && connector.Hyperlinks.Any(hyperlink => hyperlink.Description == "Pipeline"));
+            Assert.Contains(page.Connectors, connector => connector.Id == "ops-team-owns-cluster" && connector.EndArrow == EndArrow.None);
+
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Contains("Security and Identity", profile.StencilCatalogs);
+            Assert.Contains("Containers and Kubernetes", profile.StencilCatalogs);
+            Assert.Contains("Data and Platform", profile.StencilCatalogs);
+            Assert.Contains("Collaboration and Business Process", profile.StencilCatalogs);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Id == "idp-control-cluster");
+            Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Id == "cluster-data-lake");
+            Assert.Equal("IAM", loaded.Pages[0].Shapes.Single(shape => shape.Id == "idp").GetShapeDataValue("Owner"));
+        }
+
+        [Fact]
         public void GraphDiagramBuilderCanOverrideNodeAndNamedEdgeStyles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             Color nodeFill = Color.FromRgb(245, 104, 85);

@@ -199,6 +199,35 @@ which is useful for protocols, ports, trust levels, API contracts, message
 schemas, queries, and relationship-specific runbooks. Use `NodeStyle` and
 `EdgeStyle` for local visual emphasis without cloning or forking a whole theme.
 
+For data-driven diagrams, import simple node and edge records. Missing edge IDs
+are derived from endpoint IDs and connector kind, so regenerated diagrams keep
+diff-friendly connector identity:
+
+```csharp
+var idp = new VisioGraphNodeRecord("idp", "Entra ID") {
+    StencilCatalog = VisioStencils.SecurityIdentity,
+    IsRoot = true
+};
+idp.StencilQueries.Add("idp");
+idp.ShapeData.Add("Owner", "IAM");
+
+var cluster = new VisioGraphNodeRecord("cluster", "AKS Cluster") {
+    StencilCatalog = VisioStencils.ContainersKubernetes
+};
+cluster.StencilQueries.Add("kubernetes");
+
+var flow = new VisioGraphEdgeRecord("idp", "cluster") {
+    Kind = VisioGraphConnectorKind.Control,
+    Label = "tokens"
+};
+flow.ShapeData.Add("Protocol", "OIDC");
+
+VisioDocument.Create("inventory-graph.vsdx")
+    .GraphDiagram("Imported Inventory", graph => graph
+        .Import(new[] { idp, cluster }, new[] { flow }))
+    .Save();
+```
+
 ## Quick sample (architecture diagram builder)
 
 ```csharp

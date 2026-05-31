@@ -314,6 +314,31 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Imports graph nodes from simple data records.</summary>
+        public VisioGraphDiagramBuilder Nodes(IEnumerable<VisioGraphNodeRecord> nodes) {
+            if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+            foreach (VisioGraphNodeRecord node in nodes) {
+                AddNodeRecord(node);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports graph edges from simple data records.</summary>
+        public VisioGraphDiagramBuilder Edges(IEnumerable<VisioGraphEdgeRecord> edges) {
+            if (edges == null) throw new ArgumentNullException(nameof(edges));
+            foreach (VisioGraphEdgeRecord edge in edges) {
+                AddEdgeRecord(edge);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports graph nodes and edges from simple data records.</summary>
+        public VisioGraphDiagramBuilder Import(IEnumerable<VisioGraphNodeRecord> nodes, IEnumerable<VisioGraphEdgeRecord> edges) {
+            return Nodes(nodes).Edges(edges);
+        }
+
         /// <summary>Adds or updates Shape Data metadata that will be written to a graph node.</summary>
         public VisioGraphDiagramBuilder NodeShapeData(string nodeId, string name, string? value, string? label = null, VisioShapeDataType? type = null, string? prompt = null, string? format = null) {
             string normalizedNodeId = RequireId(nodeId, nameof(nodeId), "Node id");
@@ -521,6 +546,44 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        private void AddNodeRecord(VisioGraphNodeRecord record) {
+            if (record == null) throw new ArgumentNullException(nameof(record));
+            if (record.Stencil != null) {
+                StencilNode(record.Id, record.Text, record.Stencil);
+            } else if (record.StencilCatalog != null && record.StencilQueries.Count > 0) {
+                StencilNode(record.Id, record.Text, record.StencilCatalog, record.StencilQueries.ToArray());
+            } else {
+                Node(record.Id, record.Text, record.Kind);
+            }
+
+            foreach (KeyValuePair<string, string?> item in record.ShapeData) {
+                NodeShapeData(record.Id, item.Key, item.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(record.HyperlinkAddress)) {
+                NodeHyperlink(record.Id, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
+            }
+
+            if (record.IsRoot) {
+                Root(record.Id);
+            }
+        }
+
+        private void AddEdgeRecord(VisioGraphEdgeRecord record) {
+            if (record == null) throw new ArgumentNullException(nameof(record));
+            string edgeId = string.IsNullOrWhiteSpace(record.Id)
+                ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind)
+                : RequireId(record.Id!, nameof(record.Id), "Edge id");
+            Edge(edgeId, record.FromId, record.ToId, record.Kind, record.Label, record.Directed);
+            foreach (KeyValuePair<string, string?> item in record.ShapeData) {
+                EdgeShapeData(edgeId, item.Key, item.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(record.HyperlinkAddress)) {
+                EdgeHyperlink(edgeId, record.HyperlinkAddress!, record.HyperlinkDescription, record.HyperlinkSubAddress);
+            }
+        }
+
         private void AddEdge(string? edgeId, string fromId, string toId, VisioGraphConnectorKind kind, string? label, bool directed) {
             string normalizedFromId = RequireId(fromId, nameof(fromId), "From node id");
             string normalizedToId = RequireId(toId, nameof(toId), "To node id");
@@ -536,6 +599,22 @@ namespace OfficeIMO.Visio.Diagrams {
                 _edgesById.Add(edgeId, edge);
                 _edgeIds.Add(edgeId);
             }
+        }
+
+        private string CreateStableEdgeId(string fromId, string toId, VisioGraphConnectorKind kind) {
+            string baseId = SlugId(fromId) + "-" + SlugId(kind.ToString()) + "-" + SlugId(toId);
+            if (string.IsNullOrWhiteSpace(baseId.Replace("-", string.Empty))) {
+                baseId = "edge";
+            }
+
+            string candidate = baseId;
+            int index = 2;
+            while (IsIdInUse(candidate)) {
+                candidate = baseId + "-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                index++;
+            }
+
+            return candidate;
         }
 
         internal VisioPage Build() {
@@ -1173,6 +1252,21 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return id.Trim();
+        }
+
+        private static string SlugId(string value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return "item";
+            }
+
+            char[] characters = value.Trim().Select(ch => char.IsLetterOrDigit(ch) ? char.ToLowerInvariant(ch) : '-').ToArray();
+            string slug = new(characters);
+            while (slug.Contains("--")) {
+                slug = slug.Replace("--", "-");
+            }
+
+            slug = slug.Trim('-');
+            return string.IsNullOrWhiteSpace(slug) ? "item" : slug;
         }
 
         private static void ValidatePositive(double value, string parameterName) {
