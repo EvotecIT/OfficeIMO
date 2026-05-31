@@ -52,6 +52,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "core" && shape.NameU == "Rectangle");
             Assert.Contains(page.Shapes, shape => shape.Id == "db" && shape.NameU == "Data");
             Assert.Contains(page.Shapes, shape => shape.Id == "wifi" && shape.NameU == "Circle");
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(11, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Network" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "net.firewall" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "net.switch" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "net.note" && usage.Count == 1);
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
             string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();
             Assert.True(qualityIssues.Length == 0, string.Join(Environment.NewLine, qualityIssues));
@@ -70,6 +76,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Switch", VisioStencils.Network.Get("lan").Name);
             Assert.Equal("Firewall", VisioStencils.Network.Get("security").Name);
             Assert.Equal("Wireless AP", VisioStencils.All.Get("net.wireless").Name);
+            Assert.Equal("Network Note", VisioStencils.Network.Get("legend").Name);
         }
 
         [Fact]

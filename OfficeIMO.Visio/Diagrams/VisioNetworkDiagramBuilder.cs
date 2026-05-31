@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
@@ -404,12 +405,18 @@ namespace OfficeIMO.Visio.Diagrams {
         private void AddNodes(VisioPage page) {
             foreach (NodeItem node in _nodes) {
                 VisioNetworkDiagramVisuals.GetNodeShape(node.Kind, _nodeWidth, _nodeHeight, out string masterNameU, out double width, out double height);
-                VisioShape shape = new(node.Id, GridX(node.Column, 1), GridY(node.Row, 1), width, height, node.Text) {
-                    NameU = masterNameU,
-                };
+                VisioShape shape = page.AddStencilShape(
+                    VisioStencils.Network,
+                    VisioNetworkDiagramVisuals.GetNodeStencilId(node.Kind),
+                    node.Id,
+                    GridX(node.Column, 1),
+                    GridY(node.Row, 1),
+                    width,
+                    height,
+                    node.Text);
+                shape.NameU = masterNameU;
                 VisioNetworkDiagramVisuals.GetNodeStyle(_theme, node.Kind).ApplyTo(shape);
                 node.Shape = shape;
-                page.Shapes.Add(shape);
             }
         }
 

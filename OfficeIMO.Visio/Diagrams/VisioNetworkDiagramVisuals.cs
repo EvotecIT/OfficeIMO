@@ -61,6 +61,35 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
+        internal static string GetNodeStencilId(VisioNetworkNodeKind kind) {
+            switch (kind) {
+                case VisioNetworkNodeKind.User:
+                    return "user";
+                case VisioNetworkNodeKind.Workstation:
+                    return "workstation";
+                case VisioNetworkNodeKind.Switch:
+                    return "switch";
+                case VisioNetworkNodeKind.Router:
+                    return "router";
+                case VisioNetworkNodeKind.Firewall:
+                    return "firewall";
+                case VisioNetworkNodeKind.Internet:
+                    return "internet";
+                case VisioNetworkNodeKind.Printer:
+                    return "printer";
+                case VisioNetworkNodeKind.Storage:
+                    return "storage";
+                case VisioNetworkNodeKind.Database:
+                    return "database";
+                case VisioNetworkNodeKind.Wireless:
+                    return "wireless";
+                case VisioNetworkNodeKind.Note:
+                    return "note";
+                default:
+                    return "server";
+            }
+        }
+
         internal static VisioConnectorStyle GetConnectorStyle(VisioStyleTheme theme, VisioNetworkLinkKind kind) {
             switch (kind) {
                 case VisioNetworkLinkKind.Management:

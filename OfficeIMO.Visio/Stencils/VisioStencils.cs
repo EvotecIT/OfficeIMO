@@ -87,6 +87,7 @@ namespace OfficeIMO.Visio.Stencils {
                 Shape("net.storage", "Storage", "Data", "Network", 1.45, 0.85, "nas", "san"),
                 Shape("net.database", "Database", "Data", "Network", 1.45, 0.85, "sql"),
                 Shape("net.wireless", "Wireless AP", "Circle", "Network", 0.95, 0.95, "wifi", "access-point"),
+                Shape("net.note", "Network Note", "Rectangle", "Network", 2.25, 0.98, "legend", "note", "annotation"),
                 Shape("net.zone", "Zone", "Rectangle", "Network", 4.0, 2.4, "container", "boundary")
             });
 

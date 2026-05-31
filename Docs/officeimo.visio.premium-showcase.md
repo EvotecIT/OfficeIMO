@@ -33,7 +33,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 ## Premium Gallery Targets
 
 - **Cloud architecture:** first-party architecture-stencil zones, trust boundaries, gateway, eventing, data store, runbook links, Shape Data.
-- **Network segmentation:** internet, firewall, core switch, server zone, client zone, monitoring, labeled links.
+- **Network segmentation:** first-party network-stencil internet, firewall, core switch, server zone, client zone, monitoring, labeled links.
 - **Executive dependency graph:** layered first-party architecture stencil graph with owners, critical path, external dependencies, and grouped runtime zone.
 - **Technical topology:** zero-trust runtime mesh, edge/runtime/state zones, policy path, eventing, cache, and secrets flow.
 - **Print audit trail:** print-safe access-review flow with monochrome-safe typography and compliance-friendly spacing.
@@ -52,7 +52,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 ## Next Implementation Slice
 
 1. Extend obstacle-aware routing from the current zone/container/crossing-aware options into group-aware and deeper whole-page route minimization, and add lifeline-aware connector-label cleanup in dense premium diagrams.
-2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it; architecture and executive dependency samples now carry first-party stencil provenance.
+2. Replace the remaining basic geometry with stencil-backed premium symbols where the domain supports it; architecture, executive dependency, and network segmentation samples now carry first-party stencil provenance.
 3. Keep tightening the baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
 4. Promote the generated-master stencil reference fix into a baseline-reviewed graph gallery scenario so first-party stencils are proven with PNG/SVG quality, not only package structure.
 5. Extend current premium inspection/profile baselines into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.
