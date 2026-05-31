@@ -30,6 +30,7 @@ namespace OfficeIMO.Visio {
             results.Add(CreateResult("Org Chart", Path.Combine(folderPath, "OfficeIMO Gallery - Org Chart.vsdx"), CreateOrgChart, resolvedOptions));
             results.Add(CreateResult("Timeline Roadmap", Path.Combine(folderPath, "OfficeIMO Gallery - Timeline Roadmap.vsdx"), CreateTimelineRoadmap, resolvedOptions));
             results.Add(CreateResult("Routed Decision Flow", Path.Combine(folderPath, "OfficeIMO Gallery - Routed Decision Flow.vsdx"), CreateRoutedDecisionFlow, resolvedOptions));
+            results.Add(CreateResult("CI/CD Inventory Graph", Path.Combine(folderPath, "OfficeIMO Gallery - CI-CD Inventory Graph.vsdx"), CreateCiCdInventoryGraph, resolvedOptions));
             return results;
         }
 
@@ -227,6 +228,112 @@ namespace OfficeIMO.Visio {
                 .ApplyStyle(theme.ControlConnector);
 
             return document;
+        }
+
+        /// <summary>
+        /// Creates a data-driven CI/CD inventory graph that demonstrates node, edge, cluster, Shape Data, hyperlink, stencil, and legend support.
+        /// </summary>
+        /// <param name="filePath">Target VSDX file path.</param>
+        public static VisioDocument CreateCiCdInventoryGraph(string filePath) {
+            VisioGraphNodeRecord engineer = CreateNode("engineer", "Engineer", VisioStencils.CollaborationBusiness, "person", "actor");
+            engineer.IsRoot = true;
+            engineer.ShapeData.Add("Owner", "Platform Engineering");
+
+            VisioGraphNodeRecord repository = CreateNode("repo", "Source Repo", VisioStencils.CollaborationBusiness, "document", "record");
+            repository.ShapeData.Add("System", "Git");
+
+            VisioGraphNodeRecord pipeline = CreateNode("pipeline", "Build Pipeline", VisioStencils.DataPlatform, "pipeline", "job");
+            pipeline.ShapeData.Add("Sla", "15 minutes");
+            pipeline.HyperlinkAddress = "https://example.org/pipelines/customer-api";
+            pipeline.HyperlinkDescription = "Pipeline definition";
+
+            VisioGraphNodeRecord agent = CreateNode("agent", "Build Agent", VisioStencils.Infrastructure, "server", "compute");
+            agent.ShapeData.Add("Pool", "Linux");
+
+            VisioGraphNodeRecord registry = CreateNode("registry", "Image Registry", VisioStencils.DataPlatform, "catalog", "metadata");
+            registry.ShapeData.Add("Retention", "90 days");
+
+            VisioGraphNodeRecord cluster = CreateNode("cluster", "AKS Cluster", VisioStencils.ContainersKubernetes, "kubernetes", "aks");
+            cluster.ShapeData.Add("Environment", "Production");
+
+            VisioGraphNodeRecord secrets = CreateNode("secrets", "Secret Store", VisioStencils.Cloud, "secret", "vault");
+            secrets.ShapeData.Add("Rotation", "30 days");
+
+            VisioGraphNodeRecord monitor = CreateNode("monitor", "Observability", VisioStencils.Cloud, "monitoring", "metrics");
+            monitor.ShapeData.Add("Signal", "Logs; Metrics; Alerts");
+
+            VisioGraphEdgeRecord commit = new("engineer", "repo") {
+                Label = "commit"
+            };
+            VisioGraphEdgeRecord trigger = new("repo", "pipeline") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "trigger"
+            };
+            VisioGraphEdgeRecord schedule = new("pipeline", "agent") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "run"
+            };
+            VisioGraphEdgeRecord publish = new("agent", "registry") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "image"
+            };
+            publish.ShapeData.Add("Protocol", "OCI");
+
+            VisioGraphEdgeRecord deploy = new("registry", "cluster") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "deploy"
+            };
+            deploy.ShapeData.Add("Gate", "signed image");
+
+            VisioGraphEdgeRecord secretFlow = new("secrets", "cluster") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "secrets"
+            };
+            VisioGraphEdgeRecord telemetry = new("cluster", "monitor") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "telemetry"
+            };
+            VisioGraphEdgeRecord onCall = new("engineer", "monitor") {
+                Label = "on-call",
+                Directed = false
+            };
+
+            VisioGraphClusterRecord delivery = new("delivery-cluster", "Delivery Control Plane", new[] { "repo", "pipeline", "agent", "registry" });
+            delivery.ShapeData.Add("Owner", "DevEx");
+            delivery.HyperlinkAddress = "https://example.org/runbooks/delivery";
+            delivery.HyperlinkDescription = "Delivery runbook";
+
+            VisioGraphClusterRecord runtime = new("runtime-cluster", "Runtime", new[] { "cluster", "secrets", "monitor" });
+            runtime.ShapeData.Add("Owner", "SRE");
+            runtime.HyperlinkAddress = "https://example.org/runbooks/runtime";
+            runtime.HyperlinkDescription = "Runtime runbook";
+
+            return VisioDocument.Create(filePath)
+                .GraphDiagram("CI/CD Inventory Graph", graph => graph
+                    .Title("CI/CD Pipeline and Runtime Inventory")
+                    .Theme(VisioStyleTheme.Technical())
+                    .Layout(VisioGraphLayout.Layered)
+                    .Direction(VisioGraphDirection.LeftToRight)
+                    .Legend()
+                    .PageSize(16.5, 7.5)
+                    .Margins(0.8, 0.85, 0.8, 0.75)
+                    .NodeSize(1.35, 0.74)
+                    .Spacing(0.72, 0.86)
+                    .Import(
+                        new[] { engineer, repository, pipeline, agent, registry, cluster, secrets, monitor },
+                        new[] { commit, trigger, schedule, publish, deploy, secretFlow, telemetry, onCall },
+                        new[] { delivery, runtime }));
+        }
+
+        private static VisioGraphNodeRecord CreateNode(string id, string text, VisioStencilCatalog catalog, params string[] queries) {
+            VisioGraphNodeRecord record = new(id, text) {
+                StencilCatalog = catalog
+            };
+            foreach (string query in queries) {
+                record.StencilQueries.Add(query);
+            }
+
+            return record;
         }
     }
 }

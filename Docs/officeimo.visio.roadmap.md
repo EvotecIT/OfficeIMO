@@ -166,7 +166,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
 - Add data-driven examples:
   - Azure/application dependency map;
   - Active Directory identity/authentication flow;
-  - CI/CD pipeline and build-agent topology;
+  - CI/CD pipeline and build-agent topology: initial reusable `VisioGallery` example added with stencil-backed node records, edge records, cluster records, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - Kubernetes/service-mesh topology;
   - incident/runbook sequence;
   - network segmentation diagram.

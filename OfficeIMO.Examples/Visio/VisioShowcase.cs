@@ -24,22 +24,23 @@ namespace OfficeIMO.Examples.Visio {
                 new VisioShowcaseExample("09 Editing and data", () => ShapeDataEditing.Example_ShapeDataEditing(showcasePath, false)),
                 new VisioShowcaseExample("10 Containers and routing", () => ContainerEditing.Example_ContainerEditing(showcasePath, false)),
                 new VisioShowcaseExample("11 Visual quality gallery", () => VisualQualityGallery.Example_VisualQualityGallery(showcasePath, false)),
-                new VisioShowcaseExample("12 Premium scenario showcase", () => PremiumVisioShowcase.Example_PremiumVisioShowcase(showcasePath, false))
+                new VisioShowcaseExample("12 Data-driven CI/CD inventory graph", () => DataDrivenInventoryGraph.Example_DataDrivenInventoryGraph(showcasePath, false)),
+                new VisioShowcaseExample("13 Premium scenario showcase", () => PremiumVisioShowcase.Example_PremiumVisioShowcase(showcasePath, false))
             };
             string? externalStencilPack = Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_STENCIL_PACK");
             if (!string.IsNullOrWhiteSpace(externalStencilPack) && File.Exists(externalStencilPack)) {
-                examples.Add(new VisioShowcaseExample("12 External VSSX stencil pack", () => ExternalStencilPack.Example_ExternalStencilPack(showcasePath, false, externalStencilPack)));
+                examples.Add(new VisioShowcaseExample("14 External VSSX stencil pack", () => ExternalStencilPack.Example_ExternalStencilPack(showcasePath, false, externalStencilPack)));
             }
             string? integrationStencilPack = MicrosoftIntegrationAzureStencils.ResolveConfiguredPackPath(Array.Empty<string>());
             if (MicrosoftIntegrationAzureStencils.IsConfigured(integrationStencilPack)) {
-                examples.Add(new VisioShowcaseExample("13 Microsoft Integration/Azure stencil graph", () => MicrosoftIntegrationAzureStencils.Example_MicrosoftIntegrationAzureStencils(showcasePath, false, integrationStencilPack!)));
+                examples.Add(new VisioShowcaseExample("15 Microsoft Integration/Azure stencil graph", () => MicrosoftIntegrationAzureStencils.Example_MicrosoftIntegrationAzureStencils(showcasePath, false, integrationStencilPack!)));
             }
             string? stencilGalleryPath = ExternalStencilGallery.ResolveConfiguredGalleryPath(Array.Empty<string>());
             if (ExternalStencilGallery.IsConfigured(stencilGalleryPath)) {
-                examples.Add(new VisioShowcaseExample("14 External stencil catalog gallery", () => ExternalStencilGallery.Example_ExternalStencilGallery(showcasePath, false, stencilGalleryPath!)));
+                examples.Add(new VisioShowcaseExample("16 External stencil catalog gallery", () => ExternalStencilGallery.Example_ExternalStencilGallery(showcasePath, false, stencilGalleryPath!)));
             }
             if (global::OfficeIMO.Visio.Stencils.VisioStencilPackageCatalog.DiscoverInstalledVisioPackages().Count > 0) {
-                examples.Add(new VisioShowcaseExample("15 Installed Visio stencil packages", () => InstalledVisioStencils.Example_InstalledVisioStencils(showcasePath, false)));
+                examples.Add(new VisioShowcaseExample("17 Installed Visio stencil packages", () => InstalledVisioStencils.Example_InstalledVisioStencils(showcasePath, false)));
             }
 
             foreach (VisioShowcaseExample example in examples) {

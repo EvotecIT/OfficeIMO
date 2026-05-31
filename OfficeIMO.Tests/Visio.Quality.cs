@@ -219,11 +219,23 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
 
-            Assert.Equal(8, results.Count);
+            Assert.Equal(9, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
             Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
             Assert.All(results, result => Assert.Empty(result.QualityIssues.Select(issue => issue.ToString())));
+
+            VisioGalleryResult inventory = results.Single(result => result.Name == "CI/CD Inventory Graph");
+            VisioDocument loaded = VisioDocument.Load(inventory.FilePath);
+            VisioPage page = Assert.Single(loaded.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "delivery-cluster" && shape.GetShapeDataValue("Owner") == "DevEx");
+            Assert.Contains(page.Shapes, shape => shape.Id == "runtime-cluster" && shape.GetShapeDataValue("Owner") == "SRE");
+            Assert.Contains(page.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(page.Connectors, connector => connector.Id == "agent-data-registry" && connector.GetShapeDataValue("Protocol") == "OCI");
+            VisioStencilProfile profile = loaded.CreateStencilProfile();
+            Assert.Contains("Containers and Kubernetes", profile.StencilCatalogs);
+            Assert.Contains("Cloud", profile.StencilCatalogs);
+            Assert.Contains("Infrastructure", profile.StencilCatalogs);
         }
 
         [Fact]

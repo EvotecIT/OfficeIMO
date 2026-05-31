@@ -642,6 +642,12 @@ page.ResolveConnectorLabelOverlaps();
 doc.PolishDiagrams();
 ```
 
+The reusable gallery includes a data-driven CI/CD inventory graph built from
+`VisioGraphNodeRecord`, `VisioGraphEdgeRecord`, and `VisioGraphClusterRecord`
+records. It uses first-party stencil catalogs, generated clusters, Shape Data,
+hyperlinks, and an automatic graph legend, so the gallery exercises real
+inventory-to-diagram workflows rather than only coordinate-authored examples.
+
 `EnsureVisualQuality(...)` throws `VisioDiagramQualityException` with the
 blocking issues, which makes it practical to use generated diagrams in tests or
 CI without writing custom issue-loop code.

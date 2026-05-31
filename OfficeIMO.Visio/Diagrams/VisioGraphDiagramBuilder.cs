@@ -1147,7 +1147,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 page.Shapes.Add(sample);
             }
 
-            VisioShape label = page.AddTextBox(CreateGeneratedId("legend-" + item.IdSuffix + "-text"), left + 1.08D, y, Math.Max(0.8D, width - 1.05D), 0.22D, item.Label, _unit);
+            double labelLeft = left + 0.72D;
+            double labelWidth = Math.Max(0.8D, width - 0.82D);
+            VisioShape label = page.AddTextBox(CreateGeneratedId("legend-" + item.IdSuffix + "-text"), labelLeft + (labelWidth / 2D), y, labelWidth, 0.22D, item.Label, _unit);
             label.TextStyle = CreateLegendTextStyle();
             MarkDiagramAdornment(label);
         }
