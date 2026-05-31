@@ -123,6 +123,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeDataSchemaAppliesValidatesAndRoundTripsRows() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioShapeDataSchema schema = VisioShapeDataSchema.Create()
+                .Field("Owner", "Owner", VisioShapeDataType.String, "Unassigned", "Owning team", sortKey: "010", required: true)
+                .Field("Risk", "Risk", VisioShapeDataType.FixedList, "Medium", "Operational risk", sortKey: "020", required: true, verify: true, allowedValues: new[] { "Low", "Medium", "High" })
+                .Field("MonthlyCost", "Monthly cost", VisioShapeDataType.Currency, "0", "Estimated monthly run cost", "$#,##0", "030", invisible: false);
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Schema", 8.5, 6);
+            VisioShape server = page.AddRectangle(2, 4, 1.5, 0.75, "Server");
+            VisioShape api = page.AddRectangle(5, 4, 1.5, 0.75, "API");
+            server.SetShapeData("Owner", "Operations");
+
+            schema.ApplyTo(server);
+            page.SelectShapes(shape => shape.Text == "API").ShapeData(schema);
+            VisioConnector connector = page.AddConnector(server, api, ConnectorKind.Dynamic);
+            page.SelectConnectors(current => current == connector).ShapeData(schema, overwriteValues: true);
+
+            Assert.Equal("Operations", server.GetShapeDataValue("Owner"));
+            Assert.Equal("Unassigned", api.GetShapeDataValue("Owner"));
+            Assert.Equal("Medium", api.GetShapeDataValue("Risk"));
+            Assert.Equal("Medium", connector.GetShapeDataValue("Risk"));
+            Assert.Empty(schema.Validate(server));
+            Assert.Empty(schema.Validate(connector));
+
+            api.SetShapeData("Risk", "Critical");
+            VisioShapeDataSchemaIssue issue = Assert.Single(schema.Validate(api));
+            Assert.Equal(VisioShapeDataSchemaIssueKind.ValueNotAllowed, issue.Kind);
+            Assert.Equal("Risk", issue.FieldName);
+
+            api.SetShapeData("Risk", "High");
+            Assert.Empty(schema.Validate(api));
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            AssertShapeDataSchemaXml(filePath);
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedServer = loaded.Pages[0].Shapes.Single(shape => shape.Text == "Server");
+            VisioShape loadedApi = loaded.Pages[0].Shapes.Single(shape => shape.Text == "API");
+            VisioConnector loadedConnector = loaded.Pages[0].Connectors.Single();
+            Assert.Equal("Operations", loadedServer.GetShapeDataValue("Owner"));
+            Assert.Equal("High", loadedApi.GetShapeDataValue("Risk"));
+            Assert.Equal("Medium", loadedConnector.GetShapeDataValue("Risk"));
+            Assert.Equal("Low;Medium;High", loadedServer.FindShapeData("Risk")!.Format);
+            Assert.Equal("020", loadedServer.FindShapeData("Risk")!.SortKey);
+            Assert.True(loadedServer.FindShapeData("Risk")!.Verify);
+            Assert.False(loadedServer.FindShapeData("MonthlyCost")!.Invisible);
+        }
+
+        [Fact]
         public void ConnectorShapeDataSetClearsLoadedValueFormula() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
@@ -170,6 +223,36 @@ namespace OfficeIMO.Tests {
             Assert.Equal(reviewedValue, CellValue(reviewed, ns, "Value"));
             Assert.Equal("Reviewed", CellValue(reviewed, ns, "Label"));
             Assert.Equal(((int)VisioShapeDataType.Boolean).ToString(), CellValue(reviewed, ns, "Type"));
+        }
+
+        private static void AssertShapeDataSchemaXml(string filePath) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument page = ReadXml(archive, "visio/pages/page1.xml");
+            XElement server = page.Descendants(ns + "Shape")
+                .Single(shape => shape.Element(ns + "Text")?.Value == "Server");
+            XElement propSection = server.Elements(ns + "Section")
+                .Single(section => (string?)section.Attribute("N") == "Prop");
+
+            XElement owner = Row(propSection, ns, "Owner");
+            Assert.Equal("Operations", CellValue(owner, ns, "Value"));
+            Assert.Equal("Owner", CellValue(owner, ns, "Label"));
+            Assert.Equal("Owning team", CellValue(owner, ns, "Prompt"));
+            Assert.Equal("010", CellValue(owner, ns, "SortKey"));
+
+            XElement risk = Row(propSection, ns, "Risk");
+            Assert.Equal("Medium", CellValue(risk, ns, "Value"));
+            Assert.Equal(((int)VisioShapeDataType.FixedList).ToString(), CellValue(risk, ns, "Type"));
+            Assert.Equal("Low;Medium;High", CellValue(risk, ns, "Format"));
+            Assert.Equal("020", CellValue(risk, ns, "SortKey"));
+            Assert.Equal("1", CellValue(risk, ns, "Verify"));
+
+            XElement cost = Row(propSection, ns, "MonthlyCost");
+            Assert.Equal("0", CellValue(cost, ns, "Value"));
+            Assert.Equal(((int)VisioShapeDataType.Currency).ToString(), CellValue(cost, ns, "Type"));
+            Assert.Equal("$#,##0", CellValue(cost, ns, "Format"));
+            Assert.Equal("030", CellValue(cost, ns, "SortKey"));
+            Assert.Equal("0", CellValue(cost, ns, "Invisible"));
         }
 
         private static void AssertConnectorShapeDataXml(string filePath, string rowName, string ownerValue) {

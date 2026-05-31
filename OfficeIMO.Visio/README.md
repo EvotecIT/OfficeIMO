@@ -1056,6 +1056,32 @@ page.SelectWithShapeData("Owner", "Platform")
 doc.Save();
 ```
 
+For repeatable metadata across generated or loaded diagrams, define a reusable
+schema and apply it to shapes, shape selections, connectors, or connector
+selections. Existing values are preserved by default while labels, prompts,
+types, list formats, sort keys, visibility, and verification settings are
+standardized.
+
+```csharp
+var schema = VisioShapeDataSchema.Create()
+    .Field("Owner", "Owner", VisioShapeDataType.String,
+        defaultValue: "Unassigned", prompt: "Owning team",
+        sortKey: "010", required: true)
+    .Field("Risk", "Risk", VisioShapeDataType.FixedList,
+        defaultValue: "Medium", prompt: "Operational risk",
+        sortKey: "020", required: true, verify: true,
+        allowedValues: new[] { "Low", "Medium", "High" })
+    .Field("MonthlyCost", "Monthly cost", VisioShapeDataType.Currency,
+        defaultValue: "0", prompt: "Estimated monthly run cost",
+        format: "$#,##0", sortKey: "030");
+
+schema.ApplyTo(api);
+page.SelectWithShapeData("Owner", value => string.IsNullOrWhiteSpace(value))
+    .ShapeData(schema);
+
+var issues = schema.Validate(api);
+```
+
 ## Page settings
 
 Pages expose common print and page-management cells without requiring raw
