@@ -478,12 +478,15 @@ namespace OfficeIMO.Excel {
 
             Dictionary<string, int>? sharedStringIndexes = null;
             bool useDirectStringCells = collectDirectRows && columnCount > 1;
-            var appendedRows = new List<OpenXmlElement>();
             int rowIndex = startRow;
+            int appendedRowCount = 0;
             bool canCancel = ct.CanBeCanceled;
+            List<Row> pendingRows = new List<Row>();
 
             if (includeHeaders) {
-                appendedRows.Add(CreateDataReaderHeaderRow(rowIndex++, columnReferencePrefixes, headers, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                Row headerRow = CreateDataReaderHeaderRow(rowIndex++, columnReferencePrefixes, headers, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
+                pendingRows.Add(headerRow);
+                appendedRowCount++;
             }
 
             bool useBulkRead = CanUseBulkDataReaderValues(reader);
@@ -502,9 +505,11 @@ namespace OfficeIMO.Excel {
                     : reusableValues ??= new object?[columnCount];
                 FillDataReaderValues(reader, values, columnCount, ref useBulkRead);
 
-                appendedRows.Add(canCancel
+                Row valueRow = canCancel
                     ? CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct)
-                    : CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
+                    : CreateDataReaderValueRow(rowIndex++, columnReferencePrefixes, values, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes);
+                pendingRows.Add(valueRow);
+                appendedRowCount++;
                 dataRows++;
 
                 if (directRows != null) {
@@ -516,10 +521,13 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            if (appendedRows.Count > 0) {
-                sheetData.Append(appendedRows);
+            foreach (var pendingRow in pendingRows) {
+                sheetData.Append(pendingRow);
+            }
+
+            if (appendedRowCount > 0) {
                 ClearHeaderCacheForPreparedAppend();
-                int lastRow = startRow + appendedRows.Count - 1;
+                int lastRow = startRow + appendedRowCount - 1;
                 int lastColumn = startColumn + columnCount - 1;
                 int dimensionMinRow = minExistingRow == int.MaxValue ? startRow : Math.Min(minExistingRow, startRow);
                 int dimensionMinColumn = minExistingColumn == int.MaxValue ? startColumn : Math.Min(minExistingColumn, startColumn);

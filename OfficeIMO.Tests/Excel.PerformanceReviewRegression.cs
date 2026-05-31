@@ -2636,7 +2636,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PerformanceReview_CellValuesHeaderThenAppend_MaterializesForReadBeforeSave() {
+        public void PerformanceReview_CellValuesHeaderThenAppend_ReadBeforeSavePreservesDirectPackage() {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
@@ -2657,7 +2657,7 @@ namespace OfficeIMO.Tests {
 
                 document.Save(memory);
 
-                Assert.NotEqual(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
             }
 
             memory.Position = 0;
@@ -4780,20 +4780,17 @@ namespace OfficeIMO.Tests {
                     "F20",
                     rowFields: new[] { "Name" },
                     dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+                sheet.CellValue(2, 4, string.Empty);
+                sheet.CellValue(2, 5, string.Empty);
 
                 var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
                 var row2 = sheetData.Elements<Row>().First(row => row.RowIndex?.Value == 2U);
-                row2.Append(
-                    new Cell {
-                        CellReference = "D2",
-                        DataType = CellValues.Error,
-                        CellValue = new CellValue("#DIV/0!")
-                    },
-                    new Cell {
-                        CellReference = "E2",
-                        DataType = CellValues.Date,
-                        CellValue = new CellValue("2026-05-19")
-                    });
+                var d2 = row2.Elements<Cell>().First(cell => cell.CellReference?.Value == "D2");
+                d2.DataType = CellValues.Error;
+                d2.CellValue = new CellValue("#DIV/0!");
+                var e2 = row2.Elements<Cell>().First(cell => cell.CellReference?.Value == "E2");
+                e2.DataType = CellValues.Date;
+                e2.CellValue = new CellValue("2026-05-19");
 
                 document.Save(memory);
 
@@ -5035,8 +5032,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal("20", cells["B3"].CellValue!.Text);
 
             var chartPart = dataPart.DrawingsPart!.ChartParts.Single();
-            Assert.NotNull(chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault());
-            Assert.NotNull(chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault());
+            var stylePart = Assert.Single(chartPart.GetPartsOfType<ChartStylePart>());
+            var colorStylePart = Assert.Single(chartPart.GetPartsOfType<ChartColorStylePart>());
+            using (var styleStream = stylePart.GetStream(FileMode.Open, FileAccess.Read)) {
+                Assert.True(styleStream.Length > 0);
+            }
+            using (var colorStyleStream = colorStylePart.GetStream(FileMode.Open, FileAccess.Read)) {
+                Assert.True(colorStyleStream.Length > 0);
+            }
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -5537,6 +5540,91 @@ namespace OfficeIMO.Tests {
             var cacheFields = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().ToList();
             var nameItems = cacheFields[0].SharedItems!.Elements<StringItem>().Select(item => item.Val!.Value).ToList();
             Assert.Equal(new[] { "Alpha", "Beta" }, nameItems);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PivotTableFallbackAfterDeferredImportKeepsSourceRows() {
+            using var memory = new MemoryStream();
+            var rows = new[] {
+                new PerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19)),
+                new PerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20)),
+                new PerformanceObjectExportRow("Gamma", 30, new DateTime(2026, 5, 21))
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Created", row => row.Created));
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C4",
+                    destinationCell: "E2",
+                    name: "ScorePivot",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                var relationship = sheet.WorksheetPart.AddHyperlinkRelationship(new Uri("https://example.org/pivot-fallback"), true);
+                var hyperlinks = sheet.WorksheetPart.Worksheet.Elements<Hyperlinks>().FirstOrDefault();
+                if (hyperlinks == null) {
+                    hyperlinks = new Hyperlinks();
+                    InsertHyperlinksBeforeWorksheetTail(sheet.WorksheetPart.Worksheet, hyperlinks);
+                }
+
+                hyperlinks.Append(new Hyperlink { Reference = "D7", Id = relationship.Id });
+
+                document.Save(memory);
+
+                Assert.NotEqual(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
+            Assert.Equal("Gamma", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
+            Assert.Single(worksheetPart.HyperlinkRelationships);
+            Assert.Single(worksheetPart.PivotTableParts);
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        [Fact]
+        public void PerformanceReview_InsertObjects_PivotCacheRawXmlPreservesNonBmpText() {
+            using var memory = new MemoryStream();
+            string emoji = char.ConvertFromUtf32(0x1F600);
+            string rocket = char.ConvertFromUtf32(0x1F680);
+            var rows = new[] {
+                new NullablePerformanceObjectExportRow("Alpha", 10, new DateTime(2026, 5, 19), "Emoji " + emoji),
+                new NullablePerformanceObjectExportRow("Beta", 20, new DateTime(2026, 5, 20), "Rocket " + rocket)
+            };
+
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.InsertObjects(rows,
+                    ("Name", row => row.Name),
+                    ("Score", row => row.Score),
+                    ("Note", row => row.Note));
+                sheet.AddPivotTable(
+                    sourceRange: "A1:C3",
+                    destinationCell: "E2",
+                    name: "ScorePivot",
+                    rowFields: new[] { "Name" },
+                    dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
+
+                document.Save(memory);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var pivotPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.First().PivotTableParts);
+            var cacheRecordsPart = Assert.Single(pivotPart.PivotTableCacheDefinitionPart!.GetPartsOfType<PivotTableCacheRecordsPart>());
+            using var reader = new StreamReader(cacheRecordsPart.GetStream(FileMode.Open, FileAccess.Read));
+            string cacheRecordsXml = reader.ReadToEnd();
+
+            Assert.Contains("Emoji " + emoji, cacheRecordsXml);
+            Assert.Contains("Rocket " + rocket, cacheRecordsXml);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -6591,6 +6679,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PerformanceReview_InsertDataReader_FailedReadDoesNotPartiallyAppendRows() {
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Name", typeof(string));
+            table.Columns.Add("Score", typeof(int));
+            table.Rows.Add("Alpha", 10);
+            table.Rows.Add("Beta", 20);
+
+            using var reader = new CountingDataReader(table.CreateDataReader(), throwOnReadAfterRows: 1);
+            using var document = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+            var sheet = document.AddWorkSheet("Data");
+
+            var exception = Assert.Throws<InvalidOperationException>(() => sheet.InsertDataReader(reader, tableName: "ReaderTable"));
+            Assert.Contains("Simulated reader failure", exception.Message);
+
+            var sheetData = sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+            Assert.Empty(sheetData.Elements<Row>());
+        }
+
+        [Fact]
         public void PerformanceReview_WriteDataSet_ObjectColumnDateAndTimeValuesUseValueStyles() {
             using var memory = new MemoryStream();
             var dataSet = new DataSet();
@@ -6709,10 +6816,13 @@ namespace OfficeIMO.Tests {
         private sealed class CountingDataReader : IDataReader {
             private readonly IDataReader _inner;
             private readonly bool _throwOnGetValues;
+            private readonly int _throwOnReadAfterRows;
+            private int _successfulReads;
 
-            internal CountingDataReader(IDataReader inner, bool throwOnGetValues = false) {
+            internal CountingDataReader(IDataReader inner, bool throwOnGetValues = false, int throwOnReadAfterRows = -1) {
                 _inner = inner;
                 _throwOnGetValues = throwOnGetValues;
+                _throwOnReadAfterRows = throwOnReadAfterRows;
             }
 
             internal int GetValuesCalls { get; private set; }
@@ -6793,7 +6903,18 @@ namespace OfficeIMO.Tests {
 
             public bool NextResult() => _inner.NextResult();
 
-            public bool Read() => _inner.Read();
+            public bool Read() {
+                if (_throwOnReadAfterRows >= 0 && _successfulReads >= _throwOnReadAfterRows) {
+                    throw new InvalidOperationException("Simulated reader failure.");
+                }
+
+                bool read = _inner.Read();
+                if (read) {
+                    _successfulReads++;
+                }
+
+                return read;
+            }
         }
 
         private static void RemoveFirstRowIndex(string filePath) {
@@ -6896,6 +7017,26 @@ namespace OfficeIMO.Tests {
             var font = stylesheet.Fonts!.Elements<Font>().ElementAt((int)cellFormat.FontId.Value);
             Assert.NotNull(font.Bold);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
+        }
+
+        private static void InsertHyperlinksBeforeWorksheetTail(Worksheet worksheet, Hyperlinks hyperlinks) {
+            OpenXmlElement? insertBefore =
+                worksheet.Elements<PrintOptions>().Cast<OpenXmlElement>()
+                    .Concat(worksheet.Elements<PageMargins>())
+                    .Concat(worksheet.Elements<PageSetup>())
+                    .Concat(worksheet.Elements<HeaderFooter>())
+                    .Concat(worksheet.Elements<RowBreaks>())
+                    .Concat(worksheet.Elements<ColumnBreaks>())
+                    .Concat(worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>())
+                    .Concat(worksheet.Elements<LegacyDrawing>())
+                    .Concat(worksheet.Elements<TableParts>())
+                    .FirstOrDefault();
+
+            if (insertBefore == null) {
+                worksheet.Append(hyperlinks);
+            } else {
+                worksheet.InsertBefore(hyperlinks, insertBefore);
+            }
         }
 
         private static string? GetCellNumberFormatCode(SpreadsheetDocument spreadsheet, Cell cell) {

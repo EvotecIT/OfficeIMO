@@ -157,12 +157,12 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (canUseOrderedFullWidthExit && columnIndex >= c2) {
-                        SkipXmlElementContent(reader, depth, "row");
+                        SkipXmlElementContent(reader, depth);
                         break;
                     }
 
                     if (canTrackColumns && !canUseOrderedFullWidthExit && MarkRequestedColumnSeen(columnOffset, allColumnsSeen, ref seenColumns)) {
-                        SkipXmlElementContent(reader, depth, "row");
+                        SkipXmlElementContent(reader, depth);
                         break;
                     }
                 }

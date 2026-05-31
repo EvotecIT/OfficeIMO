@@ -701,6 +701,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_TypedObjectsStream_PreservesLargeOutOfOrderRowsInsideRange() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedStreamLargeOutOfOrderInsideRange.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    for (int row = 2; row <= 4101; row++) {
+                        sheet.CellValue(row, 1, "Row" + row.ToString(CultureInfo.InvariantCulture));
+                    }
+
+                    document.Save();
+                }
+
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var sheetData = worksheetPart.Worksheet.GetFirstChild<SheetData>()!;
+                    var row2 = sheetData.Elements<Row>().First(r => r.RowIndex?.Value == 2U);
+                    row2.Remove();
+                    sheetData.Append(row2);
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var rows = reader.GetSheet("Data").ReadObjectsStream<StrictMappedRow>("A1:A4101").ToList();
+
+                Assert.Equal(4100, rows.Count);
+                Assert.Equal("Row2", rows[0].Name);
+                Assert.Equal("Row3", rows[1].Name);
+                Assert.Equal("Row4101", rows[rows.Count - 1].Name);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Reader_ReadRange_IgnoresMalformedCellReferenceWithoutRowNumber() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderMalformedCellReference.xlsx");
 
@@ -708,6 +746,7 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddWorkSheet("Data");
                     sheet.CellValue(1, 1, "ShouldIgnore");
+                    sheet.CellValue(1, 2, "ShouldAlsoIgnore");
                     document.Save();
                 }
 
@@ -715,13 +754,16 @@ namespace OfficeIMO.Tests {
                     var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                     var cell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference?.Value == "A1");
                     cell.CellReference = "A";
+                    var trailingCell = worksheetPart.Worksheet.Descendants<Cell>().First(c => c.CellReference?.Value == "B1");
+                    trailingCell.CellReference = "B1X";
                     worksheetPart.Worksheet.Save();
                 }
 
                 using var reader = ExcelDocumentReader.Open(filePath);
-                object?[,] values = reader.GetSheet("Data").ReadRange("A1:A1", ExecutionMode.Sequential);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:B1", ExecutionMode.Sequential);
 
                 Assert.Null(values[0, 0]);
+                Assert.Null(values[0, 1]);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1103,6 +1145,65 @@ namespace OfficeIMO.Tests {
                 var sheetReader = reader.GetSheet("Data");
                 Assert.Equal("B3:B3", sheetReader.GetUsedRangeA1());
                 Assert.Equal("B3:B3", sheetReader.GetUsedRangeA1());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_GetUsedRangeA1_FallsBackWhenDimensionExceedsTableReference() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderUsedRangeTableDimensionMismatch.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(1, 2, "Value");
+                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.CellValue(2, 2, 10);
+                    sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: OfficeIMO.Excel.TableStyle.TableStyleMedium2, includeAutoFilter: true);
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                    var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                    worksheet.GetFirstChild<SheetDimension>()!.Reference = "A1:Z1000";
+                    worksheet.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var sheetReader = reader.GetSheet("Data");
+                Assert.Equal("A1:B2", sheetReader.GetUsedRangeA1());
+                Assert.Equal("A1:B2", sheetReader.GetUsedRangeA1());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_ReadObjects_PreservesWideRowsAboveFastMaskLimit() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderObjectsWideRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    for (int column = 1; column <= 70; column++) {
+                        sheet.CellValue(1, column, "H" + column.ToString(CultureInfo.InvariantCulture));
+                        sheet.CellValue(2, column, column);
+                    }
+
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                var row = Assert.Single(reader.GetSheet("Data").ReadObjects("A1:BR2"));
+                Assert.Equal(1D, row["H1"]);
+                Assert.Equal(64D, row["H64"]);
+                Assert.Equal(70D, row["H70"]);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2312,6 +2413,36 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(42, rows[0].Score);
                 Assert.Null(rows[1].Score);
                 Assert.Equal(44, rows[2].Score);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Reader_TypedObjectsStream_PreservesSortedGapAfterHeader() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderTypedObjectsStreamSortedGapAfterHeader.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Score");
+                    sheet.CellValue(3, 1, 43);
+                    sheet.CellValue(4, 1, 44);
+                    document.Save();
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                using var rows = reader.GetSheet("Data").ReadObjectsStream<NullableTypedRow>("A1:A4").GetEnumerator();
+
+                Assert.True(rows.MoveNext());
+                Assert.Null(rows.Current.Score);
+                Assert.True(rows.MoveNext());
+                Assert.Equal(43, rows.Current.Score);
+                Assert.True(rows.MoveNext());
+                Assert.Equal(44, rows.Current.Score);
+                Assert.False(rows.MoveNext());
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

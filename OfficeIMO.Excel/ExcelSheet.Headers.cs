@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using System.IO;
 using System.Threading;
 using OpenXmlCellValues = DocumentFormat.OpenXml.Spreadsheet.CellValues;
 
@@ -12,6 +13,8 @@ namespace OfficeIMO.Excel {
         private string? _headerMapSourceA1;
         private int _headerMapHeaderRowIndex;
         private int _headerMapHeaderCellCount;
+        private int _headerMapFirstColumnIndex;
+        private int _headerMapLastColumnIndex;
         private bool _headerMapNormalize;
         private bool _headerMapCachePopulated;
         private readonly object _headerMapLock = new object();
@@ -43,6 +46,25 @@ namespace OfficeIMO.Excel {
                 _excelDocument.MaterializeDeferredDataSetImport();
             }
 
+            if (!_hasWorksheetMutations
+                && TryBuildHeaderMapFromReader(opt, out var readerMap, out var readerUsedRange, out int readerHeaderRow, out int readerFirstColumn, out int readerLastColumn, out int readerHeaderCellCount)) {
+                lock (_headerMapLock) {
+                    if (_headerMapCache != null && string.Equals(_headerMapSourceA1, readerUsedRange, StringComparison.Ordinal) && _headerMapNormalize == opt.NormalizeHeaders) {
+                        return _headerMapCache;
+                    }
+
+                    _headerMapCache = readerMap;
+                    _headerMapSourceA1 = readerUsedRange;
+                    _headerMapHeaderRowIndex = readerHeaderRow;
+                    _headerMapHeaderCellCount = readerHeaderCellCount;
+                    _headerMapFirstColumnIndex = readerFirstColumn;
+                    _headerMapLastColumnIndex = readerLastColumn;
+                    _headerMapNormalize = opt.NormalizeHeaders;
+                    Volatile.Write(ref _headerMapCachePopulated, true);
+                    return _headerMapCache;
+                }
+            }
+
             string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
             var a1Used = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
             lock (_headerMapLock) {
@@ -55,6 +77,8 @@ namespace OfficeIMO.Excel {
                     _headerMapSourceA1 = a1Used;
                     _headerMapHeaderRowIndex = r1;
                     _headerMapHeaderCellCount = CountHeaderRowCells(r1);
+                    _headerMapFirstColumnIndex = c1;
+                    _headerMapLastColumnIndex = c2;
                     _headerMapNormalize = opt.NormalizeHeaders;
                     Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
@@ -71,6 +95,8 @@ namespace OfficeIMO.Excel {
                     _headerMapSourceA1 = a1Used;
                     _headerMapHeaderRowIndex = r1;
                     _headerMapHeaderCellCount = CountHeaderRowCells(r1);
+                    _headerMapFirstColumnIndex = c1;
+                    _headerMapLastColumnIndex = c2;
                     _headerMapNormalize = opt.NormalizeHeaders;
                     Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
@@ -91,6 +117,8 @@ namespace OfficeIMO.Excel {
                     _headerMapSourceA1 = a1Used;
                     _headerMapHeaderRowIndex = r1;
                     _headerMapHeaderCellCount = CountHeaderRowCells(r1);
+                    _headerMapFirstColumnIndex = c1;
+                    _headerMapLastColumnIndex = c2;
                     _headerMapNormalize = opt.NormalizeHeaders;
                     Volatile.Write(ref _headerMapCachePopulated, true);
                     return _headerMapCache;
@@ -105,9 +133,89 @@ namespace OfficeIMO.Excel {
                 _headerMapSourceA1 = a1Used;
                 _headerMapHeaderRowIndex = r1;
                 _headerMapHeaderCellCount = CountHeaderRowCells(r1);
+                _headerMapFirstColumnIndex = c1;
+                _headerMapLastColumnIndex = c2;
                 _headerMapNormalize = opt.NormalizeHeaders;
                 Volatile.Write(ref _headerMapCachePopulated, true);
                 return _headerMapCache;
+            }
+        }
+
+        private bool TryBuildHeaderMapFromReader(
+            ExcelReadOptions opt,
+            out Dictionary<string, int> map,
+            out string usedRange,
+            out int headerRowIndex,
+            out int firstColumnIndex,
+            out int lastColumnIndex,
+            out int headerCellCount) {
+            map = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            usedRange = string.Empty;
+            headerRowIndex = 0;
+            firstColumnIndex = 0;
+            lastColumnIndex = 0;
+            headerCellCount = 0;
+
+            try {
+                using var rdr = _excelDocument.CreateReader(opt);
+                var sh = rdr.GetSheet(this.Name);
+                usedRange = sh.GetUsedRangeA1();
+                var (r1, c1, _, c2) = A1.ParseRange(usedRange);
+                string headerRange = A1.CellReference(r1, c1) + ":" + A1.CellReference(r1, c2);
+                object?[,] values = sh.ReadRange(headerRange);
+
+                headerRowIndex = r1;
+                firstColumnIndex = c1;
+                lastColumnIndex = c2;
+
+                if (values.GetLength(0) == 0 || values.GetLength(1) == 0) {
+                    return true;
+                }
+
+                int cols = values.GetLength(1);
+                headerCellCount = CountHeaderValues(values, cols);
+                PopulateHeaderMapFromValues(map, values, cols, c1, opt.NormalizeHeaders);
+                return true;
+            } catch (ObjectDisposedException) {
+                return false;
+            } catch (ArgumentException) {
+                return false;
+            } catch (IOException) {
+                return false;
+            } catch (UnauthorizedAccessException) {
+                return false;
+            } catch (InvalidOperationException) {
+                return false;
+            }
+        }
+
+        private static int CountHeaderValues(object?[,] values, int cols) {
+            int count = 0;
+            for (int c = 0; c < cols; c++) {
+                if (values[0, c] != null) {
+                    count++;
+                }
+            }
+
+            return count;
+        }
+
+        private static void PopulateHeaderMapFromValues(Dictionary<string, int> map, object?[,] values, int cols, int firstColumn, bool normalizeHeaders) {
+            bool anyHeader = false;
+            for (int c = 0; c < cols; c++) {
+                if (!string.IsNullOrEmpty(ExcelHeaderNameHelper.NormalizeHeader(values[0, c]?.ToString(), normalizeHeaders))) {
+                    anyHeader = true;
+                    break;
+                }
+            }
+
+            if (!anyHeader) {
+                return;
+            }
+
+            var headers = ExcelHeaderNameHelper.BuildUniqueHeaders(cols, c => values[0, c]?.ToString(), normalizeHeaders);
+            for (int c = 0; c < cols; c++) {
+                map[headers[c]] = firstColumn + c;
             }
         }
 
@@ -121,9 +229,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            string reference = ExcelSheet.ComputeSheetDimensionReference(WorksheetRoot);
-            string a1Used = reference.IndexOf(":", StringComparison.Ordinal) >= 0 ? reference : reference + ":" + reference;
-            return string.Equals(_headerMapSourceA1, a1Used, StringComparison.Ordinal);
+            return true;
         }
 
         private int CountHeaderRowCells(int headerRowIndex) {
@@ -376,7 +482,7 @@ namespace OfficeIMO.Excel {
             ClearHeaderCacheCore(markWorksheetMutation: true, invalidateHeaderMap: true);
         }
 
-        private void ClearHeaderCacheForCellMutation(int rowIndex) {
+        private void ClearHeaderCacheForCellMutation(int rowIndex, int columnIndex = 0) {
             _hasCellValueDomWrites = true;
 
             if (_hasWorksheetMutations
@@ -398,16 +504,28 @@ namespace OfficeIMO.Excel {
 
             ClearHeaderCacheCore(
                 markWorksheetMutation: true,
-                invalidateHeaderMap: HeaderMapMayBeAffectedByCellMutation(rowIndex));
+                invalidateHeaderMap: HeaderMapMayBeAffectedByCellMutation(rowIndex, columnIndex));
         }
 
-        private bool HeaderMapMayBeAffectedByCellMutation(int rowIndex) {
+        private bool HeaderMapMayBeAffectedByCellMutation(int rowIndex, int columnIndex) {
             if (!Volatile.Read(ref _headerMapCachePopulated)) {
                 return false;
             }
 
             int headerRowIndex = Volatile.Read(ref _headerMapHeaderRowIndex);
-            return headerRowIndex <= 0 || rowIndex <= headerRowIndex;
+            if (headerRowIndex <= 0 || rowIndex <= headerRowIndex) {
+                return true;
+            }
+
+            if (columnIndex > 0) {
+                int firstColumnIndex = Volatile.Read(ref _headerMapFirstColumnIndex);
+                int lastColumnIndex = Volatile.Read(ref _headerMapLastColumnIndex);
+                if (firstColumnIndex <= 0 || lastColumnIndex <= 0 || columnIndex < firstColumnIndex || columnIndex > lastColumnIndex) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void ClearHeaderCacheCore(bool markWorksheetMutation, bool invalidateHeaderMap) {
@@ -435,6 +553,8 @@ namespace OfficeIMO.Excel {
             _headerMapSourceA1 = null;
             _headerMapHeaderRowIndex = 0;
             _headerMapHeaderCellCount = 0;
+            _headerMapFirstColumnIndex = 0;
+            _headerMapLastColumnIndex = 0;
             Volatile.Write(ref _headerMapCachePopulated, false);
         }
 

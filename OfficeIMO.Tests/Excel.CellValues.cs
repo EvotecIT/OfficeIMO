@@ -157,6 +157,109 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_CellValues_AppendPlainRows_UsesPlainStringCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesAppendPlainRowsPlainStrings.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValues(new[] {
+                    (1, 1, (object)"Id"),
+                    (1, 2, (object)"Region"),
+                    (1, 3, (object)"Owner"),
+                    (1, 4, (object)"Amount")
+                }, ExecutionMode.Sequential);
+
+                sheet.CellValues(new[] {
+                    (2, 1, (object)1),
+                    (2, 2, (object)"North"),
+                    (2, 3, (object)"Alice"),
+                    (2, 4, (object)12.5m),
+                    (3, 1, (object)2),
+                    (3, 2, (object)"South"),
+                    (3, 3, (object)"Bob"),
+                    (3, 4, (object)13.5m)
+                }, ExecutionMode.Parallel);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                ValidateSpreadsheetDocument(filePath, spreadsheet);
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+                Assert.Equal("North", GetStoredText(spreadsheet, cells["B2"]));
+                Assert.Equal("Bob", GetStoredText(spreadsheet, cells["C3"]));
+                Assert.Equal("13.5", cells["D3"].CellValue!.Text);
+            }
+
+            using (var reader = ExcelDocumentReader.Open(filePath)) {
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:D3");
+                Assert.Equal("Region", values[0, 1]);
+                Assert.Equal("North", values[1, 1]);
+                Assert.Equal("Bob", values[2, 2]);
+                Assert.Equal(13.5d, values[2, 3]);
+            }
+
+            static string GetStoredText(SpreadsheetDocument spreadsheet, Cell cell) {
+                if (cell.DataType?.Value == CellValues.SharedString) {
+                    int index = int.Parse(cell.CellValue!.Text, CultureInfo.InvariantCulture);
+                    return spreadsheet.WorkbookPart!.SharedStringTablePart!.SharedStringTable!.ElementAt(index).InnerText;
+                }
+
+                return cell.CellValue?.Text ?? string.Empty;
+            }
+        }
+
+        [Fact]
+        public void Test_CellValues_AppendPlainRows_StreamDisposeWritesDeferredRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "CellValuesAppendPlainRowsStreamDispose.xlsx");
+
+            try {
+                using var stream = new MemoryStream();
+                using (var document = ExcelDocument.Create(stream)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValues(new[] {
+                        (1, 1, (object)"Id"),
+                        (1, 2, (object)"Region"),
+                        (1, 3, (object)"Owner"),
+                        (1, 4, (object)"Amount")
+                    }, ExecutionMode.Sequential);
+
+                    sheet.CellValues(new[] {
+                        (2, 1, (object)1),
+                        (2, 2, (object)"North"),
+                        (2, 3, (object)"Alice"),
+                        (2, 4, (object)12.5d),
+                        (3, 1, (object)2),
+                        (3, 2, (object)"South"),
+                        (3, 3, (object)"Bob"),
+                        (3, 4, (object)13.5d)
+                    }, ExecutionMode.Parallel);
+                }
+
+                File.WriteAllBytes(filePath, stream.ToArray());
+                using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                    ValidateSpreadsheetDocument(filePath, spreadsheet);
+                    WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+                    var cells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+
+                    Assert.True(cells.ContainsKey("B2"));
+                    Assert.True(cells.ContainsKey("C3"));
+                    Assert.Equal("13.5", cells["D3"].CellValue!.Text);
+                }
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                object?[,] values = reader.GetSheet("Data").ReadRange("A1:D3");
+                Assert.Equal("North", values[1, 1]);
+                Assert.Equal("Bob", values[2, 2]);
+                Assert.Equal(13.5d, values[2, 3]);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void Test_CellValue_PendingDirectWrites_ReadAndSaveCorrectly() {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuePendingDirectWrites.xlsx");
 

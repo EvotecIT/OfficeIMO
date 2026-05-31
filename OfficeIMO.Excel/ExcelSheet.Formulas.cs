@@ -75,6 +75,8 @@ namespace OfficeIMO.Excel {
         /// Evaluates supported formulas on this sheet and writes cached results.
         /// </summary>
         public int RecalculateSupportedFormulas() {
+            MaterializePendingDirectCellValues();
+
             int count = 0;
             WriteLock(() => {
                 MaterializePendingDirectCellValues();

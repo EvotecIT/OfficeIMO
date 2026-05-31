@@ -254,6 +254,7 @@ namespace OfficeIMO.Excel {
             object?[] values,
             int columnCount,
             int rowCount,
+            bool valuesMatchColumnTypes,
             bool includeHeaders,
             string range,
             string? tableName = null,
@@ -277,7 +278,7 @@ namespace OfficeIMO.Excel {
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
-                var tableModel = DirectDataSetTableModel.FromCellValues(columnNames, columnTypes, values, columnCount, rowCount);
+                var tableModel = DirectDataSetTableModel.FromCellValues(columnNames, columnTypes, values, columnCount, rowCount, valuesMatchColumnTypes);
                 var model = DirectDataSetWorkbookModel.CreateSingle(
                     sheet.Name,
                     requestedName,
@@ -358,6 +359,7 @@ namespace OfficeIMO.Excel {
             object?[] values,
             int columnCount,
             int rowCount,
+            bool valuesMatchColumnTypes,
             bool includeHeaders,
             string range,
             string? tableName = null,
@@ -377,7 +379,7 @@ namespace OfficeIMO.Excel {
 
             try {
                 string requestedName = string.IsNullOrWhiteSpace(tableNameForModel) ? sheet.Name : tableNameForModel;
-                var tableModel = DirectDataSetTableModel.FromCellValues(columnNames, columnTypes, values, columnCount, rowCount);
+                var tableModel = DirectDataSetTableModel.FromCellValues(columnNames, columnTypes, values, columnCount, rowCount, valuesMatchColumnTypes);
                 var model = DirectDataSetWorkbookModel.CreateSingle(
                     sheet.Name,
                     requestedName,
@@ -1248,9 +1250,9 @@ namespace OfficeIMO.Excel {
                 if (candidate.IsDeferred && candidate.IsValid) {
                     MaterializeDeferredDataSetImport();
                     return false;
+                } else {
+                    ClearDirectDataSetSaveCandidate();
                 }
-
-                ClearDirectDataSetSaveCandidate();
             }
 
             if (_pendingDirectCellValueSheet != null && !replacingPendingDirectCellValues) {
@@ -1647,6 +1649,7 @@ namespace OfficeIMO.Excel {
                 MaterializeDirectDataSetModel(candidate.Model);
                 if (fastSaveModel != null) {
                     _materializedDirectDataSetFastSaveModel = fastSaveModel;
+                    _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = true;
                     _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
                 }
             } finally {
@@ -1672,6 +1675,7 @@ namespace OfficeIMO.Excel {
             }
 
             _materializedDirectDataSetFastSaveModel = packageModel;
+            _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
             _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
             _directDataSetSaveCandidate = null;
             candidate.Dispose();
@@ -1891,11 +1895,6 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            if (_materializedDirectDataSetFastSaveModel != null) {
-                skipReason = "A materialized direct DataSet fast-save model requires the extended package writer.";
-                return false;
-            }
-
             if (_packagePropertiesDirty) {
                 skipReason = "Package properties changed.";
                 return false;
@@ -1918,15 +1917,30 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsValid) {
-                skipReason = "No valid direct DataSet save candidate is available.";
-                ClearDirectDataSetSaveCandidate();
-                return false;
-            }
+            DirectDataSetWorkbookModel packageModel;
+            if (_materializedDirectDataSetFastSaveModel != null) {
+                if (!CanWriteMaterializedDirectDataSetPackage(_materializedDirectDataSetFastSaveModel)) {
+                    skipReason = "Materialized direct DataSet content requires the extended package writer.";
+                    return false;
+                }
 
-            if (!TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel? packageModel, out skipReason)) {
-                return false;
+                if (!TryRefreshMaterializedDirectDataSetFastSaveModel(out skipReason)) {
+                    skipReason ??= "Materialized direct DataSet fast-save metadata could not be refreshed.";
+                    return false;
+                }
+
+                packageModel = _materializedDirectDataSetFastSaveModel!;
+            } else {
+                var candidate = _directDataSetSaveCandidate;
+                if (candidate == null || !candidate.IsValid) {
+                    skipReason = "No valid direct DataSet save candidate is available.";
+                    ClearDirectDataSetSaveCandidate();
+                    return false;
+                }
+
+                if (!TryCreateDirectPackageModel(candidate.Model, out packageModel, out skipReason)) {
+                    return false;
+                }
             }
 
             if (ct.CanBeCanceled) {
@@ -1947,6 +1961,22 @@ namespace OfficeIMO.Excel {
                 _unchangedPackageBytes = null;
                 _packageContentTypesKnownNormalized = true;
                 _simplePackageContentKnown = true;
+            }
+
+            return true;
+        }
+
+        private bool CanWriteMaterializedDirectDataSetPackage(DirectDataSetWorkbookModel model) {
+            for (int i = 0; i < model.Sheets.Count; i++) {
+                var sheetModel = model.Sheets[i];
+                if (!sheetModel.IncludeHeaders) {
+                    return false;
+                }
+
+                ExcelSheet? sheet = TryGetExistingSheet(sheetModel.SheetName);
+                if (sheet?.WorksheetPart.DrawingsPart != null) {
+                    return false;
+                }
             }
 
             return true;
@@ -3176,10 +3206,11 @@ namespace OfficeIMO.Excel {
         }
 
         private readonly struct DirectCellValueRows {
-            internal DirectCellValueRows(object?[] values, int columnCount, int rowCount) {
+            internal DirectCellValueRows(object?[] values, int columnCount, int rowCount, bool valuesMatchColumnTypes) {
                 Values = values;
                 ColumnCount = columnCount;
                 Count = rowCount;
+                ValuesMatchColumnTypes = valuesMatchColumnTypes;
             }
 
             internal object?[] Values { get; }
@@ -3187,6 +3218,8 @@ namespace OfficeIMO.Excel {
             internal int ColumnCount { get; }
 
             internal int Count { get; }
+
+            internal bool ValuesMatchColumnTypes { get; }
 
             internal int GetRowOffset(int rowIndex) => rowIndex * ColumnCount;
 
@@ -3312,7 +3345,8 @@ namespace OfficeIMO.Excel {
                 IReadOnlyList<Type> columnTypes,
                 object?[] values,
                 int columnCount,
-                int rowCount) {
+                int rowCount,
+                bool valuesMatchColumnTypes) {
                 if (columnNames.Count != columnTypes.Count) {
                     throw new ArgumentException("Column name and type counts must match.", nameof(columnTypes));
                 }
@@ -3326,7 +3360,7 @@ namespace OfficeIMO.Excel {
                     columns[i] = new DirectDataSetColumnModel(columnNames[i], columnTypes[i]);
                 }
 
-                return new DirectDataSetTableModel(columns, new DirectCellValueRows(values, columnCount, rowCount));
+                return new DirectDataSetTableModel(columns, new DirectCellValueRows(values, columnCount, rowCount, valuesMatchColumnTypes));
             }
 
             internal static DirectDataSetTableModel FromLegacyDictionaries(IReadOnlyList<string> columnNames, IReadOnlyList<Type> columnTypes, IReadOnlyList<System.Collections.IDictionary> rows) {

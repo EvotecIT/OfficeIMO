@@ -325,6 +325,7 @@ namespace OfficeIMO.Excel {
         private bool _simplePackageContentKnown;
         private DirectDataSetSaveCandidate? _directDataSetSaveCandidate;
         private DirectDataSetWorkbookModel? _materializedDirectDataSetFastSaveModel;
+        private bool _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet;
         private ExcelSheet? _directDataSetMetadataSourceSheet;
         private ExcelSheet? _pendingDirectCellValueSheet;
         private bool _materializingDeferredDataSetImport;
@@ -348,6 +349,7 @@ namespace OfficeIMO.Excel {
                 || _materializedDirectDataSetFastSaveModelPreservationDepth > 0;
             if (!preserveMaterializedDirectModel && !_materializingDeferredDataSetImport) {
                 _materializedDirectDataSetFastSaveModel = null;
+                _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
             }
 
             if (IsPackageDirtyWithoutPendingSaveCandidate) {
@@ -390,6 +392,16 @@ namespace OfficeIMO.Excel {
         internal bool HasPackagePropertiesDirty => _packagePropertiesDirty;
 
         internal bool IsMaterializingDeferredDataSetImport => _materializingDeferredDataSetImport;
+
+        internal bool CanWriteDirectDataSetPackageOnDispose
+            => _copyPackageToSourceOnDispose
+               && _sourceStream != null
+               && _spreadSheetDocument != null
+               && !_spreadSheetDocument.AutoSave;
+
+        internal bool CanDeferDirectCellValuesAppendCandidate
+            => _spreadSheetDocument != null
+               && !_spreadSheetDocument.AutoSave;
 
         internal bool IsPreservingDirectDataSetExternalCellMutation
             => _directDataSetExternalCellMutationPreservationDepth > 0;
@@ -445,6 +457,7 @@ namespace OfficeIMO.Excel {
 
                 if (hasMaterializedModel) {
                     _materializedDirectDataSetFastSaveModel = null;
+                    _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
                 } else {
                     ClearDirectDataSetSaveCandidate();
                 }
