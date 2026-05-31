@@ -37,7 +37,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 - **Executive dependency graph:** layered first-party architecture stencil graph with owners, critical path, external dependencies, and grouped runtime zone.
 - **Technical topology:** first-party block-diagram stencil runtime mesh with edge/runtime/state zones, policy path, eventing, cache, and secrets flow.
 - **Print audit trail:** first-party flowchart-stencil access-review flow with monochrome-safe typography and compliance-friendly spacing.
-- **Incident sequence:** first-party sequence-stencil actor/system/service participants, activation bars, self-message placement, notes API coverage, error path, and remediation path; still needs richer fragments and collision-safe notes.
+- **Incident sequence:** first-party sequence-stencil actor/system/service participants, activation bars, combined fragment frame, self-message placement, notes API coverage, error path, and remediation path; still needs collision-safe notes and richer guarded/partitioned fragment layouts.
 - **Release timeline:** first-party timeline-stencil milestones, risks, spans, decisions, callouts, and status metadata.
 - **Swimlane process:** first-party swimlane-stencil roles, phases, handoffs, exception path, compliance callouts, and readable lane headers.
 
@@ -52,7 +52,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 ## Next Implementation Slice
 
 1. Extend obstacle-aware routing from the current zone/container/crossing-aware options into group-aware and deeper whole-page route minimization, and add lifeline-aware connector-label cleanup in dense premium diagrams.
-2. Keep replacing anonymous basic geometry with stencil-backed premium symbols where the domain supports it; all eight current premium baselines now carry first-party stencil provenance for their domain shapes, with sequence activations now promoted and richer fragments/collision-safe notes still needing stronger layout before gallery promotion.
+2. Keep replacing anonymous basic geometry with stencil-backed premium symbols where the domain supports it; all eight current premium baselines now carry first-party stencil provenance for their domain shapes, with sequence activations and combined fragments now promoted while collision-safe notes and richer guarded/partitioned fragments still need stronger layout.
 3. Keep tightening the baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
 4. Promote the generated-master stencil reference fix into a baseline-reviewed graph gallery scenario so first-party stencils are proven with PNG/SVG quality, not only package structure.
 5. Extend current premium inspection/profile baselines into connection-point, icon/preview, and typed stencil-family profiles as external metadata extraction improves.

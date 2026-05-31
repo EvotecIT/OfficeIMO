@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio.Stencils;
 
@@ -12,6 +13,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private const string LifelineLayer = "Sequence Lifelines";
         private const string MessageLayer = "Sequence Messages";
         private const string ActivationLayer = "Sequence Activations";
+        private const string FragmentLayer = "Sequence Fragments";
         private const string NoteLayer = "Sequence Notes";
         private const string GuideLayer = "Sequence Guides";
 
@@ -95,12 +97,33 @@ namespace OfficeIMO.Visio.Diagrams {
             public int EndRowIndex { get; }
         }
 
+        private sealed class FragmentItem {
+            public FragmentItem(string id, string text, int startRowIndex, int endRowIndex, IReadOnlyList<string> participantIds) {
+                Id = id;
+                Text = text;
+                StartRowIndex = startRowIndex;
+                EndRowIndex = endRowIndex;
+                ParticipantIds = participantIds;
+            }
+
+            public string Id { get; }
+
+            public string Text { get; }
+
+            public int StartRowIndex { get; }
+
+            public int EndRowIndex { get; }
+
+            public IReadOnlyList<string> ParticipantIds { get; }
+        }
+
         private readonly VisioDocument _document;
         private readonly string _pageName;
         private readonly List<ParticipantItem> _participants = new();
         private readonly Dictionary<string, ParticipantItem> _participantsById = new(StringComparer.Ordinal);
         private readonly List<MessageItem> _messages = new();
         private readonly List<ActivationItem> _activations = new();
+        private readonly List<FragmentItem> _fragments = new();
         private readonly List<NoteItem> _notes = new();
         private VisioStyleTheme _theme = VisioStyleTheme.Technical();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
@@ -121,6 +144,11 @@ namespace OfficeIMO.Visio.Diagrams {
         private const double SelfMessageLabelHeight = 0.3D;
         private const double ActivationWidth = 0.16D;
         private const double ActivationMinimumHeight = 0.32D;
+        private const double FragmentHorizontalPadding = 0.28D;
+        private const double FragmentVerticalPadding = 0.22D;
+        private const double FragmentHeaderHeight = 0.3D;
+        private const double FragmentMinimumWidth = 1.2D;
+        private const double FragmentMinimumHeight = 0.72D;
         private const double NoteWidth = 1.85D;
         private const double NoteHeight = 0.72D;
         private const double NoteGap = 0.22D;
@@ -295,6 +323,30 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds a UML combined fragment spanning all known participants over a range of message rows.</summary>
+        public VisioSequenceDiagramBuilder Fragment(string text, int startRowIndex, int endRowIndex, string? id = null) =>
+            Fragment(text, startRowIndex, endRowIndex, Array.Empty<string>(), id);
+
+        /// <summary>Adds a UML combined fragment spanning selected participants over a range of message rows.</summary>
+        public VisioSequenceDiagramBuilder Fragment(string text, int startRowIndex, int endRowIndex, IEnumerable<string> participantIds, string? id = null) {
+            if (participantIds == null) {
+                throw new ArgumentNullException(nameof(participantIds));
+            }
+
+            if (startRowIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(startRowIndex), "Start row index must be zero or greater.");
+            }
+
+            if (endRowIndex < startRowIndex) {
+                throw new ArgumentOutOfRangeException(nameof(endRowIndex), "End row index must be greater than or equal to the start row index.");
+            }
+
+            string fragmentId = NormalizeFragmentId(id);
+            IReadOnlyList<string> normalizedParticipantIds = GetFragmentParticipantIds(participantIds);
+            _fragments.Add(new FragmentItem(fragmentId, text ?? string.Empty, startRowIndex, endRowIndex, normalizedParticipantIds));
+            return this;
+        }
+
         /// <summary>Adds a semantic note near a participant at a message row.</summary>
         public VisioSequenceDiagramBuilder Note(string participantId, string text, int rowIndex, VisioSide placement = VisioSide.Right, string? id = null) {
             string normalizedParticipantId = RequireId(participantId, nameof(participantId), "Participant id");
@@ -343,6 +395,10 @@ namespace OfficeIMO.Visio.Diagrams {
                     page.AddLayer(ActivationLayer);
                 }
 
+                if (_fragments.Count > 0) {
+                    page.AddLayer(FragmentLayer);
+                }
+
                 if (_notes.Count > 0) {
                     page.AddLayer(NoteLayer);
                 }
@@ -354,6 +410,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 AddActivations(page, firstMessageY);
                 AddMessages(page, firstMessageY);
                 AddNotes(page, firstMessageY);
+                AddFragments(page, firstMessageY);
                 _document.RequestRecalcOnOpen();
                 return page;
             } finally {
@@ -369,6 +426,10 @@ namespace OfficeIMO.Visio.Diagrams {
 
             foreach (NoteItem note in _notes) {
                 rows = Math.Max(rows, note.RowIndex + 1);
+            }
+
+            foreach (FragmentItem fragment in _fragments) {
+                rows = Math.Max(rows, fragment.EndRowIndex + 1);
             }
 
             return rows;
@@ -439,6 +500,57 @@ namespace OfficeIMO.Visio.Diagrams {
                 shape.SetUserCell("OfficeIMO.SequenceStartRowIndex", activation.StartRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence activation start row");
                 shape.SetUserCell("OfficeIMO.SequenceEndRowIndex", activation.EndRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence activation end row");
                 page.AddToLayer(ActivationLayer, shape);
+            }
+        }
+
+        private void AddFragments(VisioPage page, double firstMessageY) {
+            foreach (FragmentItem fragment in _fragments) {
+                IReadOnlyList<ParticipantItem> participants = fragment.ParticipantIds
+                    .Select(id => _participantsById[id])
+                    .ToArray();
+                double left = participants.Min(participant => participant.PinX) - (_participantWidth / 2D) - FragmentHorizontalPadding;
+                double right = participants.Max(participant => participant.PinX) + (_participantWidth / 2D) + FragmentHorizontalPadding;
+                left = Math.Max(_leftMargin, left);
+                right = Math.Min(page.Width - _rightMargin, right);
+
+                double topY = firstMessageY - (fragment.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.46D) + FragmentVerticalPadding;
+                double bottomY = firstMessageY - (fragment.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.46D) - FragmentVerticalPadding;
+                double width = Math.Max(FragmentMinimumWidth, right - left);
+                double height = Math.Max(FragmentMinimumHeight, topY - bottomY);
+                double x = left + (width / 2D);
+                double y = (topY + bottomY) / 2D;
+
+                VisioShape frame = page.AddStencilShape(VisioStencils.Sequence, "seq.fragment", fragment.Id, x, y, width, height, string.Empty);
+                frame.FillColor = OfficeColor.Transparent;
+                frame.FillPattern = 0;
+                frame.LineColor = _theme.ControlConnector.LineColor;
+                frame.LinePattern = 2;
+                frame.LineWeight = Math.Max(0.012D, _theme.ControlConnector.LineWeight);
+                frame.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SequenceFragmentKind, "STR", prompt: "OfficeIMO semantic kind");
+                frame.SetUserCell("OfficeIMO.SequenceStartRowIndex", fragment.StartRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment start row");
+                frame.SetUserCell("OfficeIMO.SequenceEndRowIndex", fragment.EndRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment end row");
+                frame.SetUserCell("OfficeIMO.SequenceParticipantIds", string.Join(";", fragment.ParticipantIds), "STR", prompt: "OfficeIMO sequence fragment participants");
+                page.AddToLayer(FragmentLayer, frame);
+
+                double labelWidth = Math.Max(0.75D, Math.Min(width - 0.1D, 0.48D + (fragment.Text.Trim().Length * 0.07D)));
+                double labelLeft = left + 0.04D;
+                double firstParticipantX = participants.Min(participant => participant.PinX);
+                if (labelLeft < firstParticipantX + ActivationWidth && labelLeft + labelWidth > firstParticipantX - ActivationWidth) {
+                    labelLeft = firstParticipantX + (ActivationWidth / 2D) + 0.08D;
+                    labelLeft = Math.Min(labelLeft, left + width - labelWidth - 0.04D);
+                }
+
+                double labelX = labelLeft + (labelWidth / 2D);
+                double labelY = topY - 0.04D - (FragmentHeaderHeight / 2D);
+                VisioShape label = page.AddTextBox(GetFragmentLabelId(fragment.Id), labelX, labelY, labelWidth, FragmentHeaderHeight, fragment.Text, _unit);
+                label.FillColor = _theme.Container.FillColor;
+                label.FillPattern = 1;
+                label.LineColor = OfficeColor.Transparent;
+                label.LinePattern = 0;
+                label.TextStyle = CreateFragmentLabelTextStyle();
+                label.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+                label.SetUserCell("OfficeIMO.SequenceFragmentId", fragment.Id, "STR", prompt: "OfficeIMO sequence fragment label target");
+                page.AddToLayer(FragmentLayer, label);
             }
         }
 
@@ -547,6 +659,23 @@ namespace OfficeIMO.Visio.Diagrams {
             return Math.Max(1.2D, Math.Min(2.4D, estimatedWidth));
         }
 
+        private VisioTextStyle CreateFragmentLabelTextStyle() {
+            VisioTextStyle style = _theme.Container.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily ??= "Aptos";
+            style.Color ??= _theme.ControlConnector.TextStyle?.Color ?? OfficeColor.Black;
+            style.Size ??= 9D;
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            style.LeftMargin = 0.06D;
+            style.RightMargin = 0.04D;
+            style.TopMargin = 0.02D;
+            style.BottomMargin = 0.02D;
+            style.BackgroundColor = _theme.Container.FillColor;
+            style.BackgroundTransparency = 0D;
+            return style;
+        }
+
         private VisioShape CreateAnchor(VisioPage page, string id, double x, double y) {
             VisioShape anchor = new(id, x, y, 0.04D, 0.04D, string.Empty) {
                 NameU = "Circle",
@@ -621,6 +750,16 @@ namespace OfficeIMO.Visio.Diagrams {
             return normalizedId;
         }
 
+        private string NormalizeFragmentId(string? id) {
+            string normalizedId = string.IsNullOrWhiteSpace(id) ? "fragment-" + (_fragments.Count + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) : id!.Trim();
+            string labelId = GetFragmentLabelId(normalizedId);
+            if (IsIdInUse(normalizedId) || IsIdInUse(labelId)) {
+                throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            return normalizedId;
+        }
+
         private string NormalizeActivationId(string? id) {
             string normalizedId = string.IsNullOrWhiteSpace(id) ? "activation-" + (_activations.Count + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) : id!.Trim();
             if (IsIdInUse(normalizedId)) {
@@ -628,6 +767,27 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return normalizedId;
+        }
+
+        private IReadOnlyList<string> GetFragmentParticipantIds(IEnumerable<string> participantIds) {
+            string[] ids = participantIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            if (ids.Length == 0) {
+                ids = _participants.Select(participant => participant.Id).ToArray();
+            }
+
+            if (ids.Length == 0) {
+                throw new InvalidOperationException("A sequence fragment requires at least one participant.");
+            }
+
+            foreach (string id in ids) {
+                EnsureKnownParticipant(id, nameof(participantIds));
+            }
+
+            return ids;
         }
 
         private void EnsureKnownParticipant(string id, string parameterName) {
@@ -658,6 +818,12 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
             }
 
+            foreach (FragmentItem fragment in _fragments) {
+                if (string.Equals(fragment.Id, id, StringComparison.Ordinal) || string.Equals(GetFragmentLabelId(fragment.Id), id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
             foreach (NoteItem note in _notes) {
                 if (string.Equals(note.Id, id, StringComparison.Ordinal)) {
                     return true;
@@ -666,6 +832,8 @@ namespace OfficeIMO.Visio.Diagrams {
 
             return false;
         }
+
+        private static string GetFragmentLabelId(string fragmentId) => fragmentId + "-label";
 
         private static string RequireId(string id, string parameterName, string label) {
             if (string.IsNullOrWhiteSpace(id)) {

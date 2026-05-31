@@ -220,7 +220,8 @@ namespace OfficeIMO.Visio {
                     .SelfMessage("support", "Update incident record", id: "record")
                     .Activation("support", 0, 7, "support-active")
                     .Activation("api", 1, 6, "api-active")
-                    .Activation("queue", 3, 6, "queue-active"));
+                    .Activation("queue", 3, 6, "queue-active")
+                    .Fragment("alt recovery", 2, 6, new[] { "support", "api", "queue", "ledger" }, "recovery-fragment"));
         }
 
         private static VisioDocument CreateReleaseTimeline(string filePath) {

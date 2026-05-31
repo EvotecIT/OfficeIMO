@@ -275,7 +275,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    if (shape.IsContainer || shape.IsBackgroundSurface || shape.IsDiagramAdornment || IsSequenceActivation(shape)) {
+                    if (shape.IsContainer || shape.IsBackgroundSurface || shape.IsDiagramAdornment || IsSequenceActivation(shape) || IsSequenceFragment(shape)) {
                         continue;
                     }
 
@@ -342,15 +342,21 @@ namespace OfficeIMO.Visio {
                    (first.IsBackgroundSurface && second.IsCallout) ||
                    (second.IsBackgroundSurface && first.IsCallout) ||
                    (IsSequenceActivation(first) && second.IsDiagramAdornment) ||
-                   (IsSequenceActivation(second) && first.IsDiagramAdornment);
+                   (IsSequenceActivation(second) && first.IsDiagramAdornment) ||
+                   IsSequenceFragment(first) ||
+                   IsSequenceFragment(second);
         }
 
         private static bool IsConnectorIntersectionIgnoredShape(VisioShape shape) {
-            return shape.IsContainer || shape.IsBackgroundSurface || shape.IsDiagramAdornment || IsSequenceActivation(shape);
+            return shape.IsContainer || shape.IsBackgroundSurface || shape.IsDiagramAdornment || IsSequenceActivation(shape) || IsSequenceFragment(shape);
         }
 
         private static bool IsSequenceActivation(VisioShape shape) {
             return string.Equals(shape.GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.SequenceActivationKind, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsSequenceFragment(VisioShape shape) {
+            return string.Equals(shape.GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.SequenceFragmentKind, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool HasDeterministicRoute(VisioConnector connector) {

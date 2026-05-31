@@ -28,6 +28,7 @@ namespace OfficeIMO.Tests {
                     .SelfMessage("web", "Render receipt", id: "render")
                     .Activation("web", 1, 4, "web-active")
                     .Activation("api", 2, 3, "api-active")
+                    .Fragment("alt retry window", 1, 3, new[] { "web", "api", "db" }, "retry-fragment")
                     .Note("api", "Retry path observed", 2, VisioSide.Right, "retry-note"));
 
             VisioPage page = Assert.Single(document.Pages);
@@ -62,15 +63,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal("4", webActivation.GetUserCellValue("OfficeIMO.SequenceEndRowIndex"));
             Assert.Contains("Sequence Activations", webActivation.LayerNames);
             Assert.True(webActivation.Height > webActivation.Width);
+            VisioShape retryFragment = Assert.Single(page.Shapes, shape => shape.Id == "retry-fragment");
+            Assert.Equal("Rectangle", retryFragment.MasterNameU);
+            Assert.Equal("SequenceFragment", retryFragment.GetUserCellValue("OfficeIMO.Kind"));
+            Assert.Equal("1", retryFragment.GetUserCellValue("OfficeIMO.SequenceStartRowIndex"));
+            Assert.Equal("3", retryFragment.GetUserCellValue("OfficeIMO.SequenceEndRowIndex"));
+            Assert.Equal("web;api;db", retryFragment.GetUserCellValue("OfficeIMO.SequenceParticipantIds"));
+            Assert.Equal(0, retryFragment.FillPattern);
+            Assert.Contains("Sequence Fragments", retryFragment.LayerNames);
+            Assert.True(retryFragment.PinX < db.PinX);
+            Assert.True(retryFragment.Width > db.PinX - web.PinX);
+            VisioShape retryFragmentLabel = Assert.Single(page.Shapes, shape => shape.Id == "retry-fragment-label");
+            Assert.Equal("alt retry window", retryFragmentLabel.Text);
+            Assert.Equal("DiagramAdornment", retryFragmentLabel.GetUserCellValue("OfficeIMO.Kind"));
+            Assert.Equal("retry-fragment", retryFragmentLabel.GetUserCellValue("OfficeIMO.SequenceFragmentId"));
+            Assert.Contains("Sequence Fragments", retryFragmentLabel.LayerNames);
             VisioStencilProfile profile = document.CreateStencilProfile();
-            Assert.Equal(7, profile.StencilBackedShapeCount);
+            Assert.Equal(8, profile.StencilBackedShapeCount);
             Assert.Equal(new[] { "Sequence Diagram" }, profile.StencilCatalogs);
             Assert.Contains("SequenceActivation", profile.SemanticKinds);
+            Assert.Contains("SequenceFragment", profile.SemanticKinds);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.actor" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.participant" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.control" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.database" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.activation" && usage.Count == 2);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.fragment" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "seq.note" && usage.Count == 1);
 
             VisioConnector[] messageConnectors = page.Connectors
@@ -86,7 +104,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Layers, layer => layer.Name == "Sequence Lifelines");
             Assert.Contains(page.Layers, layer => layer.Name == "Sequence Messages");
             Assert.Contains(page.Layers, layer => layer.Name == "Sequence Activations");
-            Assert.DoesNotContain(page.AnalyzeVisualQuality(), issue => issue.ShapeId == "web-active" || issue.ShapeId == "api-active");
+            Assert.Contains(page.Layers, layer => layer.Name == "Sequence Fragments");
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(), issue =>
+                issue.ShapeId == "web-active" ||
+                issue.ShapeId == "api-active" ||
+                issue.ShapeId == "retry-fragment" ||
+                issue.ShapeId == "retry-fragment-label");
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -161,11 +184,23 @@ namespace OfficeIMO.Tests {
                     .Participant("web", "Web")
                     .Activation("web", 0, 1, "same")
                     .Note("web", "Duplicate", 0, id: "same")));
+            ArgumentException fragmentCollision = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("opt", 0, 1, "same")
+                    .Call("web", "web", "Duplicate", "same")));
+            ArgumentException fragmentLabelCollision = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("opt", 0, 1, "same")
+                    .Note("web", "Duplicate", 0, id: "same-label")));
 
             Assert.Contains("already exists", participantCollision.Message);
             Assert.Contains("already exists", messageCollision.Message);
             Assert.Contains("already exists", noteCollision.Message);
             Assert.Contains("already exists", activationCollision.Message);
+            Assert.Contains("already exists", fragmentCollision.Message);
+            Assert.Contains("already exists", fragmentLabelCollision.Message);
         }
 
         [Fact]
@@ -213,16 +248,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SequenceDiagramBuilderRejectsInvalidFragments() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException unknownParticipant = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("alt", 0, 1, new[] { "missing" })));
+            ArgumentOutOfRangeException badStart = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("alt", -1, 1)));
+            ArgumentOutOfRangeException badEnd = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("alt", 2, 1)));
+            ArgumentNullException nullParticipants = Assert.Throws<ArgumentNullException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Fragment("alt", 0, 1, participantIds: null!)));
+
+            Assert.Contains("Unknown sequence participant id", unknownParticipant.Message);
+            Assert.Contains("zero or greater", badStart.Message);
+            Assert.Contains("greater than or equal", badEnd.Message);
+            Assert.Equal("participantIds", nullParticipants.ParamName);
+        }
+
+        [Fact]
         public void SequenceStencilsAreSearchableAndIncludedInAllCatalog() {
             VisioStencilShape participant = VisioStencils.Sequence.Get("seq.participant");
             VisioStencilShape actor = Assert.Single(VisioStencils.Sequence.Search("person"));
             VisioStencilShape activation = Assert.Single(VisioStencils.Sequence.Search("execution"));
+            VisioStencilShape fragment = Assert.Single(VisioStencils.Sequence.Search("combined-fragment"));
 
             Assert.Equal("Rectangle", participant.MasterNameU);
             Assert.Equal("Actor", actor.Name);
             Assert.Equal("Activation", activation.Name);
+            Assert.Equal("Combined Fragment", fragment.Name);
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "seq.database");
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "seq.activation");
+            Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "seq.fragment");
         }
     }
 }

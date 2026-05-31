@@ -150,6 +150,7 @@ namespace OfficeIMO.Visio.Stencils {
                 Shape("seq.entity", "Entity", "Rectangle", "Sequence Diagram", 1.45, 0.62, "domain", "object"),
                 Shape("seq.database", "Database", "Data", "Sequence Diagram", 1.45, 0.62, "store", "data-store"),
                 Shape("seq.activation", "Activation", "Rectangle", "Sequence Diagram", 0.16, 1.0, "execution", "focus", "activation"),
+                Shape("seq.fragment", "Combined Fragment", "Rectangle", "Sequence Diagram", 3.0, 1.6, "combined-fragment", "alt", "opt", "loop", "critical", "region"),
                 Shape("seq.note", "Note", "Rectangle", "Sequence Diagram", 1.8, 0.75, "annotation", "callout")
             });
 
