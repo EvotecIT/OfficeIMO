@@ -115,6 +115,26 @@ namespace OfficeIMO.Visio.Diagrams {
             public List<VisioHyperlink> Hyperlinks { get; } = new();
         }
 
+        private sealed class LegendItem {
+            public LegendItem(string idSuffix, string label, VisioGraphNodeKind? nodeKind, VisioGraphConnectorKind? connectorKind, bool directed) {
+                IdSuffix = idSuffix;
+                Label = label;
+                NodeKind = nodeKind;
+                ConnectorKind = connectorKind;
+                Directed = directed;
+            }
+
+            public string IdSuffix { get; }
+
+            public string Label { get; }
+
+            public VisioGraphNodeKind? NodeKind { get; }
+
+            public VisioGraphConnectorKind? ConnectorKind { get; }
+
+            public bool Directed { get; }
+        }
+
         private readonly VisioDocument _document;
         private readonly string _pageName;
         private readonly List<NodeItem> _nodes = new();
@@ -146,7 +166,14 @@ namespace OfficeIMO.Visio.Diagrams {
         private string _titleId = "title";
         private double _titleHeight = 0.45;
         private double _titleGap = 0.35;
+        private bool _showLegend;
+        private string _legendTitle = "Legend";
+        private bool _legendIncludeNodeKinds = true;
+        private bool _legendIncludeConnectorKinds = true;
         private const double StencilCaptionBottomOverflow = 0.52D;
+        private const double LegendTitleHeight = 0.24D;
+        private const double LegendRowHeight = 0.32D;
+        private const double LegendGap = 0.22D;
         private int _maximumRows = 1;
         private bool _fitPageToGraph = true;
         private bool _built;
@@ -242,6 +269,15 @@ namespace OfficeIMO.Visio.Diagrams {
             _titleId = normalizedId;
             _titleHeight = height;
             _titleGap = gap;
+            return this;
+        }
+
+        /// <summary>Adds an automatic legend based on the graph node and connector kinds used by the diagram.</summary>
+        public VisioGraphDiagramBuilder Legend(bool enabled = true, string title = "Legend", bool includeNodeKinds = true, bool includeConnectorKinds = true) {
+            _showLegend = enabled;
+            _legendTitle = string.IsNullOrWhiteSpace(title) ? "Legend" : title;
+            _legendIncludeNodeKinds = includeNodeKinds;
+            _legendIncludeConnectorKinds = includeConnectorKinds;
             return this;
         }
 
@@ -711,6 +747,7 @@ namespace OfficeIMO.Visio.Diagrams {
             AddZones(page);
             AddNodes(page);
             AddEdges(page);
+            AddLegend(page);
             AddTitle(page);
             page.PolishDiagram(new VisioDiagramPolishOptions {
                 FitToContent = false,
@@ -1067,6 +1104,115 @@ namespace OfficeIMO.Visio.Diagrams {
             title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
         }
 
+        private void AddLegend(VisioPage page) {
+            IReadOnlyList<LegendItem> items = GetLegendItems();
+            if (!_showLegend || items.Count == 0) {
+                return;
+            }
+
+            int columns = GetLegendColumnCount(items.Count);
+            double availableWidth = Math.Max(1D, _pageWidth - _leftMargin - _rightMargin);
+            double columnWidth = availableWidth / columns;
+            double legendTop = _pageHeight - _topMargin - TitleHeaderHeight;
+            double titleY = legendTop - (LegendTitleHeight / 2D);
+            VisioShape title = page.AddTextBox(CreateGeneratedId("legend-title"), _leftMargin + (availableWidth / 2D), titleY, availableWidth, LegendTitleHeight, _legendTitle, _unit);
+            title.TextStyle = CreateLegendTextStyle();
+            MarkDiagramAdornment(title);
+
+            double firstRowY = titleY - (LegendTitleHeight / 2D) - 0.08D - (LegendRowHeight / 2D);
+            for (int i = 0; i < items.Count; i++) {
+                int column = i % columns;
+                int row = i / columns;
+                double x = _leftMargin + (column * columnWidth);
+                double y = firstRowY - (row * LegendRowHeight);
+                AddLegendItem(page, items[i], x, y, Math.Max(1.8D, columnWidth - 0.1D));
+            }
+        }
+
+        private void AddLegendItem(VisioPage page, LegendItem item, double left, double y, double width) {
+            double sampleX = left + 0.28D;
+            if (item.NodeKind.HasValue) {
+                VisioShape sample = new VisioShape(CreateGeneratedId("legend-" + item.IdSuffix + "-sample"), sampleX, y, 0.34D, 0.18D, string.Empty) { NameU = "Rectangle" };
+                GetNodeStyle(item.NodeKind.Value).ApplyTo(sample);
+                MarkDiagramAdornment(sample);
+                page.Shapes.Add(sample);
+            } else if (item.ConnectorKind.HasValue) {
+                VisioConnectorStyle style = GetConnectorStyle(item.ConnectorKind.Value, item.Directed);
+                VisioShape sample = new VisioShape(CreateGeneratedId("legend-" + item.IdSuffix + "-sample"), sampleX, y, 0.48D, 0.06D, string.Empty) { NameU = "Rectangle" };
+                sample.FillPattern = 0;
+                sample.LineColor = style.LineColor;
+                sample.LinePattern = style.LinePattern;
+                sample.LineWeight = Math.Max(0.016D, style.LineWeight);
+                MarkDiagramAdornment(sample);
+                page.Shapes.Add(sample);
+            }
+
+            VisioShape label = page.AddTextBox(CreateGeneratedId("legend-" + item.IdSuffix + "-text"), left + 1.08D, y, Math.Max(0.8D, width - 1.05D), 0.22D, item.Label, _unit);
+            label.TextStyle = CreateLegendTextStyle();
+            MarkDiagramAdornment(label);
+        }
+
+        private IReadOnlyList<LegendItem> GetLegendItems() {
+            List<LegendItem> items = new();
+            if (_showLegend && _legendIncludeNodeKinds) {
+                foreach (VisioGraphNodeKind kind in _nodes.Select(node => node.Kind).Distinct().OrderBy(kind => kind.ToString(), StringComparer.Ordinal)) {
+                    items.Add(new LegendItem("node-" + SlugId(kind.ToString()), GetNodeKindLabel(kind), kind, null, true));
+                }
+            }
+
+            if (_showLegend && _legendIncludeConnectorKinds) {
+                foreach (IGrouping<string, EdgeItem> group in _edges.GroupBy(CreateLegendConnectorKey).OrderBy(group => group.Key, StringComparer.Ordinal)) {
+                    EdgeItem edge = group.First();
+                    items.Add(new LegendItem("edge-" + SlugId(group.Key), GetConnectorLegendLabel(edge.Kind, edge.Directed), null, edge.Kind, edge.Directed));
+                }
+            }
+
+            return items.AsReadOnly();
+        }
+
+        private static string CreateLegendConnectorKey(EdgeItem edge) {
+            return edge.Kind.ToString() + "-" + (edge.Directed ? "directed" : "relationship");
+        }
+
+        private int GetLegendColumnCount(int itemCount) {
+            double availableWidth = Math.Max(1D, _pageWidth - _leftMargin - _rightMargin);
+            if (itemCount < 2 || availableWidth < 5.6D) {
+                return 1;
+            }
+
+            return 2;
+        }
+
+        private double LegendHeaderHeight {
+            get {
+                IReadOnlyList<LegendItem> items = GetLegendItems();
+                if (!_showLegend || items.Count == 0) {
+                    return 0D;
+                }
+
+                int columns = GetLegendColumnCount(items.Count);
+                int rows = (int)Math.Ceiling(items.Count / (double)columns);
+                return LegendTitleHeight + 0.08D + (rows * LegendRowHeight) + LegendGap;
+            }
+        }
+
+        private double TitleHeaderHeight => string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+
+        private VisioTextStyle CreateLegendTextStyle() {
+            VisioTextStyle style = _theme.Connector.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos" : style.FontFamily;
+            style.Size = Math.Max(style.Size ?? 0D, 8.5D);
+            style.Color = _theme.Emphasis.TextStyle?.Color ?? _theme.Emphasis.LineColor;
+            style.BackgroundTransparency = 100;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            return style;
+        }
+
+        private static void MarkDiagramAdornment(VisioShape shape) {
+            shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+        }
+
         private void GetZoneBounds(ZoneItem zone, out double left, out double bottom, out double right, out double top) {
             const double horizontalPadding = 0.45D;
             const double verticalPadding = 0.35D;
@@ -1142,7 +1288,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private double HeaderHeight {
             get {
-                double height = string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
+                double height = TitleHeaderHeight + LegendHeaderHeight;
                 if (_zones.Any(zone => !string.IsNullOrWhiteSpace(zone.Text))) {
                     height += VisioNetworkDiagramVisuals.BackgroundZoneCaptionHeaderClearance;
                 }
@@ -1260,6 +1406,47 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return style;
+        }
+
+        private static string GetNodeKindLabel(VisioGraphNodeKind kind) {
+            switch (kind) {
+                case VisioGraphNodeKind.Data:
+                    return "Data store";
+                case VisioGraphNodeKind.Decision:
+                    return "Decision";
+                case VisioGraphNodeKind.Emphasis:
+                    return "Emphasis";
+                case VisioGraphNodeKind.External:
+                    return "External";
+                default:
+                    return "Process";
+            }
+        }
+
+        private static string GetConnectorLegendLabel(VisioGraphConnectorKind kind, bool directed) {
+            if (!directed) {
+                switch (kind) {
+                    case VisioGraphConnectorKind.Data:
+                        return "Data relationship";
+                    case VisioGraphConnectorKind.Control:
+                        return "Control relationship";
+                    case VisioGraphConnectorKind.Emphasis:
+                        return "Emphasized relationship";
+                    default:
+                        return "Relationship";
+                }
+            }
+
+            switch (kind) {
+                case VisioGraphConnectorKind.Data:
+                    return "Data flow";
+                case VisioGraphConnectorKind.Control:
+                    return "Control flow";
+                case VisioGraphConnectorKind.Emphasis:
+                    return "Emphasized flow";
+                default:
+                    return "Dependency";
+            }
         }
 
         private void AddRoot(string id) {

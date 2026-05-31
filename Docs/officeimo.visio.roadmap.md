@@ -162,7 +162,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
 - Add stable ID and diff-friendly regeneration guidance. Initial graph-record imports derive missing connector ids from endpoint ids and connector kind.
 - Add graph clustering/grouping APIs. Initial `Cluster(...)` / `Clusters(...)` support renders semantic graph clusters as background zones with Shape Data and hyperlinks, and `VisioGraphClusterRecord` can be imported with node/edge records for inventory-driven diagrams.
 - Add dependency cycle presentation instead of only rejection where the diagram type allows cycles.
-- Add legends based on used node/edge types.
+- Add legends based on used node/edge types. Initial generic graph `Legend(...)` support derives node-kind and connector-kind entries from the actual graph, reserves header layout space, and marks legend samples/text as generated diagram adornments.
 - Add data-driven examples:
   - Azure/application dependency map;
   - Active Directory identity/authentication flow;

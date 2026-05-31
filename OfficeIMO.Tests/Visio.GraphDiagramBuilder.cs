@@ -437,6 +437,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderCreatesAutomaticLegendFromUsedNodeAndEdgeTypes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .GraphDiagram("Legend Graph", graph => graph
+                    .Title()
+                    .Legend()
+                    .Root("client", "Client", VisioGraphNodeKind.External)
+                    .Node("api", "API")
+                    .Node("decision", "Policy", VisioGraphNodeKind.Decision)
+                    .Node("db", "Database", VisioGraphNodeKind.Data)
+                    .ControlEdge("client-api", "client", "api", "calls")
+                    .Edge("api-policy", "api", "decision", "checks")
+                    .DataEdge("api-db", "api", "db", "reads")
+                    .Relationship("decision-db", "decision", "db", "documents"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(page.Shapes, shape => shape.Text == "External");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Process");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Decision");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Data store");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Control flow");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Data flow");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Dependency");
+            Assert.Contains(page.Shapes, shape => shape.Text == "Relationship");
+            Assert.Contains(page.Shapes, shape => shape.Id == "legend-node-process-sample" && shape.GetUserCellValue(VisioSemanticUserCells.Kind) == VisioSemanticUserCells.DiagramAdornmentKind);
+            Assert.Contains(page.Shapes, shape => shape.Id == "legend-edge-control-directed-sample" && shape.LinePattern == 2 && shape.GetUserCellValue(VisioSemanticUserCells.Kind) == VisioSemanticUserCells.DiagramAdornmentKind);
+            Assert.Contains(page.Shapes, shape => shape.Id == "legend-edge-standard-relationship-sample" && shape.GetUserCellValue(VisioSemanticUserCells.Kind) == VisioSemanticUserCells.DiagramAdornmentKind);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Contains(loaded.Pages[0].Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(loaded.Pages[0].Shapes, shape => shape.Id == "legend-edge-control-directed-sample" && shape.GetUserCellValue(VisioSemanticUserCells.Kind) == VisioSemanticUserCells.DiagramAdornmentKind);
+        }
+
+        [Fact]
         public void GraphDiagramBuilderCanOverrideNodeAndNamedEdgeStyles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             Color nodeFill = Color.FromRgb(245, 104, 85);

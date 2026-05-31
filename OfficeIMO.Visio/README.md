@@ -228,11 +228,18 @@ runtime.HyperlinkAddress = "https://example.org/runtime-runbook";
 
 VisioDocument.Create("inventory-graph.vsdx")
     .GraphDiagram("Imported Inventory", graph => graph
+        .Legend()
         .Import(new[] { idp, cluster }, new[] { flow }, new[] { runtime })
         .Cluster("identity", "Identity", "idp", "cluster")
         .ZoneShapeData("identity", "Owner", "IAM"))
     .Save();
 ```
+
+Use `Legend()` on generic graph diagrams when the generated page should explain
+which node kinds and connector kinds are present. The legend is derived from the
+actual graph, reserves header space during layout, and is marked as generated
+diagram adornment so polish and quality passes do not treat it as business
+content.
 
 ## Quick sample (architecture diagram builder)
 
