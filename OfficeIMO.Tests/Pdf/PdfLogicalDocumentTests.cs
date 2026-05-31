@@ -693,6 +693,68 @@ public class PdfLogicalDocumentTests {
         Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.LinkAnnotation);
     }
 
+    [Fact]
+    public void Load_ExposesHeadingBookmarkLinksAsLogicalElements() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 240,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
+            .Spacer(18)
+            .Bookmark("Details")
+            .H2("Details")
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+
+        Assert.Contains(logical.Headings, heading => heading.Text == "Jump to details");
+        Assert.Contains(logical.NamedDestinations, destination => destination.Name == "Details");
+        PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName("Details"));
+        Assert.False(link.IsUriLink);
+        Assert.True(link.IsNamedDestinationLink);
+        Assert.Null(link.Uri);
+        Assert.Equal("Details", link.DestinationName);
+        Assert.Equal("Heading jump metadata", link.Contents);
+        Assert.True(link.Width > 0);
+        Assert.True(link.Height > 0);
+    }
+
+    [Fact]
+    public void Load_ExposesTableCellNamedDestinationLinksAsLogicalElements() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 240,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Table(new[] {
+                new[] {
+                    PdfTableCell.TextCell("Jump to target", linkDestinationName: "TargetCell", linkContents: "Table cell jump"),
+                    PdfTableCell.TextCell("Target cell", namedDestinationName: "TargetCell")
+                }
+            })
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+
+        PdfNamedDestination destination = Assert.Single(logical.NamedDestinations);
+        Assert.Equal("TargetCell", destination.Name);
+        PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName("TargetCell"));
+        Assert.True(link.IsNamedDestinationLink);
+        Assert.Equal("Table cell jump", link.Contents);
+        Assert.Equal("TargetCell", link.DestinationName);
+    }
+
     private static string Normalize(string text) {
         return new string(text.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
     }

@@ -285,7 +285,7 @@ var fluent = new WordFluentDocument(doc)
 
 - HTML: `OfficeIMO.Word.Html` (AngleSharp) — convert to/from HTML
 - Markdown: `OfficeIMO.Word.Markdown` — convert to/from Markdown using OfficeIMO.Markdown
-- PDF: `OfficeIMO.Word.Pdf` (QuestPDF/SkiaSharp) — export to PDF
+- PDF: `OfficeIMO.Word.Pdf` (first-party OfficeIMO.Pdf engine) — export to PDF
 
 > Note: Converters ship as adjacent packages so consumers can opt into the extra dependency surface only when needed.
 

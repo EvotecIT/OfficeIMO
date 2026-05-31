@@ -20,6 +20,59 @@ internal static partial class PdfWriter {
             .RestoreState();
     }
 
+    private static bool DrawPanelBorder(StringBuilder sb, PanelStyle style, double x, double y, double w, double h) {
+        if (!style.HasSideBorders) {
+            if (style.BorderColor.HasValue && style.BorderWidth > 0) {
+                DrawRowRect(sb, style.BorderColor.Value, style.BorderWidth, x, y, w, h);
+                return true;
+            }
+
+            return false;
+        }
+
+        bool drawn = false;
+        double x2 = x + w;
+        double y2 = y + h;
+        drawn |= DrawPanelHBorder(sb, ResolvePanelSideBorder(style.TopBorderSnapshot, style), x, x2, y2);
+        drawn |= DrawPanelVBorder(sb, ResolvePanelSideBorder(style.RightBorderSnapshot, style), x2, y2, y);
+        drawn |= DrawPanelHBorder(sb, ResolvePanelSideBorder(style.BottomBorderSnapshot, style), x, x2, y);
+        drawn |= DrawPanelVBorder(sb, ResolvePanelSideBorder(style.LeftBorderSnapshot, style), x, y2, y);
+        return drawn;
+    }
+
+    private static PdfPanelBorder? ResolvePanelSideBorder(PdfPanelBorder? sideBorder, PanelStyle style) {
+        if (sideBorder != null) {
+            return sideBorder;
+        }
+
+        if (!style.BorderColor.HasValue || style.BorderWidth <= 0) {
+            return null;
+        }
+
+        return new PdfPanelBorder {
+            Color = style.BorderColor.Value,
+            Width = style.BorderWidth
+        };
+    }
+
+    private static bool DrawPanelHBorder(StringBuilder sb, PdfPanelBorder? border, double x1, double x2, double y) {
+        if (border?.Color == null || border.Width <= 0) {
+            return false;
+        }
+
+        DrawHLine(sb, border.Color.Value, border.Width, x1, x2, y);
+        return true;
+    }
+
+    private static bool DrawPanelVBorder(StringBuilder sb, PdfPanelBorder? border, double x, double yTop, double yBottom) {
+        if (border?.Color == null || border.Width <= 0) {
+            return false;
+        }
+
+        DrawVLine(sb, border.Color.Value, border.Width, x, yTop, yBottom);
+        return true;
+    }
+
     private static void DrawRectangle(StringBuilder sb, PdfColor? fillColor, PdfColor? strokeColor, double strokeWidth, OfficeIMO.Drawing.OfficeStrokeDashStyle strokeDashStyle, OfficeIMO.Drawing.OfficeStrokeLineCap? strokeLineCap, OfficeIMO.Drawing.OfficeStrokeLineJoin? strokeLineJoin, double x, double y, double w, double h) {
         if (!fillColor.HasValue && (!strokeColor.HasValue || strokeWidth <= 0)) {
             return;
@@ -213,6 +266,10 @@ internal static partial class PdfWriter {
             var command = commands[i];
             switch (command.Kind) {
                 case OfficeIMO.Drawing.OfficePathCommandKind.MoveTo:
+                    if (i > 0) {
+                        content.PathSeparator();
+                    }
+
                     content.MoveTo(x + command.Point.X, y + h - command.Point.Y);
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
@@ -239,6 +296,10 @@ internal static partial class PdfWriter {
             var command = commands[i];
             switch (command.Kind) {
                 case OfficeIMO.Drawing.OfficePathCommandKind.MoveTo:
+                    if (i > 0) {
+                        content.PathSeparator();
+                    }
+
                     content.MoveTo(command.Point.X, command.Point.Y);
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
@@ -597,21 +658,159 @@ internal static partial class PdfWriter {
     }
 
     private static void DrawCellBorder(StringBuilder sb, PdfCellBorder border, double x, double y, double w, double h) {
-        if (!border.Color.HasValue || border.Width <= 0) {
+        if (!border.Color.HasValue &&
+            border.TopBorderSnapshot == null &&
+            border.RightBorderSnapshot == null &&
+            border.BottomBorderSnapshot == null &&
+            border.LeftBorderSnapshot == null &&
+            border.DiagonalUpBorderSnapshot == null &&
+            border.DiagonalDownBorderSnapshot == null) {
             return;
         }
 
-        if (border.Top && border.Right && border.Bottom && border.Left) {
+        if (border.Color.HasValue &&
+            border.Width > 0 &&
+            border.DashStyle == OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid &&
+            border.LineStyle == PdfCellBorderLineStyle.Standard &&
+            border.TopBorderSnapshot == null &&
+            border.RightBorderSnapshot == null &&
+            border.BottomBorderSnapshot == null &&
+            border.LeftBorderSnapshot == null &&
+            border.DiagonalUpBorderSnapshot == null &&
+            border.DiagonalDownBorderSnapshot == null &&
+            border.Top &&
+            border.Right &&
+            border.Bottom &&
+            border.Left &&
+            !border.DiagonalUp &&
+            !border.DiagonalDown) {
             DrawRowRect(sb, border.Color.Value, border.Width, x, y, w, h);
             return;
         }
 
         double x2 = x + w;
         double y2 = y + h;
-        if (border.Top) DrawHLine(sb, border.Color.Value, border.Width, x, x2, y2);
-        if (border.Right) DrawVLine(sb, border.Color.Value, border.Width, x2, y2, y);
-        if (border.Bottom) DrawHLine(sb, border.Color.Value, border.Width, x, x2, y);
-        if (border.Left) DrawVLine(sb, border.Color.Value, border.Width, x, y2, y);
+        if (border.Top) DrawCellHBorder(sb, ResolveCellBorderSide(border.TopBorderSnapshot, border), x, x2, y2, -1D);
+        if (border.Right) DrawCellVBorder(sb, ResolveCellBorderSide(border.RightBorderSnapshot, border), x2, y2, y, -1D);
+        if (border.Bottom) DrawCellHBorder(sb, ResolveCellBorderSide(border.BottomBorderSnapshot, border), x, x2, y, 1D);
+        if (border.Left) DrawCellVBorder(sb, ResolveCellBorderSide(border.LeftBorderSnapshot, border), x, y2, y, 1D);
+        if (border.DiagonalUp) DrawCellDiagonalBorder(sb, ResolveCellBorderSide(border.DiagonalUpBorderSnapshot, border), x, y, x2, y2, diagonalUp: true);
+        if (border.DiagonalDown) DrawCellDiagonalBorder(sb, ResolveCellBorderSide(border.DiagonalDownBorderSnapshot, border), x, y, x2, y2, diagonalUp: false);
+    }
+
+    private static bool HasRenderableCellBorder(PdfCellBorder? border) =>
+        border != null &&
+        ((border.Color.HasValue && border.Width > 0) ||
+         IsRenderableCellBorderSide(border.TopBorderSnapshot) ||
+         IsRenderableCellBorderSide(border.RightBorderSnapshot) ||
+         IsRenderableCellBorderSide(border.BottomBorderSnapshot) ||
+         IsRenderableCellBorderSide(border.LeftBorderSnapshot) ||
+         (border.DiagonalUp && IsRenderableCellBorderSide(ResolveCellBorderSide(border.DiagonalUpBorderSnapshot, border))) ||
+         (border.DiagonalDown && IsRenderableCellBorderSide(ResolveCellBorderSide(border.DiagonalDownBorderSnapshot, border))));
+
+    private static bool IsRenderableCellBorderSide(PdfCellBorderSide? border) =>
+        border?.Color != null && border.Width > 0;
+
+    private static PdfCellBorderSide? ResolveCellBorderSide(PdfCellBorderSide? sideBorder, PdfCellBorder border) {
+        if (sideBorder != null) {
+            return sideBorder;
+        }
+
+        if (!border.Color.HasValue || border.Width <= 0) {
+            return null;
+        }
+
+        return new PdfCellBorderSide {
+            Color = border.Color.Value,
+            Width = border.Width,
+            DashStyle = border.DashStyle,
+            LineStyle = border.LineStyle
+        };
+    }
+
+    private static void DrawCellHBorder(StringBuilder sb, PdfCellBorderSide? border, double x1, double x2, double y, double doubleLineDirection) {
+        if (border?.Color == null || border.Width <= 0) {
+            return;
+        }
+
+        DrawStyledHLine(sb, border.Color.Value, border.Width, border.DashStyle, x1, x2, y);
+        if (border.LineStyle == PdfCellBorderLineStyle.TwoLine) {
+            DrawStyledHLine(sb, border.Color.Value, border.Width, border.DashStyle, x1, x2, y + doubleLineDirection * GetDoubleBorderGap(border.Width));
+        }
+    }
+
+    private static void DrawCellVBorder(StringBuilder sb, PdfCellBorderSide? border, double x, double yTop, double yBottom, double doubleLineDirection) {
+        if (border?.Color == null || border.Width <= 0) {
+            return;
+        }
+
+        DrawStyledVLine(sb, border.Color.Value, border.Width, border.DashStyle, x, yTop, yBottom);
+        if (border.LineStyle == PdfCellBorderLineStyle.TwoLine) {
+            DrawStyledVLine(sb, border.Color.Value, border.Width, border.DashStyle, x + doubleLineDirection * GetDoubleBorderGap(border.Width), yTop, yBottom);
+        }
+    }
+
+    private static void DrawCellDiagonalBorder(StringBuilder sb, PdfCellBorderSide? border, double x1, double y1, double x2, double y2, bool diagonalUp) {
+        if (border?.Color == null || border.Width <= 0) {
+            return;
+        }
+
+        double startX = x1;
+        double startY = diagonalUp ? y1 : y2;
+        double endX = x2;
+        double endY = diagonalUp ? y2 : y1;
+        DrawStyledLine(sb, border.Color.Value, border.Width, border.DashStyle, startX, startY, endX, endY);
+
+        if (border.LineStyle == PdfCellBorderLineStyle.TwoLine) {
+            double length = Math.Sqrt(Math.Pow(endX - startX, 2D) + Math.Pow(endY - startY, 2D));
+            if (length > 0D) {
+                double gap = GetDoubleBorderGap(border.Width);
+                double offsetX = -(endY - startY) / length * gap;
+                double offsetY = (endX - startX) / length * gap;
+                DrawStyledLine(sb, border.Color.Value, border.Width, border.DashStyle, startX + offsetX, startY + offsetY, endX + offsetX, endY + offsetY);
+            }
+        }
+    }
+
+    private static void DrawStyledHLine(StringBuilder sb, PdfColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x1, double x2, double y) {
+        ContentStreamBuilder content = new ContentStreamBuilder(sb)
+            .SaveState()
+            .StrokeColor(color)
+            .LineWidth(widthStroke);
+        ApplyStrokeDashStyle(content, dashStyle, widthStroke, hasExplicitLineCap: false);
+        content
+            .MoveTo(x1, y)
+            .LineTo(x2, y)
+            .StrokePath()
+            .RestoreState();
+    }
+
+    private static void DrawStyledLine(StringBuilder sb, PdfColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x1, double y1, double x2, double y2) {
+        ContentStreamBuilder content = new ContentStreamBuilder(sb)
+            .SaveState()
+            .StrokeColor(color)
+            .LineWidth(widthStroke);
+        ApplyStrokeDashStyle(content, dashStyle, widthStroke, hasExplicitLineCap: false);
+        content
+            .MoveTo(x1, y1)
+            .LineTo(x2, y2)
+            .StrokePath()
+            .RestoreState();
+    }
+
+    private static double GetDoubleBorderGap(double widthStroke) => Math.Max(widthStroke * 2D, 1D);
+
+    private static void DrawStyledVLine(StringBuilder sb, PdfColor color, double widthStroke, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle, double x, double yTop, double yBottom) {
+        ContentStreamBuilder content = new ContentStreamBuilder(sb)
+            .SaveState()
+            .StrokeColor(color)
+            .LineWidth(widthStroke);
+        ApplyStrokeDashStyle(content, dashStyle, widthStroke, hasExplicitLineCap: false);
+        content
+            .MoveTo(x, yTop)
+            .LineTo(x, yBottom)
+            .StrokePath()
+            .RestoreState();
     }
 
     private static void WriteCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfOptions opts) {

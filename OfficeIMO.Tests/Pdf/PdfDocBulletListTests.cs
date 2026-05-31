@@ -136,6 +136,112 @@ public class PdfDocBulletListTests {
     }
 
     [Fact]
+    public void RichListBlocks_SnapshotInputRunsBeforeRendering() {
+        var runs = new System.Collections.Generic.List<TextRun> {
+            TextRun.Normal("Original"),
+            TextRun.Bolded(" Bold")
+        };
+        var items = new System.Collections.Generic.List<PdfListItem> {
+            new PdfListItem(runs)
+        };
+
+        var doc = PdfDoc.Create()
+            .RichBullets(items)
+            .RichNumbered(items);
+
+        runs[0] = TextRun.Normal("Mutated");
+        runs.Add(TextRun.Normal(" Late"));
+        items[0] = PdfListItem.Plain("Late item");
+
+        using var pdf = PdfDocument.Open(new MemoryStream(doc.ToBytes()));
+        string text = pdf.GetPage(1).Text;
+
+        Assert.Equal(2, CountOccurrences(text, "Original Bold"));
+        Assert.DoesNotContain("Mutated", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Late", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RichBullets_CanAnchorBookmarksOnListItems() {
+        byte[] bytes = PdfDoc.Create()
+            .RichBullets(new[] {
+                PdfListItem.Plain("Bookmarked bullet", "BulletAnchor"),
+                PdfListItem.Rich(new[] { TextRun.Normal("Second bookmarked bullet") }, "SecondBulletAnchor")
+            })
+            .Paragraph(p => p.LinkToBookmark("Jump to second bullet", "SecondBulletAnchor", contents: "List bookmark jump"))
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+            .SelectMany(page => page.ListItems)
+            .ToList();
+
+        Assert.Contains(logical.NamedDestinations, destination => destination.Name == "BulletAnchor");
+        Assert.Contains(logical.NamedDestinations, destination => destination.Name == "SecondBulletAnchor");
+        Assert.Contains(listItems, item => item.Text == "Bookmarked bullet");
+        Assert.Contains(listItems, item => item.Text == "Second bookmarked bullet");
+        Assert.Contains(logical.GetLinksByDestinationName("SecondBulletAnchor"), link => link.Contents == "List bookmark jump");
+    }
+
+    [Fact]
+    public void RichListItems_CanRenderExplicitMarkers() {
+        byte[] bytes = PdfDoc.Create()
+            .RichNumbered(new[] {
+                PdfListItem.Plain("Alpha item", marker: "a)"),
+                PdfListItem.Plain("Roman item", marker: "iv)")
+            })
+            .ToBytes();
+
+        using var pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string pageText = pdf.GetPage(1).Text;
+
+        Assert.Contains("a)Alpha item", pageText, StringComparison.Ordinal);
+        Assert.Contains("iv)Roman item", pageText, StringComparison.Ordinal);
+        Assert.True(pageText.IndexOf("a)Alpha item", StringComparison.Ordinal) < pageText.IndexOf("iv)Roman item", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void RichBullets_RenderScopedRunStylesAndLinks() {
+        const string linkUri = "https://evotec.xyz/pdf-rich-list";
+        byte[] bytes = PdfDoc.Create()
+            .RichBullets(new[] {
+                new PdfListItem(new[] {
+                    TextRun.Normal("Plain "),
+                    TextRun.Bolded("Bold"),
+                    TextRun.Normal(" "),
+                    TextRun.Normal("Red", PdfColor.FromRgb(255, 0, 0)),
+                    TextRun.Normal(" "),
+                    TextRun.Normal("Marked", backgroundColor: PdfColor.FromRgb(255, 255, 0)),
+                    TextRun.Normal(" "),
+                    TextRun.Link("Linked", linkUri, contents: "Rich list metadata")
+                })
+            })
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+        int boldText = content.IndexOf("<426F6C64>", StringComparison.Ordinal);
+        int redText = content.IndexOf("<526564>", StringComparison.Ordinal);
+        int markedText = content.IndexOf("<4D61726B6564>", StringComparison.Ordinal);
+
+        using (PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes))) {
+            Assert.Contains("Plain Bold Red Marked Linked", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        }
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+        PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByUri(linkUri));
+
+        Assert.True(boldText >= 0, "Expected encoded 'Bold' text in the list content stream.");
+        Assert.True(redText > boldText, "Expected encoded 'Red' text after the bold list run.");
+        Assert.True(markedText > redText, "Expected encoded 'Marked' text after the colored list run.");
+        Assert.True(content.LastIndexOf("/F2 11 Tf", boldText, StringComparison.Ordinal) >= 0, "Expected rich list bold text to use the bold PDF font resource.");
+        Assert.True(content.LastIndexOf("1 0 0 rg", redText, StringComparison.Ordinal) >= 0, "Expected rich list run color to emit a red PDF fill color.");
+        Assert.True(content.LastIndexOf("1 1 0 rg", markedText, StringComparison.Ordinal) >= 0, "Expected rich list highlight to emit a yellow PDF fill color.");
+        Assert.Equal("Rich list metadata", link.Contents);
+    }
+
+    [Fact]
     public void Bullets_RenderGlyphsWithHangingIndent() {
         var doc = PdfDoc.Create();
         doc.Bullets(new[] {
@@ -467,5 +573,16 @@ public class PdfDocBulletListTests {
             .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
             .Select(group => group.OrderBy(letter => letter.StartBaseLine.X).ToList())
             .First(line => string.Concat(line.Select(letter => letter.Value)).Contains(text, StringComparison.Ordinal));
+    }
+
+    private static int CountOccurrences(string value, string search) {
+        int count = 0;
+        int index = 0;
+        while ((index = value.IndexOf(search, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += search.Length;
+        }
+
+        return count;
     }
 }

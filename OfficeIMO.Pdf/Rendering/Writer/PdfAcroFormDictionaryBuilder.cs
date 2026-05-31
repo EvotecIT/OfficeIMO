@@ -14,7 +14,7 @@ internal static class PdfAcroFormDictionaryBuilder {
                 .Append(PdfSyntaxEscaper.IndirectReference(fieldObjectIds[i]));
         }
 
-        sb.Append(" ] /NeedAppearances true /DR << /Font << /Helv ")
+        sb.Append(" ] /NeedAppearances false /DR << /Font << /Helv ")
             .Append(PdfSyntaxEscaper.IndirectReference(helveticaFontId))
             .Append(" >> >> /DA (/Helv 10 Tf 0 g) >>\n");
         return sb.ToString();
@@ -54,12 +54,13 @@ internal static class PdfAcroFormDictionaryBuilder {
             " >>";
     }
 
-    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize) {
+    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(value, nameof(value));
         Guard.Positive(fontSize, nameof(fontSize));
 
+        PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
         double textX = 3D;
         double textWidth = Math.Max(0D, width - 6D);
@@ -68,23 +69,36 @@ internal static class PdfAcroFormDictionaryBuilder {
             clippedValue = string.Empty;
         }
 
-        return "q\n" +
-            "1 1 1 rg 0 0 " + Format(width) + " " + Format(height) + " re f\n" +
-            "0.75 G 1 w 0.5 0.5 " + Format(Math.Max(0D, width - 1D)) + " " + Format(Math.Max(0D, height - 1D)) + " re S\n" +
-            "BT /Helv " + Format(fontSize) + " Tf 0 g " + Format(textX) + " " + Format(baseline) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(clippedValue) + " Tj ET\n" +
-            "Q\n";
+        string content = "q\n";
+        if (effectiveStyle.BackgroundColor.HasValue) {
+            content += FormatColor(effectiveStyle.BackgroundColor.Value) + " rg 0 0 " + Format(width) + " " + Format(height) + " re f\n";
+        }
+
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+            double inset = Math.Max(0.5D, effectiveStyle.BorderWidth * 0.5D);
+            content += FormatColor(effectiveStyle.BorderColor.Value) + " RG " + Format(effectiveStyle.BorderWidth) + " w " +
+                Format(inset) + " " + Format(inset) + " " + Format(Math.Max(0D, width - inset * 2D)) + " " + Format(Math.Max(0D, height - inset * 2D)) + " re S\n";
+        }
+
+        content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(clippedValue) + " Tj ET\n";
+        return content + "Q\n";
     }
 
-    internal static string BuildCheckBoxAppearanceContent(double width, double height, bool selected) {
+    internal static string BuildCheckBoxAppearanceContent(double width, double height, bool selected, PdfFormFieldStyle? style = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
 
-        double boxWidth = Math.Max(0D, width - 1D);
-        double boxHeight = Math.Max(0D, height - 1D);
-        string content =
-            "q\n" +
-            "1 1 1 rg 0 0 " + Format(width) + " " + Format(height) + " re f\n" +
-            "0.75 0.75 0.75 RG 0.5 0.5 " + Format(boxWidth) + " " + Format(boxHeight) + " re S\n";
+        PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
+        string content = "q\n";
+        if (effectiveStyle.BackgroundColor.HasValue) {
+            content += FormatColor(effectiveStyle.BackgroundColor.Value) + " rg 0 0 " + Format(width) + " " + Format(height) + " re f\n";
+        }
+
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+            double inset = Math.Max(0.5D, effectiveStyle.BorderWidth * 0.5D);
+            content += FormatColor(effectiveStyle.BorderColor.Value) + " RG " + Format(effectiveStyle.BorderWidth) + " w " +
+                Format(inset) + " " + Format(inset) + " " + Format(Math.Max(0D, width - inset * 2D)) + " " + Format(Math.Max(0D, height - inset * 2D)) + " re S\n";
+        }
 
         if (selected) {
             double markLeft = Math.Max(2D, width * 0.2D);
@@ -94,7 +108,7 @@ internal static class PdfAcroFormDictionaryBuilder {
             double markLeftY = Math.Min(height - 2D, height * 0.52D);
             double markRightY = Math.Min(height - 2D, height * 0.78D);
             content +=
-                "0 0 0 RG 1.25 w " +
+                FormatColor(effectiveStyle.MarkColor) + " RG 1.25 w " +
                 Format(markLeft) + " " + Format(markLeftY) + " m " +
                 Format(markMidX) + " " + Format(markMidY) + " l " +
                 Format(markRight) + " " + Format(markRightY) + " l S\n";
@@ -102,6 +116,47 @@ internal static class PdfAcroFormDictionaryBuilder {
 
         return content + "Q\n";
     }
+
+    internal static string BuildRadioButtonAppearanceContent(double width, double height, bool selected, PdfFormFieldStyle? style = null) {
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+
+        PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
+        double centerX = width * 0.5D;
+        double centerY = height * 0.5D;
+        double radius = Math.Max(0D, Math.Min(width, height) * 0.5D - 0.75D);
+        double control = radius * 0.5522847498D;
+        string content = "q\n";
+        if (effectiveStyle.BackgroundColor.HasValue) {
+            content += FormatColor(effectiveStyle.BackgroundColor.Value) + " rg 0 0 " + Format(width) + " " + Format(height) + " re f\n";
+        }
+
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+            content += FormatColor(effectiveStyle.BorderColor.Value) + " RG " + Format(effectiveStyle.BorderWidth) + " w " +
+                Format(centerX + radius) + " " + Format(centerY) + " m " +
+                Format(centerX + radius) + " " + Format(centerY + control) + " " + Format(centerX + control) + " " + Format(centerY + radius) + " " + Format(centerX) + " " + Format(centerY + radius) + " c " +
+                Format(centerX - control) + " " + Format(centerY + radius) + " " + Format(centerX - radius) + " " + Format(centerY + control) + " " + Format(centerX - radius) + " " + Format(centerY) + " c " +
+                Format(centerX - radius) + " " + Format(centerY - control) + " " + Format(centerX - control) + " " + Format(centerY - radius) + " " + Format(centerX) + " " + Format(centerY - radius) + " c " +
+                Format(centerX + control) + " " + Format(centerY - radius) + " " + Format(centerX + radius) + " " + Format(centerY - control) + " " + Format(centerX + radius) + " " + Format(centerY) + " c S\n";
+        }
+
+        if (selected) {
+            double dotRadius = Math.Max(0D, radius * 0.45D);
+            double dotControl = dotRadius * 0.5522847498D;
+            content +=
+                FormatColor(effectiveStyle.MarkColor) + " rg " +
+                Format(centerX + dotRadius) + " " + Format(centerY) + " m " +
+                Format(centerX + dotRadius) + " " + Format(centerY + dotControl) + " " + Format(centerX + dotControl) + " " + Format(centerY + dotRadius) + " " + Format(centerX) + " " + Format(centerY + dotRadius) + " c " +
+                Format(centerX - dotControl) + " " + Format(centerY + dotRadius) + " " + Format(centerX - dotRadius) + " " + Format(centerY + dotControl) + " " + Format(centerX - dotRadius) + " " + Format(centerY) + " c " +
+                Format(centerX - dotRadius) + " " + Format(centerY - dotControl) + " " + Format(centerX - dotControl) + " " + Format(centerY - dotRadius) + " " + Format(centerX) + " " + Format(centerY - dotRadius) + " c " +
+                Format(centerX + dotControl) + " " + Format(centerY - dotRadius) + " " + Format(centerX + dotRadius) + " " + Format(centerY - dotControl) + " " + Format(centerX + dotRadius) + " " + Format(centerY) + " c f\n";
+        }
+
+        return content + "Q\n";
+    }
+
+    internal static string FormatColor(PdfColor color) =>
+        Format(color.R) + " " + Format(color.G) + " " + Format(color.B);
 
     private static string Format(double value) => value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 }

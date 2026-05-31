@@ -307,6 +307,70 @@ public class PdfInspectorTests {
     }
 
     [Fact]
+    public void Validator_ReturnsReadableResultForGeneratedPdf() {
+        PdfValidationResult result = PdfValidator.Validate(BuildTwoPagePdf());
+
+        Assert.True(result.IsValid);
+        Assert.True(result.CanRead);
+        Assert.True(result.CanRewrite);
+        Assert.True(result.CanExtractText);
+        Assert.True(result.CanExtractImages);
+        Assert.True(result.CanReadLogicalObjects);
+        Assert.True(result.CanManipulatePages);
+        Assert.True(result.Can(PdfPreflightCapability.ExtractText));
+        Assert.Empty(result.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
+        Assert.Equal("1.4", result.HeaderVersion);
+        Assert.Equal(2, result.PageCount);
+        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.ReadBlockers);
+        Assert.Empty(result.RewriteBlockers);
+        Assert.NotNull(result.DocumentInfo);
+        Assert.Same(result.Preflight.DocumentInfo, result.DocumentInfo);
+    }
+
+    [Fact]
+    public void Validator_ReportsMalformedPdfWithoutThrowing() {
+        byte[] bytes = System.Text.Encoding.ASCII.GetBytes("not a pdf");
+
+        PdfValidationResult result = PdfValidator.Validate(bytes);
+
+        Assert.False(result.IsValid);
+        Assert.False(result.CanRead);
+        Assert.False(result.CanRewrite);
+        Assert.Equal(0, result.PageCount);
+        Assert.Null(result.HeaderVersion);
+        Assert.True(result.HasReadBlocker(PdfReadBlockerKind.MissingHeader));
+        Assert.Contains("PDF header was not found.", result.Diagnostics);
+        Assert.Null(result.DocumentInfo);
+    }
+
+    [Fact]
+    public void Validator_ReadsFromPathAndCurrentStreamPosition() {
+        byte[] bytes = BuildTwoPagePdf();
+        byte[] prefix = System.Text.Encoding.ASCII.GetBytes("prefix");
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-validate-" + Guid.NewGuid().ToString("N") + ".pdf");
+
+        try {
+            File.WriteAllBytes(path, bytes);
+
+            PdfValidationResult fromPath = PdfValidator.Validate(path);
+            using var stream = new MemoryStream(prefix.Concat(bytes).ToArray());
+            stream.Position = prefix.Length;
+            PdfValidationResult fromStream = PdfValidator.Validate(stream);
+
+            Assert.True(fromPath.IsValid);
+            Assert.True(fromStream.IsValid);
+            Assert.Equal(2, fromPath.PageCount);
+            Assert.Equal(2, fromStream.PageCount);
+            Assert.Equal(fromPath.DocumentInfo!.Pages[1].Width, fromStream.DocumentInfo!.Pages[1].Width);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void Preflight_ReportsAnnotationsWithoutBlockingRewrite() {
         byte[] bytes = BuildAnnotatedPdf();
 

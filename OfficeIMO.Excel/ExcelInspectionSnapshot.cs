@@ -747,6 +747,31 @@ namespace OfficeIMO.Excel {
         public string? FillColorArgb { get; internal set; }
 
         /// <summary>
+        /// Font color in RRGGBB hexadecimal form, when directly resolvable.
+        /// </summary>
+        public string? FontColorHex => ToRgbHex(FontColorArgb);
+
+        /// <summary>
+        /// Fill color in RRGGBB hexadecimal form, when directly resolvable.
+        /// </summary>
+        public string? FillColorHex => ToRgbHex(FillColorArgb);
+
+        /// <summary>
+        /// Whether the snapshot carries simple visual styling that can be mapped into PDF table output.
+        /// </summary>
+        public bool HasPdfVisualStyle =>
+            Bold ||
+            Italic ||
+            Underline ||
+            FontColorArgb != null ||
+            FillColorArgb != null ||
+            NumberFormatId != 0U ||
+            NumberFormatCode != null ||
+            Border != null ||
+            HorizontalAlignment != null ||
+            VerticalAlignment != null;
+
+        /// <summary>
         /// Border metadata resolved for the cell style, when available.
         /// </summary>
         public ExcelCellBorderSnapshot? Border { get; internal set; }
@@ -765,6 +790,15 @@ namespace OfficeIMO.Excel {
         /// Whether wrap text is enabled.
         /// </summary>
         public bool WrapText { get; internal set; }
+
+        private static string? ToRgbHex(string? argb) {
+            if (string.IsNullOrWhiteSpace(argb)) {
+                return null;
+            }
+
+            string value = argb!.Trim();
+            return value.Length == 8 ? value.Substring(2) : value.Length == 6 ? value : null;
+        }
     }
 
     /// <summary>
@@ -790,6 +824,21 @@ namespace OfficeIMO.Excel {
         /// Bottom border side.
         /// </summary>
         public ExcelBorderSideSnapshot? Bottom { get; internal set; }
+
+        /// <summary>
+        /// Diagonal border side.
+        /// </summary>
+        public ExcelBorderSideSnapshot? Diagonal { get; internal set; }
+
+        /// <summary>
+        /// Whether the diagonal border runs from bottom-left to top-right.
+        /// </summary>
+        public bool DiagonalUp { get; internal set; }
+
+        /// <summary>
+        /// Whether the diagonal border runs from top-left to bottom-right.
+        /// </summary>
+        public bool DiagonalDown { get; internal set; }
     }
 
     /// <summary>

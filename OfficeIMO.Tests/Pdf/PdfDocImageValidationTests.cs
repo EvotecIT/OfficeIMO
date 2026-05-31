@@ -70,6 +70,28 @@ public class PdfDocImageValidationTests {
     }
 
     [Fact]
+    public void TableCellImage_RendersInspectableImageInsideCell() {
+        byte[] png = CreateMinimalRgbPng();
+
+        byte[] bytes = PdfDoc.Create()
+            .Table(new[] {
+                new[] {
+                    PdfTableCell.WithImages(
+                        "Logo",
+                        new[] { new PdfTableCellImage(png, 24, 24) })
+                }
+            })
+            .ToBytes();
+
+        string content = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Subtype /Image", content);
+        Assert.Single(PdfImageExtractor.ExtractImages(bytes));
+
+        using PdfDocument pdf = PdfDocument.Open(bytes);
+        Assert.Contains("Logo", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
     public void Options_SnapshotDefaultImageStyle() {
         var style = new PdfImageStyle {
             Align = PdfAlign.Center,

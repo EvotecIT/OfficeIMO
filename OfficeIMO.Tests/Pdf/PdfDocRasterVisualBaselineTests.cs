@@ -3,9 +3,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -29,6 +35,166 @@ public class PdfDocRasterVisualBaselineTests {
     [Fact]
     public void FlowDsl_MatchesPopplerRasterBaseline() {
         AssertScenarioRasterBaseline("flow-dsl", CreateFlowDsl, pageCount: 3);
+    }
+
+    [Fact]
+    public void NativeWordReport_MatchesPopplerRasterBaseline() {
+        AssertScenarioRasterBaseline("native-word-report", CreateNativeWordReport);
+    }
+
+    [Fact]
+    public void NativeWordDailyLayout_MatchesPopplerRasterBaseline() {
+        AssertScenarioRasterBaseline("native-word-daily-layout", CreateNativeWordDailyLayout);
+    }
+
+    [Fact]
+    public void NativeWordTableCellPictureControl_MatchesPopplerRasterBaseline() {
+        AssertScenarioRasterBaseline("native-word-table-cell-picture-control", CreateNativeWordTableCellPictureControl);
+    }
+
+    [Fact]
+    public void NativeExcelDailyWorkbook_MatchesPopplerRasterBaseline() {
+        AssertScenarioRasterBaseline("native-excel-daily-workbook", CreateNativeExcelDailyWorkbook, pageCount: 2);
+    }
+
+    [Fact]
+    public void NativeWordReport_ExposesBodyCheckBoxesAsAcroFormFields() {
+        byte[] bytes = CreateNativeWordReport();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Collection(
+            info.FormFields.OrderBy(field => field.Name, StringComparer.Ordinal),
+            approved => {
+                Assert.Equal("NativeApproved", approved.Name);
+                Assert.Equal(PdfFormFieldKind.Button, approved.Kind);
+                Assert.True(approved.IsCheckBox);
+                Assert.Equal("Yes", approved.Value);
+            },
+            deferred => {
+                Assert.Equal("NativeDeferred", deferred.Name);
+                Assert.Equal(PdfFormFieldKind.Button, deferred.Kind);
+                Assert.True(deferred.IsCheckBox);
+                Assert.Equal("Off", deferred.Value);
+            },
+            tableApproved => {
+                Assert.Equal("NativeTableApproved", tableApproved.Name);
+                Assert.Equal(PdfFormFieldKind.Button, tableApproved.Kind);
+                Assert.True(tableApproved.IsCheckBox);
+                Assert.Equal("Yes", tableApproved.Value);
+            });
+    }
+
+    [Fact]
+    public void NativeWordReport_ExposesTableListTocAndOutlineSignals() {
+        byte[] bytes = CreateNativeWordReport();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal("Native Word PDF Visual Gate", Assert.Single(info.Outlines).Title);
+        Assert.Contains(info.Outlines[0].Children, outline => outline.Title == "Native proof areas" && outline.Level == 2);
+        Assert.Contains(info.Outlines[0].Children, outline => outline.Title == "Native evidence table" && outline.Level == 2);
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        Assert.Contains(logical.Headings, heading => heading.Text == "Native Word PDF Visual Gate");
+        Assert.Contains(logical.Headings, heading => heading.Text == "Native proof areas");
+        Assert.Contains(logical.Headings, heading => heading.Text == "Native evidence table");
+
+        var tocLinks = logical.GetLinksByDestinationName("officeimo-heading-native-word-pdf-visual-gate").ToList();
+        Assert.NotEmpty(tocLinks);
+        Assert.All(tocLinks, link => Assert.Equal("Table of contents: Native Word PDF Visual Gate", link.Contents));
+
+        var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+            .SelectMany(page => page.ListItems)
+            .ToList();
+        Assert.Contains(listItems, item => item.Text == "Native list mapping keeps markers and text aligned.");
+        Assert.Contains(listItems, item => item.Marker == "1" && item.Text == "Generated TOC appears before content.");
+
+        using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("Table of Contents", text);
+        Assert.Contains("AreaNative statusEvidence", text);
+        Assert.Contains("TablesPartialstyle and borders", text);
+    }
+
+    [Fact]
+    public void NativeWordDailyLayout_ExposesColumnsLinksTocAndLayoutSignals() {
+        byte[] bytes = CreateNativeWordDailyLayout();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal(1, info.PageCount);
+        Assert.Contains(info.Outlines, outline => outline.Title == "Daily Word Layout Gate");
+        Assert.Contains(info.LinkUris, uri => uri == "https://evotec.xyz/native-daily-layout");
+        Assert.Contains(info.LinkUris, uri => uri == "https://officeimo.net/");
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.918 0.957 1 rg", rawPdf, StringComparison.Ordinal);
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        Assert.Contains(logical.Headings, heading => heading.Text == "Daily Word Layout Gate");
+        Assert.Contains(logical.Headings, heading => heading.Text == "Column narrative");
+        Assert.Contains(logical.Headings, heading => heading.Text == "Column evidence");
+        Assert.NotEmpty(logical.GetLinksByDestinationName("officeimo-heading-daily-word-layout-gate"));
+
+        using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        var page = pdf.GetPage(1);
+        string pageText = page.Text;
+        Assert.Contains("Table of Contents", pageText);
+        Assert.Contains("Column narrative", pageText);
+        Assert.Contains("Column evidence", pageText);
+        Assert.Contains("Inline column break", pageText);
+        Assert.Contains("separator", pageText);
+
+        var words = page.GetWords().ToList();
+        double narrativeX = words.First(word => word.Text == "narrative").BoundingBox.Left;
+        double evidenceX = words.First(word => word.Text == "evidence").BoundingBox.Left;
+        Assert.True(evidenceX > narrativeX + 250D, $"Expected evidence heading to render in the second Word section column. Narrative x: {narrativeX:0.##}, evidence x: {evidenceX:0.##}.");
+    }
+
+    [Fact]
+    public void NativeExcelDailyWorkbook_ExposesSheetsLinksImagesAndLayoutSignals() {
+        byte[] bytes = CreateNativeExcelDailyWorkbook();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Equal(2, info.PageCount);
+        Assert.Contains(info.Outlines, outline => outline.Title == "Summary");
+        Assert.Contains(info.Outlines, outline => outline.Title == "Details");
+        Assert.Contains(info.LinkUris, uri => uri == "https://officeimo.net/excel-pdf");
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        Assert.Contains(logical.NamedDestinations, destination => destination.Name.Contains("summary", StringComparison.OrdinalIgnoreCase));
+        Assert.Single(logical.NamedDestinations, destination => string.Equals(destination.Name, "excel-sheet-2-details", StringComparison.Ordinal));
+        PdfNamedDestination detailsCellDestination = Assert.Single(logical.NamedDestinations, destination => string.Equals(destination.Name, "excel-sheet-2-details-a1", StringComparison.Ordinal));
+        PdfLogicalLinkAnnotation detailsLink = Assert.Single(logical.GetLinksByDestinationName(detailsCellDestination.Name));
+        Assert.Equal("Open Details", detailsLink.Contents);
+
+        var images = PdfImageExtractor.ExtractImages(bytes);
+        Assert.True(images.Count >= 2, "Expected worksheet body and header images to survive Excel-to-PDF export.");
+
+        using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
+        UglyToad.PdfPig.Content.Page summaryPage = pdf.GetPage(1);
+        string summaryText = summaryPage.Text;
+        Assert.Contains("Daily Excel PDF Gate", summaryText);
+        Assert.Contains("Revenue", summaryText);
+        Assert.Contains("Revenue Chart", summaryText);
+        Assert.Contains("Actual", summaryText);
+        Assert.Contains("Target", summaryText);
+        Assert.Contains("$12,345.60", summaryText);
+        Assert.Contains("25.7%", summaryText);
+        Assert.Contains("Open Details", summaryText);
+        Assert.DoesNotContain("HiddenRowValue", summaryText);
+        Assert.DoesNotContain("HiddenColumnValue", summaryText);
+
+        double metricX = FindWordStartX(summaryPage, "Metric");
+        double statusX = FindWordStartX(summaryPage, "Status");
+        Assert.True(statusX > metricX + 160D, $"Expected explicit worksheet column widths to make the status column visibly farther right. Metric x: {metricX:0.##}, Status x: {statusX:0.##}.");
+
+        string detailsText = pdf.GetPage(2).Text;
+        Assert.Contains("Details", detailsText);
+        Assert.Contains("Details Target", detailsText);
     }
 
     [Theory]
@@ -159,6 +325,344 @@ public class PdfDocRasterVisualBaselineTests {
             default:
                 throw new ArgumentOutOfRangeException(nameof(scenarioName), scenarioName, "Unknown PDF raster scenario.");
         }
+    }
+
+    private static byte[] CreateNativeWordReport() {
+        string workDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.WordNativePdfRaster", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+        string docPath = Path.Combine(workDir, "native-word-report.docx");
+        string pdfPath = Path.Combine(workDir, "native-word-report.pdf");
+        string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
+
+        try {
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddHeadersAndFooters();
+                WordParagraph headerLogo = document.Sections[0].Header.Default!.AddParagraph();
+                headerLogo.ParagraphAlignment = W.JustificationValues.Right;
+                headerLogo.AddImage(logoPath, 48, 24);
+
+                document.AddTableOfContent();
+                document.AddParagraph("Native Word PDF Visual Gate").SetStyle(WordParagraphStyles.Heading1);
+
+                WordParagraph summary = document.AddParagraph("This document is generated as DOCX first, then rendered with the first-party OfficeIMO PDF engine.");
+                summary.SetFontSize(10);
+
+                document.AddParagraph("Native proof areas").SetStyle(WordParagraphStyles.Heading2);
+
+                WordParagraph styled = document.AddParagraph();
+                styled.AddText("Scoped runs: ");
+                styled.AddText("large blue").SetFontSize(15).ColorHex = "1f4e79";
+                styled.AddText(", ");
+                styled.AddText("highlighted").SetHighlight(W.HighlightColorValues.Yellow);
+                styled.AddText(", and restored default text.");
+
+                WordParagraph panel = document.AddParagraph("Shaded paragraph with uniform Word borders mapped through the native PDF path.");
+                panel.ShadingFillColorHex = "e6f2ff";
+                panel.Borders.TopStyle = W.BorderValues.Single;
+                panel.Borders.BottomStyle = W.BorderValues.Single;
+                panel.Borders.LeftStyle = W.BorderValues.Single;
+                panel.Borders.RightStyle = W.BorderValues.Single;
+                panel.Borders.TopColorHex = "336699";
+                panel.Borders.BottomColorHex = "336699";
+                panel.Borders.LeftColorHex = "336699";
+                panel.Borders.RightColorHex = "336699";
+                panel.Borders.TopSize = 8;
+                panel.Borders.BottomSize = 8;
+                panel.Borders.LeftSize = 8;
+                panel.Borders.RightSize = 8;
+
+                WordList bullets = document.AddList(WordListStyle.Bulleted);
+                bullets.AddItem("Native list mapping keeps markers and text aligned.");
+                bullets.AddItem("The visual gate catches rhythm drift before QuestPDF removal.");
+
+                WordList steps = document.AddCustomList();
+                steps.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                steps.AddItem("Generated TOC appears before content.");
+                steps.AddItem("Tables and lists remain aligned.");
+
+                document.AddParagraph("Approved native checkbox").AddCheckBox(true, "Native Approved", "NativeApproved");
+                document.AddParagraph("Deferred native checkbox").AddCheckBox(false, "Native Deferred", "NativeDeferred");
+
+                document.AddParagraph("Native evidence table").SetStyle(WordParagraphStyles.Heading2);
+
+                WordTable table = document.AddTable(4, 3);
+                table.Style = WordTableStyle.GridTable1LightAccent1;
+                table.Rows[0].Cells[0].Paragraphs[0].Text = "Area";
+                table.Rows[0].Cells[1].Paragraphs[0].Text = "Native status";
+                table.Rows[0].Cells[2].Paragraphs[0].Text = "Evidence";
+                table.Rows[1].Cells[0].Paragraphs[0].Text = "Runs";
+                table.Rows[1].Cells[1].Paragraphs[0].Text = "Improving";
+                table.Rows[1].Cells[2].Paragraphs[0].Text = "color, size, highlight";
+                table.Rows[2].Cells[0].Paragraphs[0].Text = "Tables";
+                table.Rows[2].Cells[1].Paragraphs[0].Text = "Partial";
+                table.Rows[2].Cells[2].Paragraphs[0].Text = "style and borders";
+                table.Rows[3].Cells[0].Paragraphs[0].Text = "Forms";
+                table.Rows[3].Cells[1].Paragraphs[0].Text = "Improving";
+                table.Rows[3].Cells[2].Paragraphs[0].Text = "cell checkbox";
+                table.Rows[3].Cells[2].Paragraphs[0].AddCheckBox(true, "Native Table Approved", "NativeTableApproved");
+                table.RepeatHeaderRowAtTheTopOfEachPage = true;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(612, 792),
+                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Uniform(36)
+                });
+            }
+
+            return File.ReadAllBytes(pdfPath);
+        } finally {
+            TryDeleteDirectory(workDir);
+        }
+    }
+
+    private static byte[] CreateNativeWordDailyLayout() {
+        string workDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.WordNativePdfDailyLayout", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+        string docPath = Path.Combine(workDir, "native-word-daily-layout.docx");
+        string pdfPath = Path.Combine(workDir, "native-word-daily-layout.pdf");
+        string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
+
+        try {
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.Settings.FontFamily = "Calibri";
+                document.Background.SetColorHex("EAF4FF");
+                WordSection section = document.Sections[0];
+                section.Margins.LeftCentimeters = 1.6;
+                section.Margins.RightCentimeters = 1.4;
+                section.Margins.TopCentimeters = 1.4;
+                section.Margins.BottomCentimeters = 1.6;
+                section.ColumnCount = 2;
+                section.ColumnsSpace = 540;
+                section.HasColumnSeparator = true;
+
+                document.AddHeadersAndFooters();
+                WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
+                header.ParagraphAlignment = W.JustificationValues.Right;
+                header.AddText("Daily layout gate");
+                header.AddImage(logoPath, 42, 20);
+                document.Sections[0].Footer.Default!.AddParagraph("OfficeIMO native Word layout proof");
+
+                document.AddTableOfContent();
+                document.AddParagraph("Daily Word Layout Gate").SetStyle(WordParagraphStyles.Heading1);
+
+                WordParagraph intro = document.AddParagraph("This Word-origin fixture combines margins, section columns, fonts, colors, links, images, lists, a TOC, and a table on one page.");
+                intro.SetFontSize(9);
+
+                WordParagraph leftHeading = document.AddParagraph("Column narrative");
+                leftHeading.SetStyle(WordParagraphStyles.Heading2);
+                leftHeading.SetColorHex("#1f4e79");
+
+                WordParagraph rich = document.AddParagraph();
+                rich.AddText("Styled runs: ");
+                rich.AddText("Calibri default").SetFontFamily("Calibri");
+                rich.AddText(", ");
+                rich.AddText("Courier note").SetFontFamily("Courier New").SetFontSize(8);
+                rich.AddText(", ");
+                rich.AddText("blue emphasis").SetFontSize(11).ColorHex = "1f4e79";
+                rich.AddText(", and ");
+                rich.AddHyperLink("external link", new Uri("https://evotec.xyz/native-daily-layout"), addStyle: true, tooltip: "Native daily layout link");
+                rich.AddText(".");
+
+                WordParagraph shaded = document.AddParagraph("Shaded paragraph and side borders protect report-style callouts.");
+                shaded.ShadingFillColorHex = "e6f2ff";
+                shaded.Borders.LeftStyle = W.BorderValues.Single;
+                shaded.Borders.LeftColorHex = "1f4e79";
+                shaded.Borders.LeftSize = 12;
+                shaded.Borders.BottomStyle = W.BorderValues.Single;
+                shaded.Borders.BottomColorHex = "b7c9d9";
+                shaded.Borders.BottomSize = 4;
+
+                WordList bullets = document.AddList(WordListStyle.Bulleted);
+                bullets.AddItem("Bullet markers stay inside the first Word column.");
+                bullets.AddItem("Wrapped list text keeps readable spacing.");
+
+                WordList steps = document.AddCustomList();
+                steps.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                steps.AddItem("Collect daily document patterns.");
+                steps.AddItem("Render through OfficeIMO.Pdf.");
+
+                document.AddParagraph().AddImage(logoPath, 54, 26);
+                WordParagraph columnHandoff = document.AddParagraph("Inline column break keeps this text in the first column.");
+                columnHandoff.AddBreak(W.BreakValues.Column);
+                columnHandoff.AddText("Right column starts here.");
+
+                WordParagraph rightHeading = document.AddParagraph("Column evidence");
+                rightHeading.SetStyle(WordParagraphStyles.Heading2);
+                rightHeading.SetColorHex("#2f6f3e");
+
+                WordTable table = document.AddTable(4, 3);
+                table.Style = WordTableStyle.GridTable1LightAccent1;
+                table.Rows[0].Cells[0].Paragraphs[0].Text = "Area";
+                table.Rows[0].Cells[1].Paragraphs[0].Text = "Mapped";
+                table.Rows[0].Cells[2].Paragraphs[0].Text = "Visual";
+                table.Rows[1].Cells[0].Paragraphs[0].Text = "Margins";
+                table.Rows[1].Cells[1].Paragraphs[0].Text = "Yes";
+                table.Rows[1].Cells[2].Paragraphs[0].Text = "left edge";
+                table.Rows[2].Cells[0].Paragraphs[0].Text = "Columns";
+                table.Rows[2].Cells[1].Paragraphs[0].Text = "Yes";
+                table.Rows[2].Cells[2].Paragraphs[0].Text = "separator";
+                table.Rows[3].Cells[0].Paragraphs[0].Text = "Links";
+                table.Rows[3].Cells[1].Paragraphs[0].AddHyperLink("Yes", new Uri("https://officeimo.net/"), addStyle: true, tooltip: "Native table link");
+                table.Rows[3].Cells[2].Paragraphs[0].Text = "annotation";
+
+                WordParagraph closing = document.AddParagraph("Footer, header image, TOC link, section separator, and table borders should all survive the native PDF path.");
+                closing.SetFontSize(8);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    OfficeIMOPageSize = new PageSize(612, 792)
+                });
+            }
+
+            return File.ReadAllBytes(pdfPath);
+        } finally {
+            TryDeleteDirectory(workDir);
+        }
+    }
+
+    private static byte[] CreateNativeWordTableCellPictureControl() {
+        string workDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.WordNativePdfRaster", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+        string docPath = Path.Combine(workDir, "native-word-table-cell-picture-control.docx");
+        string pdfPath = Path.Combine(workDir, "native-word-table-cell-picture-control.pdf");
+        string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
+
+        try {
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph("Native table-cell picture control").SetStyle(WordParagraphStyles.Heading1);
+                document.AddParagraph("The logo below starts as a Word picture content control inside a table cell and renders through OfficeIMO.Pdf.");
+
+                WordTable table = document.AddTable(2, 2, WordTableStyle.TableGrid);
+                table.Rows[0].Cells[0].Paragraphs[0].Text = "Control";
+                table.Rows[0].Cells[1].Paragraphs[0].Text = "Rendered evidence";
+                table.Rows[1].Cells[0].Paragraphs[0].Text = "Picture content control";
+                WordParagraph pictureCell = table.Rows[1].Cells[1].Paragraphs[0];
+                pictureCell.Text = "Table-cell logo";
+                pictureCell.ParagraphAlignment = W.JustificationValues.Center;
+                pictureCell.AddPictureControl(logoPath, 72, 36, "Table Cell Logo", "TableCellLogo");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false,
+                    OfficeIMOPageSize = new PageSize(612, 360),
+                    OfficeIMOMargins = PageMargins.Uniform(36)
+                });
+            }
+
+            return File.ReadAllBytes(pdfPath);
+        } finally {
+            TryDeleteDirectory(workDir);
+        }
+    }
+
+    private static byte[] CreateNativeExcelDailyWorkbook() {
+        string workDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.ExcelNativePdfRaster", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+        string workbookPath = Path.Combine(workDir, "native-excel-daily-workbook.xlsx");
+        string pdfPath = Path.Combine(workDir, "native-excel-daily-workbook.pdf");
+        byte[] logoBytes = File.ReadAllBytes(Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png"));
+
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
+                ExcelSheet summary = document.AddWorkSheet("Summary");
+                summary.CellAt(1, 1).SetValue("Daily Excel PDF Gate").SetBold().SetFontColor("1F4E79").SetFillColor("DDEEFF");
+                summary.MergeRange("A1:B1");
+                summary.CellAt(2, 1).SetValue("Metric").SetBold().SetFillColor("E6F2FF");
+                summary.CellAt(2, 2).SetValue("Value").SetBold().SetFillColor("E6F2FF");
+                summary.CellAt(2, 3).SetValue("Status").SetBold().SetFillColor("E6F2FF");
+                summary.Cell(3, 1, "Revenue");
+                summary.CellAt(3, 2).SetValue(12345.6).Currency(2, System.Globalization.CultureInfo.GetCultureInfo("en-US"));
+                summary.CellAt(3, 3).SetValue("On track").SetFontColor("2F6F3E");
+                summary.Cell(4, 1, "Margin");
+                summary.CellAt(4, 2).SetValue(0.257).Percent(1);
+                summary.SetHyperlink(4, 3, "https://officeimo.net/excel-pdf", display: "External Link");
+                summary.Cell(5, 1, "Drilldown");
+                summary.SetInternalLink(5, 2, "Details!A1", display: "Open Details");
+                summary.Cell(6, 1, "Visual image");
+                summary.Cell(6, 3, "logo above grid");
+                summary.AddImage(6, 2, logoBytes, "image/png", widthPixels: 64, heightPixels: 28, name: "Summary Logo", altText: "Summary visual proof");
+                summary.Cell(8, 1, "HiddenRowValue");
+                summary.Cell(10, 1, "Month");
+                summary.Cell(10, 2, "Actual");
+                summary.Cell(10, 3, "Target");
+                summary.Cell(11, 1, "Jan");
+                summary.Cell(11, 2, 12);
+                summary.Cell(11, 3, 10);
+                summary.Cell(12, 1, "Feb");
+                summary.Cell(12, 2, 18);
+                summary.Cell(12, 3, 16);
+                summary.Cell(13, 1, "Mar");
+                summary.Cell(13, 2, 24);
+                summary.Cell(13, 3, 20);
+                summary.AddChartFromRange("A10:C13", row: 7, column: 1, widthPixels: 300, heightPixels: 140, type: ExcelChartType.ColumnClustered, title: "Revenue Chart");
+                summary.SetColumnWidth(1, 16);
+                summary.SetColumnWidth(2, 18);
+                summary.SetColumnWidth(3, 28);
+                summary.SetRowHeight(1, 28);
+                summary.SetRowHeight(6, 32);
+                summary.SetColumnHidden(4, true);
+                summary.Cell(2, 4, "HiddenColumnValue");
+                summary.SetRowHidden(8, true);
+                summary.CellBorder(2, 1, DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin, "445566");
+                summary.CellBorder(2, 2, DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin, "445566");
+                summary.CellBorder(2, 3, DocumentFormat.OpenXml.Spreadsheet.BorderStyleValues.Thin, "445566");
+                summary.CellAlign(3, 2, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
+                summary.CellAlign(4, 2, DocumentFormat.OpenXml.Spreadsheet.HorizontalAlignmentValues.Right);
+                summary.SetHeaderFooter(
+                    headerLeft: "Daily Excel",
+                    headerCenter: "Workbook &A",
+                    headerRight: "Page &P of &N",
+                    footerLeft: "OfficeIMO Excel PDF",
+                    footerRight: "Visual baseline");
+                summary.SetHeaderImage(HeaderFooterPosition.Left, logoBytes, "image/png", widthPoints: 28, heightPoints: 14);
+                summary.SetOrientation(ExcelPageOrientation.Landscape);
+                summary.SetMargins(left: 0.35, right: 0.35, top: 0.55, bottom: 0.55);
+
+                ExcelSheet details = document.AddWorkSheet("Details");
+                details.CellAt(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");
+                details.Cell(2, 1, "Owner");
+                details.Cell(2, 2, "OfficeIMO");
+                details.Cell(3, 1, "Status");
+                details.Cell(3, 2, "Linked sheet destination");
+                details.SetColumnWidth(1, 16);
+                details.SetColumnWidth(2, 30);
+
+                document.SetPrintArea(summary, "A1:C7");
+                document.SetPrintTitles(summary, firstRow: 2, lastRow: 2, firstCol: null, lastCol: null);
+                document.SetPrintArea(details, "A1:B3");
+                document.Save(false);
+
+                document.SaveAsPdf(pdfPath, new ExcelPdfSaveOptions {
+                    IncludeSheetHeadings = true,
+                    HeaderRowCount = 2,
+                    PageSize = new PageSize(792, 612),
+                    Margins = PageMargins.FromInches(0.35, 0.55, 0.35, 0.55)
+                });
+            }
+
+            return File.ReadAllBytes(pdfPath);
+        } finally {
+            TryDeleteDirectory(workDir);
+        }
+    }
+
+    private static double FindWordStartX(UglyToad.PdfPig.Content.Page page, string word) {
+        var lines = page.Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1));
+
+        foreach (var line in lines) {
+            var ordered = line.OrderBy(letter => letter.StartBaseLine.X).ToList();
+            string text = string.Concat(ordered.Select(letter => letter.Value));
+            int index = text.IndexOf(word, StringComparison.Ordinal);
+            if (index >= 0) {
+                return ordered[index].StartBaseLine.X;
+            }
+        }
+
+        throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
     }
 
     private static byte[] CreateHelloWorld() {

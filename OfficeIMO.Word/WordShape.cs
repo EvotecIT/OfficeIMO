@@ -664,8 +664,19 @@ namespace OfficeIMO.Word {
                 if (_polygon != null) v ??= _polygon.StrokeWeight?.Value;
                 if (_line != null) v ??= _line.StrokeWeight?.Value;
                 if (_shape != null) v ??= _shape.StrokeWeight?.Value;
-                if (v is not { Length: > 0 } s) return null;
-                return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                if (v is { Length: > 0 } s) {
+                    return double.Parse(s.Replace("pt", string.Empty), CultureInfo.InvariantCulture);
+                }
+
+                if (_wpsShape != null) {
+                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
+                    var outline = spPr?.GetFirstChild<A.Outline>();
+                    if (outline?.Width?.Value is int widthEmu) {
+                        return widthEmu / (double)EmusPerPoint;
+                    }
+                }
+
+                return null;
             }
             set {
                 string? v = value != null ? $"{value.Value.ToString(CultureInfo.InvariantCulture)}pt" : null;

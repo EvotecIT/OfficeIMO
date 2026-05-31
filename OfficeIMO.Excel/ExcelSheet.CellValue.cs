@@ -1591,6 +1591,34 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies diagonal border lines to a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to style.</param>
+        /// <param name="column">The 1-based column index of the cell to style.</param>
+        /// <param name="style">The diagonal border style.</param>
+        /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
+        /// <param name="diagonalUp">Whether to draw the bottom-left to top-right diagonal.</param>
+        /// <param name="diagonalDown">Whether to draw the top-left to bottom-right diagonal.</param>
+        public void CellDiagonalBorder(int row, int column, BorderStyleValues style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+                var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+                var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+                EnsureDefaultStylePrimitives(stylesheet);
+
+                var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
+                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetDiagonalBorder(border, style, hexColor, diagonalUp, diagonalDown));
+                ApplyCellFormatOverride(stylesheet, cell, format => {
+                    format.BorderId = borderId;
+                    format.ApplyBorder = true;
+                });
+
+                stylesPart.Stylesheet.Save();
+            });
+        }
+
+        /// <summary>
         /// Applies a font color (ARGB hex or #RRGGBB) to a single cell.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to recolor.</param>
@@ -1967,6 +1995,13 @@ namespace OfficeIMO.Excel {
             border.RightBorder = CreateBorderSide<RightBorder>(style, argb);
             border.TopBorder = CreateBorderSide<TopBorder>(style, argb);
             border.BottomBorder = CreateBorderSide<BottomBorder>(style, argb);
+        }
+
+        private static void SetDiagonalBorder(Border border, BorderStyleValues style, string? hexColor, bool diagonalUp, bool diagonalDown) {
+            var argb = string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
+            border.DiagonalBorder = CreateBorderSide<DiagonalBorder>(style, argb);
+            border.DiagonalUp = diagonalUp;
+            border.DiagonalDown = diagonalDown;
         }
 
         private static T CreateBorderSide<T>(BorderStyleValues style, string? argb) where T : BorderPropertiesType, new() {

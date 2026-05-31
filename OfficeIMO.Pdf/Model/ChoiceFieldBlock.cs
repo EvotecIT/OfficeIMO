@@ -13,12 +13,13 @@ internal sealed class ChoiceFieldBlock : IPdfBlock {
     public double SpacingAfter { get; }
     public bool IsComboBox { get; }
     public bool AllowsMultipleSelection { get; }
+    public PdfFormFieldStyle Style { get; }
 
-    public ChoiceFieldBlock(string name, IEnumerable<string> options, string? value, double width, double height, PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox)
-        : this(name, options, value is null ? null : new[] { value }, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, allowsMultipleSelection: false) {
+    public ChoiceFieldBlock(string name, IEnumerable<string> options, string? value, double width, double height, PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfFormFieldStyle? style = null)
+        : this(name, options, value is null ? null : new[] { value }, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, allowsMultipleSelection: false, style) {
     }
 
-    public ChoiceFieldBlock(string name, IEnumerable<string> options, IEnumerable<string>? values, double width, double height, PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, bool allowsMultipleSelection) {
+    public ChoiceFieldBlock(string name, IEnumerable<string> options, IEnumerable<string>? values, double width, double height, PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
         Guard.Positive(width, nameof(width));
@@ -63,6 +64,7 @@ internal sealed class ChoiceFieldBlock : IPdfBlock {
         SpacingAfter = spacingAfter;
         IsComboBox = isComboBox;
         AllowsMultipleSelection = allowsMultipleSelection;
+        Style = style?.Clone() ?? new PdfFormFieldStyle();
     }
 
     private static List<string> NormalizeSelectedValues(IEnumerable<string>? values, List<string> options, HashSet<string> optionSet, bool allowsMultipleSelection) {

@@ -22,7 +22,7 @@ OfficeIMO packages are published under the [MIT License](https://github.com/Evot
 | `OfficeIMO.PowerPoint` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)` | Presentation OOXML model and packaging |
 | `OfficeIMO.Word.Html` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`, `AngleSharp` `1.3.0`, `AngleSharp.Css` `1.0.0-beta.157` | HTML and CSS parsing for Word conversion workflows |
 | `OfficeIMO.Markdown.Html` | `AngleSharp` `1.3.0` | HTML parsing for Markdown conversion and bridge scenarios |
-| `OfficeIMO.Word.Pdf` | `QuestPDF` `2026.2.0`, `SkiaSharp` `3.119.2` | PDF document layout and graphics rendering |
+| `OfficeIMO.Word.Pdf` | First-party `OfficeIMO.Word` and `OfficeIMO.Pdf` project references | Word-to-PDF conversion through the OfficeIMO PDF engine |
 | `OfficeIMO.Visio` | `System.IO.Packaging` `10.0.3` | OPC packaging support for `.vsdx` files; colors and image metadata use first-party `OfficeIMO.Drawing` |
 | `OfficeIMO.Markdown` | No third-party runtime package references | Core package is intentionally dependency-light |
 | `OfficeIMO.CSV` | No third-party runtime package references | Core package is intentionally dependency-light |
@@ -38,15 +38,13 @@ Additional Microsoft compatibility helpers may appear on older target frameworks
 | [SixLabors.Fonts 1.0.1](https://www.nuget.org/packages/SixLabors.Fonts/1.0.1) | Apache License 2.0 | Excel | OfficeIMO currently pins the `1.0.1` line. As with other Six Labors packages, review the exact package version you ship instead of assuming newer lines follow the same terms. |
 | [AngleSharp](https://www.nuget.org/packages/AngleSharp/1.3.0) | MIT | Markdown.Html, Word.Html | Used for HTML parsing and DOM work. |
 | [AngleSharp.Css](https://www.nuget.org/packages/AngleSharp.Css/1.0.0-beta.157) | MIT | Word.Html | Adds CSS parsing on top of AngleSharp for HTML conversion flows. |
-| [QuestPDF 2026.2.0](https://www.nuget.org/packages/QuestPDF/2026.2.0/License) | Community MIT for qualifying cases, paid tiers otherwise | Word.Pdf | The official license guide allows MIT/community use for some cases, but larger businesses are expected to purchase a paid license. Because `OfficeIMO.Word.Pdf` references QuestPDF directly, teams should review the exact QuestPDF license guide for their own usage context. |
-| [SkiaSharp](https://www.nuget.org/packages/SkiaSharp/3.119.2) | MIT | Word.Pdf | Graphics and drawing backend used by the PDF conversion layer. |
 | [System.IO.Packaging](https://www.nuget.org/packages/System.IO.Packaging/10.0.3) | MIT | Visio | Microsoft packaging primitives for OPC-style containers. |
 
 ## What We Recommend Teams Check
 
 1. Review the exact `PackageReference` list for the OfficeIMO packages you ship, not just the repo root license.
-2. Treat `QuestPDF` as the first dependency to review explicitly during commercial approval, and re-check exact Six Labors package versions whenever they change.
-3. Re-check upstream terms whenever a dependency version changes, especially around PDF and imaging stacks.
+2. Re-check exact Six Labors package versions whenever they change.
+3. Re-check upstream terms whenever a dependency version changes, especially around imaging stacks.
 4. Keep a copy of the upstream notices or license URLs in your own release/compliance workflow if your organization requires that.
 
 ## How We Address This In The Website

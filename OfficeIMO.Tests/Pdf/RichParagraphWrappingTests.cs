@@ -136,6 +136,23 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WriterFontSelection_UsesRunFontForGeneratedPdfResources() {
+            var pdf = PdfDoc.Create()
+                .Paragraph(p => p
+                    .Text("Default ")
+                    .Font(PdfStandardFont.Courier)
+                    .Text("Code")
+                    .ResetFont()
+                    .Text(" Default"))
+                .ToBytes();
+
+            string content = System.Text.Encoding.ASCII.GetString(pdf);
+
+            Assert.Contains("/BaseFont /Helvetica", content);
+            Assert.Contains("/BaseFont /Courier", content);
+        }
+
+        [Fact]
         public void WinAnsiEncoding_EncodesSupportedWindows1252CharactersWithoutFallback() {
             var bytes = PdfWinAnsiEncoding.Encode("\u20AC\u2022\u201C\u201D\u0152\u0178");
 

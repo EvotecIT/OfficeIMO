@@ -60,6 +60,7 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PageShading> Shadings { get; } = new();
             public System.Collections.Generic.List<PageBookmark> Bookmarks { get; } = new();
             public System.Collections.Generic.List<PageNamedDestination> NamedDestinations { get; } = new();
+            public System.Collections.Generic.HashSet<PdfStandardFont> UsedFonts { get; } = new();
             public bool UsedBold { get; set; }
             public bool UsedItalic { get; set; }
             public bool UsedBoldItalic { get; set; }
@@ -89,6 +90,9 @@ internal static partial class PdfWriter {
         public bool IsChecked { get; init; }
         public string CheckedValueName { get; init; } = "Yes";
         public IReadOnlyList<string> Options { get; init; } = Array.Empty<string>();
+        public double ButtonSize { get; init; }
+        public double ButtonGap { get; init; }
+        public PdfFormFieldStyle Style { get; init; } = new PdfFormFieldStyle();
         public bool IsComboBox { get; init; }
         public bool AllowsMultipleSelection { get; init; }
     }
@@ -96,7 +100,8 @@ internal static partial class PdfWriter {
     private enum FormFieldAnnotationKind {
         Text,
         CheckBox,
-        Choice
+        Choice,
+        RadioButtonGroup
     }
 
     private sealed class PageBookmark {

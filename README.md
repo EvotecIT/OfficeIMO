@@ -101,7 +101,7 @@ Most packages are MIT licensed. `OfficeIMO.Visio` is a special case: the project
 - `OfficeIMO.Word`: main Word document object model
 - `OfficeIMO.Word.Html`: Word to/from HTML conversion helpers
 - `OfficeIMO.Word.Markdown`: Word to/from Markdown conversion helpers
-- `OfficeIMO.Word.Pdf`: Word to PDF export via QuestPDF and SkiaSharp
+- `OfficeIMO.Word.Pdf`: Word to PDF export through the first-party `OfficeIMO.Pdf` engine
 
 ### Excel family
 
@@ -170,7 +170,7 @@ Important exceptions:
 - For trimming-sensitive workloads, prefer typed overloads and explicit selectors.
 - `OfficeIMO.Markdown`, `OfficeIMO.CSV`, `OfficeIMO.Drawing`, `OfficeIMO.Pdf`, `OfficeIMO.Zip`, and `OfficeIMO.Epub` are the lightest dependency shapes.
 - Open XML-heavy packages should be tested against the exact publish options and document features your application uses.
-- `OfficeIMO.Word.Pdf` should be treated separately because QuestPDF and SkiaSharp add a larger rendering/runtime surface.
+- `OfficeIMO.Word.Pdf` should be treated separately because PDF layout fidelity and host fonts still need scenario validation.
 
 ## Dependencies at a glance
 
@@ -190,8 +190,7 @@ flowchart TB
   OpenXml["DocumentFormat.OpenXml"]
   Angle["AngleSharp"]
   AngleCss["AngleSharp.Css"]
-  Quest["QuestPDF"]
-  Skia["SkiaSharp"]
+  Pdf["OfficeIMO.Pdf"]
 
   Word --> Drawing
   Word --> OpenXml
@@ -206,8 +205,7 @@ flowchart TB
   WordMarkdown --> MarkdownHtml
   WordMarkdown --> Drawing
   WordPdf --> Word
-  WordPdf --> Quest
-  WordPdf --> Skia
+  WordPdf --> Pdf
 ```
 
 ### Excel, PowerPoint, Visio, and primitives
@@ -365,7 +363,7 @@ flowchart TB
 - `DocumentFormat.OpenXml`: `[3.5.1, 4.0.0)` in the Open XML packages that reference it
 - `OfficeIMO.Drawing`: first-party color and image metadata helpers
 - `AngleSharp` / `AngleSharp.Css`: HTML parsing and CSS conversion layers
-- `QuestPDF` / `SkiaSharp`: Word-to-PDF conversion layer only
+- `OfficeIMO.Pdf`: first-party Word-to-PDF conversion engine and dependency-light PDF primitives
 - `System.Text.Json`: reader, renderer, and Google Workspace helper surfaces on legacy target frameworks
 - `Microsoft.Web.WebView2`: WPF Markdown renderer host
 - `System.IO.Packaging`: Visio package handling

@@ -48,6 +48,12 @@ public sealed class PdfHeadingStyle {
     /// <summary>Heading text color. A heading block color overrides this value.</summary>
     public PdfColor? Color { get; set; }
 
+    /// <summary>When true, headings use the bold variant of the document font.</summary>
+    public bool Bold { get; set; } = true;
+
+    /// <summary>When true, <see cref="SpacingBefore"/> is honored even when the heading starts a page or column.</summary>
+    public bool ApplySpacingBeforeAtTop { get; set; }
+
     /// <summary>When true, the heading moves to the next page when it would otherwise be separated from the following paragraph.</summary>
     public bool KeepWithNext { get; set; } = true;
 
@@ -59,6 +65,8 @@ public sealed class PdfHeadingStyle {
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             Color = Color,
+            Bold = Bold,
+            ApplySpacingBeforeAtTop = ApplySpacingBeforeAtTop,
             KeepWithNext = KeepWithNext
         };
     }

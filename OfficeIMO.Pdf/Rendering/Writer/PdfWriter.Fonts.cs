@@ -81,6 +81,31 @@ internal static partial class PdfWriter {
         _ => ThrowUnsupportedStandardFont(normal)
     };
 
+    private static string GetStandardFontResourceName(PdfStandardFont font, PdfStandardFont defaultNormalFont) {
+        if (font == defaultNormalFont) return "F1";
+        if (font == ChooseBold(defaultNormalFont)) return "F2";
+        if (font == ChooseItalic(defaultNormalFont)) return "F3";
+        if (font == ChooseBoldItalic(defaultNormalFont)) return "F4";
+
+        return GetIndependentStandardFontResourceName(font);
+    }
+
+    private static string GetIndependentStandardFontResourceName(PdfStandardFont font) => font switch {
+        PdfStandardFont.Helvetica => "F11",
+        PdfStandardFont.HelveticaBold => "F12",
+        PdfStandardFont.HelveticaOblique => "F13",
+        PdfStandardFont.HelveticaBoldOblique => "F14",
+        PdfStandardFont.TimesRoman => "F15",
+        PdfStandardFont.TimesBold => "F16",
+        PdfStandardFont.TimesItalic => "F17",
+        PdfStandardFont.TimesBoldItalic => "F18",
+        PdfStandardFont.Courier => "F19",
+        PdfStandardFont.CourierBold => "F20",
+        PdfStandardFont.CourierOblique => "F21",
+        PdfStandardFont.CourierBoldOblique => "F22",
+        _ => ThrowUnsupportedStandardFontResource(font)
+    };
+
     private static double GlyphWidthEmFor(PdfStandardFont font) => font switch {
         PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique => 0.6,
         PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold or PdfStandardFont.HelveticaOblique or PdfStandardFont.HelveticaBoldOblique => 0.55,
@@ -593,6 +618,11 @@ internal static partial class PdfWriter {
     }
 
     private static double ThrowUnsupportedStandardFontWidth(PdfStandardFont font) {
+        Guard.StandardFont(font, nameof(font), "PDF font must be one of the supported standard PDF fonts.");
+        throw new System.ArgumentOutOfRangeException(nameof(font), "PDF font must be one of the supported standard PDF fonts.");
+    }
+
+    private static string ThrowUnsupportedStandardFontResource(PdfStandardFont font) {
         Guard.StandardFont(font, nameof(font), "PDF font must be one of the supported standard PDF fonts.");
         throw new System.ArgumentOutOfRangeException(nameof(font), "PDF font must be one of the supported standard PDF fonts.");
     }

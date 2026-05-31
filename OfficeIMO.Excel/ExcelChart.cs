@@ -44,6 +44,70 @@ namespace OfficeIMO.Excel {
         public ExcelChartDataRange? DataRange => _dataRange;
 
         /// <summary>
+        /// Gets the detected chart type.
+        /// </summary>
+        public ExcelChartType ChartType {
+            get {
+                C.PlotArea? plotArea = GetChart().GetFirstChild<C.PlotArea>();
+                return plotArea == null ? ExcelChartType.ColumnClustered : ExcelChartUtils.InferChartType(plotArea);
+            }
+        }
+
+        /// <summary>
+        /// Gets the chart title text when present.
+        /// </summary>
+        public string? Title => GetChartTitleText(GetChart());
+
+        /// <summary>
+        /// Tries to read the chart data from the chart's source range.
+        /// </summary>
+        public bool TryGetData(out ExcelChartData data) {
+            try {
+                ChartPart chartPart = GetChartPart();
+                ExcelChartDataRange? range = _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
+                if (range == null) {
+                    data = null!;
+                    return false;
+                }
+
+                ExcelSheet sheet = _document[range.SheetName];
+                ExcelChartData? chartData = ExcelChartUtils.TryReadChartData(sheet, range);
+                if (chartData == null) {
+                    data = null!;
+                    return false;
+                }
+
+                _dataRange = range;
+                data = chartData;
+                return true;
+            } catch {
+                data = null!;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tries to create a dependency-free snapshot for rendering/export consumers.
+        /// </summary>
+        public bool TryGetSnapshot(out ExcelChartSnapshot snapshot) {
+            if (!TryGetData(out ExcelChartData data)) {
+                snapshot = null!;
+                return false;
+            }
+
+            snapshot = new ExcelChartSnapshot(
+                Name,
+                Title,
+                ChartType,
+                data,
+                GetAnchorRow(),
+                GetAnchorColumn(),
+                GetAnchorWidthPixels(),
+                GetAnchorHeightPixels());
+            return true;
+        }
+
+        /// <summary>
         /// Gets whether the chart declares a pivot table source.
         /// </summary>
         public bool IsPivotChart => !string.IsNullOrWhiteSpace(PivotTableName);
@@ -3607,6 +3671,55 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("Chart element not found in chart part.");
             }
             return chart;
+        }
+
+        private static string? GetChartTitleText(C.Chart chart) {
+            C.Title? title = chart.GetFirstChild<C.Title>();
+            if (title == null) {
+                return null;
+            }
+
+            C.ChartText? chartText = title.GetFirstChild<C.ChartText>();
+            if (chartText == null) {
+                return null;
+            }
+
+            string text = string.Concat(chartText.Descendants<A.Text>().Select(item => item.Text));
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        }
+
+        private int GetAnchorRow() {
+            Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
+                ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
+            return ParseOneBasedMarker(marker?.RowId?.Text);
+        }
+
+        private int GetAnchorColumn() {
+            Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
+                ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
+            return ParseOneBasedMarker(marker?.ColumnId?.Text);
+        }
+
+        private int GetAnchorWidthPixels() {
+            long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cx?.Value;
+            return EmuToPixels(emu, 480);
+        }
+
+        private int GetAnchorHeightPixels() {
+            long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cy?.Value;
+            return EmuToPixels(emu, 320);
+        }
+
+        private static int ParseOneBasedMarker(string? value) {
+            return int.TryParse(value, out int zeroBased) && zeroBased >= 0 ? zeroBased + 1 : 1;
+        }
+
+        private static int EmuToPixels(long? emu, int fallback) {
+            if (!emu.HasValue || emu.Value <= 0) {
+                return fallback;
+            }
+
+            return Math.Max(1, (int)Math.Round(emu.Value / 9525D));
         }
 
         private ChartPart GetChartPart() {

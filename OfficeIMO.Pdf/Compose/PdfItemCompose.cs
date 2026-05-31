@@ -30,8 +30,12 @@ public class PdfItemCompose {
     public PdfItemCompose Paragraph(System.Action<PdfParagraphBuilder> build, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null, PdfParagraphStyle? style = null) { _doc.Paragraph(build, align, defaultColor, style); return this; }
     /// <summary>Adds a simple bullet list.</summary>
     public PdfItemCompose Bullets(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, PdfListStyle? style = null) { _doc.Bullets(items, align, color, style); return this; }
+    /// <summary>Adds a bullet list whose items can contain rich inline text runs.</summary>
+    public PdfItemCompose RichBullets(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, PdfListStyle? style = null) { _doc.RichBullets(items, align, color, style); return this; }
     /// <summary>Adds a simple numbered list.</summary>
     public PdfItemCompose Numbered(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.Numbered(items, align, color, startNumber, style); return this; }
+    /// <summary>Adds a numbered list whose items can contain rich inline text runs.</summary>
+    public PdfItemCompose RichNumbered(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.RichNumbered(items, align, color, startNumber, style); return this; }
     /// <summary>Adds a simple text table.</summary>
     /// <param name="rows">Sequence of row arrays.</param>
     /// <param name="align">Table alignment.</param>
@@ -61,13 +65,15 @@ public class PdfItemCompose {
     /// <summary>Adds a named bookmark at the current flow position.</summary>
     public PdfItemCompose Bookmark(string name) { _doc.Bookmark(name); return this; }
     /// <summary>Adds a simple AcroForm text field at the current flow position.</summary>
-    public PdfItemCompose TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) { _doc.TextField(name, width, height, value, align, fontSize, spacingBefore, spacingAfter); return this; }
+    public PdfItemCompose TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) { _doc.TextField(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style); return this; }
     /// <summary>Adds a simple AcroForm check box at the current flow position.</summary>
-    public PdfItemCompose CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes") { _doc.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName); return this; }
+    public PdfItemCompose CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) { _doc.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style); return this; }
     /// <summary>Adds a simple AcroForm choice field at the current flow position.</summary>
-    public PdfItemCompose ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true) { _doc.ChoiceField(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox); return this; }
+    public PdfItemCompose ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true, PdfFormFieldStyle? style = null) { _doc.ChoiceField(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, style); return this; }
     /// <summary>Adds a simple AcroForm multi-select choice field at the current flow position.</summary>
-    public PdfItemCompose MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) { _doc.MultiSelectChoiceField(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter); return this; }
+    public PdfItemCompose MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) { _doc.MultiSelectChoiceField(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, style); return this; }
+    /// <summary>Adds a simple AcroForm radio button group at the current flow position.</summary>
+    public PdfItemCompose RadioButtonGroup(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double size = 14, double gap = 6, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) { _doc.RadioButtonGroup(name, options, value, size, gap, align, spacingBefore, spacingAfter, style); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing shape.</summary>
     public PdfItemCompose Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing scene.</summary>

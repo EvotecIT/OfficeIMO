@@ -31,7 +31,7 @@ internal static class PdfAnnotationDictionaryBuilder {
             " >> >>\n";
     }
 
-    internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId) {
+    internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId, PdfFormFieldStyle? style = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(value, nameof(value));
@@ -52,13 +52,14 @@ internal static class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(x2) + " " +
             FormatCoordinate(y2) +
             "] /F 4 /DA " +
-            PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf 0 g") +
-            " /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N " +
+            PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf " + PdfAcroFormDictionaryBuilder.FormatColor((style ?? new PdfFormFieldStyle()).TextColor) + " rg") +
+            BuildMkEntry(style) +
+            " /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
             " >> >>\n";
     }
 
-    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId) {
+    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId, PdfFormFieldStyle? style = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
@@ -82,7 +83,8 @@ internal static class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /F 4 /AS /" +
             PdfSyntaxEscaper.Name(selectedName) +
-            " /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N << /Off " +
+            BuildMkEntry(style) +
+            " /AP << /N << /Off " +
             PdfSyntaxEscaper.IndirectReference(offAppearanceId) +
             " /" +
             PdfSyntaxEscaper.Name(checkedValueName) +
@@ -91,10 +93,10 @@ internal static class PdfAnnotationDictionaryBuilder {
             " >> >> >>\n";
     }
 
-    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, string value, double fontSize, int normalAppearanceId, bool isComboBox) =>
-        BuildChoiceFieldWidgetAnnotation(x1, y1, x2, y2, name, options, new[] { value }, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection: false);
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, string value, double fontSize, int normalAppearanceId, bool isComboBox, PdfFormFieldStyle? style = null) =>
+        BuildChoiceFieldWidgetAnnotation(x1, y1, x2, y2, name, options, new[] { value }, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection: false, style);
 
-    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection) {
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
@@ -163,10 +165,71 @@ internal static class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(x2) + " " +
             FormatCoordinate(y2) +
             "] /F 4 /DA " +
-            PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf 0 g") +
-            " /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N " +
+            PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf " + PdfAcroFormDictionaryBuilder.FormatColor((style ?? new PdfFormFieldStyle()).TextColor) + " rg") +
+            BuildMkEntry(style) +
+            " /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
             " >> >>\n";
+    }
+
+    internal static string BuildRadioButtonFieldDictionary(string name, IReadOnlyList<string> options, string value, IReadOnlyList<int> widgetObjectIds) {
+        Guard.NotNullOrWhiteSpace(name, nameof(name));
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNullOrWhiteSpace(value, nameof(value));
+        Guard.NotNull(widgetObjectIds, nameof(widgetObjectIds));
+        ValidateRadioOptions(options, value);
+        if (widgetObjectIds.Count != options.Count) {
+            throw new ArgumentException("PDF radio button group requires one widget object per option.", nameof(widgetObjectIds));
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("<< /FT /Btn /T ")
+            .Append(PdfSyntaxEscaper.TextString(name))
+            .Append(" /Ff 49152 /V /")
+            .Append(PdfSyntaxEscaper.Name(value))
+            .Append(" /DV /")
+            .Append(PdfSyntaxEscaper.Name(value))
+            .Append(" /Kids [");
+        for (int i = 0; i < widgetObjectIds.Count; i++) {
+            sb.Append(' ')
+                .Append(PdfSyntaxEscaper.IndirectReference(widgetObjectIds[i]));
+        }
+
+        sb.Append(" ] >>\n");
+        return sb.ToString();
+    }
+
+    internal static string BuildRadioButtonWidgetAnnotation(double x1, double y1, double x2, double y2, int parentObjectId, string option, string value, int offAppearanceId, int selectedAppearanceId, PdfFormFieldStyle? style = null) {
+        ValidateRectangle(x1, y1, x2, y2);
+        if (parentObjectId <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(parentObjectId), parentObjectId, "PDF radio button parent object id must be positive.");
+        }
+
+        Guard.NotNullOrWhiteSpace(option, nameof(option));
+        Guard.NotNullOrWhiteSpace(value, nameof(value));
+        if (string.Equals(option, "Off", StringComparison.Ordinal)) {
+            throw new ArgumentException("PDF radio button option value cannot be Off.", nameof(option));
+        }
+
+        ValidateAsciiPdfNameValue(option, nameof(option), "PDF radio button option values must contain only ASCII PDF name characters.");
+        string stateName = string.Equals(option, value, StringComparison.Ordinal) ? option : "Off";
+        return "<< /Type /Annot /Subtype /Widget /Parent " +
+            PdfSyntaxEscaper.IndirectReference(parentObjectId) +
+            " /Rect [" +
+            FormatCoordinate(x1) + " " +
+            FormatCoordinate(y1) + " " +
+            FormatCoordinate(x2) + " " +
+            FormatCoordinate(y2) +
+            "] /F 4 /AS /" +
+            PdfSyntaxEscaper.Name(stateName) +
+            BuildMkEntry(style) +
+            " /AP << /N << /Off " +
+            PdfSyntaxEscaper.IndirectReference(offAppearanceId) +
+            " /" +
+            PdfSyntaxEscaper.Name(option) +
+            " " +
+            PdfSyntaxEscaper.IndirectReference(selectedAppearanceId) +
+            " >> >> >>\n";
     }
 
     private static string BuildChoiceValue(IReadOnlyList<string> values, bool forceArray) {
@@ -193,13 +256,54 @@ internal static class PdfAnnotationDictionaryBuilder {
             ? string.Empty
             : " /Contents " + PdfSyntaxEscaper.LiteralString(contents!);
 
-    private static void ValidateAsciiPdfNameValue(string value, string paramName) {
+    private static string BuildMkEntry(PdfFormFieldStyle? style) {
+        PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
+        var sb = new StringBuilder();
+        if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0) {
+            sb.Append(" /BC [").Append(PdfAcroFormDictionaryBuilder.FormatColor(effectiveStyle.BorderColor.Value)).Append(']');
+        }
+
+        if (effectiveStyle.BackgroundColor.HasValue) {
+            sb.Append(" /BG [").Append(PdfAcroFormDictionaryBuilder.FormatColor(effectiveStyle.BackgroundColor.Value)).Append(']');
+        }
+
+        return sb.Length == 0 ? string.Empty : " /MK <<" + sb + " >>";
+    }
+
+    private static void ValidateRadioOptions(IReadOnlyList<string> options, string value) {
+        if (options.Count == 0) {
+            throw new ArgumentException("PDF radio button group requires at least one option.", nameof(options));
+        }
+
+        var optionSet = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < options.Count; i++) {
+            string option = options[i];
+            Guard.NotNullOrWhiteSpace(option, nameof(options));
+            if (string.Equals(option, "Off", StringComparison.Ordinal)) {
+                throw new ArgumentException("PDF radio button option value cannot be Off.", nameof(options));
+            }
+
+            ValidateAsciiPdfNameValue(option, nameof(options), "PDF radio button option values must contain only ASCII PDF name characters.");
+            if (!optionSet.Add(option)) {
+                throw new ArgumentException("PDF radio button options must be unique.", nameof(options));
+            }
+        }
+
+        if (!optionSet.Contains(value)) {
+            throw new ArgumentException("PDF radio button value must match the provided options.", nameof(value));
+        }
+    }
+
+    private static void ValidateAsciiPdfNameValue(string value, string paramName, string message) {
         for (int i = 0; i < value.Length; i++) {
             if (value[i] > 0x7E) {
-                throw new ArgumentException("PDF check box selected value name must contain only ASCII PDF name characters.", paramName);
+                throw new ArgumentException(message, paramName);
             }
         }
     }
+
+    private static void ValidateAsciiPdfNameValue(string value, string paramName) =>
+        ValidateAsciiPdfNameValue(value, paramName, "PDF check box selected value name must contain only ASCII PDF name characters.");
 
     private static void ValidateRectangle(double x1, double y1, double x2, double y2) {
         ValidateFinite(x1, nameof(x1));

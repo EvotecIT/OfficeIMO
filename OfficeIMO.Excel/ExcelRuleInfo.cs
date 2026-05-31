@@ -15,6 +15,16 @@ namespace OfficeIMO.Excel {
         public bool StopIfTrue { get; set; }
         /// <summary>Gets or sets formulas attached to the rule.</summary>
         public IReadOnlyList<string> Formulas { get; set; } = Array.Empty<string>();
+        /// <summary>Gets or sets ARGB colors attached to a color-scale rule, in rule order.</summary>
+        public IReadOnlyList<string> ColorScaleColors { get; set; } = Array.Empty<string>();
+        /// <summary>Gets or sets the ARGB color attached to a data-bar rule.</summary>
+        public string? DataBarColor { get; set; }
+        /// <summary>Gets or sets the icon-set name attached to an icon-set rule.</summary>
+        public string? IconSet { get; set; }
+        /// <summary>Gets or sets whether the icon-set rule displays the underlying cell value.</summary>
+        public bool IconSetShowValue { get; set; } = true;
+        /// <summary>Gets or sets whether the icon-set rule reverses icon order.</summary>
+        public bool IconSetReverse { get; set; }
     }
 
     /// <summary>

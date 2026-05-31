@@ -30,6 +30,18 @@ public sealed class PdfOptions {
     private string? _evenPageFooterLeftFormat;
     private string? _evenPageFooterCenterFormat;
     private string? _evenPageFooterRightFormat;
+    private System.Collections.Generic.List<PdfHeaderFooterImage>? _headerImages;
+    private System.Collections.Generic.List<PdfHeaderFooterImage>? _firstPageHeaderImages;
+    private System.Collections.Generic.List<PdfHeaderFooterImage>? _evenPageHeaderImages;
+    private System.Collections.Generic.List<PdfHeaderFooterImage>? _footerImages;
+    private System.Collections.Generic.List<PdfHeaderFooterImage>? _firstPageFooterImages;
+    private System.Collections.Generic.List<PdfHeaderFooterImage>? _evenPageFooterImages;
+    private System.Collections.Generic.List<PdfHeaderFooterShape>? _headerShapes;
+    private System.Collections.Generic.List<PdfHeaderFooterShape>? _firstPageHeaderShapes;
+    private System.Collections.Generic.List<PdfHeaderFooterShape>? _evenPageHeaderShapes;
+    private System.Collections.Generic.List<PdfHeaderFooterShape>? _footerShapes;
+    private System.Collections.Generic.List<PdfHeaderFooterShape>? _firstPageFooterShapes;
+    private System.Collections.Generic.List<PdfHeaderFooterShape>? _evenPageFooterShapes;
     private PdfStandardFont _defaultFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _headerFont = PdfStandardFont.Helvetica;
     private PdfStandardFont _footerFont = PdfStandardFont.Helvetica;
@@ -62,6 +74,8 @@ public sealed class PdfOptions {
     }
     /// <summary>Page orientation inferred from the current page size.</summary>
     public PdfPageOrientation PageOrientation => PageWidth > PageHeight ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
+    /// <summary>Optional page background color rendered behind all page content.</summary>
+    public PdfColor? BackgroundColor { get; set; }
     /// <summary>Left margin in points. Default 72 (1 inch).</summary>
     public double MarginLeft { get; set; } = 72; // 1 in
     /// <summary>Right margin in points. Default 72 (1 inch).</summary>
@@ -260,8 +274,12 @@ public sealed class PdfOptions {
 
     internal bool HasHeaderContent => (ShowHeader && HeaderFormat != null && HeaderFormat.Length > 0) ||
         (_headerSegments != null && _headerSegments.Count > 0) ||
-        HasHeaderZoneContent;
-    internal bool HasFooterContent => ShowPageNumbers || (_footerSegments != null && _footerSegments.Count > 0) || HasFooterZoneContent;
+        HasHeaderZoneContent ||
+        HasHeaderImageContent;
+    internal bool HasFooterContent => ShowPageNumbers ||
+        (_footerSegments != null && _footerSegments.Count > 0) ||
+        HasFooterZoneContent ||
+        HasFooterImageContent;
     internal bool HasHeaderZoneContent =>
         !string.IsNullOrEmpty(_headerLeftFormat) ||
         !string.IsNullOrEmpty(_headerCenterFormat) ||
@@ -286,7 +304,31 @@ public sealed class PdfOptions {
         !string.IsNullOrEmpty(_evenPageFooterLeftFormat) ||
         !string.IsNullOrEmpty(_evenPageFooterCenterFormat) ||
         !string.IsNullOrEmpty(_evenPageFooterRightFormat);
+    internal bool HasHeaderImageContent => _headerImages != null && _headerImages.Count > 0;
+    internal bool HasFirstPageHeaderImageContent => _firstPageHeaderImages != null && _firstPageHeaderImages.Count > 0;
+    internal bool HasEvenPageHeaderImageContent => _evenPageHeaderImages != null && _evenPageHeaderImages.Count > 0;
+    internal bool HasFooterImageContent => _footerImages != null && _footerImages.Count > 0;
+    internal bool HasFirstPageFooterImageContent => _firstPageFooterImages != null && _firstPageFooterImages.Count > 0;
+    internal bool HasEvenPageFooterImageContent => _evenPageFooterImages != null && _evenPageFooterImages.Count > 0;
     internal bool HasHeaderContentForPage(int pageNumber) {
+        if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            return (FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
+                (_firstPageHeaderSegments != null && _firstPageHeaderSegments.Count > 0) ||
+                HasFirstPageHeaderZoneContent ||
+                HasFirstPageHeaderImageContent;
+        }
+
+        if (IsEvenPageVariant(pageNumber)) {
+            return (EvenPageHeaderFormat != null && EvenPageHeaderFormat.Length > 0) ||
+                (_evenPageHeaderSegments != null && _evenPageHeaderSegments.Count > 0) ||
+                HasEvenPageHeaderZoneContent ||
+                HasEvenPageHeaderImageContent;
+        }
+
+        return HasHeaderContent;
+    }
+
+    internal bool HasHeaderTextContentForPage(int pageNumber) {
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return (FirstPageHeaderFormat != null && FirstPageHeaderFormat.Length > 0) ||
                 (_firstPageHeaderSegments != null && _firstPageHeaderSegments.Count > 0) ||
@@ -299,10 +341,30 @@ public sealed class PdfOptions {
                 HasEvenPageHeaderZoneContent;
         }
 
-        return HasHeaderContent;
+        return (ShowHeader && HeaderFormat != null && HeaderFormat.Length > 0) ||
+            (_headerSegments != null && _headerSegments.Count > 0) ||
+            HasHeaderZoneContent;
     }
 
     internal bool HasFooterContentForPage(int pageNumber) {
+        if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            return (FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
+                (_firstPageFooterSegments != null && _firstPageFooterSegments.Count > 0) ||
+                HasFirstPageFooterZoneContent ||
+                HasFirstPageFooterImageContent;
+        }
+
+        if (IsEvenPageVariant(pageNumber)) {
+            return (EvenPageFooterFormat != null && EvenPageFooterFormat.Length > 0) ||
+                (_evenPageFooterSegments != null && _evenPageFooterSegments.Count > 0) ||
+                HasEvenPageFooterZoneContent ||
+                HasEvenPageFooterImageContent;
+        }
+
+        return HasFooterContent;
+    }
+
+    internal bool HasFooterTextContentForPage(int pageNumber) {
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return (FirstPageFooterFormat != null && FirstPageFooterFormat.Length > 0) ||
                 (_firstPageFooterSegments != null && _firstPageFooterSegments.Count > 0) ||
@@ -315,7 +377,9 @@ public sealed class PdfOptions {
                 HasEvenPageFooterZoneContent;
         }
 
-        return HasFooterContent;
+        return ShowPageNumbers ||
+            (_footerSegments != null && _footerSegments.Count > 0) ||
+            HasFooterZoneContent;
     }
 
     internal string GetHeaderFormatForPage(int pageNumber) {
@@ -346,6 +410,30 @@ public sealed class PdfOptions {
         return (_headerLeftFormat, _headerCenterFormat, _headerRightFormat);
     }
 
+    internal System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> GetHeaderImagesForPage(int pageNumber) {
+        if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            return _firstPageHeaderImages != null ? _firstPageHeaderImages : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage>)System.Array.Empty<PdfHeaderFooterImage>();
+        }
+
+        if (IsEvenPageVariant(pageNumber)) {
+            return _evenPageHeaderImages != null ? _evenPageHeaderImages : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage>)System.Array.Empty<PdfHeaderFooterImage>();
+        }
+
+        return _headerImages != null ? _headerImages : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage>)System.Array.Empty<PdfHeaderFooterImage>();
+    }
+
+    internal System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> GetHeaderShapesForPage(int pageNumber) {
+        if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            return _firstPageHeaderShapes != null ? _firstPageHeaderShapes : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape>)System.Array.Empty<PdfHeaderFooterShape>();
+        }
+
+        if (IsEvenPageVariant(pageNumber)) {
+            return _evenPageHeaderShapes != null ? _evenPageHeaderShapes : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape>)System.Array.Empty<PdfHeaderFooterShape>();
+        }
+
+        return _headerShapes != null ? _headerShapes : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape>)System.Array.Empty<PdfHeaderFooterShape>();
+    }
+
     internal string GetFooterFormatForPage(int pageNumber) {
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             return FirstPageFooterFormat;
@@ -374,6 +462,30 @@ public sealed class PdfOptions {
         return (_footerLeftFormat, _footerCenterFormat, _footerRightFormat);
     }
 
+    internal System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage> GetFooterImagesForPage(int pageNumber) {
+        if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            return _firstPageFooterImages != null ? _firstPageFooterImages : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage>)System.Array.Empty<PdfHeaderFooterImage>();
+        }
+
+        if (IsEvenPageVariant(pageNumber)) {
+            return _evenPageFooterImages != null ? _evenPageFooterImages : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage>)System.Array.Empty<PdfHeaderFooterImage>();
+        }
+
+        return _footerImages != null ? _footerImages : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterImage>)System.Array.Empty<PdfHeaderFooterImage>();
+    }
+
+    internal System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape> GetFooterShapesForPage(int pageNumber) {
+        if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            return _firstPageFooterShapes != null ? _firstPageFooterShapes : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape>)System.Array.Empty<PdfHeaderFooterShape>();
+        }
+
+        if (IsEvenPageVariant(pageNumber)) {
+            return _evenPageFooterShapes != null ? _evenPageFooterShapes : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape>)System.Array.Empty<PdfHeaderFooterShape>();
+        }
+
+        return _footerShapes != null ? _footerShapes : (System.Collections.Generic.IReadOnlyList<PdfHeaderFooterShape>)System.Array.Empty<PdfHeaderFooterShape>();
+    }
+
     private bool IsEvenPageVariant(int pageNumber) =>
         DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0;
     internal PdfParagraphStyle? DefaultParagraphStyleSnapshot => _defaultParagraphStyle;
@@ -398,6 +510,7 @@ public sealed class PdfOptions {
         var clone = new PdfOptions {
             PageWidth = PageWidth,
             PageHeight = PageHeight,
+            BackgroundColor = BackgroundColor,
             MarginLeft = MarginLeft,
             MarginRight = MarginRight,
             MarginTop = MarginTop,
@@ -465,10 +578,48 @@ public sealed class PdfOptions {
             _firstPageFooterRightFormat = _firstPageFooterRightFormat,
             _evenPageFooterLeftFormat = _evenPageFooterLeftFormat,
             _evenPageFooterCenterFormat = _evenPageFooterCenterFormat,
-            _evenPageFooterRightFormat = _evenPageFooterRightFormat
+            _evenPageFooterRightFormat = _evenPageFooterRightFormat,
+            _headerImages = CloneHeaderFooterImages(_headerImages),
+            _firstPageHeaderImages = CloneHeaderFooterImages(_firstPageHeaderImages),
+            _evenPageHeaderImages = CloneHeaderFooterImages(_evenPageHeaderImages),
+            _footerImages = CloneHeaderFooterImages(_footerImages),
+            _firstPageFooterImages = CloneHeaderFooterImages(_firstPageFooterImages),
+            _evenPageFooterImages = CloneHeaderFooterImages(_evenPageFooterImages),
+            _headerShapes = CloneHeaderFooterShapes(_headerShapes),
+            _firstPageHeaderShapes = CloneHeaderFooterShapes(_firstPageHeaderShapes),
+            _evenPageHeaderShapes = CloneHeaderFooterShapes(_evenPageHeaderShapes),
+            _footerShapes = CloneHeaderFooterShapes(_footerShapes),
+            _firstPageFooterShapes = CloneHeaderFooterShapes(_firstPageFooterShapes),
+            _evenPageFooterShapes = CloneHeaderFooterShapes(_evenPageFooterShapes)
         };
         clone._pageNumberStart = _pageNumberStart;
         clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;
+        return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfHeaderFooterImage>? CloneHeaderFooterImages(System.Collections.Generic.List<PdfHeaderFooterImage>? images) {
+        if (images == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfHeaderFooterImage>(images.Count);
+        foreach (PdfHeaderFooterImage image in images) {
+            clone.Add(image.Clone());
+        }
+
+        return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfHeaderFooterShape>? CloneHeaderFooterShapes(System.Collections.Generic.List<PdfHeaderFooterShape>? shapes) {
+        if (shapes == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfHeaderFooterShape>(shapes.Count);
+        foreach (PdfHeaderFooterShape shape in shapes) {
+            clone.Add(shape.Clone());
+        }
+
         return clone;
     }
 
@@ -502,6 +653,12 @@ public sealed class PdfOptions {
         _headerRightFormat = null;
     }
 
+    internal void AddHeaderImageForCompose(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        ShowHeader = true;
+        (_headerImages ??= new System.Collections.Generic.List<PdfHeaderFooterImage>()).Add(image.Clone());
+    }
+
     internal void SetFirstPageHeaderZonesForCompose(string? left, string? center, string? right) {
         ValidateZones(left, center, right, nameof(left));
         ClearFirstPageHeaderSegmentsForCompose();
@@ -518,6 +675,12 @@ public sealed class PdfOptions {
         _firstPageHeaderRightFormat = null;
     }
 
+    internal void AddFirstPageHeaderImageForCompose(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        DifferentFirstPageHeaderFooter = true;
+        (_firstPageHeaderImages ??= new System.Collections.Generic.List<PdfHeaderFooterImage>()).Add(image.Clone());
+    }
+
     internal void SetEvenPageHeaderZonesForCompose(string? left, string? center, string? right) {
         ValidateZones(left, center, right, nameof(left));
         ClearEvenPageHeaderSegmentsForCompose();
@@ -532,6 +695,32 @@ public sealed class PdfOptions {
         _evenPageHeaderLeftFormat = null;
         _evenPageHeaderCenterFormat = null;
         _evenPageHeaderRightFormat = null;
+    }
+
+    internal void AddEvenPageHeaderImageForCompose(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        DifferentOddAndEvenPagesHeaderFooter = true;
+        (_evenPageHeaderImages ??= new System.Collections.Generic.List<PdfHeaderFooterImage>()).Add(image.Clone());
+    }
+
+    internal void AddHeaderShapeForCompose(PdfHeaderFooterShape shape) {
+        Guard.NotNull(shape, nameof(shape));
+        ShowHeader = true;
+        (_headerShapes ??= new System.Collections.Generic.List<PdfHeaderFooterShape>()).Add(shape.Clone());
+    }
+
+    internal void AddFirstPageHeaderShapeForCompose(PdfHeaderFooterShape shape) {
+        Guard.NotNull(shape, nameof(shape));
+        ShowHeader = true;
+        DifferentFirstPageHeaderFooter = true;
+        (_firstPageHeaderShapes ??= new System.Collections.Generic.List<PdfHeaderFooterShape>()).Add(shape.Clone());
+    }
+
+    internal void AddEvenPageHeaderShapeForCompose(PdfHeaderFooterShape shape) {
+        Guard.NotNull(shape, nameof(shape));
+        ShowHeader = true;
+        DifferentOddAndEvenPagesHeaderFooter = true;
+        (_evenPageHeaderShapes ??= new System.Collections.Generic.List<PdfHeaderFooterShape>()).Add(shape.Clone());
     }
 
     internal System.Collections.Generic.List<FooterSegment> ResetFirstPageHeaderSegmentsForCompose() {
@@ -579,6 +768,11 @@ public sealed class PdfOptions {
         _footerRightFormat = null;
     }
 
+    internal void AddFooterImageForCompose(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        (_footerImages ??= new System.Collections.Generic.List<PdfHeaderFooterImage>()).Add(image.Clone());
+    }
+
     internal void SetFirstPageFooterZonesForCompose(string? left, string? center, string? right) {
         ValidateZones(left, center, right, nameof(left));
         ClearFirstPageFooterSegmentsForCompose();
@@ -595,6 +789,12 @@ public sealed class PdfOptions {
         _firstPageFooterRightFormat = null;
     }
 
+    internal void AddFirstPageFooterImageForCompose(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        DifferentFirstPageHeaderFooter = true;
+        (_firstPageFooterImages ??= new System.Collections.Generic.List<PdfHeaderFooterImage>()).Add(image.Clone());
+    }
+
     internal void SetEvenPageFooterZonesForCompose(string? left, string? center, string? right) {
         ValidateZones(left, center, right, nameof(left));
         ClearEvenPageFooterSegmentsForCompose();
@@ -609,6 +809,29 @@ public sealed class PdfOptions {
         _evenPageFooterLeftFormat = null;
         _evenPageFooterCenterFormat = null;
         _evenPageFooterRightFormat = null;
+    }
+
+    internal void AddEvenPageFooterImageForCompose(PdfHeaderFooterImage image) {
+        Guard.NotNull(image, nameof(image));
+        DifferentOddAndEvenPagesHeaderFooter = true;
+        (_evenPageFooterImages ??= new System.Collections.Generic.List<PdfHeaderFooterImage>()).Add(image.Clone());
+    }
+
+    internal void AddFooterShapeForCompose(PdfHeaderFooterShape shape) {
+        Guard.NotNull(shape, nameof(shape));
+        (_footerShapes ??= new System.Collections.Generic.List<PdfHeaderFooterShape>()).Add(shape.Clone());
+    }
+
+    internal void AddFirstPageFooterShapeForCompose(PdfHeaderFooterShape shape) {
+        Guard.NotNull(shape, nameof(shape));
+        DifferentFirstPageHeaderFooter = true;
+        (_firstPageFooterShapes ??= new System.Collections.Generic.List<PdfHeaderFooterShape>()).Add(shape.Clone());
+    }
+
+    internal void AddEvenPageFooterShapeForCompose(PdfHeaderFooterShape shape) {
+        Guard.NotNull(shape, nameof(shape));
+        DifferentOddAndEvenPagesHeaderFooter = true;
+        (_evenPageFooterShapes ??= new System.Collections.Generic.List<PdfHeaderFooterShape>()).Add(shape.Clone());
     }
 
     internal System.Collections.Generic.List<FooterSegment> ResetFirstPageFooterSegmentsForCompose() {

@@ -13,7 +13,7 @@ author: "Przemyslaw Klys"
 
 - **Lower-risk starting points for AOT-sensitive workloads:** `OfficeIMO.Markdown` and `OfficeIMO.CSV`
 - **Test carefully with your own scenarios:** `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader`
-- **Treat separately:** `OfficeIMO.Word.Pdf`, because it adds PDF/layout dependencies and host-font concerns
+- **Treat separately:** `OfficeIMO.Word.Pdf`, because PDF layout fidelity and host-font behavior need scenario validation
 
 ## What the Repo Proves Today
 
@@ -23,7 +23,7 @@ From the project files in this repository:
 - `OfficeIMO.Markdown` has no package dependencies.
 - `OfficeIMO.CSV` is also a lightweight package with no runtime-heavy dependency graph.
 - `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader` target modern TFMs but still sit on top of Open XML-oriented code paths.
-- `OfficeIMO.Word.Pdf` brings in QuestPDF and SkiaSharp.
+- `OfficeIMO.Word.Pdf` uses the first-party `OfficeIMO.Pdf` engine instead of external PDF/layout runtime packages.
 
 That means the repo supports a **strong trimming/AOT story for Markdown and CSV**, but it does **not** prove that every OfficeIMO package is uniformly NativeAOT-safe across all code paths.
 
@@ -50,7 +50,7 @@ Typical areas to test:
 
 ### PDF conversion
 
-`OfficeIMO.Word.Pdf` is cross-platform, but it is not as lightweight as the Markdown or CSV packages. It uses QuestPDF and SkiaSharp, so host fonts and platform packaging matter, especially in containers.
+`OfficeIMO.Word.Pdf` is cross-platform and now routes through the first-party PDF engine. Host fonts and document templates still matter, especially in containers, because visual PDF fidelity depends on the available font metrics and glyph coverage.
 
 ## A Reasonable Publishing Baseline
 

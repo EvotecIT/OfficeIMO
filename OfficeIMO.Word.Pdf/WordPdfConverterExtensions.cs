@@ -1,17 +1,5 @@
-using QuestPDF.Drawing;
-using QuestPDF.Fluent;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
-using SkiaSharp;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Reflection;
-#if !(NET472 || NET48 || NETSTANDARD2_0)
-using System.Runtime.Loader;
-#endif
-using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word.Pdf {
 
@@ -19,8 +7,6 @@ namespace OfficeIMO.Word.Pdf {
     /// Provides extension methods for converting <see cref="WordDocument"/> instances to PDF files.
     /// </summary>
     public static partial class WordPdfConverterExtensions {
-        static readonly Dictionary<string, string> _registeredCustomFontFamilies = new(StringComparer.OrdinalIgnoreCase);
-
         /// <summary>
         /// Saves the specified <see cref="WordDocument"/> as a PDF at the given <paramref name="path"/>.
         /// </summary>
@@ -46,14 +32,7 @@ namespace OfficeIMO.Word.Pdf {
                 Directory.CreateDirectory(directory);
             }
 
-            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
-            try {
-                Document pdf = CreatePdfDocument(document, options);
-                pdf.GeneratePdf(fullPath);
-            } finally {
-                // Restore whatever license was set before conversion across all loaded QuestPDF TFMs
-                RestoreQuestPdfLicense(originalLicense);
-            }
+            CreateOfficeIMOPdfDocument(document, options).Save(fullPath);
         }
 
         /// <summary>
@@ -75,16 +54,9 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
-            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
-            try {
-                Document pdf = CreatePdfDocument(document, options);
-                pdf.GeneratePdf(stream);
-
-                if (stream.CanSeek) {
-                    stream.Position = 0;
-                }
-            } finally {
-                RestoreQuestPdfLicense(originalLicense);
+            CreateOfficeIMOPdfDocument(document, options).Save(stream);
+            if (stream.CanSeek) {
+                stream.Position = 0;
             }
         }
 
@@ -99,16 +71,7 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
-            try {
-                using (MemoryStream stream = new MemoryStream()) {
-                    Document pdf = CreatePdfDocument(document, options);
-                    pdf.GeneratePdf(stream);
-                    return stream.ToArray();
-                }
-            } finally {
-                RestoreQuestPdfLicense(originalLicense);
-            }
+            return CreateOfficeIMOPdfDocument(document, options).ToBytes();
         }
 
         /// <summary>
@@ -123,17 +86,10 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
-            try {
-                using (MemoryStream stream = new MemoryStream()) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    Document pdf = CreatePdfDocument(document, options);
-                    await Task.Run(() => pdf.GeneratePdf(stream), cancellationToken).ConfigureAwait(false);
-                    stream.Position = 0;
-                    return stream.ToArray();
-                }
-            } finally {
-                RestoreQuestPdfLicense(originalLicense);
+            cancellationToken.ThrowIfCancellationRequested();
+            using (MemoryStream stream = new MemoryStream()) {
+                await CreateOfficeIMOPdfDocument(document, options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+                return stream.ToArray();
             }
         }
 
@@ -165,13 +121,7 @@ namespace OfficeIMO.Word.Pdf {
                 Directory.CreateDirectory(directory);
             }
 
-            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
-            try {
-                Document pdf = CreatePdfDocument(document, options);
-                await Task.Run(() => pdf.GeneratePdf(fullPath), cancellationToken).ConfigureAwait(false);
-            } finally {
-                RestoreQuestPdfLicense(originalLicense);
-            }
+            await CreateOfficeIMOPdfDocument(document, options).SaveAsync(fullPath, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -197,21 +147,10 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
-            var originalLicense = QuestPdfLicenseUtil.GetEffectiveLicenseValue();
-            try {
-                Document pdf = CreatePdfDocument(document, options);
-                await Task.Run(() => pdf.GeneratePdf(stream), cancellationToken).ConfigureAwait(false);
-                if (stream.CanSeek) {
-                    stream.Position = 0;
-                }
-            } finally {
-                RestoreQuestPdfLicense(originalLicense);
+            await CreateOfficeIMOPdfDocument(document, options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            if (stream.CanSeek) {
+                stream.Position = 0;
             }
-        }
-
-        private static void RestoreQuestPdfLicense(int? originalLicense) {
-            QuestPdfLicenseUtil.SetLicenseForAll(originalLicense);
-            QuestPDF.Settings.License = originalLicense.HasValue ? (LicenseType?) (LicenseType)originalLicense.Value : null;
         }
 
         private static string ValidateOutputPath(string path, string paramName) {
@@ -237,468 +176,5 @@ namespace OfficeIMO.Word.Pdf {
 
             return fullPath;
         }
-
-        private static Document CreatePdfDocument(WordDocument document, PdfSaveOptions? options) {
-            // Respect an existing license from any loaded QuestPDF TFM; only set when none is present
-            if (QuestPdfLicenseUtil.GetEffectiveLicenseValue() == null) {
-                var desired = options?.QuestPdfLicenseType ?? LicenseType.Community;
-                // Set on all loaded QuestPDF TFMs
-                QuestPdfLicenseUtil.SetLicenseForAll((int)desired);
-                // And set directly on the currently referenced assembly as a reliable fallback
-                QuestPDF.Settings.License = desired;
-            }
-
-            RegisterFonts(options);
-
-            BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
-            Dictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
-
-            Document pdf = Document.Create(container => {
-                foreach (WordSection section in document.Sections) {
-                    container.Page(page => {
-                        if (options?.FontFamily is { Length: > 0 } fontFamily) {
-                            page.DefaultTextStyle(t => t.FontFamily(fontFamily));
-                        }
-
-                        if (options?.MarginLeft != null || options?.MarginRight != null || options?.MarginTop != null || options?.MarginBottom != null) {
-                            float left = options.MarginLeft ?? options.Margin ?? (section.Margins.Left?.Value ?? 0) / 20f;
-                            Unit leftUnit = options.MarginLeft != null ? options.MarginLeftUnit : options.Margin != null ? options.MarginUnit : Unit.Point;
-                            float right = options.MarginRight ?? options.Margin ?? (section.Margins.Right?.Value ?? 0) / 20f;
-                            Unit rightUnit = options.MarginRight != null ? options.MarginRightUnit : options.Margin != null ? options.MarginUnit : Unit.Point;
-                            float top = options.MarginTop ?? options.Margin ?? (section.Margins.Top ?? 0) / 20f;
-                            Unit topUnit = options.MarginTop != null ? options.MarginTopUnit : options.Margin != null ? options.MarginUnit : Unit.Point;
-                            float bottom = options.MarginBottom ?? options.Margin ?? (section.Margins.Bottom ?? 0) / 20f;
-                            Unit bottomUnit = options.MarginBottom != null ? options.MarginBottomUnit : options.Margin != null ? options.MarginUnit : Unit.Point;
-
-                            page.MarginLeft(left, leftUnit);
-                            page.MarginRight(right, rightUnit);
-                            page.MarginTop(top, topUnit);
-                            page.MarginBottom(bottom, bottomUnit);
-                        } else if (options?.Margin != null) {
-                            page.Margin(options.Margin.Value, options.MarginUnit);
-                        } else {
-                            float leftMargin = (section.Margins.Left?.Value ?? 0) / 20f;
-                            float rightMargin = (section.Margins.Right?.Value ?? 0) / 20f;
-                            float topMargin = (section.Margins.Top ?? 0) / 20f;
-                            float bottomMargin = (section.Margins.Bottom ?? 0) / 20f;
-                            page.MarginLeft(leftMargin, Unit.Point);
-                            page.MarginRight(rightMargin, Unit.Point);
-                            page.MarginTop(topMargin, Unit.Point);
-                            page.MarginBottom(bottomMargin, Unit.Point);
-                        }
-
-                        PageSize size;
-                        if (options?.PageSize != null) {
-                            size = options.PageSize;
-                        } else if (section.PageSettings.PageSize.HasValue) {
-                            size = MapToPageSize(section.PageSettings.PageSize.Value);
-                        } else if (options?.DefaultPageSize.HasValue == true) {
-                            size = MapToPageSize(options.DefaultPageSize.Value);
-                        } else {
-                            size = PageSizes.A4;
-                        }
-
-                        PdfPageOrientation orientation;
-                        if (options?.Orientation != null) {
-                            orientation = options.Orientation.Value;
-                        } else if (section.PageSettings.Orientation == W.PageOrientationValues.Landscape) {
-                            orientation = PdfPageOrientation.Landscape;
-                        } else if (options?.DefaultOrientation != null) {
-                            orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
-                        } else {
-                            orientation = PdfPageOrientation.Portrait;
-                        }
-
-                        if (orientation == PdfPageOrientation.Landscape) {
-                            size = size.Landscape();
-                        } else {
-                            size = size.Portrait();
-                        }
-
-                        page.Size(size);
-
-                        List<PdfFootnote> footnotes = new();
-                        Dictionary<WordParagraph, int> footnoteMap = new();
-                        int footnoteCounter = 1;
-
-                        CollectFootnotes(section.Elements, footnotes, footnoteMap, ref footnoteCounter);
-
-                        RenderHeader(page, section, footnotes, footnoteMap);
-
-                        page.Content().Column(column => {
-                            foreach (WordElement element in section.Elements) {
-                                RenderElement(column, element, GetMarker, options, footnoteMap);
-                            }
-                        });
-
-                        RenderFooter(page, section, footnotes, footnoteMap);
-                    });
-                }
-            })
-            .WithMetadata(new DocumentMetadata {
-                Title = options?.Title ?? properties.Title,
-                Author = options?.Author ?? properties.Creator,
-                Subject = options?.Subject ?? properties.Subject,
-                Keywords = BuildKeywords(options, properties)
-            });
-
-            static string? BuildKeywords(PdfSaveOptions? opts, BuiltinDocumentProperties props) {
-                string? keys = opts?.Keywords ?? props.Keywords;
-                var fam = opts?.FontFamily;
-                if (!string.IsNullOrWhiteSpace(fam)) {
-                    keys = string.IsNullOrWhiteSpace(keys) ? fam : (keys + ";" + fam);
-                }
-                return keys;
-            }
-
-            return pdf;
-
-            (int Level, string Marker)? GetMarker(WordParagraph paragraph) {
-                if (listMarkers.TryGetValue(paragraph, out var value)) {
-                    return value;
-                }
-
-                return null;
-            }
-
-            void RenderElements(ColumnDescriptor column, IEnumerable<WordParagraph> paragraphs, IEnumerable<WordTable> tables, IEnumerable<WordImage> images, IEnumerable<WordHyperLink> links, Dictionary<WordParagraph, int> footnoteMap) {
-                foreach (WordParagraph paragraph in paragraphs) {
-                    RenderElement(column, paragraph, GetMarker, options, footnoteMap);
-                }
-
-                foreach (WordTable table in tables) {
-                    RenderElement(column, table, GetMarker, options, footnoteMap);
-                }
-
-                foreach (WordImage image in images) {
-                    RenderElement(column, image, GetMarker, options, footnoteMap);
-                }
-
-                foreach (WordHyperLink link in links) {
-                    RenderElement(column, link, GetMarker, options, footnoteMap);
-                }
-            }
-
-            void RenderHeader(PageDescriptor page, WordSection section, List<PdfFootnote> footnotes, Dictionary<WordParagraph, int> footnoteMap) {
-                if (section.Header == null) return;
-                bool hasContent =
-                    (section.Header.Default != null && (section.Header.Default.Paragraphs.Count > 0 || section.Header.Default.Tables.Count > 0 || section.Header.Default.Images.Count > 0 || section.Header.Default.HyperLinks.Count > 0)) ||
-                    (section.Header.First != null && (section.Header.First.Paragraphs.Count > 0 || section.Header.First.Tables.Count > 0 || section.Header.First.Images.Count > 0 || section.Header.First.HyperLinks.Count > 0)) ||
-                    (section.Header.Even != null && (section.Header.Even.Paragraphs.Count > 0 || section.Header.Even.Tables.Count > 0 || section.Header.Even.Images.Count > 0 || section.Header.Even.HyperLinks.Count > 0));
-                if (!hasContent) return;
-
-                page.Header().Layers(layers => {
-                    if (section.Header.Default != null && (section.Header.Default.Paragraphs.Count > 0 || section.Header.Default.Tables.Count > 0 || section.Header.Default.Images.Count > 0 || section.Header.Default.HyperLinks.Count > 0)) {
-                        layers.PrimaryLayer().ShowIf(x => (section.Header.First == null || x.PageNumber > 1) && (section.Header.Even == null || x.PageNumber % 2 == 1)).Column(col => {
-                            RenderElements(col, section.Header.Default.Paragraphs, section.Header.Default.Tables, section.Header.Default.Images, section.Header.Default.HyperLinks, footnoteMap);
-                        });
-                    }
-
-                    if (section.Header.First != null && (section.Header.First.Paragraphs.Count > 0 || section.Header.First.Tables.Count > 0 || section.Header.First.Images.Count > 0 || section.Header.First.HyperLinks.Count > 0)) {
-                        layers.Layer().ShowIf(x => x.PageNumber == 1).Column(col => {
-                            RenderElements(col, section.Header.First.Paragraphs, section.Header.First.Tables, section.Header.First.Images, section.Header.First.HyperLinks, footnoteMap);
-                        });
-                    }
-
-                    if (section.Header.Even != null && (section.Header.Even.Paragraphs.Count > 0 || section.Header.Even.Tables.Count > 0 || section.Header.Even.Images.Count > 0 || section.Header.Even.HyperLinks.Count > 0)) {
-                        layers.Layer().ShowIf(x => x.PageNumber % 2 == 0 && x.PageNumber > 1).Column(col => {
-                            RenderElements(col, section.Header.Even.Paragraphs, section.Header.Even.Tables, section.Header.Even.Images, section.Header.Even.HyperLinks, footnoteMap);
-                        });
-                    }
-                });
-            }
-
-            void RenderFooter(PageDescriptor page, WordSection section, List<PdfFootnote> footnotes, Dictionary<WordParagraph, int> footnoteMap) {
-                bool includePageNumbers = options?.IncludePageNumbers ?? true;
-                if (section.Footer == null && footnotes.Count == 0 && !includePageNumbers) {
-                    return;
-                }
-
-                bool hasContent =
-                    (section.Footer?.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0 || section.Footer.Default.Images.Count > 0 || section.Footer.Default.HyperLinks.Count > 0)) ||
-                    (section.Footer?.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0 || section.Footer.First.Images.Count > 0 || section.Footer.First.HyperLinks.Count > 0)) ||
-                    (section.Footer?.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0 || section.Footer.Even.Images.Count > 0 || section.Footer.Even.HyperLinks.Count > 0));
-
-                page.Footer().Layers(layers => {
-                    bool primaryDefined = false;
-                    if (section.Footer != null && hasContent) {
-                        if (section.Footer.Default != null && (section.Footer.Default.Paragraphs.Count > 0 || section.Footer.Default.Tables.Count > 0 || section.Footer.Default.Images.Count > 0 || section.Footer.Default.HyperLinks.Count > 0)) {
-                            layers.PrimaryLayer().ShowIf(x => (section.Footer.First == null || x.PageNumber > 1) && (section.Footer.Even == null || x.PageNumber % 2 == 1)).Column(col => {
-                                RenderElements(col, section.Footer.Default.Paragraphs, section.Footer.Default.Tables, section.Footer.Default.Images, section.Footer.Default.HyperLinks, footnoteMap);
-                            });
-                            primaryDefined = true;
-                        }
-
-                        if (section.Footer.First != null && (section.Footer.First.Paragraphs.Count > 0 || section.Footer.First.Tables.Count > 0 || section.Footer.First.Images.Count > 0 || section.Footer.First.HyperLinks.Count > 0)) {
-                            layers.Layer().ShowIf(x => x.PageNumber == 1).Column(col => {
-                                RenderElements(col, section.Footer.First.Paragraphs, section.Footer.First.Tables, section.Footer.First.Images, section.Footer.First.HyperLinks, footnoteMap);
-                            });
-                        }
-
-                        if (section.Footer.Even != null && (section.Footer.Even.Paragraphs.Count > 0 || section.Footer.Even.Tables.Count > 0 || section.Footer.Even.Images.Count > 0 || section.Footer.Even.HyperLinks.Count > 0)) {
-                            layers.Layer().ShowIf(x => x.PageNumber % 2 == 0 && x.PageNumber > 1).Column(col => {
-                                RenderElements(col, section.Footer.Even.Paragraphs, section.Footer.Even.Tables, section.Footer.Even.Images, section.Footer.Even.HyperLinks, footnoteMap);
-                            });
-                        }
-                    }
-
-                    if (!primaryDefined) {
-                        layers.PrimaryLayer();
-                    }
-
-                    if (footnotes.Count > 0) {
-                        layers.Layer().Column(col => {
-                            foreach (var fn in footnotes) {
-                                col.Item().Text($"{fn.Number}. {fn.Text}");
-                            }
-                        });
-                    }
-
-                    if (includePageNumbers) {
-                        layers.Layer().AlignRight().Text(text => {
-                            string? format = options?.PageNumberFormat;
-                            if (!string.IsNullOrWhiteSpace(format)) {
-                                var tokens = Regex.Split(format, "(\\{current\\}|\\{total\\})");
-                                foreach (string token in tokens) {
-                                    if (token == "{current}") {
-                                        text.CurrentPageNumber();
-                                    } else if (token == "{total}") {
-                                        text.TotalPages();
-                                    } else if (token.Length > 0) {
-                                        text.Span(token);
-                                    }
-                                }
-                            } else {
-                                text.CurrentPageNumber();
-                                text.Span("/");
-                                text.TotalPages();
-                            }
-                        });
-                    }
-                });
-            }
-
-            void CollectFootnotes(IEnumerable<WordElement> elements, List<PdfFootnote> footnotes, Dictionary<WordParagraph, int> footnoteMap, ref int footnoteCounter) {
-                foreach (var element in elements) {
-                    if (element is WordParagraph para) {
-                        var fn = para.FootNote;
-                        if (fn != null) {
-                            footnoteMap[para] = footnoteCounter;
-                            string text = string.Join(" ", fn.Paragraphs?.Select(p => p.Text) ?? Enumerable.Empty<string>());
-                            footnotes.Add(new PdfFootnote { Number = footnoteCounter, Text = text });
-                            footnoteCounter++;
-                        }
-                    } else if (element is WordTable t) {
-                        foreach (var row in t.Rows) {
-                            foreach (var cell in row.Cells) {
-                                CollectFootnotes(cell.Paragraphs.Cast<WordElement>(), footnotes, footnoteMap, ref footnoteCounter);
-                                CollectFootnotes(cell.NestedTables.Cast<WordElement>(), footnotes, footnoteMap, ref footnoteCounter);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Helpers to read/set QuestPDF license across all loaded TFMs (net8, net9) within the process.
-        private static class QuestPdfLicenseUtil {
-            private const string QuestPdfAssemblyName = "QuestPDF";
-            private const string SettingsTypeName = "QuestPDF.Infrastructure.Settings";
-            private const string LicensePropertyName = "License";
-
-            public static int? GetEffectiveLicenseValue() {
-                if (QuestPDF.Settings.License.HasValue) {
-                    return (int)QuestPDF.Settings.License.Value;
-                }
-
-                foreach (var asm in EnumerateQuestPdfAssemblies()) {
-                    var val = ReadLicenseFromAssembly(asm);
-                    if (val != null) return val;
-                }
-                return null;
-            }
-
-            public static void SetLicenseForAll(int? licenseValue) {
-                foreach (var asm in EnumerateQuestPdfAssemblies()) {
-                    WriteLicenseToAssembly(asm, licenseValue);
-                }
-            }
-
-            private static IEnumerable<Assembly> EnumerateQuestPdfAssemblies() {
-                // Enumerate currently loaded assemblies in the AppDomain (works on all TFMs)
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies()) {
-                    var name = asm.GetName().Name;
-                    if (string.Equals(name, QuestPdfAssemblyName, StringComparison.Ordinal)) {
-                        yield return asm;
-                    }
-                }
-#if !(NET472 || NET48 || NETSTANDARD2_0)
-                // Additionally enumerate across AssemblyLoadContexts when available
-                foreach (var alc in AssemblyLoadContext.All) {
-                    foreach (var asm in alc.Assemblies) {
-                        var name = asm.GetName().Name;
-                        if (string.Equals(name, QuestPdfAssemblyName, StringComparison.Ordinal)) {
-                            yield return asm;
-                        }
-                    }
-                }
-#endif
-            }
-
-            private static int? ReadLicenseFromAssembly(Assembly asm) {
-                var settingsType = asm.GetType(SettingsTypeName);
-                if (settingsType == null) return null;
-                var prop = settingsType.GetProperty(LicensePropertyName, BindingFlags.Public | BindingFlags.Static);
-                if (prop == null) return null;
-                var val = prop.GetValue(null);
-                if (val == null) return null;
-                // val is an enum boxed from that asm; convert to int
-                try { return Convert.ToInt32(val); } catch { return null; }
-            }
-
-            private static void WriteLicenseToAssembly(Assembly asm, int? licenseValue) {
-                var settingsType = asm.GetType(SettingsTypeName);
-                if (settingsType == null) return;
-                var prop = settingsType.GetProperty(LicensePropertyName, BindingFlags.Public | BindingFlags.Static);
-                if (prop == null) return;
-                if (licenseValue == null) {
-                    prop.SetValue(null, null);
-                    return;
-                }
-                var enumType = settingsType.Assembly.GetType("QuestPDF.Infrastructure.LicenseType");
-                if (enumType == null) return;
-                var boxed = Enum.ToObject(enumType, licenseValue.Value);
-                prop.SetValue(null, boxed);
-            }
-        }
-
-        private static void RegisterFonts(PdfSaveOptions? options) {
-            if (options?.FontFilePaths != null) {
-                foreach (var kvp in options.FontFilePaths) {
-                    if (string.IsNullOrWhiteSpace(kvp.Key) || string.IsNullOrWhiteSpace(kvp.Value)) {
-                        continue;
-                    }
-                    if (!File.Exists(kvp.Value)) {
-                        continue;
-                    }
-
-                    using var stream = File.OpenRead(kvp.Value);
-                    TryRegisterFontWithAliases(kvp.Key, stream, kvp.Value);
-                }
-            }
-
-            if (options?.FontStreams != null) {
-                foreach (var kvp in options.FontStreams) {
-                    if (string.IsNullOrWhiteSpace(kvp.Key) || kvp.Value == null) {
-                        continue;
-                    }
-                    if (_embeddedFonts.Contains(kvp.Key)) {
-                        continue;
-                    }
-
-                    Stream stream = kvp.Value;
-                    try {
-                        if (stream.CanSeek) {
-                            stream.Position = 0;
-                        }
-                        TryRegisterFontWithAliases(kvp.Key, stream);
-                    } finally {
-                        if (stream.CanSeek) {
-                            stream.Position = 0;
-                        }
-                    }
-                }
-            }
-        }
-
-        private static void TryRegisterFontWithAliases(string alias, Stream stream, string? sourcePath = null) {
-            byte[] bytes;
-            using (MemoryStream ms = new()) {
-                stream.CopyTo(ms);
-                bytes = ms.ToArray();
-            }
-
-            if (bytes.Length == 0) {
-                return;
-            }
-
-            RegisterFontData(alias, bytes);
-
-            string? family = TryReadFontFamily(sourcePath, bytes);
-            if (string.IsNullOrWhiteSpace(family)) {
-                return;
-            }
-
-            string familyName = family ?? string.Empty;
-            if (familyName.Length == 0) {
-                return;
-            }
-
-            _registeredCustomFontFamilies[alias] = familyName;
-            if (!string.Equals(alias, familyName, StringComparison.OrdinalIgnoreCase)) {
-                RegisterFontData(familyName, bytes);
-            }
-        }
-
-        private static void RegisterFontData(string fontName, byte[] bytes) {
-            if (string.IsNullOrWhiteSpace(fontName) || _embeddedFonts.Contains(fontName)) {
-                return;
-            }
-
-            using MemoryStream ms = new(bytes, writable: false);
-            FontManager.RegisterFontWithCustomName(fontName, ms);
-            _embeddedFonts.Add(fontName);
-        }
-
-        private static string? ResolveRegisteredFontFamily(string? fontName) {
-            if (string.IsNullOrWhiteSpace(fontName)) {
-                return fontName;
-            }
-
-            string key = fontName ?? string.Empty;
-            if (key.Length == 0) {
-                return fontName;
-            }
-
-            if (_registeredCustomFontFamilies.TryGetValue(key, out var family) &&
-                !string.IsNullOrWhiteSpace(family)) {
-                return family;
-            }
-
-            return key;
-        }
-
-        private static string? TryReadFontFamily(string? sourcePath, byte[] bytes) {
-            try {
-                if (!string.IsNullOrWhiteSpace(sourcePath) && File.Exists(sourcePath)) {
-                    using SKTypeface? fileTypeface = SKTypeface.FromFile(sourcePath);
-                    string? familyName = fileTypeface?.FamilyName;
-                    if (!string.IsNullOrWhiteSpace(familyName)) {
-                        return familyName;
-                    }
-                }
-
-                using MemoryStream ms = new(bytes, writable: false);
-                using SKManagedStream skStream = new(ms);
-                using SKTypeface? typeface = SKTypeface.FromStream(skStream);
-                string? streamFamilyName = typeface?.FamilyName;
-                if (!string.IsNullOrWhiteSpace(streamFamilyName)) {
-                    return streamFamilyName;
-                }
-            } catch {
-            }
-
-            return DeriveFontFamilyFromPath(sourcePath);
-        }
-
-        private static string? DeriveFontFamilyFromPath(string? sourcePath) {
-            if (string.IsNullOrWhiteSpace(sourcePath)) {
-                return null;
-            }
-
-            string familyName = Path.GetFileNameWithoutExtension(sourcePath);
-            return string.IsNullOrWhiteSpace(familyName) ? null : familyName;
-        }
-
     }
 }

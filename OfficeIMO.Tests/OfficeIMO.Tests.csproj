@@ -37,6 +37,7 @@
         <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer.IntelligenceX\\OfficeIMO.MarkdownRenderer.IntelligenceX.csproj" />
         <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer.SamplePlugin\\OfficeIMO.MarkdownRenderer.SamplePlugin.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Excel.Pdf\\OfficeIMO.Excel.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.GoogleSheets\\OfficeIMO.Excel.GoogleSheets.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.GoogleDocs\\OfficeIMO.Word.GoogleDocs.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader\\OfficeIMO.Reader.csproj" />
@@ -92,9 +93,5 @@
   <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' == 'false' ">
     <RestoreAdditionalProjectFallbackFolders></RestoreAdditionalProjectFallbackFolders>
   </PropertyGroup>
-
-  <Target Name="RemoveStaleQuestPdfSkia" AfterTargets="Build">
-    <Delete Files="$(TargetDir)QuestPdfSkia.dll" Condition="Exists('$(TargetDir)QuestPdfSkia.dll')" />
-  </Target>
 
 </Project>

@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Description>PDF converter for OfficeIMO.Word - Export Word documents to PDF using QuestPDF</Description>
+    <Description>PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.</Description>
     <PackageId>OfficeIMO.Word.Pdf</PackageId>
     <AssemblyName>OfficeIMO.Word.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.Word.Pdf</AssemblyTitle>
@@ -10,7 +10,7 @@
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
-    <PackageTags>pdf;openxml;office;docx;questpdf;skiasharp</PackageTags>
+    <PackageTags>pdf;openxml;office;docx;officeimo-pdf</PackageTags>
     <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
@@ -33,15 +33,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Update="WordPdfConverterExtensions.Tables.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="QuestPDF" Version="2026.5.0" />
-    <PackageReference Include="SkiaSharp" Version="3.119.4" />
-  </ItemGroup>
   <ItemGroup>
     <Using Include="System" />
     <Using Include="System.IO" />
@@ -51,7 +45,4 @@
     <InternalsVisibleTo Include="OfficeIMO.Tests" />
   </ItemGroup>
 
-  <Target Name="RemoveStaleQuestPdfSkia" AfterTargets="Build">
-    <Delete Files="$(TargetDir)QuestPdfSkia.dll" Condition="Exists('$(TargetDir)QuestPdfSkia.dll')" />
-  </Target>
 </Project>

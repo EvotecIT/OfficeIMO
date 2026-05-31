@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using System.Globalization;
+using System.Xml.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -22,6 +23,30 @@ namespace OfficeIMO.Excel {
             public string FooterCenter { get; set; } = string.Empty;
             /// <summary>Right section text of the footer (odd pages).</summary>
             public string FooterRight { get; set; } = string.Empty;
+            /// <summary>Left section text of the header (first page).</summary>
+            public string FirstHeaderLeft { get; set; } = string.Empty;
+            /// <summary>Center section text of the header (first page).</summary>
+            public string FirstHeaderCenter { get; set; } = string.Empty;
+            /// <summary>Right section text of the header (first page).</summary>
+            public string FirstHeaderRight { get; set; } = string.Empty;
+            /// <summary>Left section text of the footer (first page).</summary>
+            public string FirstFooterLeft { get; set; } = string.Empty;
+            /// <summary>Center section text of the footer (first page).</summary>
+            public string FirstFooterCenter { get; set; } = string.Empty;
+            /// <summary>Right section text of the footer (first page).</summary>
+            public string FirstFooterRight { get; set; } = string.Empty;
+            /// <summary>Left section text of the header (even pages).</summary>
+            public string EvenHeaderLeft { get; set; } = string.Empty;
+            /// <summary>Center section text of the header (even pages).</summary>
+            public string EvenHeaderCenter { get; set; } = string.Empty;
+            /// <summary>Right section text of the header (even pages).</summary>
+            public string EvenHeaderRight { get; set; } = string.Empty;
+            /// <summary>Left section text of the footer (even pages).</summary>
+            public string EvenFooterLeft { get; set; } = string.Empty;
+            /// <summary>Center section text of the footer (even pages).</summary>
+            public string EvenFooterCenter { get; set; } = string.Empty;
+            /// <summary>Right section text of the footer (even pages).</summary>
+            public string EvenFooterRight { get; set; } = string.Empty;
             /// <summary>First page has different header/footer.</summary>
             public bool DifferentFirstPage { get; set; }
             /// <summary>Odd and even pages have different headers/footers.</summary>
@@ -30,6 +55,42 @@ namespace OfficeIMO.Excel {
             public bool HeaderHasPicturePlaceholder { get; set; }
             /// <summary>True if any footer section contains the picture placeholder (&amp;G).</summary>
             public bool FooterHasPicturePlaceholder { get; set; }
+            /// <summary>Left section image of the header (odd pages), when available.</summary>
+            public HeaderFooterImageSnapshot? HeaderLeftImage { get; set; }
+            /// <summary>Center section image of the header (odd pages), when available.</summary>
+            public HeaderFooterImageSnapshot? HeaderCenterImage { get; set; }
+            /// <summary>Right section image of the header (odd pages), when available.</summary>
+            public HeaderFooterImageSnapshot? HeaderRightImage { get; set; }
+            /// <summary>Left section image of the footer (odd pages), when available.</summary>
+            public HeaderFooterImageSnapshot? FooterLeftImage { get; set; }
+            /// <summary>Center section image of the footer (odd pages), when available.</summary>
+            public HeaderFooterImageSnapshot? FooterCenterImage { get; set; }
+            /// <summary>Right section image of the footer (odd pages), when available.</summary>
+            public HeaderFooterImageSnapshot? FooterRightImage { get; set; }
+        }
+
+        /// <summary>
+        /// Snapshot of an Excel header/footer image.
+        /// </summary>
+        public sealed class HeaderFooterImageSnapshot {
+            internal HeaderFooterImageSnapshot(HeaderFooterPosition position, byte[] bytes, string contentType, double widthPoints, double heightPoints) {
+                Position = position;
+                Bytes = bytes;
+                ContentType = contentType;
+                WidthPoints = widthPoints;
+                HeightPoints = heightPoints;
+            }
+
+            /// <summary>Header/footer section position.</summary>
+            public HeaderFooterPosition Position { get; }
+            /// <summary>Image bytes.</summary>
+            public byte[] Bytes { get; }
+            /// <summary>Image content type, such as image/png or image/jpeg.</summary>
+            public string ContentType { get; }
+            /// <summary>Image width in points.</summary>
+            public double WidthPoints { get; }
+            /// <summary>Image height in points.</summary>
+            public double HeightPoints { get; }
         }
 
         internal static string NormalizeImageContentType(string? contentType, string parameterName) {
@@ -52,44 +113,29 @@ namespace OfficeIMO.Excel {
             var hf = ws.GetFirstChild<HeaderFooter>();
             string oddHeader = hf?.OddHeader?.Text ?? string.Empty;
             string oddFooter = hf?.OddFooter?.Text ?? string.Empty;
+            string firstHeader = hf?.FirstHeader?.Text ?? string.Empty;
+            string firstFooter = hf?.FirstFooter?.Text ?? string.Empty;
+            string evenHeader = hf?.EvenHeader?.Text ?? string.Empty;
+            string evenFooter = hf?.EvenFooter?.Text ?? string.Empty;
 
-            (string L, string C, string R) Parse(string text) {
-                string l = string.Empty, c = string.Empty, r = string.Empty;
-                if (string.IsNullOrEmpty(text)) return (l, c, r);
-                int i = 0;
-                while (i < text.Length) {
-                    char ch = text[i++];
-                    if (ch == '&' && i < text.Length) {
-                        char sec = text[i++];
-                        if (sec == 'L' || sec == 'C' || sec == 'R') {
-                            var sb = new StringBuilder();
-                            while (i < text.Length) {
-                                if (text[i] == '&' && i + 1 < text.Length) {
-                                    char nxt = text[i + 1];
-                                    if (nxt == 'L' || nxt == 'C' || nxt == 'R') break;
-                                }
-                                sb.Append(text[i++]);
-                            }
-                            string val = sb.ToString();
-                            if (sec == 'L') l = val; else if (sec == 'C') c = val; else r = val;
-                        }
-                    }
-                }
-                return (l ?? string.Empty, c ?? string.Empty, r ?? string.Empty);
-            }
+            var (hl, hc, hr) = ParseHeaderFooterSections(oddHeader);
+            var (fl, fc, fr) = ParseHeaderFooterSections(oddFooter);
+            var (fhl, fhc, fhr) = ParseHeaderFooterSections(firstHeader);
+            var (ffl, ffc, ffr) = ParseHeaderFooterSections(firstFooter);
+            var (ehl, ehc, ehr) = ParseHeaderFooterSections(evenHeader);
+            var (efl, efc, efr) = ParseHeaderFooterSections(evenFooter);
 
-            var (hl, hc, hr) = Parse(oddHeader);
-            var (fl, fc, fr) = Parse(oddFooter);
-
-            // If &G is missing from the text, but a LegacyDrawingHeaderFooter part exists,
-            // treat it as picture-present (defensive for files where tokens were stripped).
-            bool hasHeaderImageRel = false, hasFooterImageRel = false;
+            Dictionary<string, HeaderFooterImageSnapshot> imagesByShapeId = ReadHeaderFooterImages();
+            bool hasHeaderImageRel = imagesByShapeId.ContainsKey("LH") || imagesByShapeId.ContainsKey("CH") || imagesByShapeId.ContainsKey("RH");
+            bool hasFooterImageRel = imagesByShapeId.ContainsKey("LF") || imagesByShapeId.ContainsKey("CF") || imagesByShapeId.ContainsKey("RF");
             try {
                 var legacy = WorksheetRoot.GetFirstChild<LegacyDrawingHeaderFooter>();
                 if (legacy?.Id?.Value is string relId && !string.IsNullOrEmpty(relId)) {
                     var part = _worksheetPart.GetPartById(relId);
-                    hasHeaderImageRel = part is VmlDrawingPart; // both header/footer share the same VML part
-                    hasFooterImageRel = hasHeaderImageRel;
+                    if (part is VmlDrawingPart && imagesByShapeId.Count == 0) {
+                        hasHeaderImageRel = true; // defensive for files where VML exists but cannot be parsed.
+                        hasFooterImageRel = true;
+                    }
                 }
             } catch { /* ignore */ }
 
@@ -100,12 +146,182 @@ namespace OfficeIMO.Excel {
                 FooterLeft = fl,
                 FooterCenter = fc,
                 FooterRight = fr,
+                FirstHeaderLeft = fhl,
+                FirstHeaderCenter = fhc,
+                FirstHeaderRight = fhr,
+                FirstFooterLeft = ffl,
+                FirstFooterCenter = ffc,
+                FirstFooterRight = ffr,
+                EvenHeaderLeft = ehl,
+                EvenHeaderCenter = ehc,
+                EvenHeaderRight = ehr,
+                EvenFooterLeft = efl,
+                EvenFooterCenter = efc,
+                EvenFooterRight = efr,
                 DifferentFirstPage = hf?.DifferentFirst?.Value ?? false,
                 DifferentOddEven = hf?.DifferentOddEven?.Value ?? false,
                 HeaderHasPicturePlaceholder = (hl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasHeaderImageRel,
-                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasFooterImageRel
+                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasFooterImageRel,
+                HeaderLeftImage = imagesByShapeId.TryGetValue("LH", out var headerLeftImage) ? headerLeftImage : null,
+                HeaderCenterImage = imagesByShapeId.TryGetValue("CH", out var headerCenterImage) ? headerCenterImage : null,
+                HeaderRightImage = imagesByShapeId.TryGetValue("RH", out var headerRightImage) ? headerRightImage : null,
+                FooterLeftImage = imagesByShapeId.TryGetValue("LF", out var footerLeftImage) ? footerLeftImage : null,
+                FooterCenterImage = imagesByShapeId.TryGetValue("CF", out var footerCenterImage) ? footerCenterImage : null,
+                FooterRightImage = imagesByShapeId.TryGetValue("RF", out var footerRightImage) ? footerRightImage : null
             };
         }
+
+        private Dictionary<string, HeaderFooterImageSnapshot> ReadHeaderFooterImages() {
+            var images = new Dictionary<string, HeaderFooterImageSnapshot>(StringComparer.OrdinalIgnoreCase);
+            VmlDrawingPart? vmlPart = null;
+            try {
+                var legacy = WorksheetRoot.GetFirstChild<LegacyDrawingHeaderFooter>();
+                if (legacy?.Id?.Value is string relId && !string.IsNullOrWhiteSpace(relId)) {
+                    vmlPart = _worksheetPart.GetPartById(relId) as VmlDrawingPart;
+                }
+            } catch {
+                return images;
+            }
+
+            if (vmlPart == null) {
+                return images;
+            }
+
+            XDocument vmlDocument;
+            try {
+                using Stream stream = vmlPart.GetStream(FileMode.Open, FileAccess.Read);
+                vmlDocument = XDocument.Load(stream);
+            } catch {
+                return images;
+            }
+
+            foreach (XElement shape in vmlDocument.Descendants().Where(element => string.Equals(element.Name.LocalName, "shape", StringComparison.OrdinalIgnoreCase))) {
+                string? shapeId = shape.Attribute("id")?.Value;
+                if (string.IsNullOrWhiteSpace(shapeId) || !TryGetHeaderFooterPosition(shapeId!, out bool isHeader, out HeaderFooterPosition position)) {
+                    continue;
+                }
+
+                XElement? imageData = shape.Descendants().FirstOrDefault(element => string.Equals(element.Name.LocalName, "imagedata", StringComparison.OrdinalIgnoreCase));
+                if (imageData == null) {
+                    continue;
+                }
+
+                string? relationshipId = imageData.Attributes().FirstOrDefault(attribute =>
+                    string.Equals(attribute.Name.LocalName, "id", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(attribute.Name.LocalName, "relid", StringComparison.OrdinalIgnoreCase))?.Value;
+                if (string.IsNullOrWhiteSpace(relationshipId)) {
+                    continue;
+                }
+
+                if (TryReadHeaderFooterImage(vmlPart, relationshipId!, shape.Attribute("style")?.Value, position, out HeaderFooterImageSnapshot? image)) {
+                    images[shapeId!] = image!;
+                }
+            }
+
+            return images;
+        }
+
+        private static bool TryReadHeaderFooterImage(VmlDrawingPart vmlPart, string relationshipId, string? style, HeaderFooterPosition position, out HeaderFooterImageSnapshot? image) {
+            image = null;
+            ImagePart imagePart;
+            try {
+                if (vmlPart.GetPartById(relationshipId) is not ImagePart part) {
+                    return false;
+                }
+
+                imagePart = part;
+            } catch {
+                return false;
+            }
+
+            byte[] bytes;
+            using (Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read))
+            using (var destination = new MemoryStream()) {
+                source.CopyTo(destination);
+                bytes = destination.ToArray();
+            }
+
+            if (bytes.Length == 0) {
+                return false;
+            }
+
+            double widthPoints = TryReadStylePoints(style, "width") ?? 0D;
+            double heightPoints = TryReadStylePoints(style, "height") ?? 0D;
+            if (widthPoints <= 0D || heightPoints <= 0D) {
+                try {
+                    var info = OfficeImageReader.Identify(bytes);
+                    if (widthPoints <= 0D) {
+                        widthPoints = info.Width * 72D / info.DpiX;
+                    }
+
+                    if (heightPoints <= 0D) {
+                        heightPoints = info.Height * 72D / info.DpiY;
+                    }
+                } catch {
+                    widthPoints = widthPoints <= 0D ? 144D : widthPoints;
+                    heightPoints = heightPoints <= 0D ? 48D : heightPoints;
+                }
+            }
+
+            image = new HeaderFooterImageSnapshot(position, bytes, imagePart.ContentType, widthPoints, heightPoints);
+            return true;
+        }
+
+        private static double? TryReadStylePoints(string? style, string propertyName) {
+            if (string.IsNullOrWhiteSpace(style)) {
+                return null;
+            }
+
+            string prefix = propertyName + ":";
+            foreach (string segment in style!.Split(';')) {
+                string trimmed = segment.Trim();
+                if (!trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                string value = trimmed.Substring(prefix.Length).Trim();
+                if (value.EndsWith("pt", StringComparison.OrdinalIgnoreCase)) {
+                    value = value.Substring(0, value.Length - 2).Trim();
+                }
+
+                if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double points) && points > 0D) {
+                    return points;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool TryGetHeaderFooterPosition(string shapeId, out bool isHeader, out HeaderFooterPosition position) {
+            isHeader = false;
+            position = HeaderFooterPosition.Left;
+            switch (shapeId.ToUpperInvariant()) {
+                case "LH":
+                    isHeader = true;
+                    position = HeaderFooterPosition.Left;
+                    return true;
+                case "CH":
+                    isHeader = true;
+                    position = HeaderFooterPosition.Center;
+                    return true;
+                case "RH":
+                    isHeader = true;
+                    position = HeaderFooterPosition.Right;
+                    return true;
+                case "LF":
+                    position = HeaderFooterPosition.Left;
+                    return true;
+                case "CF":
+                    position = HeaderFooterPosition.Center;
+                    return true;
+                case "RF":
+                    position = HeaderFooterPosition.Right;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>
         /// Sets the header and/or footer text for this worksheet.
         /// </summary>
@@ -149,16 +365,8 @@ namespace OfficeIMO.Excel {
                 hf.AlignWithMargins = alignWithMargins ? true : (bool?)null;
                 hf.ScaleWithDoc = scaleWithDoc ? true : (bool?)null;
 
-                string? Build(string? left, string? center, string? right) {
-                    var sb = new StringBuilder();
-                    if (!string.IsNullOrEmpty(left)) sb.Append("&L").Append(EscapeHeaderFooter(left));
-                    if (!string.IsNullOrEmpty(center)) sb.Append("&C").Append(EscapeHeaderFooter(center));
-                    if (!string.IsNullOrEmpty(right)) sb.Append("&R").Append(EscapeHeaderFooter(right));
-                    return sb.Length == 0 ? null : sb.ToString();
-                }
-
-                var oddHeader = Build(headerLeft, headerCenter, headerRight);
-                var oddFooter = Build(footerLeft, footerCenter, footerRight);
+                var oddHeader = BuildHeaderFooterSections(headerLeft, headerCenter, headerRight);
+                var oddFooter = BuildHeaderFooterSections(footerLeft, footerCenter, footerRight);
 
                 if (oddHeader != null) hf.OddHeader = new OddHeader(oddHeader); else hf.OddHeader = null;
                 if (oddFooter != null) hf.OddFooter = new OddFooter(oddFooter); else hf.OddFooter = null;
@@ -181,6 +389,122 @@ namespace OfficeIMO.Excel {
                 CleanupHeaderFooterPictureArtifacts();
                 ws.Save();
             });
+        }
+
+        /// <summary>
+        /// Sets a first-page header and/or footer variant for this worksheet.
+        /// </summary>
+        public void SetFirstPageHeaderFooter(
+            string? headerLeft = null,
+            string? headerCenter = null,
+            string? headerRight = null,
+            string? footerLeft = null,
+            string? footerCenter = null,
+            string? footerRight = null,
+            bool enabled = true) {
+            WriteLock(() => {
+                HeaderFooter hf = EnsureHeaderFooter();
+                hf.DifferentFirst = enabled ? true : (bool?)null;
+                hf.FirstHeader = enabled ? BuildHeaderFooterSections(headerLeft, headerCenter, headerRight) is string header ? new FirstHeader(header) : null : null;
+                hf.FirstFooter = enabled ? BuildHeaderFooterSections(footerLeft, footerCenter, footerRight) is string footer ? new FirstFooter(footer) : null : null;
+                CleanupHeaderFooterPictureArtifacts();
+                WorksheetRoot.Save();
+            });
+        }
+
+        /// <summary>
+        /// Sets an even-page header and/or footer variant for this worksheet.
+        /// </summary>
+        public void SetEvenPageHeaderFooter(
+            string? headerLeft = null,
+            string? headerCenter = null,
+            string? headerRight = null,
+            string? footerLeft = null,
+            string? footerCenter = null,
+            string? footerRight = null,
+            bool enabled = true) {
+            WriteLock(() => {
+                HeaderFooter hf = EnsureHeaderFooter();
+                hf.DifferentOddEven = enabled ? true : (bool?)null;
+                hf.EvenHeader = enabled ? BuildHeaderFooterSections(headerLeft, headerCenter, headerRight) is string header ? new EvenHeader(header) : null : null;
+                hf.EvenFooter = enabled ? BuildHeaderFooterSections(footerLeft, footerCenter, footerRight) is string footer ? new EvenFooter(footer) : null : null;
+                CleanupHeaderFooterPictureArtifacts();
+                WorksheetRoot.Save();
+            });
+        }
+
+        private HeaderFooter EnsureHeaderFooter() {
+            var ws = WorksheetRoot;
+            var hf = ws.GetFirstChild<HeaderFooter>();
+            if (hf != null) {
+                return hf;
+            }
+
+            hf = new HeaderFooter();
+            var drawing = ws.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Drawing>();
+            if (drawing != null) {
+                ws.InsertBefore(hf, drawing);
+            } else {
+                var after = ws.GetFirstChild<PageSetup>();
+                if (after != null) {
+                    ws.InsertAfter(hf, after);
+                } else {
+                    ws.Append(hf);
+                }
+            }
+
+            return hf;
+        }
+
+        private static (string L, string C, string R) ParseHeaderFooterSections(string text) {
+            string left = string.Empty, center = string.Empty, right = string.Empty;
+            if (string.IsNullOrEmpty(text)) {
+                return (left, center, right);
+            }
+
+            int i = 0;
+            while (i < text.Length) {
+                char ch = text[i++];
+                if (ch != '&' || i >= text.Length) {
+                    continue;
+                }
+
+                char section = text[i++];
+                if (section != 'L' && section != 'C' && section != 'R') {
+                    continue;
+                }
+
+                var builder = new StringBuilder();
+                while (i < text.Length) {
+                    if (text[i] == '&' && i + 1 < text.Length) {
+                        char next = text[i + 1];
+                        if (next == 'L' || next == 'C' || next == 'R') {
+                            break;
+                        }
+                    }
+
+                    builder.Append(text[i++]);
+                }
+
+                string value = builder.ToString();
+                if (section == 'L') {
+                    left = value;
+                } else if (section == 'C') {
+                    center = value;
+                } else {
+                    right = value;
+                }
+            }
+
+            return (left, center, right);
+        }
+
+        private static string? BuildHeaderFooterSections(string? left, string? center, string? right) {
+            var builder = new StringBuilder();
+            if (!string.IsNullOrEmpty(left)) builder.Append("&L").Append(EscapeHeaderFooter(left));
+            if (!string.IsNullOrEmpty(center)) builder.Append("&C").Append(EscapeHeaderFooter(center));
+            if (!string.IsNullOrEmpty(right)) builder.Append("&R").Append(EscapeHeaderFooter(right));
+            return builder.Length == 0 ? null : builder.ToString();
         }
 
         /// <summary>
@@ -249,7 +573,8 @@ namespace OfficeIMO.Excel {
                     case 'D':
                     case 'T':
                     case 'A':
-                    case 'F': // page, pages, date, time, sheet, file
+                    case 'F':
+                    case 'Z': // page, pages, date, time, sheet, file, path
                     case 'G': // picture placeholder
                     case 'K': // color: &Krrggbb
                     case 'B':

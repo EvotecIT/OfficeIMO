@@ -164,7 +164,7 @@ namespace OfficeIMO.Excel {
             return descriptors;
         }
 
-        private static ExcelChartType InferChartType(PlotArea plotArea) {
+        internal static ExcelChartType InferChartType(PlotArea plotArea) {
             if (plotArea.GetFirstChild<BarChart>() is BarChart barChart) {
                 BarDirectionValues direction = barChart.GetFirstChild<BarDirection>()?.Val ?? BarDirectionValues.Column;
                 BarGroupingValues grouping = barChart.GetFirstChild<BarGrouping>()?.Val ?? BarGroupingValues.Clustered;

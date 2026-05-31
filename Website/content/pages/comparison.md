@@ -52,7 +52,7 @@ OfficeIMO does **not** have one uniform AOT story across every package.
 
 - `OfficeIMO.Markdown` and `OfficeIMO.CSV` are the most AOT-friendly packages in the repo.
 - `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader` depend on Open XML-based code paths and should be tested with your actual `PublishAot` or trimming scenario.
-- `OfficeIMO.Word.Pdf` also adds QuestPDF/SkiaSharp and should be validated on the target OS with the fonts you plan to ship.
+- `OfficeIMO.Word.Pdf` uses the first-party `OfficeIMO.Pdf` engine, but PDF output should still be validated on the target OS with the fonts and templates you plan to ship.
 
 ## Reader and Automation Differentiators
 

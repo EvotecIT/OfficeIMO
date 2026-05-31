@@ -24,6 +24,15 @@ public class PdfRowCompose {
         return this;
     }
 
+    /// <summary>Draws a vertical separator line between columns in this row.</summary>
+    public PdfRowCompose ColumnSeparator(PdfColor color, double width = 0.5D) {
+        var style = _row.Style ?? new PdfRowStyle();
+        style.ColumnSeparatorColor = color;
+        style.ColumnSeparatorWidth = width;
+        _row.SetStyle(style);
+        return this;
+    }
+
     /// <summary>Adds a column with the given width percentage.</summary>
     public PdfRowCompose Column(double widthPercent, System.Action<PdfRowColumnCompose> build) {
         Guard.NotNull(build, nameof(build));

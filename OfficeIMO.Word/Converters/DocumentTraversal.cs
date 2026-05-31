@@ -19,12 +19,16 @@ namespace OfficeIMO.Word {
             /// <param name="start">Starting index for the list.</param>
             /// <param name="format">Numbering format for the list.</param>
             /// <param name="text">Raw text pattern defining the marker.</param>
-            public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text) {
+            /// <param name="leftIndentTwips">List text position in twentieths of a point, when defined.</param>
+            /// <param name="hangingIndentTwips">List marker hanging indentation in twentieths of a point, when defined.</param>
+            public ListInfo(int level, bool ordered, int start, NumberFormatValues? format, string? text, int? leftIndentTwips = null, int? hangingIndentTwips = null) {
                 Level = level;
                 Ordered = ordered;
                 Start = start;
                 NumberFormat = format;
                 LevelText = text;
+                LeftIndentTwips = leftIndentTwips;
+                HangingIndentTwips = hangingIndentTwips;
             }
 
             /// <summary>Zero-based nesting level.</summary>
@@ -37,6 +41,10 @@ namespace OfficeIMO.Word {
             public NumberFormatValues? NumberFormat { get; }
             /// <summary>Pattern used to build the list marker.</summary>
             public string? LevelText { get; }
+            /// <summary>List text position in twentieths of a point, when defined.</summary>
+            public int? LeftIndentTwips { get; }
+            /// <summary>List marker hanging indentation in twentieths of a point, when defined.</summary>
+            public int? HangingIndentTwips { get; }
         }
 
         /// <summary>
@@ -61,6 +69,8 @@ namespace OfficeIMO.Word {
             int start = 1;
             NumberFormatValues? numberFormat = null;
             string? levelText = null;
+            int? leftIndentTwips = null;
+            int? hangingIndentTwips = null;
 
             int? numberId = paragraph._listNumberId;
             var list = numberId.HasValue ? paragraph._document?.Lists.FirstOrDefault(l => l._numberId == numberId) : null;
@@ -96,6 +106,9 @@ namespace OfficeIMO.Word {
                 }
                 numberFormat = wordLevel._level.NumberingFormat?.Val?.Value;
                 levelText = wordLevel.LevelText;
+                var indentation = wordLevel._level.GetFirstChild<PreviousParagraphProperties>()?.GetFirstChild<Indentation>();
+                leftIndentTwips = ParseOptionalInt32(indentation?.Left?.Value);
+                hangingIndentTwips = ParseOptionalInt32(indentation?.Hanging?.Value);
             }
 
             bool ordered = paragraph.ListStyle switch {
@@ -103,7 +116,11 @@ namespace OfficeIMO.Word {
                 WordListStyle.BulletedChars => false,
                 _ => true,
             };
-            return new ListInfo(level, ordered, start, numberFormat, levelText);
+            return new ListInfo(level, ordered, start, numberFormat, levelText, leftIndentTwips, hangingIndentTwips);
+        }
+
+        private static int? ParseOptionalInt32(string? value) {
+            return int.TryParse(value, out int parsed) ? parsed : null;
         }
 
         /// <summary>

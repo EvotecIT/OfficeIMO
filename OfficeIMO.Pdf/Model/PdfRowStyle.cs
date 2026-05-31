@@ -10,6 +10,7 @@ public sealed class PdfRowStyle {
     private double? _gap;
     private double _spacingBefore;
     private double _spacingAfter;
+    private double _columnSeparatorWidth;
 
     /// <summary>Horizontal gutter between row columns, in points. When null the row uses its explicit gap or the built-in Word-like gutter.</summary>
     public double? Gap {
@@ -38,6 +39,18 @@ public sealed class PdfRowStyle {
         }
     }
 
+    /// <summary>Optional vertical separator color drawn between row columns.</summary>
+    public PdfColor? ColumnSeparatorColor { get; set; }
+
+    /// <summary>Vertical separator line width, in points. A non-positive width disables separator drawing.</summary>
+    public double ColumnSeparatorWidth {
+        get => _columnSeparatorWidth;
+        set {
+            ValidateNonNegativeFiniteValue(value, nameof(ColumnSeparatorWidth), "Row column separator width must be a non-negative finite value.");
+            _columnSeparatorWidth = value;
+        }
+    }
+
     /// <summary>When true, the row moves to the next page instead of splitting across pages.</summary>
     public bool KeepTogether { get; set; }
 
@@ -50,6 +63,8 @@ public sealed class PdfRowStyle {
             Gap = Gap,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
+            ColumnSeparatorColor = ColumnSeparatorColor,
+            ColumnSeparatorWidth = ColumnSeparatorWidth,
             KeepTogether = KeepTogether,
             KeepWithNext = KeepWithNext
         };

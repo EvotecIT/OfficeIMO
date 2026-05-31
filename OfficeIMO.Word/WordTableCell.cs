@@ -93,6 +93,74 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets the number of logical columns occupied by this cell.
+        /// </summary>
+        public int ColumnSpan {
+            get {
+                int? gridSpan = _tableCellProperties?.GetFirstChild<GridSpan>()?.Val?.Value;
+                if (gridSpan.HasValue && gridSpan.Value > 1) {
+                    return gridSpan.Value;
+                }
+
+                if (HorizontalMerge != MergedCellValues.Restart) {
+                    return 1;
+                }
+
+                List<WordTableCell> cells = Parent.Cells;
+                int columnIndex = cells.FindIndex(cell => ReferenceEquals(cell._tableCell, _tableCell));
+                if (columnIndex < 0) {
+                    return 1;
+                }
+
+                int span = 1;
+                for (int index = columnIndex + 1; index < cells.Count; index++) {
+                    if (cells[index].HorizontalMerge != MergedCellValues.Continue) {
+                        break;
+                    }
+
+                    span++;
+                }
+
+                return span;
+            }
+        }
+
+        /// <summary>
+        /// Gets the number of logical rows occupied by this cell.
+        /// </summary>
+        public int RowSpan {
+            get {
+                if (VerticalMerge != MergedCellValues.Restart) {
+                    return 1;
+                }
+
+                List<WordTableRow> rows = ParentTable.Rows;
+                int rowIndex = rows.FindIndex(row => ReferenceEquals(row._tableRow, Parent._tableRow));
+                if (rowIndex < 0) {
+                    return 1;
+                }
+
+                List<WordTableCell> cells = Parent.Cells;
+                int columnIndex = cells.FindIndex(cell => ReferenceEquals(cell._tableCell, _tableCell));
+                if (columnIndex < 0) {
+                    return 1;
+                }
+
+                int span = 1;
+                for (int index = rowIndex + 1; index < rows.Count; index++) {
+                    List<WordTableCell> rowCells = rows[index].Cells;
+                    if (columnIndex >= rowCells.Count || rowCells[columnIndex].VerticalMerge != MergedCellValues.Continue) {
+                        break;
+                    }
+
+                    span++;
+                }
+
+                return span;
+            }
+        }
+
+        /// <summary>
         /// Get or set the background color of the cell using hexadecimal color code.
         /// </summary>
         public string ShadingFillColorHex {

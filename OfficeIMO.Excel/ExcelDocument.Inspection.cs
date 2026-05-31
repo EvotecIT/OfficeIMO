@@ -589,8 +589,11 @@ namespace OfficeIMO.Excel {
             var right = BuildBorderSideSnapshot(border.RightBorder);
             var top = BuildBorderSideSnapshot(border.TopBorder);
             var bottom = BuildBorderSideSnapshot(border.BottomBorder);
+            var diagonal = BuildBorderSideSnapshot(border.DiagonalBorder);
+            bool diagonalUp = border.DiagonalUp?.Value == true;
+            bool diagonalDown = border.DiagonalDown?.Value == true;
 
-            if (left == null && right == null && top == null && bottom == null) {
+            if (left == null && right == null && top == null && bottom == null && (!diagonalUp && !diagonalDown || diagonal == null)) {
                 return null;
             }
 
@@ -599,6 +602,9 @@ namespace OfficeIMO.Excel {
                 Right = right,
                 Top = top,
                 Bottom = bottom,
+                Diagonal = diagonal,
+                DiagonalUp = diagonalUp,
+                DiagonalDown = diagonalDown,
             };
         }
 

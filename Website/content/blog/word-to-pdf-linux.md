@@ -15,7 +15,7 @@ Converting Word documents to PDF is one of the most requested features in docume
 dotnet add package OfficeIMO.Word.Pdf
 ```
 
-The package depends on OfficeIMO.Word together with QuestPDF and SkiaSharp. You still do not need Microsoft Office or LibreOffice, but on Linux containers you should provision fonts so text measurement and output quality stay predictable.
+The package depends on OfficeIMO.Word and the first-party OfficeIMO.Pdf engine. You still do not need Microsoft Office, LibreOffice, or an external PDF/layout runtime, but on Linux containers you should provision fonts so text measurement and output quality stay predictable.
 
 ## Basic Conversion
 

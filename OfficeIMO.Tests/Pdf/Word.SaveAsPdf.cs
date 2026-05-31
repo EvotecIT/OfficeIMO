@@ -1,13 +1,12 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
-using QuestPDF.Helpers;
-using QuestPDF.Infrastructure;
 using System.Globalization;
-using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
+using UglyToad.PdfPig;
 using Xunit;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests;
 
@@ -191,8 +190,7 @@ public partial class Word {
 
     [Fact]
     public void Test_WordDocument_SaveAsPdf_CustomParagraphFont() {
-        string font = FontResolver.Resolve("monospace")!;
-        string expected = Regex.Replace(font, @"\s+", "");
+        string font = "Courier New";
         string docPath = Path.Combine(_directoryWithFiles, "PdfCustomParagraphFont.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomParagraphFont.pdf");
 
@@ -204,14 +202,12 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
-        Assert.Contains(expected, pdfContent);
+        AssertPdfUsesFont(pdfPath, "Courier");
     }
 
     [Fact]
     public void Test_WordDocument_SaveAsPdf_CustomDefaultFont() {
-        string font = FontResolver.Resolve("monospace")!;
-        string expected = Regex.Replace(font, @"\s+", "");
+        string font = "Times New Roman";
         string docPath = Path.Combine(_directoryWithFiles, "PdfCustomDefaultFont.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomDefaultFont.pdf");
 
@@ -222,8 +218,23 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
-        Assert.Contains(expected, pdfContent);
+        AssertPdfUsesFont(pdfPath, "Times");
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_DocumentDefaultFont() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFont.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFont.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.FontFamily = "Consolas";
+            document.AddParagraph("Hello document default font");
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Courier");
     }
 
     [Theory]
@@ -239,7 +250,7 @@ public partial class Word {
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 Orientation = orientation,
-                PageSize = PageSizes.A4
+                OfficeIMOPageSize = PdfCore.PageSizes.A4
             });
         }
 
@@ -289,13 +300,13 @@ public partial class Word {
     public void Test_WordDocument_SaveAsPdf_CustomPageSize() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfCustomSize.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfCustomSize.pdf");
-        QuestPDF.Helpers.PageSize size = new QuestPDF.Helpers.PageSize(300, 500);
+        PdfCore.PageSize size = new PdfCore.PageSize(300, 500);
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddParagraph("Hello World");
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                PageSize = size
+                OfficeIMOPageSize = size
             });
         }
 
@@ -320,43 +331,16 @@ public partial class Word {
             document.AddParagraph("Hello World");
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                Margin = (float)marginCm,
-                MarginUnit = Unit.Centimetre
+                OfficeIMOMargins = PdfCore.PageMargins.UniformCentimeters(marginCm)
             });
         }
 
         Assert.True(File.Exists(pdfPath));
 
-        byte[] bytes = File.ReadAllBytes(pdfPath);
-        byte[] startPattern = Encoding.ASCII.GetBytes("stream\n");
-        byte[] endPattern = Encoding.ASCII.GetBytes("\nendstream");
-        int start = IndexOf(bytes, startPattern, 0);
-        Assert.True(start >= 0, "stream marker not found");
-        start += startPattern.Length;
-        int end = IndexOf(bytes, endPattern, start);
-        Assert.True(end >= 0, "endstream marker not found");
-        int length = end - start;
-        // remove zlib header (2 bytes) and Adler32 checksum (last 4 bytes)
-        int deflateLength = length - 6;
-        byte[] deflateData = new byte[deflateLength];
-        Array.Copy(bytes, start + 2, deflateData, 0, deflateLength);
-        using MemoryStream ms = new MemoryStream(deflateData);
-        using DeflateStream ds = new DeflateStream(ms, CompressionMode.Decompress);
-        using StreamReader reader = new StreamReader(ds, Encoding.GetEncoding("ISO-8859-1"));
-        string content = reader.ReadToEnd();
-
-        MatchCollection matches = Regex.Matches(content, @"4 0 0 4 (?<x>[0-9\.]+) (?<y>[0-9\.]+) cm");
-        Assert.True(matches.Count > 0, "Margin transform not found");
-        double value = 0;
-        foreach (Match m in matches) {
-            value = double.Parse(m.Groups["x"].Value, CultureInfo.InvariantCulture);
-            if (value > 0) {
-                break;
-            }
-        }
-        double marginPoints = value / 4.0;
-        double resultMarginCm = marginPoints / 28.3464566929;
-        Assert.True(System.Math.Abs(resultMarginCm - marginCm) < 0.1);
+        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        var hello = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Hello");
+        double expectedMarginPoints = marginCm * 72D / 2.54D;
+        Assert.InRange(hello.BoundingBox.Left, expectedMarginPoints - 2D, expectedMarginPoints + 4D);
     }
 
     [Fact]
@@ -369,39 +353,16 @@ public partial class Word {
             document.Save();
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                Margin = 2,
-                MarginUnit = Unit.Centimetre,
-                MarginLeft = 1,
-                MarginLeftUnit = Unit.Centimetre,
-                MarginTop = 3,
-                MarginTopUnit = Unit.Centimetre
+                OfficeIMOMargins = PdfCore.PageMargins.FromCentimeters(1, 3, 2, 2)
             });
         }
 
         Assert.True(File.Exists(pdfPath));
 
-        byte[] bytes = File.ReadAllBytes(pdfPath);
-        byte[] startPattern = Encoding.ASCII.GetBytes("stream\n");
-        byte[] endPattern = Encoding.ASCII.GetBytes("\nendstream");
-        int start = IndexOf(bytes, startPattern, 0);
-        Assert.True(start >= 0, "stream marker not found");
-        start += startPattern.Length;
-        int end = IndexOf(bytes, endPattern, start);
-        Assert.True(end >= 0, "endstream marker not found");
-        int length = end - start;
-        int deflateLength = length - 6;
-        byte[] deflateData = new byte[deflateLength];
-        Array.Copy(bytes, start + 2, deflateData, 0, deflateLength);
-        using MemoryStream ms = new MemoryStream(deflateData);
-        using DeflateStream ds = new DeflateStream(ms, CompressionMode.Decompress);
-        using StreamReader reader = new StreamReader(ds, Encoding.GetEncoding("ISO-8859-1"));
-        string content = reader.ReadToEnd();
-
-        Match transform = Regex.Match(content, @"4 0 0 4 (?<x>[0-9\.]+) (?<y>[0-9\.]+) cm");
-        Assert.True(transform.Success, "Margin transform not found");
-        double leftMarginCm = double.Parse(transform.Groups["x"].Value, CultureInfo.InvariantCulture) / 4.0 / 28.3464566929;
-
-        Assert.True(System.Math.Abs(leftMarginCm - 1) < 0.1);
+        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        var hello = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Hello");
+        double expectedLeftMarginPoints = 72D / 2.54D;
+        Assert.InRange(hello.BoundingBox.Left, expectedLeftMarginPoints - 2D, expectedLeftMarginPoints + 4D);
     }
 
     [Fact]
@@ -449,14 +410,14 @@ public partial class Word {
 
         double w1 = double.Parse(boxes[0].Groups["w"].Value, CultureInfo.InvariantCulture);
         double h1 = double.Parse(boxes[0].Groups["h"].Value, CultureInfo.InvariantCulture);
-        QuestPDF.Helpers.PageSize a4 = PageSizes.A4.Landscape();
+        PdfCore.PageSize a4 = PdfCore.PageSizes.A4.Landscape();
         Assert.True(System.Math.Abs(w1 - a4.Width) < 1);
         Assert.True(System.Math.Abs(h1 - a4.Height) < 1);
 
         double w2 = double.Parse(boxes[1].Groups["w"].Value, CultureInfo.InvariantCulture);
         double h2 = double.Parse(boxes[1].Groups["h"].Value, CultureInfo.InvariantCulture);
-        Assert.True(System.Math.Abs(w2 - PageSizes.A5.Width) < 1);
-        Assert.True(System.Math.Abs(h2 - PageSizes.A5.Height) < 1);
+        Assert.True(System.Math.Abs(w2 - PdfCore.PageSizes.A5.Width) < 1);
+        Assert.True(System.Math.Abs(h2 - PdfCore.PageSizes.A5.Height) < 1);
 
         Assert.True(w1 > h1);
         Assert.True(h2 > w2);
@@ -478,8 +439,11 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
-        Assert.Contains("/Dest /0#20|#20TargetBookmark", pdfContent);
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(File.ReadAllBytes(pdfPath), new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        Assert.Contains(logical.NamedDestinations, destination => destination.Name == "TargetBookmark");
+        Assert.Contains(logical.GetLinksByDestinationName("TargetBookmark"), link => link.IsNamedDestinationLink);
     }
 
     private static int IndexOf(byte[] buffer, byte[] pattern, int start) {
@@ -495,5 +459,15 @@ public partial class Word {
             }
         }
         return -1;
+    }
+
+    private static void AssertPdfUsesFont(string pdfPath, string expectedFontNamePart) {
+        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        Assert.Contains(pdf.GetPage(1).Letters, letter =>
+            letter.FontName != null &&
+            letter.FontName.Contains(expectedFontNamePart, StringComparison.OrdinalIgnoreCase));
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/BaseFont /" + expectedFontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
     }
 }

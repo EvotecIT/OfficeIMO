@@ -14,19 +14,28 @@ public class PdfTableStyle {
     private System.Collections.Generic.List<double>? _columnWidthWeights;
     private System.Collections.Generic.List<PdfColor?>? _bodyColumnFills;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor>? _cellFills;
+    private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellDataBar>? _cellDataBars;
+    private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellIcon>? _cellIcons;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellBorder>? _cellBorders;
+    private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding>? _cellPaddings;
+    private System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>? _cellAlignments;
+    private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>? _cellVerticalAlignments;
+    private System.Collections.Generic.List<double?>? _rowMinHeights;
+    private System.Collections.Generic.List<bool?>? _rowAllowBreakAcrossPages;
     private double _borderWidth = 0.5;
     private double _rowSeparatorWidth;
     private double _headerSeparatorWidth;
     private double _footerSeparatorWidth;
     private int _headerRowCount = 1;
     private int _footerRowCount;
+    private int? _repeatHeaderRowCount;
     private double _cellPaddingX = 4;
     private double _cellPaddingY = 2;
     private double? _cellPaddingLeft;
     private double? _cellPaddingRight;
     private double? _cellPaddingTop;
     private double? _cellPaddingBottom;
+    private double _cellSpacing;
     private double _minRowHeight;
     private double _spacingBefore;
     private double? _captionFontSize;
@@ -106,6 +115,56 @@ public class PdfTableStyle {
             _cellFills = value == null ? null : new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor>(value);
         }
     }
+    /// <summary>Optional proportional bars drawn inside cells, behind cell text, keyed by zero-based row and column.</summary>
+    public System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellDataBar>? CellDataBars {
+        get => _cellDataBars;
+        set {
+            if (value == null) {
+                _cellDataBars = null;
+                return;
+            }
+
+            var dataBars = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellDataBar>();
+            foreach (var cellDataBar in value) {
+                if (cellDataBar.Key.Row < 0 || cellDataBar.Key.Column < 0) {
+                    throw new System.ArgumentException("Table cell data bar coordinates cannot be negative.", nameof(CellDataBars));
+                }
+
+                if (cellDataBar.Value == null) {
+                    throw new System.ArgumentException("Table cell data bars cannot contain null values.", nameof(CellDataBars));
+                }
+
+                dataBars[cellDataBar.Key] = cellDataBar.Value.Clone();
+            }
+
+            _cellDataBars = dataBars;
+        }
+    }
+    /// <summary>Optional small vector icons drawn inside cells before cell text, keyed by zero-based row and column.</summary>
+    public System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellIcon>? CellIcons {
+        get => _cellIcons;
+        set {
+            if (value == null) {
+                _cellIcons = null;
+                return;
+            }
+
+            var icons = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellIcon>();
+            foreach (var cellIcon in value) {
+                if (cellIcon.Key.Row < 0 || cellIcon.Key.Column < 0) {
+                    throw new System.ArgumentException("Table cell icon coordinates cannot be negative.", nameof(CellIcons));
+                }
+
+                if (cellIcon.Value == null) {
+                    throw new System.ArgumentException("Table cell icons cannot contain null values.", nameof(CellIcons));
+                }
+
+                icons[cellIcon.Key] = cellIcon.Value.Clone();
+            }
+
+            _cellIcons = icons;
+        }
+    }
     /// <summary>Optional side-specific per-cell border overrides keyed by zero-based row and column.</summary>
     public System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellBorder>? CellBorders {
         get => _cellBorders;
@@ -126,6 +185,72 @@ public class PdfTableStyle {
             }
 
             _cellBorders = borders;
+        }
+    }
+    /// <summary>Optional per-cell padding overrides keyed by zero-based row and column.</summary>
+    public System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding>? CellPaddings {
+        get => _cellPaddings;
+        set {
+            if (value == null) {
+                _cellPaddings = null;
+                return;
+            }
+
+            var paddings = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding>();
+            foreach (var cellPadding in value) {
+                if (cellPadding.Key.Row < 0 || cellPadding.Key.Column < 0) {
+                    throw new System.ArgumentException("Table cell padding coordinates cannot be negative.", nameof(CellPaddings));
+                }
+
+                ValidateCellPadding(cellPadding.Value, nameof(CellPaddings));
+                paddings[cellPadding.Key] = cellPadding.Value.Clone();
+            }
+
+            _cellPaddings = paddings;
+        }
+    }
+    /// <summary>Optional per-cell horizontal alignment overrides keyed by zero-based row and column.</summary>
+    public System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>? CellAlignments {
+        get => _cellAlignments;
+        set {
+            if (value == null) {
+                _cellAlignments = null;
+                return;
+            }
+
+            var alignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>();
+            foreach (var cellAlignment in value) {
+                if (cellAlignment.Key.Row < 0 || cellAlignment.Key.Column < 0) {
+                    throw new System.ArgumentException("Table cell alignment coordinates cannot be negative.", nameof(CellAlignments));
+                }
+
+                Guard.TableColumnAlign(cellAlignment.Value, nameof(CellAlignments));
+                alignments[cellAlignment.Key] = cellAlignment.Value;
+            }
+
+            _cellAlignments = alignments;
+        }
+    }
+    /// <summary>Optional per-cell vertical alignment overrides keyed by zero-based row and column.</summary>
+    public System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>? CellVerticalAlignments {
+        get => _cellVerticalAlignments;
+        set {
+            if (value == null) {
+                _cellVerticalAlignments = null;
+                return;
+            }
+
+            var alignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>();
+            foreach (var cellAlignment in value) {
+                if (cellAlignment.Key.Row < 0 || cellAlignment.Key.Column < 0) {
+                    throw new System.ArgumentException("Table cell vertical alignment coordinates cannot be negative.", nameof(CellVerticalAlignments));
+                }
+
+                Guard.TableCellVerticalAlign(cellAlignment.Value, nameof(CellVerticalAlignments));
+                alignments[cellAlignment.Key] = cellAlignment.Value;
+            }
+
+            _cellVerticalAlignments = alignments;
         }
     }
     /// <summary>Text color for body rows. When null the writer’s default text color is used.</summary>
@@ -158,12 +283,22 @@ public class PdfTableStyle {
     }
     /// <summary>When true, header cells use the bold variant of the document font family.</summary>
     public bool HeaderBold { get; set; } = true;
-    /// <summary>Number of leading rows to render as table headers and repeat on following pages. Defaults to 1.</summary>
+    /// <summary>Number of leading rows to render as table headers. Defaults to 1.</summary>
     public int HeaderRowCount {
         get => _headerRowCount;
         set {
             ValidateNonNegativeValue(value, nameof(HeaderRowCount), "Table header row count cannot be negative.");
             _headerRowCount = value;
+        }
+    }
+    /// <summary>Number of leading header rows to repeat on following pages. When null, all configured header rows repeat.</summary>
+    public int? RepeatHeaderRowCount {
+        get => _repeatHeaderRowCount;
+        set {
+            if (value.HasValue) {
+                ValidateNonNegativeValue(value.Value, nameof(RepeatHeaderRowCount), "Table repeating header row count cannot be negative.");
+            }
+            _repeatHeaderRowCount = value;
         }
     }
     /// <summary>Number of trailing rows to render as table footers. Defaults to 0.</summary>
@@ -234,12 +369,38 @@ public class PdfTableStyle {
             _cellPaddingBottom = value;
         }
     }
+    /// <summary>Optional spacing between adjacent table cells, in points.</summary>
+    public double CellSpacing {
+        get => _cellSpacing;
+        set {
+            ValidateNonNegativeFiniteValue(value, nameof(CellSpacing), "Table cell spacing must be a non-negative finite value.");
+            _cellSpacing = value;
+        }
+    }
     /// <summary>Optional minimum row height in points. Set to 0 to size rows from wrapped content.</summary>
     public double MinRowHeight {
         get => _minRowHeight;
         set {
             ValidateNonNegativeFiniteValue(value, nameof(MinRowHeight), "Table minimum row height must be a non-negative finite value.");
             _minRowHeight = value;
+        }
+    }
+    /// <summary>Optional per-row minimum heights in points. Null entries fall back to <see cref="MinRowHeight"/>.</summary>
+    public System.Collections.Generic.List<double?>? RowMinHeights {
+        get => _rowMinHeights;
+        set {
+            if (value == null) {
+                _rowMinHeights = null;
+                return;
+            }
+
+            var heights = new System.Collections.Generic.List<double?>(value.Count);
+            foreach (double? height in value) {
+                ValidateOptionalNonNegativeFiniteValue(height, nameof(RowMinHeights), "Table row minimum heights must be non-negative finite values.");
+                heights.Add(height);
+            }
+
+            _rowMinHeights = heights;
         }
     }
     /// <summary>Vertical space before the table, in points.</summary>
@@ -378,6 +539,11 @@ public class PdfTableStyle {
     public bool KeepWithNext { get; set; }
     /// <summary>When true, a single row that is taller than the page frame may split across pages by wrapped text line.</summary>
     public bool AllowRowBreakAcrossPages { get; set; } = true;
+    /// <summary>Optional per-row row-break overrides. Null entries fall back to <see cref="AllowRowBreakAcrossPages"/>.</summary>
+    public System.Collections.Generic.List<bool?>? RowAllowBreakAcrossPages {
+        get => _rowAllowBreakAcrossPages;
+        set => _rowAllowBreakAcrossPages = value == null ? null : new System.Collections.Generic.List<bool?>(value);
+    }
 
     /// <summary>Creates a deep copy of this style.</summary>
     public PdfTableStyle Clone() {
@@ -400,6 +566,7 @@ public class PdfTableStyle {
             HeaderFontSize = HeaderFontSize,
             HeaderBold = HeaderBold,
             HeaderRowCount = HeaderRowCount,
+            RepeatHeaderRowCount = RepeatHeaderRowCount,
             FooterRowCount = FooterRowCount,
             FooterTextColor = FooterTextColor,
             FooterFontSize = FooterFontSize,
@@ -410,7 +577,9 @@ public class PdfTableStyle {
             CellPaddingRight = CellPaddingRight,
             CellPaddingTop = CellPaddingTop,
             CellPaddingBottom = CellPaddingBottom,
+            CellSpacing = CellSpacing,
             MinRowHeight = MinRowHeight,
+            RowMinHeights = RowMinHeights,
             SpacingBefore = SpacingBefore,
             Caption = Caption,
             CaptionAlign = CaptionAlign,
@@ -425,16 +594,37 @@ public class PdfTableStyle {
             RightAlignNumeric = RightAlignNumeric,
             KeepTogether = KeepTogether,
             KeepWithNext = KeepWithNext,
-            AllowRowBreakAcrossPages = AllowRowBreakAcrossPages
+            AllowRowBreakAcrossPages = AllowRowBreakAcrossPages,
+            RowAllowBreakAcrossPages = RowAllowBreakAcrossPages
         };
         if (BodyColumnFills != null) clone.BodyColumnFills = new System.Collections.Generic.List<PdfColor?>(BodyColumnFills);
         if (CellFills != null) clone.CellFills = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColor>(CellFills);
+        if (CellDataBars != null) {
+            clone.CellDataBars = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellDataBar>();
+            foreach (var cellDataBar in CellDataBars) {
+                clone.CellDataBars[cellDataBar.Key] = cellDataBar.Value.Clone();
+            }
+        }
+        if (CellIcons != null) {
+            clone.CellIcons = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellIcon>();
+            foreach (var cellIcon in CellIcons) {
+                clone.CellIcons[cellIcon.Key] = cellIcon.Value.Clone();
+            }
+        }
         if (CellBorders != null) {
             clone.CellBorders = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellBorder>();
             foreach (var cellBorder in CellBorders) {
                 clone.CellBorders[cellBorder.Key] = cellBorder.Value.Clone();
             }
         }
+        if (CellPaddings != null) {
+            clone.CellPaddings = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding>();
+            foreach (var cellPadding in CellPaddings) {
+                clone.CellPaddings[cellPadding.Key] = cellPadding.Value.Clone();
+            }
+        }
+        if (CellAlignments != null) clone.CellAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>(CellAlignments);
+        if (CellVerticalAlignments != null) clone.CellVerticalAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>(CellVerticalAlignments);
         if (Alignments != null) clone.Alignments = new System.Collections.Generic.List<PdfColumnAlign>(Alignments);
         if (VerticalAlignments != null) clone.VerticalAlignments = new System.Collections.Generic.List<PdfCellVerticalAlign>(VerticalAlignments);
         if (ColumnWidthPoints != null) clone.ColumnWidthPoints = new System.Collections.Generic.List<double?>(ColumnWidthPoints);
@@ -507,6 +697,12 @@ public class PdfTableStyle {
     private static void ValidateCellBorder(PdfCellBorder? border, string paramName) {
         if (border == null || border.Width < 0 || double.IsNaN(border.Width) || double.IsInfinity(border.Width)) {
             throw new System.ArgumentException("Table cell border widths must be non-negative finite values.", paramName);
+        }
+    }
+
+    private static void ValidateCellPadding(PdfCellPadding? padding, string paramName) {
+        if (padding == null) {
+            throw new System.ArgumentException("Table cell padding values cannot be null.", paramName);
         }
     }
 }

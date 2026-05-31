@@ -37,6 +37,26 @@ namespace OfficeIMO.Word {
         public TableOfContentStyle Style { get; }
 
         /// <summary>
+        /// Gets the minimum heading level included by the TOC field switch.
+        /// </summary>
+        public int MinLevel {
+            get {
+                var levels = GetConfiguredLevels();
+                return levels.MinLevel;
+            }
+        }
+
+        /// <summary>
+        /// Gets the maximum heading level included by the TOC field switch.
+        /// </summary>
+        public int MaxLevel {
+            get {
+                var levels = GetConfiguredLevels();
+                return levels.MaxLevel;
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the heading text displayed for the table of contents.
         /// </summary>
         public string Text {
@@ -294,6 +314,46 @@ namespace OfficeIMO.Word {
                     fieldChar.Dirty = true;
                 }
             }
+        }
+
+        private (int MinLevel, int MaxLevel) GetConfiguredLevels() {
+            if (_sdtBlock == null) {
+                return (1, 3);
+            }
+
+            foreach (var simpleField in _sdtBlock.Descendants<SimpleField>()) {
+                string? instruction = simpleField.Instruction?.Value ?? simpleField.Instruction;
+                if (TryParseLevelSwitch(instruction, out int minLevel, out int maxLevel)) {
+                    return (minLevel, maxLevel);
+                }
+            }
+
+            foreach (var fieldCode in _sdtBlock.Descendants<FieldCode>()) {
+                if (TryParseLevelSwitch(fieldCode.Text, out int minLevel, out int maxLevel)) {
+                    return (minLevel, maxLevel);
+                }
+            }
+
+            return (1, 3);
+        }
+
+        private static bool TryParseLevelSwitch(string? instruction, out int minLevel, out int maxLevel) {
+            minLevel = 1;
+            maxLevel = 3;
+            if (string.IsNullOrWhiteSpace(instruction) ||
+                instruction!.IndexOf("TOC", StringComparison.OrdinalIgnoreCase) < 0) {
+                return false;
+            }
+
+            Match match = Regex.Match(instruction!, @"\\o\s+(?:""(?<min>\d+)-(?<max>\d+)""|&quot;(?<min>\d+)-(?<max>\d+)&quot;)");
+            if (!match.Success ||
+                !int.TryParse(match.Groups["min"].Value, out int parsedMin) ||
+                !int.TryParse(match.Groups["max"].Value, out int parsedMax)) {
+                return false;
+            }
+
+            (minLevel, maxLevel) = NormalizeLevels(parsedMin, parsedMax);
+            return true;
         }
 
         private static (int MinLevel, int MaxLevel) NormalizeLevels(int minLevel, int maxLevel) {

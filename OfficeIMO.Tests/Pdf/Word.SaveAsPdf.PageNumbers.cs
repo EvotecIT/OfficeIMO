@@ -1,6 +1,8 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System.IO;
+using UglyToad.PdfPig;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -36,5 +38,119 @@ namespace OfficeIMO.Tests {
 
             Assert.True(File.Exists(pdfCustom));
         }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_PageBreaks() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativePageBreaks.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePageBreaks.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph("Before native page break");
+                document.AddPageBreak();
+                document.AddParagraph("After native page break");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+                Assert.Equal(2, pdf.NumberOfPages);
+                Assert.Contains("Before native page break", pdf.GetPage(1).Text);
+                Assert.Contains("After native page break", pdf.GetPage(2).Text);
+            }
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Word_Section_PageNumbering() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionPageNumbering.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionPageNumbering.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.Sections[0].AddPageNumbering(3, NumberFormatValues.UpperRoman);
+                document.AddParagraph("Native section page numbering first page");
+                document.AddPageBreak();
+                document.AddParagraph("Native section page numbering second page");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions());
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+                Assert.Equal(2, pdf.NumberOfPages);
+
+                string page1Text = NormalizeNativePageNumberText(pdf.GetPage(1).Text);
+                string page2Text = NormalizeNativePageNumberText(pdf.GetPage(2).Text);
+
+                Assert.Contains("Nativesectionpagenumberingfirstpage", page1Text, StringComparison.Ordinal);
+                Assert.Contains("Nativesectionpagenumberingsecondpage", page2Text, StringComparison.Ordinal);
+                Assert.Contains("III/IV", page1Text, StringComparison.Ordinal);
+                Assert.Contains("IV/IV", page2Text, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_PageFields_To_PageTokens() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFields.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFields.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddHeadersAndFooters();
+                WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native field footer ");
+                footerParagraph.AddPageNumber(includeTotalPages: true, separator: " / ");
+                document.AddParagraph("Native field footer first page");
+                document.AddPageBreak();
+                document.AddParagraph("Native field footer second page");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    PageNumberFormat = "AUTO {current}/{total}"
+                });
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+                Assert.Equal(2, pdf.NumberOfPages);
+
+                string page1Text = NormalizeNativePageNumberText(pdf.GetPage(1).Text);
+                string page2Text = NormalizeNativePageNumberText(pdf.GetPage(2).Text);
+
+                Assert.Contains("Nativefieldfooter1/2", page1Text, StringComparison.Ordinal);
+                Assert.Contains("Nativefieldfooter2/2", page2Text, StringComparison.Ordinal);
+                Assert.DoesNotContain("AUTO", page1Text, StringComparison.Ordinal);
+                Assert.DoesNotContain("AUTO", page2Text, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_PageField_Formats_To_PageTokenStyle() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFieldFormats.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFieldFormats.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddHeadersAndFooters();
+                WordParagraph footerParagraph = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native roman field footer ");
+                footerParagraph.AddPageNumber(includeTotalPages: true, format: WordFieldFormat.Roman, separator: " / ");
+                document.AddParagraph("Native roman field footer first page");
+                document.AddPageBreak();
+                document.AddParagraph("Native roman field footer second page");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions());
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+                Assert.Equal(2, pdf.NumberOfPages);
+
+                string page1Text = NormalizeNativePageNumberText(pdf.GetPage(1).Text);
+                string page2Text = NormalizeNativePageNumberText(pdf.GetPage(2).Text);
+
+                Assert.Contains("NativeromanfieldfooterI/II", page1Text, StringComparison.Ordinal);
+                Assert.Contains("NativeromanfieldfooterII/II", page2Text, StringComparison.Ordinal);
+            }
+        }
+
+        private static string NormalizeNativePageNumberText(string text) =>
+            string.Concat(text.Where(c => !char.IsWhiteSpace(c)));
     }
 }
