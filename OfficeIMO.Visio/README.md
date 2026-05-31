@@ -642,12 +642,12 @@ page.ResolveConnectorLabelOverlaps();
 doc.PolishDiagrams();
 ```
 
-The reusable gallery includes data-driven CI/CD inventory and identity
-authentication graphs built from `VisioGraphNodeRecord`,
-`VisioGraphEdgeRecord`, and `VisioGraphClusterRecord` records. They use
-first-party stencil catalogs, generated clusters, Shape Data, hyperlinks, and
-automatic graph legends, so the gallery exercises real inventory-to-diagram
-workflows rather than only coordinate-authored examples.
+The reusable gallery includes data-driven CI/CD inventory, identity
+authentication, and Kubernetes service-mesh graphs built from
+`VisioGraphNodeRecord`, `VisioGraphEdgeRecord`, and `VisioGraphClusterRecord`
+records. They use first-party stencil catalogs, generated clusters, Shape Data,
+hyperlinks, and automatic graph legends, so the gallery exercises real
+inventory-to-diagram workflows rather than only coordinate-authored examples.
 
 `EnsureVisualQuality(...)` throws `VisioDiagramQualityException` with the
 blocking issues, which makes it practical to use generated diagrams in tests or

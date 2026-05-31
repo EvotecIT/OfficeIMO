@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
 
-            Assert.Equal(10, results.Count);
+            Assert.Equal(11, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
             Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
@@ -246,6 +246,16 @@ namespace OfficeIMO.Tests {
             VisioStencilProfile identityProfile = loadedIdentity.CreateStencilProfile();
             Assert.Contains("Security and Identity", identityProfile.StencilCatalogs);
             Assert.Contains("Collaboration and Business Process", identityProfile.StencilCatalogs);
+
+            VisioGalleryResult kubernetes = results.Single(result => result.Name == "Kubernetes Service Mesh Graph");
+            VisioDocument loadedKubernetes = VisioDocument.Load(kubernetes.FilePath);
+            VisioPage kubernetesPage = Assert.Single(loadedKubernetes.Pages);
+            Assert.Contains(kubernetesPage.Shapes, shape => shape.Id == "mesh-cluster" && shape.GetShapeDataValue("Owner") == "Platform Mesh");
+            Assert.Contains(kubernetesPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(kubernetesPage.Connectors, connector => connector.Id == "api-data-stream" && connector.GetShapeDataValue("Format") == "CloudEvents");
+            VisioStencilProfile kubernetesProfile = loadedKubernetes.CreateStencilProfile();
+            Assert.Contains("Containers and Kubernetes", kubernetesProfile.StencilCatalogs);
+            Assert.Contains("Data and Platform", kubernetesProfile.StencilCatalogs);
         }
 
         [Fact]

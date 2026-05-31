@@ -32,6 +32,7 @@ namespace OfficeIMO.Visio {
             results.Add(CreateResult("Routed Decision Flow", Path.Combine(folderPath, "OfficeIMO Gallery - Routed Decision Flow.vsdx"), CreateRoutedDecisionFlow, resolvedOptions));
             results.Add(CreateResult("CI/CD Inventory Graph", Path.Combine(folderPath, "OfficeIMO Gallery - CI-CD Inventory Graph.vsdx"), CreateCiCdInventoryGraph, resolvedOptions));
             results.Add(CreateResult("Identity Authentication Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Identity Authentication Graph.vsdx"), CreateIdentityAuthenticationGraph, resolvedOptions));
+            results.Add(CreateResult("Kubernetes Service Mesh Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Kubernetes Service Mesh Graph.vsdx"), CreateKubernetesServiceMeshGraph, resolvedOptions));
             return results;
         }
 
@@ -424,6 +425,109 @@ namespace OfficeIMO.Visio {
                         new[] { user, device, app, idp, policy, mfa, groups, audit },
                         new[] { launch, request, redirect, evaluate, challenge, claims, token, evidence, review },
                         new[] { userContext, trustBoundary }));
+        }
+
+        /// <summary>
+        /// Creates a data-driven Kubernetes service-mesh graph that demonstrates clusters, service communication, security/data flows, and stencil profiles.
+        /// </summary>
+        /// <param name="filePath">Target VSDX file path.</param>
+        public static VisioDocument CreateKubernetesServiceMeshGraph(string filePath) {
+            VisioGraphNodeRecord ingress = CreateNode("ingress", "Ingress", VisioStencils.ContainersKubernetes, "ingress", "gateway");
+            ingress.IsRoot = true;
+            ingress.ShapeData.Add("Protocol", "HTTPS");
+
+            VisioGraphNodeRecord frontend = CreateNode("frontend", "Frontend Pod", VisioStencils.ContainersKubernetes, "pod", "workload");
+            frontend.ShapeData.Add("Namespace", "shop");
+
+            VisioGraphNodeRecord api = CreateNode("api", "API Service", VisioStencils.ContainersKubernetes, "service", "svc");
+            api.ShapeData.Add("MeshPolicy", "mTLS strict");
+            api.HyperlinkAddress = "https://example.org/runbooks/service-mesh-api";
+            api.HyperlinkDescription = "API mesh runbook";
+
+            VisioGraphNodeRecord worker = CreateNode("worker", "Worker Pod", VisioStencils.ContainersKubernetes, "pod", "container");
+            worker.ShapeData.Add("Replicas", "6");
+
+            VisioGraphNodeRecord config = CreateNode("config", "Config Map", VisioStencils.ContainersKubernetes, "config");
+            config.ShapeData.Add("Reload", "Rolling");
+
+            VisioGraphNodeRecord secrets = CreateNode("mesh-secrets", "Mesh Secrets", VisioStencils.ContainersKubernetes, "secret", "credential");
+            secrets.ShapeData.Add("Rotation", "24h");
+
+            VisioGraphNodeRecord stream = CreateNode("stream", "Event Stream", VisioStencils.DataPlatform, "stream", "event-stream");
+            stream.ShapeData.Add("Topic", "orders");
+
+            VisioGraphNodeRecord database = CreateNode("database", "Orders DB", VisioStencils.DataPlatform, "database", "sql");
+            database.ShapeData.Add("Classification", "Confidential");
+
+            VisioGraphNodeRecord monitor = CreateNode("monitor", "Mesh Telemetry", VisioStencils.Cloud, "monitoring", "observability");
+            monitor.ShapeData.Add("Signal", "traces, metrics, logs");
+
+            VisioGraphEdgeRecord route = new("ingress", "frontend") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "route"
+            };
+            VisioGraphEdgeRecord callApi = new("frontend", "api") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "mTLS call"
+            };
+            callApi.ShapeData.Add("Protocol", "HTTP/2");
+
+            VisioGraphEdgeRecord enqueue = new("api", "stream") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "events"
+            };
+            enqueue.ShapeData.Add("Format", "CloudEvents");
+
+            VisioGraphEdgeRecord consume = new("stream", "worker") {
+                Kind = VisioGraphConnectorKind.Control,
+                Label = "consume"
+            };
+            VisioGraphEdgeRecord write = new("worker", "database") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "write"
+            };
+            write.ShapeData.Add("Port", "5432");
+
+            VisioGraphEdgeRecord configFlow = new("config", "api") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "settings"
+            };
+            VisioGraphEdgeRecord secretFlow = new("mesh-secrets", "api") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "certs"
+            };
+            VisioGraphEdgeRecord tracesApi = new("api", "monitor") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "traces"
+            };
+            VisioGraphEdgeRecord tracesWorker = new("worker", "monitor") {
+                Kind = VisioGraphConnectorKind.Data,
+                Label = "metrics"
+            };
+
+            VisioGraphClusterRecord mesh = new("mesh-cluster", "Service Mesh", new[] { "frontend", "api", "config", "mesh-secrets" });
+            mesh.ShapeData.Add("Owner", "Platform Mesh");
+            mesh.HyperlinkAddress = "https://example.org/runbooks/service-mesh";
+            mesh.HyperlinkDescription = "Service mesh runbook";
+
+            VisioGraphClusterRecord state = new("state-cluster", "Async State and Telemetry", new[] { "worker", "stream", "database", "monitor" });
+            state.ShapeData.Add("Owner", "SRE");
+
+            return VisioDocument.Create(filePath)
+                .GraphDiagram("Kubernetes Service Mesh Graph", graph => graph
+                    .Title("Kubernetes Service Mesh Topology")
+                    .Theme(VisioStyleTheme.Cloud())
+                    .Layout(VisioGraphLayout.Layered)
+                    .Direction(VisioGraphDirection.LeftToRight)
+                    .Legend()
+                    .PageSize(18.4, 8.1)
+                    .Margins(0.8, 0.85, 0.8, 0.75)
+                    .NodeSize(1.35, 0.74)
+                    .Spacing(0.74, 0.84)
+                    .Import(
+                        new[] { ingress, frontend, api, worker, config, secrets, stream, database, monitor },
+                        new[] { route, callApi, enqueue, consume, write, configFlow, secretFlow, tracesApi, tracesWorker },
+                        new[] { mesh, state }));
         }
 
         private static VisioGraphNodeRecord CreateNode(string id, string text, VisioStencilCatalog catalog, params string[] queries) {

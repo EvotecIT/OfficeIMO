@@ -167,7 +167,7 @@ Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO
   - Azure/application dependency map;
   - Active Directory identity/authentication flow: initial reusable `VisioGallery` and official `--visio-showcase` example added with security/identity stencils, trust-boundary clusters, auth token/control/data flows, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - CI/CD pipeline and build-agent topology: initial reusable `VisioGallery` example added with stencil-backed node records, edge records, cluster records, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
-  - Kubernetes/service-mesh topology;
+  - Kubernetes/service-mesh topology: initial reusable `VisioGallery` and official `--visio-showcase` example added with Kubernetes/data/cloud stencils, service-mesh clusters, mTLS/control/data flows, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
   - incident/runbook sequence;
   - network segmentation diagram.
 
