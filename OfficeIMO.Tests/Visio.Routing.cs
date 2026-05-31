@@ -193,6 +193,65 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObstacleAwareRoutingCanAvoidSiblingShapesInsideEndpointGroup() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Group routes", 9, 5);
+            VisioShape source = page.AddRectangle(1.2, 2.5, 0.8, 0.5, "Source");
+            VisioShape group = page.AddRectangle(5.1, 2.5, 4.4, 2.2, "Service group");
+            VisioShape blocker = new("member-blocker", 4.2, 2.5, 1.0, 0.9, "Blocker");
+            VisioShape target = new("member-target", 7.1, 2.5, 0.8, 0.5, "Target");
+            group.Children.Add(blocker);
+            group.Children.Add(target);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            connector.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions {
+                Padding = 0.12D,
+                MaxLanes = 16
+            });
+
+            Assert.Empty(connector.Waypoints);
+            Assert.Equal(ConnectorKind.Straight, connector.Kind);
+
+            connector.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions {
+                IncludeGroupChildren = true,
+                Padding = 0.12D,
+                MaxLanes = 16
+            });
+
+            Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
+            Assert.Equal(2, connector.Waypoints.Count);
+            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(blocker.GetShapeBounds(), 0.12D)));
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void PolishDiagramCanRouteAroundGroupChildrenWhenRequested() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Group polish", 9, 5);
+            VisioShape source = page.AddRectangle(1.2, 2.5, 0.8, 0.5, "Source");
+            VisioShape group = page.AddRectangle(5.1, 2.5, 4.4, 2.2, "Service group");
+            VisioShape blocker = new("member-blocker", 4.2, 2.5, 1.0, 0.9, "Blocker");
+            VisioShape target = new("member-target", 7.1, 2.5, 0.8, 0.5, "Target");
+            group.Children.Add(blocker);
+            group.Children.Add(target);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                ResolveConnectorShapeIntersections = true,
+                ConnectorRoutingAvoidGroupChildren = true,
+                ConnectorRoutingMaxLanes = 16,
+                FitToContent = false
+            });
+
+            Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
+            Assert.Equal(2, connector.Waypoints.Count);
+            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(blocker.GetShapeBounds(), 0.15D)));
+        }
+
+        [Fact]
         public void ObstacleAwareRoutingCanReduceConnectorCrossingsWhenRequested() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Crossing routes", 8, 6);

@@ -51,7 +51,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
 
 ## Next Implementation Slice
 
-1. Extend obstacle-aware routing from the current zone/container/crossing-aware options into group-aware and deeper whole-page route minimization; normal sequence message labels now have lifeline-aware and fragment-label-aware placement, so the next label work is denser graph, whole-page, and deeper sequence edge-case cleanup.
+1. Extend obstacle-aware routing from the current zone/container/group/crossing-aware options into deeper whole-page route minimization; normal sequence message labels now have lifeline-aware and fragment-label-aware placement, so the next label work is denser graph, whole-page, and deeper sequence edge-case cleanup.
 2. Keep replacing anonymous basic geometry with stencil-backed premium symbols where the domain supports it; all eight current premium baselines now carry first-party stencil provenance for their domain shapes, with sequence activations, guarded/partitioned combined fragments, and collision-aware notes now promoted while deeper nested sequence fragments still need stronger layout.
 3. Keep tightening the baseline-reviewed technical and print-safe scenarios before using those presets in website screenshots or product screenshots.
 4. Extend current premium inspection/profile baselines beyond typed family, alias/keyword/tag, placed/source-dimension, icon identity, and connection-point rollups into preview/icon thumbnail extraction, richer package-family details, and deeper native-pack metadata as external metadata extraction improves.

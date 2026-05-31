@@ -89,6 +89,9 @@ namespace OfficeIMO.Visio {
         /// <summary>Whether connector routing should avoid generated adornments such as zone captions.</summary>
         public bool ConnectorRoutingAvoidDiagramAdornments { get; set; }
 
+        /// <summary>Whether connector routing should avoid unrelated child shapes inside groups.</summary>
+        public bool ConnectorRoutingAvoidGroupChildren { get; set; }
+
         /// <summary>Whether connector routing should prefer lanes that reduce connector-to-connector crossings.</summary>
         public bool ConnectorRoutingAvoidConnectorCrossings { get; set; }
 

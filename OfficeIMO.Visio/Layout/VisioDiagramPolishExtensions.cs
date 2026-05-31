@@ -85,6 +85,7 @@ namespace OfficeIMO.Visio {
                     IncludeContainers = resolvedOptions.ConnectorRoutingAvoidContainers,
                     IncludeBackgroundSurfaces = resolvedOptions.ConnectorRoutingAvoidBackgroundSurfaces,
                     IncludeDiagramAdornments = resolvedOptions.ConnectorRoutingAvoidDiagramAdornments,
+                    IncludeGroupChildren = resolvedOptions.ConnectorRoutingAvoidGroupChildren,
                     AvoidConnectorCrossings = resolvedOptions.ConnectorRoutingAvoidConnectorCrossings
                 });
             }

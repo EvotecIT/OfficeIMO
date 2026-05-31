@@ -20,6 +20,9 @@ namespace OfficeIMO.Visio {
         /// <summary>Whether generated adornments such as zone captions should be treated as route obstacles.</summary>
         public bool IncludeDiagramAdornments { get; set; }
 
+        /// <summary>Whether nested group children under supplied obstacle shapes should also be treated as route obstacles.</summary>
+        public bool IncludeGroupChildren { get; set; }
+
         /// <summary>Whether candidate routes should prefer lanes that reduce crossings with reference connectors.</summary>
         public bool AvoidConnectorCrossings { get; set; }
 
@@ -36,6 +39,7 @@ namespace OfficeIMO.Visio {
                 IncludeContainers = IncludeContainers,
                 IncludeBackgroundSurfaces = IncludeBackgroundSurfaces,
                 IncludeDiagramAdornments = IncludeDiagramAdornments,
+                IncludeGroupChildren = IncludeGroupChildren,
                 AvoidConnectorCrossings = AvoidConnectorCrossings,
                 ConnectorCrossingReferences = ConnectorCrossingReferences
             };

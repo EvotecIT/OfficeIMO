@@ -125,7 +125,10 @@ namespace OfficeIMO.Visio {
 
             ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
             ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
-            List<VisioShapeBounds> obstacleBounds = GetRoutingObstacleBounds(connector, obstacles, padding, options);
+            IEnumerable<VisioShape> routingObstacles = options.IncludeGroupChildren
+                ? ExpandRoutingObstacles(obstacles)
+                : obstacles;
+            List<VisioShapeBounds> obstacleBounds = GetRoutingObstacleBounds(connector, routingObstacles, padding, options);
             List<IReadOnlyList<RoutePoint>> connectorReferencePaths = options.AvoidConnectorCrossings
                 ? GetConnectorReferencePaths(connector, options.ConnectorCrossingReferences)
                 : new List<IReadOnlyList<RoutePoint>>();
@@ -393,7 +396,8 @@ namespace OfficeIMO.Visio {
             VisioShapeBounds fromBounds = connector.From.GetShapeBounds();
             VisioShapeBounds toBounds = connector.To.GetShapeBounds();
             foreach (VisioShape obstacle in obstacles) {
-                if (ReferenceEquals(obstacle, connector.From) || ReferenceEquals(obstacle, connector.To)) {
+                if (IsEndpointRelated(obstacle, connector.From) ||
+                    IsEndpointRelated(obstacle, connector.To)) {
                     continue;
                 }
 
@@ -418,6 +422,43 @@ namespace OfficeIMO.Visio {
             }
 
             return bounds;
+        }
+
+        private static IReadOnlyList<VisioShape> ExpandRoutingObstacles(IEnumerable<VisioShape> obstacles) {
+            List<VisioShape> expanded = new();
+            HashSet<VisioShape> seen = new();
+            foreach (VisioShape obstacle in obstacles) {
+                AddObstacleAndChildren(obstacle);
+            }
+
+            return expanded;
+
+            void AddObstacleAndChildren(VisioShape obstacle) {
+                if (!seen.Add(obstacle)) {
+                    return;
+                }
+
+                expanded.Add(obstacle);
+                foreach (VisioShape child in obstacle.Children) {
+                    AddObstacleAndChildren(child);
+                }
+            }
+        }
+
+        private static bool IsEndpointRelated(VisioShape obstacle, VisioShape endpoint) {
+            return ReferenceEquals(obstacle, endpoint) ||
+                   IsAncestorOf(obstacle, endpoint) ||
+                   IsAncestorOf(endpoint, obstacle);
+        }
+
+        private static bool IsAncestorOf(VisioShape possibleAncestor, VisioShape shape) {
+            for (VisioShape? parent = shape.Parent; parent != null; parent = parent.Parent) {
+                if (ReferenceEquals(parent, possibleAncestor)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static IEnumerable<RouteCandidate> EnumerateOrthogonalRouteCandidates(double startX, double startY, double endX, double endY, double step, int maxLanes) {
