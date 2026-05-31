@@ -10,30 +10,31 @@ namespace OfficeIMO.Excel {
     internal sealed class SharedStringCache {
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
 
-        private readonly SharedStringTablePart? _part;
+        private readonly Lazy<SharedStringTablePart?> _part;
         private readonly bool _preferDom;
         private readonly Lazy<List<string>> _items;
         private List<string>? _loadedItems;
         private readonly object _containsCacheLock = new object();
         private Dictionary<(string Text, StringComparison Comparison), HashSet<int>?>? _containsCache;
 
-        private SharedStringCache(SharedStringTablePart? part, bool preferDom) {
-            _part = part;
+        private SharedStringCache(WorkbookPart? workbookPart, bool preferDom) {
+            _part = new Lazy<SharedStringTablePart?>(() => workbookPart?.SharedStringTablePart, LazyThreadSafetyMode.ExecutionAndPublication);
             _preferDom = preferDom;
             _items = new Lazy<List<string>>(LoadItems, LazyThreadSafetyMode.ExecutionAndPublication);
         }
 
         public static SharedStringCache Build(SpreadsheetDocument doc) {
-            return new SharedStringCache(doc.WorkbookPart!.SharedStringTablePart, doc.FileOpenAccess != FileAccess.Read);
+            return new SharedStringCache(doc.WorkbookPart, doc.FileOpenAccess != FileAccess.Read);
         }
 
         private List<string> LoadItems() {
-            if (_part == null) return new List<string>();
-            if (_preferDom && _part.SharedStringTable != null) {
+            SharedStringTablePart? part = GetSharedStringTablePart();
+            if (part == null) return new List<string>();
+            if (_preferDom && part.SharedStringTable != null) {
                 return LoadItemsFromDom();
             }
 
-            if (TryLoadItemsXmlFast(out var items)) {
+            if (TryLoadItemsXmlFast(part, out var items)) {
                 return items;
             }
 
@@ -41,7 +42,7 @@ namespace OfficeIMO.Excel {
         }
 
         private List<string> LoadItemsFromDom() {
-            var part = _part;
+            var part = GetSharedStringTablePart();
             if (part == null || part.SharedStringTable == null) return new List<string>();
             var table = part.SharedStringTable;
             var list = new List<string>((int)(table.UniqueCount?.Value ?? table.Count?.Value ?? 0));
@@ -57,11 +58,15 @@ namespace OfficeIMO.Excel {
             return list;
         }
 
-        private bool TryLoadItemsXmlFast(out List<string> items) {
+        private SharedStringTablePart? GetSharedStringTablePart() {
+            return _part.Value;
+        }
+
+        private static bool TryLoadItemsXmlFast(SharedStringTablePart part, out List<string> items) {
             items = new List<string>();
 
             try {
-                using var stream = _part!.GetStream(FileMode.Open, FileAccess.Read);
+                using var stream = part.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, SharedStringXmlReaderSettings);
                 while (reader.Read()) {
                     if (reader.NodeType != XmlNodeType.Element) {
