@@ -26,6 +26,9 @@ namespace OfficeIMO.Visio {
         /// <summary>Whether candidate routes should prefer lanes that reduce crossings with reference connectors.</summary>
         public bool AvoidConnectorCrossings { get; set; }
 
+        /// <summary>Number of deterministic page-level optimization passes used when rerouting connectors.</summary>
+        public int PageOptimizationPasses { get; set; } = 1;
+
         /// <summary>Connectors used as crossing references when <see cref="AvoidConnectorCrossings"/> is enabled.</summary>
         public IEnumerable<VisioConnector>? ConnectorCrossingReferences { get; set; }
 
@@ -41,6 +44,7 @@ namespace OfficeIMO.Visio {
                 IncludeDiagramAdornments = IncludeDiagramAdornments,
                 IncludeGroupChildren = IncludeGroupChildren,
                 AvoidConnectorCrossings = AvoidConnectorCrossings,
+                PageOptimizationPasses = PageOptimizationPasses,
                 ConnectorCrossingReferences = ConnectorCrossingReferences
             };
         }

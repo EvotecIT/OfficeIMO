@@ -82,6 +82,7 @@ namespace OfficeIMO.Visio {
                 page.RouteConnectorsOrthogonalAroundShapes(new VisioConnectorRoutingOptions {
                     Padding = resolvedOptions.ConnectorRoutingObstaclePadding,
                     MaxLanes = resolvedOptions.ConnectorRoutingMaxLanes,
+                    PageOptimizationPasses = resolvedOptions.ConnectorRoutingPageOptimizationPasses,
                     IncludeContainers = resolvedOptions.ConnectorRoutingAvoidContainers,
                     IncludeBackgroundSurfaces = resolvedOptions.ConnectorRoutingAvoidBackgroundSurfaces,
                     IncludeDiagramAdornments = resolvedOptions.ConnectorRoutingAvoidDiagramAdornments,
@@ -145,6 +146,10 @@ namespace OfficeIMO.Visio {
 
             if (options.ConnectorRoutingMaxLanes < 0) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Connector routing lane count cannot be negative.");
+            }
+
+            if (options.ConnectorRoutingPageOptimizationPasses < 1) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector routing optimization pass count must be at least one.");
             }
 
             if (options.ShapeOverlapStep <= 0D || double.IsNaN(options.ShapeOverlapStep) || double.IsInfinity(options.ShapeOverlapStep)) {

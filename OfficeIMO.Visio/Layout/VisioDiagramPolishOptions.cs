@@ -86,6 +86,9 @@ namespace OfficeIMO.Visio {
         /// <summary>Number of positive and negative connector routing lanes to try on each axis.</summary>
         public int ConnectorRoutingMaxLanes { get; set; } = 12;
 
+        /// <summary>Number of deterministic page-level connector routing optimization passes.</summary>
+        public int ConnectorRoutingPageOptimizationPasses { get; set; } = 1;
+
         /// <summary>Whether connector routing should avoid unrelated Visio containers.</summary>
         public bool ConnectorRoutingAvoidContainers { get; set; }
 

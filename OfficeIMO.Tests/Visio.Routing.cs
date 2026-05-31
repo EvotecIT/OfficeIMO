@@ -267,6 +267,7 @@ namespace OfficeIMO.Tests {
             vertical.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions {
                 AvoidConnectorCrossings = true,
                 ConnectorCrossingReferences = page.Connectors,
+                PageOptimizationPasses = 3,
                 Padding = 0.15D,
                 MaxLanes = 24
             });
@@ -292,11 +293,23 @@ namespace OfficeIMO.Tests {
             page.PolishDiagram(new VisioDiagramPolishOptions {
                 ResolveConnectorShapeIntersections = true,
                 ConnectorRoutingAvoidConnectorCrossings = true,
+                ConnectorRoutingPageOptimizationPasses = 3,
                 ConnectorRoutingMaxLanes = 24,
                 FitToContent = false
             });
 
             Assert.Equal(0, CountRouteCrossings(vertical, horizontal));
+        }
+
+        [Fact]
+        public void PolishDiagramValidatesConnectorRoutingOptimizationPasses() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Invalid polish");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => page.PolishDiagram(new VisioDiagramPolishOptions {
+                ResolveConnectorShapeIntersections = true,
+                ConnectorRoutingPageOptimizationPasses = 0
+            }));
         }
 
         [Fact]

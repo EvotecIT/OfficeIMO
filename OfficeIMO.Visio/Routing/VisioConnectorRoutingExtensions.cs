@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -123,6 +124,10 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentOutOfRangeException(nameof(options), "Lane count cannot be negative.");
             }
 
+            if (options.PageOptimizationPasses < 1) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Page optimization pass count must be at least one.");
+            }
+
             ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
             ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
             IEnumerable<VisioShape> routingObstacles = options.IncludeGroupChildren
@@ -190,14 +195,37 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            if (options.PageOptimizationPasses < 1) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Page optimization pass count must be at least one.");
+            }
+
+            List<VisioConnector> connectors = page.Connectors.ToList();
             VisioConnectorRoutingOptions routingOptions = options;
             if (options.AvoidConnectorCrossings && options.ConnectorCrossingReferences == null) {
                 routingOptions = options.Clone();
-                routingOptions.ConnectorCrossingReferences = page.Connectors;
+                routingOptions.ConnectorCrossingReferences = connectors;
             }
 
-            foreach (VisioConnector connector in page.Connectors) {
-                connector.RouteOrthogonalAroundShapes(page.Shapes, routingOptions);
+            int passCount = routingOptions.AvoidConnectorCrossings
+                ? routingOptions.PageOptimizationPasses
+                : 1;
+            for (int pass = 0; pass < passCount; pass++) {
+                RouteScore before = ScorePageRoutes(connectors, page.Shapes, routingOptions);
+                IReadOnlyList<VisioConnector> orderedConnectors = routingOptions.AvoidConnectorCrossings
+                    ? OrderConnectorsForPageRouting(connectors, page.Shapes, routingOptions)
+                    : connectors;
+                foreach (VisioConnector connector in orderedConnectors) {
+                    connector.RouteOrthogonalAroundShapes(page.Shapes, routingOptions);
+                }
+
+                if (!routingOptions.AvoidConnectorCrossings) {
+                    break;
+                }
+
+                RouteScore after = ScorePageRoutes(connectors, page.Shapes, routingOptions);
+                if (!after.HasConflicts || !after.IsBetterThan(before)) {
+                    break;
+                }
             }
 
             return page;
@@ -389,6 +417,50 @@ namespace OfficeIMO.Visio {
                 x = cx;
                 y = dy >= 0 ? top : bottom;
             }
+        }
+
+        private static IReadOnlyList<VisioConnector> OrderConnectorsForPageRouting(IReadOnlyList<VisioConnector> connectors, IEnumerable<VisioShape> obstacles, VisioConnectorRoutingOptions options) {
+            List<ConnectorRoutingWorkItem> workItems = new();
+            int index = 0;
+            foreach (VisioConnector connector in connectors) {
+                ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
+                ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+                IEnumerable<VisioShape> routingObstacles = options.IncludeGroupChildren
+                    ? ExpandRoutingObstacles(obstacles)
+                    : obstacles;
+                List<VisioShapeBounds> obstacleBounds = GetRoutingObstacleBounds(connector, routingObstacles, options.Padding, options);
+                List<IReadOnlyList<RoutePoint>> connectorReferencePaths = options.AvoidConnectorCrossings
+                    ? GetConnectorReferencePaths(connector, options.ConnectorCrossingReferences)
+                    : new List<IReadOnlyList<RoutePoint>>();
+                RouteScore score = ScoreCurrentRoute(connector, startX, startY, endX, endY, obstacleBounds, connectorReferencePaths);
+                workItems.Add(new ConnectorRoutingWorkItem(connector, score, index++));
+            }
+
+            return workItems
+                .OrderByDescending(item => item.Score.Intersections)
+                .ThenByDescending(item => item.Score.ConnectorCrossings)
+                .ThenByDescending(item => item.Score.Length)
+                .ThenBy(item => item.Index)
+                .Select(item => item.Connector)
+                .ToList();
+        }
+
+        private static RouteScore ScorePageRoutes(IReadOnlyList<VisioConnector> connectors, IEnumerable<VisioShape> obstacles, VisioConnectorRoutingOptions options) {
+            int intersections = 0;
+            double length = 0D;
+            foreach (VisioConnector connector in connectors) {
+                ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
+                ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+                IEnumerable<VisioShape> routingObstacles = options.IncludeGroupChildren
+                    ? ExpandRoutingObstacles(obstacles)
+                    : obstacles;
+                List<VisioShapeBounds> obstacleBounds = GetRoutingObstacleBounds(connector, routingObstacles, options.Padding, options);
+                RouteScore score = ScoreCurrentRoute(connector, startX, startY, endX, endY, obstacleBounds, new List<IReadOnlyList<RoutePoint>>());
+                intersections += score.Intersections;
+                length += score.Length;
+            }
+
+            return new RouteScore(intersections, CountPageConnectorCrossings(connectors), length);
         }
 
         private static List<VisioShapeBounds> GetRoutingObstacleBounds(VisioConnector connector, IEnumerable<VisioShape> obstacles, double padding, VisioConnectorRoutingOptions options) {
@@ -608,6 +680,24 @@ namespace OfficeIMO.Visio {
             return CountConnectorCrossings(new[] { candidate.Start, candidate.First, candidate.Second, candidate.End }, connectorReferencePaths);
         }
 
+        private static int CountPageConnectorCrossings(IReadOnlyList<VisioConnector> connectors) {
+            List<IReadOnlyList<RoutePoint>> paths = new();
+            foreach (VisioConnector connector in connectors) {
+                ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
+                ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+                paths.Add(GetConnectorPath(connector, startX, startY, endX, endY));
+            }
+
+            int crossings = 0;
+            for (int i = 0; i < paths.Count; i++) {
+                for (int j = i + 1; j < paths.Count; j++) {
+                    crossings += CountConnectorCrossings(paths[i], new[] { paths[j] });
+                }
+            }
+
+            return crossings;
+        }
+
         private static int CountConnectorCrossings(IReadOnlyList<RoutePoint> points, IReadOnlyList<IReadOnlyList<RoutePoint>> connectorReferencePaths) {
             if (connectorReferencePaths.Count == 0) {
                 return 0;
@@ -737,6 +827,20 @@ namespace OfficeIMO.Visio {
             public RouteCandidate WithScore(RouteScore score) {
                 return new RouteCandidate(Start, First, Second, End, score);
             }
+        }
+
+        private readonly struct ConnectorRoutingWorkItem {
+            public ConnectorRoutingWorkItem(VisioConnector connector, RouteScore score, int index) {
+                Connector = connector;
+                Score = score;
+                Index = index;
+            }
+
+            public VisioConnector Connector { get; }
+
+            public RouteScore Score { get; }
+
+            public int Index { get; }
         }
 
         private readonly struct RouteScore {

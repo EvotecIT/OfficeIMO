@@ -463,7 +463,9 @@ visibly reserve routing space. Containers and background surfaces that contain
 the connector source or target are ignored, so a connector can still start or
 end inside its own zone. The same options can prefer lanes that reduce
 connector-to-connector crossings when reference connectors are supplied; page-wide
-routing supplies the page connector set automatically.
+routing supplies the page connector set automatically and can run deterministic
+page-level optimization passes so the most conflicted connectors are considered
+first on later sweeps.
 Pages can also set native Visio routing defaults for connectors that do not
 carry local routing or line-jump settings, plus placement and layout-grid policy
 used by Visio's Re-Layout Page commands.
@@ -1210,6 +1212,7 @@ page.PolishDiagram(new VisioDiagramPolishOptions {
     ConnectorRoutingAvoidContainers = true,
     ConnectorRoutingAvoidBackgroundSurfaces = true,
     ConnectorRoutingAvoidConnectorCrossings = true,
+    ConnectorRoutingPageOptimizationPasses = 3,
     PreferConnectorLabelsInsideEndpointZones = true,
     ConnectorLabelPositionStep = 0.08,
     ConnectorLabelMaxPositionShifts = 4,
