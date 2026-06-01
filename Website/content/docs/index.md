@@ -20,7 +20,10 @@ Use the guided sections above when you are choosing a workflow or package family
 - Workflow and conversion packages:
   [OfficeIMO.Reader on NuGet](https://www.nuget.org/packages/OfficeIMO.Reader),
   [OfficeIMO.Word.Html on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Html),
-  [OfficeIMO.Word.Markdown on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Markdown)
+  [OfficeIMO.Word.Markdown on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Markdown),
+  [OfficeIMO.Word.Pdf on NuGet](https://www.nuget.org/packages/OfficeIMO.Word.Pdf),
+  [OfficeIMO.Excel.Pdf on NuGet](https://www.nuget.org/packages/OfficeIMO.Excel.Pdf),
+  [OfficeIMO.Pdf on NuGet](https://www.nuget.org/packages/OfficeIMO.Pdf)
 - PowerShell automation:
   [PSWriteOffice on PowerShell Gallery](https://www.powershellgallery.com/packages/PSWriteOffice)
 
@@ -36,7 +39,7 @@ This site gives the best narrative coverage to the packages most teams start wit
 - `OfficeIMO.Reader`
 - `PSWriteOffice`
 
-The repo also includes adjacent packages such as `OfficeIMO.Word.Pdf`, `OfficeIMO.Word.Html`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Visio`, specialized reader extensions, and renderer projects. Some of those are linked from the package feeds below and the API reference, but not all of them have full narrative guides on the website yet. When a package is not fully covered here, the most accurate sources are usually:
+The repo also includes adjacent packages such as `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, `OfficeIMO.Word.Html`, `OfficeIMO.Word.Markdown`, `OfficeIMO.Visio`, specialized reader extensions, and renderer projects. Some of those are linked from the package feeds below and the API reference, but not all of them have full narrative guides on the website yet. When a package is not fully covered here, the most accurate sources are usually:
 
 - the package README in the repo,
 - the generated API reference,
@@ -54,7 +57,7 @@ The repo also includes adjacent packages such as `OfficeIMO.Word.Pdf`, `OfficeIM
 
 ## License
 
-OfficeIMO is licensed under the [MIT License](https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE). Copyright (c) Przemyslaw Klys @ Evotec. If you need to review upstream runtime dependencies such as Open XML SDK or SixLabors.Fonts, see the [Third-Party Dependencies](/third-party/) page.
+OfficeIMO is licensed under the [MIT License](https://github.com/EvotecIT/OfficeIMO/blob/master/LICENSE). Copyright (c) Przemyslaw Klys @ Evotec. If you need to review upstream runtime dependencies such as Open XML SDK, AngleSharp, or compatibility helper packages, see the [Third-Party Dependencies](/third-party/) page.
 
 ## Source Code
 

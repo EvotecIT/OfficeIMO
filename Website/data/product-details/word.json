@@ -7,7 +7,7 @@
   "docsUrl": "/docs/word/",
   "apiUrl": "/api/word/",
   "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
-  "dependencies": ["DocumentFormat.OpenXml", "SixLabors.ImageSharp"],
+  "dependencies": ["DocumentFormat.OpenXml", "OfficeIMO.Drawing"],
   "features": [
     { "title": "Paragraphs & Styling", "description": "Full text formatting: bold, italic, underline, strikethrough, fonts, colors, alignment, and spacing.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 7V4h16v3M9 20h6M12 4v16'/></svg>" },
     { "title": "Tables", "description": "Create tables with merge/split, borders, shading, and 105+ built-in styles.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'/></svg>" },

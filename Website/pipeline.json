@@ -31,6 +31,14 @@
     },
     {
       "task": "dotnet-build",
+      "id": "build-excel-pdf",
+      "project": "../OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0",
+      "skipIfProjectMissing": true
+    },
+    {
+      "task": "dotnet-build",
       "id": "build-powerpoint",
       "project": "../OfficeIMO.PowerPoint/OfficeIMO.PowerPoint.csproj",
       "configuration": "Release",
@@ -70,6 +78,22 @@
       "skipIfProjectMissing": true
     },
     {
+      "task": "dotnet-build",
+      "id": "build-pdf",
+      "project": "../OfficeIMO.Pdf/OfficeIMO.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0",
+      "skipIfProjectMissing": true
+    },
+    {
+      "task": "dotnet-build",
+      "id": "build-word-pdf",
+      "project": "../OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
+      "configuration": "Release",
+      "framework": "net8.0",
+      "skipIfProjectMissing": true
+    },
+    {
       "task": "release-hub",
       "id": "build-release-hub",
       "dependsOn": ["build-word"],
@@ -85,6 +109,11 @@
       "products": [
         { "id": "officeimo.word", "name": "OfficeIMO.Word", "order": 10 },
         { "id": "officeimo.excel", "name": "OfficeIMO.Excel", "order": 20 },
+        {
+          "id": "officeimo.excel.pdf",
+          "name": "OfficeIMO.Excel.Pdf",
+          "order": 25
+        },
         {
           "id": "officeimo.powerpoint",
           "name": "OfficeIMO.PowerPoint",
@@ -149,6 +178,11 @@
           "product": "officeimo.word.pdf",
           "label": "OfficeIMO.Word.Pdf",
           "match": ["*OfficeIMO.Word.Pdf*.zip", "*OfficeIMO.Word.Pdf*.nupkg"]
+        },
+        {
+          "product": "officeimo.excel.pdf",
+          "label": "OfficeIMO.Excel.Pdf",
+          "match": ["*OfficeIMO.Excel.Pdf*.zip", "*OfficeIMO.Excel.Pdf*.nupkg"]
         },
         {
           "product": "officeimo.markdownrenderer.wpf",
@@ -260,11 +294,14 @@
         "sync-sources",
         "build-word",
         "build-excel",
+        "build-excel-pdf",
         "build-powerpoint",
         "build-markdown",
         "build-csv",
         "build-visio",
         "build-reader",
+        "build-pdf",
+        "build-word-pdf",
         "build-release-hub",
         "build-ecosystem-stats",
         "generate-excel-benchmark-data"

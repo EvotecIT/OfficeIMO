@@ -44,6 +44,7 @@ Most packages are MIT licensed. `OfficeIMO.Visio` is a special case: the project
 - [OfficeIMO.Word.Html](OfficeIMO.Word.Html/README.md)
 - [OfficeIMO.Word.Markdown](OfficeIMO.Word.Markdown/README.md)
 - [OfficeIMO.Word.Pdf](OfficeIMO.Word.Pdf/README.md)
+- [OfficeIMO.Excel.Pdf](OfficeIMO.Excel.Pdf/README.md)
 - [OfficeIMO.Markdown.Html](OfficeIMO.Markdown.Html/README.md)
 
 ### Markdown and rendering packages
@@ -106,6 +107,7 @@ Most packages are MIT licensed. `OfficeIMO.Visio` is a special case: the project
 ### Excel family
 
 - `OfficeIMO.Excel`: workbook, worksheet, table, range, style, and reporting helpers
+- `OfficeIMO.Excel.Pdf`: Excel workbook to PDF export through the first-party `OfficeIMO.Pdf` engine
 - `OfficeIMO.Excel.GoogleSheets`: Excel to Google Sheets planning, batch compilation, and export helpers
 - `OfficeIMO.Excel.Benchmarks`: benchmark harness for Excel package behavior
 
@@ -170,7 +172,7 @@ Important exceptions:
 - For trimming-sensitive workloads, prefer typed overloads and explicit selectors.
 - `OfficeIMO.Markdown`, `OfficeIMO.CSV`, `OfficeIMO.Drawing`, `OfficeIMO.Pdf`, `OfficeIMO.Zip`, and `OfficeIMO.Epub` are the lightest dependency shapes.
 - Open XML-heavy packages should be tested against the exact publish options and document features your application uses.
-- `OfficeIMO.Word.Pdf` should be treated separately because PDF layout fidelity and host fonts still need scenario validation.
+- `OfficeIMO.Word.Pdf` and `OfficeIMO.Excel.Pdf` should be treated separately because PDF layout fidelity and host fonts still need scenario validation.
 
 ## Dependencies at a glance
 
@@ -213,6 +215,7 @@ flowchart TB
 ```mermaid
 flowchart TB
   Excel["OfficeIMO.Excel"]
+  ExcelPdf["OfficeIMO.Excel.Pdf"]
   PowerPoint["OfficeIMO.PowerPoint"]
   Visio["OfficeIMO.Visio"]
   Drawing["OfficeIMO.Drawing"]
@@ -225,6 +228,8 @@ flowchart TB
 
   Excel --> Drawing
   Excel --> OpenXml
+  ExcelPdf --> Excel
+  ExcelPdf --> Pdf
   PowerPoint --> OpenXml
   Visio --> Drawing
   Visio --> Packaging
@@ -343,6 +348,7 @@ flowchart TB
 - Word to Markdown or Markdown to Word: add `OfficeIMO.Word`, `OfficeIMO.Word.Markdown`, and the Markdown packages it references
 - Word to PDF: add `OfficeIMO.Word` and `OfficeIMO.Word.Pdf`
 - Creating Excel workbooks and reports: add `OfficeIMO.Excel`
+- Excel to PDF: add `OfficeIMO.Excel` and `OfficeIMO.Excel.Pdf`
 - Creating PowerPoint decks: add `OfficeIMO.PowerPoint`
 - Creating Visio diagrams: add `OfficeIMO.Visio`
 - Working directly with Markdown: add `OfficeIMO.Markdown`
@@ -363,7 +369,7 @@ flowchart TB
 - `DocumentFormat.OpenXml`: `[3.5.1, 4.0.0)` in the Open XML packages that reference it
 - `OfficeIMO.Drawing`: first-party color and image metadata helpers
 - `AngleSharp` / `AngleSharp.Css`: HTML parsing and CSS conversion layers
-- `OfficeIMO.Pdf`: first-party Word-to-PDF conversion engine and dependency-light PDF primitives
+- `OfficeIMO.Pdf`: first-party Word/Excel-to-PDF conversion engine and dependency-light PDF primitives
 - `System.Text.Json`: reader, renderer, and Google Workspace helper surfaces on legacy target frameworks
 - `Microsoft.Web.WebView2`: WPF Markdown renderer host
 - `System.IO.Packaging`: Visio package handling

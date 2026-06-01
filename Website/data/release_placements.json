@@ -54,6 +54,12 @@
       "label": "Download OfficeIMO.Word.Pdf",
       "class": "imo-btn imo-btn-ghost"
     },
+    "latest_excel_pdf": {
+      "product": "officeimo.excel.pdf",
+      "channel": "stable",
+      "label": "Download OfficeIMO.Excel.Pdf",
+      "class": "imo-btn imo-btn-ghost"
+    },
     "latest_markdown_html": {
       "product": "officeimo.markdown.html",
       "channel": "stable",

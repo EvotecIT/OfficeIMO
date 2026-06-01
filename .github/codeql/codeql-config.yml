@@ -5,6 +5,7 @@ paths:
   - OfficeIMO.Epub
   - OfficeIMO.Excel
   - OfficeIMO.Excel.GoogleSheets
+  - OfficeIMO.Excel.Pdf
   - OfficeIMO.GoogleWorkspace
   - OfficeIMO.Markdown
   - OfficeIMO.Markdown.Html

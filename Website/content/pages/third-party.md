@@ -18,11 +18,12 @@ OfficeIMO packages are published under the [MIT License](https://github.com/Evot
 | OfficeIMO package or family | Upstream components used in the repo today | Why they are there |
 |---|---|---|
 | `OfficeIMO.Word` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)` | OOXML document model and packaging; colors and image metadata use first-party `OfficeIMO.Drawing` |
-| `OfficeIMO.Excel` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`, `SixLabors.Fonts` `1.0.1` | Workbook model, first-party image metadata, and font measurement/layout work |
+| `OfficeIMO.Excel` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`, `Microsoft.Bcl.AsyncInterfaces` `10.0.8` and `System.Text.Json` `[10.0.7, 11.0.0)` on legacy targets | Workbook model, first-party image metadata, and compatibility helpers for older target frameworks |
 | `OfficeIMO.PowerPoint` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)` | Presentation OOXML model and packaging |
 | `OfficeIMO.Word.Html` | `DocumentFormat.OpenXml` `[3.5.1, 4.0.0)`, `AngleSharp` `1.3.0`, `AngleSharp.Css` `1.0.0-beta.157` | HTML and CSS parsing for Word conversion workflows |
 | `OfficeIMO.Markdown.Html` | `AngleSharp` `1.3.0` | HTML parsing for Markdown conversion and bridge scenarios |
 | `OfficeIMO.Word.Pdf` | First-party `OfficeIMO.Word` and `OfficeIMO.Pdf` project references | Word-to-PDF conversion through the OfficeIMO PDF engine |
+| `OfficeIMO.Excel.Pdf` | First-party `OfficeIMO.Excel` and `OfficeIMO.Pdf` project references | Excel-to-PDF conversion through the OfficeIMO PDF engine |
 | `OfficeIMO.Visio` | `System.IO.Packaging` `10.0.3` | OPC packaging support for `.vsdx` files; colors and image metadata use first-party `OfficeIMO.Drawing` |
 | `OfficeIMO.Markdown` | No third-party runtime package references | Core package is intentionally dependency-light |
 | `OfficeIMO.CSV` | No third-party runtime package references | Core package is intentionally dependency-light |
@@ -35,17 +36,17 @@ Additional Microsoft compatibility helpers may appear on older target frameworks
 | Upstream project | License or model | OfficeIMO packages that use it | What to know |
 |---|---|---|---|
 | [DocumentFormat.OpenXml](https://www.nuget.org/packages/DocumentFormat.OpenXml/3.5.1) | MIT | Word, Excel, PowerPoint, Word.Html | This is Microsoft's official Open XML SDK and the main OOXML building block in the Office document packages. |
-| [SixLabors.Fonts 1.0.1](https://www.nuget.org/packages/SixLabors.Fonts/1.0.1) | Apache License 2.0 | Excel | OfficeIMO currently pins the `1.0.1` line. As with other Six Labors packages, review the exact package version you ship instead of assuming newer lines follow the same terms. |
 | [AngleSharp](https://www.nuget.org/packages/AngleSharp/1.3.0) | MIT | Markdown.Html, Word.Html | Used for HTML parsing and DOM work. |
 | [AngleSharp.Css](https://www.nuget.org/packages/AngleSharp.Css/1.0.0-beta.157) | MIT | Word.Html | Adds CSS parsing on top of AngleSharp for HTML conversion flows. |
+| [Microsoft.Bcl.AsyncInterfaces](https://www.nuget.org/packages/Microsoft.Bcl.AsyncInterfaces/10.0.8) | MIT | Excel legacy targets | Provides async interface compatibility for older target frameworks. |
+| [System.Text.Json](https://www.nuget.org/packages/System.Text.Json/10.0.7) | MIT | Excel legacy targets | Provides JSON support where it is not supplied by the target framework. |
 | [System.IO.Packaging](https://www.nuget.org/packages/System.IO.Packaging/10.0.3) | MIT | Visio | Microsoft packaging primitives for OPC-style containers. |
 
 ## What We Recommend Teams Check
 
 1. Review the exact `PackageReference` list for the OfficeIMO packages you ship, not just the repo root license.
-2. Re-check exact Six Labors package versions whenever they change.
-3. Re-check upstream terms whenever a dependency version changes, especially around imaging stacks.
-4. Keep a copy of the upstream notices or license URLs in your own release/compliance workflow if your organization requires that.
+2. Re-check upstream terms whenever a dependency version changes, especially around parsing, packaging, or compatibility helper libraries.
+3. Keep a copy of the upstream notices or license URLs in your own release/compliance workflow if your organization requires that.
 
 ## How We Address This In The Website
 
@@ -53,4 +54,4 @@ Additional Microsoft compatibility helpers may appear on older target frameworks
 - We document the public dependency surface here instead of hiding it in project files.
 - We keep the page scoped to real shipped package dependencies so it stays reviewable and current.
 
-If you need the exact current references, start with the repository project files such as [`OfficeIMO.Word.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word/OfficeIMO.Word.csproj), [`OfficeIMO.Excel.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel/OfficeIMO.Excel.csproj), [`OfficeIMO.Word.Pdf.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj), and [`OfficeIMO.Visio.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Visio/OfficeIMO.Visio.csproj).
+If you need the exact current references, start with the repository project files such as [`OfficeIMO.Word.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word/OfficeIMO.Word.csproj), [`OfficeIMO.Excel.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel/OfficeIMO.Excel.csproj), [`OfficeIMO.Word.Pdf.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj), [`OfficeIMO.Excel.Pdf.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj), and [`OfficeIMO.Visio.csproj`](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Visio/OfficeIMO.Visio.csproj).

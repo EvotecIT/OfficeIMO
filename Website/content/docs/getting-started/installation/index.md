@@ -130,6 +130,54 @@ dotnet add package OfficeIMO.Word.Markdown
 <PackageReference Include="OfficeIMO.Word.Markdown" Version="1.0.13" />
 ```
 
+### OfficeIMO.Word.Pdf
+
+Word-to-PDF conversion built on the first-party OfficeIMO.Pdf engine.
+
+**.NET CLI**
+
+```bash
+dotnet add package OfficeIMO.Word.Pdf
+```
+
+**PackageReference**
+
+```xml
+<PackageReference Include="OfficeIMO.Word.Pdf" Version="1.0.33" />
+```
+
+### OfficeIMO.Excel.Pdf
+
+Excel workbook-to-PDF conversion built on the first-party OfficeIMO.Pdf engine.
+
+**.NET CLI**
+
+```bash
+dotnet add package OfficeIMO.Excel.Pdf
+```
+
+**PackageReference**
+
+```xml
+<PackageReference Include="OfficeIMO.Excel.Pdf" Version="1.0.0" />
+```
+
+### OfficeIMO.Pdf
+
+Direct PDF generation and PDF utility primitives without runtime package dependencies.
+
+**.NET CLI**
+
+```bash
+dotnet add package OfficeIMO.Pdf
+```
+
+**PackageReference**
+
+```xml
+<PackageReference Include="OfficeIMO.Pdf" Version="0.1.34" />
+```
+
 ## PSWriteOffice (PowerShell Module)
 
 PSWriteOffice wraps OfficeIMO for use from PowerShell. Install it from the PowerShell Gallery:
@@ -169,12 +217,17 @@ Get-Module PSWriteOffice
 
 OfficeIMO.Word and OfficeIMO.Excel depend on:
 
-- **DocumentFormat.OpenXml** (>= 3.3.0, < 4.0.0) -- The Microsoft Open XML SDK.
+- **DocumentFormat.OpenXml** (>= 3.5.1, < 4.0.0) -- The Microsoft Open XML SDK.
 - **OfficeIMO.Drawing** -- First-party color and image metadata helpers used by the document packages.
+
+OfficeIMO.Excel also uses compatibility helper packages on older targets:
+
+- **Microsoft.Bcl.AsyncInterfaces** -- Async interface compatibility for `netstandard2.0` and `net472`.
+- **System.Text.Json** -- JSON support for `netstandard2.0` and `net472`.
 
 OfficeIMO.Word.Html additionally depends on:
 
 - **AngleSharp** (1.3.0) -- HTML parsing and DOM manipulation.
 - **AngleSharp.Css** (1.0.0-beta.157) -- CSS parsing for style mapping.
 
-OfficeIMO.Markdown and OfficeIMO.CSV have **no external dependencies** beyond the .NET runtime.
+OfficeIMO.Pdf, OfficeIMO.Markdown, and OfficeIMO.CSV have **no external dependencies** beyond the .NET runtime.
