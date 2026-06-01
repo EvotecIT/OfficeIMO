@@ -100,9 +100,10 @@ namespace OfficeIMO.Word.Pdf {
             Dictionary<WordParagraph, (int Level, int Index)> listIndices = DocumentTraversal.BuildListIndices(document);
             Dictionary<W.Paragraph, string> headingDestinations = BuildNativeHeadingDestinations(document);
             IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries = BuildNativeTableOfContentsEntries(document, options, headingDestinations);
+            var footnoteNumbersById = new Dictionary<long, int>();
             foreach (WordSection section in document.Sections) {
                 IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
-                List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, out Dictionary<long, int> footnoteNumbersById);
+                List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById);
                 pdf.Section(page => {
                     page.Size(GetNativePageSize(section, options));
                     page.Margin(GetNativeMargins(section, options));
@@ -981,28 +982,28 @@ namespace OfficeIMO.Word.Pdf {
             RecordNativeHeaderFooterDiagnostics(section.Footer?.Even, options, "even footer");
 
             NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.Header?.Default);
-            NativeHeaderFooterText? firstHeader = GetNativeHeaderFooterText(section.Header?.First);
-            NativeHeaderFooterText? evenHeader = GetNativeHeaderFooterText(section.Header?.Even);
+            NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Header?.First) : null;
+            NativeHeaderFooterText? evenHeader = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterText(section.Header?.Even) : null;
             NativeHeaderFooterText? defaultFooter = GetNativeHeaderFooterText(section.Footer?.Default);
-            NativeHeaderFooterText? firstFooter = GetNativeHeaderFooterText(section.Footer?.First);
-            NativeHeaderFooterText? evenFooter = GetNativeHeaderFooterText(section.Footer?.Even);
+            NativeHeaderFooterText? firstFooter = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Footer?.First) : null;
+            NativeHeaderFooterText? evenFooter = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterText(section.Footer?.Even) : null;
             IReadOnlyList<NativeHeaderFooterImage> defaultHeaderImages = GetNativeHeaderFooterImages(section.Header?.Default, options, "default header image");
-            IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = GetNativeHeaderFooterImages(section.Header?.First, options, "first header image");
-            IReadOnlyList<NativeHeaderFooterImage> evenHeaderImages = GetNativeHeaderFooterImages(section.Header?.Even, options, "even header image");
+            IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = section.DifferentFirstPage ? GetNativeHeaderFooterImages(section.Header?.First, options, "first header image") : Array.Empty<NativeHeaderFooterImage>();
+            IReadOnlyList<NativeHeaderFooterImage> evenHeaderImages = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterImages(section.Header?.Even, options, "even header image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterImage> defaultFooterImages = GetNativeHeaderFooterImages(section.Footer?.Default, options, "default footer image");
-            IReadOnlyList<NativeHeaderFooterImage> firstFooterImages = GetNativeHeaderFooterImages(section.Footer?.First, options, "first footer image");
-            IReadOnlyList<NativeHeaderFooterImage> evenFooterImages = GetNativeHeaderFooterImages(section.Footer?.Even, options, "even footer image");
+            IReadOnlyList<NativeHeaderFooterImage> firstFooterImages = section.DifferentFirstPage ? GetNativeHeaderFooterImages(section.Footer?.First, options, "first footer image") : Array.Empty<NativeHeaderFooterImage>();
+            IReadOnlyList<NativeHeaderFooterImage> evenFooterImages = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterImages(section.Footer?.Even, options, "even footer image") : Array.Empty<NativeHeaderFooterImage>();
             IReadOnlyList<NativeHeaderFooterShape> defaultHeaderShapes = GetNativeHeaderFooterShapes(section.Header?.Default);
-            IReadOnlyList<NativeHeaderFooterShape> firstHeaderShapes = GetNativeHeaderFooterShapes(section.Header?.First);
-            IReadOnlyList<NativeHeaderFooterShape> evenHeaderShapes = GetNativeHeaderFooterShapes(section.Header?.Even);
+            IReadOnlyList<NativeHeaderFooterShape> firstHeaderShapes = section.DifferentFirstPage ? GetNativeHeaderFooterShapes(section.Header?.First) : Array.Empty<NativeHeaderFooterShape>();
+            IReadOnlyList<NativeHeaderFooterShape> evenHeaderShapes = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterShapes(section.Header?.Even) : Array.Empty<NativeHeaderFooterShape>();
             IReadOnlyList<NativeHeaderFooterShape> defaultFooterShapes = GetNativeHeaderFooterShapes(section.Footer?.Default);
-            IReadOnlyList<NativeHeaderFooterShape> firstFooterShapes = GetNativeHeaderFooterShapes(section.Footer?.First);
-            IReadOnlyList<NativeHeaderFooterShape> evenFooterShapes = GetNativeHeaderFooterShapes(section.Footer?.Even);
+            IReadOnlyList<NativeHeaderFooterShape> firstFooterShapes = section.DifferentFirstPage ? GetNativeHeaderFooterShapes(section.Footer?.First) : Array.Empty<NativeHeaderFooterShape>();
+            IReadOnlyList<NativeHeaderFooterShape> evenFooterShapes = section.DifferentOddAndEvenPages ? GetNativeHeaderFooterShapes(section.Footer?.Even) : Array.Empty<NativeHeaderFooterShape>();
             ApplyNativeHeaderFooterPageNumberStyle(page, defaultHeader, firstHeader, evenHeader, defaultFooter, firstFooter, evenFooter);
-            bool hasFirstHeaderVariant = section.DifferentFirstPage || firstHeader != null || firstHeaderImages.Count > 0 || firstHeaderShapes.Count > 0;
-            bool hasEvenHeaderVariant = section.DifferentOddAndEvenPages || evenHeader != null || evenHeaderImages.Count > 0 || evenHeaderShapes.Count > 0;
-            bool hasFirstFooterVariant = section.DifferentFirstPage || firstFooter != null || firstFooterImages.Count > 0 || firstFooterShapes.Count > 0;
-            bool hasEvenFooterVariant = section.DifferentOddAndEvenPages || evenFooter != null || evenFooterImages.Count > 0 || evenFooterShapes.Count > 0;
+            bool hasFirstHeaderVariant = section.DifferentFirstPage;
+            bool hasEvenHeaderVariant = section.DifferentOddAndEvenPages;
+            bool hasFirstFooterVariant = section.DifferentFirstPage;
+            bool hasEvenFooterVariant = section.DifferentOddAndEvenPages;
             if (defaultHeader != null || hasFirstHeaderVariant || hasEvenHeaderVariant ||
                 defaultHeaderImages.Count > 0 || firstHeaderImages.Count > 0 || evenHeaderImages.Count > 0 ||
                 defaultHeaderShapes.Count > 0 || firstHeaderShapes.Count > 0 || evenHeaderShapes.Count > 0) {
@@ -4933,9 +4934,8 @@ namespace OfficeIMO.Word.Pdf {
             return AppendNativeTextWithEquation(text, paragraph);
         }
 
-        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, out Dictionary<long, int> footnoteNumbersById) {
+        private static List<PdfFootnote> CollectNativeFootnotes(IReadOnlyList<WordElement> elements, Dictionary<long, int> footnoteNumbersById) {
             var footnotes = new List<PdfFootnote>();
-            footnoteNumbersById = new Dictionary<long, int>();
             foreach (WordElement element in elements) {
                 CollectNativeFootnotes(element, footnotes, footnoteNumbersById);
             }
@@ -5003,7 +5003,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            int number = footnotes.Count + 1;
+            int number = footnoteNumbersById.Count + 1;
             footnoteNumbersById[key] = number;
             footnotes.Add(new PdfFootnote {
                 Number = number,
@@ -5022,7 +5022,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            int number = footnotes.Count + 1;
+            int number = footnoteNumbersById.Count + 1;
             footnoteNumbersById[key] = number;
             footnotes.Add(new PdfFootnote {
                 Number = number,

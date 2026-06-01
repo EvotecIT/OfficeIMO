@@ -48,18 +48,20 @@ public partial class Excel {
             ExcelSheet summary = document.AddWorkSheet("Summary");
             summary.Cell(1, 1, "Metric");
             summary.Cell(2, 1, "SelectedValue");
+            summary.SetHeaderFooter(headerCenter: "Selected Header &A");
             ExcelSheet internalSheet = document.AddWorkSheet("Internal");
             internalSheet.Cell(1, 1, "HiddenValue");
             document.Save(false);
 
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
-                SheetNames = new[] { "Summary" }
+                SheetNames = new[] { "summary" }
             });
         }
 
         using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
         string text = pdf.GetPage(1).Text;
         Assert.Contains("Summary", text);
+        Assert.Contains("Selected Header Summary", text);
         Assert.Contains("SelectedValue", text);
         Assert.DoesNotContain("HiddenValue", text);
     }
@@ -104,6 +106,33 @@ public partial class Excel {
         Assert.True(extractedImage.IsImageFile);
         Assert.Equal(1, extractedImage.Width);
         Assert.Equal(1, extractedImage.Height);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Filters_Images_Anchored_To_Hidden_Cells() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHiddenCellImages.xlsx");
+
+        byte[] imageBytes = CreateMinimalRgbPng();
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "VisibleMarker");
+            sheet.Cell(2, 1, "HiddenImageMarker");
+            sheet.AddImage(2, 1, imageBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Hidden Logo", altText: "Hidden logo");
+            sheet.SetRowHidden(2, true);
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                RespectWorksheetHiddenRowsAndColumns = true
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("VisibleMarker", text);
+        Assert.DoesNotContain("HiddenImageMarker", text);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(bytes));
     }
 
     [Fact]

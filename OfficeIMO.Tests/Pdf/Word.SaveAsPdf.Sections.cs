@@ -533,6 +533,60 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Ignores_First_And_Even_HeaderFooter_Parts_When_Section_Flags_Are_Off() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeStaleHeaderFooterVariants.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStaleHeaderFooterVariants.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            document.DifferentFirstPage = true;
+            document.DifferentOddAndEvenPages = true;
+
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Footer");
+            RequireSectionHeader(document, 0, HeaderFooterValues.First).AddParagraph("Native Stale First Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.First).AddParagraph("Native Stale First Footer");
+            RequireSectionHeader(document, 0, HeaderFooterValues.Even).AddParagraph("Native Stale Even Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Even).AddParagraph("Native Stale Even Footer");
+
+            for (int i = 0; i < 240; i++) {
+                document.AddParagraph($"Native stale variant paragraph {i}");
+            }
+
+            document.Save();
+        }
+
+        using (WordprocessingDocument package = WordprocessingDocument.Open(docPath, true)) {
+            Settings? settings = package.MainDocumentPart!.DocumentSettingsPart!.Settings;
+            settings?.RemoveAllChildren<EvenAndOddHeaders>();
+            foreach (TitlePage titlePage in package.MainDocumentPart.Document.Body!.Descendants<TitlePage>().ToList()) {
+                titlePage.Remove();
+            }
+
+            package.Save();
+        }
+
+        using (WordDocument document = WordDocument.Load(docPath)) {
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            Assert.True(pdf.NumberOfPages >= 2);
+            string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
+            Assert.Contains("Native Default Header", pdf.GetPage(1).Text);
+            Assert.Contains("Native Default Footer", pdf.GetPage(1).Text);
+            Assert.Contains("Native Default Header", pdf.GetPage(2).Text);
+            Assert.Contains("Native Default Footer", pdf.GetPage(2).Text);
+            Assert.DoesNotContain("Native Stale First Header", allText);
+            Assert.DoesNotContain("Native Stale First Footer", allText);
+            Assert.DoesNotContain("Native Stale Even Header", allText);
+            Assert.DoesNotContain("Native Stale Even Footer", allText);
+        }
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Blank_First_And_Even_HeaderFooter_Variants() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.pdf");

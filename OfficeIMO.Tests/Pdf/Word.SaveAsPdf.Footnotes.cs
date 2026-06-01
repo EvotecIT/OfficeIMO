@@ -81,5 +81,31 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Native after notes", allText);
             }
         }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Keeps_Footnote_Numbering_Continuous_Across_Sections() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionFootnotes.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionFootnotes.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph("First section note").AddFootNote("First section footnote");
+                WordSection secondSection = document.AddSection();
+                secondSection.AddParagraph("Second section note").AddFootNote("Second section footnote");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using (var pdf = PdfDocument.Open(pdfPath)) {
+                string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
+                string normalizedText = Regex.Replace(allText, @"\s+", " ");
+                Assert.Contains("First section note1", allText);
+                Assert.Contains("Second section note2", allText);
+                Assert.Contains("1 First section footnote", normalizedText);
+                Assert.Contains("2 Second section footnote", normalizedText);
+                Assert.DoesNotContain("Second section note1", allText);
+            }
+        }
     }
 }

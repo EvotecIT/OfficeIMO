@@ -145,7 +145,9 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 ISet<string>? exportedCellReferences = CreateExportedCellReferenceSet(exportData.CellReferences, exportedRows);
-                bool filterMediaToExportedCells = HasWorksheetPrintArea(workbookSheet, options) || options.MaxRowsPerSheet.HasValue;
+                bool filterMediaToExportedCells = HasWorksheetPrintArea(workbookSheet, options) ||
+                                                  options.MaxRowsPerSheet.HasValue ||
+                                                  (options.RespectWorksheetHiddenRowsAndColumns && HasHiddenRowsOrColumns(workbookSheet));
                 IReadOnlyList<WorksheetImageExportData> images = FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
                 IReadOnlyList<WorksheetChartExportData> charts = FilterChartsByExportedCells(ReadWorksheetCharts(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
                 if (!hasTable && images.Count == 0 && charts.Count == 0) {
@@ -928,8 +930,8 @@ namespace OfficeIMO.Excel.Pdf {
                     throw new ArgumentException("Sheet names cannot contain null, empty, or whitespace values.", nameof(options));
                 }
 
-                reader.GetSheet(name);
-                names.Add(name);
+                ExcelSheetReader sheet = reader.GetSheet(name);
+                names.Add(sheet.Name);
             }
 
             return names;
@@ -1944,12 +1946,21 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static ExcelSheet? GetWorkbookSheet(ExcelDocument document, string sheetName) {
             foreach (ExcelSheet sheet in document.Sheets) {
-                if (string.Equals(sheet.Name, sheetName, StringComparison.Ordinal)) {
+                if (string.Equals(sheet.Name, sheetName, StringComparison.OrdinalIgnoreCase)) {
                     return sheet;
                 }
             }
 
             return null;
+        }
+
+        private static bool HasHiddenRowsOrColumns(ExcelSheet? workbookSheet) {
+            if (workbookSheet == null) {
+                return false;
+            }
+
+            return workbookSheet.GetRowDefinitions().Any(row => row.Hidden) ||
+                   workbookSheet.GetColumnDefinitions().Any(column => column.Hidden);
         }
 
         private static string GetExportRange(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) {
