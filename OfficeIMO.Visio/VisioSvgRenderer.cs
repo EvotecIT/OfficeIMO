@@ -118,16 +118,17 @@ namespace OfficeIMO.Visio {
                         end++;
                     }
 
-                    writer.WriteStartElement("path", SvgNamespace);
-                    writer.WriteAttributeString("d", BuildPreservedGeometryPath(page, shape, contours, scale));
-                    writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
-                    if (contours.Count > 1) {
-                        writer.WriteAttributeString("fill-rule", "evenodd");
-                        writer.WriteAttributeString("clip-rule", "evenodd");
+                    if (contours.Count == 1) {
+                        writer.WriteStartElement("path", SvgNamespace);
+                        writer.WriteAttributeString("d", BuildPath(page, shape, preservedPath.Points, scale, isClosed: true));
+                        writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
+                        WriteShapeStyle(writer, shape, scale, noFill: false, noLine: preservedPath.NoLine);
+                        writer.WriteEndElement();
+                    } else {
+                        WritePreservedGeometryFillPath(writer, page, shape, contours, scale);
+                        WritePreservedGeometryStrokePaths(writer, page, shape, contours, scale);
                     }
 
-                    WriteShapeStyle(writer, shape, scale, noFill: false, noLine: AllNoLine(contours));
-                    writer.WriteEndElement();
                     i = end;
                 }
 
@@ -347,24 +348,47 @@ namespace OfficeIMO.Visio {
             return builder.ToString();
         }
 
-        private static bool AllNoLine(IReadOnlyList<VisioShapeGeometryPath> paths) {
-            for (int i = 0; i < paths.Count; i++) {
-                if (!paths[i].NoLine) {
-                    return false;
-                }
+        private static void WritePreservedGeometryFillPath(XmlWriter writer, VisioPage page, VisioShape shape, IReadOnlyList<VisioShapeGeometryPath> contours, double scale) {
+            writer.WriteStartElement("path", SvgNamespace);
+            writer.WriteAttributeString("d", BuildPreservedGeometryPath(page, shape, contours, scale));
+            writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
+            if (contours.Count > 1) {
+                writer.WriteAttributeString("fill-rule", "evenodd");
+                writer.WriteAttributeString("clip-rule", "evenodd");
             }
 
-            return true;
+            WriteShapeStyle(writer, shape, scale, noFill: false, noLine: true);
+            writer.WriteEndElement();
+        }
+
+        private static void WritePreservedGeometryStrokePaths(XmlWriter writer, VisioPage page, VisioShape shape, IReadOnlyList<VisioShapeGeometryPath> contours, double scale) {
+            if (!HasVisibleLine(shape)) {
+                return;
+            }
+
+            for (int i = 0; i < contours.Count; i++) {
+                VisioShapeGeometryPath contour = contours[i];
+                if (contour.NoLine) {
+                    continue;
+                }
+
+                writer.WriteStartElement("path", SvgNamespace);
+                writer.WriteAttributeString("d", BuildPath(page, shape, contour.Points, scale, isClosed: true));
+                writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
+                WriteShapeStyle(writer, shape, scale, noFill: true, noLine: false);
+                writer.WriteEndElement();
+            }
         }
 
         private static void WriteShapeText(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
             VisioTextStyle? style = shape.TextStyle;
-            double localX = style?.TextPinX ?? shape.Width / 2D;
-            double localY = style?.TextPinY ?? shape.Height / 2D;
-            (double textX, double textY) = GetPagePoint(shape, localX, localY);
-            (double x, double y) = ToSvg(page, textX, textY, scale);
             double textWidth = Math.Max(0.05D, style?.TextWidth ?? shape.Width);
             double textHeight = Math.Max(0.05D, style?.TextHeight ?? shape.Height);
+            double pinX = style?.TextPinX ?? shape.Width / 2D;
+            double pinY = style?.TextPinY ?? shape.Height / 2D;
+            (double localX, double localY) = ResolveTextBoxCenter(pinX, pinY, textWidth, textHeight, style);
+            (double textX, double textY) = GetPagePoint(shape, localX, localY);
+            (double x, double y) = ToSvg(page, textX, textY, scale);
             double horizontalMargins = (style?.LeftMargin ?? 0.05D) + (style?.RightMargin ?? 0.05D);
             double verticalMargins = (style?.TopMargin ?? 0.03D) + (style?.BottomMargin ?? 0.03D);
             WriteText(
@@ -380,6 +404,15 @@ namespace OfficeIMO.Visio {
                 maxHeight: Math.Max(8D, (textHeight - verticalMargins) * scale),
                 drawLabelBackground: false);
         }
+
+        private static (double X, double Y) ResolveTextBoxCenter(double pinX, double pinY, double width, double height, VisioTextStyle? style) {
+            double locPinX = style?.TextLocPinX ?? width / 2D;
+            double locPinY = style?.TextLocPinY ?? height / 2D;
+            return (pinX + (width / 2D) - locPinX, pinY + (height / 2D) - locPinY);
+        }
+
+        private static bool HasVisibleLine(VisioShape shape) =>
+            shape.LinePattern != 0 && shape.LineWeight > 0D && shape.LineColor.A > 0;
 
         private static void WriteConnector(XmlWriter writer, VisioPage page, VisioConnector connector, VisioSvgSaveOptions options, double scale, VisioRenderLabelLayout? labelLayout) {
             List<(double X, double Y)> points = GetConnectorPoints(connector);

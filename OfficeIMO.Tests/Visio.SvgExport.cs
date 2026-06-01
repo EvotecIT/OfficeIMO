@@ -517,6 +517,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SvgRendererAppliesTextLocPinToShapeTextBoxCenter() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Text LocPin").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, "Left pinned");
+            shape.TextStyle = new VisioTextStyle {
+                Size = 8,
+                TextPinX = 0.2,
+                TextPinY = 0.2,
+                TextWidth = 0.8,
+                TextHeight = 0.4,
+                TextLocPinX = 0,
+                TextLocPinY = 0
+            };
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
+            XElement text = shapeGroup.Elements(ns + "text").Single();
+            Assert.Equal("160", text.Attribute("x")!.Value);
+        }
+
+        [Fact]
         public void SvgRendererRotatesStyledTextBackgroundWithTextAngle() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -569,6 +595,35 @@ namespace OfficeIMO.Tests {
             Assert.Equal("true", labelBackground.Attribute("data-officeimo-label-adjusted")!.Value);
             Assert.Equal("true", labelText.Attribute("data-officeimo-label-adjusted")!.Value);
             Assert.NotEqual("135", labelBackground.Attribute("y")!.Value);
+        }
+
+        [Fact]
+        public void SvgRendererNudgesConnectorLabelsAwayFromGroupedChildrenInPageSpace() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Grouped Label Avoidance").Size(6, 3);
+            VisioShape source = page.AddRectangle(1, 1.5, 1, 0.6, "Source");
+            VisioShape target = page.AddRectangle(5, 1.5, 1, 0.6, "Target");
+            VisioShape group = new("group", 3, 1.5, 1.2, 1, string.Empty) { Type = "Group", FillPattern = 0 };
+            group.SetUserCell("msvStructureType", "Container");
+            VisioShape child = new("child", 0.6, 0.5, 1, 0.4, "Child");
+            group.Children.Add(child);
+            page.Shapes.Add(group);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            connector.Label = "handoff";
+            connector.PlaceLabel(0.5, width: 1.2, height: 0.3);
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
+            XElement labelBackground = connectorGroup.Elements(ns + "rect")
+                .Single(rect => (string?)rect.Attribute("data-officeimo-connector-label-background") == "true");
+            XElement labelText = connectorGroup.Elements(ns + "text").Single();
+            Assert.Equal("true", labelBackground.Attribute("data-officeimo-label-adjusted")!.Value);
+            Assert.Equal("true", labelText.Attribute("data-officeimo-label-adjusted")!.Value);
         }
 
         [Fact]
@@ -902,12 +957,17 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://www.w3.org/2000/svg";
             XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
                 .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
+            List<XElement> paths = shapeGroup.Elements(ns + "path")
+                .Where(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
+                .ToList();
+            XElement path = paths[0];
 
+            Assert.Equal(3, paths.Count);
             Assert.Equal("M 110 140 L 145 140 L 127.5 105 Z M 155 95 L 190 95 L 172.5 60 Z", path.Attribute("d")!.Value);
             Assert.Equal("evenodd", path.Attribute("fill-rule")!.Value);
             Assert.Equal("evenodd", path.Attribute("clip-rule")!.Value);
+            Assert.Equal("none", path.Attribute("stroke")!.Value);
+            Assert.All(paths.Skip(1), strokePath => Assert.Equal("none", strokePath.Attribute("fill")!.Value));
         }
 
         [Fact]
@@ -926,13 +986,44 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://www.w3.org/2000/svg";
             XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
                 .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
+            List<XElement> paths = shapeGroup.Elements(ns + "path")
+                .Where(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
+                .ToList();
+            XElement path = paths[0];
 
+            Assert.Equal(3, paths.Count);
             Assert.Equal("M 110 140 L 190 140 L 190 60 L 110 60 Z M 135 115 L 165 115 L 165 85 L 135 85 Z", path.Attribute("d")!.Value);
             Assert.Equal("evenodd", path.Attribute("fill-rule")!.Value);
             Assert.Equal("evenodd", path.Attribute("clip-rule")!.Value);
             Assert.NotEqual("none", path.Attribute("fill")!.Value);
+            Assert.Equal("none", path.Attribute("stroke")!.Value);
+            Assert.All(paths.Skip(1), strokePath => Assert.Equal("none", strokePath.Attribute("fill")!.Value));
+        }
+
+        [Fact]
+        public void SvgRendererSuppressesStrokeForNoLineContourInCombinedPreservedGeometry() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Preserved NoLine Hole").Size(3, 2);
+            VisioShape shape = AddDonutGeometryShape(page, innerNoLine: true);
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
+            List<XElement> paths = shapeGroup.Elements(ns + "path")
+                .Where(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
+                .ToList();
+
+            Assert.Equal(2, paths.Count);
+            Assert.Equal("none", paths[0].Attribute("stroke")!.Value);
+            Assert.Equal("none", paths[1].Attribute("fill")!.Value);
+            Assert.DoesNotContain("M 135 115 L 165 115 L 165 85 L 135 85 Z", paths[1].Attribute("d")!.Value);
         }
 
         [Fact]
@@ -1759,11 +1850,11 @@ namespace OfficeIMO.Tests {
             return shape;
         }
 
-        private static VisioShape AddDonutGeometryShape(VisioPage page) {
+        private static VisioShape AddDonutGeometryShape(VisioPage page, bool innerNoLine = false) {
             VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
-            shape.PreservedGeometrySections.Add(CreateDonutGeometrySection());
+            shape.PreservedGeometrySections.Add(CreateDonutGeometrySection(innerNoLine));
             return shape;
         }
 
@@ -2090,7 +2181,7 @@ namespace OfficeIMO.Tests {
                     new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.55"))));
         }
 
-        private static XElement CreateDonutGeometrySection() {
+        private static XElement CreateDonutGeometrySection(bool innerNoLine = false) {
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             return new XElement(ns + "Section", new XAttribute("N", "Geometry"), new XAttribute("IX", "0"),
                 CreateGeometryRow(ns, noFill: false, noLine: false, noShow: false),
@@ -2111,7 +2202,8 @@ namespace OfficeIMO.Tests {
                     new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.1"))),
                 new XElement(ns + "Row", new XAttribute("T", "RelMoveTo"), new XAttribute("IX", "6"),
                     new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.35")),
-                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.35"))),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.35")),
+                    new XElement(ns + "Cell", new XAttribute("N", "NoLine"), new XAttribute("V", innerNoLine ? "1" : "0"))),
                 new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "7"),
                     new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.65")),
                     new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.35"))),

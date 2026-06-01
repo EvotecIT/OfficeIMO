@@ -22,7 +22,7 @@ namespace OfficeIMO.Visio {
         private VisioRenderLabelLayout(VisioPage page) {
             _page = page;
             _shapes = page.AllShapes();
-            _shapeBounds = _shapes.ToDictionary(shape => shape, shape => shape.GetShapeBounds());
+            _shapeBounds = _shapes.ToDictionary(shape => shape, GetPageShapeBounds);
             _connectorPaths = page.Connectors.ToDictionary(connector => connector, GetConnectorPoints);
         }
 
@@ -310,6 +310,11 @@ namespace OfficeIMO.Visio {
             double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
             double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
             return (left, bottom, right, top);
+        }
+
+        private static VisioShapeBounds GetPageShapeBounds(VisioShape shape) {
+            (double left, double bottom, double right, double top) = GetPageBounds(shape);
+            return new VisioShapeBounds(left, bottom, right, top);
         }
 
         private static void ResolveFallbackEndpoint(

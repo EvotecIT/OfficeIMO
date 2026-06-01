@@ -331,6 +331,8 @@ namespace OfficeIMO.Visio {
 
             bool handledStandaloneGeometry = false;
             bool closedPath = true;
+            bool currentNoFill = noFill;
+            bool currentNoLine = noLine;
             List<XElement> rows = section.Elements(ns + "Row").ToList();
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
                 XElement row = rows[rowIndex];
@@ -562,18 +564,30 @@ namespace OfficeIMO.Visio {
                 }
 
                 if (isMove && points.Count > 0) {
-                    if (!TryAddGeometryPath(paths, points, noFill, noLine, closedPath, fillGroup)) {
+                    if (!TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPath, fillGroup)) {
                         return false;
                     }
 
                     points = new List<(double X, double Y)>();
                     closedPath = true;
+                    currentNoFill = noFill;
+                    currentNoLine = noLine;
+                }
+
+                if (isMove) {
+                    if (TryReadBooleanCell(row, ns, "NoFill", shape, out bool rowNoFill)) {
+                        currentNoFill = rowNoFill;
+                    }
+
+                    if (TryReadBooleanCell(row, ns, "NoLine", shape, out bool rowNoLine)) {
+                        currentNoLine = rowNoLine;
+                    }
                 }
 
                 points.Add(point);
             }
 
-            return TryAddGeometryPath(paths, points, noFill, noLine, closedPath, fillGroup);
+            return TryAddGeometryPath(paths, points, currentNoFill, currentNoLine, closedPath, fillGroup);
         }
 
         private static bool TryAddGeometryPath(
