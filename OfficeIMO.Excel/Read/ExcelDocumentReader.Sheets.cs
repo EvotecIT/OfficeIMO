@@ -11,6 +11,10 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelSheetReader GetSheet(int index) {
             if (index < 1) throw new ArgumentOutOfRangeException(nameof(index));
+            if (TryGetSheetByIndexXmlFast(index, out string fastSheetName, out WorksheetPart fastWorksheetPart)) {
+                return new ExcelSheetReader(fastSheetName, fastWorksheetPart, _sst, _styles, _opt, _owns);
+            }
+
             var wb = WorkbookRoot;
             Sheet? sheet = null;
             int currentIndex = 0;
@@ -32,6 +36,10 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public int SheetCount {
             get {
+                if (TryGetSheetCountXmlFast(out int fastCount)) {
+                    return fastCount;
+                }
+
                 int count = 0;
                 foreach (var _ in WorkbookRoot.Sheets!.Elements<Sheet>()) {
                     count++;

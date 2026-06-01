@@ -292,6 +292,7 @@ namespace OfficeIMO.Excel {
                 values,
                 columnCount,
                 rowCount,
+                valuesMatchColumnTypes: false,
                 includeHeaders,
                 range);
         }

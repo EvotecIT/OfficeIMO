@@ -7,7 +7,7 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static class DirectDataSetWorkbookWriter {
-            private const int XmlWriterBufferSize = 32768;
+            private const int XmlWriterBufferSize = 65536;
             private const int StackallocTextEntryByteLimit = 4096;
             private const string DateStyleAttribute = " s=\"1\"";
             private const string TimeStyleAttribute = " s=\"2\"";
@@ -64,10 +64,10 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            internal static bool TryCreateExtendedWritePlan(DirectDataSetWorkbookModel model, CancellationToken ct, out ExtendedDirectWritePlan? plan) {
+            internal static bool TryCreateExtendedWritePlan(DirectDataSetWorkbookModel model, CancellationToken ct, out ExtendedDirectWritePlan? plan, bool disableSharedStrings = false) {
                 DirectStylePlan stylePlan = DirectStylePlan.Create(model);
                 DirectColumnWritePlan[] columnWritePlans = CreateColumnWritePlans(model, stylePlan, ct);
-                var sharedStrings = DirectSharedStringTable.Create(model, columnWritePlans, ct);
+                var sharedStrings = disableSharedStrings ? null : DirectSharedStringTable.Create(model, columnWritePlans, ct);
 
                 plan = new ExtendedDirectWritePlan(model, stylePlan, columnWritePlans, sharedStrings);
                 return true;
@@ -1307,9 +1307,6 @@ namespace OfficeIMO.Excel {
                     bool canCancel = ct.CanBeCanceled;
                     for (int sheetIndex = 0; sheetIndex < model.Sheets.Count; sheetIndex++) {
                         var sheet = model.Sheets[sheetIndex];
-                        // Direct cell-value and dictionary-backed exports already use compact internal buffers
-                        // or pay keyed lookup cost while writing; for these workloads the shared-string prepass
-                        // tends to add CPU/allocation without enough package-size benefit.
                         if (sheet.Table.TryGetCellValueRows(out _)
                             || sheet.Table.TryGetExactDictionaryRows(out _)
                             || sheet.Table.TryGetDictionaryRows(out _)
@@ -1331,8 +1328,7 @@ namespace OfficeIMO.Excel {
 
                         int rowCount = sheet.Table.RowCount;
                         int stringColumnCount = stringColumnIndexes.Length;
-                        bool hasBufferedRows = sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows);
-                        if (hasBufferedRows) {
+                        if (sheet.Table.TryGetBufferedRows(out DirectBufferedRows bufferedRows)) {
                             for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                                 if (canCancel) {
                                     ct.ThrowIfCancellationRequested();
@@ -1632,6 +1628,11 @@ namespace OfficeIMO.Excel {
                     return;
                 }
 
+                if (sheet.Table.TryGetCellValueRows(out DirectCellValueRows cellValueRows)) {
+                    WriteDirectCellValueRows(writer, sheet, cellValueRows, rowCount, columnCount, startRowIndex, cellReferencePrefixes, styleAttributes, cellValueKinds, valueStyleColumns, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                    return;
+                }
+
                 bool canCancel = ct.CanBeCanceled;
                 int rowIndex = startRowIndex;
                 if (sheet.OmitBlankCells) {
@@ -1681,6 +1682,271 @@ namespace OfficeIMO.Excel {
                         object? value = sheet.Table.GetValue(sourceRowIndex, c);
                         WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
                     }
+
+                    writer.Write("</row>");
+                    rowIndex++;
+                }
+            }
+
+            private static void WriteDirectCellValueRows(
+                TextWriter writer,
+                DirectDataSetSheetModel sheet,
+                DirectCellValueRows rows,
+                int rowCount,
+                int columnCount,
+                int startRowIndex,
+                string[] cellReferencePrefixes,
+                string?[]? styleAttributes,
+                DirectCellValueKind[] cellValueKinds,
+                bool[]? valueStyleColumns,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                DirectSharedStringTable? sharedStrings,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                int rowIndex = startRowIndex;
+                object?[] values = rows.Values;
+
+                if (!sheet.OmitBlankCells && valueStyleColumns == null) {
+                    if (columnCount == 4 && styleAttributes == null) {
+                        WriteDirectCellValueRowsFourColumns(writer, rows, rowCount, startRowIndex, cellReferencePrefixes, cellValueKinds, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                        return;
+                    }
+
+                    for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                        if (canCancel) {
+                            ct.ThrowIfCancellationRequested();
+                        }
+
+                        string rowReference = InvariantNumberText.Get(rowIndex);
+                        writer.Write("<row r=\"");
+                        writer.Write(rowReference);
+                        writer.Write("\">");
+                        int rowOffset = rows.GetRowOffset(sourceRowIndex);
+                        for (int c = 0; c < columnCount; c++) {
+                            WriteCell(writer, rowReference, cellReferencePrefixes[c], values[rowOffset + c], styleAttributes?[c], cellValueKinds[c], dateTimeOffsetWriteStrategy, sharedStrings);
+                        }
+
+                        writer.Write("</row>");
+                        rowIndex++;
+                    }
+
+                    return;
+                }
+
+                if (sheet.OmitBlankCells) {
+                    for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                        if (canCancel) {
+                            ct.ThrowIfCancellationRequested();
+                        }
+
+                        bool rowStarted = false;
+                        string rowReference = InvariantNumberText.Get(rowIndex);
+                        int rowOffset = rows.GetRowOffset(sourceRowIndex);
+                        for (int c = 0; c < columnCount; c++) {
+                            object? value = values[rowOffset + c];
+                            if (IsBlankCellValue(value)) {
+                                continue;
+                            }
+
+                            if (!rowStarted) {
+                                writer.Write("<row r=\"");
+                                writer.Write(rowReference);
+                                writer.Write("\">");
+                                rowStarted = true;
+                            }
+
+                            WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], value, styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
+                        }
+
+                        if (rowStarted) {
+                            writer.Write("</row>");
+                        }
+
+                        rowIndex++;
+                    }
+
+                    return;
+                }
+
+                for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowIndex);
+                    writer.Write("<row r=\"");
+                    writer.Write(rowReference);
+                    writer.Write("\">");
+                    int rowOffset = rows.GetRowOffset(sourceRowIndex);
+                    for (int c = 0; c < columnCount; c++) {
+                        WriteDirectValueCell(writer, rowReference, cellReferencePrefixes[c], values[rowOffset + c], styleAttributes?[c], valueStyleColumns?[c] ?? false, cellValueKinds[c], sheet.UseCellValueNumberFormats, dateTimeOffsetWriteStrategy, sharedStrings);
+                    }
+
+                    writer.Write("</row>");
+                    rowIndex++;
+                }
+            }
+
+            private static void WriteDirectCellValueRowsFourColumns(
+                TextWriter writer,
+                DirectCellValueRows rows,
+                int rowCount,
+                int startRowIndex,
+                string[] cellReferencePrefixes,
+                DirectCellValueKind[] cellValueKinds,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                DirectSharedStringTable? sharedStrings,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                int rowIndex = startRowIndex;
+                object?[] values = rows.Values;
+                string prefix0 = cellReferencePrefixes[0];
+                string prefix1 = cellReferencePrefixes[1];
+                string prefix2 = cellReferencePrefixes[2];
+                string prefix3 = cellReferencePrefixes[3];
+                DirectCellValueKind kind0 = cellValueKinds[0];
+                DirectCellValueKind kind1 = cellValueKinds[1];
+                DirectCellValueKind kind2 = cellValueKinds[2];
+                DirectCellValueKind kind3 = cellValueKinds[3];
+
+                if (kind0 == DirectCellValueKind.Int32
+                    && kind1 == DirectCellValueKind.String
+                    && kind2 == DirectCellValueKind.String
+                    && kind3 == DirectCellValueKind.Double) {
+                    if (rows.ValuesMatchColumnTypes) {
+                        WriteDirectCellValueRowsExactIntStringStringDouble(writer, values, rowCount, startRowIndex, prefix0, prefix1, prefix2, prefix3, sharedStrings, ct);
+                    } else {
+                        WriteDirectCellValueRowsIntStringStringDouble(writer, values, rowCount, startRowIndex, prefix0, prefix1, prefix2, prefix3, dateTimeOffsetWriteStrategy, sharedStrings, ct);
+                    }
+
+                    return;
+                }
+
+                for (int sourceRowIndex = 0, offset = 0; sourceRowIndex < rowCount; sourceRowIndex++, offset += 4) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowIndex);
+                    writer.Write("<row r=\"");
+                    writer.Write(rowReference);
+                    writer.Write("\">");
+                    WriteCell(writer, rowReference, prefix0, values[offset], null, kind0, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteCell(writer, rowReference, prefix1, values[offset + 1], null, kind1, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteCell(writer, rowReference, prefix2, values[offset + 2], null, kind2, dateTimeOffsetWriteStrategy, sharedStrings);
+                    WriteCell(writer, rowReference, prefix3, values[offset + 3], null, kind3, dateTimeOffsetWriteStrategy, sharedStrings);
+                    writer.Write("</row>");
+                    rowIndex++;
+                }
+            }
+
+            private static void WriteDirectCellValueRowsIntStringStringDouble(
+                TextWriter writer,
+                object?[] values,
+                int rowCount,
+                int startRowIndex,
+                string prefix0,
+                string prefix1,
+                string prefix2,
+                string prefix3,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                DirectSharedStringTable? sharedStrings,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                int rowIndex = startRowIndex;
+                for (int sourceRowIndex = 0, offset = 0; sourceRowIndex < rowCount; sourceRowIndex++, offset += 4) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowIndex);
+                    writer.Write("<row r=\"");
+                    writer.Write(rowReference);
+                    writer.Write("\">");
+
+                    writer.Write(prefix0);
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    if (values[offset] is int intValue) {
+                        WriteRawValueCell(writer, intValue);
+                    } else {
+                        WriteCellValue(writer, values[offset], DirectCellValueKind.Int32, dateTimeOffsetWriteStrategy, sharedStrings);
+                    }
+
+                    writer.Write(prefix1);
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    if (values[offset + 1] is string stringValue1) {
+                        WriteStringCellValue(writer, stringValue1, sharedStrings);
+                    } else {
+                        WriteCellValue(writer, values[offset + 1], DirectCellValueKind.String, dateTimeOffsetWriteStrategy, sharedStrings);
+                    }
+
+                    writer.Write(prefix2);
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    if (values[offset + 2] is string stringValue2) {
+                        WriteStringCellValue(writer, stringValue2, sharedStrings);
+                    } else {
+                        WriteCellValue(writer, values[offset + 2], DirectCellValueKind.String, dateTimeOffsetWriteStrategy, sharedStrings);
+                    }
+
+                    writer.Write(prefix3);
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    if (values[offset + 3] is double doubleValue) {
+                        WriteRawValueCell(writer, doubleValue);
+                    } else {
+                        WriteCellValue(writer, values[offset + 3], DirectCellValueKind.Double, dateTimeOffsetWriteStrategy, sharedStrings);
+                    }
+
+                    writer.Write("</row>");
+                    rowIndex++;
+                }
+            }
+
+            private static void WriteDirectCellValueRowsExactIntStringStringDouble(
+                TextWriter writer,
+                object?[] values,
+                int rowCount,
+                int startRowIndex,
+                string prefix0,
+                string prefix1,
+                string prefix2,
+                string prefix3,
+                DirectSharedStringTable? sharedStrings,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                int rowIndex = startRowIndex;
+                for (int sourceRowIndex = 0, offset = 0; sourceRowIndex < rowCount; sourceRowIndex++, offset += 4) {
+                    if (canCancel) {
+                        ct.ThrowIfCancellationRequested();
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowIndex);
+                    writer.Write("<row r=\"");
+                    writer.Write(rowReference);
+                    writer.Write("\">");
+
+                    writer.Write(prefix0);
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    WriteRawValueCell(writer, (int)values[offset]!);
+
+                    writer.Write(prefix1);
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    WriteStringCellValue(writer, (string)values[offset + 1]!, sharedStrings);
+
+                    writer.Write(prefix2);
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    WriteStringCellValue(writer, (string)values[offset + 2]!, sharedStrings);
+
+                    writer.Write(prefix3);
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    WriteRawValueCell(writer, (double)values[offset + 3]!);
 
                     writer.Write("</row>");
                     rowIndex++;

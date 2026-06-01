@@ -126,14 +126,17 @@ namespace OfficeIMO.Excel {
 
             if (ShouldMaterializeMixedDirectWorkbookGlobalParts(model)
                 && _materializedDirectDataSetFastSaveModel != null) {
-                _materializingDeferredDataSetImport = true;
-                try {
-                    MaterializeDirectDataSetModel(_materializedDirectDataSetFastSaveModel);
-                } finally {
-                    _materializingDeferredDataSetImport = false;
+                if (!_materializedDirectDataSetFastSaveModelHasMaterializedWorksheet) {
+                    _materializingDeferredDataSetImport = true;
+                    try {
+                        MaterializeDirectDataSetModel(_materializedDirectDataSetFastSaveModel);
+                    } finally {
+                        _materializingDeferredDataSetImport = false;
+                    }
                 }
 
                 _materializedDirectDataSetFastSaveModel = null;
+                _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
                 if (!ExtendedWorkbookPackageModel.TryCreate(_spreadSheetDocument, directDataSetModel: null, out model, out modelSkipReason)) {
                     skipReason = modelSkipReason ?? "Workbook contains parts outside the extended package writer surface after materializing direct data.";
                     return false;
@@ -203,7 +206,102 @@ namespace OfficeIMO.Excel {
             }
 
             return hasWorkbookGlobalPart
+                   && model.DirectWorksheetModels.Count < worksheetPartCount
+                   && !CanUseMixedDirectWorksheetEntries(model);
+        }
+
+        private static bool CanUseMixedDirectWorksheetEntries(ExtendedWorkbookPackageModel model) {
+            if (model.DirectDataSetModel == null
+                || model.DirectDataSetModel.Sheets.Count == 0
+                || model.DirectWorksheetModels.Count == 0
+                || model.DirectWorksheetModels.Count != model.DirectDataSetModel.Sheets.Count) {
+                return false;
+            }
+
+            int worksheetPartCount = 0;
+            bool hasNonDirectWorksheet = false;
+            bool nonDirectWorksheetUsesSharedStrings = false;
+            foreach (var part in model.Parts) {
+                if (part.Part is not WorksheetPart worksheetPart) {
+                    continue;
+                }
+
+                worksheetPartCount++;
+                if (model.DirectWorksheetModels.ContainsKey(worksheetPart)) {
+                    continue;
+                }
+
+                hasNonDirectWorksheet = true;
+                var worksheet = worksheetPart.Worksheet;
+                if (worksheet == null
+                    || !CanWriteSimpleWorksheet(worksheetPart, worksheet, out _, allowDrawings: true, allowPivotTables: true)
+                    || WorksheetDependsOnWorkbookGlobalParts(worksheetPart, worksheet)) {
+                    return false;
+                }
+
+                nonDirectWorksheetUsesSharedStrings |= WorksheetUsesSharedStrings(worksheet);
+            }
+
+            return hasNonDirectWorksheet
+                   && (!nonDirectWorksheetUsesSharedStrings || ModelHasSharedStringPart(model))
                    && model.DirectWorksheetModels.Count < worksheetPartCount;
+        }
+
+        private static bool ModelHasSharedStringPart(ExtendedWorkbookPackageModel model)
+            => model.Parts.Any(static part => part.Part is SharedStringTablePart);
+
+        private static bool WorksheetDependsOnWorkbookGlobalParts(WorksheetPart worksheetPart, Worksheet worksheet) {
+            if (worksheetPart.TableDefinitionParts.Any()
+                || worksheetPart.PivotTableParts.Any()
+                || worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting>() != null) {
+                return true;
+            }
+
+            var columns = worksheet.GetFirstChild<Columns>();
+            if (columns != null) {
+                foreach (var column in columns.Elements<Column>()) {
+                    if (column.Style != null) {
+                        return true;
+                    }
+                }
+            }
+
+            var sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return false;
+            }
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                if (row.CustomFormat?.Value == true || row.StyleIndex != null) {
+                    return true;
+                }
+
+                foreach (var cell in row.Elements<Cell>()) {
+                    if (cell.StyleIndex != null) {
+                        return true;
+                    }
+
+                }
+            }
+
+            return false;
+        }
+
+        private static bool WorksheetUsesSharedStrings(Worksheet worksheet) {
+            var sheetData = worksheet.GetFirstChild<SheetData>();
+            if (sheetData == null) {
+                return false;
+            }
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                foreach (var cell in row.Elements<Cell>()) {
+                    if (cell.DataType?.Value == CellValues.SharedString) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static readonly System.Text.UTF8Encoding Utf8NoBom = new(encoderShouldEmitUTF8Identifier: false);
@@ -396,7 +494,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, rawBytes: null);
+                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, copyRawPart: false, rawBytes: null);
                 }
 
                 parts.Add(model);
@@ -413,11 +511,12 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class ExtendedPartModel {
-            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, byte[]? rawBytes) {
+            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, bool copyRawPart, byte[]? rawBytes) {
                 Part = part;
                 Path = path;
                 ContentType = contentType;
                 RootElement = rootElement;
+                CopyRawPart = copyRawPart;
                 RawBytes = rawBytes;
             }
 
@@ -428,6 +527,8 @@ namespace OfficeIMO.Excel {
             internal string ContentType { get; }
 
             internal OpenXmlElement? RootElement { get; }
+
+            internal bool CopyRawPart { get; }
 
             internal byte[]? RawBytes { get; }
         }
@@ -480,16 +581,40 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        private sealed class RawPivotCacheRecordsPartMarker {
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PivotTableCacheRecordsPart, RawPivotCacheRecordsPartMarker> RawPivotCacheRecordsParts = new();
+
+        internal static void MarkPivotCacheRecordsPartAsRawWritten(PivotTableCacheRecordsPart part)
+            => RawPivotCacheRecordsParts.GetValue(part, static _ => new RawPivotCacheRecordsPartMarker());
+
+        private static bool IsRawPivotCacheRecordsPart(OpenXmlPart part)
+            => part is PivotTableCacheRecordsPart cacheRecordsPart
+               && RawPivotCacheRecordsParts.TryGetValue(cacheRecordsPart, out _);
+
         private static bool TryCopyRawSupportedPart(OpenXmlPart part, string path, out ExtendedPartModel model) {
             model = null!;
-            if (part is not ChartStylePart && part is not ChartColorStylePart) {
+            if (part is not ChartStylePart && part is not ChartColorStylePart && !IsRawPivotCacheRecordsPart(part)) {
                 return false;
             }
 
-            using var source = part.GetStream();
-            using var memory = new MemoryStream();
-            source.CopyTo(memory);
-            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, memory.ToArray());
+            byte[] rawBytes;
+            using (var source = part.GetStream(FileMode.Open, FileAccess.Read)) {
+                if (source.CanSeek && source.Length == 0) {
+                    return false;
+                }
+
+                using var buffer = new MemoryStream();
+                source.CopyTo(buffer);
+                if (buffer.Length == 0) {
+                    return false;
+                }
+
+                rawBytes = buffer.ToArray();
+            }
+
+            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, copyRawPart: true, rawBytes);
             return true;
         }
 
@@ -584,8 +709,13 @@ namespace OfficeIMO.Excel {
 
                 using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
                 DirectDataSetWorkbookWriter.ExtendedDirectWritePlan? directWritePlan = null;
-                if (CanUseDirectWorksheetEntries(model)
-                    && DirectDataSetWorkbookWriter.TryCreateExtendedWritePlan(model.DirectDataSetModel!, ct, out var candidateDirectWritePlan)) {
+                bool useMixedDirectWorksheetEntries = CanUseMixedDirectWorksheetEntries(model);
+                if ((useMixedDirectWorksheetEntries || CanUseDirectWorksheetEntries(model))
+                    && DirectDataSetWorkbookWriter.TryCreateExtendedWritePlan(
+                        model.DirectDataSetModel!,
+                        ct,
+                        out var candidateDirectWritePlan,
+                        disableSharedStrings: useMixedDirectWorksheetEntries)) {
                     directWritePlan = candidateDirectWritePlan;
                 }
                 ReportTiming("Save.ExtendedPackage.CreateDirectWritePlan");
@@ -644,8 +774,8 @@ namespace OfficeIMO.Excel {
                             hyperlinkRelationships);
                         WriteWorksheetEntry(archive, worksheetModel);
                         ReportTiming("Save.ExtendedPackage.WriteSimpleWorksheet");
-                    } else if (part.RawBytes != null) {
-                        WriteBinaryEntry(archive, part.Path, part.RawBytes);
+                    } else if (part.CopyRawPart) {
+                        WriteRawPartEntry(archive, part.Path, part.RawBytes!);
                         ReportTiming("Save.ExtendedPackage.WriteRawPart");
                     } else {
                         WriteOpenXmlElementEntry(archive, part.Path, part.RootElement!);
@@ -684,7 +814,8 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
-                if (model.DirectWorksheetModels.Count != worksheetPartCount) {
+                if (model.DirectWorksheetModels.Count != worksheetPartCount
+                    && !CanUseMixedDirectWorksheetEntries(model)) {
                     return false;
                 }
 
@@ -1495,6 +1626,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static void WriteBinaryEntry(ZipArchive archive, string path, byte[] bytes) {
+            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
+            using var stream = entry.Open();
+            stream.Write(bytes, 0, bytes.Length);
+        }
+
+        private static void WriteRawPartEntry(ZipArchive archive, string path, byte[] bytes) {
             var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
             using var stream = entry.Open();
             stream.Write(bytes, 0, bytes.Length);

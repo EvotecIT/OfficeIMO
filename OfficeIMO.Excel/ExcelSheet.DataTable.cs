@@ -359,12 +359,17 @@ namespace OfficeIMO.Excel {
             int cellCount = (table.Rows.Count + (includeHeaders ? 1 : 0)) * columnCount;
             bool useDirectStringCells = false;
             Dictionary<string, int>? sharedStringIndexes = null;
-            var appendedRows = new List<OpenXmlElement>(Math.Max(1, table.Rows.Count + (includeHeaders ? 1 : 0)));
             int rowIndex = startRow;
             bool canCancel = ct.CanBeCanceled;
+            List<Row>? pendingRows = canCancel ? new List<Row>(table.Rows.Count + (includeHeaders ? 1 : 0)) : null;
 
             if (includeHeaders) {
-                appendedRows.Add(CreateDataTableHeaderRow(rowIndex++, columnReferencePrefixes, table, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                Row headerRow = CreateDataTableHeaderRow(rowIndex++, columnReferencePrefixes, table, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
+                if (pendingRows != null) {
+                    pendingRows.Add(headerRow);
+                } else {
+                    sheetData.Append(headerRow);
+                }
             }
 
             foreach (DataRow dataRow in table.Rows) {
@@ -372,12 +377,22 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
-                appendedRows.Add(canCancel
+                Row valueRow = canCancel
                     ? CreateDataTableValueRow(rowIndex++, columnReferencePrefixes, dataRow, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct)
-                    : CreateDataTableValueRow(rowIndex++, columnReferencePrefixes, dataRow, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
+                    : CreateDataTableValueRow(rowIndex++, columnReferencePrefixes, dataRow, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes);
+                if (pendingRows != null) {
+                    pendingRows.Add(valueRow);
+                } else {
+                    sheetData.Append(valueRow);
+                }
             }
 
-            sheetData.Append(appendedRows);
+            if (pendingRows != null) {
+                foreach (var pendingRow in pendingRows) {
+                    sheetData.Append(pendingRow);
+                }
+            }
+
             ClearHeaderCacheForPreparedAppend();
             int lastRow = startRow + table.Rows.Count + (includeHeaders ? 1 : 0) - 1;
             int lastColumn = startColumn + columnCount - 1;
@@ -500,9 +515,9 @@ namespace OfficeIMO.Excel {
             int cellCount = (rowCount + (includeHeaders ? 1 : 0)) * columnCount;
             bool useDirectStringCells = cellCount >= 4096 && columnCount > 1;
             Dictionary<string, int>? sharedStringIndexes = null;
-            var appendedRows = new List<OpenXmlElement>(Math.Max(1, rowCount + (includeHeaders ? 1 : 0)));
             int rowIndex = startRow;
             bool canCancel = ct.CanBeCanceled;
+            List<Row> pendingRows = new List<Row>(rowCount + (includeHeaders ? 1 : 0));
             object?[]? flatValues = null;
             bool useFlatValues = source.TryGetFlatValues(out var sourceFlatValues, out int flatColumnCount) && flatColumnCount == columnCount;
             if (useFlatValues) {
@@ -510,7 +525,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (includeHeaders) {
-                appendedRows.Add(CreateTabularRowSourceHeaderRow(rowIndex++, columnReferencePrefixes, source, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                Row headerRow = CreateTabularRowSourceHeaderRow(rowIndex++, columnReferencePrefixes, source, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
+                pendingRows.Add(headerRow);
             }
 
             for (int sourceRowIndex = 0; sourceRowIndex < rowCount; sourceRowIndex++) {
@@ -518,20 +534,26 @@ namespace OfficeIMO.Excel {
                     ct.ThrowIfCancellationRequested();
                 }
 
+                Row valueRow;
                 if (flatValues != null && !canCancel) {
-                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
+                    valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes);
                 } else if (flatValues != null) {
-                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                    valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, flatValues, sourceRowIndex * columnCount, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
                 } else if (source.TryGetBufferedRow(sourceRowIndex, out var rowValues) && rowValues != null && !canCancel) {
-                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes));
+                    valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes);
                 } else if (rowValues != null) {
-                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                    valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, rowValues, 0, columnCount, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
                 } else {
-                    appendedRows.Add(CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, source, sourceRowIndex, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct));
+                    valueRow = CreateTabularRowSourceValueRow(rowIndex++, columnReferencePrefixes, source, sourceRowIndex, columnKinds, styleIndexes, objectDateTimeStyleIndex, objectTimeSpanStyleIndex, useDirectStringCells, ref sharedStringIndexes, canCancel, ct);
                 }
+
+                pendingRows.Add(valueRow);
             }
 
-            sheetData.Append(appendedRows);
+            foreach (var pendingRow in pendingRows) {
+                sheetData.Append(pendingRow);
+            }
+
             ClearHeaderCacheForPreparedAppend();
             int lastRow = startRow + rowCount + (includeHeaders ? 1 : 0) - 1;
             int lastColumn = startColumn + columnCount - 1;

@@ -19,8 +19,11 @@ namespace OfficeIMO.Excel {
         private readonly ExcelReadOptions _opt;
         private readonly bool _canStreamWorksheetPart;
         private StylesCache? _stylesCache;
+        private List<string>? _sharedStringItems;
         private bool? _hasWorksheetPartStreamContent;
         private string? _usedRangeA1;
+        private string? _lastDateStyleAttribute;
+        private bool _lastDateStyleAttributeResult;
         private static readonly XmlReaderSettings WorksheetXmlReaderSettings = CreateWorksheetXmlReaderSettings();
 
         internal ExcelSheetReader(string sheetName, WorksheetPart wsPart, SharedStringCache sst, StylesCacheProvider styles, ExcelReadOptions opt, bool canStreamWorksheetPart) {
@@ -33,6 +36,15 @@ namespace OfficeIMO.Excel {
         }
 
         private StylesCache Styles => _stylesCache ??= _styles.Value;
+
+        private string? GetSharedString(int index) {
+            var items = _sharedStringItems ??= _sst.GetItems();
+            return GetSharedString(index, items);
+        }
+
+        private static string? GetSharedString(int index, List<string> items) {
+            return (uint)index < (uint)items.Count ? items[index] : null;
+        }
 
         /// <summary>
         /// Worksheet name.
@@ -344,6 +356,27 @@ namespace OfficeIMO.Excel {
                 && Styles.HasDateStyles;
         }
 
+        private bool IsDateStyleAttribute(string? styleAttribute) {
+            if (string.IsNullOrEmpty(styleAttribute)) {
+                return false;
+            }
+
+            if (string.Equals(styleAttribute, _lastDateStyleAttribute, StringComparison.Ordinal)) {
+                return _lastDateStyleAttributeResult;
+            }
+
+            if (!Styles.HasDateStyles) {
+                _lastDateStyleAttribute = styleAttribute;
+                _lastDateStyleAttributeResult = false;
+                return false;
+            }
+
+            bool result = TryParseUInt(styleAttribute, out uint styleIndex) && Styles.IsDateLike(styleIndex);
+            _lastDateStyleAttribute = styleAttribute;
+            _lastDateStyleAttributeResult = result;
+            return result;
+        }
+
         private static XmlCellKind ParseXmlCellKind(string? type) {
             if (string.IsNullOrEmpty(type)) {
                 return XmlCellKind.Default;
@@ -435,7 +468,7 @@ namespace OfficeIMO.Excel {
 
             if (type == CellValues.SharedString) {
                 if (TryParseSharedStringIndex(rawText, out var sstIndex)) {
-                    value = _sst.Get(sstIndex);
+                    value = GetSharedString(sstIndex);
                     return true;
                 }
 
@@ -800,7 +833,7 @@ namespace OfficeIMO.Excel {
             if (!string.IsNullOrEmpty(inlineText)) return inlineText;
 
             if (type == CellValues.SharedString && TryParseSharedStringIndex(rawText, out var sstIndex))
-                return _sst.Get(sstIndex);
+                return GetSharedString(sstIndex);
 
             if (type == CellValues.Boolean && rawText != null)
                 return rawText == "1";
@@ -832,7 +865,7 @@ namespace OfficeIMO.Excel {
 
             if (type == CellValues.String || type == CellValues.InlineString || type == CellValues.SharedString) {
                 if (type == CellValues.SharedString && TryParseSharedStringIndex(rawText, out var idx))
-                    return _sst.Get(idx);
+                    return GetSharedString(idx);
                 return rawText ?? inlineText;
             }
 
