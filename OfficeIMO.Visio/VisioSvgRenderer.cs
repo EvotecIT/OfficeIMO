@@ -354,13 +354,13 @@ namespace OfficeIMO.Visio {
 
             writer.WriteEndElement();
 
-            if (visibleLine && points.Count >= 2) {
-                if (connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None) {
-                    WriteArrow(writer, page, points[0], points[1], scale, connector.LineColor, strokeWidth, "start");
+            if (visibleLine) {
+                if (connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
+                    WriteArrow(writer, page, beginTip, beginFrom, scale, connector.LineColor, strokeWidth, "start");
                 }
 
-                if (connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None) {
-                    WriteArrow(writer, page, points[points.Count - 1], points[points.Count - 2], scale, connector.LineColor, strokeWidth, "end");
+                if (connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
+                    WriteArrow(writer, page, endTip, endFrom, scale, connector.LineColor, strokeWidth, "end");
                 }
             }
 
@@ -571,6 +571,39 @@ namespace OfficeIMO.Visio {
             WriteColor(writer, "fill", color);
             writer.WriteAttributeString("stroke", "none");
             writer.WriteEndElement();
+        }
+
+        private static bool TryGetArrowSegment(
+            IReadOnlyList<(double X, double Y)> points,
+            bool fromStart,
+            out (double X, double Y) tip,
+            out (double X, double Y) from) {
+            if (points.Count < 2) {
+                tip = default;
+                from = default;
+                return false;
+            }
+
+            if (fromStart) {
+                tip = points[0];
+                for (int i = 1; i < points.Count; i++) {
+                    if (Distance(tip, points[i]) > 1e-6D) {
+                        from = points[i];
+                        return true;
+                    }
+                }
+            } else {
+                tip = points[points.Count - 1];
+                for (int i = points.Count - 2; i >= 0; i--) {
+                    if (Distance(tip, points[i]) > 1e-6D) {
+                        from = points[i];
+                        return true;
+                    }
+                }
+            }
+
+            from = default;
+            return false;
         }
 
         private static TextLayout CreateTextLayout(string text, double fontSize, double maxWidth, double maxHeight) {

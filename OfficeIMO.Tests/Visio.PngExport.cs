@@ -100,6 +100,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PngRendererHonorsTextLocPinOffsetsForShapeTextBackgrounds() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Text LocPin Background").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 2, 1, "Offset");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.TextStyle = new VisioTextStyle {
+                Size = 10,
+                TextPinX = 0.2,
+                TextPinY = 0.2,
+                TextWidth = 0.8,
+                TextHeight = 0.4,
+                TextLocPinX = 0,
+                TextLocPinY = 0,
+                BackgroundColor = OfficeColor.FromRgb(255, 0, 0),
+                BackgroundTransparency = 0,
+                Color = OfficeColor.Transparent
+            };
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsRedPixel(image, 110, 110), "Expected text background center to account for TxtLocPin offsets.");
+            Assert.True(IsWhitePixel(image, 70, 130), "Expected the old TxtPin-only center to remain untouched.");
+        }
+
+        [Fact]
         public void PngRendererWrapsLongWordsInsideTextBounds() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -498,6 +530,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PngRendererPreservesRgbWhenDownsamplingTransparentEdges() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Transparent Edge").Size(2, 2);
+            VisioShape shape = page.AddEllipse(1, 1, 1.1, 1.1, string.Empty);
+            shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
+            shape.LinePattern = 0;
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 80,
+                BackgroundColor = OfficeColor.Transparent,
+                Supersampling = 4
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int edgePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                byte alpha = image.Pixels[i + 3];
+                if (alpha > 16 && alpha < 240) {
+                    edgePixels++;
+                    Assert.True(
+                        image.Pixels[i] > 190 && image.Pixels[i + 1] < 80 && image.Pixels[i + 2] < 80,
+                        "Expected transparent antialias edge pixels to retain the source red RGB, not average toward transparent black.");
+                }
+            }
+
+            Assert.True(edgePixels > 12, "Expected transparent antialias edge pixels in the native PNG render.");
+        }
+
+        [Fact]
         public void PngRendererSuppressesArrowheadsWhenConnectorLineIsHidden() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -532,6 +594,41 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Equal(0, redPixels);
+        }
+
+        [Fact]
+        public void PngRendererUsesFirstNonCollapsedSegmentForBeginArrowheads() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Collapsed Begin Arrow").Size(4, 2);
+            VisioShape source = page.AddRectangle(1, 1, 1, 0.4, string.Empty);
+            source.FillPattern = 0;
+            source.LinePattern = 0;
+            VisioShape target = page.AddRectangle(3, 1, 1, 0.4, string.Empty);
+            target.FillPattern = 0;
+            target.LinePattern = 0;
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left);
+            connector.BeginArrow = EndArrow.Arrow;
+            connector.LineColor = OfficeColor.FromRgb(220, 38, 38);
+            connector.LineWeight = 0.03;
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int backwardArrowPixels = 0;
+            for (int y = 88; y <= 112; y++) {
+                for (int x = 125; x <= 145; x++) {
+                    if (IsRedPixel(image, x, y)) {
+                        backwardArrowPixels++;
+                    }
+                }
+            }
+
+            Assert.Equal(0, backwardArrowPixels);
         }
 
         [Fact]
@@ -1702,7 +1799,7 @@ namespace OfficeIMO.Tests {
 
         private static void AssertPngHeader(byte[] bytes, int width, int height) {
             Assert.True(bytes.Length > 33);
-            Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, bytes[..8]);
+            AssertPngSignature(bytes);
             Assert.Equal("IHDR", System.Text.Encoding.ASCII.GetString(bytes, 12, 4));
             Assert.Equal(width, ReadBigEndianInt32(bytes, 16));
             Assert.Equal(height, ReadBigEndianInt32(bytes, 20));
@@ -1710,11 +1807,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(6, bytes[25]);
         }
 
+        private static void AssertPngSignature(byte[] bytes) {
+            byte[] signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
+            Assert.True(bytes.Length >= signature.Length);
+            for (int i = 0; i < signature.Length; i++) {
+                Assert.Equal(signature[i], bytes[i]);
+            }
+        }
+
         private static int ReadBigEndianInt32(byte[] bytes, int offset) =>
             (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
 
         private static RgbaPng DecodeRgbaPng(byte[] bytes) {
-            Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, bytes[..8]);
+            AssertPngSignature(bytes);
             int width = 0;
             int height = 0;
             using MemoryStream idat = new();

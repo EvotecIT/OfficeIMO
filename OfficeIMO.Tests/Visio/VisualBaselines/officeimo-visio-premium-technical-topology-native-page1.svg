@@ -1,9 +1,4 @@
 ﻿<svg width="1670.4" height="883.2" viewBox="0 0 1670.4 883.2" role="img" aria-label="Premium Technical Topology" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <marker id="officeimo-visio-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
-    </marker>
-  </defs>
   <rect x="0" y="0" width="1670.4" height="883.2" fill="#FFFFFF" />
   <g data-officeimo-visio-page="Premium Technical Topology">
     <g data-visio-shape-id="edge-zone" data-visio-nameu="Rectangle">
@@ -111,49 +106,56 @@
       </text>
     </g>
     <g data-visio-connector-id="1">
-      <path d="M 297.6 409.92 L 297.6 409.92 L 403.2 409.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" marker-end="url(#officeimo-visio-arrow)" />
+      <path d="M 297.6 409.92 L 297.6 409.92 L 403.2 409.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+      <path data-officeimo-connector-arrow="end" d="M 403.2 409.92 L 395.992 413.391 L 395.992 406.449 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="334.44" y="384.64" width="31.92" height="16" fill="#FFFFFF" fill-opacity="0.902" />
       <text x="350.4" y="392.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
         <tspan x="350.4" dy="0">mTLS</tspan>
       </text>
     </g>
     <g data-visio-connector-id="2">
-      <path d="M 628.8 409.92 L 628.8 409.92 L 734.4 409.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" marker-end="url(#officeimo-visio-arrow)" />
+      <path d="M 628.8 409.92 L 628.8 409.92 L 734.4 409.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+      <path data-officeimo-connector-arrow="end" d="M 734.4 409.92 L 727.192 413.391 L 727.192 406.449 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="662.4" y="384.64" width="38.4" height="16" fill="#FFFFFF" fill-opacity="0.902" />
       <text x="681.6" y="392.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
         <tspan x="681.6" dy="0">route</tspan>
       </text>
     </g>
     <g data-visio-connector-id="3">
-      <path d="M 960 409.92 L 960 237.12 L 1065.6 237.12" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" marker-end="url(#officeimo-visio-arrow)" />
+      <path d="M 960 409.92 L 960 237.12 L 1065.6 237.12" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+      <path data-officeimo-connector-arrow="end" d="M 1065.6 237.12 L 1058.392 240.591 L 1058.392 233.649 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="929.52" y="245.44" width="60.96" height="16" fill="#FFFFFF" fill-opacity="0.902" />
       <text x="960" y="253.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
         <tspan x="960" dy="0">authorize</tspan>
       </text>
     </g>
     <g data-visio-connector-id="4">
-      <path d="M 1178.4 297.12 L 1178.4 361.92 L 1178.4 361.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" marker-end="url(#officeimo-visio-arrow)" />
+      <path d="M 1178.4 297.12 L 1178.4 361.92 L 1178.4 361.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+      <path data-officeimo-connector-arrow="end" d="M 1178.4 361.92 L 1174.929 354.712 L 1181.871 354.712 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="1162.56" y="304.24" width="31.68" height="16" fill="#FFFFFF" fill-opacity="0.902" />
       <text x="1178.4" y="312.24" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
         <tspan x="1178.4" dy="0">allow</tspan>
       </text>
     </g>
     <g data-visio-connector-id="5">
-      <path d="M 1291.2 237.12 L 1291.2 237.12 L 1396.8 237.12" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" marker-end="url(#officeimo-visio-arrow)" />
+      <path d="M 1291.2 237.12 L 1291.2 237.12 L 1396.8 237.12" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+      <path data-officeimo-connector-arrow="end" d="M 1396.8 237.12 L 1389.592 240.591 L 1389.592 233.649 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="1321.56" y="211.84" width="44.88" height="16" fill="#FFFFFF" fill-opacity="0.902" />
       <text x="1344" y="219.84" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
         <tspan x="1344" dy="0">secret</tspan>
       </text>
     </g>
     <g data-visio-connector-id="6">
-      <path d="M 847.2 457.92 L 847.2 534.72 L 847.2 534.72" fill="none" stroke="#0E7490" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#officeimo-visio-arrow)" />
+      <path d="M 847.2 457.92 L 847.2 534.72 L 847.2 534.72" fill="none" stroke="#0E7490" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 847.2 534.72 L 843.729 527.512 L 850.671 527.512 Z" fill="#0E7490" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="824.88" y="471.04" width="44.64" height="16" fill="#FFFFFF" fill-opacity="0.902" />
       <text x="847.2" y="479.04" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
         <tspan x="847.2" dy="0">publish</tspan>
       </text>
     </g>
     <g data-visio-connector-id="7">
-      <path d="M 1291.2 409.92 L 1291.2 409.92 L 1396.8 409.92" fill="none" stroke="#0E7490" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#officeimo-visio-arrow)" />
+      <path d="M 1291.2 409.92 L 1291.2 409.92 L 1396.8 409.92" fill="none" stroke="#0E7490" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" />
+      <path data-officeimo-connector-arrow="end" d="M 1396.8 409.92 L 1389.592 413.391 L 1389.592 406.449 Z" fill="#0E7490" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="1310.28" y="384.64" width="67.44" height="16" fill="#FFFFFF" fill-opacity="0.902" />
       <text x="1344" y="392.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
         <tspan x="1344" dy="0">read/write</tspan>

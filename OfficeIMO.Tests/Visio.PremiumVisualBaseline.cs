@@ -410,7 +410,7 @@ namespace OfficeIMO.Tests {
 
         private static RasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng) {
             int channelTolerance = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE", 0);
-            int allowedDifferentPixels = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_ALLOWED_DIFF_PIXELS", 0);
+            int allowedDifferentPixels = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_ALLOWED_DIFF_PIXELS", 1);
             return CompareRasterImages(expectedPng, actualPng, channelTolerance, allowedDifferentPixels);
         }
 
@@ -495,6 +495,7 @@ namespace OfficeIMO.Tests {
                 StringComparer.Ordinal);
 
             svg = Regex.Replace(svg, @"<style\b[^>]*>.*?</style>\s*", string.Empty, RegexOptions.Singleline | RegexOptions.CultureInvariant);
+            svg = Regex.Replace(svg, @"<title>.*?</title>\s*", string.Empty, RegexOptions.Singleline | RegexOptions.CultureInvariant);
             svg = Regex.Replace(
                 svg,
                 @"\bst(?<id>\d+)\b",

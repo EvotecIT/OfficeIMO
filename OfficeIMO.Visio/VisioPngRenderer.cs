@@ -81,7 +81,7 @@ namespace OfficeIMO.Visio {
                     HasVisibleLine(shape) ? shape.LineColor : Color.Transparent,
                     Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling),
                     shape.LinePattern != 1,
-                    shape.Angle,
+                    ToRasterRotation(shape.Angle),
                     cx,
                     cy);
             } else if (kind == "database") {
@@ -106,12 +106,12 @@ namespace OfficeIMO.Visio {
 
             if (options.RenderText && !string.IsNullOrEmpty(shape.Text)) {
                 VisioTextStyle? style = shape.TextStyle;
-                double localX = style?.TextPinX ?? shape.Width / 2D;
-                double localY = style?.TextPinY ?? shape.Height / 2D;
-                (double textX, double textY) = GetPagePoint(shape, localX, localY);
-                (double x, double y) = ToRaster(page, textX, textY, canvas.Scale);
                 double textWidth = Math.Max(0.05D, style?.TextWidth ?? shape.Width);
                 double textHeight = Math.Max(0.05D, style?.TextHeight ?? shape.Height);
+                double localX = (style?.TextPinX ?? shape.Width / 2D) + (textWidth / 2D) - (style?.TextLocPinX ?? textWidth / 2D);
+                double localY = (style?.TextPinY ?? shape.Height / 2D) + (textHeight / 2D) - (style?.TextLocPinY ?? textHeight / 2D);
+                (double textX, double textY) = GetPagePoint(shape, localX, localY);
+                (double x, double y) = ToRaster(page, textX, textY, canvas.Scale);
                 double horizontalMargins = (style?.LeftMargin ?? 0.05D) + (style?.RightMargin ?? 0.05D);
                 double verticalMargins = (style?.TopMargin ?? 0.03D) + (style?.BottomMargin ?? 0.03D);
                 DrawText(
@@ -123,7 +123,7 @@ namespace OfficeIMO.Visio {
                     10D,
                     Math.Max(canvas.Supersampling * 12D, (textWidth - horizontalMargins) * canvas.Scale),
                     Math.Max(canvas.Supersampling * 8D, (textHeight - verticalMargins) * canvas.Scale),
-                    shape.Angle + (style?.TextAngle ?? 0D),
+                    ToRasterRotation(shape.Angle + (style?.TextAngle ?? 0D)),
                     false);
             }
 
@@ -155,8 +155,9 @@ namespace OfficeIMO.Visio {
             };
 
             canvas.FillPolygon(body, fill);
-            canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, fill, Color.Transparent, strokeWidth, dashed, shape.Angle, bottomX, bottomY);
-            canvas.DrawEllipse(topX, topY, radiusX, radiusY, fill, Color.Transparent, strokeWidth, dashed, shape.Angle, topX, topY);
+            double rasterRotation = ToRasterRotation(shape.Angle);
+            canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, fill, Color.Transparent, strokeWidth, dashed, rasterRotation, bottomX, bottomY);
+            canvas.DrawEllipse(topX, topY, radiusX, radiusY, fill, Color.Transparent, strokeWidth, dashed, rasterRotation, topX, topY);
             if (stroke.A == 0) {
                 return;
             }
@@ -177,8 +178,8 @@ namespace OfficeIMO.Visio {
                 stroke,
                 strokeWidth,
                 dashed);
-            canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashed, shape.Angle, bottomX, bottomY);
-            canvas.DrawEllipse(topX, topY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashed, shape.Angle, topX, topY);
+            canvas.DrawEllipse(bottomX, bottomY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashed, rasterRotation, bottomX, bottomY);
+            canvas.DrawEllipse(topX, topY, radiusX, radiusY, Color.Transparent, stroke, strokeWidth, dashed, rasterRotation, topX, topY);
         }
 
         private static void DrawConnector(RasterCanvas canvas, VisioPage page, VisioConnector connector, VisioPngSaveOptions options, VisioRenderLabelLayout? labelLayout) {
@@ -192,12 +193,12 @@ namespace OfficeIMO.Visio {
             double weight = Math.Max(connector.LineWeight * canvas.Scale, canvas.Supersampling);
             canvas.StrokePolyline(points, visibleLine ? connector.LineColor : Color.Transparent, weight, connector.LinePattern != 1);
 
-            if (visibleLine && connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && points.Count >= 2) {
-                DrawArrow(canvas, points[0], points[1], connector.LineColor, weight);
+            if (visibleLine && connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
+                DrawArrow(canvas, beginTip, beginFrom, connector.LineColor, weight);
             }
 
-            if (visibleLine && connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && points.Count >= 2) {
-                DrawArrow(canvas, points[points.Count - 1], points[points.Count - 2], connector.LineColor, weight);
+            if (visibleLine && connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
+                DrawArrow(canvas, endTip, endFrom, connector.LineColor, weight);
             }
 
             if (options.RenderConnectorLabels && !string.IsNullOrEmpty(connector.Label)) {
@@ -219,6 +220,39 @@ namespace OfficeIMO.Visio {
                 (tip.X - Math.Cos(angle + wing) * length, tip.Y - Math.Sin(angle + wing) * length)
             };
             canvas.FillPolygon(arrow, color);
+        }
+
+        private static bool TryGetArrowSegment(
+            IReadOnlyList<(double X, double Y)> points,
+            bool fromStart,
+            out (double X, double Y) tip,
+            out (double X, double Y) from) {
+            if (points.Count < 2) {
+                tip = default;
+                from = default;
+                return false;
+            }
+
+            if (fromStart) {
+                tip = points[0];
+                for (int i = 1; i < points.Count; i++) {
+                    if (Distance(tip, points[i]) > 1e-6D) {
+                        from = points[i];
+                        return true;
+                    }
+                }
+            } else {
+                tip = points[points.Count - 1];
+                for (int i = points.Count - 2; i >= 0; i--) {
+                    if (Distance(tip, points[i]) > 1e-6D) {
+                        from = points[i];
+                        return true;
+                    }
+                }
+            }
+
+            from = default;
+            return false;
         }
 
         private static void DrawText(
@@ -430,8 +464,9 @@ namespace OfficeIMO.Visio {
             double size = iconSize * canvas.Scale;
             Color color = VisioStencilArtwork.ResolveColor(shape, 155);
             double stroke = Math.Max(canvas.Supersampling, size * 0.045D);
+            double rasterRotation = ToRasterRotation(shape.Angle);
             (double X, double Y) Point(double offsetX, double offsetY) =>
-                RotateTextPoint((x + (size * offsetX), y + (size * offsetY)), x, y, shape.Angle);
+                RotateTextPoint((x + (size * offsetX), y + (size * offsetY)), x, y, rasterRotation);
             (double X, double Y)[] Points(params (double X, double Y)[] offsets) {
                 (double X, double Y)[] points = new (double X, double Y)[offsets.Length];
                 for (int i = 0; i < offsets.Length; i++) {
@@ -445,13 +480,13 @@ namespace OfficeIMO.Visio {
                 case "person":
                     (double headX, double headY) = Point(0D, -0.18D);
                     canvas.DrawEllipse(headX, headY, size * 0.16D, size * 0.16D, Color.Transparent, color, stroke);
-                    StrokeArc(canvas, x, y + size * 0.22D, size * 0.31D, size * 0.24D, 205D, 335D, color, stroke, shape.Angle, x, y);
+                    StrokeArc(canvas, x, y + size * 0.22D, size * 0.31D, size * 0.24D, 205D, 335D, color, stroke, rasterRotation, x, y);
                     break;
                 case "data":
-                    StrokeEllipse(canvas, x, y - size * 0.18D, size * 0.31D, size * 0.11D, color, stroke, shape.Angle, x, y);
+                    StrokeEllipse(canvas, x, y - size * 0.18D, size * 0.31D, size * 0.11D, color, stroke, rasterRotation, x, y);
                     StrokePolyline(canvas, Points((-0.31D, -0.18D), (-0.31D, 0.26D)), color, stroke);
                     StrokePolyline(canvas, Points((0.31D, -0.18D), (0.31D, 0.26D)), color, stroke);
-                    StrokeArc(canvas, x, y + size * 0.26D, size * 0.31D, size * 0.11D, 0D, 180D, color, stroke, shape.Angle, x, y);
+                    StrokeArc(canvas, x, y + size * 0.26D, size * 0.31D, size * 0.11D, 0D, 180D, color, stroke, rasterRotation, x, y);
                     break;
                 case "security":
                     StrokePolyline(canvas, Points(
@@ -474,9 +509,9 @@ namespace OfficeIMO.Visio {
                     StrokePolyline(canvas, Points((-0.22D, 0.08D), (0.22D, 0.08D)), color, stroke);
                     break;
                 case "cloud":
-                    StrokeEllipse(canvas, x - size * 0.16D, y + size * 0.02D, size * 0.2D, size * 0.15D, color, stroke, shape.Angle, x, y);
-                    StrokeEllipse(canvas, x + size * 0.08D, y - size * 0.06D, size * 0.24D, size * 0.2D, color, stroke, shape.Angle, x, y);
-                    StrokeEllipse(canvas, x + size * 0.25D, y + size * 0.05D, size * 0.16D, size * 0.12D, color, stroke, shape.Angle, x, y);
+                    StrokeEllipse(canvas, x - size * 0.16D, y + size * 0.02D, size * 0.2D, size * 0.15D, color, stroke, rasterRotation, x, y);
+                    StrokeEllipse(canvas, x + size * 0.08D, y - size * 0.06D, size * 0.24D, size * 0.2D, color, stroke, rasterRotation, x, y);
+                    StrokeEllipse(canvas, x + size * 0.25D, y + size * 0.05D, size * 0.16D, size * 0.12D, color, stroke, rasterRotation, x, y);
                     StrokePolyline(canvas, Points((-0.33D, 0.16D), (0.37D, 0.16D)), color, stroke);
                     break;
                 case "container":
@@ -540,11 +575,13 @@ namespace OfficeIMO.Visio {
                 centerY - (drawHeight / 2D),
                 drawWidth,
                 drawHeight,
-                shape.Angle,
+                ToRasterRotation(shape.Angle),
                 centerX,
                 centerY);
             return true;
         }
+
+        private static double ToRasterRotation(double visioRadians) => -visioRadians;
 
         private static Color ApplyBackgroundTransparency(Color color, double? transparency) {
             if (!transparency.HasValue) {
@@ -1437,21 +1474,26 @@ namespace OfficeIMO.Visio {
                 int samples = Supersampling * Supersampling;
                 for (int y = 0; y < _height; y++) {
                     for (int x = 0; x < _width; x++) {
-                        int r = 0, g = 0, b = 0, a = 0;
+                        int a = 0;
+                        long r = 0, g = 0, b = 0;
                         for (int sy = 0; sy < Supersampling; sy++) {
                             for (int sx = 0; sx < Supersampling; sx++) {
                                 int source = (((y * Supersampling) + sy) * _renderWidth + ((x * Supersampling) + sx)) * 4;
-                                r += _pixels[source];
-                                g += _pixels[source + 1];
-                                b += _pixels[source + 2];
-                                a += _pixels[source + 3];
+                                int sampleAlpha = _pixels[source + 3];
+                                r += _pixels[source] * sampleAlpha;
+                                g += _pixels[source + 1] * sampleAlpha;
+                                b += _pixels[source + 2] * sampleAlpha;
+                                a += sampleAlpha;
                             }
                         }
 
                         int target = (y * _width + x) * 4;
-                        output[target] = (byte)(r / samples);
-                        output[target + 1] = (byte)(g / samples);
-                        output[target + 2] = (byte)(b / samples);
+                        if (a > 0) {
+                            output[target] = (byte)((r + (a / 2L)) / a);
+                            output[target + 1] = (byte)((g + (a / 2L)) / a);
+                            output[target + 2] = (byte)((b + (a / 2L)) / a);
+                        }
+
                         output[target + 3] = (byte)(a / samples);
                     }
                 }
