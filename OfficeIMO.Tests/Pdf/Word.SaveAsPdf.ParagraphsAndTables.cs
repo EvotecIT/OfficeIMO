@@ -196,8 +196,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(240, 360),
-                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Uniform(24)
+                    PageSize = new OfficeIMO.Pdf.PageSize(240, 360),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(24)
                 });
             }
 
@@ -721,8 +721,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(300, 180),
-                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PageSize(300, 180),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
                 });
             }
 
@@ -758,8 +758,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
                 });
             }
 
@@ -794,8 +794,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
                 });
             }
 
@@ -830,8 +830,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(360, 200),
-                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 200),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
                 });
             }
 
@@ -862,8 +862,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(360, 180),
-                    OfficeIMOMargins = PageMargins.Uniform(36)
+                    PageSize = new OfficeIMO.Pdf.PageSize(360, 180),
+                    Margins = PageMargins.Uniform(36)
                 });
             }
 

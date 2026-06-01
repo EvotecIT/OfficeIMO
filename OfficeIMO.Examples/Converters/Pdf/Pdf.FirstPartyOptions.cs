@@ -15,8 +15,8 @@ namespace OfficeIMO.Examples.Word {
                 document.Save();
 
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    OfficeIMOPageSize = OfficeIMO.Pdf.PageSizes.Letter,
-                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Narrow
+                    PageSize = OfficeIMO.Pdf.PageSizes.Letter,
+                    Margins = OfficeIMO.Pdf.PageMargins.Narrow
                 });
             }
 

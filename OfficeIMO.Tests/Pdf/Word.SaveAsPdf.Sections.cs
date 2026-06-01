@@ -104,8 +104,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(400, 300),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(50)
+                PageSize = new PdfCore.PageSize(400, 300),
+                Margins = PdfCore.PageMargins.Uniform(50)
             });
         }
 
@@ -147,8 +147,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(520, 320),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(60)
+                PageSize = new PdfCore.PageSize(520, 320),
+                Margins = PdfCore.PageMargins.Uniform(60)
             });
         }
 
@@ -180,7 +180,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Uses_OfficeIMO_Page_Setup_Options() {
+    public void SaveAsPdf_OfficeIMOEngine_Uses_Explicit_Pdf_Page_Setup_Options() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeOfficeIMOPageSetup.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeOfficeIMOPageSetup.pdf");
 
@@ -189,8 +189,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(240, 320),
-                OfficeIMOMargins = new PdfCore.PageMargins(80, 36, 36, 36)
+                PageSize = new PdfCore.PageSize(240, 320),
+                Margins = new PdfCore.PageMargins(80, 36, 36, 36)
             });
         }
 
@@ -205,7 +205,7 @@ public partial class Word {
     }
 
     [Fact]
-    public void SaveAsPdf_OfficeIMOEngine_Preserves_Explicit_OfficeIMO_Page_Size_Geometry() {
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Explicit_Pdf_Page_Size_Geometry() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeExplicitPageGeometry.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeExplicitPageGeometry.pdf");
 
@@ -214,8 +214,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(420, 240),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(420, 240),
+                Margins = PdfCore.PageMargins.Uniform(36)
             });
         }
 
@@ -290,8 +290,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(612, 792),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(612, 792),
+                Margins = PdfCore.PageMargins.Uniform(36)
             });
         }
 
@@ -331,8 +331,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(612, 792),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(612, 792),
+                Margins = PdfCore.PageMargins.Uniform(36)
             });
         }
 
@@ -367,8 +367,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(612, 792),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(612, 792),
+                Margins = PdfCore.PageMargins.Uniform(36)
             });
         }
 
@@ -399,8 +399,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(612, 792),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(612, 792),
+                Margins = PdfCore.PageMargins.Uniform(36)
             });
         }
 
@@ -434,8 +434,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(612, 792),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(612, 792),
+                Margins = PdfCore.PageMargins.Uniform(36)
             });
         }
 
@@ -470,8 +470,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new PdfCore.PageSize(612, 792),
-                OfficeIMOMargins = PdfCore.PageMargins.Uniform(36)
+                PageSize = new PdfCore.PageSize(612, 792),
+                Margins = PdfCore.PageMargins.Uniform(36)
             });
         }
 

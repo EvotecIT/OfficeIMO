@@ -55,9 +55,9 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                    OfficeIMOPageSize = OfficeIMO.Pdf.PageSizes.A4,
+                    PageSize = OfficeIMO.Pdf.PageSizes.A4,
                     Orientation = PdfPageOrientation.Landscape,
-                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.FromCentimeters(
+                    Margins = OfficeIMO.Pdf.PageMargins.FromCentimeters(
                         left: 2,
                         top: 2,
                         right: 2,
@@ -77,7 +77,7 @@ namespace OfficeIMO.Examples.Word {
 
                 using (MemoryStream pdfStream = new MemoryStream()) {
                     document.SaveAsPdf(pdfStream, new PdfSaveOptions {
-                        OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(300, 500)
+                        PageSize = new OfficeIMO.Pdf.PageSize(300, 500)
                     });
                     File.WriteAllBytes(pdfPath, pdfStream.ToArray());
                 }

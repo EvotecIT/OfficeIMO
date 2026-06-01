@@ -100,8 +100,8 @@ public partial class Word {
 
         byte[] bytes = await document.SaveAsPdfAsync(new PdfSaveOptions {
             IncludePageNumbers = false,
-            OfficeIMOPageSize = new PdfCore.PageSize(240, 320),
-            OfficeIMOMargins = PdfCore.PageMargins.Uniform(36)
+            PageSize = new PdfCore.PageSize(240, 320),
+            Margins = PdfCore.PageMargins.Uniform(36)
         }, CancellationToken.None);
 
         Assert.True(bytes.Length > 0);

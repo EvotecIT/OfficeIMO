@@ -54,8 +54,8 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 IncludePageNumbers = false,
-                OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(300, 260),
-                OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Uniform(30)
+                PageSize = new OfficeIMO.Pdf.PageSize(300, 260),
+                Margins = OfficeIMO.Pdf.PageMargins.Uniform(30)
             });
         }
 

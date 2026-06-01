@@ -5456,8 +5456,8 @@ namespace OfficeIMO.Word.Pdf {
 
         private static PdfCore.PageSize GetNativePageSize(WordSection section, PdfSaveOptions? options) {
             PdfCore.PageSize size;
-            if (options?.OfficeIMOPageSize != null) {
-                size = options.OfficeIMOPageSize.Value;
+            if (options?.PageSize != null) {
+                size = options.PageSize.Value;
                 if (options.Orientation == null) {
                     return size;
                 }
@@ -5500,8 +5500,8 @@ namespace OfficeIMO.Word.Pdf {
             };
 
         private static PdfCore.PageMargins GetNativeMargins(WordSection section, PdfSaveOptions? options) {
-            if (options?.OfficeIMOMargins != null) {
-                return options.OfficeIMOMargins.Value;
+            if (options?.Margins != null) {
+                return options.Margins.Value;
             }
 
             return new PdfCore.PageMargins(

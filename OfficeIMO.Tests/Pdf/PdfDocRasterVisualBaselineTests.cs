@@ -405,8 +405,8 @@ public class PdfDocRasterVisualBaselineTests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new OfficeIMO.Pdf.PageSize(612, 792),
-                    OfficeIMOMargins = OfficeIMO.Pdf.PageMargins.Uniform(36)
+                    PageSize = new OfficeIMO.Pdf.PageSize(612, 792),
+                    Margins = OfficeIMO.Pdf.PageMargins.Uniform(36)
                 });
             }
 
@@ -512,7 +512,7 @@ public class PdfDocRasterVisualBaselineTests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new PageSize(612, 792)
+                    PageSize = new PageSize(612, 792)
                 });
             }
 
@@ -546,8 +546,8 @@ public class PdfDocRasterVisualBaselineTests {
                 document.Save();
                 document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                     IncludePageNumbers = false,
-                    OfficeIMOPageSize = new PageSize(612, 360),
-                    OfficeIMOMargins = PageMargins.Uniform(36)
+                    PageSize = new PageSize(612, 360),
+                    Margins = PageMargins.Uniform(36)
                 });
             }
 

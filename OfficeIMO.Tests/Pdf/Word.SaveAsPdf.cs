@@ -250,7 +250,7 @@ public partial class Word {
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
                 Orientation = orientation,
-                OfficeIMOPageSize = PdfCore.PageSizes.A4
+                PageSize = PdfCore.PageSizes.A4
             });
         }
 
@@ -306,7 +306,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                OfficeIMOPageSize = size
+                PageSize = size
             });
         }
 
@@ -331,7 +331,7 @@ public partial class Word {
             document.AddParagraph("Hello World");
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                OfficeIMOMargins = PdfCore.PageMargins.UniformCentimeters(marginCm)
+                Margins = PdfCore.PageMargins.UniformCentimeters(marginCm)
             });
         }
 
@@ -353,7 +353,7 @@ public partial class Word {
             document.Save();
 
             document.SaveAsPdf(pdfPath, new PdfSaveOptions {
-                OfficeIMOMargins = PdfCore.PageMargins.FromCentimeters(1, 3, 2, 2)
+                Margins = PdfCore.PageMargins.FromCentimeters(1, 3, 2, 2)
             });
         }
 

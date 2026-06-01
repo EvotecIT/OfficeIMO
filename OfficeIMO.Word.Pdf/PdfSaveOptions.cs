@@ -12,14 +12,14 @@ namespace OfficeIMO.Word.Pdf {
         public string? FontFamily { get; set; }
 
         /// <summary>
-        /// Optional first-party page size in PDF points. The supplied geometry is preserved unless <see cref="Orientation"/> is also set.
+        /// Optional page size in PDF points. The supplied geometry is preserved unless <see cref="Orientation"/> is also set.
         /// </summary>
-        public PdfCore.PageSize? OfficeIMOPageSize { get; set; }
+        public PdfCore.PageSize? PageSize { get; set; }
 
         /// <summary>
-        /// Optional first-party page margins in PDF points.
+        /// Optional page margins in PDF points.
         /// </summary>
-        public PdfCore.PageMargins? OfficeIMOMargins { get; set; }
+        public PdfCore.PageMargins? Margins { get; set; }
 
         /// <summary>
         /// Optional page orientation for the generated PDF.
