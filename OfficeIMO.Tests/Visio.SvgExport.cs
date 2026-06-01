@@ -45,7 +45,48 @@ namespace OfficeIMO.Tests {
             Assert.Contains(root.Descendants(ns + "g"), g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
             Assert.Contains(root.Descendants(ns + "text"), text => text.Value.IndexOf("Start", StringComparison.Ordinal) >= 0);
             Assert.Contains(root.Descendants(ns + "text"), text => text.Value.IndexOf("yes", StringComparison.Ordinal) >= 0);
+            XElement startText = root.Descendants(ns + "text").Single(text => text.Value.IndexOf("Start", StringComparison.Ordinal) >= 0);
+            Assert.Equal("16.667", startText.Attribute("font-size")!.Value);
             Assert.Contains(root.Descendants(ns + "path"), path => ((string?)path.Attribute("marker-end")) == "url(#officeimo-visio-arrow)");
+        }
+
+        [Fact]
+        public void SvgFallbackConnectorsUseVerticalEndpoints() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Vertical").Size(4, 6);
+            VisioShape top = page.AddRectangle(2, 4.5, 1, 1, "Top");
+            VisioShape bottom = page.AddRectangle(2, 1.5, 1, 1, "Bottom");
+
+            VisioConnector connector = page.AddConnector(top, bottom, ConnectorKind.Straight);
+            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
+            XElement path = connectorGroup.Element(ns + "path")!;
+            Assert.Equal("M 200 200 L 200 400", path.Attribute("d")!.Value);
+        }
+
+        [Fact]
+        public void SvgRendererAppliesParentTransformsToGroupChildren() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Groups").Size(5, 5);
+            VisioShape group = new("group", 3, 2, 2, 2, string.Empty) { Type = "Group", FillPattern = 0 };
+            VisioShape child = new("child", 1, 1, 1, 1, "Child");
+            group.Children.Add(child);
+            page.Shapes.Add(group);
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement childGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == child.Id);
+            XElement path = childGroup.Element(ns + "path")!;
+            Assert.Equal("M 250 350 L 350 350 L 350 250 L 250 250 Z", path.Attribute("d")!.Value);
         }
 
         [Fact]

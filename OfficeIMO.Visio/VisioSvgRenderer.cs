@@ -105,7 +105,8 @@ namespace OfficeIMO.Visio {
         private static void WriteShapeGeometry(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
             string kind = NormalizeKind(shape.MasterNameU ?? shape.NameU ?? shape.Name ?? string.Empty);
             if (kind == "ellipse" || kind == "circle") {
-                (double cx, double cy) = ToSvg(page, shape.PinX, shape.PinY, scale);
+                (double centerX, double centerY) = GetPagePoint(shape, shape.LocPinX, shape.LocPinY);
+                (double cx, double cy) = ToSvg(page, centerX, centerY, scale);
                 writer.WriteStartElement("ellipse", SvgNamespace);
                 writer.WriteAttributeString("cx", Format(cx));
                 writer.WriteAttributeString("cy", Format(cy));
@@ -190,7 +191,7 @@ namespace OfficeIMO.Visio {
             VisioTextStyle? style = shape.TextStyle;
             double localX = style?.TextPinX ?? shape.Width / 2D;
             double localY = style?.TextPinY ?? shape.Height / 2D;
-            (double textX, double textY) = shape.GetAbsolutePoint(localX, localY);
+            (double textX, double textY) = GetPagePoint(shape, localX, localY);
             (double x, double y) = ToSvg(page, textX, textY, scale);
             WriteText(
                 writer,
@@ -199,6 +200,7 @@ namespace OfficeIMO.Visio {
                 y,
                 style,
                 defaultSize: 10D,
+                scale: scale,
                 rotateRadians: shape.Angle + (style?.TextAngle ?? 0D));
         }
 
@@ -235,7 +237,7 @@ namespace OfficeIMO.Visio {
             if (options.RenderConnectorLabels && !string.IsNullOrEmpty(connector.Label)) {
                 (double labelX, double labelY) = ResolveConnectorLabelPoint(connector, points);
                 (double x, double y) = ToSvg(page, labelX, labelY, scale);
-                WriteText(writer, connector.Label!, x, y, connector.TextStyle, defaultSize: 9D, rotateRadians: 0D);
+                WriteText(writer, connector.Label!, x, y, connector.TextStyle, defaultSize: 9D, scale, rotateRadians: 0D);
             }
 
             writer.WriteEndElement();
@@ -258,21 +260,19 @@ namespace OfficeIMO.Visio {
 
         private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
             if (connector.FromConnectionPoint != null) {
-                (startX, startY) = connector.From.GetAbsolutePoint(connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
+                (startX, startY) = GetPagePoint(connector.From, connector.FromConnectionPoint.X, connector.FromConnectionPoint.Y);
             } else {
-                (double fromLeft, double fromBottom, double fromRight, double fromTop) = connector.From.GetBounds();
-                (double toLeft, _, double toRight, _) = connector.To.GetBounds();
-                startX = ((toLeft + toRight) / 2D) >= ((fromLeft + fromRight) / 2D) ? fromRight : fromLeft;
-                startY = (fromBottom + fromTop) / 2D;
+                (double fromLeft, double fromBottom, double fromRight, double fromTop) = GetPageBounds(connector.From);
+                (double toLeft, double toBottom, double toRight, double toTop) = GetPageBounds(connector.To);
+                ResolveFallbackEndpoint(fromLeft, fromBottom, fromRight, fromTop, toLeft, toBottom, toRight, toTop, out startX, out startY);
             }
 
             if (connector.ToConnectionPoint != null) {
-                (endX, endY) = connector.To.GetAbsolutePoint(connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
+                (endX, endY) = GetPagePoint(connector.To, connector.ToConnectionPoint.X, connector.ToConnectionPoint.Y);
             } else {
-                (double toLeft, double toBottom, double toRight, double toTop) = connector.To.GetBounds();
-                (double fromLeft, _, double fromRight, _) = connector.From.GetBounds();
-                endX = ((fromLeft + fromRight) / 2D) <= ((toLeft + toRight) / 2D) ? toLeft : toRight;
-                endY = (toBottom + toTop) / 2D;
+                (double toLeft, double toBottom, double toRight, double toTop) = GetPageBounds(connector.To);
+                (double fromLeft, double fromBottom, double fromRight, double fromTop) = GetPageBounds(connector.From);
+                ResolveFallbackEndpoint(toLeft, toBottom, toRight, toTop, fromLeft, fromBottom, fromRight, fromTop, out endX, out endY);
             }
         }
 
@@ -314,12 +314,13 @@ namespace OfficeIMO.Visio {
             return points[points.Count - 1];
         }
 
-        private static void WriteText(XmlWriter writer, string text, double x, double y, VisioTextStyle? style, double defaultSize, double rotateRadians) {
+        private static void WriteText(XmlWriter writer, string text, double x, double y, VisioTextStyle? style, double defaultSize, double scale, double rotateRadians) {
+            double fontSize = PointsToSvgPixels(style?.Size ?? defaultSize, scale);
             writer.WriteStartElement("text", SvgNamespace);
             writer.WriteAttributeString("x", Format(x));
             writer.WriteAttributeString("y", Format(y));
             writer.WriteAttributeString("font-family", string.IsNullOrWhiteSpace(style?.FontFamily) ? "Aptos, Calibri, Arial, sans-serif" : style!.FontFamily);
-            writer.WriteAttributeString("font-size", Format(style?.Size ?? defaultSize));
+            writer.WriteAttributeString("font-size", Format(fontSize));
             writer.WriteAttributeString("text-anchor", GetTextAnchor(style));
             writer.WriteAttributeString("dominant-baseline", "middle");
             writer.WriteAttributeString("fill", style?.Color.HasValue == true ? "#" + style.Color.Value.ToRgbHex() : "#111827");
@@ -331,7 +332,6 @@ namespace OfficeIMO.Visio {
             }
 
             string[] lines = text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
-            double fontSize = style?.Size ?? defaultSize;
             double lineHeight = fontSize * 1.2D;
             double startOffset = -((lines.Length - 1) * lineHeight) / 2D;
             for (int i = 0; i < lines.Length; i++) {
@@ -359,7 +359,7 @@ namespace OfficeIMO.Visio {
         private static string BuildClosedPath(VisioPage page, VisioShape shape, IReadOnlyList<(double X, double Y)> localPoints, double scale) {
             StringBuilder builder = new();
             for (int i = 0; i < localPoints.Count; i++) {
-                (double absX, double absY) = shape.GetAbsolutePoint(localPoints[i].X, localPoints[i].Y);
+                (double absX, double absY) = GetPagePoint(shape, localPoints[i].X, localPoints[i].Y);
                 (double x, double y) = ToSvg(page, absX, absY, scale);
                 builder.Append(i == 0 ? "M " : " L ");
                 builder.Append(Format(x)).Append(' ').Append(Format(y));
@@ -367,6 +367,57 @@ namespace OfficeIMO.Visio {
 
             builder.Append(" Z");
             return builder.ToString();
+        }
+
+        private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
+            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
+            return shape.Parent != null
+                ? GetPagePoint(shape.Parent, absX, absY)
+                : (absX, absY);
+        }
+
+        private static (double Left, double Bottom, double Right, double Top) GetPageBounds(VisioShape shape) {
+            (double x1, double y1) = GetPagePoint(shape, 0, 0);
+            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0);
+            (double x3, double y3) = GetPagePoint(shape, 0, shape.Height);
+            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
+            double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
+            double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
+            double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
+            double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
+            return (left, bottom, right, top);
+        }
+
+        private static void ResolveFallbackEndpoint(
+            double sourceLeft,
+            double sourceBottom,
+            double sourceRight,
+            double sourceTop,
+            double targetLeft,
+            double targetBottom,
+            double targetRight,
+            double targetTop,
+            out double x,
+            out double y) {
+            double sourceCenterX = (sourceLeft + sourceRight) / 2D;
+            double sourceCenterY = (sourceBottom + sourceTop) / 2D;
+            double targetCenterX = (targetLeft + targetRight) / 2D;
+            double targetCenterY = (targetBottom + targetTop) / 2D;
+            double dx = targetCenterX - sourceCenterX;
+            double dy = targetCenterY - sourceCenterY;
+
+            if (Math.Abs(dy) > Math.Abs(dx)) {
+                x = sourceCenterX;
+                y = dy >= 0D ? sourceTop : sourceBottom;
+                return;
+            }
+
+            x = dx >= 0D ? sourceRight : sourceLeft;
+            y = sourceCenterY;
+        }
+
+        private static double PointsToSvgPixels(double points, double scale) {
+            return points * scale / 72D;
         }
 
         private static string BuildOpenPath(VisioPage page, IReadOnlyList<(double X, double Y)> points, double scale) {

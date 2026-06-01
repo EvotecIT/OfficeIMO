@@ -75,11 +75,13 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Keep Size");
             VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "shape", 2, 4, 3.2, 0.8, "Large step");
+            shape.SetUserCell(VisioSemanticUserCells.StencilPreviewImageTarget, "../media/stale.emf", "STR");
 
             page.ReplaceMaster(shape, "Decision");
 
             Assert.Equal("Decision", shape.MasterNameU);
             Assert.Null(shape.GetUserCellValue(VisioSemanticUserCells.StencilId));
+            Assert.Null(shape.GetUserCellValue(VisioSemanticUserCells.StencilPreviewImageTarget));
             Assert.Equal(3.2, shape.Width, 6);
             Assert.Equal(0.8, shape.Height, 6);
             Assert.Equal(1.6, shape.LocPinX, 6);

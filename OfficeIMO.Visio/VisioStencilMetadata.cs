@@ -10,6 +10,7 @@ namespace OfficeIMO.Visio {
         private const string ListSeparator = ";";
 
         internal static void Apply(VisioShape shape, VisioStencilShape stencil, string? catalogName) {
+            Clear(shape);
             Set(shape, VisioSemanticUserCells.StencilId, stencil.Id);
             Set(shape, VisioSemanticUserCells.StencilName, stencil.Name);
             Set(shape, VisioSemanticUserCells.StencilCategory, stencil.Category);
