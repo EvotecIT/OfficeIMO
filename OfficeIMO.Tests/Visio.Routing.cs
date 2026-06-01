@@ -239,8 +239,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Group routes", 9, 5);
             VisioShape source = page.AddRectangle(1.2, 2.5, 0.8, 0.5, "Source");
             VisioShape group = page.AddRectangle(5.1, 2.5, 4.4, 2.2, "Service group");
-            VisioShape blocker = new("member-blocker", 4.2, 2.5, 1.0, 0.9, "Blocker");
-            VisioShape target = new("member-target", 7.1, 2.5, 0.8, 0.5, "Target");
+            VisioShape blocker = new("member-blocker", 2.2, 1.1, 1.0, 0.9, "Blocker");
+            VisioShape target = new("member-target", 4.2, 1.1, 0.8, 0.5, "Target");
             group.Children.Add(blocker);
             group.Children.Add(target);
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
@@ -261,10 +261,42 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
             Assert.Equal(2, connector.Waypoints.Count);
-            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(blocker.GetShapeBounds(), 0.12D)));
+            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(new VisioBounds(4.6, 2.05, 5.6, 2.95), 0.12D)));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void ObstacleAwareRoutingUsesPageBoundsForGroupedChildObstacles() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Offset group routes", 9, 5);
+            VisioShape source = page.AddRectangle(1, 3.5, 0.8, 0.5, "Source");
+            VisioShape target = page.AddRectangle(8, 3.5, 0.8, 0.5, "Target");
+            VisioShape group = new("group") {
+                Type = "Group",
+                PinX = 5,
+                PinY = 10,
+                Width = 1,
+                Height = 1,
+                LocPinX = 0.5,
+                LocPinY = 0.5
+            };
+            VisioShape child = new("group-child", 0.5, -6, 1, 1, "Child obstacle");
+            group.Children.Add(child);
+            page.Shapes.Add(group);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            connector.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions {
+                IncludeGroupChildren = true,
+                Padding = 0.12D,
+                MaxLanes = 16
+            });
+
+            Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
+            Assert.Equal(2, connector.Waypoints.Count);
+            Assert.DoesNotContain(GetRouteSegments(connector), segment =>
+                SegmentIntersectsBounds(segment.Start, segment.End, Inflate(new VisioBounds(4.5, 3.0, 5.5, 4.0), 0.12D)));
         }
 
         [Fact]
@@ -273,8 +305,8 @@ namespace OfficeIMO.Tests {
             VisioPage page = document.AddPage("Group polish", 9, 5);
             VisioShape source = page.AddRectangle(1.2, 2.5, 0.8, 0.5, "Source");
             VisioShape group = page.AddRectangle(5.1, 2.5, 4.4, 2.2, "Service group");
-            VisioShape blocker = new("member-blocker", 4.2, 2.5, 1.0, 0.9, "Blocker");
-            VisioShape target = new("member-target", 7.1, 2.5, 0.8, 0.5, "Target");
+            VisioShape blocker = new("member-blocker", 2.2, 1.1, 1.0, 0.9, "Blocker");
+            VisioShape target = new("member-target", 4.2, 1.1, 0.8, 0.5, "Target");
             group.Children.Add(blocker);
             group.Children.Add(target);
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
@@ -288,7 +320,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
             Assert.Equal(2, connector.Waypoints.Count);
-            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(blocker.GetShapeBounds(), 0.15D)));
+            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(new VisioBounds(4.6, 2.05, 5.6, 2.95), 0.15D)));
         }
 
         [Fact]
@@ -488,13 +520,13 @@ namespace OfficeIMO.Tests {
 
         private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out RoutePoint point) {
             if (connectionPoint != null) {
-                (double x, double y) = shape.GetAbsolutePoint(connectionPoint.X, connectionPoint.Y);
+                (double x, double y) = GetPagePoint(shape, connectionPoint.X, connectionPoint.Y);
                 point = new RoutePoint(x, y);
                 return;
             }
 
-            VisioBounds shapeBounds = shape.GetShapeBounds();
-            VisioBounds otherBounds = other.GetShapeBounds();
+            VisioBounds shapeBounds = GetPageShapeBounds(shape);
+            VisioBounds otherBounds = GetPageShapeBounds(other);
             double dx = otherBounds.CenterX - shapeBounds.CenterX;
             double dy = otherBounds.CenterY - shapeBounds.CenterY;
             if (Math.Abs(dx) >= Math.Abs(dy)) {
@@ -502,6 +534,25 @@ namespace OfficeIMO.Tests {
             } else {
                 point = new RoutePoint(shapeBounds.CenterX, dy >= 0 ? shapeBounds.Top : shapeBounds.Bottom);
             }
+        }
+
+        private static VisioBounds GetPageShapeBounds(VisioShape shape) {
+            (double x1, double y1) = GetPagePoint(shape, 0, 0);
+            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0);
+            (double x3, double y3) = GetPagePoint(shape, 0, shape.Height);
+            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
+            double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
+            double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
+            double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
+            double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
+            return new VisioBounds(left, bottom, right, top);
+        }
+
+        private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
+            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
+            return shape.Parent != null
+                ? GetPagePoint(shape.Parent, absX, absY)
+                : (absX, absY);
         }
 
         private static bool SegmentIntersectsBounds(RoutePoint a, RoutePoint b, VisioBounds bounds) {
