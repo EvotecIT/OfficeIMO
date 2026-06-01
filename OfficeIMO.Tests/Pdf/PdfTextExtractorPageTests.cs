@@ -413,6 +413,131 @@ public class PdfTextExtractorPageTests {
     }
 
     [Fact]
+    public void ExtractMarkdown_WritesLogicalMarkdownToPathAndStreamsForWrapperPipelines() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-markdown-" + Guid.NewGuid().ToString("N"));
+        string inputPath = Path.Combine(directory, "source.pdf");
+        string outputPath = Path.Combine(directory, "markdown", "all.md");
+        var options = new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
+
+        try {
+            Directory.CreateDirectory(directory);
+            byte[] pdf = BuildMarkdownPdf();
+            File.WriteAllBytes(inputPath, pdf);
+
+            string markdown = PdfTextExtractor.ExtractMarkdown(pdf, options);
+
+            Assert.Contains("# Markdown Heading", markdown, StringComparison.Ordinal);
+            Assert.Contains("Markdownreadbackmarker.", Normalize(markdown), StringComparison.Ordinal);
+            Assert.Contains("| Code | Name | Qty |", markdown, StringComparison.Ordinal);
+            Assert.Contains("| A-100 | Alpha | 2 |", markdown, StringComparison.Ordinal);
+
+            PdfTextExtractor.ExtractMarkdown(inputPath, outputPath, options);
+            Assert.True(File.Exists(outputPath));
+            Assert.Contains("# Markdown Heading", File.ReadAllText(outputPath, Encoding.UTF8), StringComparison.Ordinal);
+
+            using var pathOutput = CreateOutputStream(out int pathPrefixLength);
+            PdfTextExtractor.ExtractMarkdown(inputPath, pathOutput, options);
+            Assert.Contains("| A-100 | Alpha | 2 |", GetOutputText(pathOutput, pathPrefixLength), StringComparison.Ordinal);
+
+            using var streamInput = BuildPrefixedStream(pdf);
+            streamInput.Position = 5;
+            using var streamOutput = CreateOutputStream(out int streamPrefixLength);
+            PdfTextExtractor.ExtractMarkdown(streamInput, streamOutput, options);
+            Assert.Contains("Markdownreadbackmarker.", Normalize(GetOutputText(streamOutput, streamPrefixLength)), StringComparison.Ordinal);
+
+            using var byteOutput = CreateOutputStream(out int bytePrefixLength);
+            PdfTextExtractor.ExtractMarkdown(pdf, byteOutput, options);
+            Assert.Contains("# Markdown Heading", GetOutputText(byteOutput, bytePrefixLength), StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void ExtractMarkdownByPageRanges_ReturnsCallerOrderAndWritesMarkdownFiles() {
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-pdf-markdown-ranges-" + Guid.NewGuid().ToString("N"));
+        string inputPath = Path.Combine(directory, "source.pdf");
+        var options = new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
+
+        try {
+            Directory.CreateDirectory(directory);
+            byte[] pdf = BuildThreePageMarkdownPdf();
+            File.WriteAllBytes(inputPath, pdf);
+
+            IReadOnlyList<string> pages = PdfTextExtractor.ExtractMarkdownByPageRanges(
+                pdf,
+                options,
+                null,
+                PdfPageRange.ParseMany("3,1-2,2"));
+
+            Assert.Equal(4, pages.Count);
+            Assert.Contains("# Third Page", pages[0], StringComparison.Ordinal);
+            Assert.Contains("# First Page", pages[1], StringComparison.Ordinal);
+            Assert.Contains("# Second Page", pages[2], StringComparison.Ordinal);
+            Assert.Contains("# Second Page", pages[3], StringComparison.Ordinal);
+
+            string selectedDocument = PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument(
+                pdf,
+                options,
+                new PdfLogicalMarkdownOptions {
+                    PageSeparator = "***"
+                },
+                PdfPageRange.ParseMany("2,1"));
+
+            AssertContainsInOrder(
+                Normalize(selectedDocument),
+                "#SecondPage",
+                "***",
+                "#FirstPage");
+
+            string outputDirectory = Path.Combine(directory, "path-markdown");
+            IReadOnlyList<string> paths = PdfTextExtractor.ExtractMarkdownByPageRanges(inputPath, outputDirectory, options, null, PdfPageRange.ParseMany("3,1-2,2"));
+
+            Assert.Equal(4, paths.Count);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0003.md"), paths[0]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0001.md"), paths[1]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0002.md"), paths[2]);
+            Assert.Equal(Path.Combine(outputDirectory, "source-page-0002-occurrence-0002.md"), paths[3]);
+            Assert.Contains("# Third Page", File.ReadAllText(paths[0], Encoding.UTF8), StringComparison.Ordinal);
+
+            using var stream = BuildPrefixedStream(pdf);
+            stream.Position = 5;
+            string streamOutputDirectory = Path.Combine(directory, "stream-markdown");
+            IReadOnlyList<string> streamPaths = PdfTextExtractor.ExtractMarkdownByPageRanges(
+                stream,
+                streamOutputDirectory,
+                "stream-source.pdf",
+                options,
+                null,
+                PdfPageRange.ParseMany("2-3"));
+
+            Assert.Equal(2, streamPaths.Count);
+            Assert.Equal(Path.Combine(streamOutputDirectory, "stream-source-page-0002.md"), streamPaths[0]);
+            Assert.Equal(Path.Combine(streamOutputDirectory, "stream-source-page-0003.md"), streamPaths[1]);
+            Assert.Contains("# Second Page", File.ReadAllText(streamPaths[0], Encoding.UTF8), StringComparison.Ordinal);
+
+            string byteOutputDirectory = Path.Combine(directory, "byte-markdown");
+            IReadOnlyList<string> bytePaths = PdfTextExtractor.ExtractMarkdownByPage(pdf, byteOutputDirectory, "byte-source.pdf", options);
+
+            Assert.Equal(3, bytePaths.Count);
+            Assert.Equal(Path.Combine(byteOutputDirectory, "byte-source-page-0001.md"), bytePaths[0]);
+            Assert.Equal(Path.Combine(byteOutputDirectory, "byte-source-page-0002.md"), bytePaths[1]);
+            Assert.Equal(Path.Combine(byteOutputDirectory, "byte-source-page-0003.md"), bytePaths[2]);
+            Assert.Contains("# First Page", File.ReadAllText(bytePaths[0], Encoding.UTF8), StringComparison.Ordinal);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void ExtractTextByPage_RejectsInvalidInputs() {
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPage((byte[])null!));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPage((string)null!));
@@ -431,17 +556,38 @@ public class PdfTextExtractorPageTests {
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractAllText(BuildThreePagePdf(), (string)null!));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText(new MemoryStream(), " "));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText(BuildThreePagePdf(), " "));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown((byte[])null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown((string)null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdown(" "));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown((Stream)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown((string)null!, new MemoryStream()));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown("input.pdf", (Stream)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown("input.pdf", (string)null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdown("input.pdf", " "));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown((Stream)null!, new MemoryStream()));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown(new MemoryStream(), (Stream)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown((byte[])null!, new MemoryStream()));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown(BuildThreePagePdf(), (Stream)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown((Stream)null!, "out.md"));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown(new MemoryStream(), (string)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown((byte[])null!, "out.md"));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdown(BuildThreePagePdf(), (string)null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdown(BuildThreePagePdf(), " "));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPage((string)null!, "out"));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPage("input.pdf", (string)null!));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractTextByPage("input.pdf", " "));
 
         using var unreadable = new WriteOnlyStream();
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractTextByPage(unreadable));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdown(unreadable));
 
         using var readOnlyOutput = new ReadOnlyStream();
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText("input.pdf", readOnlyOutput));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText(new MemoryStream(BuildThreePagePdf()), new ReadOnlyStream()));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText(BuildThreePagePdf(), new ReadOnlyStream()));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdown("input.pdf", new ReadOnlyStream()));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdown(new MemoryStream(BuildThreePagePdf()), new ReadOnlyStream()));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdown(BuildThreePagePdf(), new ReadOnlyStream()));
     }
 
     [Fact]
@@ -475,6 +621,22 @@ public class PdfTextExtractorPageTests {
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractAllTextByPageRanges(new MemoryStream(pdf), (string)null!, PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractAllTextByPageRanges((byte[])null!, "out.txt", PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractAllTextByPageRanges(pdf, (string)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges((byte[])null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges(pdf, (PdfPageRange[])null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges(pdf, Array.Empty<PdfPageRange>()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges(pdf, default(PdfPageRange)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges(pdf, PdfPageRange.From(1, 4)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges((string)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges((Stream)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument((byte[])null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument(pdf, (PdfPageRange[])null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument(pdf, Array.Empty<PdfPageRange>()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument(pdf, PdfPageRange.From(1, 4)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument((string)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument((Stream)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges((string)null!, "out", PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges("input.pdf", (string)null!, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges("input.pdf", " ", PdfPageRange.From(1, 1)));
 
         using var unreadable = new WriteOnlyStream();
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractTextByPageRanges(unreadable, PdfPageRange.From(1, 1)));
@@ -482,6 +644,8 @@ public class PdfTextExtractorPageTests {
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllTextByPageRanges("input.pdf", new ReadOnlyStream(), PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllTextByPageRanges(new MemoryStream(pdf), new ReadOnlyStream(), PdfPageRange.From(1, 1)));
         Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllTextByPageRanges(pdf, new ReadOnlyStream(), PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdownByPageRanges(unreadable, PdfPageRange.From(1, 1)));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractMarkdownByPageRangesAsDocument(unreadable, PdfPageRange.From(1, 1)));
     }
 
     [Fact]
@@ -571,6 +735,52 @@ public class PdfTextExtractorPageTests {
                             .Column(50, column => column
                                 .Paragraph(p => p.Text("Right Start marker"))
                                 .Paragraph(p => p.Text("Right Finish marker")))))))
+            .ToBytes();
+    }
+
+    private static byte[] BuildMarkdownPdf() {
+        return PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .H1("Markdown Heading")
+            .Paragraph(p => p.Text("Markdown readback marker."))
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "A-100", "Alpha", "2" },
+                new[] { "B-200", "Beta", "14" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+    }
+
+    private static byte[] BuildThreePageMarkdownPdf() {
+        return PdfDoc.Create(new PdfOptions {
+                PageWidth = 300,
+                PageHeight = 220,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 10
+            })
+            .H1("First Page")
+            .Paragraph(p => p.Text("First markdown marker."))
+            .PageBreak()
+            .H1("Second Page")
+            .Paragraph(p => p.Text("Second markdown marker."))
+            .PageBreak()
+            .H1("Third Page")
+            .Paragraph(p => p.Text("Third markdown marker."))
             .ToBytes();
     }
 

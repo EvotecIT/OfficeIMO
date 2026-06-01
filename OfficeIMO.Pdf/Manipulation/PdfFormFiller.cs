@@ -6,6 +6,8 @@ namespace OfficeIMO.Pdf;
 public static class PdfFormFiller {
     private const string UnsupportedFlattenWidgetMessage = "Only simple text, choice, and button AcroForm widgets with rectangles are supported for flattening by OfficeIMO.Pdf yet.";
     private const string UnsupportedFlattenAnnotationMessage = "Only simple text, choice, and button AcroForm widgets referenced from page annotations are supported for flattening by OfficeIMO.Pdf yet.";
+    private static readonly char[] DefaultAppearanceSeparators = { ' ', '\t', '\r', '\n' };
+    private const int RadioButtonFlag = 32768;
     private const int EditableChoiceFlag = 262144;
     private const int MultiSelectChoiceFlag = 2097152;
 
@@ -481,9 +483,10 @@ public static class PdfFormFiller {
 
             int appearanceObjectNumber;
             if (isButtonField) {
-                if (!TryGetButtonAppearanceReference(objects, field, value, out PdfReference? appearanceReference)) {
-                    EnsureButtonWidgetAppearances(objects, field, value ?? "Off", ref nextObjectNumber);
-                    if (!TryGetButtonAppearanceReference(objects, field, value, out appearanceReference)) {
+                string appearanceState = GetButtonWidgetFlattenAppearanceState(objects, field, value);
+                if (!TryGetButtonAppearanceReference(objects, field, appearanceState, out PdfReference? appearanceReference)) {
+                    EnsureButtonWidgetAppearances(objects, field, appearanceState, ref nextObjectNumber);
+                    if (!TryGetButtonAppearanceReference(objects, field, appearanceState, out appearanceReference)) {
                         throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
                     }
                 }
@@ -690,9 +693,23 @@ public static class PdfFormFiller {
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
             string name = string.IsNullOrEmpty(firstValue) ? "Off" : firstValue;
+            bool isRadioButtonGroup = (fieldFlags & RadioButtonFlag) != 0;
+            if (isRadioButtonGroup) {
+                if (values.Count > 1) {
+                    throw new ArgumentException("PDF radio button field cannot be filled with multiple values.", nameof(value));
+                }
+
+                if (!string.Equals(name, "Off", StringComparison.Ordinal)) {
+                    HashSet<string> availableStates = CollectButtonNormalAppearanceStates(objects, field, new HashSet<int>());
+                    if (!availableStates.Contains(name)) {
+                        throw new ArgumentException($"PDF radio button field cannot be filled with value '{name}' because it is not one of the available appearance states.", nameof(value));
+                    }
+                }
+            }
+
             field.Items["V"] = new PdfName(name);
             field.Items["AS"] = new PdfName(name);
-            SetWidgetAppearanceStates(objects, field, name, new HashSet<int>(), ref nextObjectNumber);
+            SetWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, new HashSet<int>(), ref nextObjectNumber);
             return;
         }
 
@@ -736,10 +753,11 @@ public static class PdfFormFiller {
         return ResolveObject(objects, optionsObject) as PdfArray;
     }
 
-    private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, HashSet<int> visited, ref int nextObjectNumber) {
+    private static void SetWidgetAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string name, bool isRadioButtonGroup, HashSet<int> visited, ref int nextObjectNumber) {
         if (IsWidget(field)) {
-            field.Items["AS"] = new PdfName(name);
-            EnsureButtonWidgetAppearances(objects, field, name, ref nextObjectNumber);
+            string appearanceState = isRadioButtonGroup && !HasButtonNormalAppearanceState(objects, field, name) ? "Off" : name;
+            field.Items["AS"] = new PdfName(appearanceState);
+            EnsureButtonWidgetAppearances(objects, field, appearanceState, ref nextObjectNumber);
         }
 
         if (!field.Items.TryGetValue("Kids", out var kidsObject) ||
@@ -754,10 +772,52 @@ public static class PdfFormFiller {
             }
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
-                kid.Items["AS"] = new PdfName(name);
-                SetWidgetAppearanceStates(objects, kid, name, visited, ref nextObjectNumber);
+                SetWidgetAppearanceStates(objects, kid, name, isRadioButtonGroup, visited, ref nextObjectNumber);
             }
         }
+    }
+
+    private static HashSet<string> CollectButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<int> visited) {
+        var states = new HashSet<string>(StringComparer.Ordinal);
+        CollectButtonNormalAppearanceStates(objects, field, states, visited);
+        states.Remove("Off");
+        return states;
+    }
+
+    private static void CollectButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<string> states, HashSet<int> visited) {
+        if (IsWidget(field) &&
+            TryGetNormalAppearanceObject(objects, field, out PdfObject? normalAppearance) &&
+            normalAppearance is PdfDictionary appearanceStates) {
+            foreach (string stateName in appearanceStates.Items.Keys) {
+                states.Add(stateName);
+            }
+        }
+
+        if (!field.Items.TryGetValue("Kids", out var kidsObject) ||
+            ResolveObject(objects, kidsObject) is not PdfArray kids) {
+            return;
+        }
+
+        for (int i = 0; i < kids.Items.Count; i++) {
+            PdfObject kidObject = kids.Items[i];
+            if (kidObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) {
+                continue;
+            }
+
+            if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
+                CollectButtonNormalAppearanceStates(objects, kid, states, visited);
+            }
+        }
+    }
+
+    private static bool HasButtonNormalAppearanceState(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string stateName) {
+        if (string.IsNullOrEmpty(stateName)) {
+            return false;
+        }
+
+        return TryGetNormalAppearanceObject(objects, widget, out PdfObject? normalAppearance) &&
+            normalAppearance is PdfDictionary appearanceStates &&
+            appearanceStates.Items.ContainsKey(stateName);
     }
 
     private static void EnsureButtonWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string selectedName, ref int nextObjectNumber) {
@@ -768,13 +828,13 @@ public static class PdfFormFiller {
         PdfDictionary normalAppearances = GetOrCreateButtonNormalAppearanceDictionary(objects, widget);
         if (!normalAppearances.Items.ContainsKey("Off")) {
             int offAppearanceObjectNumber = nextObjectNumber++;
-            objects[offAppearanceObjectNumber] = new PdfIndirectObject(offAppearanceObjectNumber, 0, CreateButtonAppearanceStream(width, height, selected: false));
+            objects[offAppearanceObjectNumber] = new PdfIndirectObject(offAppearanceObjectNumber, 0, CreateButtonAppearanceStream(width, height, selected: false, ReadWidgetAppearanceStyle(objects, widget)));
             normalAppearances.Items["Off"] = new PdfReference(offAppearanceObjectNumber, 0);
         }
 
         if (!string.Equals(selectedName, "Off", StringComparison.Ordinal) && !normalAppearances.Items.ContainsKey(selectedName)) {
             int selectedAppearanceObjectNumber = nextObjectNumber++;
-            objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(selectedAppearanceObjectNumber, 0, CreateButtonAppearanceStream(width, height, selected: true));
+            objects[selectedAppearanceObjectNumber] = new PdfIndirectObject(selectedAppearanceObjectNumber, 0, CreateButtonAppearanceStream(width, height, selected: true, ReadWidgetAppearanceStyle(objects, widget)));
             normalAppearances.Items[selectedName] = new PdfReference(selectedAppearanceObjectNumber, 0);
         }
     }
@@ -802,7 +862,7 @@ public static class PdfFormFiller {
     private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, HashSet<int> visited, ref int nextObjectNumber) {
         if (IsWidget(field) && TryReadRect(field, out double width, out double height)) {
             int appearanceObjectNumber = nextObjectNumber++;
-            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(value, width, height));
+            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(value, width, height, ReadWidgetAppearanceStyle(objects, field)));
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
@@ -826,15 +886,9 @@ public static class PdfFormFiller {
         }
     }
 
-    private static PdfStream CreateTextAppearanceStream(string value, double width, double height) {
+    private static PdfStream CreateTextAppearanceStream(string value, double width, double height, PdfFormFieldStyle? style = null) {
         double fontSize = Math.Max(6D, Math.Min(12D, height - 4D));
-        double baseline = Math.Max(2D, (height - fontSize) / 2D);
-        string content =
-            "q\n" +
-            "1 1 1 rg 0 0 " + FormatNumber(width) + " " + FormatNumber(height) + " re f\n" +
-            "0.75 0.75 0.75 RG 0.5 0.5 " + FormatNumber(Math.Max(0D, width - 1D)) + " " + FormatNumber(Math.Max(0D, height - 1D)) + " re S\n" +
-            "BT /Helv " + FormatNumber(fontSize) + " Tf 0 0 0 rg 2 " + FormatNumber(baseline) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(value) + " Tj ET\n" +
-            "Q\n";
+        string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, value, fontSize, style);
 
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");
@@ -844,35 +898,77 @@ public static class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static PdfStream CreateButtonAppearanceStream(double width, double height, bool selected) {
-        double boxWidth = Math.Max(0D, width - 1D);
-        double boxHeight = Math.Max(0D, height - 1D);
-        string content =
-            "q\n" +
-            "1 1 1 rg 0 0 " + FormatNumber(width) + " " + FormatNumber(height) + " re f\n" +
-            "0.75 0.75 0.75 RG 0.5 0.5 " + FormatNumber(boxWidth) + " " + FormatNumber(boxHeight) + " re S\n";
-
-        if (selected) {
-            double markLeft = Math.Max(2D, width * 0.2D);
-            double markMidX = Math.Max(markLeft + 1D, width * 0.42D);
-            double markRight = Math.Max(markMidX + 1D, width * 0.8D);
-            double markMidY = Math.Max(2D, height * 0.25D);
-            double markLeftY = Math.Min(height - 2D, height * 0.52D);
-            double markRightY = Math.Min(height - 2D, height * 0.78D);
-            content +=
-                "0 0 0 RG 1.25 w " +
-                FormatNumber(markLeft) + " " + FormatNumber(markLeftY) + " m " +
-                FormatNumber(markMidX) + " " + FormatNumber(markMidY) + " l " +
-                FormatNumber(markRight) + " " + FormatNumber(markRightY) + " l S\n";
-        }
-
-        content += "Q\n";
-
+    private static PdfStream CreateButtonAppearanceStream(double width, double height, bool selected, PdfFormFieldStyle? style = null) {
+        string content = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(width, height, selected, style);
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");
         dictionary.Items["Subtype"] = new PdfName("Form");
         dictionary.Items["BBox"] = CreateNumberArray(0D, 0D, width, height);
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
+    }
+
+    private static PdfFormFieldStyle ReadWidgetAppearanceStyle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
+        var style = new PdfFormFieldStyle();
+        if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out var mkObject) ? mkObject : null) is PdfDictionary mk) {
+            if (TryReadColor(objects, mk, "BG", out PdfColor backgroundColor)) {
+                style.BackgroundColor = backgroundColor;
+            }
+
+            if (TryReadColor(objects, mk, "BC", out PdfColor borderColor)) {
+                style.BorderColor = borderColor;
+            }
+        }
+
+        if (TryReadDefaultAppearanceTextColor(objects, widget, out PdfColor textColor)) {
+            style.TextColor = textColor;
+        }
+
+        return style;
+    }
+
+    private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out PdfColor color) {
+        color = default;
+        if (!dictionary.Items.TryGetValue(key, out var colorObject) ||
+            ResolveObject(objects, colorObject) is not PdfArray colorArray ||
+            colorArray.Items.Count < 3 ||
+            ResolveObject(objects, colorArray.Items[0]) is not PdfNumber red ||
+            ResolveObject(objects, colorArray.Items[1]) is not PdfNumber green ||
+            ResolveObject(objects, colorArray.Items[2]) is not PdfNumber blue ||
+            red.Value < 0 || red.Value > 1 ||
+            green.Value < 0 || green.Value > 1 ||
+            blue.Value < 0 || blue.Value > 1) {
+            return false;
+        }
+
+        color = new PdfColor(red.Value, green.Value, blue.Value);
+        return true;
+    }
+
+    private static bool TryReadDefaultAppearanceTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, out PdfColor color) {
+        color = default;
+        string? defaultAppearance = TryReadText(objects, widget, "DA");
+        if (string.IsNullOrWhiteSpace(defaultAppearance)) {
+            return false;
+        }
+
+        string[] parts = defaultAppearance!.Split(DefaultAppearanceSeparators, StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 3; i < parts.Length; i++) {
+            if (!string.Equals(parts[i], "rg", StringComparison.Ordinal)) {
+                continue;
+            }
+
+            if (double.TryParse(parts[i - 3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double red) &&
+                double.TryParse(parts[i - 2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double green) &&
+                double.TryParse(parts[i - 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double blue) &&
+                red >= 0 && red <= 1 &&
+                green >= 0 && green <= 1 &&
+                blue >= 0 && blue <= 1) {
+                color = new PdfColor(red, green, blue);
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static PdfDictionary CreateAppearanceResources() {
@@ -945,6 +1041,20 @@ public static class PdfFormFiller {
         return width > 0D && height > 0D;
     }
 
+    private static string GetButtonWidgetFlattenAppearanceState(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedValue) {
+        string? widgetState = TryReadName(objects, widget, "AS");
+        if (!string.IsNullOrEmpty(widgetState)) {
+            return widgetState!;
+        }
+
+        if (!string.IsNullOrEmpty(inheritedValue) &&
+            HasButtonNormalAppearanceState(objects, widget, inheritedValue!)) {
+            return inheritedValue!;
+        }
+
+        return "Off";
+    }
+
     private static bool TryGetNormalAppearanceReference(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, out PdfReference? reference) {
         reference = null;
         if (!TryGetNormalAppearanceObject(objects, widget, out PdfObject? normalAppearance) ||
@@ -956,7 +1066,7 @@ public static class PdfFormFiller {
         return true;
     }
 
-    private static bool TryGetButtonAppearanceReference(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedValue, out PdfReference? reference) {
+    private static bool TryGetButtonAppearanceReference(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string inheritedValue, out PdfReference? reference) {
         reference = null;
         if (!TryGetNormalAppearanceObject(objects, widget, out PdfObject? normalAppearance)) {
             return false;
@@ -971,9 +1081,8 @@ public static class PdfFormFiller {
             return false;
         }
 
-        string? stateName = TryReadName(objects, widget, "AS") ?? inheritedValue;
-        if (stateName is { Length: > 0 } &&
-            TryGetAppearanceStateReference(appearanceStates, stateName, out reference)) {
+        if (!string.IsNullOrEmpty(inheritedValue) &&
+            TryGetAppearanceStateReference(appearanceStates, inheritedValue, out reference)) {
             return true;
         }
 

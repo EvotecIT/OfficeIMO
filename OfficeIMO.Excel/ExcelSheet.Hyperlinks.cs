@@ -48,6 +48,49 @@ namespace OfficeIMO.Excel {
         /// </example>
 
         /// <summary>
+        /// Gets worksheet hyperlinks keyed by their A1 cell or range reference.
+        /// </summary>
+        public IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> GetHyperlinks() {
+            var ws = WorksheetRoot;
+            var hyperlinks = ws.Elements<Hyperlinks>().FirstOrDefault();
+            if (hyperlinks == null) {
+                return new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            var externalRelationships = _worksheetPart.HyperlinkRelationships
+                .Where(relationship => !string.IsNullOrWhiteSpace(relationship.Id))
+                .ToDictionary(relationship => relationship.Id!, relationship => relationship, StringComparer.OrdinalIgnoreCase);
+            var result = new Dictionary<string, ExcelHyperlinkSnapshot>(StringComparer.OrdinalIgnoreCase);
+            foreach (var hyperlink in hyperlinks.Elements<Hyperlink>()) {
+                string? reference = hyperlink.Reference?.Value;
+                if (string.IsNullOrWhiteSpace(reference)) {
+                    continue;
+                }
+
+                string? target = null;
+                bool isExternal = false;
+                string? relationshipId = hyperlink.Id?.Value;
+                if (!string.IsNullOrWhiteSpace(relationshipId) && externalRelationships.TryGetValue(relationshipId!, out var relationship)) {
+                    target = relationship.Uri?.OriginalString;
+                    isExternal = true;
+                } else if (!string.IsNullOrWhiteSpace(hyperlink.Location?.Value)) {
+                    target = hyperlink.Location!.Value!;
+                }
+
+                if (string.IsNullOrWhiteSpace(target)) {
+                    continue;
+                }
+
+                result[reference!] = new ExcelHyperlinkSnapshot {
+                    IsExternal = isExternal,
+                    Target = target!
+                };
+            }
+
+            return result;
+        }
+
+        /// <summary>
         /// Sets an external hyperlink using an A1 reference (e.g., "B5").
         /// </summary>
         /// <param name="a1">A1 cell reference without a sheet prefix.</param>

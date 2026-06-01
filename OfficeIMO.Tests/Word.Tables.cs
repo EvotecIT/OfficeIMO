@@ -34,6 +34,9 @@ namespace OfficeIMO.Tests {
                     Assert.True(row.RepeatHeaderRowAtTheTopOfEachPage == false);
                 }
 
+                wordTable.Rows[1].RepeatHeaderRowAtTheTopOfEachPage = false;
+                Assert.True(wordTable.Rows[1].RepeatHeaderRowAtTheTopOfEachPage == false);
+
                 wordTable.RepeatHeaderRowAtTheTopOfEachPage = true;
 
                 Assert.True(wordTable.RepeatHeaderRowAtTheTopOfEachPage == true);

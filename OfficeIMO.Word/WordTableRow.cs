@@ -112,10 +112,10 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets or sets header row at the top of each page
-        /// Since this is a table row property, it is not possible to set it for a single row
+        /// Gets or sets whether this table row should repeat at the top of each page.
+        /// Word repeats contiguous header rows from the start of the table.
         /// </summary>
-        internal bool RepeatHeaderRowAtTheTopOfEachPage {
+        public bool RepeatHeaderRowAtTheTopOfEachPage {
             get {
                 if (_tableRow.TableRowProperties != null) {
                     var rowHeader = _tableRow.TableRowProperties.OfType<TableHeader>().FirstOrDefault();
@@ -133,10 +133,9 @@ namespace OfficeIMO.Word {
                     if (value == false) {
                         rowHeader.Remove();
                     }
-                } else {
+                } else if (value) {
                     // Add table header
                     tableRowProperties.InsertAt(new TableHeader(), 0);
-
                 }
             }
         }

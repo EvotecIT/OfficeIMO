@@ -47,12 +47,12 @@ namespace OfficeIMO.Examples.Word.Converters {
             string outputPath = Path.Combine(folderPath, "SaveAsPdf.pdf");
             doc.SaveAsPdf(outputPath, new PdfSaveOptions {
                 Orientation = PdfPageOrientation.Portrait,
-                Margin = 2,
-                MarginUnit = QuestPDF.Infrastructure.Unit.Centimetre,
-                MarginTop = 3,
-                MarginTopUnit = QuestPDF.Infrastructure.Unit.Centimetre,
-                MarginLeft = 1,
-                MarginLeftUnit = QuestPDF.Infrastructure.Unit.Centimetre
+                PageSize = OfficeIMO.Pdf.PageSizes.A4,
+                Margins = OfficeIMO.Pdf.PageMargins.FromCentimeters(
+                    left: 1,
+                    top: 3,
+                    right: 2,
+                    bottom: 2)
             });
             
             Console.WriteLine($"✓ Created: {outputPath}");

@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Lightweight object model wrapper for a single worksheet cell.
     /// </summary>
-    public sealed class ExcelCell {
+    public sealed partial class ExcelCell {
         internal ExcelCell(ExcelSheet sheet, int row, int column) {
             Sheet = sheet ?? throw new ArgumentNullException(nameof(sheet));
             Row = row;
@@ -146,6 +146,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelCell SetBorder(BorderStyleValues style, string? hexColor = null) {
             Sheet.CellBorder(Row, Column, style, hexColor);
+            return this;
+        }
+
+        /// <summary>
+        /// Applies diagonal borders to the cell.
+        /// </summary>
+        public ExcelCell SetDiagonalBorder(BorderStyleValues style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
+            Sheet.CellDiagonalBorder(Row, Column, style, hexColor, diagonalUp, diagonalDown);
             return this;
         }
 

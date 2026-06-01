@@ -30,6 +30,7 @@ internal sealed class TableBlock : IPdfBlock {
 
         Cells = cellSnapshot.AsReadOnly();
         ValidateMergedCellGrid(Cells);
+        ValidateCellNamedDestinationNames(Cells);
         Rows = CreateTextRows(Cells);
         ColumnCount = GetColumnCount(Cells);
     }
@@ -53,6 +54,7 @@ internal sealed class TableBlock : IPdfBlock {
 
         Cells = cellSnapshot.AsReadOnly();
         ValidateMergedCellGrid(Cells);
+        ValidateCellNamedDestinationNames(Cells);
         Rows = CreateTextRows(Cells);
         ColumnCount = GetColumnCount(Cells);
     }
@@ -83,6 +85,23 @@ internal sealed class TableBlock : IPdfBlock {
                 PdfTableCell cell = row[cellIndex];
                 if (cell.RowSpan > rows.Count - rowIndex) {
                     throw new System.ArgumentException("Table cell row span cannot extend beyond the available table rows.", nameof(rows));
+                }
+            }
+        }
+    }
+
+    private static void ValidateCellNamedDestinationNames(System.Collections.Generic.IReadOnlyList<System.Collections.Generic.IReadOnlyList<PdfTableCell>> rows) {
+        var names = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+        for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            var row = rows[rowIndex];
+            for (int cellIndex = 0; cellIndex < row.Count; cellIndex++) {
+                string? name = row[cellIndex].NamedDestinationName;
+                if (string.IsNullOrWhiteSpace(name)) {
+                    continue;
+                }
+
+                if (!names.Add(name!)) {
+                    throw new System.ArgumentException("Table cell named destinations must be unique.", nameof(rows));
                 }
             }
         }

@@ -4,22 +4,22 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDoc {
     /// <summary>Adds a level-1 heading.</summary>
-    public PdfDoc H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) {
+    public PdfDoc H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
-        AddBlock(new HeadingBlock(1, text, align, color, linkUri, style, linkContents)); return this;
+        AddBlock(new HeadingBlock(1, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
     }
     /// <summary>Adds a level-2 heading.</summary>
-    public PdfDoc H2(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) {
+    public PdfDoc H2(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
-        AddBlock(new HeadingBlock(2, text, align, color, linkUri, style, linkContents)); return this;
+        AddBlock(new HeadingBlock(2, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
     }
     /// <summary>Adds a level-3 heading.</summary>
-    public PdfDoc H3(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) {
+    public PdfDoc H3(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
-        AddBlock(new HeadingBlock(3, text, align, color, linkUri, style, linkContents)); return this;
+        AddBlock(new HeadingBlock(3, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
     }
 
     /// <summary>Inserts a page break.</summary>
@@ -58,6 +58,12 @@ public sealed partial class PdfDoc {
     /// <summary>Sets the document-wide default page orientation while preserving the current page size dimensions.</summary>
     public PdfDoc Orientation(PdfPageOrientation orientation) {
         _options.PageSize = _options.PageSize.WithOrientation(orientation);
+        return this;
+    }
+
+    /// <summary>Sets or clears the document-wide default page background color.</summary>
+    public PdfDoc Background(PdfColor? color) {
+        _options.BackgroundColor = color;
         return this;
     }
 
@@ -169,8 +175,22 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Adds a bullet list whose items can contain rich inline text runs.</summary>
+    public PdfDoc RichBullets(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, PdfListStyle? style = null) {
+        Guard.NotNull(items, nameof(items));
+        AddBlock(new BulletListBlock(items, align, color, style));
+        return this;
+    }
+
     /// <summary>Adds a simple numbered list.</summary>
     public PdfDoc Numbered(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, int startNumber = 1, PdfListStyle? style = null) {
+        Guard.NotNull(items, nameof(items));
+        AddBlock(new NumberedListBlock(items, align, color, startNumber, style));
+        return this;
+    }
+
+    /// <summary>Adds a numbered list whose items can contain rich inline text runs.</summary>
+    public PdfDoc RichNumbered(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, int startNumber = 1, PdfListStyle? style = null) {
         Guard.NotNull(items, nameof(items));
         AddBlock(new NumberedListBlock(items, align, color, startNumber, style));
         return this;
@@ -254,26 +274,32 @@ public sealed partial class PdfDoc {
     }
 
     /// <summary>Adds a simple AcroForm text field at the current flow position.</summary>
-    public PdfDoc TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
-        AddBlock(new TextFieldBlock(name, width, height, value, align, fontSize, spacingBefore, spacingAfter));
+    public PdfDoc TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
+        AddBlock(new TextFieldBlock(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style));
         return this;
     }
 
     /// <summary>Adds a simple AcroForm check box at the current flow position.</summary>
-    public PdfDoc CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes") {
-        AddBlock(new CheckBoxBlock(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName));
+    public PdfDoc CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
+        AddBlock(new CheckBoxBlock(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style));
         return this;
     }
 
     /// <summary>Adds a simple AcroForm choice field at the current flow position.</summary>
-    public PdfDoc ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true) {
-        AddBlock(new ChoiceFieldBlock(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox));
+    public PdfDoc ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true, PdfFormFieldStyle? style = null) {
+        AddBlock(new ChoiceFieldBlock(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, style));
         return this;
     }
 
     /// <summary>Adds a simple AcroForm multi-select choice field at the current flow position.</summary>
-    public PdfDoc MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
-        AddBlock(new ChoiceFieldBlock(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox: false, allowsMultipleSelection: true));
+    public PdfDoc MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
+        AddBlock(new ChoiceFieldBlock(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox: false, allowsMultipleSelection: true, style));
+        return this;
+    }
+
+    /// <summary>Adds a simple AcroForm radio button group at the current flow position.</summary>
+    public PdfDoc RadioButtonGroup(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double size = 14, double gap = 6, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
+        AddBlock(new RadioButtonGroupBlock(name, options, value, size, gap, align, spacingBefore, spacingAfter, style));
         return this;
     }
 
@@ -771,6 +797,24 @@ public sealed partial class PdfDoc {
 }
 
 public sealed partial class PdfDoc {
+    /// <summary>
+    /// Checks whether image bytes can be embedded by the first-party PDF writer.
+    /// </summary>
+    public static bool TryValidateImageBytes(byte[] data, out OfficeImageInfo? imageInfo, out string? unsupportedReason) {
+        imageInfo = null;
+        unsupportedReason = null;
+        try {
+            imageInfo = ValidateImageBytes(data);
+            return true;
+        } catch (NotSupportedException ex) {
+            unsupportedReason = ex.Message;
+            return false;
+        } catch (ArgumentException ex) {
+            unsupportedReason = ex.Message;
+            return false;
+        }
+    }
+
     internal static OfficeImageInfo ValidateImageBytes(byte[] data) {
         if (OfficeImageReader.TryIdentify(data, null, out var info)) {
             if (info.Format == OfficeImageFormat.Jpeg) {

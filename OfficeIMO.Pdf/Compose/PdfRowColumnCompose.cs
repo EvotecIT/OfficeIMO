@@ -15,17 +15,19 @@ public class PdfRowColumnCompose {
     /// <summary>Adds invisible vertical space inside the column flow.</summary>
     public PdfRowColumnCompose Spacer(double height) { _col.AddBlock(new SpacerBlock(height)); return this; }
     /// <summary>Adds an H1 heading in the column.</summary>
-    public PdfRowColumnCompose H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(new HeadingBlock(1, text, PdfAlign.Left, null, linkUri, style, linkContents)); return this; }
+    public PdfRowColumnCompose H1(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _col.AddBlock(new HeadingBlock(1, text, PdfAlign.Left, null, linkUri, style, linkContents, linkDestinationName)); return this; }
     /// <summary>Adds an H1 heading in the column with explicit alignment and color.</summary>
-    public PdfRowColumnCompose H1(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _col.AddBlock(new HeadingBlock(1, text, align, color, linkUri, style, linkContents)); return this; }
+    public PdfRowColumnCompose H1(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _col.AddBlock(new HeadingBlock(1, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this; }
     /// <summary>Adds an H2 heading in the column.</summary>
-    public PdfRowColumnCompose H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(new HeadingBlock(2, text, PdfAlign.Left, null, linkUri, style, linkContents)); return this; }
+    public PdfRowColumnCompose H2(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _col.AddBlock(new HeadingBlock(2, text, PdfAlign.Left, null, linkUri, style, linkContents, linkDestinationName)); return this; }
     /// <summary>Adds an H2 heading in the column with explicit alignment and color.</summary>
-    public PdfRowColumnCompose H2(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _col.AddBlock(new HeadingBlock(2, text, align, color, linkUri, style, linkContents)); return this; }
+    public PdfRowColumnCompose H2(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _col.AddBlock(new HeadingBlock(2, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this; }
     /// <summary>Adds an H3 heading in the column.</summary>
-    public PdfRowColumnCompose H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(new HeadingBlock(3, text, PdfAlign.Left, null, linkUri, style, linkContents)); return this; }
+    public PdfRowColumnCompose H3(string text, PdfHeadingStyle? style = null, string? linkUri = null, string? linkContents = null, string? linkDestinationName = null) { _col.AddBlock(new HeadingBlock(3, text, PdfAlign.Left, null, linkUri, style, linkContents, linkDestinationName)); return this; }
     /// <summary>Adds an H3 heading in the column with explicit alignment and color.</summary>
-    public PdfRowColumnCompose H3(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null) { _col.AddBlock(new HeadingBlock(3, text, align, color, linkUri, style, linkContents)); return this; }
+    public PdfRowColumnCompose H3(string text, PdfAlign align, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) { _col.AddBlock(new HeadingBlock(3, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this; }
+    /// <summary>Adds a page break in the column flow.</summary>
+    public PdfRowColumnCompose PageBreak() { _col.AddBlock(new PageBreakBlock()); return this; }
     /// <summary>Adds a paragraph built from styled runs to the column.</summary>
     /// <param name="build">Paragraph content builder.</param>
     /// <param name="align">Paragraph alignment.</param>
@@ -43,8 +45,18 @@ public class PdfRowColumnCompose {
         _col.AddBlock(new BulletListBlock(items, align, color, style));
         return this;
     }
+    /// <summary>Adds a bullet list whose items can contain rich inline text runs in the column.</summary>
+    public PdfRowColumnCompose RichBullets(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, PdfListStyle? style = null) {
+        _col.AddBlock(new BulletListBlock(items, align, color, style));
+        return this;
+    }
     /// <summary>Adds a simple numbered list in the column.</summary>
     public PdfRowColumnCompose Numbered(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, int startNumber = 1, PdfListStyle? style = null) {
+        _col.AddBlock(new NumberedListBlock(items, align, color, startNumber, style));
+        return this;
+    }
+    /// <summary>Adds a numbered list whose items can contain rich inline text runs in the column.</summary>
+    public PdfRowColumnCompose RichNumbered(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, int startNumber = 1, PdfListStyle? style = null) {
         _col.AddBlock(new NumberedListBlock(items, align, color, startNumber, style));
         return this;
     }
@@ -79,23 +91,28 @@ public class PdfRowColumnCompose {
     /// <summary>Adds a named bookmark at the current column flow position.</summary>
     public PdfRowColumnCompose Bookmark(string name) { _col.AddBlock(new BookmarkBlock(name)); return this; }
     /// <summary>Adds a simple AcroForm text field in the column.</summary>
-    public PdfRowColumnCompose TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
-        _col.AddBlock(new TextFieldBlock(name, width, height, value, align, fontSize, spacingBefore, spacingAfter));
+    public PdfRowColumnCompose TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
+        _col.AddBlock(new TextFieldBlock(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style));
         return this;
     }
     /// <summary>Adds a simple AcroForm check box in the column.</summary>
-    public PdfRowColumnCompose CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes") {
-        _col.AddBlock(new CheckBoxBlock(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName));
+    public PdfRowColumnCompose CheckBox(string name, bool isChecked = false, double size = 14, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, string checkedValueName = "Yes", PdfFormFieldStyle? style = null) {
+        _col.AddBlock(new CheckBoxBlock(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style));
         return this;
     }
     /// <summary>Adds a simple AcroForm choice field in the column.</summary>
-    public PdfRowColumnCompose ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true) {
-        _col.AddBlock(new ChoiceFieldBlock(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox));
+    public PdfRowColumnCompose ChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double width = 180, double height = 22, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, bool isComboBox = true, PdfFormFieldStyle? style = null) {
+        _col.AddBlock(new ChoiceFieldBlock(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, style));
         return this;
     }
     /// <summary>Adds a simple AcroForm multi-select choice field in the column.</summary>
-    public PdfRowColumnCompose MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6) {
-        _col.AddBlock(new ChoiceFieldBlock(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox: false, allowsMultipleSelection: true));
+    public PdfRowColumnCompose MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
+        _col.AddBlock(new ChoiceFieldBlock(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox: false, allowsMultipleSelection: true, style));
+        return this;
+    }
+    /// <summary>Adds a simple AcroForm radio button group in the column.</summary>
+    public PdfRowColumnCompose RadioButtonGroup(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double size = 14, double gap = 6, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) {
+        _col.AddBlock(new RadioButtonGroupBlock(name, options, value, size, gap, align, spacingBefore, spacingAfter, style));
         return this;
     }
     /// <summary>Adds a shared OfficeIMO.Drawing shape in the column.</summary>

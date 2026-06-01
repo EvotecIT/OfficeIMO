@@ -22,16 +22,114 @@ namespace OfficeIMO.Excel {
                 foreach (var rule in conditional.Elements<ConditionalFormattingRule>()) {
                     list.Add(new ExcelConditionalFormattingInfo {
                         Range = range,
-                        Type = rule.Type?.Value.ToString() ?? string.Empty,
-                        Operator = rule.Operator?.Value.ToString(),
+                        Type = ReadConditionalFormatType(rule),
+                        Operator = ReadConditionalFormatOperator(rule),
                         Priority = (int)(rule.Priority?.Value ?? 0),
                         StopIfTrue = rule.StopIfTrue?.Value ?? false,
-                        Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray()
+                        Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
+                        ColorScaleColors = ReadColorScaleColors(rule),
+                        DataBarColor = ReadDataBarColor(rule),
+                        IconSet = ReadIconSetName(rule),
+                        IconSetShowValue = ReadIconSetShowValue(rule),
+                        IconSetReverse = ReadIconSetReverse(rule)
                     });
                 }
             }
 
             return list;
+        }
+
+        private static string ReadConditionalFormatType(ConditionalFormattingRule rule) {
+            if (rule.Type == null) {
+                return string.Empty;
+            }
+
+            ConditionalFormatValues value = rule.Type.Value;
+            if (value == ConditionalFormatValues.CellIs) return nameof(ConditionalFormatValues.CellIs);
+            if (value == ConditionalFormatValues.Expression) return nameof(ConditionalFormatValues.Expression);
+            if (value == ConditionalFormatValues.ColorScale) return nameof(ConditionalFormatValues.ColorScale);
+            if (value == ConditionalFormatValues.DataBar) return nameof(ConditionalFormatValues.DataBar);
+            if (value == ConditionalFormatValues.IconSet) return nameof(ConditionalFormatValues.IconSet);
+            if (value == ConditionalFormatValues.Top10) return nameof(ConditionalFormatValues.Top10);
+            if (value == ConditionalFormatValues.UniqueValues) return nameof(ConditionalFormatValues.UniqueValues);
+            if (value == ConditionalFormatValues.DuplicateValues) return nameof(ConditionalFormatValues.DuplicateValues);
+            if (value == ConditionalFormatValues.ContainsText) return nameof(ConditionalFormatValues.ContainsText);
+            if (value == ConditionalFormatValues.NotContainsText) return nameof(ConditionalFormatValues.NotContainsText);
+            if (value == ConditionalFormatValues.BeginsWith) return nameof(ConditionalFormatValues.BeginsWith);
+            if (value == ConditionalFormatValues.EndsWith) return nameof(ConditionalFormatValues.EndsWith);
+            if (value == ConditionalFormatValues.ContainsBlanks) return nameof(ConditionalFormatValues.ContainsBlanks);
+            if (value == ConditionalFormatValues.NotContainsBlanks) return nameof(ConditionalFormatValues.NotContainsBlanks);
+            if (value == ConditionalFormatValues.ContainsErrors) return nameof(ConditionalFormatValues.ContainsErrors);
+            if (value == ConditionalFormatValues.NotContainsErrors) return nameof(ConditionalFormatValues.NotContainsErrors);
+            if (value == ConditionalFormatValues.TimePeriod) return nameof(ConditionalFormatValues.TimePeriod);
+            if (value == ConditionalFormatValues.AboveAverage) return nameof(ConditionalFormatValues.AboveAverage);
+
+            return rule.Type.InnerText ?? string.Empty;
+        }
+
+        private static string? ReadConditionalFormatOperator(ConditionalFormattingRule rule) {
+            if (rule.Operator == null) {
+                return null;
+            }
+
+            ConditionalFormattingOperatorValues value = rule.Operator.Value;
+            if (value == ConditionalFormattingOperatorValues.Between) return nameof(ConditionalFormattingOperatorValues.Between);
+            if (value == ConditionalFormattingOperatorValues.NotBetween) return nameof(ConditionalFormattingOperatorValues.NotBetween);
+            if (value == ConditionalFormattingOperatorValues.Equal) return nameof(ConditionalFormattingOperatorValues.Equal);
+            if (value == ConditionalFormattingOperatorValues.NotEqual) return nameof(ConditionalFormattingOperatorValues.NotEqual);
+            if (value == ConditionalFormattingOperatorValues.GreaterThan) return nameof(ConditionalFormattingOperatorValues.GreaterThan);
+            if (value == ConditionalFormattingOperatorValues.LessThan) return nameof(ConditionalFormattingOperatorValues.LessThan);
+            if (value == ConditionalFormattingOperatorValues.GreaterThanOrEqual) return nameof(ConditionalFormattingOperatorValues.GreaterThanOrEqual);
+            if (value == ConditionalFormattingOperatorValues.LessThanOrEqual) return nameof(ConditionalFormattingOperatorValues.LessThanOrEqual);
+            if (value == ConditionalFormattingOperatorValues.ContainsText) return nameof(ConditionalFormattingOperatorValues.ContainsText);
+            if (value == ConditionalFormattingOperatorValues.NotContains) return nameof(ConditionalFormattingOperatorValues.NotContains);
+            if (value == ConditionalFormattingOperatorValues.BeginsWith) return nameof(ConditionalFormattingOperatorValues.BeginsWith);
+            if (value == ConditionalFormattingOperatorValues.EndsWith) return nameof(ConditionalFormattingOperatorValues.EndsWith);
+
+            return rule.Operator.InnerText;
+        }
+
+        private static IReadOnlyList<string> ReadColorScaleColors(ConditionalFormattingRule rule) {
+            ColorScale? colorScale = rule.GetFirstChild<ColorScale>();
+            if (colorScale == null) {
+                return Array.Empty<string>();
+            }
+
+            return colorScale.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>()
+                .Select(color => color.Rgb?.Value)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value!)
+                .ToArray();
+        }
+
+        private static string? ReadDataBarColor(ConditionalFormattingRule rule) {
+            DataBar? dataBar = rule.GetFirstChild<DataBar>();
+            if (dataBar == null) {
+                return null;
+            }
+
+            return dataBar.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>()
+                .Select(color => color.Rgb?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+        }
+
+        private static string? ReadIconSetName(ConditionalFormattingRule rule) {
+            IconSet? iconSet = rule.GetFirstChild<IconSet>();
+            if (iconSet?.IconSetValue?.Value == IconSetValues.ThreeTrafficLights1) {
+                return nameof(IconSetValues.ThreeTrafficLights1);
+            }
+
+            return iconSet?.IconSetValue?.InnerText;
+        }
+
+        private static bool ReadIconSetShowValue(ConditionalFormattingRule rule) {
+            IconSet? iconSet = rule.GetFirstChild<IconSet>();
+            return iconSet?.ShowValue?.Value ?? true;
+        }
+
+        private static bool ReadIconSetReverse(ConditionalFormattingRule rule) {
+            IconSet? iconSet = rule.GetFirstChild<IconSet>();
+            return iconSet?.Reverse?.Value ?? false;
         }
 
         /// <summary>

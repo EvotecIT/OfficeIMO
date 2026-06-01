@@ -68,6 +68,46 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Gets the 1-based row index where the image is anchored, when available.
+        /// </summary>
+        public int RowIndex => GetMarkerRow() + 1;
+
+        /// <summary>
+        /// Gets the 1-based column index where the image is anchored, when available.
+        /// </summary>
+        public int ColumnIndex => GetMarkerColumn() + 1;
+
+        /// <summary>
+        /// Gets the image width in pixels from the drawing extent.
+        /// </summary>
+        public int WidthPixels => EmuToPx(GetExtentCx());
+
+        /// <summary>
+        /// Gets the image height in pixels from the drawing extent.
+        /// </summary>
+        public int HeightPixels => EmuToPx(GetExtentCy());
+
+        /// <summary>
+        /// Gets the image content type, such as image/png or image/jpeg.
+        /// </summary>
+        public string ContentType => ImagePart?.ContentType ?? string.Empty;
+
+        /// <summary>
+        /// Returns a copy of the image bytes from the worksheet drawing relationship.
+        /// </summary>
+        public byte[] GetBytes() {
+            ImagePart? imagePart = ImagePart;
+            if (imagePart == null) {
+                return Array.Empty<byte>();
+            }
+
+            using Stream source = imagePart.GetStream();
+            using var destination = new MemoryStream();
+            source.CopyTo(destination);
+            return destination.ToArray();
+        }
+
+        /// <summary>
         /// Sets image title and description metadata.
         /// </summary>
         public ExcelImage SetAltText(string description, string? title = null) {
@@ -145,10 +185,63 @@ namespace OfficeIMO.Excel {
         private Xdr.NonVisualDrawingProperties? DrawingProperties
             => _picture.NonVisualPictureProperties?.NonVisualDrawingProperties;
 
+        private ImagePart? ImagePart {
+            get {
+                string? relationshipId = _picture.BlipFill?.Blip?.Embed?.Value;
+                if (string.IsNullOrWhiteSpace(relationshipId)) {
+                    return null;
+                }
+
+                try {
+                    return _drawingsPart.GetPartById(relationshipId!) as ImagePart;
+                } catch (ArgumentOutOfRangeException) {
+                    return null;
+                }
+            }
+        }
+
         private void Save() {
             _drawingsPart.WorksheetDrawing?.Save();
         }
 
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);
+
+        private static int EmuToPx(long emu) {
+            if (emu <= 0) {
+                return 0;
+            }
+
+            return (int)Math.Max(1, Math.Round(emu / 9525.0));
+        }
+
+        private int GetMarkerRow() {
+            string? row = _anchor.GetFirstChild<Xdr.FromMarker>()?.RowId?.Text;
+            return int.TryParse(row, out int value) && value >= 0 ? value : 0;
+        }
+
+        private int GetMarkerColumn() {
+            string? column = _anchor.GetFirstChild<Xdr.FromMarker>()?.ColumnId?.Text;
+            return int.TryParse(column, out int value) && value >= 0 ? value : 0;
+        }
+
+        private long GetExtentCx() {
+            long? anchorExtent = _anchor.GetFirstChild<Xdr.Extent>()?.Cx?.Value;
+            if (anchorExtent.HasValue && anchorExtent.Value > 0) {
+                return anchorExtent.Value;
+            }
+
+            long? shapeExtent = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>()?.GetFirstChild<A.Extents>()?.Cx?.Value;
+            return shapeExtent.GetValueOrDefault();
+        }
+
+        private long GetExtentCy() {
+            long? anchorExtent = _anchor.GetFirstChild<Xdr.Extent>()?.Cy?.Value;
+            if (anchorExtent.HasValue && anchorExtent.Value > 0) {
+                return anchorExtent.Value;
+            }
+
+            long? shapeExtent = _picture.ShapeProperties?.GetFirstChild<A.Transform2D>()?.GetFirstChild<A.Extents>()?.Cy?.Value;
+            return shapeExtent.GetValueOrDefault();
+        }
     }
 }

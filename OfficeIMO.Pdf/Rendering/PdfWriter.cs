@@ -71,14 +71,20 @@ internal static partial class PdfWriter {
                 var biFont = ChooseBoldItalic(normalFont);
                 EnsurePageFontResource(biFont, "F4");
             }
+            foreach (PdfStandardFont usedFont in page.UsedFonts) {
+                EnsurePageFontResource(usedFont, GetStandardFontResourceName(usedFont, normalFont));
+            }
             string? headerFontAlias = null;
-            if (pageOpts.HasHeaderContentForPage(headerFooterVariantPageNumber)) {
+            if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
                 headerFontAlias = EnsurePageFontResource(pageOpts.HeaderFont, "F5");
             }
             string? footerFontAlias = null;
-            if (pageOpts.HasFooterContentForPage(headerFooterVariantPageNumber)) {
+            if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
                 footerFontAlias = EnsurePageFontResource(pageOpts.FooterFont, "F6");
             }
+
+            string pageBackgroundContent = BuildPageBackground(pageOpts);
+            string headerFooterShapeContent = BuildHeaderFooterShapes(page, pageOpts, headerFooterVariantPageNumber);
 
             var fontResources = new List<(string Name, int Id)>();
             foreach (var kvp in pageFontResources.OrderBy(kvp => kvp.Value, StringComparer.Ordinal)) {
@@ -108,11 +114,13 @@ internal static partial class PdfWriter {
             }
 
             // Content stream (append image draw commands at end)
-            string contentStr = page.Content;
-            if (pageOpts.HasHeaderContentForPage(headerFooterVariantPageNumber)) {
-                string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, pageOpts.HeaderFont, headerFontAlias!);
-                contentStr = headerContent + contentStr;
+            AddHeaderFooterImages(page, pageOpts, headerFooterVariantPageNumber);
+            string contentStr = pageBackgroundContent + headerFooterShapeContent;
+            if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
+                string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!);
+                contentStr += headerContent;
             }
+            contentStr += page.Content;
             var xobjects = new List<(string Name, int Id)>();
             if (page.Images.Count > 0) {
                 for (int i = 0; i < page.Images.Count; i++) {
@@ -156,8 +164,8 @@ internal static partial class PdfWriter {
                 }
                 contentStr += sbImgs.ToString();
             }
-            if (pageOpts.HasFooterContentForPage(headerFooterVariantPageNumber)) {
-                string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, pageOpts.FooterFont, footerFontAlias!);
+            if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
+                string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!);
                 contentStr += footer;
             }
             int contentId = AddStreamObject(objects, Encoding.ASCII.GetBytes(contentStr));
@@ -184,31 +192,68 @@ internal static partial class PdfWriter {
                     string formField;
                     double appearanceWidth = field.X2 - field.X1;
                     double appearanceHeight = field.Y2 - field.Y1;
+                    if (field.Kind == FormFieldAnnotationKind.RadioButtonGroup) {
+                        int parentFieldId = ReserveObject(objects);
+                        string offAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(field.ButtonSize, field.ButtonSize, selected: false, field.Style);
+                        byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
+                        string offAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(field.ButtonSize, field.ButtonSize, offAppearanceBytes.Length);
+                        int offAppearanceId = AddStreamObject(objects, offAppearanceDictionary, offAppearanceBytes);
+
+                        string selectedAppearance = PdfAcroFormDictionaryBuilder.BuildRadioButtonAppearanceContent(field.ButtonSize, field.ButtonSize, selected: true, field.Style);
+                        byte[] selectedAppearanceBytes = PdfEncoding.Latin1GetBytes(selectedAppearance);
+                        string selectedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(field.ButtonSize, field.ButtonSize, selectedAppearanceBytes.Length);
+                        int selectedAppearanceId = AddStreamObject(objects, selectedAppearanceDictionary, selectedAppearanceBytes);
+
+                        var widgetObjectIds = new List<int>(field.Options.Count);
+                        for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
+                            double widgetTop = field.Y2 - optionIndex * (field.ButtonSize + field.ButtonGap);
+                            double widgetBottom = widgetTop - field.ButtonSize;
+                            string widget = PdfAnnotationDictionaryBuilder.BuildRadioButtonWidgetAnnotation(
+                                field.X1,
+                                widgetBottom,
+                                field.X1 + field.ButtonSize,
+                                widgetTop,
+                                parentFieldId,
+                                field.Options[optionIndex],
+                                field.Value,
+                                offAppearanceId,
+                                selectedAppearanceId,
+                                field.Style);
+                            int widgetObjectId = AddObject(objects, widget);
+                            widgetObjectIds.Add(widgetObjectId);
+                            pageAnnotIds.Add(widgetObjectId);
+                        }
+
+                        ReplaceObject(objects, parentFieldId, PdfAnnotationDictionaryBuilder.BuildRadioButtonFieldDictionary(field.Name, field.Options, field.Value, widgetObjectIds));
+                        formFieldIds.Add(parentFieldId);
+                        continue;
+                    }
+
                     if (field.Kind == FormFieldAnnotationKind.CheckBox) {
-                        string offAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: false);
+                        string offAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: false, field.Style);
                         byte[] offAppearanceBytes = PdfEncoding.Latin1GetBytes(offAppearance);
                         string offAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, offAppearanceBytes.Length);
                         int offAppearanceId = AddStreamObject(objects, offAppearanceDictionary, offAppearanceBytes);
 
-                        string checkedAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: true);
+                        string checkedAppearance = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(appearanceWidth, appearanceHeight, selected: true, field.Style);
                         byte[] checkedAppearanceBytes = PdfEncoding.Latin1GetBytes(checkedAppearance);
                         string checkedAppearanceDictionary = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceStreamDictionary(appearanceWidth, appearanceHeight, checkedAppearanceBytes.Length);
                         int checkedAppearanceId = AddStreamObject(objects, checkedAppearanceDictionary, checkedAppearanceBytes);
 
-                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId);
+                        formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, field.Style);
                     } else if (field.Kind == FormFieldAnnotationKind.Choice) {
                         string appearanceValue = field.Values.Count > 1 ? string.Join(", ", field.Values) : field.Value;
-                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, appearanceValue, field.FontSize);
+                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, appearanceValue, field.FontSize, field.Style);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, helveticaFontId, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
-                        formField = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values.Count == 0 ? new[] { field.Value } : field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection);
+                        formField = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values.Count == 0 ? new[] { field.Value } : field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style);
                     } else {
-                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize);
+                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize, field.Style);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, helveticaFontId, appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
-                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId);
+                        formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId, field.Style);
                     }
 
                     int formFieldId = AddObject(objects, formField);
@@ -248,6 +293,21 @@ internal static partial class PdfWriter {
         infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords));
 
         return PdfFileAssembler.Assemble(objects, catalogId, infoId);
+    }
+
+    private static string BuildPageBackground(PdfOptions options) {
+        if (!options.BackgroundColor.HasValue) {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        new ContentStreamBuilder(sb)
+            .SaveState()
+            .FillColor(options.BackgroundColor.Value)
+            .Rectangle(0, 0, options.PageWidth, options.PageHeight)
+            .FillPath()
+            .RestoreState();
+        return sb.ToString();
     }
 
     private static List<PageNumberInfo> BuildPageNumberInfos(IReadOnlyList<LayoutResult.Page> pages) {

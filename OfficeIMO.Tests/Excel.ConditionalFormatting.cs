@@ -33,6 +33,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelConditionalFormattingInfo info = Assert.Single(document.Sheets[0].GetConditionalFormattingRules("A1:A3"));
+                Assert.Equal("CellIs", info.Type);
+                Assert.Equal(nameof(ConditionalFormattingOperatorValues.GreaterThan), info.Operator);
+                Assert.Equal(new[] { "10" }, info.Formulas);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -65,6 +69,14 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var sheet = document.Sheets[0];
+                var rules = sheet.GetConditionalFormattingRules("A1:A3");
+                ExcelConditionalFormattingInfo colorScale = Assert.Single(rules, info => info.Type == "ColorScale");
+                ExcelConditionalFormattingInfo dataBar = Assert.Single(rules, info => info.Type == "DataBar");
+                ExcelConditionalFormattingInfo top = Assert.Single(rules, info => info.Type == "Top10");
+                Assert.Equal(new[] { "FFFF0000", "FF00FF00" }, colorScale.ColorScaleColors);
+                Assert.Equal("FF0000FF", dataBar.DataBarColor);
+                Assert.True(top.Priority > 0);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -126,6 +138,42 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void Test_AddConditionalIconSet() {
+            string filePath = Path.Combine(_directoryWithFiles, "ConditionalIconSet.xlsx");
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, 1d);
+                sheet.CellValue(2, 1, 2d);
+                sheet.CellValue(3, 1, 3d);
+                sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeTrafficLights1, showValue: false, reverseIconOrder: true);
+                document.Save();
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                WorksheetPart wsPart = workbookPart.WorksheetParts.First();
+                ConditionalFormatting? cf = wsPart.Worksheet.Elements<ConditionalFormatting>().FirstOrDefault();
+                Assert.NotNull(cf);
+                ConditionalFormattingRule rule = cf!.Elements<ConditionalFormattingRule>().First();
+                Assert.Equal(ConditionalFormatValues.IconSet, rule.Type!.Value);
+                IconSet? iconSet = rule.GetFirstChild<IconSet>();
+                Assert.NotNull(iconSet);
+                Assert.Equal(IconSetValues.ThreeTrafficLights1, iconSet!.IconSetValue!.Value);
+                Assert.False(iconSet.ShowValue!.Value);
+                Assert.True(iconSet.Reverse!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelConditionalFormattingInfo info = Assert.Single(document.Sheets[0].GetConditionalFormattingRules("A1:A3"));
+                Assert.Equal("IconSet", info.Type);
+                Assert.Equal("ThreeTrafficLights1", info.IconSet);
+                Assert.False(info.IconSetShowValue);
+                Assert.True(info.IconSetReverse);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

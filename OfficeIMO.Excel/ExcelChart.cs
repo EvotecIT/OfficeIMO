@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -42,6 +43,70 @@ namespace OfficeIMO.Excel {
         /// Gets the chart data range when it is known.
         /// </summary>
         public ExcelChartDataRange? DataRange => _dataRange;
+
+        /// <summary>
+        /// Gets the detected chart type.
+        /// </summary>
+        public ExcelChartType ChartType {
+            get {
+                C.PlotArea? plotArea = GetChart().GetFirstChild<C.PlotArea>();
+                return plotArea == null ? ExcelChartType.ColumnClustered : ExcelChartUtils.InferChartType(plotArea);
+            }
+        }
+
+        /// <summary>
+        /// Gets the chart title text when present.
+        /// </summary>
+        public string? Title => GetChartTitleText(GetChart());
+
+        /// <summary>
+        /// Tries to read the chart data from the chart's source range.
+        /// </summary>
+        public bool TryGetData(out ExcelChartData data) {
+            try {
+                ChartPart chartPart = GetChartPart();
+                ExcelChartDataRange? range = _dataRange ?? ExcelChartUtils.TryExtractDataRange(chartPart);
+                if (range == null) {
+                    data = null!;
+                    return false;
+                }
+
+                ExcelSheet sheet = _document[range.SheetName];
+                ExcelChartData? chartData = ExcelChartUtils.TryReadChartData(sheet, range);
+                if (chartData == null) {
+                    data = null!;
+                    return false;
+                }
+
+                _dataRange = range;
+                data = chartData;
+                return true;
+            } catch {
+                data = null!;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tries to create a dependency-free snapshot for rendering/export consumers.
+        /// </summary>
+        public bool TryGetSnapshot(out ExcelChartSnapshot snapshot) {
+            if (!TryGetData(out ExcelChartData data)) {
+                snapshot = null!;
+                return false;
+            }
+
+            snapshot = new ExcelChartSnapshot(
+                Name,
+                Title,
+                ChartType,
+                data,
+                GetAnchorRow(),
+                GetAnchorColumn(),
+                GetAnchorWidthPixels(),
+                GetAnchorHeightPixels());
+            return true;
+        }
 
         /// <summary>
         /// Gets whether the chart declares a pivot table source.
@@ -3607,6 +3672,93 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("Chart element not found in chart part.");
             }
             return chart;
+        }
+
+        private static string? GetChartTitleText(C.Chart chart) {
+            C.Title? title = chart.GetFirstChild<C.Title>();
+            if (title == null) {
+                return null;
+            }
+
+            C.ChartText? chartText = title.GetFirstChild<C.ChartText>();
+            if (chartText == null) {
+                return null;
+            }
+
+            string text = string.Concat(chartText.Descendants<A.Text>().Select(item => item.Text));
+            return string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+        }
+
+        private int GetAnchorRow() {
+            Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
+                ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
+            return ParseOneBasedMarker(marker?.RowId?.Text);
+        }
+
+        private int GetAnchorColumn() {
+            Xdr.FromMarker? marker = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker
+                ?? _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker;
+            return ParseOneBasedMarker(marker?.ColumnId?.Text);
+        }
+
+        private int GetAnchorWidthPixels() {
+            Xdr.TwoCellAnchor? twoCellAnchor = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
+            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, horizontal: true, out int widthPixels)) {
+                return widthPixels;
+            }
+
+            long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cx?.Value;
+            return EmuToPixels(emu, 480);
+        }
+
+        private int GetAnchorHeightPixels() {
+            Xdr.TwoCellAnchor? twoCellAnchor = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
+            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, horizontal: false, out int heightPixels)) {
+                return heightPixels;
+            }
+
+            long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cy?.Value;
+            return EmuToPixels(emu, 320);
+        }
+
+        private static bool TryGetTwoCellAnchorSizePixels(Xdr.TwoCellAnchor? anchor, bool horizontal, out int pixels) {
+            pixels = 0;
+            if (anchor?.FromMarker == null || anchor.ToMarker == null) {
+                return false;
+            }
+
+            int from = horizontal ? ParseZeroBasedMarker(anchor.FromMarker.ColumnId?.Text) : ParseZeroBasedMarker(anchor.FromMarker.RowId?.Text);
+            int to = horizontal ? ParseZeroBasedMarker(anchor.ToMarker.ColumnId?.Text) : ParseZeroBasedMarker(anchor.ToMarker.RowId?.Text);
+            long fromOffset = ParseEmuOffset(horizontal ? anchor.FromMarker.ColumnOffset?.Text : anchor.FromMarker.RowOffset?.Text);
+            long toOffset = ParseEmuOffset(horizontal ? anchor.ToMarker.ColumnOffset?.Text : anchor.ToMarker.RowOffset?.Text);
+            int basePixels = Math.Max(0, to - from) * (horizontal ? 64 : 20);
+            int offsetPixels = EmuOffsetToPixels(toOffset - fromOffset);
+            pixels = Math.Max(1, basePixels + offsetPixels);
+            return pixels > 1;
+        }
+
+        private static int ParseOneBasedMarker(string? value) {
+            return int.TryParse(value, out int zeroBased) && zeroBased >= 0 ? zeroBased + 1 : 1;
+        }
+
+        private static int ParseZeroBasedMarker(string? value) {
+            return int.TryParse(value, out int zeroBased) && zeroBased >= 0 ? zeroBased : 0;
+        }
+
+        private static long ParseEmuOffset(string? value) {
+            return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long emu) ? emu : 0L;
+        }
+
+        private static int EmuOffsetToPixels(long emu) {
+            return (int)Math.Round(emu / 9525D);
+        }
+
+        private static int EmuToPixels(long? emu, int fallback) {
+            if (!emu.HasValue || emu.Value <= 0) {
+                return fallback;
+            }
+
+            return Math.Max(1, (int)Math.Round(emu.Value / 9525D));
         }
 
         private ChartPart GetChartPart() {

@@ -108,6 +108,105 @@ public class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void ToMarkdown_RendersLogicalHeadingsParagraphsListsTablesAndImages() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .H1("Logical Heading")
+            .Paragraph(p => p.Text("Logical readback marker."))
+            .Bullets(new[] { "Detected logical bullet" })
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "A-100", "Alpha", "2" },
+                new[] { "B-200", "Beta", "14" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .Image(CreateMinimalRgbPng(), 18, 18)
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+
+        string markdown = logical.ToMarkdown();
+        string normalizedMarkdown = Normalize(markdown);
+
+        Assert.Contains("# Logical Heading", markdown, StringComparison.Ordinal);
+        Assert.Contains("Logicalreadbackmarker.", normalizedMarkdown, StringComparison.Ordinal);
+        Assert.Contains("-Detectedlogicalbullet", normalizedMarkdown, StringComparison.Ordinal);
+        Assert.Contains("| Code | Name | Qty |", markdown, StringComparison.Ordinal);
+        Assert.Contains("| --- | --- | --- |", markdown, StringComparison.Ordinal);
+        Assert.Contains("| A-100 | Alpha | 2 |", markdown, StringComparison.Ordinal);
+        Assert.Contains("[Image: page 1", markdown, StringComparison.Ordinal);
+        AssertContainsInOrder(normalizedMarkdown,
+            "#LogicalHeading",
+            "Logicalreadbackmarker.",
+            "-Detectedlogicalbullet",
+            "|Code|Name|Qty|",
+            "[Image:page1");
+
+        string withoutImages = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
+            IncludeImagePlaceholders = false
+        });
+        Assert.DoesNotContain("[Image:", withoutImages, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToMarkdown_EscapesMarkdownControlSyntaxFromPdfText() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 260,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("# Literal heading marker"))
+            .Paragraph(p => p.Text("[not a link](https://example.test)"))
+            .ToBytes();
+
+        string markdown = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }).ToMarkdown();
+
+        string normalized = Normalize(markdown);
+        Assert.Contains("\\#Literalheadingmarker", normalized, StringComparison.Ordinal);
+        Assert.Contains("\\[notalink\\](https://example.test)", normalized, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToMarkdown_DoesNotRenderLeaderRowsTwiceWhenTableAlreadyContainsThem() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 260,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Chapter One ........ 3"))
+            .ToBytes();
+
+        string markdown = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }).ToMarkdown();
+
+        Assert.Equal(1, CountOccurrences(markdown, "Chapter One"));
+    }
+
+    [Fact]
     public void LoadPageRanges_BuildsLogicalModelForSelectedSourcePagesInCallerOrder() {
         byte[] pdf = BuildThreePageLogicalPdf();
 
@@ -639,6 +738,68 @@ public class PdfLogicalDocumentTests {
         Assert.Contains(logical.Elements, element => element.Kind == PdfLogicalElementKind.LinkAnnotation);
     }
 
+    [Fact]
+    public void Load_ExposesHeadingBookmarkLinksAsLogicalElements() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 240,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .H1("Jump to details", linkDestinationName: "Details", linkContents: "Heading jump metadata")
+            .Spacer(18)
+            .Bookmark("Details")
+            .H2("Details")
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+
+        Assert.Contains(logical.Headings, heading => heading.Text == "Jump to details");
+        Assert.Contains(logical.NamedDestinations, destination => destination.Name == "Details");
+        PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName("Details"));
+        Assert.False(link.IsUriLink);
+        Assert.True(link.IsNamedDestinationLink);
+        Assert.Null(link.Uri);
+        Assert.Equal("Details", link.DestinationName);
+        Assert.Equal("Heading jump metadata", link.Contents);
+        Assert.True(link.Width > 0);
+        Assert.True(link.Height > 0);
+    }
+
+    [Fact]
+    public void Load_ExposesTableCellNamedDestinationLinksAsLogicalElements() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 360,
+                PageHeight = 240,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Table(new[] {
+                new[] {
+                    PdfTableCell.TextCell("Jump to target", linkDestinationName: "TargetCell", linkContents: "Table cell jump"),
+                    PdfTableCell.TextCell("Target cell", namedDestinationName: "TargetCell")
+                }
+            })
+            .ToBytes();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+
+        PdfNamedDestination destination = Assert.Single(logical.NamedDestinations);
+        Assert.Equal("TargetCell", destination.Name);
+        PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName("TargetCell"));
+        Assert.True(link.IsNamedDestinationLink);
+        Assert.Equal("Table cell jump", link.Contents);
+        Assert.Equal("TargetCell", link.DestinationName);
+    }
+
     private static string Normalize(string text) {
         return new string(text.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
     }
@@ -646,6 +807,30 @@ public class PdfLogicalDocumentTests {
     private static bool RowContains(IReadOnlyList<string> row, params string[] expectedTokens) {
         string rowText = Normalize(string.Join(" ", row));
         return expectedTokens.All(token => rowText.Contains(token, StringComparison.Ordinal));
+    }
+
+    private static int CountOccurrences(string text, string value) {
+        int count = 0;
+        int index = 0;
+        while (true) {
+            index = text.IndexOf(value, index, StringComparison.Ordinal);
+            if (index < 0) {
+                return count;
+            }
+
+            count++;
+            index += value.Length;
+        }
+    }
+
+    private static void AssertContainsInOrder(string text, params string[] expectedTokens) {
+        int lastIndex = -1;
+        for (int i = 0; i < expectedTokens.Length; i++) {
+            int index = text.IndexOf(expectedTokens[i], StringComparison.Ordinal);
+            Assert.True(index >= 0, $"Expected token '{expectedTokens[i]}' was not found.");
+            Assert.True(index > lastIndex, $"Expected token '{expectedTokens[i]}' to appear after the previous token.");
+            lastIndex = index;
+        }
     }
 
     private static byte[] BuildThreePageLogicalPdf() {

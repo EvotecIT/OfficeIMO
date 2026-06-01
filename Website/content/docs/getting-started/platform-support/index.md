@@ -6,7 +6,7 @@ order: 3
 
 # Platform Support
 
-OfficeIMO is designed for COM-free document automation and does **not** require Microsoft Office to be installed for the workflows covered by this repo. Most packages are pure managed code; one important exception is `OfficeIMO.Word.Pdf`, which adds QuestPDF/SkiaSharp and should be tested on the target OS with the fonts you plan to ship. The framework matrix below is taken from the current project files in this repo rather than from package-marketing copy.
+OfficeIMO is designed for COM-free document automation and does **not** require Microsoft Office to be installed for the workflows covered by this repo. `OfficeIMO.Word.Pdf` and `OfficeIMO.Excel.Pdf` use the first-party `OfficeIMO.Pdf` engine; PDF workloads should still be tested on the target OS with the fonts and templates you plan to ship. The framework matrix below is taken from the current project files in this repo rather than from package-marketing copy.
 
 ## Target Frameworks
 
@@ -22,6 +22,8 @@ OfficeIMO is designed for COM-free document automation and does **not** require 
 | OfficeIMO.Word.Html | Yes | Yes | Yes | Yes (Windows build) |
 | OfficeIMO.Word.Markdown | Yes | Yes | Yes | Yes (Windows build) |
 | OfficeIMO.Word.Pdf | Yes | Yes | Yes | Yes (Windows build) |
+| OfficeIMO.Excel.Pdf | Yes | Yes | Yes | Yes (Windows build) |
+| OfficeIMO.Pdf | Yes | Yes | Yes | Yes (Windows build) |
 
 The `.NET Framework 4.7.2` target is included for some packages only when building on Windows. The `netstandard2.0`, `net8.0`, and `net10.0` targets are the main cross-platform story.
 
@@ -36,7 +38,7 @@ The `.NET Framework 4.7.2` target is included for some packages only when buildi
 
 ## Native Dependencies
 
-For the core document packages, OfficeIMO mainly relies on managed libraries such as the Open XML SDK and first-party drawing helpers. The main caveat is `OfficeIMO.Word.Pdf`, which uses QuestPDF and SkiaSharp, so runtime packaging and host fonts matter more there than they do for the rest of the suite.
+For the core document packages, OfficeIMO mainly relies on managed libraries such as the Open XML SDK and first-party drawing helpers. The main PDF caveat is layout fidelity: `OfficeIMO.Word.Pdf` and `OfficeIMO.Excel.Pdf` are dependency-light, but host fonts and source templates still affect the rendered result.
 
 ## AOT Compilation
 
@@ -44,7 +46,7 @@ OfficeIMO does **not** have one identical AOT story across every package.
 
 - **Best candidates:** `OfficeIMO.Markdown` and `OfficeIMO.CSV`
 - **Requires scenario testing:** `OfficeIMO.Word`, `OfficeIMO.Excel`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Reader`
-- **Treat separately:** `OfficeIMO.Word.Pdf`
+- **Treat separately:** `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, and direct `OfficeIMO.Pdf` rendering
 
 Some projects in the repo enable trimming polyfills, but full NativeAOT success still depends on the dependency graph and the code paths your application exercises.
 

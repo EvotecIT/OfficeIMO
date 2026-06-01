@@ -42,11 +42,11 @@
       "items": [
         {
           "question": "What are the dependencies?",
-          "answer": "<p>The core Office document packages are built on <strong>DocumentFormat.OpenXml</strong>, while image- and converter-oriented packages also use components such as <strong>SixLabors.ImageSharp</strong>, <strong>AngleSharp</strong>, and <strong>QuestPDF</strong> depending on the feature area. The Markdown and CSV core packages stay dependency-light. See the <a href='/third-party/'>Third-Party Dependencies</a> page for the package-by-package breakdown and upstream license notes.</p>"
+          "answer": "<p>The core Office document packages are built on <strong>DocumentFormat.OpenXml</strong> and first-party <strong>OfficeIMO.Drawing</strong> primitives. HTML converter packages use <strong>AngleSharp</strong>, Excel carries compatibility helper packages on older targets, and the PDF packages use the first-party <strong>OfficeIMO.Pdf</strong> engine instead of external PDF/runtime layout libraries. The Markdown, CSV, Drawing, and PDF core packages stay dependency-light. See the <a href='/third-party/'>Third-Party Dependencies</a> page for the package-by-package breakdown and upstream license notes.</p>"
         },
         {
           "question": "Can I convert Word documents to PDF?",
-          "answer": "<p>Yes. The <strong>OfficeIMO.Word.Pdf</strong> converter package supports Word-to-PDF conversion without Office. There are also converters for Word-to-HTML and Word-to-Markdown.</p>"
+          "answer": "<p>Yes. The <strong>OfficeIMO.Word.Pdf</strong> and <strong>OfficeIMO.Excel.Pdf</strong> converter packages support PDF export without Office. There are also converters for Word-to-HTML and Word-to-Markdown.</p>"
         },
         {
           "question": "Is thread safety supported?",

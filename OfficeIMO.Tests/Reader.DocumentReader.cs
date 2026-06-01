@@ -563,7 +563,15 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_CanReadPdf() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {
-            var pdf = PdfDoc.Create();
+            var pdf = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            });
             pdf.H1("PDF Title");
             pdf.Paragraph(p => p.Text("This is a PDF body."));
             pdf.Save(path);
@@ -572,6 +580,10 @@ public sealed class ReaderDocumentReaderTests {
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c => c.Kind == ReaderInputKind.Pdf);
             Assert.Contains(chunks, c => c.Location.Page.HasValue && c.Location.Page.Value >= 1);
+            var pdfChunk = Assert.Single(chunks, c => c.Kind == ReaderInputKind.Pdf);
+            Assert.NotNull(pdfChunk.Markdown);
+            Assert.Contains("# PDF Title", pdfChunk.Markdown, StringComparison.Ordinal);
+            Assert.Contains("ThisisaPDFbody.", NormalizeWhitespace(pdfChunk.Markdown!), StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -1412,5 +1424,9 @@ public sealed class ReaderDocumentReaderTests {
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
+    }
+
+    private static string NormalizeWhitespace(string text) {
+        return new string(text.Where(ch => !char.IsWhiteSpace(ch)).ToArray());
     }
 }

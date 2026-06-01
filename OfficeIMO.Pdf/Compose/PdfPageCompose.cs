@@ -31,6 +31,11 @@ public class PdfPageCompose {
         Options.PageHeight = oriented.Height;
         return this;
     }
+    /// <summary>Sets or clears the page background color.</summary>
+    public PdfPageCompose Background(PdfColor? color) {
+        Options.BackgroundColor = color;
+        return this;
+    }
     /// <summary>Sets page orientation to portrait while preserving the current page size dimensions.</summary>
     public PdfPageCompose Portrait() => Orientation(PdfPageOrientation.Portrait);
     /// <summary>Sets page orientation to landscape while preserving the current page size dimensions.</summary>

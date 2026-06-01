@@ -1243,17 +1243,31 @@ namespace OfficeIMO.Excel {
             return 8.43; // Excel's default width for Calibri 11
         }
 
-        private void SetRowHeightCore(int rowIndex, double height) {
+        private static double NormalizeRowHeight(double height) {
+            if (double.IsNaN(height) || double.IsInfinity(height)) {
+                return 0;
+            }
+
+            if (height <= 0) {
+                return 0;
+            }
+
+            return Math.Min(height, 409D);
+        }
+
+        private void SetRowHeightCore(int rowIndex, double height, bool normalizeForExcelVisibleHeight = false) {
             var worksheet = WorksheetRoot;
             SheetData? sheetData = worksheet.GetFirstChild<SheetData>();
             if (sheetData == null) return;
             Row? row = sheetData.Elements<Row>().FirstOrDefault(r => r.RowIndex != null && r.RowIndex.Value == (uint)rowIndex);
             if (row == null) return;
 
+            height = NormalizeRowHeight(height);
             if (height > 0) {
-                // Excel normalizes OfficeIMO-authored row heights down on open/save; serialize a
-                // pixel-equivalent height so the visible Excel row height matches the measured value.
-                row.Height = Math.Round(height * 1.5, 2);
+                double storedHeight = normalizeForExcelVisibleHeight
+                    ? height * 1.5
+                    : height;
+                row.Height = Math.Round(storedHeight, 2);
                 row.CustomHeight = true;
             } else {
                 row.Height = null;
@@ -1310,7 +1324,9 @@ namespace OfficeIMO.Excel {
                     }
 
                     for (int i = 0; i < rowIndexes.Count; i++) {
-                        SetRowHeightCore(rowIndexes[i], computed[i]);
+                        // Excel normalizes OfficeIMO-authored auto-fit row heights down on open/save; serialize a
+                        // pixel-equivalent height so the visible Excel row height matches the measured value.
+                        SetRowHeightCore(rowIndexes[i], computed[i], normalizeForExcelVisibleHeight: true);
                     }
 
                     UpdateSheetFormat();
@@ -1340,7 +1356,9 @@ namespace OfficeIMO.Excel {
                 applySequential: () => {
                     // Apply phase - write all row heights to DOM
                     for (int i = 0; i < rowIndexes.Count; i++) {
-                        SetRowHeightCore(rowIndexes[i], computed[i]);
+                        // Excel normalizes OfficeIMO-authored auto-fit row heights down on open/save; serialize a
+                        // pixel-equivalent height so the visible Excel row height matches the measured value.
+                        SetRowHeightCore(rowIndexes[i], computed[i], normalizeForExcelVisibleHeight: true);
                     }
                     UpdateSheetFormat();
                     if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
@@ -1619,17 +1637,59 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets whether the specified row is hidden.
+        /// </summary>
+        /// <param name="rowIndex">1-based row index.</param>
+        /// <param name="hidden">True to hide the row; false to show it.</param>
+        public void SetRowHidden(int rowIndex, bool hidden) {
+            if (rowIndex <= 0) {
+                return;
+            }
+
+            _excelDocument.MaterializeDeferredDataSetImport();
+            WriteLock(() => {
+                SheetData sheetData = GetOrCreateSheetData();
+                Row row = GetOrCreateRowElement(sheetData, rowIndex);
+                row.Hidden = hidden ? true : (bool?)null;
+                WorksheetRoot.Save();
+            });
+        }
+
+        /// <summary>
         /// Auto-fits the height of the specified row based on its contents.
         /// </summary>
         /// <param name="rowIndex">1-based row index.</param>
         public void AutoFitRow(int rowIndex) {
             WriteLockConditional(() => {
                 var height = CalculateRowHeight(rowIndex);
-                SetRowHeightCore(rowIndex, height);
+                // Excel normalizes OfficeIMO-authored auto-fit row heights down on open/save; serialize a
+                // pixel-equivalent height so the visible Excel row height matches the measured value.
+                SetRowHeightCore(rowIndex, height, normalizeForExcelVisibleHeight: true);
                 UpdateSheetFormat();
                 if (EffectiveExecution.SaveWorksheetAfterAutoFit) {
                     WorksheetRoot.Save();
                 }
+            });
+        }
+
+        /// <summary>
+        /// Sets the explicit height of the specified row in points. Use a non-positive height to clear the custom row height.
+        /// </summary>
+        /// <param name="rowIndex">1-based row index.</param>
+        /// <param name="height">Row height in points.</param>
+        public void SetRowHeight(int rowIndex, double height) {
+            if (rowIndex <= 0) {
+                return;
+            }
+
+            height = NormalizeRowHeight(height);
+            _excelDocument.MaterializeDeferredDataSetImport();
+            WriteLock(() => {
+                SheetData sheetData = GetOrCreateSheetData();
+                GetOrCreateRowElement(sheetData, rowIndex);
+                SetRowHeightCore(rowIndex, height);
+                UpdateSheetFormat();
+                WorksheetRoot.Save();
             });
         }
 

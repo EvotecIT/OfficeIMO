@@ -132,7 +132,7 @@ Improve collaboration metadata without making it heavy.
 Keep rendering scoped until the implementation path is proven.
 
 - Run a feasibility spike for report-grade PDF, HTML, and image output using existing OfficeIMO primitives where possible.
-- Start with sheets produced by OfficeIMO report APIs: tables, simple styles, merged cells, images, headers/footers, page setup, and chart placeholders or generated chart images.
+- Start with sheets produced by OfficeIMO report APIs: tables, simple styles, merged cells, images, headers/footers, page setup, and chart placeholders or generated chart images. Initial `OfficeIMO.Excel.Pdf` export now covers worksheet table and image export with print areas, orientation, margins, hidden workbook worksheet filtering, hidden rows and columns, repeated print-title rows, simple header/footer text zones with page/date/time/workbook tokens, supported images, and simple line-level font/size/color formatting when representable by one PDF header/footer line style, worksheet merged-cell spans, external cell hyperlinks, exact exported-cell internal workbook-link destinations with sheet-level fallback, supported worksheet drawing images, explicit worksheet column widths, explicit worksheet row heights, manual worksheet print scale, fit-to-width table sizing, common number formats, and basic explicit cell font/fill/conditional-color-scale/data-bar/icon-set/alignment/border styling through the first-party `OfficeIMO.Pdf` engine.
 - Add export APIs only after the scoped renderer is reliable enough for report workflows.
 
 ## Product Principles

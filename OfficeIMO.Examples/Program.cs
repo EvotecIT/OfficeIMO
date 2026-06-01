@@ -654,7 +654,7 @@ namespace OfficeIMO.Examples {
             // Word.Pdf.Example_SaveAsPdfRelative(folderPath, false);
             // Word.Pdf.Example_SaveAsPdfWithHyperlinks(folderPath, false);
             // Word.Pdf.Example_SaveAsPdfWithMetadata(folderPath, false);
-            // Word.Pdf.Example_SaveAsPdfWithLicense(folderPath, false);
+            // Word.Pdf.Example_SaveAsPdfWithFirstPartyOptions(folderPath, false);
             // Word.Pdf.Example_SaveLists(folderPath, false);
             // Word.Pdf.Example_TableStyles(folderPath, false);
             // Word.Pdf.Example_PdfCustomFonts(folderPath, false);

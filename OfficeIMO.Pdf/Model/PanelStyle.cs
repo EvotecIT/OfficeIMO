@@ -11,6 +11,10 @@ public class PanelStyle {
     private double? _maxWidth;
     private double _spacingBefore;
     private double _spacingAfter = 6;
+    private PdfPanelBorder? _topBorder;
+    private PdfPanelBorder? _rightBorder;
+    private PdfPanelBorder? _bottomBorder;
+    private PdfPanelBorder? _leftBorder;
 
     /// <summary>Background fill color. Set to null for no fill.</summary>
     public PdfColor? Background { get; set; }
@@ -24,6 +28,31 @@ public class PanelStyle {
             _borderWidth = value;
         }
     }
+    /// <summary>Optional top border override. When set, it overrides the uniform border for this side.</summary>
+    public PdfPanelBorder? TopBorder {
+        get => _topBorder?.Clone();
+        set => _topBorder = value?.Clone();
+    }
+    /// <summary>Optional right border override. When set, it overrides the uniform border for this side.</summary>
+    public PdfPanelBorder? RightBorder {
+        get => _rightBorder?.Clone();
+        set => _rightBorder = value?.Clone();
+    }
+    /// <summary>Optional bottom border override. When set, it overrides the uniform border for this side.</summary>
+    public PdfPanelBorder? BottomBorder {
+        get => _bottomBorder?.Clone();
+        set => _bottomBorder = value?.Clone();
+    }
+    /// <summary>Optional left border override. When set, it overrides the uniform border for this side.</summary>
+    public PdfPanelBorder? LeftBorder {
+        get => _leftBorder?.Clone();
+        set => _leftBorder = value?.Clone();
+    }
+    internal PdfPanelBorder? TopBorderSnapshot => _topBorder;
+    internal PdfPanelBorder? RightBorderSnapshot => _rightBorder;
+    internal PdfPanelBorder? BottomBorderSnapshot => _bottomBorder;
+    internal PdfPanelBorder? LeftBorderSnapshot => _leftBorder;
+    internal bool HasSideBorders => _topBorder != null || _rightBorder != null || _bottomBorder != null || _leftBorder != null;
     /// <summary>Vertical padding inside the panel (points).</summary>
     public double PaddingY {
         get => _paddingY;
@@ -83,6 +112,10 @@ public class PanelStyle {
             Background = Background,
             BorderColor = BorderColor,
             BorderWidth = BorderWidth,
+            TopBorder = _topBorder,
+            RightBorder = _rightBorder,
+            BottomBorder = _bottomBorder,
+            LeftBorder = _leftBorder,
             PaddingY = PaddingY,
             PaddingX = PaddingX,
             MaxWidth = MaxWidth,

@@ -9,8 +9,9 @@ internal sealed class TextFieldBlock : IPdfBlock {
     public double FontSize { get; }
     public double SpacingBefore { get; }
     public double SpacingAfter { get; }
+    public PdfFormFieldStyle Style { get; }
 
-    public TextFieldBlock(string name, double width, double height, string? value, PdfAlign align, double fontSize, double spacingBefore, double spacingAfter) {
+    public TextFieldBlock(string name, double width, double height, string? value, PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, PdfFormFieldStyle? style = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
@@ -27,5 +28,6 @@ internal sealed class TextFieldBlock : IPdfBlock {
         FontSize = fontSize;
         SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
+        Style = style?.Clone() ?? new PdfFormFieldStyle();
     }
 }

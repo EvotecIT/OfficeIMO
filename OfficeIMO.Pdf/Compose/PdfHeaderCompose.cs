@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>Header builder (alignment, text, page number tokens).</summary>
@@ -37,6 +39,43 @@ public class PdfHeaderCompose {
         _opts.SetEvenPageHeaderZonesForCompose(left, center, right);
         return this;
     }
+
+    /// <summary>Adds an image to the running header.</summary>
+    public PdfHeaderCompose Image(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) {
+        _opts.AddHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit));
+        return this;
+    }
+
+    /// <summary>Adds an image to the page-1-only header.</summary>
+    public PdfHeaderCompose FirstPageImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) {
+        _opts.AddFirstPageHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit));
+        return this;
+    }
+
+    /// <summary>Adds an image to the even-page-only header.</summary>
+    public PdfHeaderCompose EvenPagesImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) {
+        _opts.AddEvenPageHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit));
+        return this;
+    }
+
+    /// <summary>Adds a shape to the running header.</summary>
+    public PdfHeaderCompose Shape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
+        _opts.AddHeaderShapeForCompose(new PdfHeaderFooterShape(shape, align));
+        return this;
+    }
+
+    /// <summary>Adds a shape to the page-1-only header.</summary>
+    public PdfHeaderCompose FirstPageShape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
+        _opts.AddFirstPageHeaderShapeForCompose(new PdfHeaderFooterShape(shape, align));
+        return this;
+    }
+
+    /// <summary>Adds a shape to the even-page-only header.</summary>
+    public PdfHeaderCompose EvenPagesShape(OfficeShape shape, PdfAlign align = PdfAlign.Left) {
+        _opts.AddEvenPageHeaderShapeForCompose(new PdfHeaderFooterShape(shape, align));
+        return this;
+    }
+
     /// <summary>Renders a literal header text format. Supports {page} and {pages}.</summary>
     public PdfHeaderCompose Text(string format) {
         Guard.NotNull(format, nameof(format));

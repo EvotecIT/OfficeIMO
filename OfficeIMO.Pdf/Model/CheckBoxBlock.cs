@@ -8,8 +8,9 @@ internal sealed class CheckBoxBlock : IPdfBlock {
     public double SpacingBefore { get; }
     public double SpacingAfter { get; }
     public string CheckedValueName { get; }
+    public PdfFormFieldStyle Style { get; }
 
-    public CheckBoxBlock(string name, bool isChecked, double size, PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName) {
+    public CheckBoxBlock(string name, bool isChecked, double size, PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName, PdfFormFieldStyle? style = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.Positive(size, nameof(size));
         Guard.LeftCenterRightAlign(align, nameof(align), "Check box");
@@ -27,5 +28,6 @@ internal sealed class CheckBoxBlock : IPdfBlock {
         SpacingBefore = spacingBefore;
         SpacingAfter = spacingAfter;
         CheckedValueName = checkedValueName;
+        Style = style?.Clone() ?? new PdfFormFieldStyle();
     }
 }

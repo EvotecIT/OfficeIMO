@@ -85,3 +85,10 @@ OfficeIMO.Excel runs on Windows, Linux, and macOS. It generates standard `.xlsx`
 | [Worksheets guide](/docs/excel/worksheets/) | Create sheets, write values, and work with formulas. |
 | [Tables and ranges](/docs/excel/tables-ranges/) | Add structured tables, validation, and conditional formatting. |
 | [PSWriteOffice Excel cmdlets](/docs/pswriteoffice/excel/) | Generate workbooks from PowerShell automation. |
+
+## Related packages
+
+| Package | Description |
+|---------|-------------|
+| [OfficeIMO.Excel.Pdf](https://www.nuget.org/packages/OfficeIMO.Excel.Pdf) | Export Excel workbooks and selected worksheets to PDF |
+| [OfficeIMO.Excel.GoogleSheets](https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets) | Plan and export Excel workbooks to Google Sheets |

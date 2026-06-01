@@ -97,6 +97,11 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder PathSeparator() {
+        _sb.Append('\n');
+        return this;
+    }
+
     public ContentStreamBuilder LineTo(double x, double y) {
         _sb.Append(' ').Append(F(x)).Append(' ').Append(F(y)).Append(" l");
         return this;

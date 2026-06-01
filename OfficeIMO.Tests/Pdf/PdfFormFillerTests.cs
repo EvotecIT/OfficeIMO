@@ -211,6 +211,24 @@ public class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillAndFlattenFields_FlattensOnlySelectedRadioWidget() {
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(BuildRadioWidgetGroupWithoutOffAppearancePdf(), new Dictionary<string, string> {
+            ["Payment.Method"] = "Wire"
+        });
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string appearances = string.Concat(GetFlattenedAppearanceStreamTexts(flattened));
+
+        Assert.False(PdfInspector.Inspect(flattened).HasForms);
+        Assert.DoesNotContain("/AcroForm", output);
+        Assert.DoesNotContain("/Subtype /Widget", output);
+        Assert.Contains("Wire selected", appearances);
+        Assert.DoesNotContain("Card selected", appearances);
+        Assert.DoesNotContain("Cash selected", appearances);
+        Assert.DoesNotContain("1.25 w", appearances);
+    }
+
+    [Fact]
     public void FillAndFlattenFields_PaintsChoiceOptionDisplayText() {
         byte[] filled = PdfFormFiller.FillFields(BuildChoiceWidgetFormPdf(), new Dictionary<string, string> {
             ["Country"] = "PL"
@@ -913,6 +931,65 @@ public class PdfFormFillerTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildRadioWidgetGroupWithoutOffAppearancePdf() {
+        string cardAppearance = BuildFormStreamObject(11, "Card selected");
+        string cashAppearance = BuildFormStreamObject(12, "Cash selected");
+        string wireAppearance = BuildFormStreamObject(13, "Wire selected");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R /Annots [8 0 R 9 0 R 10 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Btn /T (Payment.Method) /Ff 49152 /V /Wire /Kids [8 0 R 9 0 R 10 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 140 36 156] /F 4 /AP << /N << /Card 11 0 R >> >> >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 110 36 126] /F 4 /AP << /N << /Cash 12 0 R >> >> >>",
+            "endobj",
+            "10 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 80 36 96] /F 4 /AP << /N << /Wire 13 0 R >> >> >>",
+            "endobj",
+            cardAppearance,
+            cashAppearance,
+            wireAppearance,
+            "trailer",
+            "<< /Root 1 0 R /Size 14 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static string BuildFormStreamObject(int objectNumber, string text) {
+        string content = $"BT /F1 10 Tf 0 0 Td ({text}) Tj ET";
+        return string.Join("\n", new[] {
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 16 16] /Length {content.Length} >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj"
+        });
+    }
+
     private static byte[] BuildTextWidgetFormPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
@@ -997,6 +1074,20 @@ public class PdfFormFillerTests {
         PdfReference reference = Assert.IsType<PdfReference>(xObjects.Items["OfficeIMOForm1"]);
         PdfStream stream = Assert.IsType<PdfStream>(objects[reference.ObjectNumber].Value);
         return Encoding.ASCII.GetString(stream.Data);
+    }
+
+    private static IEnumerable<string> GetFlattenedAppearanceStreamTexts(byte[] pdf) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        PdfDictionary page = Assert.IsType<PdfDictionary>(objects.Values.First(indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "Page").Value);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page.Items["Resources"]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources.Items["XObject"]);
+        foreach (PdfObject item in xObjects.Items.Values) {
+            PdfReference reference = Assert.IsType<PdfReference>(item);
+            PdfStream stream = Assert.IsType<PdfStream>(objects[reference.ObjectNumber].Value);
+            yield return Encoding.ASCII.GetString(stream.Data);
+        }
     }
 
     private sealed class ReadOnlyStream : MemoryStream {

@@ -2240,9 +2240,9 @@ namespace OfficeIMO.Tests {
 
                 IReadOnlyList<ExcelConditionalFormattingInfo> rules = sheet.GetConditionalFormattingRules("A2:A4");
                 Assert.Equal(3, rules.Count);
-                Assert.Contains(rules, rule => rule.Type == ConditionalFormatValues.Expression.ToString() && rule.StopIfTrue);
-                Assert.Contains(rules, rule => rule.Type == ConditionalFormatValues.DuplicateValues.ToString());
-                Assert.Contains(rules, rule => rule.Type == ConditionalFormatValues.Top10.ToString());
+                Assert.Contains(rules, rule => rule.Type == "Expression" && rule.StopIfTrue);
+                Assert.Contains(rules, rule => rule.Type == "DuplicateValues");
+                Assert.Contains(rules, rule => rule.Type == "Top10");
 
                 sheet.ValidationWholeNumber("B2:B4", DataValidationOperatorValues.Between, 1, 30);
                 sheet.SetDataValidationMessages("B2:B4", new ExcelDataValidationMessageOptions {

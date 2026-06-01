@@ -208,6 +208,19 @@
         {
           "registry": "nuget",
           "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Excel.Pdf",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf",
+          "title": "OfficeIMO.Excel.Pdf",
+          "summary": "Export Excel workbooks and selected worksheets to PDF using the first-party OfficeIMO.Pdf engine.",
+          "best_for": "workbook-first reporting flows that need printable PDF delivery without desktop Excel",
+          "install": "dotnet add package OfficeIMO.Excel.Pdf",
+          "product_url": "/products/excel/",
+          "docs_url": "/docs/excel/",
+          "accent": "#059669"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
           "registry_package": "OfficeIMO.Markdown.Html",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.Markdown.Html",
           "release_product": "officeimo.markdown.html",
