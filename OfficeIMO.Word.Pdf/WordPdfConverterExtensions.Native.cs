@@ -2355,69 +2355,18 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static PdfCore.PdfStandardFont GetNativeDefaultFont(WordDocument document, PdfSaveOptions? options) {
-            if (TryMapNativeFontFamily(options?.FontFamily, out PdfCore.PdfStandardFont optionFont)) {
+            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(options?.FontFamily, out PdfCore.PdfStandardFont optionFont)) {
                 return optionFont;
             }
 
-            if (TryMapNativeFontFamily(document.Settings.FontFamily, out PdfCore.PdfStandardFont settingsFont) ||
-                TryMapNativeFontFamily(document.Settings.FontFamilyHighAnsi, out settingsFont) ||
-                TryMapNativeFontFamily(document.Settings.FontFamilyEastAsia, out settingsFont) ||
-                TryMapNativeFontFamily(document.Settings.FontFamilyComplexScript, out settingsFont)) {
+            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(document.Settings.FontFamily, out PdfCore.PdfStandardFont settingsFont) ||
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(document.Settings.FontFamilyHighAnsi, out settingsFont) ||
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(document.Settings.FontFamilyEastAsia, out settingsFont) ||
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(document.Settings.FontFamilyComplexScript, out settingsFont)) {
                 return settingsFont;
             }
 
             return PdfCore.PdfStandardFont.Helvetica;
-        }
-
-        private static bool TryMapNativeFontFamily(string? fontFamily, out PdfCore.PdfStandardFont font) {
-            font = PdfCore.PdfStandardFont.Helvetica;
-            if (string.IsNullOrWhiteSpace(fontFamily)) {
-                return false;
-            }
-
-            string normalized = NormalizeNativeFontFamily(fontFamily!);
-            switch (normalized) {
-                case "timesnewroman":
-                case "times":
-                case "timesroman":
-                case "georgia":
-                case "cambria":
-                case "serif":
-                    font = PdfCore.PdfStandardFont.TimesRoman;
-                    return true;
-                case "couriernew":
-                case "courier":
-                case "consolas":
-                case "lucidaconsole":
-                case "monospace":
-                    font = PdfCore.PdfStandardFont.Courier;
-                    return true;
-                case "arial":
-                case "helvetica":
-                case "calibri":
-                case "aptos":
-                case "segoeui":
-                case "tahoma":
-                case "verdana":
-                case "sans":
-                case "sansserif":
-                    font = PdfCore.PdfStandardFont.Helvetica;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        private static string NormalizeNativeFontFamily(string fontFamily) {
-            string firstFamily = fontFamily.Split(new[] { ',', ';' }, 2)[0];
-            var builder = new StringBuilder(firstFamily.Length);
-            foreach (char ch in firstFamily) {
-                if (char.IsLetterOrDigit(ch)) {
-                    builder.Append(char.ToLowerInvariant(ch));
-                }
-            }
-
-            return builder.ToString();
         }
 
         private sealed class NativeTableOfContentsEntry {
@@ -3411,15 +3360,15 @@ namespace OfficeIMO.Word.Pdf {
                 builder.FontSize(paragraph.FontSize.Value);
             }
 
-            if (TryMapNativeFontFamily(paragraph.FontFamily, out PdfCore.PdfStandardFont font) ||
-                TryMapNativeFontFamily(paragraph.FontFamilyHighAnsi, out font) ||
-                TryMapNativeFontFamily(paragraph.FontFamilyEastAsia, out font) ||
-                TryMapNativeFontFamily(paragraph.FontFamilyComplexScript, out font) ||
+            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamily, out PdfCore.PdfStandardFont font) ||
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyHighAnsi, out font) ||
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyEastAsia, out font) ||
+                PdfCore.PdfStandardFontMapper.TryMapFontFamily(paragraph.FontFamilyComplexScript, out font) ||
                 (fallback != null && (
-                    TryMapNativeFontFamily(fallback.FontFamily, out font) ||
-                    TryMapNativeFontFamily(fallback.FontFamilyHighAnsi, out font) ||
-                    TryMapNativeFontFamily(fallback.FontFamilyEastAsia, out font) ||
-                    TryMapNativeFontFamily(fallback.FontFamilyComplexScript, out font)))) {
+                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(fallback.FontFamily, out font) ||
+                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(fallback.FontFamilyHighAnsi, out font) ||
+                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(fallback.FontFamilyEastAsia, out font) ||
+                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(fallback.FontFamilyComplexScript, out font)))) {
                 builder.Font(font);
             }
 

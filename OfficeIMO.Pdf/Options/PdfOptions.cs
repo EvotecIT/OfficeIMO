@@ -48,6 +48,7 @@ public sealed class PdfOptions {
     private int _pageNumberStart = 1;
     private bool _hasExplicitPageNumberStart;
     private PdfPageNumberStyle _pageNumberStyle = PdfPageNumberStyle.Arabic;
+    private string? _pageLabelPrefix;
     private PdfParagraphStyle? _defaultParagraphStyle;
     private PdfTableStyle? _defaultTableStyle = TableStyles.Light();
     private PdfHeadingStyles? _defaultHeadingStyles;
@@ -57,6 +58,17 @@ public sealed class PdfOptions {
     private PdfImageStyle? _defaultImageStyle;
     private PdfDrawingStyle? _defaultDrawingStyle;
     private PdfRowStyle? _defaultRowStyle;
+    private PdfComplianceProfile _complianceProfile;
+    private PdfOutputIntent? _outputIntent;
+    private string? _language;
+    private PdfViewerPreferencesOptions? _viewerPreferences;
+    private PdfTextWatermark? _textWatermark;
+    private PdfImageWatermark? _imageWatermark;
+    private PdfPageBorder? _pageBorder;
+    private PdfPageBackgroundImage? _pageBackgroundImage;
+    private System.Collections.Generic.List<PdfPageBackgroundShape>? _pageBackgroundShapes;
+    private System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? _embeddedFonts;
+    private System.Collections.Generic.List<PdfEmbeddedFile>? _embeddedFiles;
 
     /// <summary>Page width in points (1 pt = 1/72 in). Default is 612 (Letter 8.5in).</summary>
     public double PageWidth { get; set; } = 612; // Letter 8.5in * 72
@@ -76,6 +88,37 @@ public sealed class PdfOptions {
     public PdfPageOrientation PageOrientation => PageWidth > PageHeight ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
     /// <summary>Optional page background color rendered behind all page content.</summary>
     public PdfColor? BackgroundColor { get; set; }
+    /// <summary>Optional reusable text watermark rendered behind all page content.</summary>
+    public PdfTextWatermark? TextWatermark {
+        get => _textWatermark?.Clone();
+        set => _textWatermark = value?.Clone();
+    }
+    internal PdfTextWatermark? TextWatermarkSnapshot => _textWatermark?.Clone();
+    /// <summary>Optional reusable image watermark rendered behind all page content.</summary>
+    public PdfImageWatermark? ImageWatermark {
+        get => _imageWatermark?.Clone();
+        set => _imageWatermark = value?.Clone();
+    }
+    internal PdfImageWatermark? ImageWatermarkSnapshot => _imageWatermark?.Clone();
+    /// <summary>Optional reusable page border rendered as a page decoration.</summary>
+    public PdfPageBorder? PageBorder {
+        get => _pageBorder?.Clone();
+        set => _pageBorder = value?.Clone();
+    }
+    internal PdfPageBorder? PageBorderSnapshot => _pageBorder?.Clone();
+    /// <summary>Optional reusable page background image rendered behind all page content.</summary>
+    public PdfPageBackgroundImage? PageBackgroundImage {
+        get => _pageBackgroundImage?.Clone();
+        set => _pageBackgroundImage = value?.Clone();
+    }
+    internal PdfPageBackgroundImage? PageBackgroundImageSnapshot => _pageBackgroundImage?.Clone();
+    /// <summary>Optional reusable page background shapes rendered behind all page content.</summary>
+    public System.Collections.Generic.IReadOnlyList<PdfPageBackgroundShape>? PageBackgroundShapes {
+        get => ClonePageBackgroundShapes(_pageBackgroundShapes);
+        set => _pageBackgroundShapes = ClonePageBackgroundShapes(value);
+    }
+    internal System.Collections.Generic.IReadOnlyList<PdfPageBackgroundShape> PageBackgroundShapeSnapshots =>
+        (System.Collections.Generic.IReadOnlyList<PdfPageBackgroundShape>?)ClonePageBackgroundShapes(_pageBackgroundShapes) ?? System.Array.Empty<PdfPageBackgroundShape>();
     /// <summary>Left margin in points. Default 72 (1 inch).</summary>
     public double MarginLeft { get; set; } = 72; // 1 in
     /// <summary>Right margin in points. Default 72 (1 inch).</summary>
@@ -104,6 +147,183 @@ public sealed class PdfOptions {
     }
     /// <summary>Default paragraph font size in points. Default 11.</summary>
     public double DefaultFontSize { get; set; } = 11;
+    /// <summary>When true, generated page content streams are written with Flate compression.</summary>
+    public bool CompressContentStreams { get; set; }
+    /// <summary>When true, generated standard-font resources include WinAnsi-to-Unicode CMaps for stronger extraction and compliance groundwork.</summary>
+    public bool IncludeStandardFontToUnicodeMaps { get; set; }
+    /// <summary>When true, embedded TrueType font file streams are Flate-compressed while preserving their original /Length1 metadata.</summary>
+    public bool CompressEmbeddedFonts { get; set; } = true;
+    /// <summary>When true, generated PDFs include a catalog XMP metadata stream synchronized with document Info metadata.</summary>
+    public bool IncludeXmpMetadata { get; set; }
+    /// <summary>When true, generated PDFs include catalog page labels that match the configured page-number style and start number.</summary>
+    public bool IncludePageLabels { get; set; }
+    /// <summary>Optional catalog page-label prefix, for example "A-" or "Appendix ". Requires <see cref="IncludePageLabels"/> to be emitted.</summary>
+    public string? PageLabelPrefix {
+        get => _pageLabelPrefix;
+        set {
+            PdfPageLabelDictionaryBuilder.ValidatePrefix(value, nameof(PageLabelPrefix));
+            _pageLabelPrefix = value;
+        }
+    }
+    /// <summary>Requested generated-PDF compliance profile. Non-None profiles are validated strictly and fail until their required primitives are implemented.</summary>
+    public PdfComplianceProfile ComplianceProfile {
+        get => _complianceProfile;
+        set {
+            Guard.ComplianceProfile(value, nameof(ComplianceProfile));
+            _complianceProfile = value;
+        }
+    }
+    /// <summary>Optional generated catalog output intent backed by an ICC profile.</summary>
+    public PdfOutputIntent? OutputIntent {
+        get => _outputIntent?.Clone();
+        set => _outputIntent = value?.Clone();
+    }
+    internal PdfOutputIntent? OutputIntentSnapshot => _outputIntent?.Clone();
+    /// <summary>Optional document language for the generated catalog /Lang entry, for example "en-US".</summary>
+    public string? Language {
+        get => _language;
+        set {
+            ValidateOptionalLanguage(value, nameof(Language));
+            _language = value;
+        }
+    }
+
+    /// <summary>Optional simple viewer preferences emitted through the generated catalog.</summary>
+    public PdfViewerPreferencesOptions? ViewerPreferences {
+        get => _viewerPreferences?.Clone();
+        set => _viewerPreferences = value?.Clone();
+    }
+
+    internal PdfViewerPreferencesOptions? ViewerPreferencesSnapshot => _viewerPreferences?.Clone();
+
+    /// <summary>Embedded files associated with the generated document catalog.</summary>
+    public System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile> EmbeddedFiles =>
+        (System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile>?)CloneEmbeddedFiles(_embeddedFiles) ?? System.Array.Empty<PdfEmbeddedFile>();
+
+    internal System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile> EmbeddedFileSnapshots =>
+        (System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile>?)CloneEmbeddedFiles(_embeddedFiles) ?? System.Array.Empty<PdfEmbeddedFile>();
+
+    /// <summary>Embedded TrueType font mappings keyed by generated standard-font slot.</summary>
+    public System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> EmbeddedFonts {
+        get {
+            if (_embeddedFonts == null || _embeddedFonts.Count == 0) {
+                return new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>();
+            }
+
+            var copy = new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>();
+            foreach (var embeddedFont in _embeddedFonts) {
+                copy[embeddedFont.Key] = embeddedFont.Value.Clone();
+            }
+
+            return copy;
+        }
+    }
+
+    /// <summary>Embeds a TrueType font file for a generated standard-font slot.</summary>
+    public PdfOptions EmbedStandardFont(PdfStandardFont font, byte[] data, string? fontName = null) {
+        var embeddedFont = new PdfEmbeddedFont(font, data, fontName);
+        (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
+        return this;
+    }
+
+    /// <summary>Embeds a TrueType font file from disk for a generated standard-font slot.</summary>
+    public PdfOptions EmbedStandardFont(PdfStandardFont font, string path, string? fontName = null) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return EmbedStandardFont(font, System.IO.File.ReadAllBytes(path), fontName);
+    }
+
+    /// <summary>Removes all embedded standard-font mappings.</summary>
+    public PdfOptions ClearEmbeddedStandardFonts() {
+        _embeddedFonts?.Clear();
+        return this;
+    }
+
+    /// <summary>Requests a generated-PDF compliance profile for this document.</summary>
+    public PdfOptions RequireCompliance(PdfComplianceProfile profile) {
+        ComplianceProfile = profile;
+        return this;
+    }
+
+    /// <summary>Sets a generated catalog output intent backed by an ICC profile.</summary>
+    public PdfOptions SetOutputIntent(PdfOutputIntent? outputIntent) {
+        OutputIntent = outputIntent;
+        return this;
+    }
+
+    /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
+    public PdfOptions SetOutputIntent(byte[] iccProfile, string outputConditionIdentifier = "sRGB IEC61966-2.1") {
+        OutputIntent = new PdfOutputIntent(iccProfile, outputConditionIdentifier);
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated catalog document language.</summary>
+    public PdfOptions SetLanguage(string? language) {
+        Language = language;
+        return this;
+    }
+
+    /// <summary>Enables or disables generated catalog page labels.</summary>
+    public PdfOptions SetPageLabels(bool include = true, string? prefix = null) {
+        IncludePageLabels = include;
+        PageLabelPrefix = prefix;
+        return this;
+    }
+
+    /// <summary>Sets or clears generated catalog viewer preferences.</summary>
+    public PdfOptions SetViewerPreferences(PdfViewerPreferencesOptions? preferences) {
+        ViewerPreferences = preferences;
+        return this;
+    }
+
+    /// <summary>Configures generated catalog viewer preferences.</summary>
+    public PdfOptions ConfigureViewerPreferences(System.Action<PdfViewerPreferencesOptions> configure) {
+        Guard.NotNull(configure, nameof(configure));
+        var preferences = _viewerPreferences?.Clone() ?? new PdfViewerPreferencesOptions();
+        configure(preferences);
+        _viewerPreferences = preferences;
+        return this;
+    }
+
+    /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
+    public PdfOptions AddEmbeddedFile(PdfEmbeddedFile file) {
+        Guard.NotNull(file, nameof(file));
+        if (_embeddedFiles != null) {
+            foreach (PdfEmbeddedFile existingFile in _embeddedFiles) {
+                if (string.Equals(existingFile.FileName, file.FileName, System.StringComparison.Ordinal)) {
+                    throw new System.ArgumentException("PDF embedded file names must be unique within a generated document.", nameof(file));
+                }
+            }
+        }
+
+        (_embeddedFiles ??= new System.Collections.Generic.List<PdfEmbeddedFile>()).Add(file.Clone());
+        return this;
+    }
+
+    /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
+    public PdfOptions AddEmbeddedFile(
+        string fileName,
+        byte[] data,
+        string? mimeType = null,
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Unspecified,
+        string? description = null) {
+        return AddEmbeddedFile(new PdfEmbeddedFile(fileName, data, mimeType, relationship, description));
+    }
+
+    /// <summary>Removes all embedded files associated with the generated PDF catalog.</summary>
+    public PdfOptions ClearEmbeddedFiles() {
+        _embeddedFiles?.Clear();
+        return this;
+    }
+
+    internal bool TryGetEmbeddedStandardFont(PdfStandardFont font, out PdfEmbeddedFont? embeddedFont) {
+        if (_embeddedFonts != null && _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? value)) {
+            embeddedFont = value.Clone();
+            return true;
+        }
+
+        embeddedFont = null;
+        return false;
+    }
 
     /// <summary>When true, renders header text using <see cref="HeaderFormat"/>.</summary>
     public bool ShowHeader { get; set; }
@@ -511,12 +731,29 @@ public sealed class PdfOptions {
             PageWidth = PageWidth,
             PageHeight = PageHeight,
             BackgroundColor = BackgroundColor,
+            TextWatermark = _textWatermark?.Clone(),
+            ImageWatermark = _imageWatermark?.Clone(),
+            PageBorder = _pageBorder?.Clone(),
+            PageBackgroundImage = _pageBackgroundImage?.Clone(),
+            PageBackgroundShapes = ClonePageBackgroundShapes(_pageBackgroundShapes),
             MarginLeft = MarginLeft,
             MarginRight = MarginRight,
             MarginTop = MarginTop,
             MarginBottom = MarginBottom,
             DefaultFont = DefaultFont,
             DefaultFontSize = DefaultFontSize,
+            CompressContentStreams = CompressContentStreams,
+            IncludeStandardFontToUnicodeMaps = IncludeStandardFontToUnicodeMaps,
+            CompressEmbeddedFonts = CompressEmbeddedFonts,
+            IncludeXmpMetadata = IncludeXmpMetadata,
+            IncludePageLabels = IncludePageLabels,
+            PageLabelPrefix = PageLabelPrefix,
+            ComplianceProfile = ComplianceProfile,
+            OutputIntent = _outputIntent?.Clone(),
+            Language = Language,
+            ViewerPreferences = _viewerPreferences?.Clone(),
+            _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
+            _embeddedFiles = CloneEmbeddedFiles(_embeddedFiles),
             ShowHeader = ShowHeader,
             HeaderFormat = HeaderFormat,
             DifferentFirstPageHeaderFooter = DifferentFirstPageHeaderFooter,
@@ -597,6 +834,33 @@ public sealed class PdfOptions {
         return clone;
     }
 
+    private static System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? CloneEmbeddedFonts(System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? fonts) {
+        if (fonts == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>();
+        foreach (var font in fonts) {
+            clone[font.Key] = font.Value.Clone();
+        }
+
+        return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfEmbeddedFile>? CloneEmbeddedFiles(System.Collections.Generic.IEnumerable<PdfEmbeddedFile>? files) {
+        if (files == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfEmbeddedFile>();
+        foreach (PdfEmbeddedFile file in files) {
+            Guard.NotNull(file, nameof(EmbeddedFiles));
+            clone.Add(file.Clone());
+        }
+
+        return clone;
+    }
+
     private static System.Collections.Generic.List<PdfHeaderFooterImage>? CloneHeaderFooterImages(System.Collections.Generic.List<PdfHeaderFooterImage>? images) {
         if (images == null) {
             return null;
@@ -621,6 +885,29 @@ public sealed class PdfOptions {
         }
 
         return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfPageBackgroundShape>? ClonePageBackgroundShapes(System.Collections.Generic.IEnumerable<PdfPageBackgroundShape>? shapes) {
+        if (shapes == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfPageBackgroundShape>();
+        foreach (PdfPageBackgroundShape shape in shapes) {
+            Guard.NotNull(shape, nameof(PageBackgroundShapes));
+            clone.Add(shape.Clone());
+        }
+
+        return clone;
+    }
+
+    internal void AddPageBackgroundShape(PdfPageBackgroundShape shape) {
+        Guard.NotNull(shape, nameof(shape));
+        (_pageBackgroundShapes ??= new System.Collections.Generic.List<PdfPageBackgroundShape>()).Add(shape.Clone());
+    }
+
+    internal void ClearPageBackgroundShapes() {
+        _pageBackgroundShapes = null;
     }
 
     internal void ClearPageNumberStartOverride() {
@@ -891,6 +1178,8 @@ public sealed class PdfOptions {
         Guard.StandardFont(HeaderFont, nameof(HeaderFont), "PDF header font must be one of the supported standard PDF fonts.");
         Guard.StandardFont(FooterFont, nameof(FooterFont), "PDF footer font must be one of the supported standard PDF fonts.");
         Guard.PageNumberStyle(PageNumberStyle, nameof(PageNumberStyle));
+        Guard.ComplianceProfile(ComplianceProfile, nameof(ComplianceProfile));
+        PdfPageLabelDictionaryBuilder.ValidatePrefix(PageLabelPrefix, nameof(PageLabelPrefix));
 
         if (DefaultFontSize <= 0 || double.IsNaN(DefaultFontSize) || double.IsInfinity(DefaultFontSize)) {
             throw new System.ArgumentException("PDF default font size must be a positive finite value.");
@@ -988,6 +1277,7 @@ public sealed class PdfOptions {
         ValidateZoneString(_evenPageFooterLeftFormat, "footer");
         ValidateZoneString(_evenPageFooterCenterFormat, "footer");
         ValidateZoneString(_evenPageFooterRightFormat, "footer");
+        ValidateOptionalLanguage(Language, nameof(Language));
     }
 
     private static void ValidateZones(string? left, string? center, string? right, string paramName) {
@@ -1007,6 +1297,22 @@ public sealed class PdfOptions {
 
         if (value.Length == 0) {
             throw new System.ArgumentException("PDF " + scope + " zone text cannot be empty.");
+        }
+    }
+
+    private static void ValidateOptionalLanguage(string? value, string paramName) {
+        if (value == null) {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(value)) {
+            throw new System.ArgumentException("PDF document language cannot be empty or whitespace.", paramName);
+        }
+
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsControl(value[i])) {
+                throw new System.ArgumentException("PDF document language cannot contain control characters.", paramName);
+            }
         }
     }
 

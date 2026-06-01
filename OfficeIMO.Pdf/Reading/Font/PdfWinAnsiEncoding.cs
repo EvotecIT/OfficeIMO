@@ -31,6 +31,8 @@ internal static class PdfWinAnsiEncoding {
         return new string(chars);
     }
 
+    public static char Decode(byte value) => Map[value];
+
     public static byte[] Encode(string s) {
         var bytes = new byte[s.Length];
         for (int i = 0; i < s.Length; i++) {

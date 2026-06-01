@@ -1,0 +1,247 @@
+using System;
+using System.IO;
+using System.IO.Compression;
+using System.Text;
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public class PdfAttachmentExtractorTests {
+    [Fact]
+    public void ExtractAttachments_ReadsGeneratedEmbeddedAndAssociatedFiles() {
+        byte[] invoiceXml = Encoding.UTF8.GetBytes("<invoice>42</invoice>");
+        byte[] sourceBytes = Encoding.UTF8.GetBytes("Source payload");
+
+        byte[] pdf = PdfDoc.Create()
+            .AttachFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML")
+            .AttachFile("source.txt", sourceBytes, "text/plain", PdfAssociatedFileRelationship.Source)
+            .Paragraph(p => p.Text("Attachment readback proof."))
+            .ToBytes();
+
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(pdf);
+        IReadOnlyList<PdfExtractedAttachment> documentAttachments = PdfReadDocument.Load(pdf).ExtractAttachments();
+
+        Assert.Equal(2, attachments.Count);
+        Assert.Equal(2, documentAttachments.Count);
+
+        PdfExtractedAttachment invoice = attachments[0];
+        Assert.Equal("invoice.xml", invoice.Name);
+        Assert.Equal("invoice.xml", invoice.FileName);
+        Assert.Equal("invoice.xml", invoice.UnicodeFileName);
+        Assert.Equal("Structured invoice XML", invoice.Description);
+        Assert.Equal("application/xml", invoice.MimeType);
+        Assert.Equal(PdfAssociatedFileRelationship.Data, invoice.Relationship);
+        Assert.Equal(invoiceXml, invoice.Bytes);
+        Assert.True(invoice.FileSpecObjectNumber > 0);
+        Assert.True(invoice.EmbeddedFileObjectNumber > 0);
+
+        byte[] snapshot = invoice.Bytes;
+        snapshot[0] = 0;
+        Assert.Equal((byte)'<', invoice.Bytes[0]);
+
+        PdfExtractedAttachment source = attachments[1];
+        Assert.Equal("source.txt", source.FileName);
+        Assert.Equal("text/plain", source.MimeType);
+        Assert.Equal(PdfAssociatedFileRelationship.Source, source.Relationship);
+        Assert.Equal(sourceBytes, source.Bytes);
+    }
+
+    [Fact]
+    public void ExtractAttachments_ReadsSimpleHandBuiltEmbeddedFilePdf() {
+        IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(BuildSimpleEmbeddedFilePdf());
+
+        PdfExtractedAttachment attachment = Assert.Single(attachments);
+        Assert.Equal("note.txt", attachment.Name);
+        Assert.Equal("note.txt", attachment.FileName);
+        Assert.Null(attachment.UnicodeFileName);
+        Assert.Null(attachment.Description);
+        Assert.Null(attachment.MimeType);
+        Assert.Equal(PdfAssociatedFileRelationship.Unspecified, attachment.Relationship);
+        Assert.Equal(5, attachment.FileSpecObjectNumber);
+        Assert.Equal(6, attachment.EmbeddedFileObjectNumber);
+        Assert.Equal("note", Encoding.ASCII.GetString(attachment.Bytes));
+    }
+
+    [Fact]
+    public void ExtractAttachments_DecodesFlateEmbeddedFileStreams() {
+        byte[] payload = Encoding.UTF8.GetBytes("compressed attachment payload");
+        byte[] pdf = BuildFlateEmbeddedFilePdf(payload);
+
+        PdfExtractedAttachment attachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(pdf));
+
+        Assert.Equal("data.bin", attachment.FileName);
+        Assert.Equal("application/octet-stream", attachment.MimeType);
+        Assert.Equal("FlateDecode", attachment.Filter);
+        Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
+        Assert.Equal(payload, attachment.Bytes);
+    }
+
+    [Fact]
+    public void ExtractAttachments_SupportsPathStreamAndDirectoryOutputs() {
+        byte[] payload = Encoding.UTF8.GetBytes("directory payload");
+        byte[] pdf = PdfDoc.Create()
+            .AttachFile("payload.txt", payload, "text/plain", PdfAssociatedFileRelationship.Supplement)
+            .Paragraph(p => p.Text("Directory extraction proof."))
+            .ToBytes();
+
+        string tempRoot = Path.Combine(Path.GetTempPath(), "officeimo-pdf-attachments-" + Guid.NewGuid().ToString("N"));
+        string pdfPath = Path.Combine(tempRoot, "input.pdf");
+        string outputDirectory = Path.Combine(tempRoot, "out");
+
+        try {
+            Directory.CreateDirectory(tempRoot);
+            File.WriteAllBytes(pdfPath, pdf);
+
+            using var stream = new MemoryStream(pdf);
+            Assert.Single(PdfAttachmentExtractor.ExtractAttachments(pdfPath));
+            Assert.Single(PdfAttachmentExtractor.ExtractAttachments(stream));
+
+            IReadOnlyList<string> paths = PdfAttachmentExtractor.ExtractAttachments(pdf, outputDirectory);
+            string path = Assert.Single(paths);
+
+            Assert.Equal("payload.txt", Path.GetFileName(path));
+            Assert.True(File.Exists(path));
+            Assert.Equal(payload, File.ReadAllBytes(path));
+        } finally {
+            if (Directory.Exists(tempRoot)) {
+                Directory.Delete(tempRoot, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void ExtractAttachments_RejectsInvalidInputs() {
+        Assert.Throws<ArgumentNullException>(() => PdfAttachmentExtractor.ExtractAttachments((byte[])null!));
+        Assert.Throws<ArgumentNullException>(() => PdfAttachmentExtractor.ExtractAttachments((Stream)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfAttachmentExtractor.ExtractAttachments((PdfReadDocument)null!));
+        Assert.Throws<ArgumentException>(() => PdfAttachmentExtractor.ExtractAttachments(" "));
+
+        using var unreadable = new WriteOnlyStream();
+        Assert.Throws<ArgumentException>(() => PdfAttachmentExtractor.ExtractAttachments(unreadable));
+    }
+
+    private static byte[] BuildSimpleEmbeddedFilePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(note.txt) 5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Filespec /F (note.txt) /EF << /F 6 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /EmbeddedFile /Length 4 >>",
+            "stream",
+            "note",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildFlateEmbeddedFilePdf(byte[] payload) {
+        byte[] compressed = DeflateZlib(payload);
+        string header = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles << /Names [(data.bin) 5 0 R] >> >> /AF [5 0 R] >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Filespec /F (data.bin) /UF (data.bin) /Desc (Payload) /AFRelationship /Data /EF << /F 6 0 R /UF 6 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /EmbeddedFile /Subtype /application#2Foctet-stream /Length " + compressed.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Filter /FlateDecode >>",
+            "stream"
+        });
+        string footer = string.Join("\n", new[] {
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        using var output = new MemoryStream();
+        WriteAscii(output, header);
+        output.WriteByte((byte)'\n');
+        output.Write(compressed, 0, compressed.Length);
+        output.WriteByte((byte)'\n');
+        WriteAscii(output, footer);
+        return output.ToArray();
+    }
+
+    private static byte[] DeflateZlib(byte[] data) {
+        using var output = new MemoryStream();
+        output.WriteByte(0x78);
+        output.WriteByte(0x9C);
+        using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
+            deflate.Write(data, 0, data.Length);
+        }
+
+        uint adler = Adler32(data);
+        output.WriteByte((byte)((adler >> 24) & 0xFF));
+        output.WriteByte((byte)((adler >> 16) & 0xFF));
+        output.WriteByte((byte)((adler >> 8) & 0xFF));
+        output.WriteByte((byte)(adler & 0xFF));
+        return output.ToArray();
+    }
+
+    private static uint Adler32(byte[] data) {
+        const uint ModAdler = 65521;
+        uint a = 1;
+        uint b = 0;
+        for (int i = 0; i < data.Length; i++) {
+            a = (a + data[i]) % ModAdler;
+            b = (b + a) % ModAdler;
+        }
+
+        return (b << 16) | a;
+    }
+
+    private static void WriteAscii(Stream stream, string text) {
+        byte[] bytes = Encoding.ASCII.GetBytes(text);
+        stream.Write(bytes, 0, bytes.Length);
+    }
+
+    private sealed class WriteOnlyStream : Stream {
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => 0;
+        public override long Position { get => 0; set => throw new NotSupportedException(); }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) { }
+    }
+}

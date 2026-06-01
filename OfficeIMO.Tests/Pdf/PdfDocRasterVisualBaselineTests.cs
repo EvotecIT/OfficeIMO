@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Drawing;
@@ -55,6 +56,22 @@ public class PdfDocRasterVisualBaselineTests {
     [Fact]
     public void NativeExcelDailyWorkbook_MatchesPopplerRasterBaseline() {
         AssertScenarioRasterBaseline("native-excel-daily-workbook", CreateNativeExcelDailyWorkbook, pageCount: 2);
+    }
+
+    [Fact]
+    public void MarkdownTechnicalDocument_MatchesPopplerRasterBaseline() {
+        AssertScenarioRasterBaseline("markdown-technical-document", CreateMarkdownTechnicalDocument);
+    }
+
+    [Theory]
+    [InlineData(MarkdownPdfThemeKind.Plain, "markdown-theme-gallery-plain")]
+    [InlineData(MarkdownPdfThemeKind.WordLike, "markdown-theme-gallery-word-like")]
+    [InlineData(MarkdownPdfThemeKind.TechnicalDocument, "markdown-theme-gallery-technical-document")]
+    [InlineData(MarkdownPdfThemeKind.GitHubLike, "markdown-theme-gallery-github-like")]
+    [InlineData(MarkdownPdfThemeKind.Compact, "markdown-theme-gallery-compact")]
+    [InlineData(MarkdownPdfThemeKind.Report, "markdown-theme-gallery-report")]
+    public void MarkdownThemeGallery_MatchesPopplerRasterBaseline(MarkdownPdfThemeKind themeKind, string scenarioName) {
+        AssertScenarioRasterBaseline(scenarioName, () => CreateMarkdownThemeGallery(themeKind));
     }
 
     [Fact]
@@ -208,6 +225,11 @@ public class PdfDocRasterVisualBaselineTests {
     [InlineData("styled-runs")]
     [InlineData("tabs-leaders")]
     [InlineData("drawing-gallery")]
+    [InlineData("watermark")]
+    [InlineData("image-watermark")]
+    [InlineData("page-border")]
+    [InlineData("background-image")]
+    [InlineData("background-shapes")]
     [InlineData("row-columns")]
     [InlineData("showcase-dashboard")]
     public void CorePdfScenarios_MatchPopplerRasterBaseline(string scenarioName) {
@@ -318,6 +340,16 @@ public class PdfDocRasterVisualBaselineTests {
                 return CreateTabsLeaders();
             case "drawing-gallery":
                 return CreateDrawingGallery();
+            case "watermark":
+                return CreateWatermark();
+            case "image-watermark":
+                return CreateImageWatermark();
+            case "page-border":
+                return CreatePageBorder();
+            case "background-image":
+                return CreateBackgroundImage();
+            case "background-shapes":
+                return CreateBackgroundShapes();
             case "row-columns":
                 return CreateRowColumns();
             case "showcase-dashboard":
@@ -646,6 +678,116 @@ public class PdfDocRasterVisualBaselineTests {
         } finally {
             TryDeleteDirectory(workDir);
         }
+    }
+
+    private static byte[] CreateMarkdownTechnicalDocument() {
+        string workDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.MarkdownPdfRaster", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(workDir);
+        string markdownPath = Path.Combine(workDir, "markdown-technical-document.md");
+        string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
+        string localLogoPath = Path.Combine(workDir, "EvotecLogo.png");
+
+        try {
+            if (File.Exists(logoPath)) {
+                File.Copy(logoPath, localLogoPath, overwrite: true);
+            } else {
+                File.WriteAllBytes(localLogoPath, CreateFallbackLogo());
+            }
+
+            File.WriteAllText(markdownPath, """
+---
+title: Markdown PDF Visual Gate
+author: OfficeIMO
+tags: [pdf, markdown, native]
+description: Dependency-free Markdown export through OfficeIMO.Pdf
+---
+# Markdown PDF Visual Gate
+
+This fixture proves that `OfficeIMO.Markdown.Pdf` can turn a practical Markdown document into a polished first-party PDF without adding another rendering dependency.
+
+![OfficeIMO logo](EvotecLogo.png){width=104 height=36}
+_Figure 1. Relative local image resolved from the Markdown file directory._
+
+> The adapter keeps Markdown semantics thin and routes visual work through reusable PDF primitives.
+
+## Export coverage
+
+- [x] Headings become PDF outlines and named destinations.
+- [x] Rich inline text keeps **bold**, _italic_, `code`, and [links](https://officeimo.net/).
+- [x] Tables, quotes, code blocks, metadata, and local images share the core PDF engine.
+
+| Feature | Mapping | Status |
+| --- | --- | --- |
+| Metadata | Front matter to PDF info dictionary | Native |
+| Lists | Rich PDF list items | Native |
+| Tables | First-party PDF table cells | Native |
+| Images | Local JPEG/PNG image blocks | Native |
+
+```csharp
+MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf");
+```
+""", new UTF8Encoding(false));
+
+            var options = new MarkdownPdfSaveOptions {
+                DefaultImageWidth = 104,
+                DefaultImageHeight = 36
+            };
+
+            byte[] pdf = MarkdownPdfConverter.SaveFileAsPdf(markdownPath, options);
+            if (options.Warnings.Count != 0) {
+                throw new InvalidOperationException("Markdown raster fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
+            }
+
+            return pdf;
+        } finally {
+            TryDeleteDirectory(workDir);
+        }
+    }
+
+    private static byte[] CreateMarkdownThemeGallery(MarkdownPdfThemeKind themeKind) {
+        string markdown = CreateMarkdownThemeGallerySource(themeKind);
+        var options = new MarkdownPdfSaveOptions {
+            VisualTheme = MarkdownPdfVisualTheme.Create(themeKind)
+        };
+
+        byte[] pdf = markdown.SaveAsPdf(options);
+        if (options.Warnings.Count != 0) {
+            throw new InvalidOperationException("Markdown theme gallery fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
+        }
+
+        return pdf;
+    }
+
+    private static string CreateMarkdownThemeGallerySource(MarkdownPdfThemeKind themeKind) {
+        string themeName = themeKind.ToString();
+        return """
+# Markdown Theme Gallery
+
+This page renders one first-party visual profile for headings, lists, tables, code, quotes, callouts, and TOC chrome.
+
+[TOC min=2 max=2 layout=panel title="Contents" requiretoplevel=false]
+
+> [!TIP] Theme profile: THEME_NAME
+> Markdown stays semantic while `OfficeIMO.Pdf` owns visual layout.
+
+## Evidence
+
+- [x] Headings create PDF hierarchy.
+- [x] Lists keep readable spacing.
+- [x] Panels and tables are styled by the selected profile.
+- [ ] Wrapped checklist rows keep the checkbox optically aligned with the first text line.
+
+| Surface | Expected visual signal |
+| --- | --- |
+| Table header | Theme-specific fill and text color |
+| Code block | Monospace panel with controlled spacing |
+
+> Quotes should read as supporting narrative.
+
+```csharp
+var pdf = markdown.SaveAsPdf();
+```
+""".Replace("THEME_NAME", themeName, StringComparison.Ordinal);
     }
 
     private static double FindWordStartX(UglyToad.PdfPig.Content.Page page, string word) {
@@ -1227,6 +1369,279 @@ public class PdfDocRasterVisualBaselineTests {
         drawing.AddShape(path, 238, 108);
 
         return drawing;
+    }
+
+    private static byte[] CreateWatermark() {
+        return PdfDoc.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10,
+                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf watermark gate",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true
+            })
+            .Meta(title: "OfficeIMO.Pdf Watermark", author: "OfficeIMO")
+            .Watermark("DRAFT", fontSize: 74, color: PdfColor.FromRgb(90, 106, 130), opacity: 0.14, rotationAngle: -38)
+            .H1("Watermark Gate", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+            .Paragraph(p => p.Text("This baseline verifies reusable page watermarks render behind normal document content without taking layout space or reducing text readability."))
+            .PanelParagraph(p => p
+                    .Bold("Document state").LineBreak()
+                    .Text("Watermark text is a page decoration, not a body block, so paragraphs, tables, and footers keep their normal rhythm."),
+                new PanelStyle {
+                    Background = PdfColor.FromRgb(248, 250, 252),
+                    BorderColor = PdfColor.FromRgb(203, 213, 225),
+                    BorderWidth = 0.7,
+                    PaddingX = 10,
+                    PaddingY = 8,
+                    SpacingBefore = 8,
+                    SpacingAfter = 10
+                })
+            .Table(new[] {
+                new[] { "Capability", "Visual expectation" },
+                new[] { "Opacity", "Subtle behind-content mark" },
+                new[] { "Rotation", "Centered diagonal placement" },
+                new[] { "Flow", "No extra body spacing" }
+            }, style: new PdfTableStyle {
+                HeaderFill = PdfColor.FromRgb(15, 23, 42),
+                HeaderTextColor = PdfColor.White,
+                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
+                CellPaddingX = 7,
+                CellPaddingY = 5,
+                AutoFitColumns = true,
+                SpacingBefore = 4,
+                SpacingAfter = 8
+            })
+            .Paragraph(p => p.Text("The watermark remains readable in the raster gate while the foreground table and panel stay crisp."))
+            .ToBytes();
+    }
+
+    private static byte[] CreateImageWatermark() {
+        string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
+        byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
+
+        return PdfDoc.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10,
+                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf image watermark gate",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true
+            })
+            .Meta(title: "OfficeIMO.Pdf Image Watermark", author: "OfficeIMO")
+            .ImageWatermark(logo, width: 220, height: 92, opacity: 0.16, rotationAngle: -22)
+            .H1("Image Watermark Gate", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+            .Paragraph(p => p.Text("This baseline verifies reusable image watermarks render behind normal document content without occupying flow space."))
+            .PanelParagraph(p => p
+                    .Bold("Layering expectation").LineBreak()
+                    .Text("The image watermark is a page decoration. Foreground text, panels, and table borders stay readable and crisp."),
+                new PanelStyle {
+                    Background = PdfColor.FromRgb(248, 250, 252),
+                    BorderColor = PdfColor.FromRgb(203, 213, 225),
+                    BorderWidth = 0.7,
+                    PaddingX = 10,
+                    PaddingY = 8,
+                    SpacingBefore = 8,
+                    SpacingAfter = 10
+                })
+            .Table(new[] {
+                new[] { "Capability", "Visual expectation" },
+                new[] { "Image XObject", "Drawn behind body content" },
+                new[] { "Opacity", "Subtle enough for text readability" },
+                new[] { "Rotation", "Centered page decoration" }
+            }, style: new PdfTableStyle {
+                HeaderFill = PdfColor.FromRgb(15, 23, 42),
+                HeaderTextColor = PdfColor.White,
+                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
+                CellPaddingX = 7,
+                CellPaddingY = 5,
+                AutoFitColumns = true,
+                SpacingBefore = 4,
+                SpacingAfter = 8
+            })
+            .Paragraph(p => p.Text("The raster gate keeps this from quietly regressing into an above-content stamp or layout-consuming image block."))
+            .ToBytes();
+    }
+
+    private static byte[] CreatePageBorder() {
+        return PdfDoc.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10,
+                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf page border gate",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true
+            })
+            .Meta(title: "OfficeIMO.Pdf Page Border", author: "OfficeIMO")
+            .Background(PdfColor.FromRgb(250, 252, 255))
+            .PageBorder(PdfColor.FromRgb(30, 64, 175), width: 1.15, inset: 30, opacity: 0.72, dashStyle: OfficeStrokeDashStyle.Solid)
+            .H1("Page Border Gate", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+            .Paragraph(p => p.Text("This baseline verifies reusable page borders render as decoration without taking layout space or crowding text."))
+            .PanelParagraph(p => p
+                    .Bold("Frame expectation").LineBreak()
+                    .Text("The frame should visually finish the page while content keeps normal margins, table rhythm, and footer placement."),
+                new PanelStyle {
+                    Background = PdfColor.FromRgb(255, 255, 255),
+                    BorderColor = PdfColor.FromRgb(191, 219, 254),
+                    BorderWidth = 0.7,
+                    PaddingX = 10,
+                    PaddingY = 8,
+                    SpacingBefore = 8,
+                    SpacingAfter = 10
+                })
+            .Table(new[] {
+                new[] { "Capability", "Visual expectation" },
+                new[] { "Inset", "Frame stays clear of page edges" },
+                new[] { "Opacity", "Border is visible without dominating" },
+                new[] { "Flow", "No extra body spacing" }
+            }, style: new PdfTableStyle {
+                HeaderFill = PdfColor.FromRgb(15, 23, 42),
+                HeaderTextColor = PdfColor.White,
+                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
+                CellPaddingX = 7,
+                CellPaddingY = 5,
+                AutoFitColumns = true,
+                SpacingBefore = 4,
+                SpacingAfter = 8
+            })
+            .Paragraph(p => p.Text("The border is a generic page primitive that Word, Markdown, Excel, and wrappers can reuse without template-specific APIs."))
+            .ToBytes();
+    }
+
+    private static byte[] CreateBackgroundImage() {
+        string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
+        byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
+
+        return PdfDoc.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10,
+                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf background image gate",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true
+            })
+            .Meta(title: "OfficeIMO.Pdf Background Image", author: "OfficeIMO")
+            .Background(PdfColor.FromRgb(250, 252, 255))
+            .BackgroundImage(logo, OfficeImageFit.Contain, opacity: 0.08)
+            .PageBorder(PdfColor.FromRgb(148, 163, 184), width: 0.9, inset: 30, opacity: 0.55)
+            .H1("Background Image Gate", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+            .Paragraph(p => p.Text("This baseline verifies a page background image can fill the visual surface without becoming a body image."))
+            .PanelParagraph(p => p
+                    .Bold("Layering expectation").LineBreak()
+                    .Text("The background image is fitted to the page box behind content, watermarks, borders, headers, footers, and normal flow blocks."),
+                new PanelStyle {
+                    Background = PdfColor.FromRgb(255, 255, 255),
+                    BorderColor = PdfColor.FromRgb(203, 213, 225),
+                    BorderWidth = 0.7,
+                    PaddingX = 10,
+                    PaddingY = 8,
+                    SpacingBefore = 8,
+                    SpacingAfter = 10
+                })
+            .Table(new[] {
+                new[] { "Capability", "Visual expectation" },
+                new[] { "Fit", "Contain/cover/stretch without layout space" },
+                new[] { "Opacity", "Subtle letterhead-style background" },
+                new[] { "Flow", "Foreground rhythm remains stable" }
+            }, style: new PdfTableStyle {
+                HeaderFill = PdfColor.FromRgb(15, 23, 42),
+                HeaderTextColor = PdfColor.White,
+                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
+                CellPaddingX = 7,
+                CellPaddingY = 5,
+                AutoFitColumns = true,
+                SpacingBefore = 4,
+                SpacingAfter = 8
+            })
+            .Paragraph(p => p.Text("The same primitive can later power Markdown themes, Word backgrounds, letterheads, and wrapper presets."))
+            .ToBytes();
+    }
+
+    private static byte[] CreateBackgroundShapes() {
+        return PdfDoc.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10,
+                DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
+                HeaderFont = PdfStandardFont.Helvetica,
+                HeaderFontSize = 8,
+                HeaderFormat = "OfficeIMO.Pdf background shapes gate",
+                HeaderAlign = PdfAlign.Left,
+                ShowHeader = true,
+                FooterFont = PdfStandardFont.Helvetica,
+                FooterFontSize = 8,
+                FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
+                FooterAlign = PdfAlign.Right,
+                ShowPageNumbers = true
+            })
+            .Meta(title: "OfficeIMO.Pdf Background Shapes", author: "OfficeIMO")
+            .Background(PdfColor.FromRgb(250, 252, 255))
+            .BackgroundTopBand(104, insetX: 36, offsetY: 58, cornerRadius: 22, stroke: PdfColor.FromRgb(147, 197, 253), strokeWidth: 0.7, fillOpacity: 0.64, strokeOpacity: 0.6, fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.FromRgb(219, 234, 254), OfficeColor.FromRgb(240, 253, 250)))
+            .BackgroundRightBand(70, PdfColor.FromRgb(239, 246, 255), insetY: 92, offsetX: 30, cornerRadius: 32, fillOpacity: 0.6)
+            .BackgroundEllipse(456, 92, 190, 190, PdfColor.FromRgb(224, 242, 254), fillOpacity: 0.45)
+            .PageBorder(PdfColor.FromRgb(148, 163, 184), width: 0.9, inset: 30, opacity: 0.55)
+            .H1("Background Shapes Gate", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
+            .Paragraph(p => p.Text("This baseline verifies vector page decoration can add Word-like polish without taking body layout space."))
+            .PanelParagraph(p => p
+                    .Bold("Layering expectation").LineBreak()
+                    .Text("Rounded bands, ellipses, gradients, opacity, borders, headers, footers, and foreground flow should stay in a stable visual stack."),
+                new PanelStyle {
+                    Background = PdfColor.FromRgb(255, 255, 255),
+                    BorderColor = PdfColor.FromRgb(203, 213, 225),
+                    BorderWidth = 0.7,
+                    PaddingX = 10,
+                    PaddingY = 8,
+                    SpacingBefore = 8,
+                    SpacingAfter = 10
+                })
+            .Table(new[] {
+                new[] { "Capability", "Visual expectation" },
+                new[] { "Vector fills", "No raster blur, reusable page decoration" },
+                new[] { "Opacity", "Soft bands behind normal text" },
+                new[] { "Flow", "Content rhythm remains stable" }
+            }, style: new PdfTableStyle {
+                HeaderFill = PdfColor.FromRgb(15, 23, 42),
+                HeaderTextColor = PdfColor.White,
+                BorderColor = PdfColor.FromRgb(203, 213, 225),
+                RowStripeFill = PdfColor.FromRgb(248, 250, 252),
+                CellPaddingX = 7,
+                CellPaddingY = 5,
+                AutoFitColumns = true,
+                SpacingBefore = 4,
+                SpacingAfter = 8
+            })
+            .Paragraph(p => p.Text("This gives Markdown and Office exporters a dependency-free way to create visually richer pages than literal plain Markdown output."))
+            .ToBytes();
     }
 
     private static byte[] CreateRowColumns() {

@@ -740,6 +740,41 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Maps_Office_HeaderFooter_Font_Aliases() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterFontAliases.xlsx");
+
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 0,
+            PageSize = new PdfCore.PageSize(420, 320),
+            Margins = PdfCore.PageMargins.Uniform(54)
+        };
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "FontAliases")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "HeaderFooterFontAliasBody");
+            sheet.SetHeaderFooter(
+                headerCenter: "&\"Aptos,Bold\"Alias Header",
+                footerCenter: "&\"Consolas,Italic\"Alias Footer");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Alias Header", text);
+        Assert.Contains("Alias Footer", text);
+        Assert.Contains("HeaderFooterFontAliasBody", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("Helvetica-Bold", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("Courier-Oblique", rawPdf, StringComparison.Ordinal);
+        Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetHeaderFooterFormatting");
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Warns_For_Mixed_Worksheet_HeaderFooter_Formatting() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterMixedFormatting.xlsx");
 

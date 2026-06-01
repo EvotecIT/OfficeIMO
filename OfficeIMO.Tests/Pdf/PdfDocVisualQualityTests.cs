@@ -220,6 +220,842 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void StandardFontMapper_MapsOfficeFamiliesToDependencyFreePdfFonts() {
+        Assert.True(PdfStandardFontMapper.TryMapFontFamily("Segoe UI, sans-serif", out PdfStandardFont sans));
+        Assert.Equal(PdfStandardFont.Helvetica, sans);
+
+        Assert.True(PdfStandardFontMapper.TryMapFontFamily("\"Times New Roman\", serif", bold: true, italic: true, out PdfStandardFont serif));
+        Assert.Equal(PdfStandardFont.TimesBoldItalic, serif);
+
+        Assert.True(PdfStandardFontMapper.TryMapFontFamily("Consolas", bold: false, italic: true, out PdfStandardFont mono));
+        Assert.Equal(PdfStandardFont.CourierOblique, mono);
+
+        Assert.False(PdfStandardFontMapper.TryMapFontFamily("Unmapped Display Face", out PdfStandardFont fallback));
+        Assert.Equal(PdfStandardFont.Helvetica, fallback);
+
+        Assert.Equal(PdfStandardFont.TimesBold, PdfStandardFontMapper.GetStyledFont(PdfStandardFont.TimesItalic, bold: true, italic: false));
+    }
+
+    [Fact]
+    public void TextWatermark_RendersBehindContentWithOpacityAndRotation() {
+        byte[] bytes = PdfDoc.Create()
+            .Watermark("DRAFT", fontSize: 48, color: PdfColor.FromRgb(120, 130, 150), opacity: 0.18, rotationAngle: -45)
+            .H1("Watermark proof")
+            .Paragraph(p => p.Text("Body content stays readable above the watermark."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains("Watermark proof", text);
+        Assert.Contains("DRAFT", text);
+        Assert.Contains("/ExtGState", raw);
+        Assert.Contains("/ca 0.18", raw, StringComparison.Ordinal);
+        Assert.Contains("0.707 -0.707 0.707 0.707", raw, StringComparison.Ordinal);
+        Assert.Contains("<4452414654> Tj", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TextWatermark_CanBeScopedAndClearedPerComposedPage() {
+        byte[] bytes = PdfDoc.Create()
+            .Watermark("GLOBAL", fontSize: 30, opacity: 0.16)
+            .Page(page => {
+                page.Watermark("SECTION", fontSize: 30, opacity: 0.16);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Section page"))));
+            })
+            .Page(page => {
+                page.Watermark((PdfTextWatermark?)null);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+            })
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains("SECTION", text);
+        Assert.DoesNotContain("GLOBAL", text);
+    }
+
+    [Fact]
+    public void TextWatermark_ValidatesAndClonesOptions() {
+        var options = new PdfOptions {
+            TextWatermark = new PdfTextWatermark("Original") {
+                Opacity = 0.2,
+                RotationAngle = -20,
+                FontSize = 40
+            }
+        };
+
+        PdfTextWatermark snapshot = options.TextWatermark!;
+        snapshot.Text = "Changed";
+
+        Assert.Equal("Original", options.TextWatermark!.Text);
+        Assert.Throws<ArgumentException>(() => new PdfTextWatermark(""));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextWatermark("Bad") { Opacity = 1.5 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextWatermark("Bad") { RotationAngle = double.NaN });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfTextWatermark("Bad") { Font = (PdfStandardFont)99 });
+    }
+
+    [Fact]
+    public void ImageWatermark_RendersBehindContentWithOpacityAndRotation() {
+        byte[] bytes = PdfDoc.Create()
+            .ImageWatermark(CreateMinimalRgbPng(), width: 120, height: 60, opacity: 0.2, rotationAngle: 30)
+            .H1("Image watermark proof")
+            .Paragraph(p => p.Text("Body content stays readable above the image watermark."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        int imageDraw = stream.IndexOf("/Im", StringComparison.Ordinal);
+        int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);
+
+        Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
+        Assert.Contains("/ExtGState", raw, StringComparison.Ordinal);
+        Assert.Contains("/ca 0.2", raw, StringComparison.Ordinal);
+        Assert.True(imageDraw >= 0, "Expected the image watermark XObject to be drawn.");
+        Assert.True(firstTextBlock > imageDraw, "Expected body text to be emitted after the image watermark draw command.");
+    }
+
+    [Fact]
+    public void ImageWatermark_CanBeScopedAndClearedPerComposedPage() {
+        byte[] image = CreateMinimalRgbPng();
+        byte[] bytes = PdfDoc.Create()
+            .ImageWatermark(image, width: 80, height: 80, opacity: 0.18)
+            .Page(page => {
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Marked page"))));
+            })
+            .Page(page => {
+                page.ImageWatermark((PdfImageWatermark?)null);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+            })
+            .ToBytes();
+
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+
+        Assert.Contains("/Im", firstPageStream, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Im", secondPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ImageWatermark_ValidatesAndClonesOptions() {
+        byte[] image = CreateMinimalRgbPng();
+        var options = new PdfOptions {
+            ImageWatermark = new PdfImageWatermark(image, width: 20, height: 10) {
+                Opacity = 0.25,
+                RotationAngle = -15
+            }
+        };
+
+        PdfImageWatermark snapshot = options.ImageWatermark!;
+        snapshot.Width = 120;
+
+        Assert.Equal(20, options.ImageWatermark!.Width);
+        Assert.Throws<ArgumentException>(() => new PdfImageWatermark(Array.Empty<byte>(), 20, 10));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageWatermark(image, 0, 10));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageWatermark(image, 20, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageWatermark(image, 20, 10) { Opacity = 1.5 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfImageWatermark(image, 20, 10) { RotationAngle = double.PositiveInfinity });
+    }
+
+    [Fact]
+    public void ContentStreamFormatting_CanonicalizesNegativeZeroInImageMatrices() {
+        byte[] bytes = PdfDoc.Create()
+            .Image(CreateMinimalRgbPng(), width: 36, height: 36)
+            .ToBytes();
+
+        string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+
+        Assert.Contains("36 0 0 36", stream, StringComparison.Ordinal);
+        Assert.DoesNotContain(" -0 ", stream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ContentStreams_CanBeFlateCompressedAndRemainReadable() {
+        byte[] uncompressed = CreateCompressionProbe(compressContentStreams: false);
+        byte[] compressed = CreateCompressionProbe(compressContentStreams: true);
+        string rawCompressed = Encoding.ASCII.GetString(compressed);
+        string text = PdfReadDocument.Load(compressed).ExtractText();
+        PdfOptions options = new PdfOptions {
+            CompressContentStreams = true
+        };
+        PdfOptions clone = options.Clone();
+
+        Assert.True(compressed.Length < uncompressed.Length, $"Expected compressed PDF to be smaller. Uncompressed: {uncompressed.Length}, compressed: {compressed.Length}.");
+        Assert.Contains("/Filter /FlateDecode", rawCompressed, StringComparison.Ordinal);
+        Assert.Contains("CompressionProbe", text, StringComparison.Ordinal);
+        Assert.Contains("repeated body", text, StringComparison.Ordinal);
+        Assert.Equal(1, PdfInspector.Inspect(compressed).PageCount);
+        Assert.True(clone.CompressContentStreams);
+    }
+
+    [Fact]
+    public void StandardFontToUnicodeMaps_CanBeEmittedForGeneratedPdfText() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                IncludeStandardFontToUnicodeMaps = true
+            })
+            .Paragraph(p => p.Text("Cafe é and Euro €"))
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+        PdfOptions clone = new PdfOptions {
+            IncludeStandardFontToUnicodeMaps = true
+        }.Clone();
+
+        Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
+        Assert.Contains("/CMapName /OfficeIMO-WinAnsi-UCS", raw, StringComparison.Ordinal);
+        Assert.Contains("<80> <20AC>", raw, StringComparison.Ordinal);
+        Assert.Contains("<E9> <00E9>", raw, StringComparison.Ordinal);
+        Assert.Contains("Cafe é and Euro", text, StringComparison.Ordinal);
+        Assert.Contains("€", text, StringComparison.Ordinal);
+        Assert.True(clone.IncludeStandardFontToUnicodeMaps);
+    }
+
+    [Fact]
+    public void XmpMetadata_CanBeEmittedAndSynchronizedWithInfoDictionary() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                IncludeXmpMetadata = true
+            })
+            .Meta(
+                title: "R&D <PDF>",
+                author: "OfficeIMO Team",
+                subject: "Compliance & metadata",
+                keywords: "pdf/a, ua; xmp")
+            .Paragraph(p => p.Text("XMP metadata body."))
+            .ToBytes();
+        string raw = Encoding.UTF8.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfOptions clone = new PdfOptions {
+            IncludeXmpMetadata = true
+        }.Clone();
+
+        Assert.Contains("/Metadata", raw, StringComparison.Ordinal);
+        Assert.Contains("/Type /Metadata /Subtype /XML", raw, StringComparison.Ordinal);
+        Assert.Contains("<?xpacket begin=", raw, StringComparison.Ordinal);
+        Assert.Contains("<dc:title><rdf:Alt><rdf:li xml:lang=\"x-default\">R&amp;D &lt;PDF&gt;</rdf:li></rdf:Alt></dc:title>", raw, StringComparison.Ordinal);
+        Assert.Contains("<dc:creator><rdf:Seq><rdf:li>OfficeIMO Team</rdf:li></rdf:Seq></dc:creator>", raw, StringComparison.Ordinal);
+        Assert.Contains("<dc:description><rdf:Alt><rdf:li xml:lang=\"x-default\">Compliance &amp; metadata</rdf:li></rdf:Alt></dc:description>", raw, StringComparison.Ordinal);
+        Assert.Contains("<pdf:Keywords>pdf/a, ua; xmp</pdf:Keywords>", raw, StringComparison.Ordinal);
+        Assert.Contains("<rdf:li>pdf/a</rdf:li>", raw, StringComparison.Ordinal);
+        Assert.Contains("<rdf:li>ua</rdf:li>", raw, StringComparison.Ordinal);
+        Assert.Contains("<rdf:li>xmp</rdf:li>", raw, StringComparison.Ordinal);
+        Assert.Equal("R&D <PDF>", info.Metadata.Title);
+        Assert.Equal("OfficeIMO Team", info.Metadata.Author);
+        Assert.Equal("Compliance & metadata", info.Metadata.Subject);
+        Assert.Equal("pdf/a, ua; xmp", info.Metadata.Keywords);
+        Assert.True(info.HasXmpMetadata);
+        Assert.True(preflight.Probe.HasXmpMetadata);
+        Assert.True(preflight.CanRewrite);
+        Assert.True(clone.IncludeXmpMetadata);
+    }
+
+    [Fact]
+    public void OutputIntent_CanEmbedIccProfileAndRemainRewriteSafe() {
+        byte[] profile = CreateMinimalIccProfile();
+        var outputIntent = new PdfOutputIntent(profile, "OfficeIMO RGB") {
+            OutputCondition = "OfficeIMO test RGB",
+            RegistryName = "https://officeimo.dev/pdf/output-intents",
+            Info = "Dependency-free test profile"
+        };
+        var options = new PdfOptions {
+            OutputIntent = outputIntent
+        };
+        profile[36] = 0;
+
+        byte[] bytes = PdfDoc.Create(options)
+            .Paragraph(p => p.Text("Output intent body."))
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfOptions clone = options.Clone();
+
+        Assert.Contains("/OutputIntents [", raw, StringComparison.Ordinal);
+        Assert.Contains("/Type /OutputIntent /S /GTS_PDFA1", raw, StringComparison.Ordinal);
+        Assert.Contains("/DestOutputProfile", raw, StringComparison.Ordinal);
+        Assert.Contains("/N 3", raw, StringComparison.Ordinal);
+        Assert.Contains("<4F6666696365494D4F20524742>", raw, StringComparison.Ordinal);
+        Assert.True(info.HasOutputIntents);
+        Assert.True(preflight.Probe.HasOutputIntents);
+        Assert.True(preflight.CanRewrite);
+        Assert.Equal(3, clone.OutputIntent!.ColorComponents);
+        Assert.Equal((byte)'a', clone.OutputIntent.IccProfile[36]);
+    }
+
+    [Fact]
+    public void OutputIntent_ValidatesIccProfileAndSnapshotsState() {
+        byte[] grayProfile = CreateMinimalIccProfile("GRAY");
+        byte[] cmykProfile = CreateMinimalIccProfile("CMYK");
+        byte[] badSignature = CreateMinimalIccProfile();
+        badSignature[36] = (byte)'x';
+        byte[] badColorSpace = CreateMinimalIccProfile("LAB ");
+
+        var gray = new PdfOutputIntent(grayProfile, "Gray profile");
+        var cmyk = new PdfOutputIntent(cmykProfile, "CMYK profile");
+        var options = new PdfOptions().SetOutputIntent(grayProfile, "Snapshot profile");
+        grayProfile[36] = 0;
+
+        Assert.Equal(1, gray.ColorComponents);
+        Assert.Equal(4, cmyk.ColorComponents);
+        Assert.Equal((byte)'a', options.OutputIntent!.IccProfile[36]);
+        Assert.Throws<ArgumentException>(() => new PdfOutputIntent(Array.Empty<byte>()));
+        Assert.Throws<ArgumentException>(() => new PdfOutputIntent(badSignature));
+        Assert.Throws<ArgumentException>(() => new PdfOutputIntent(badColorSpace));
+        Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), ""));
+        Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile()) { Info = "" });
+    }
+
+    [Fact]
+    public void DocumentLanguage_CanBeEmittedAndInspected() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                Language = "en-US"
+            })
+            .Paragraph(p => p.Text("Language body."))
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfOptions clone = new PdfOptions {
+            Language = "pl-PL"
+        }.Clone();
+
+        Assert.Contains("/Lang <656E2D5553>", raw, StringComparison.Ordinal);
+        Assert.Equal("en-US", info.CatalogLanguage);
+        Assert.Equal("en-US", preflight.DocumentInfo!.CatalogLanguage);
+        Assert.Equal("pl-PL", clone.Language);
+        Assert.Throws<ArgumentException>(() => new PdfOptions { Language = "" });
+        Assert.Throws<ArgumentException>(() => PdfDoc.Create().Language("bad\u0001lang"));
+    }
+
+    [Fact]
+    public void PageLabels_CanBeEmittedAndInspected() {
+        var options = new PdfOptions {
+            IncludePageLabels = true,
+            PageNumberStyle = PdfPageNumberStyle.UpperRoman,
+            PageNumberStart = 3,
+            PageLabelPrefix = "A-"
+        };
+
+        byte[] bytes = PdfDoc.Create(options)
+            .Paragraph(p => p.Text("Page label proof."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second labelled page."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfPageLabel label = Assert.Single(info.PageLabels);
+        PdfOptions clone = options.Clone();
+
+        Assert.Contains("/PageLabels ", raw, StringComparison.Ordinal);
+        Assert.Contains("/S /R", raw, StringComparison.Ordinal);
+        Assert.Contains("/St 3", raw, StringComparison.Ordinal);
+        Assert.Contains("/P <412D>", raw, StringComparison.Ordinal);
+        Assert.True(info.HasPageLabels);
+        Assert.True(info.HasReadablePageLabels);
+        Assert.True(preflight.Probe.HasPageLabels);
+        Assert.True(preflight.CanRewrite);
+        Assert.Equal(0, label.StartPageIndex);
+        Assert.Equal(1, label.StartPageNumber);
+        Assert.Equal("R", label.Style);
+        Assert.Equal("A-", label.Prefix);
+        Assert.Equal(3, label.StartNumber);
+        Assert.True(clone.IncludePageLabels);
+        Assert.Equal("A-", clone.PageLabelPrefix);
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(bytes, 2);
+        PdfPageLabel extractedLabel = Assert.Single(PdfInspector.Inspect(extracted).PageLabels);
+        Assert.Equal(0, extractedLabel.StartPageIndex);
+        Assert.Equal("A-", extractedLabel.Prefix);
+        Assert.Equal(4, extractedLabel.StartNumber);
+
+        Assert.Throws<ArgumentException>(() => new PdfOptions { PageLabelPrefix = "" });
+        Assert.Throws<ArgumentException>(() => PdfDoc.Create().PageLabels("bad\u0001prefix"));
+    }
+
+    [Fact]
+    public void ViewerPreferences_CanBeEmittedAndInspected() {
+        var options = new PdfOptions {
+            ViewerPreferences = new PdfViewerPreferencesOptions {
+                DisplayDocTitle = true,
+                HideToolbar = true,
+                FitWindow = false
+            }
+        };
+
+        byte[] bytes = PdfDoc.Create(options)
+            .Meta(title: "Viewer preference proof")
+            .ViewerPreferences(preferences => {
+                preferences.CenterWindow = true;
+                preferences.HideMenubar = false;
+            })
+            .Paragraph(p => p.Text("Viewer preferences proof."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfViewerPreferences viewerPreferences = Assert.IsType<PdfViewerPreferences>(info.ViewerPreferences);
+        PdfViewerPreferencesOptions clone = options.Clone().ViewerPreferences!;
+
+        Assert.Contains("/ViewerPreferences ", raw, StringComparison.Ordinal);
+        Assert.Contains("/DisplayDocTitle true", raw, StringComparison.Ordinal);
+        Assert.Contains("/HideToolbar true", raw, StringComparison.Ordinal);
+        Assert.Contains("/FitWindow false", raw, StringComparison.Ordinal);
+        Assert.Contains("/CenterWindow true", raw, StringComparison.Ordinal);
+        Assert.Contains("/HideMenubar false", raw, StringComparison.Ordinal);
+        Assert.True(info.HasViewerPreferences);
+        Assert.True(info.HasReadableViewerPreferences);
+        Assert.True(preflight.Probe.HasViewerPreferences);
+        Assert.True(preflight.CanRewrite);
+        Assert.True(viewerPreferences.GetBoolean("DisplayDocTitle"));
+        Assert.True(viewerPreferences.GetBoolean("HideToolbar"));
+        Assert.False(viewerPreferences.GetBoolean("FitWindow"));
+        Assert.True(viewerPreferences.GetBoolean("CenterWindow"));
+        Assert.False(viewerPreferences.GetBoolean("HideMenubar"));
+        Assert.True(clone.DisplayDocTitle);
+        Assert.True(clone.HideToolbar);
+        Assert.False(clone.FitWindow);
+        Assert.Null(clone.CenterWindow);
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(bytes, 1);
+        Assert.True(PdfInspector.Inspect(extracted).ViewerPreferences!.GetBoolean("DisplayDocTitle"));
+    }
+
+    [Fact]
+    public void EmbeddedFiles_CanBeEmittedAsNameTreeAndAssociatedFiles() {
+        byte[] invoiceXml = Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice>42</rsm:CrossIndustryInvoice>");
+        byte[] sourceText = Encoding.UTF8.GetBytes("Generated from OfficeIMO");
+
+        byte[] bytes = PdfDoc.Create(new PdfOptions()
+                .AddEmbeddedFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML"))
+            .AttachFile("source.txt", sourceText, "text/plain", PdfAssociatedFileRelationship.Source)
+            .Paragraph(p => p.Text("Embedded file proof."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Names << /EmbeddedFiles", raw, StringComparison.Ordinal);
+        Assert.Contains("/AF [", raw, StringComparison.Ordinal);
+        Assert.Contains("/Type /Filespec", raw, StringComparison.Ordinal);
+        Assert.Contains("/Type /EmbeddedFile", raw, StringComparison.Ordinal);
+        Assert.Contains("/AFRelationship /Data", raw, StringComparison.Ordinal);
+        Assert.Contains("/AFRelationship /Source", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /application#2Fxml", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /text#2Fplain", raw, StringComparison.Ordinal);
+        Assert.Contains("CrossIndustryInvoice", raw, StringComparison.Ordinal);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        Assert.True(info.HasEmbeddedFiles);
+        Assert.True(preflight.Probe.HasEmbeddedFiles);
+        Assert.True(preflight.CanRewrite);
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(bytes, 1);
+        Assert.Contains("/EmbeddedFiles", Encoding.ASCII.GetString(extracted), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmbeddedFiles_SnapshotDataAndRejectInvalidInputs() {
+        byte[] data = { 1, 2, 3 };
+        var file = new PdfEmbeddedFile("note.txt", data, "text/plain", PdfAssociatedFileRelationship.Supplement, "Note");
+        data[0] = 9;
+
+        byte[] snapshot = file.Data;
+        snapshot[1] = 9;
+
+        Assert.Equal(1, file.Data[0]);
+        Assert.Equal(2, file.Data[1]);
+        Assert.Equal("Supplement", PdfEmbeddedFileDictionaryBuilder.GetRelationshipName(file.Relationship));
+
+        var options = new PdfOptions().AddEmbeddedFile(file);
+        file.FileName = "changed.txt";
+        PdfEmbeddedFile stored = Assert.Single(options.EmbeddedFiles);
+        stored.FileName = "snapshot.txt";
+
+        Assert.Equal("note.txt", Assert.Single(options.EmbeddedFiles).FileName);
+        Assert.Equal("note.txt", Assert.Single(options.Clone().EmbeddedFiles).FileName);
+
+        options.ClearEmbeddedFiles();
+        Assert.Empty(options.EmbeddedFiles);
+
+        Assert.Throws<ArgumentNullException>(() => new PdfOptions().AddEmbeddedFile(null!));
+        Assert.Throws<ArgumentException>(() => new PdfOptions()
+            .AddEmbeddedFile("note.txt", new byte[] { 1 })
+            .AddEmbeddedFile("note.txt", new byte[] { 2 }));
+        Assert.Throws<ArgumentException>(() => new PdfEmbeddedFile("folder/note.txt", new byte[] { 1 }));
+        Assert.Throws<ArgumentException>(() => new PdfEmbeddedFile("note.txt", Array.Empty<byte>()));
+        Assert.Throws<ArgumentException>(() => new PdfEmbeddedFile("note.txt", new byte[] { 1 }, "text plain"));
+        Assert.Throws<ArgumentException>(() => new PdfEmbeddedFile("note.txt", new byte[] { 1 }) { Description = "" });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfEmbeddedFile("note.txt", new byte[] { 1 }, relationship: (PdfAssociatedFileRelationship)99));
+    }
+
+    [Fact]
+    public void ComplianceProfile_ValidatesAndClonesOptions() {
+        var options = new PdfOptions {
+            ComplianceProfile = PdfComplianceProfile.PdfA3U,
+            IncludeXmpMetadata = true,
+            IncludeStandardFontToUnicodeMaps = true
+        };
+        PdfOptions clone = options.Clone();
+
+        var invalidException = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PdfOptions {
+                ComplianceProfile = (PdfComplianceProfile)999
+            });
+
+        Assert.Equal(PdfComplianceProfile.PdfA3U, clone.ComplianceProfile);
+        Assert.True(clone.IncludeXmpMetadata);
+        Assert.True(clone.IncludeStandardFontToUnicodeMaps);
+        Assert.Contains("PDF compliance profile must be None", invalidException.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(PdfComplianceProfile.PdfA2B, "PDF/A-2b", "output-intent validation", "veraPDF")]
+    [InlineData(PdfComplianceProfile.PdfA2U, "PDF/A-2u", "Unicode text mapping", "veraPDF")]
+    [InlineData(PdfComplianceProfile.PdfA2A, "PDF/A-2a", "tagged PDF structure tree", "alternate text")]
+    [InlineData(PdfComplianceProfile.PdfA3B, "PDF/A-3b", "embedded-font coverage", "veraPDF")]
+    [InlineData(PdfComplianceProfile.PdfA3U, "PDF/A-3u", "Unicode text mapping", "veraPDF")]
+    [InlineData(PdfComplianceProfile.PdfA3A, "PDF/A-3a", "tagged PDF structure tree", "alternate text")]
+    [InlineData(PdfComplianceProfile.PdfUa1, "PDF/UA-1", "role map and reading order", "alternate text")]
+    [InlineData(PdfComplianceProfile.FacturX, "Factur-X", "embedded EN 16931 XML invoice payload", "Mustang")]
+    [InlineData(PdfComplianceProfile.Zugferd, "ZUGFeRD", "associated-file and embedded-file catalog entries", "Mustang")]
+    public void ComplianceProfile_RejectsFormalProfilesUntilCertifiedGenerationExists(PdfComplianceProfile profile, string displayName, string requirement, string validator) {
+        var exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDoc.Create()
+                .Compliance(profile)
+                .Meta(title: "Compliance probe")
+                .Paragraph(p => p.Text("Body"))
+                .ToBytes());
+
+        Assert.Contains(displayName, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("cannot yet generate certified", exception.Message, StringComparison.Ordinal);
+        Assert.Contains(requirement, exception.Message, StringComparison.Ordinal);
+        Assert.Contains(validator, exception.Message, StringComparison.Ordinal);
+        Assert.Contains(nameof(PdfComplianceProfile.None), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmbeddedStandardFonts_SnapshotDataAndRejectInvalidInputs() {
+        var data = new byte[] { 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+        var options = new PdfOptions()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Snapshot Font");
+        data[0] = 255;
+        PdfEmbeddedFont embeddedFont = options.EmbeddedFonts[PdfStandardFont.Helvetica];
+        byte[] readback = embeddedFont.Data;
+        readback[1] = 255;
+        PdfOptions clone = options.Clone();
+        var renderException = Assert.Throws<NotSupportedException>(() =>
+            PdfDoc.Create(options)
+                .Paragraph(p => p.Text("Invalid embedded font"))
+                .ToBytes());
+
+        Assert.Equal(0, embeddedFont.Data[0]);
+        Assert.Equal(1, embeddedFont.Data[1]);
+        Assert.Equal("Snapshot Font", clone.EmbeddedFonts[PdfStandardFont.Helvetica].FontName);
+        Assert.True(clone.CompressEmbeddedFonts);
+        Assert.Throws<ArgumentException>(() => new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, Array.Empty<byte>()));
+        Assert.Contains("TrueType font", renderException.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void EmbeddedStandardFonts_CanWriteTrueTypeFontFileResourcesWhenAvailable() {
+        string? fontPath = FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                CompressEmbeddedFonts = true
+            })
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMOEmbeddedArial")
+            .Paragraph(p => p.Text("Embedded font Cafe é and Euro €"))
+            .ToBytes();
+        byte[] uncompressed = PdfDoc.Create(new PdfOptions {
+                CompressEmbeddedFonts = false
+            })
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMOEmbeddedArial")
+            .Paragraph(p => p.Text("Embedded font Cafe é and Euro €"))
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(bytes);
+        string rawUncompressed = Encoding.ASCII.GetString(uncompressed);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.True(bytes.Length < uncompressed.Length, $"Expected compressed embedded font PDF to be smaller. Compressed: {bytes.Length}, uncompressed: {uncompressed.Length}.");
+        Assert.Contains("/Subtype /TrueType", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /OfficeIMOEmbeddedArial", raw, StringComparison.Ordinal);
+        Assert.Contains("/FontDescriptor", raw, StringComparison.Ordinal);
+        Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
+        Assert.Contains("/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
+        Assert.Contains("/Filter /FlateDecode", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Filter /FlateDecode", rawUncompressed, StringComparison.Ordinal);
+        Assert.Contains("/FirstChar 32 /LastChar 255 /Widths [", raw, StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
+        Assert.Contains("Embedded font Cafe é and Euro", text, StringComparison.Ordinal);
+        Assert.Contains("€", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageBorder_RendersAsPageDecorationWithOpacityAndDashStyle() {
+        byte[] bytes = PdfDoc.Create()
+            .PageBorder(PdfColor.FromRgb(30, 64, 175), width: 2, inset: 30, opacity: 0.4, dashStyle: OfficeStrokeDashStyle.Dash)
+            .H1("Page border proof")
+            .Paragraph(p => p.Text("Body content stays inside the reusable page frame."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        int borderDraw = stream.IndexOf("30 30 552 732 re", StringComparison.Ordinal);
+        int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);
+
+        Assert.Contains("/ExtGState", raw, StringComparison.Ordinal);
+        Assert.Contains("/CA 0.4", raw, StringComparison.Ordinal);
+        Assert.Contains("[6 3] 0 d", stream, StringComparison.Ordinal);
+        Assert.True(borderDraw >= 0, "Expected the page border rectangle to be drawn.");
+        Assert.True(firstTextBlock > borderDraw, "Expected body text to be emitted after the page border decoration.");
+    }
+
+    [Fact]
+    public void PageBorder_CanBeScopedAndClearedPerComposedPage() {
+        byte[] bytes = PdfDoc.Create()
+            .PageBorder(inset: 36)
+            .Page(page => {
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Framed page"))));
+            })
+            .Page(page => {
+                page.PageBorder((PdfPageBorder?)null);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+            })
+            .ToBytes();
+
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+
+        Assert.Contains("36 36 540 720 re", firstPageStream, StringComparison.Ordinal);
+        Assert.DoesNotContain("36 36 540 720 re", secondPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageBorder_ValidatesAndClonesOptions() {
+        var options = new PdfOptions {
+            PageBorder = new PdfPageBorder {
+                Color = PdfColor.FromRgb(1, 2, 3),
+                Width = 2,
+                Inset = 24,
+                Opacity = 0.75,
+                DashStyle = OfficeStrokeDashStyle.Dot
+            }
+        };
+
+        PdfPageBorder snapshot = options.PageBorder!;
+        snapshot.Width = 6;
+
+        Assert.Equal(2, options.PageBorder!.Width);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Width = 0 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Inset = -1 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBorder { Opacity = double.NaN });
+
+        var exception = Assert.Throws<ArgumentException>(() =>
+            PdfDoc.Create(new PdfOptions {
+                    PageBorder = new PdfPageBorder {
+                        Inset = 400
+                    }
+                })
+                .Paragraph(p => p.Text("Invalid border frame"))
+                .ToBytes());
+
+        Assert.Contains("PDF page border inset must leave a positive border rectangle.", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BackgroundImage_RendersBehindContentWithOpacityAndFit() {
+        byte[] bytes = PdfDoc.Create()
+            .BackgroundImage(CreateMinimalRgbPng(), OfficeImageFit.Stretch, opacity: 0.3)
+            .H1("Background image proof")
+            .Paragraph(p => p.Text("Body content stays above the fitted page background image."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        int imageDraw = stream.IndexOf("/Im", StringComparison.Ordinal);
+        int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);
+
+        Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
+        Assert.Contains("/ExtGState", raw, StringComparison.Ordinal);
+        Assert.Contains("/ca 0.3", raw, StringComparison.Ordinal);
+        Assert.Matches(@"612 0 -?0 792 0 0 cm", stream);
+        Assert.True(imageDraw >= 0, "Expected the page background image XObject to be drawn.");
+        Assert.True(firstTextBlock > imageDraw, "Expected body text to be emitted after the page background image.");
+    }
+
+    [Fact]
+    public void BackgroundImage_CanBeScopedAndClearedPerComposedPage() {
+        byte[] image = CreateMinimalRgbPng();
+        byte[] bytes = PdfDoc.Create()
+            .BackgroundImage(image, OfficeImageFit.Stretch, opacity: 0.2)
+            .Page(page => {
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Background page"))));
+            })
+            .Page(page => {
+                page.BackgroundImage((PdfPageBackgroundImage?)null);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+            })
+            .ToBytes();
+
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+
+        Assert.Contains("/Im", firstPageStream, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Im", secondPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BackgroundImage_ValidatesAndClonesOptions() {
+        byte[] image = CreateMinimalRgbPng();
+        var options = new PdfOptions {
+            PageBackgroundImage = new PdfPageBackgroundImage(image) {
+                Fit = OfficeImageFit.Contain,
+                Opacity = 0.25
+            }
+        };
+
+        PdfPageBackgroundImage snapshot = options.PageBackgroundImage!;
+        snapshot.Opacity = 0.9;
+
+        Assert.Equal(0.25, options.PageBackgroundImage!.Opacity);
+        Assert.Throws<ArgumentException>(() => new PdfPageBackgroundImage(Array.Empty<byte>()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBackgroundImage(image) { Opacity = 1.5 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBackgroundImage(image) { Fit = (OfficeImageFit)99 });
+    }
+
+    [Fact]
+    public void BackgroundShape_RendersBehindContentWithOpacityAndVectorGeometry() {
+        var shape = OfficeShape.RoundedRectangle(540, 86, 18);
+        shape.FillColor = PdfColor.FromRgb(234, 244, 255).ToOfficeColor();
+        shape.StrokeColor = PdfColor.FromRgb(96, 165, 250).ToOfficeColor();
+        shape.StrokeWidth = 1.25;
+        shape.FillOpacity = 0.34;
+        shape.StrokeOpacity = 0.6;
+
+        byte[] bytes = PdfDoc.Create()
+            .BackgroundShape(new PdfPageBackgroundShape(shape, 36, 640))
+            .H1("Background shape proof")
+            .Paragraph(p => p.Text("Body content stays above reusable vector page decoration."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        int shapePath = stream.IndexOf("54 640", StringComparison.Ordinal);
+        int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);
+
+        Assert.Contains("/ExtGState", raw, StringComparison.Ordinal);
+        Assert.Contains("/ca 0.34", raw, StringComparison.Ordinal);
+        Assert.Contains("/CA 0.6", raw, StringComparison.Ordinal);
+        Assert.True(shapePath >= 0, "Expected the rounded background shape path to be drawn.");
+        Assert.True(firstTextBlock > shapePath, "Expected body text to be emitted after the background shape.");
+    }
+
+    [Fact]
+    public void BackgroundShape_CanBeScopedAndClearedPerComposedPage() {
+        byte[] bytes = PdfDoc.Create()
+            .BackgroundRectangle(36, 640, 540, 86, PdfColor.FromRgb(238, 242, 255))
+            .Page(page => {
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Decorated page"))));
+            })
+            .Page(page => {
+                page.ClearBackgroundShapes();
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+            })
+            .ToBytes();
+
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+
+        Assert.Contains("36 640 540 86 re", firstPageStream, StringComparison.Ordinal);
+        Assert.DoesNotContain("36 640 540 86 re", secondPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BackgroundBands_ComputePageAnchoredGeometry() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                PageWidth = 300,
+                PageHeight = 400,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 40,
+                MarginBottom = 40
+            })
+            .BackgroundTopBand(50, PdfColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8, stroke: PdfColor.FromRgb(96, 165, 250), strokeWidth: 0.8, fillOpacity: 0.42, strokeOpacity: 0.7, fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke))
+            .BackgroundBottomBand(30, PdfColor.FromRgb(240, 253, 244), insetX: 20, offsetY: 10)
+            .BackgroundLeftBand(18, PdfColor.FromRgb(254, 249, 195), insetY: 24, offsetX: 6)
+            .BackgroundRightBand(22, PdfColor.FromRgb(255, 237, 213), insetY: 30, offsetX: 9)
+            .Paragraph(p => p.Text("Anchored bands"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        int topBand = stream.IndexOf("12 342 276 50 re", StringComparison.Ordinal);
+        int bottomBand = stream.IndexOf("20 10 260 30 re", StringComparison.Ordinal);
+        int leftBand = stream.IndexOf("6 24 18 352 re", StringComparison.Ordinal);
+        int rightBand = stream.IndexOf("269 30 22 340 re", StringComparison.Ordinal);
+        int firstTextBlock = stream.IndexOf("BT", StringComparison.Ordinal);
+
+        Assert.True(topBand >= 0, "Expected a top band anchored to the page top.");
+        Assert.True(bottomBand > topBand, "Expected the bottom band after the top band in insertion order.");
+        Assert.True(leftBand > bottomBand, "Expected the left band after the bottom band in insertion order.");
+        Assert.True(rightBand > leftBand, "Expected the right band after the left band in insertion order.");
+        Assert.True(firstTextBlock > rightBand, "Expected body text to be emitted after all background bands.");
+        Assert.Contains("/ca 0.42", raw, StringComparison.Ordinal);
+        Assert.Contains("/CA 0.7", raw, StringComparison.Ordinal);
+        Assert.Contains("/Shading << /SH", raw, StringComparison.Ordinal);
+        Assert.Contains("/SH1 sh", stream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BackgroundBands_CanBePageScopedWithCurrentPageSize() {
+        byte[] bytes = PdfDoc.Create()
+            .Page(page => {
+                page.Size(300, 400);
+                page.Margin(30, 40, 30, 40);
+                page.BackgroundTopBand(50, PdfColor.FromRgb(238, 242, 255), insetX: 12, offsetY: 8);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Scoped band"))));
+            })
+            .ToBytes();
+
+        string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+
+        Assert.Contains("12 342 276 50 re", stream, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BackgroundShape_ValidatesAndClonesOptions() {
+        var shape = PdfPageBackgroundShape.Rectangle(12, 24, 120, 48, PdfColor.FromRgb(224, 242, 254), fillGradient: OfficeLinearGradient.Horizontal(OfficeColor.LightBlue, OfficeColor.WhiteSmoke));
+        var options = new PdfOptions {
+            PageBackgroundShapes = new[] { shape }
+        };
+
+        shape.X = 300;
+        PdfPageBackgroundShape snapshot = Assert.Single(options.PageBackgroundShapes!);
+        snapshot.X = 500;
+        OfficeShape snapshotShape = snapshot.Shape;
+        snapshotShape.FillColor = OfficeColor.Red;
+        snapshot.Shape = snapshotShape;
+
+        PdfPageBackgroundShape stored = Assert.Single(options.PageBackgroundShapes!);
+        Assert.Equal(12, stored.X);
+        Assert.NotEqual(OfficeColor.Red, stored.Shape.FillColor);
+        Assert.NotNull(stored.Shape.FillGradient);
+        Assert.Throws<ArgumentNullException>(() => new PdfPageBackgroundShape(null!, 0, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPageBackgroundShape(OfficeShape.Rectangle(10, 10), double.NaN, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, stroke: PdfColor.Black, strokeWidth: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, fill: PdfColor.Black, fillOpacity: 1.1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfPageBackgroundShape.Rectangle(0, 0, 10, 10, stroke: PdfColor.Black, strokeWidth: 1, strokeOpacity: double.NaN));
+        Assert.Throws<ArgumentException>(() => PdfPageBackgroundShape.TopBand(300, 400, 50, insetX: 160));
+        Assert.Throws<ArgumentException>(() => PdfPageBackgroundShape.RightBand(300, 400, 80, offsetX: 240));
+    }
+
+    [Fact]
     public void RichParagraph_ResetColor_ReturnsToDefaultTextColor() {
         byte[] bytes = PdfDoc.Create()
             .Paragraph(p => p
@@ -301,6 +1137,30 @@ public class PdfDocVisualQualityTests {
         Assert.True(highlightFill >= 0, "Expected the highlighted run to emit a yellow fill color.");
         Assert.True(highlightRect > highlightFill, "Expected the highlighted run to emit a filled rectangle before the text.");
         Assert.Single(Regex.Matches(content, "1 1 0 rg").Cast<Match>());
+    }
+
+    [Fact]
+    public void RichParagraph_BackgroundColor_MergesMultiWordRunsIntoContinuousHighlight() {
+        byte[] bytes = PdfDoc.Create()
+            .Paragraph(p => p
+                .Text("Before ")
+                .BackgroundColor(PdfColor.FromRgb(255, 255, 0))
+                .Text("Marked Words")
+                .ResetBackgroundColor()
+                .Text(" After"))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+        int markedText = content.IndexOf("<4D61726B6564>", StringComparison.Ordinal);
+        int wordsText = content.IndexOf("<576F726473>", StringComparison.Ordinal);
+
+        Assert.True(markedText >= 0, "Expected encoded 'Marked' text in the generated PDF content stream.");
+        Assert.True(wordsText > markedText, "Expected encoded 'Words' text after the first highlighted word.");
+        Assert.Single(Regex.Matches(content, "1 1 0 rg").Cast<Match>());
+        Match highlightRect = Regex.Match(content, @"1 1 0 rg\s+([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+) re\s+f");
+        Assert.True(highlightRect.Success, "Expected one continuous yellow rectangle for the whole highlighted phrase.");
+        double width = double.Parse(highlightRect.Groups[3].Value, CultureInfo.InvariantCulture);
+        Assert.True(width > 76D, $"Expected the highlight rectangle to include the space between highlighted words. Width: {width:0.##}.");
     }
 
     [Fact]
@@ -1520,6 +2380,33 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void PdfTheme_BuiltInVisualProfilesExposeReusableDocumentRhythm() {
+        PdfOptions technical = new PdfOptions().ApplyTheme(PdfTheme.TechnicalDocument());
+        PdfOptions compact = new PdfOptions().ApplyTheme(PdfTheme.Compact());
+        PdfOptions report = new PdfOptions().ApplyTheme(PdfTheme.Report());
+
+        Assert.Equal(PdfColor.FromRgb(15, 23, 42), technical.DefaultTableStyle!.HeaderFill);
+        Assert.Equal(9.75, technical.DefaultTableStyle.FontSize);
+        Assert.Equal(1.2, technical.DefaultTableStyle.LineHeight);
+        Assert.True(technical.DefaultTableStyle.AutoFitColumns);
+        Assert.Equal(9, technical.DefaultPanelStyle!.SpacingAfter);
+        Assert.Equal(0.6, technical.DefaultHorizontalRuleStyle!.Thickness);
+
+        Assert.Equal(10, compact.DefaultFontSize);
+        Assert.Equal(1.08, compact.DefaultParagraphStyle!.LineHeight);
+        Assert.Equal(4, compact.DefaultParagraphStyle.SpacingAfter);
+        Assert.Equal(9, compact.DefaultTableStyle!.FontSize);
+        Assert.Equal(14, compact.DefaultRowStyle!.Gap);
+
+        Assert.Equal(PdfColor.FromRgb(30, 64, 175), report.DefaultTableStyle!.HeaderFill);
+        Assert.Equal(PdfColor.FromRgb(239, 246, 255), report.DefaultTableStyle.RowStripeFill);
+        Assert.Equal(9.25, report.DefaultTableStyle.FontSize);
+        Assert.Equal(21, report.DefaultHeadingStyles!.Level1!.FontSize);
+        Assert.Equal(PdfColor.FromRgb(30, 64, 175), report.DefaultHeadingStyles.Level2!.Color);
+        Assert.Equal(10, report.DefaultPanelStyle!.SpacingAfter);
+    }
+
+    [Fact]
     public void PdfDoc_WordLikeThemeRendersReadableMixedFlowRhythm() {
         byte[] bytes = PdfDoc.Create(new PdfOptions {
                 PageWidth = 420,
@@ -1562,6 +2449,44 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("0.122 0.161 0.216 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.067 0.094 0.153 rg", rawPdf, StringComparison.Ordinal);
         AssertNoSameBaselineTextCollisions(page, "Word-like theme flow");
+    }
+
+    [Fact]
+    public void PdfDoc_ReportThemeRendersStrongerTableAndPanelHierarchy() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 520,
+                MarginLeft = 42,
+                MarginRight = 42,
+                MarginTop = 42,
+                MarginBottom = 42
+            })
+            .Theme(PdfTheme.Report())
+            .H1("ReportThemeHeading")
+            .H2("ReportThemeSection")
+            .Paragraph(p => p.Text("ReportThemeBody keeps the body calm while tables carry the hierarchy."))
+            .PanelParagraph(p => p.Text("ReportThemePanel"))
+            .Table(new[] {
+                new[] { "ReportThemeTable", "Value" },
+                new[] { "Alpha", "42" },
+                new[] { "Beta", "84" }
+            })
+            .ToBytes();
+
+        using var pdf = PdfDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        double headingY = FindWordStartY(page, "ReportThemeHeading");
+        double sectionY = FindWordStartY(page, "ReportThemeSection");
+        double bodyY = FindWordStartY(page, "ReportThemeBody");
+        double tableY = FindWordStartY(page, "ReportThemeTable");
+
+        Assert.True(headingY - sectionY >= 22, $"Expected report H1/H2 rhythm. Gap: {headingY - sectionY:0.##}pt.");
+        Assert.True(sectionY - bodyY >= 18, $"Expected report H2/body rhythm. Gap: {sectionY - bodyY:0.##}pt.");
+        Assert.True(bodyY - tableY >= 32, $"Expected report body/table rhythm. Gap: {bodyY - tableY:0.##}pt.");
+        Assert.Contains("0.118 0.251 0.686 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.937 0.965 1 rg", rawPdf, StringComparison.Ordinal);
+        AssertNoSameBaselineTextCollisions(page, "report theme flow");
     }
 
     [Fact]
@@ -2136,18 +3061,18 @@ public class PdfDocVisualQualityTests {
         string pdf = Encoding.ASCII.GetString(bytes);
 
         Assert.Contains("/Annots [", pdf, StringComparison.Ordinal);
-        Assert.Equal(4, CountOccurrences(pdf, "/Subtype /Link"));
-        Assert.Equal(4, CountOccurrences(pdf, "/S /URI"));
+        Assert.Equal(3, CountOccurrences(pdf, "/Subtype /Link"));
+        Assert.Equal(3, CountOccurrences(pdf, "/S /URI"));
         Assert.Equal(1, CountOccurrences(pdf, "/URI (https://evotec.xyz/heading)"));
-        Assert.Equal(2, CountOccurrences(pdf, "/URI (https://evotec.xyz/paragraph)"));
+        Assert.Equal(1, CountOccurrences(pdf, "/URI (https://evotec.xyz/paragraph)"));
         Assert.Equal(1, CountOccurrences(pdf, "/URI (https://evotec.xyz/table)"));
-        Assert.Equal(4, CountOccurrences(pdf, "/Contents ("));
+        Assert.Equal(3, CountOccurrences(pdf, "/Contents ("));
         Assert.Equal(1, CountOccurrences(pdf, "/Contents (Heading \\(metadata\\))"));
-        Assert.Equal(2, CountOccurrences(pdf, "/Contents (Paragraph \\\\ metadata)"));
+        Assert.Equal(1, CountOccurrences(pdf, "/Contents (Paragraph \\\\ metadata)"));
         Assert.Equal(1, CountOccurrences(pdf, "/Contents (Open)"));
 
         var rectangles = ExtractLinkRectangles(pdf);
-        Assert.Equal(4, rectangles.Count);
+        Assert.Equal(3, rectangles.Count);
         foreach (var rect in rectangles) {
             Assert.True(rect.X2 > rect.X1, "Link annotation rectangle must have positive width.");
             Assert.True(rect.Y2 > rect.Y1, "Link annotation rectangle must have positive height.");
@@ -4786,6 +5711,138 @@ public class PdfDocVisualQualityTests {
                 .ToBytes());
 
         Assert.Contains("Panel horizontal padding must leave a positive text width.", paddingException.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Panel_ComposesCommonFlowBlocksIntoStyledPanel() {
+        byte[] pdf = PdfDoc.Create()
+            .Panel(panel => panel
+                    .H3("Panel Snapshot")
+                    .Paragraph(p => p.Text("A reusable panel can combine regular document blocks."))
+                    .RichBullets(new[] {
+                        PdfListItem.Rich(new[] {
+                            TextRun.Bolded("Reusable"),
+                            TextRun.Normal(" core behavior")
+                        })
+                    })
+                    .Table(new[] {
+                        new[] { "Area", "State" },
+                        new[] { "Markdown", "Ready" }
+                    }, style: new PdfTableStyle {
+                        HeaderRowCount = 1
+                    })
+                    .HR()
+                    .PanelParagraph(p => p.Bold("Nested note").Text(": still uses panel text rendering.")),
+                new PanelStyle {
+                    Background = PdfColor.FromRgb(248, 250, 252),
+                    BorderColor = PdfColor.FromRgb(37, 99, 235),
+                    BorderWidth = 0.8,
+                    PaddingX = 10,
+                    PaddingY = 8
+                })
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Panel Snapshot", text);
+        Assert.Contains("reusable panel", text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Reusable core behavior", text);
+        Assert.Contains("Area: Markdown", text);
+        Assert.Contains("State: Ready", text);
+        Assert.Contains("Nested note", text);
+    }
+
+    [Fact]
+    public void Panel_ComposesChecklistTablesAsReadableTaskStates() {
+        var checklistStyle = TableStyles.Minimal();
+        checklistStyle.CellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
+            [(0, 0)] = new PdfCellIcon {
+                Kind = PdfCellIconKind.CheckBoxChecked,
+                Color = PdfColor.FromRgb(22, 163, 74)
+            },
+            [(1, 0)] = new PdfCellIcon {
+                Kind = PdfCellIconKind.CheckBoxUnchecked,
+                Color = PdfColor.FromRgb(100, 116, 139)
+            }
+        };
+
+        byte[] pdf = PdfDoc.Create()
+            .Panel(panel => panel.Table(new[] {
+                new[] { string.Empty, "Ship polished Markdown checklist visuals" },
+                new[] { string.Empty, "Keep literal task markers out of the PDF text" }
+            }, style: checklistStyle))
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Done: Ship polished Markdown checklist visuals", text, StringComparison.Ordinal);
+        Assert.Contains("Open: Keep literal task markers out of the PDF text", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("[x]", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("[ ]", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ElementCompose_CanComposePanel() {
+        byte[] pdf = PdfDoc.Create()
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Item(item =>
+                            item.Element(element =>
+                                element.Panel(panel => panel
+                                        .H3("Element Panel")
+                                        .Paragraph(p => p.Text("Nested element groups can use composed panels.")),
+                                    new PanelStyle {
+                                        Background = PdfColor.FromRgb(248, 250, 252),
+                                        BorderColor = PdfColor.FromRgb(148, 163, 184),
+                                        PaddingX = 8,
+                                        PaddingY = 6
+                                    }))))))
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Element Panel", text, StringComparison.Ordinal);
+        Assert.Contains("Nested element groups can use composed panels.", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ElementCompose_CanComposeCommonDocumentPrimitives() {
+        byte[] pdf = PdfDoc.Create()
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Item(item =>
+                            item.Element(element => element
+                                .RichBullets(new[] {
+                                    PdfListItem.Rich(new[] {
+                                        TextRun.Bolded("Rich"),
+                                        TextRun.Normal(" bullet")
+                                    })
+                                })
+                                .RichNumbered(new[] {
+                                    PdfListItem.Rich(new[] {
+                                        TextRun.Normal("Numbered element item")
+                                    })
+                                })
+                                .HR()
+                                .PanelParagraph(p => p.Bold("Element note").Text(": composed in a grouped flow.")))))))
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Rich bullet", text, StringComparison.Ordinal);
+        Assert.Contains("Numbered element item", text, StringComparison.Ordinal);
+        Assert.Contains("Element note", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Panel_RejectsUnsupportedNestedFlowBlocks() {
+        var exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDoc.Create()
+                .Panel(panel => panel.TextField("InsidePanel")));
+
+        Assert.Contains("Panel currently supports paragraphs, headings, lists, simple tables, horizontal rules, spacers, bookmarks, and nested panel paragraphs.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -8978,6 +10035,41 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void TableStyles_DocumentPresetsExposeReusableVisualRhythm() {
+        PdfTableStyle technical = TableStyles.TechnicalDocument();
+        PdfTableStyle compact = TableStyles.Compact();
+        PdfTableStyle report = TableStyles.Report();
+        PdfTableStyle freshReport = TableStyles.Report();
+
+        Assert.Equal(PdfColor.FromRgb(15, 23, 42), technical.HeaderFill);
+        Assert.Equal(PdfColor.White, technical.HeaderTextColor);
+        Assert.Equal(PdfColor.FromRgb(226, 232, 240), technical.RowSeparatorColor);
+        Assert.Equal(9.75, technical.FontSize);
+        Assert.Equal(1.2, technical.LineHeight);
+        Assert.Equal(6, technical.SpacingBefore);
+        Assert.True(technical.AutoFitColumns);
+
+        Assert.Null(compact.HeaderFill);
+        Assert.Equal(9, compact.FontSize);
+        Assert.Equal(1.12, compact.LineHeight);
+        Assert.Equal(4, compact.CellPaddingX);
+        Assert.Equal(3, compact.CellPaddingY);
+        Assert.Equal(7, compact.SpacingAfter);
+        Assert.True(compact.AutoFitColumns);
+
+        Assert.Equal(PdfColor.FromRgb(30, 64, 175), report.HeaderFill);
+        Assert.Equal(PdfColor.FromRgb(239, 246, 255), report.RowStripeFill);
+        Assert.Equal(PdfColor.FromRgb(191, 219, 254), report.BorderColor);
+        Assert.Equal(9.25, report.FontSize);
+        Assert.Equal(1.18, report.LineHeight);
+        Assert.Equal(10, report.SpacingAfter);
+        Assert.True(report.AutoFitColumns);
+
+        report.HeaderFill = PdfColor.Black;
+        Assert.Equal(PdfColor.FromRgb(30, 64, 175), freshReport.HeaderFill);
+    }
+
+    [Fact]
     public void Table_UsesConfiguredMinimumRowHeight() {
         var options = new PdfOptions {
             PageWidth = 320,
@@ -9117,6 +10209,45 @@ public class PdfDocVisualQualityTests {
 
         Assert.True(defaultTableY - spacedTableY >= 10, $"Expected table spacing before to move table content down. Default y: {defaultTableY:0.##}, spaced y: {spacedTableY:0.##}.");
         Assert.True(defaultAfterY - spacedAfterY >= 28, $"Expected table spacing before and after to move following content down. Default y: {defaultAfterY:0.##}, spaced y: {spacedAfterY:0.##}.");
+    }
+
+    [Fact]
+    public void TableStylesLight_ProvidesDefaultFlowRhythmAroundTables() {
+        var options = new PdfOptions {
+            PageWidth = 320,
+            PageHeight = 260,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 9,
+            DefaultParagraphStyle = new PdfParagraphStyle {
+                SpacingAfter = 0
+            }
+        };
+        PdfTableStyle defaultLight = TableStyles.Light();
+        var cramped = TableStyles.Light();
+        cramped.SpacingBefore = 0;
+        cramped.SpacingAfter = 0;
+
+        byte[] defaultBytes = CreateLightTableRhythmProbe(options, style: null);
+        byte[] crampedBytes = CreateLightTableRhythmProbe(options, cramped);
+
+        using var defaultPdf = PdfDocument.Open(new MemoryStream(defaultBytes));
+        using var crampedPdf = PdfDocument.Open(new MemoryStream(crampedBytes));
+        var defaultPage = defaultPdf.GetPage(1);
+        var crampedPage = crampedPdf.GetPage(1);
+
+        double defaultTableY = FindWordStartY(defaultPage, "Alpha");
+        double crampedTableY = FindWordStartY(crampedPage, "Alpha");
+        double defaultAfterY = FindWordStartY(defaultPage, "AfterMarker");
+        double crampedAfterY = FindWordStartY(crampedPage, "AfterMarker");
+
+        Assert.Equal(4, defaultLight.SpacingBefore);
+        Assert.Equal(8, defaultLight.SpacingAfter);
+        Assert.True(crampedTableY - defaultTableY >= 3, $"Expected default light-table spacing before to move table content down. Cramped y: {crampedTableY:0.##}, default y: {defaultTableY:0.##}.");
+        Assert.True(crampedAfterY - defaultAfterY >= 10, $"Expected default light-table rhythm to separate following paragraphs from the grid. Cramped y: {crampedAfterY:0.##}, default y: {defaultAfterY:0.##}.");
     }
 
     [Fact]
@@ -12629,6 +13760,11 @@ public class PdfDocVisualQualityTests {
 
         Assert.Contains("PDF table cell icon size must be a positive finite value.", iconSizeException.Message, StringComparison.Ordinal);
 
+        var iconOffsetException = Assert.Throws<ArgumentException>(() =>
+            new PdfCellIcon { OffsetY = double.NaN });
+
+        Assert.Contains("PDF table cell icon offsets must be finite values.", iconOffsetException.Message, StringComparison.Ordinal);
+
         var invalidCellPadding = TableStyles.Minimal();
 
         var paddingException = Assert.Throws<ArgumentException>(() =>
@@ -12851,7 +13987,9 @@ public class PdfDocVisualQualityTests {
         var cellIcon = new PdfCellIcon {
             Kind = PdfCellIconKind.Circle,
             Color = new PdfColor(0.25, 0.35, 0.45),
-            Size = 9
+            Size = 9,
+            OffsetX = 1.25,
+            OffsetY = -0.5
         };
         var cellIcons = new Dictionary<(int Row, int Column), PdfCellIcon> {
             [(1, 1)] = cellIcon
@@ -12903,6 +14041,8 @@ public class PdfDocVisualQualityTests {
         cellIcon.Kind = PdfCellIconKind.Diamond;
         cellIcon.Color = PdfColor.Black;
         cellIcon.Size = 12;
+        cellIcon.OffsetX = 3;
+        cellIcon.OffsetY = 4;
         cellBorder.Width = 4;
         cellBorder.LineStyle = PdfCellBorderLineStyle.Standard;
         cellBorder.Left = true;
@@ -12927,6 +14067,8 @@ public class PdfDocVisualQualityTests {
         Assert.Equal(PdfCellIconKind.Circle, style.CellIcons![(1, 1)].Kind);
         Assert.Equal(new PdfColor(0.25, 0.35, 0.45), style.CellIcons![(1, 1)].Color);
         Assert.Equal(9, style.CellIcons![(1, 1)].Size);
+        Assert.Equal(1.25, style.CellIcons![(1, 1)].OffsetX);
+        Assert.Equal(-0.5, style.CellIcons![(1, 1)].OffsetY);
         Assert.Equal(1.25, style.CellBorders![(1, 1)].Width);
         Assert.Equal(OfficeStrokeDashStyle.Dash, style.CellBorders![(1, 1)].DashStyle);
         Assert.Equal(PdfCellBorderLineStyle.TwoLine, style.CellBorders![(1, 1)].LineStyle);
@@ -12976,7 +14118,9 @@ public class PdfDocVisualQualityTests {
             [(0, 0)] = new PdfCellIcon {
                 Kind = PdfCellIconKind.Diamond,
                 Color = new PdfColor(0.2, 0.3, 0.4),
-                Size = 9
+                Size = 9,
+                OffsetX = 1.25,
+                OffsetY = -0.5
             }
         };
         style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
@@ -13016,6 +14160,8 @@ public class PdfDocVisualQualityTests {
         Assert.Equal(PdfCellIconKind.Diamond, clone.CellIcons![(0, 0)].Kind);
         Assert.Equal(new PdfColor(0.2, 0.3, 0.4), clone.CellIcons![(0, 0)].Color);
         Assert.Equal(9, clone.CellIcons![(0, 0)].Size);
+        Assert.Equal(1.25, clone.CellIcons![(0, 0)].OffsetX);
+        Assert.Equal(-0.5, clone.CellIcons![(0, 0)].OffsetY);
         Assert.NotNull(clone.CellAlignments);
         Assert.NotNull(clone.CellVerticalAlignments);
         Assert.Equal(PdfColumnAlign.Right, clone.CellAlignments![(0, 0)]);
@@ -13202,6 +14348,70 @@ public class PdfDocVisualQualityTests {
             }, style: style)
             .Paragraph(p => p.Text("AfterMarker"))
             .ToBytes();
+    }
+
+    private static byte[] CreateLightTableRhythmProbe(PdfOptions options, PdfTableStyle? style) {
+        return PdfDoc.Create(options)
+            .Paragraph(p => p.Text("BeforeMarker"))
+            .Table(new[] {
+                new[] { "Alpha", "Ready" },
+                new[] { "Beta", "Ready" }
+            }, style: style)
+            .Paragraph(p => p.Text("AfterMarker"))
+            .ToBytes();
+    }
+
+    private static byte[] CreateCompressionProbe(bool compressContentStreams) {
+        PdfDoc doc = PdfDoc.Create(new PdfOptions {
+            PageWidth = 420,
+            PageHeight = 1200,
+            MarginLeft = 42,
+            MarginRight = 42,
+            MarginTop = 42,
+            MarginBottom = 42,
+            CompressContentStreams = compressContentStreams
+        })
+            .H1("CompressionProbe");
+
+        for (int i = 0; i < 18; i++) {
+            doc.Paragraph(p => p.Text("CompressionProbe repeated body repeated body repeated body repeated body repeated body " + i.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        return doc.ToBytes();
+    }
+
+    private static byte[] CreateMinimalIccProfile(string colorSpace = "RGB ") {
+        byte[] profile = new byte[132];
+        profile[0] = 0;
+        profile[1] = 0;
+        profile[2] = 0;
+        profile[3] = 132;
+        Encoding.ASCII.GetBytes(colorSpace, 0, 4, profile, 16);
+        profile[36] = (byte)'a';
+        profile[37] = (byte)'c';
+        profile[38] = (byte)'s';
+        profile[39] = (byte)'p';
+        return profile;
+    }
+
+    private static string? FindLocalTrueTypeFont() {
+        string windowsFont = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts", "arial.ttf");
+        if (File.Exists(windowsFont)) {
+            return windowsFont;
+        }
+
+        string[] candidates = {
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf",
+            "/Library/Fonts/Arial.ttf"
+        };
+        foreach (string candidate in candidates) {
+            if (File.Exists(candidate)) {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private static string RenderTableStyleContent(PdfTableStyle style) {

@@ -96,6 +96,12 @@ public class PdfItemCompose {
     /// <param name="align">Paragraph alignment.</param>
     /// <param name="defaultColor">Optional default text color.</param>
     public PdfItemCompose PanelParagraph(System.Action<PdfParagraphBuilder> build, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) { _doc.PanelParagraph(build, style, align, defaultColor); return this; }
+    /// <summary>Adds a styled panel from common flow blocks such as paragraphs, headings, lists, simple tables, rules, and nested panel paragraphs.</summary>
+    /// <param name="build">Panel content builder.</param>
+    /// <param name="style">Panel style (padding, background, border, etc.).</param>
+    /// <param name="align">Panel text alignment.</param>
+    /// <param name="defaultColor">Optional default text color.</param>
+    public PdfItemCompose Panel(System.Action<PdfItemCompose> build, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) { _doc.Panel(build, style, align, defaultColor); return this; }
     /// <summary>Adds an image from supported image bytes. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
     /// <param name="jpegBytes">Supported image bytes.</param>
     /// <param name="width">Target width in points.</param>

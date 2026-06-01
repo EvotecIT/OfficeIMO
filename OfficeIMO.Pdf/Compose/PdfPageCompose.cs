@@ -36,6 +36,105 @@ public class PdfPageCompose {
         Options.BackgroundColor = color;
         return this;
     }
+    /// <summary>Sets or clears the page-scoped text watermark rendered behind page content.</summary>
+    public PdfPageCompose Watermark(PdfTextWatermark? watermark) {
+        Options.TextWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets a page-scoped text watermark rendered behind page content.</summary>
+    public PdfPageCompose Watermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+        var watermark = new PdfTextWatermark(text) {
+            Bold = bold,
+            Italic = italic
+        };
+        if (fontSize.HasValue) watermark.FontSize = fontSize.Value;
+        if (color.HasValue) watermark.Color = color.Value;
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        if (font.HasValue) watermark.Font = font.Value;
+        Options.TextWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets or clears the page-scoped image watermark rendered behind page content.</summary>
+    public PdfPageCompose ImageWatermark(PdfImageWatermark? watermark) {
+        Options.ImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets a page-scoped image watermark rendered behind page content.</summary>
+    public PdfPageCompose ImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+        var watermark = new PdfImageWatermark(imageBytes, width, height);
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        Options.ImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets or clears the page-scoped page border.</summary>
+    public PdfPageCompose PageBorder(PdfPageBorder? border) {
+        Options.PageBorder = border;
+        return this;
+    }
+    /// <summary>Sets a page-scoped page border.</summary>
+    public PdfPageCompose PageBorder(PdfColor? color = null, double? width = null, double? inset = null, double? opacity = null, OfficeIMO.Drawing.OfficeStrokeDashStyle dashStyle = OfficeIMO.Drawing.OfficeStrokeDashStyle.Solid) {
+        var border = new PdfPageBorder {
+            DashStyle = dashStyle
+        };
+        if (color.HasValue) border.Color = color.Value;
+        if (width.HasValue) border.Width = width.Value;
+        if (inset.HasValue) border.Inset = inset.Value;
+        if (opacity.HasValue) border.Opacity = opacity.Value;
+        Options.PageBorder = border;
+        return this;
+    }
+    /// <summary>Sets or clears the page-scoped background image.</summary>
+    public PdfPageCompose BackgroundImage(PdfPageBackgroundImage? image) {
+        Options.PageBackgroundImage = image;
+        return this;
+    }
+    /// <summary>Sets a page-scoped background image.</summary>
+    public PdfPageCompose BackgroundImage(byte[] imageBytes, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Cover, double? opacity = null) {
+        var image = new PdfPageBackgroundImage(imageBytes) {
+            Fit = fit
+        };
+        if (opacity.HasValue) image.Opacity = opacity.Value;
+        Options.PageBackgroundImage = image;
+        return this;
+    }
+    /// <summary>Adds a page-scoped background shape rendered behind page content.</summary>
+    public PdfPageCompose BackgroundShape(PdfPageBackgroundShape shape) {
+        Options.AddPageBackgroundShape(shape);
+        return this;
+    }
+    /// <summary>Replaces or clears page-scoped background shapes.</summary>
+    public PdfPageCompose BackgroundShapes(System.Collections.Generic.IEnumerable<PdfPageBackgroundShape>? shapes) {
+        Options.PageBackgroundShapes = shapes?.ToList();
+        return this;
+    }
+    /// <summary>Clears page-scoped background shapes.</summary>
+    public PdfPageCompose ClearBackgroundShapes() {
+        Options.ClearPageBackgroundShapes();
+        return this;
+    }
+    /// <summary>Adds a page-scoped rectangle background shape.</summary>
+    public PdfPageCompose BackgroundRectangle(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.Rectangle(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+    /// <summary>Adds a page-scoped rounded rectangle background shape.</summary>
+    public PdfPageCompose BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.RoundedRectangle(x, y, width, height, cornerRadius, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+    /// <summary>Adds a page-scoped ellipse background shape.</summary>
+    public PdfPageCompose BackgroundEllipse(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.Ellipse(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+    /// <summary>Adds a page-scoped top background band using the current page size.</summary>
+    public PdfPageCompose BackgroundTopBand(double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.TopBand(Options.PageWidth, Options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+    /// <summary>Adds a page-scoped bottom background band using the current page size.</summary>
+    public PdfPageCompose BackgroundBottomBand(double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.BottomBand(Options.PageWidth, Options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+    /// <summary>Adds a page-scoped left background band using the current page size.</summary>
+    public PdfPageCompose BackgroundLeftBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.LeftBand(Options.PageWidth, Options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+    /// <summary>Adds a page-scoped right background band using the current page size.</summary>
+    public PdfPageCompose BackgroundRightBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeIMO.Drawing.OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.RightBand(Options.PageWidth, Options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
     /// <summary>Sets page orientation to portrait while preserving the current page size dimensions.</summary>
     public PdfPageCompose Portrait() => Orientation(PdfPageOrientation.Portrait);
     /// <summary>Sets page orientation to landscape while preserving the current page size dimensions.</summary>

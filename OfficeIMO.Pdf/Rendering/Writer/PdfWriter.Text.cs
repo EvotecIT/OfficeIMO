@@ -416,6 +416,27 @@ internal static partial class PdfWriter {
         var strikes = new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color)>();
         var backgrounds = new System.Collections.Generic.List<(double X, double Y, double Width, double Height, PdfColor Color)>();
 
+        void AddBackground(double x, double y, double width, double height, PdfColor color) {
+            if (width <= 0.001D || height <= 0.001D) {
+                return;
+            }
+
+            if (backgrounds.Count > 0) {
+                var previous = backgrounds[backgrounds.Count - 1];
+                if (previous.Color.Equals(color) &&
+                    Math.Abs(previous.Y - y) <= 0.001D &&
+                    Math.Abs(previous.Height - height) <= 0.001D &&
+                    x <= previous.X + previous.Width + 0.25D) {
+                    double left = Math.Min(previous.X, x);
+                    double right = Math.Max(previous.X + previous.Width, x + width);
+                    backgrounds[backgrounds.Count - 1] = (left, previous.Y, right - left, previous.Height, previous.Color);
+                    return;
+                }
+            }
+
+            backgrounds.Add((x, y, width, height, color));
+        }
+
         double backgroundYOffset = 0D;
         double xOrigin = xOverride ?? opts.MarginLeft;
         for (int li = 0; li < lines.Count; li++) {
@@ -447,9 +468,11 @@ internal static partial class PdfWriter {
 
             double xCursor = dx;
             foreach (var s in segs) {
+                double leadingAdvance = 0D;
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.FontSize, s.Baseline);
-                    xCursor += baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    leadingAdvance = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    xCursor += leadingAdvance;
                 }
 
                 double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline);
@@ -458,9 +481,15 @@ internal static partial class PdfWriter {
                     double textRise = TextRiseForBaseline(s.FontSize, s.Baseline);
                     double asc = GetAscender(s.Font, runFontSize);
                     double desc = GetDescender(s.Font, runFontSize);
-                    double pad = Math.Max(1D, runFontSize * 0.08D);
+                    double padX = Math.Max(1.4D, runFontSize * 0.14D);
+                    double padY = Math.Max(0.45D, runFontSize * 0.05D);
                     double baselineY = lineY + textRise;
-                    backgrounds.Add((lineXOrigin + xCursor, baselineY - desc - pad, wSeg, asc + desc + (pad * 2), s.BackgroundColor.Value));
+                    AddBackground(
+                        lineXOrigin + xCursor - leadingAdvance - padX,
+                        baselineY - desc - padY,
+                        wSeg + leadingAdvance + (padX * 2D),
+                        asc + desc + (padY * 2D),
+                        s.BackgroundColor.Value);
                 }
 
                 xCursor += wSeg;
@@ -578,7 +607,7 @@ internal static partial class PdfWriter {
                     double x2 = x1 + wSeg;
                     double y1 = baselineY - desc;
                     double y2 = baselineY + asc;
-                    annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = s.Uri, DestinationName = s.DestinationName, Contents = s.Contents });
+                    AddRichTextLinkAnnotation(annots, x1, y1, x2, y2, s.Uri, s.DestinationName, s.Contents);
                 }
                 xCursor += wSeg;
             }
@@ -612,6 +641,34 @@ internal static partial class PdfWriter {
                 .StrokePath()
                 .RestoreState();
         }
+    }
+
+    private static void AddRichTextLinkAnnotation(System.Collections.Generic.List<LinkAnnotation> annots, double x1, double y1, double x2, double y2, string? uri, string? destinationName, string? contents) {
+        if (annots.Count > 0) {
+            LinkAnnotation previous = annots[annots.Count - 1];
+            double gap = x1 - previous.X2;
+            bool sameTarget =
+                string.Equals(previous.Uri, uri, System.StringComparison.Ordinal) &&
+                string.Equals(previous.DestinationName, destinationName, System.StringComparison.Ordinal) &&
+                string.Equals(previous.Contents, contents, System.StringComparison.Ordinal);
+            bool sameLine =
+                Math.Abs(previous.Y1 - y1) <= 0.5D &&
+                Math.Abs(previous.Y2 - y2) <= 0.5D;
+            if (sameTarget && sameLine && gap >= -0.25D && gap <= 18D) {
+                annots[annots.Count - 1] = new LinkAnnotation {
+                    X1 = previous.X1,
+                    Y1 = Math.Min(previous.Y1, y1),
+                    X2 = Math.Max(previous.X2, x2),
+                    Y2 = Math.Max(previous.Y2, y2),
+                    Uri = uri,
+                    DestinationName = destinationName,
+                    Contents = contents
+                };
+                return;
+            }
+        }
+
+        annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents });
     }
 
     private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null) {

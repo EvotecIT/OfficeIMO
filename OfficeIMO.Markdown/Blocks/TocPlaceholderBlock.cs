@@ -35,7 +35,15 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
     }
 
     TocBlock ITocPlaceholderMarkdownBlock.RealizeToc(IReadOnlyList<IMarkdownBlock> blocks, int placeholderIndex, MarkdownHeadingCatalog headingCatalog) {
-        var toc = new TocBlock { Ordered = Options.Ordered, NormalizeLevels = Options.NormalizeToMinLevel };
+        var toc = new TocBlock {
+            Ordered = Options.Ordered,
+            NormalizeLevels = Options.NormalizeToMinLevel,
+            IncludeTitle = Options.IncludeTitle,
+            Title = Options.Title,
+            TitleLevel = Options.TitleLevel,
+            Layout = Options.Layout,
+            Chrome = Options.Chrome
+        };
         string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(blocks, placeholderIndex, Options);
         foreach (var entry in headingCatalog.BuildTocEntries(blocks, placeholderIndex, Options, titleAnchor)) {
             toc.Entries.Add(entry);

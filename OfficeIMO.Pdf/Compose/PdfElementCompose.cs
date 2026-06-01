@@ -60,8 +60,12 @@ public class PdfElementCompose {
     public PdfElementCompose Paragraph(System.Action<PdfParagraphBuilder> build, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null, PdfParagraphStyle? style = null) { _doc.Paragraph(build, align, defaultColor, style); return this; }
     /// <summary>Adds a simple bullet list.</summary>
     public PdfElementCompose Bullets(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, PdfListStyle? style = null) { _doc.Bullets(items, align, color, style); return this; }
+    /// <summary>Adds a bullet list whose items can contain rich inline text runs.</summary>
+    public PdfElementCompose RichBullets(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, PdfListStyle? style = null) { _doc.RichBullets(items, align, color, style); return this; }
     /// <summary>Adds a simple numbered list.</summary>
     public PdfElementCompose Numbered(System.Collections.Generic.IEnumerable<string> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.Numbered(items, align, color, startNumber, style); return this; }
+    /// <summary>Adds a numbered list whose items can contain rich inline text runs.</summary>
+    public PdfElementCompose RichNumbered(System.Collections.Generic.IEnumerable<PdfListItem> items, PdfAlign align = PdfAlign.Left, PdfColor? color = null, int startNumber = 1, PdfListStyle? style = null) { _doc.RichNumbered(items, align, color, startNumber, style); return this; }
     /// <summary>Adds a simple text table.</summary>
     /// <param name="rows">Sequence of row arrays.</param>
     /// <param name="align">Table alignment.</param>
@@ -78,8 +82,27 @@ public class PdfElementCompose {
     /// <param name="align">Table alignment.</param>
     /// <param name="style">Optional table styling.</param>
     public PdfElementCompose TableWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableWithLinks(rows, links, align, style); return this; }
+    /// <summary>Adds a horizontal rule at the current nested element flow position.</summary>
+    /// <param name="thickness">Line thickness (pt).</param>
+    /// <param name="color">Optional color; inherited from the current default rule style when omitted.</param>
+    /// <param name="spacingBefore">Top spacing (pt), inherited from the current default rule style when omitted.</param>
+    /// <param name="spacingAfter">Bottom spacing (pt), inherited from the current default rule style when omitted.</param>
+    /// <param name="style">Optional reusable rule style.</param>
+    public PdfElementCompose HR(double? thickness = null, PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfHorizontalRuleStyle? style = null) { _doc.HR(thickness, color, spacingBefore, spacingAfter, style); return this; }
     /// <summary>Adds a named bookmark at the current nested element flow position.</summary>
     public PdfElementCompose Bookmark(string name) { _doc.Bookmark(name); return this; }
+    /// <summary>Adds a paragraph inside a styled panel at the current nested element flow position.</summary>
+    /// <param name="build">Paragraph content builder.</param>
+    /// <param name="style">Panel style (padding, background, border, etc.).</param>
+    /// <param name="align">Paragraph alignment.</param>
+    /// <param name="defaultColor">Optional default text color.</param>
+    public PdfElementCompose PanelParagraph(System.Action<PdfParagraphBuilder> build, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) { _doc.PanelParagraph(build, style, align, defaultColor); return this; }
+    /// <summary>Adds a styled panel from common flow blocks such as paragraphs, headings, lists, simple tables, rules, and nested panel paragraphs.</summary>
+    /// <param name="build">Panel content builder.</param>
+    /// <param name="style">Panel style (padding, background, border, etc.).</param>
+    /// <param name="align">Panel text alignment.</param>
+    /// <param name="defaultColor">Optional default text color.</param>
+    public PdfElementCompose Panel(System.Action<PdfItemCompose> build, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) { _doc.Panel(build, style, align, defaultColor); return this; }
     /// <summary>Adds a simple AcroForm text field at the current nested element flow position.</summary>
     public PdfElementCompose TextField(string name, double width = 180, double height = 22, string value = "", PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) { _doc.TextField(name, width, height, value, align, fontSize, spacingBefore, spacingAfter, style); return this; }
     /// <summary>Adds a simple AcroForm check box at the current nested element flow position.</summary>
@@ -106,4 +129,17 @@ public class PdfElementCompose {
     public PdfElementCompose Polygon(System.Collections.Generic.IEnumerable<OfficePoint> points, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Polygon(points, strokeColor, strokeWidth, fillColor, align, spacingBefore, spacingAfter, strokeDashStyle, strokeLineCap, strokeLineJoin, style, linkUri, linkContents); return this; }
     /// <summary>Adds a freeform path vector shape.</summary>
     public PdfElementCompose Path(System.Collections.Generic.IEnumerable<OfficePathCommand> commands, PdfColor? strokeColor = null, double strokeWidth = 1, PdfColor? fillColor = null, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Path(commands, strokeColor, strokeWidth, fillColor, align, spacingBefore, spacingAfter, strokeDashStyle, strokeLineCap, strokeLineJoin, style, linkUri, linkContents); return this; }
+    /// <summary>Adds an image from supported image bytes at the current nested element flow position. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
+    /// <param name="jpegBytes">Supported image bytes.</param>
+    /// <param name="width">Target width in points.</param>
+    /// <param name="height">Target height in points.</param>
+    /// <param name="align">Image alignment inside content width.</param>
+    /// <param name="clipPath">Optional local clipping path applied before drawing the image.</param>
+    /// <param name="fit">Image fitting mode inside the target box.</param>
+    /// <param name="spacingBefore">Top spacing (pt), inherited from the current default image style when omitted.</param>
+    /// <param name="spacingAfter">Bottom spacing (pt), inherited from the current default image style when omitted.</param>
+    /// <param name="style">Optional reusable image placement style.</param>
+    /// <param name="linkUri">Optional absolute URI for an image link annotation.</param>
+    /// <param name="linkContents">Optional link annotation contents metadata.</param>
+    public PdfElementCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents); return this; }
 }

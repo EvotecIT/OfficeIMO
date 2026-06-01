@@ -5,7 +5,13 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private static readonly char[] WordSplitChars = new[] { ' ', '\n', '\t' };
 
-    private static string F(double d) => d.ToString("0.###", CultureInfo.InvariantCulture);
+    private static string F(double d) {
+        if (Math.Abs(d) < 0.0005D) {
+            d = 0D;
+        }
+
+        return d.ToString("0.###", CultureInfo.InvariantCulture);
+    }
     private static string F0(double d) => d.ToString("0", CultureInfo.InvariantCulture);
 
     private static bool LooksNumeric(string s) {

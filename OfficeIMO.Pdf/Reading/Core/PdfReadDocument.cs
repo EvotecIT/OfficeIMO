@@ -110,6 +110,9 @@ public sealed class PdfReadDocument {
     /// <summary>Extracts image XObjects from all pages in page order.</summary>
     public IReadOnlyList<PdfExtractedImage> ExtractImages() => PdfImageExtractor.ExtractImages(this);
 
+    /// <summary>Extracts embedded file attachments from the document catalog.</summary>
+    public IReadOnlyList<PdfExtractedAttachment> ExtractAttachments() => PdfAttachmentExtractor.ExtractAttachments(_objects, _trailerRaw);
+
     private IReadOnlyList<PdfOutlineItem> ExtractOutlines() {
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null ||

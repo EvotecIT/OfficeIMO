@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.IO.Compression;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
@@ -31,6 +32,27 @@ internal static partial class PdfWriter {
             content);
     }
 
+    private static int AddFlateStreamObject(System.Collections.Generic.List<byte[]> list, byte[] content) {
+        Guard.NotNull(content, nameof(content));
+        byte[] compressed = DeflateZlib(content);
+        return AddStreamObject(
+            list,
+            "<< /Length " + compressed.Length.ToString(CultureInfo.InvariantCulture) + " /Filter /FlateDecode >>",
+            compressed);
+    }
+
+    private static int AddFlateStreamObject(System.Collections.Generic.List<byte[]> list, byte[] content, string extraDictionaryEntries) {
+        Guard.NotNull(content, nameof(content));
+        Guard.NotNull(extraDictionaryEntries, nameof(extraDictionaryEntries));
+        byte[] compressed = DeflateZlib(content);
+        string trimmedEntries = extraDictionaryEntries.Trim();
+        string entries = trimmedEntries.Length == 0 ? string.Empty : " " + trimmedEntries;
+        return AddStreamObject(
+            list,
+            "<< /Length " + compressed.Length.ToString(CultureInfo.InvariantCulture) + entries + " /Filter /FlateDecode >>",
+            compressed);
+    }
+
     private static int AddStreamObject(System.Collections.Generic.List<byte[]> list, string dictionary, byte[] content) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNullOrWhiteSpace(dictionary, nameof(dictionary));
@@ -38,6 +60,22 @@ internal static partial class PdfWriter {
         int id = list.Count + 1;
         list.Add(PdfObjectBytes.WrapStreamObject(id, dictionary, content));
         return id;
+    }
+
+    private static byte[] DeflateZlib(byte[] data) {
+        using var output = new MemoryStream();
+        output.WriteByte(0x78);
+        output.WriteByte(0x9C);
+        using (var deflate = new DeflateStream(output, CompressionLevel.Optimal, leaveOpen: true)) {
+            deflate.Write(data, 0, data.Length);
+        }
+
+        uint adler = Adler32(data);
+        output.WriteByte((byte)((adler >> 24) & 0xFF));
+        output.WriteByte((byte)((adler >> 16) & 0xFF));
+        output.WriteByte((byte)((adler >> 8) & 0xFF));
+        output.WriteByte((byte)(adler & 0xFF));
+        return output.ToArray();
     }
 
     private static string PdfString(string s) {
@@ -164,6 +202,10 @@ internal static partial class PdfWriter {
         public double ClipX { get; init; }
         public double ClipY { get; init; }
         public double ClipHeight { get; init; }
+        public bool IsBackgroundDecoration { get; init; }
+        public double Opacity { get; init; } = 1D;
+        public double RotationAngle { get; init; }
+        public string? GraphicsStateName { get; init; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
     }

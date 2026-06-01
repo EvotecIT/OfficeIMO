@@ -62,7 +62,9 @@ public static class TableStyles {
         BorderColor = PdfColor.FromRgb(210, 218, 226),
         BorderWidth = 0.5,
         CellPaddingX = 6,
-        CellPaddingY = 5
+        CellPaddingY = 5,
+        SpacingBefore = 4,
+        SpacingAfter = 8
     };
 
     /// <summary>
@@ -80,6 +82,43 @@ public static class TableStyles {
         var t = Light();
         t.RightAlignNumeric = true;
         return t;
+    }
+
+    /// <summary>
+    /// Technical-document preset: compact readable rows, dark header fill, soft borders, and automatic column fitting for specifications and READMEs.
+    /// </summary>
+    public static PdfTableStyle TechnicalDocument() {
+        PdfTableStyle style = CreateDocumentTable(Light(), 9.75, 9.75, 1.2, 6, 5, 6, 10);
+        style.HeaderFill = PdfColor.FromRgb(15, 23, 42);
+        style.HeaderTextColor = PdfColor.White;
+        style.RowStripeFill = PdfColor.FromRgb(248, 250, 252);
+        style.BorderColor = PdfColor.FromRgb(203, 213, 225);
+        style.RowSeparatorColor = PdfColor.FromRgb(226, 232, 240);
+        style.BorderWidth = 0.45;
+        style.HeaderSeparatorWidth = 0.75;
+        return style;
+    }
+
+    /// <summary>
+    /// Compact preset: dense list-style table rhythm for notes, narrow reports, and space-constrained exports.
+    /// </summary>
+    public static PdfTableStyle Compact() {
+        PdfTableStyle style = CreateDocumentTable(ListTable1Light(), 9, 9, 1.12, 4, 3, 4, 7);
+        style.RowSeparatorColor = PdfColor.FromRgb(226, 232, 240);
+        return style;
+    }
+
+    /// <summary>
+    /// Report preset: stronger header hierarchy, calm blue row striping, and automatic column fitting for polished summaries.
+    /// </summary>
+    public static PdfTableStyle Report() {
+        PdfTableStyle style = CreateDocumentTable(Light(), 9.25, 9.25, 1.18, 5, 4, 6, 10);
+        style.HeaderFill = PdfColor.FromRgb(30, 64, 175);
+        style.HeaderTextColor = PdfColor.White;
+        style.RowStripeFill = PdfColor.FromRgb(239, 246, 255);
+        style.BorderColor = PdfColor.FromRgb(191, 219, 254);
+        style.BorderWidth = 0.45;
+        return style;
     }
 
     /// <summary>
@@ -298,6 +337,18 @@ public static class TableStyles {
         6 => new WordAccentColors(PdfColor.FromRgb(197, 224, 179), PdfColor.FromRgb(168, 208, 141), PdfColor.FromRgb(226, 239, 217)),
         _ => throw new ArgumentOutOfRangeException(nameof(accentNumber), "Word table accent number must be between 1 and 6.")
     };
+
+    private static PdfTableStyle CreateDocumentTable(PdfTableStyle style, double fontSize, double headerFontSize, double lineHeight, double paddingX, double paddingY, double spacingBefore, double spacingAfter) {
+        style.FontSize = fontSize;
+        style.HeaderFontSize = headerFontSize;
+        style.LineHeight = lineHeight;
+        style.CellPaddingX = paddingX;
+        style.CellPaddingY = paddingY;
+        style.SpacingBefore = spacingBefore;
+        style.SpacingAfter = spacingAfter;
+        style.AutoFitColumns = true;
+        return style;
+    }
 
     private static string[] CreateSupportedWordStyleNames() {
         string[] names = new string[CanonicalWordStyleNameValues.Length + WordStyleAliasNameValues.Length];
