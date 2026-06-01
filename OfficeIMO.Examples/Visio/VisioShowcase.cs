@@ -7,7 +7,7 @@ using OfficeIMO.Visio;
 
 namespace OfficeIMO.Examples.Visio {
     public static class VisioShowcase {
-        public static void Example_VisioShowcase(string folderPath, bool openVisio, bool exportPreviews) {
+        public static void Example_VisioShowcase(string folderPath, bool openVisio, bool exportPreviews, bool exportNativePreviews = false) {
             Console.WriteLine("[*] Visio - Showcase examples");
             string showcasePath = Path.Combine(folderPath, "Visio Showcase");
             PrepareShowcaseDirectory(showcasePath);
@@ -69,6 +69,10 @@ namespace OfficeIMO.Examples.Visio {
                 previewFiles = ExportPreviewFiles(showcasePath, generatedFiles);
             }
 
+            if (exportNativePreviews || string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_NATIVE_SHOWCASE"), "1", StringComparison.OrdinalIgnoreCase)) {
+                previewFiles = previewFiles.Concat(ExportNativePreviewFiles(showcasePath, generatedFiles)).ToList();
+            }
+
             WriteShowcaseSummary(showcasePath, generatedFiles, previewFiles);
 
             if (openVisio && generatedFiles.Count > 0) {
@@ -85,6 +89,11 @@ namespace OfficeIMO.Examples.Visio {
             string previewPath = Path.Combine(showcasePath, "Preview");
             if (Directory.Exists(previewPath)) {
                 Directory.Delete(previewPath, recursive: true);
+            }
+
+            string nativePreviewPath = Path.Combine(showcasePath, "Native Preview");
+            if (Directory.Exists(nativePreviewPath)) {
+                Directory.Delete(nativePreviewPath, recursive: true);
             }
         }
 
@@ -134,6 +143,40 @@ namespace OfficeIMO.Examples.Visio {
             string galleryPath = WritePreviewGallery(previewPath, previewFiles);
             Console.WriteLine($"    gallery: {galleryPath}");
             return previewFiles;
+        }
+
+        private static IReadOnlyList<string> ExportNativePreviewFiles(string showcasePath, IReadOnlyList<string> generatedFiles) {
+            string previewPath = Path.Combine(showcasePath, "Native Preview");
+            Directory.CreateDirectory(previewPath);
+            List<string> previewFiles = new();
+
+            foreach (string filePath in generatedFiles) {
+                VisioDocument document = VisioDocument.Load(filePath);
+                string prefix = CreatePreviewPrefix(filePath, showcasePath);
+                string svgPath = Path.Combine(previewPath, prefix + "-page1.native.svg");
+                string pngPath = Path.Combine(previewPath, prefix + "-page1.native.png");
+
+                document.SaveAsSvg(svgPath, new VisioSvgSaveOptions { PixelsPerInch = 96 });
+                document.SaveAsPng(pngPath, new VisioPngSaveOptions { PixelsPerInch = 96 });
+
+                VerifyNonEmptyPreview(svgPath, "native SVG");
+                VerifyNonEmptyPreview(pngPath, "native PNG");
+                previewFiles.Add(svgPath);
+                previewFiles.Add(pngPath);
+                Console.WriteLine($"    native preview: {svgPath}");
+                Console.WriteLine($"    native preview: {pngPath}");
+            }
+
+            string galleryPath = WritePreviewGallery(previewPath, previewFiles);
+            Console.WriteLine($"    native gallery: {galleryPath}");
+            return previewFiles;
+        }
+
+        private static void VerifyNonEmptyPreview(string path, string description) {
+            FileInfo file = new(path);
+            if (!file.Exists || file.Length == 0) {
+                throw new InvalidOperationException($"OfficeIMO native export created an empty or missing {description}: {path}");
+            }
         }
 
         private static void WriteShowcaseSummary(string showcasePath, IReadOnlyList<string> generatedFiles, IReadOnlyList<string> previewFiles) {

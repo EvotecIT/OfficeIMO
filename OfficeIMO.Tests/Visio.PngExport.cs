@@ -1,8 +1,6 @@
 using System;
-using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
+using System.IO.Compression;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
@@ -10,9 +8,9 @@ using OfficeIMO.Visio.Stencils;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class VisioSvgExport {
+    public class VisioPngExport {
         [Fact]
-        public void DocumentCanExportFirstPageToHeadlessSvg() {
+        public void DocumentCanExportFirstPageToNativePng() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Diagram").Size(6, 4);
@@ -20,7 +18,6 @@ namespace OfficeIMO.Tests {
             start.FillColor = OfficeColor.FromRgb(238, 247, 255);
             start.LineColor = OfficeColor.FromRgb(37, 99, 235);
             start.TextStyle = new VisioTextStyle {
-                FontFamily = "Aptos",
                 Size = 12,
                 Bold = true,
                 Color = OfficeColor.FromRgb(17, 24, 39)
@@ -32,116 +29,257 @@ namespace OfficeIMO.Tests {
             connector.Label = "yes";
             connector.LabelPlacement = VisioConnectorLabelPlacement.Along(0.5, 0, 0.2);
 
-            string svg = document.ToSvg(new VisioSvgSaveOptions {
+            byte[] png = document.ToPng(new VisioPngSaveOptions {
                 PixelsPerInch = 100,
-                BackgroundColor = null
+                BackgroundColor = OfficeColor.White
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement root = parsed.Root!;
-            Assert.Equal("600", root.Attribute("width")!.Value);
-            Assert.Equal("400", root.Attribute("height")!.Value);
-            Assert.Equal("0 0 600 400", root.Attribute("viewBox")!.Value);
-            Assert.Contains(root.Descendants(ns + "g"), g => (string?)g.Attribute("data-visio-shape-id") == start.Id);
-            Assert.Contains(root.Descendants(ns + "g"), g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
-            Assert.Contains(root.Descendants(ns + "text"), text => text.Value.IndexOf("Start", StringComparison.Ordinal) >= 0);
-            Assert.Contains(root.Descendants(ns + "text"), text => text.Value.IndexOf("yes", StringComparison.Ordinal) >= 0);
-            XElement startText = root.Descendants(ns + "text").Single(text => text.Value.IndexOf("Start", StringComparison.Ordinal) >= 0);
-            Assert.Equal("16.667", startText.Attribute("font-size")!.Value);
-            Assert.Contains(root.Descendants(ns + "path"), path => ((string?)path.Attribute("data-officeimo-connector-arrow")) == "end");
+            AssertPngHeader(png, 600, 400);
+            using MemoryStream blankStream = new();
+            VisioDocument blank = VisioDocument.Create(blankStream);
+            blank.AddPage("Blank").Size(6, 4);
+            byte[] blankPng = blank.ToPng(new VisioPngSaveOptions { PixelsPerInch = 100, BackgroundColor = OfficeColor.White });
+            Assert.NotEqual(blankPng, png);
         }
 
         [Fact]
-        public void SvgRendererDrawsConnectorArrowheadsWithLineColorOpacity() {
+        public void PageCanSaveNativePngToFileAndStream() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Arrow Opacity").Size(4, 2);
-            VisioShape source = page.AddRectangle(0.8, 1, 0.4, 0.4, string.Empty);
-            VisioShape target = page.AddRectangle(3.2, 1, 0.4, 0.4, string.Empty);
-            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
-            connector.BeginArrow = EndArrow.Arrow;
-            connector.EndArrow = EndArrow.Arrow;
-            connector.LineColor = OfficeColor.FromRgba(37, 99, 235, 128);
-            connector.LineWeight = 0.03D;
+            VisioPage page = document.AddPage("Export").Size(2, 1);
+            page.AddEllipse(1, 0.5, 1, 0.5, "Node");
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
-            });
+            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png");
+            try {
+                page.SaveAsPng(path, new VisioPngSaveOptions { PixelsPerInch = 96 });
+                byte[] fileBytes = File.ReadAllBytes(path);
+                AssertPngHeader(fileBytes, 192, 96);
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
-            XElement connectorPath = connectorGroup.Elements(ns + "path")
-                .Single(path => path.Attribute("data-officeimo-connector-arrow") == null);
-            Assert.Null(connectorPath.Attribute("marker-start"));
-            Assert.Null(connectorPath.Attribute("marker-end"));
-            Assert.Equal("#2563EB", connectorPath.Attribute("stroke")!.Value);
-            Assert.Equal("0.502", connectorPath.Attribute("stroke-opacity")!.Value);
-
-            XElement[] arrows = connectorGroup.Elements(ns + "path")
-                .Where(path => path.Attribute("data-officeimo-connector-arrow") != null)
-                .ToArray();
-            Assert.Equal(2, arrows.Length);
-            Assert.Contains(arrows, arrow => (string?)arrow.Attribute("data-officeimo-connector-arrow") == "start");
-            Assert.Contains(arrows, arrow => (string?)arrow.Attribute("data-officeimo-connector-arrow") == "end");
-            Assert.All(arrows, arrow => {
-                Assert.Equal("#2563EB", arrow.Attribute("fill")!.Value);
-                Assert.Equal("0.502", arrow.Attribute("fill-opacity")!.Value);
-                Assert.Equal("none", arrow.Attribute("stroke")!.Value);
-            });
+                using MemoryStream stream = new();
+                document.SaveAsPng(stream, new VisioPngSaveOptions { PixelsPerInch = 96 });
+                AssertPngHeader(stream.ToArray(), 192, 96);
+            } finally {
+                if (File.Exists(path)) {
+                    File.Delete(path);
+                }
+            }
         }
 
         [Fact]
-        public void SvgRendererSuppressesArrowheadsWhenConnectorLineIsHidden() {
+        public void PngRendererDrawsStyledShapeTextBackgrounds() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Hidden Arrow").Size(4, 2);
-            VisioShape source = page.AddRectangle(0.8, 1, 0.4, 0.4, string.Empty);
-            VisioShape target = page.AddRectangle(3.2, 1, 0.4, 0.4, string.Empty);
-            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
-            connector.BeginArrow = EndArrow.Arrow;
-            connector.EndArrow = EndArrow.Arrow;
-            connector.LineColor = OfficeColor.FromRgb(220, 38, 38);
-            connector.LinePattern = 0;
+            VisioPage page = document.AddPage("Text Background").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1.6, 0.7, "Escalation");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.TextStyle = new VisioTextStyle {
+                Size = 11,
+                TextWidth = 1.2,
+                TextHeight = 0.42,
+                BackgroundColor = OfficeColor.FromRgb(255, 0, 0),
+                BackgroundTransparency = 0,
+                Color = OfficeColor.Black
+            };
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
-            XElement connectorPath = connectorGroup.Elements(ns + "path").Single();
-            Assert.Equal("none", connectorPath.Attribute("stroke")!.Value);
-            Assert.DoesNotContain(connectorGroup.Elements(ns + "path"), path => path.Attribute("data-officeimo-connector-arrow") != null);
+            RgbaPng image = DecodeRgbaPng(png);
+            int redPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] > 220 && image.Pixels[i + 1] < 80 && image.Pixels[i + 2] < 80 && image.Pixels[i + 3] > 200) {
+                    redPixels++;
+                }
+            }
+
+            Assert.True(redPixels > 100, "Expected visible red text background pixels in the native PNG preview.");
         }
 
         [Fact]
-        public void SvgFallbackConnectorsUseVerticalEndpoints() {
+        public void PngRendererWrapsLongWordsInsideTextBounds() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Vertical").Size(4, 6);
-            VisioShape top = page.AddRectangle(2, 4.5, 1, 1, "Top");
-            VisioShape bottom = page.AddRectangle(2, 1.5, 1, 1, "Bottom");
+            VisioPage page = document.AddPage("Long Word Wrap").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 1.7, "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.TextStyle = new VisioTextStyle {
+                Size = 18,
+                TextWidth = 0.32,
+                TextHeight = 1.55,
+                BackgroundColor = OfficeColor.FromRgb(255, 0, 0),
+                BackgroundTransparency = 0,
+                Color = OfficeColor.Transparent
+            };
 
-            VisioConnector connector = page.AddConnector(top, bottom, ConnectorKind.Straight);
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
-            XElement path = connectorGroup.Element(ns + "path")!;
-            Assert.Equal("M 200 200 L 200 400", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            int minY = image.Height;
+            int maxY = 0;
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    if (IsRedPixel(image, x, y)) {
+                        minY = Math.Min(minY, y);
+                        maxY = Math.Max(maxY, y);
+                    }
+                }
+            }
+
+            int redSpan = maxY - minY;
+            Assert.True(redSpan > 40, "Expected a long unspaced word to wrap into multiple native PNG text-background lines instead of being shrunk to one line. Actual red background span: " + redSpan + ".");
         }
 
         [Fact]
-        public void SvgRendererPreservesDashedShapeOutlines() {
+        public void PngRendererBlendsStyledTextOpacity() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Text Opacity").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.TextStyle = new VisioTextStyle {
+                Size = 24,
+                TextWidth = 1.6,
+                TextHeight = 0.55,
+                Color = OfficeColor.FromRgba(220, 38, 38, 128)
+            };
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int translucentRedPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] > 210 &&
+                    image.Pixels[i + 1] > 95 && image.Pixels[i + 1] < 180 &&
+                    image.Pixels[i + 2] > 95 && image.Pixels[i + 2] < 180 &&
+                    image.Pixels[i + 3] > 200) {
+                    translucentRedPixels++;
+                }
+            }
+
+            Assert.True(translucentRedPixels > 60, "Expected semi-transparent text pixels to blend with the native PNG background.");
+        }
+
+        [Fact]
+        public void PngRendererDrawsStyledTextUnderline() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Text Underline").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "iiiiiiii");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.TextStyle = new VisioTextStyle {
+                Size = 24,
+                TextWidth = 1.6,
+                TextHeight = 0.55,
+                Underline = true,
+                Color = OfficeColor.FromRgb(22, 101, 52)
+            };
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int longestGreenRun = 0;
+            for (int y = 105; y <= 125; y++) {
+                int run = 0;
+                for (int x = 80; x <= 220; x++) {
+                    if (IsGreenPixel(image, x, y)) {
+                        run++;
+                        longestGreenRun = Math.Max(longestGreenRun, run);
+                    } else {
+                        run = 0;
+                    }
+                }
+            }
+
+            Assert.True(longestGreenRun > 35, "Expected a continuous styled underline in the native PNG render.");
+        }
+
+        [Fact]
+        public void PngRendererDrawsStyledTextItalic() {
+            RgbaPng upright = DecodeRgbaPng(RenderStyledItalicText(false));
+            RgbaPng italic = DecodeRgbaPng(RenderStyledItalicText(true));
+
+            Assert.Equal(upright.Width, italic.Width);
+            Assert.Equal(upright.Height, italic.Height);
+
+            int changedPixels = 0;
+            for (int i = 0; i < upright.Pixels.Length; i += 4) {
+                int delta = Math.Abs(upright.Pixels[i] - italic.Pixels[i]) +
+                    Math.Abs(upright.Pixels[i + 1] - italic.Pixels[i + 1]) +
+                    Math.Abs(upright.Pixels[i + 2] - italic.Pixels[i + 2]) +
+                    Math.Abs(upright.Pixels[i + 3] - italic.Pixels[i + 3]);
+                if (delta > 80) {
+                    changedPixels++;
+                }
+            }
+
+            Assert.True(changedPixels > 50, "Expected styled italic text to alter the native PNG text outline.");
+        }
+
+        [Fact]
+        public void PngRendererRotatesStyledTextWithTextAngle() {
+            RgbaPng upright = DecodeRgbaPng(RenderStyledRotatedText(0D));
+            RgbaPng rotated = DecodeRgbaPng(RenderStyledRotatedText(Math.PI / 5D));
+
+            Assert.Equal(upright.Width, rotated.Width);
+            Assert.Equal(upright.Height, rotated.Height);
+
+            int changedPixels = 0;
+            for (int i = 0; i < upright.Pixels.Length; i += 4) {
+                int delta = Math.Abs(upright.Pixels[i] - rotated.Pixels[i]) +
+                    Math.Abs(upright.Pixels[i + 1] - rotated.Pixels[i + 1]) +
+                    Math.Abs(upright.Pixels[i + 2] - rotated.Pixels[i + 2]) +
+                    Math.Abs(upright.Pixels[i + 3] - rotated.Pixels[i + 3]);
+                if (delta > 80) {
+                    changedPixels++;
+                }
+            }
+
+            Assert.True(changedPixels > 80, "Expected TextAngle to rotate the native PNG text outline.");
+        }
+
+        [Fact]
+        public void PngRendererRotatesStyledTextBackgroundWithTextAngle() {
+            RgbaPng upright = DecodeRgbaPng(RenderStyledRotatedTextBackground(0D));
+            RgbaPng rotated = DecodeRgbaPng(RenderStyledRotatedTextBackground(Math.PI / 5D));
+
+            Assert.Equal(upright.Width, rotated.Width);
+            Assert.Equal(upright.Height, rotated.Height);
+
+            int changedPixels = 0;
+            for (int i = 0; i < upright.Pixels.Length; i += 4) {
+                int delta = Math.Abs(upright.Pixels[i] - rotated.Pixels[i]) +
+                    Math.Abs(upright.Pixels[i + 1] - rotated.Pixels[i + 1]) +
+                    Math.Abs(upright.Pixels[i + 2] - rotated.Pixels[i + 2]) +
+                    Math.Abs(upright.Pixels[i + 3] - rotated.Pixels[i + 3]);
+                if (delta > 80) {
+                    changedPixels++;
+                }
+            }
+
+            Assert.True(changedPixels > 120, "Expected TextAngle to rotate the native PNG styled text background.");
+        }
+
+        [Fact]
+        public void PngRendererPreservesDashedShapeOutlines() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Dashed Shape").Size(3, 2);
@@ -149,23 +287,28 @@ namespace OfficeIMO.Tests {
             shape.FillPattern = 0;
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LinePattern = 2;
+            shape.LineWeight = 0.04D;
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path").Single();
-            Assert.Equal("6 4", path.Attribute("stroke-dasharray")!.Value);
-            Assert.NotEqual("none", path.Attribute("stroke")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            bool sawDash = false;
+            bool sawGap = false;
+            for (int x = 110; x <= 190; x++) {
+                sawDash |= IsRedPixel(image, x, 50);
+                sawGap |= IsWhitePixel(image, x, 50);
+            }
+
+            Assert.True(sawDash, "Expected a painted dash on the top border.");
+            Assert.True(sawGap, "Expected the top border dash gap to remain unpainted.");
         }
 
         [Fact]
-        public void SvgRendererSuppressesZeroWeightShapeOutlines() {
+        public void PngRendererSuppressesZeroWeightShapeOutlines() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Zero Line").Size(3, 2);
@@ -174,458 +317,367 @@ namespace OfficeIMO.Tests {
             shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
             shape.LineWeight = 0D;
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path").Single();
-            Assert.Equal("none", path.Attribute("fill")!.Value);
-            Assert.Equal("none", path.Attribute("stroke")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            int redPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] > 180 &&
+                    image.Pixels[i + 1] < 90 &&
+                    image.Pixels[i + 2] < 90 &&
+                    image.Pixels[i + 3] > 200) {
+                    redPixels++;
+                }
+            }
+
+            Assert.Equal(0, redPixels);
         }
 
         [Fact]
-        public void SvgRendererKeepsPlainFlowchartDataAsParallelogram() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Flowchart Data").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
-            shape.NameU = "Data";
-
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
-            });
-
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path").Single();
-            Assert.Equal("M 125 150 L 200 150 L 175 50 L 100 50 Z", path.Attribute("d")!.Value);
-            Assert.Null(path.Attribute("data-officeimo-database-geometry"));
-        }
-
-        [Fact]
-        public void SvgRendererDrawsSemanticDatabaseShapesAsCylinders() {
+        public void PngRendererDrawsSemanticDatabaseShapesAsCylinders() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Database Shape").Size(3, 2);
             VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
             shape.NameU = "Data";
+            shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
+            shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
+            shape.LineWeight = 0.03D;
             shape.SetUserCell("OfficeIMO.StencilId", "architecture.database", "STR");
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement body = shapeGroup.Elements(ns + "path")
-                .Single(path => (string?)path.Attribute("data-officeimo-database-geometry") == "true");
-            XElement seam = shapeGroup.Elements(ns + "path")
-                .Single(path => (string?)path.Attribute("data-officeimo-database-seam") == "true");
-            Assert.Contains(" C ", body.Attribute("d")!.Value);
-            Assert.Contains(" C ", seam.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            bool sawCapSeam = false;
+            for (int y = 80; y <= 84; y++) {
+                for (int x = 145; x <= 155; x++) {
+                    sawCapSeam |= IsRedPixel(image, x, y);
+                }
+            }
+
+            Assert.True(IsBluePixel(image, 150, 100), "Expected semantic database cylinder body fill in the native PNG render.");
+            Assert.True(sawCapSeam, "Expected semantic database cylinder cap seam in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererDrawsChevronShapesAsChevronPolygons() {
+        public void PngRendererDrawsChevronShapesAsChevronPolygons() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Chevron Shape").Size(3, 2);
             VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
             shape.NameU = "Chevron";
+            shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
+            shape.LinePattern = 0;
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path").Single();
-            Assert.Equal("M 100 150 L 172 150 L 200 100 L 172 50 L 100 50 L 128 100 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 108, 100), "Expected the chevron notch to leave the former rectangle side untouched.");
+            Assert.True(IsBluePixel(image, 150, 100), "Expected the chevron body fill in the native PNG render.");
+            Assert.True(IsBluePixel(image, 190, 100), "Expected the chevron point fill in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererDrawsStartEndShapesAsTerminatorCapsules() {
+        public void PngRendererDrawsFlowchartStartEndStencilsAsTerminatorCapsules() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Terminator Shape").Size(4, 2);
-            VisioShape shape = page.AddRectangle(2, 1, 1.6, 0.8, string.Empty);
-            shape.NameU = "Start/End";
+            VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart, "flow.start-end", "start", 2, 1, 1.6, 0.8, string.Empty);
+            shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
+            shape.LinePattern = 0;
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            Assert.Empty(shapeGroup.Elements(ns + "ellipse"));
-            XElement path = shapeGroup.Elements(ns + "path").Single();
-            Assert.StartsWith("M 160 140 L 240 140 L", path.Attribute("d")!.Value, StringComparison.Ordinal);
-            Assert.Contains("L 240 60 L 160 60 L", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 125, 65), "Expected the rounded terminator corner to leave the former rectangle corner untouched.");
+            Assert.True(IsBluePixel(image, 160, 65), "Expected the terminator capsule top shoulder to render instead of collapsing to an ellipse.");
+            Assert.True(IsBluePixel(image, 200, 100), "Expected the terminator capsule body fill in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererDrawsDocumentStencilsAsWavyDocuments() {
+        public void PngRendererDrawsDocumentStencilsAsWavyDocuments() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Document Shape").Size(3, 2);
             VisioShape shape = page.AddStencilShape(VisioStencils.CollaborationBusiness, "collab.document", "doc", 1.5, 1, 1.4, 1, string.Empty);
+            shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
+            shape.LinePattern = 0;
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path").Single();
-            string d = path.Attribute("d")!.Value;
-            Assert.StartsWith("M 80 50 L 220 50 L 220 136 L", d, StringComparison.Ordinal);
-            Assert.Contains("L 161.2 128.3 L", d);
-            Assert.DoesNotContain("L 185 50 L 80 50 Z", d, StringComparison.Ordinal);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 85, 145), "Expected the wavy document bottom to leave the former rectangle corner untouched.");
+            Assert.True(IsBluePixel(image, 150, 100), "Expected the document body fill in the native PNG render.");
+            Assert.True(IsBluePixel(image, 160, 128), "Expected the document wave crest to render in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererDrawsDelayShapesAsDShapes() {
+        public void PngRendererDrawsDelayShapesAsDShapes() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Delay Shape").Size(3, 2);
             VisioShape shape = page.AddRectangle(1.5, 1, 1.4, 1, string.Empty);
             shape.NameU = "Delay";
+            shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
+            shape.LinePattern = 0;
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path").Single();
-            string d = path.Attribute("d")!.Value;
-            Assert.StartsWith("M 80 150 L 170 150 L", d, StringComparison.Ordinal);
-            Assert.Contains("L 220 100 L", d);
-            Assert.DoesNotContain("L 220 50 L 80 50 Z", d, StringComparison.Ordinal);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 216, 55), "Expected the rounded delay corner to leave the former rectangle corner untouched.");
+            Assert.True(IsBluePixel(image, 215, 100), "Expected the delay D-shape rounded side fill in the native PNG render.");
+            Assert.True(IsBluePixel(image, 100, 100), "Expected the delay D-shape body fill in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererDrawsManualInputShapesAsSlantedQuadrilaterals() {
+        public void PngRendererDrawsManualInputShapesAsSlantedQuadrilaterals() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Manual Input Shape").Size(3, 2);
             VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
             shape.NameU = "Manual Input";
+            shape.FillColor = OfficeColor.FromRgb(37, 99, 235);
+            shape.LinePattern = 0;
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path").Single();
-            string d = path.Attribute("d")!.Value;
-            Assert.Equal("M 100 150 L 200 150 L 200 75 L 100 50 Z", d);
-            Assert.DoesNotContain("L 200 50 L 100 50 Z", d, StringComparison.Ordinal);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 195, 55), "Expected the slanted manual-input top to leave the former rectangle corner untouched.");
+            Assert.True(IsBluePixel(image, 195, 80), "Expected the slanted manual-input top edge to include the upper-right shoulder.");
+            Assert.True(IsBluePixel(image, 150, 100), "Expected the manual-input body fill in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererWrapsBoundedTextAndDrawsConnectorLabelBackgrounds() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Labels").Size(5, 3);
-            VisioShape source = page.AddRectangle(1.2, 1.5, 1.1, 0.55, "Customer onboarding approval");
-            source.TextStyle = new VisioTextStyle {
-                Size = 12,
-                TextWidth = 0.85,
-                TextHeight = 0.42,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
-                VerticalAlignment = VisioTextVerticalAlignment.Middle
-            };
-            VisioShape target = page.AddRectangle(3.8, 1.5, 1.1, 0.55, "Done");
-            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left);
-            connector.Label = "manual review required";
-            connector.LabelPlacement = VisioConnectorLabelPlacement.Along(0.5, 0, 0.18);
-            connector.TextStyle = new VisioTextStyle {
-                Size = 9,
-                TextWidth = 0.72,
-                TextHeight = 0.32
-            };
+        public void PngRendererRotatesEllipseShapesWithAngle() {
+            RgbaPng upright = DecodeRgbaPng(RenderEllipseShape(0D));
+            RgbaPng rotated = DecodeRgbaPng(RenderEllipseShape(Math.PI / 4D));
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+            Assert.Equal(upright.Width, rotated.Width);
+            Assert.Equal(upright.Height, rotated.Height);
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement sourceGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == source.Id);
-            XElement shapeText = sourceGroup.Descendants(ns + "text").Single();
-            Assert.True(shapeText.Elements(ns + "tspan").Count() > 1);
+            int changedPixels = 0;
+            for (int i = 0; i < upright.Pixels.Length; i += 4) {
+                int delta = Math.Abs(upright.Pixels[i] - rotated.Pixels[i]) +
+                    Math.Abs(upright.Pixels[i + 1] - rotated.Pixels[i + 1]) +
+                    Math.Abs(upright.Pixels[i + 2] - rotated.Pixels[i + 2]) +
+                    Math.Abs(upright.Pixels[i + 3] - rotated.Pixels[i + 3]);
+                if (delta > 80) {
+                    changedPixels++;
+                }
+            }
 
-            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
-            XElement labelBackground = connectorGroup.Elements(ns + "rect")
-                .Single(rect => (string?)rect.Attribute("data-officeimo-connector-label-background") == "true");
-            Assert.True(double.Parse(labelBackground.Attribute("width")!.Value, CultureInfo.InvariantCulture) > 0D);
-            Assert.Equal("0.902", labelBackground.Attribute("fill-opacity")!.Value);
-
-            XElement labelText = connectorGroup.Elements(ns + "text").Single();
-            Assert.True(labelText.Elements(ns + "tspan").Count() > 1);
+            Assert.True(changedPixels > 300, "Expected shape.Angle to rotate non-circular ellipse geometry in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererDrawsStyledShapeTextBackgrounds() {
+        public void PngRendererSuppressesArrowheadsWhenConnectorLineIsHidden() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Background").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.6, 0.7, "Escalation window");
+            VisioPage page = document.AddPage("Hidden Arrow").Size(4, 2);
+            VisioShape source = page.AddRectangle(0.8, 1, 0.4, 0.4, string.Empty);
+            source.FillPattern = 0;
+            source.LinePattern = 0;
+            VisioShape target = page.AddRectangle(3.2, 1, 0.4, 0.4, string.Empty);
+            target.FillPattern = 0;
+            target.LinePattern = 0;
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            connector.BeginArrow = EndArrow.Arrow;
+            connector.EndArrow = EndArrow.Arrow;
+            connector.LineColor = OfficeColor.FromRgb(220, 38, 38);
+            connector.LinePattern = 0;
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int redPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] > 180 &&
+                    image.Pixels[i + 1] < 90 &&
+                    image.Pixels[i + 2] < 90 &&
+                    image.Pixels[i + 3] > 200) {
+                    redPixels++;
+                }
+            }
+
+            Assert.Equal(0, redPixels);
+        }
+
+        [Fact]
+        public void PngRendererCanUseConfiguredTrueTypeFontPath() {
+            OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? fontPath);
+            if (font == null || string.IsNullOrWhiteSpace(fontPath)) {
+                return;
+            }
+
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Configured Font").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 2.2, 0.8, "OfficeIMO");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
             shape.TextStyle = new VisioTextStyle {
-                Size = 11,
-                TextWidth = 1.2,
-                TextHeight = 0.42,
-                BackgroundColor = OfficeColor.FromRgb(255, 236, 179),
-                BackgroundTransparency = 25
-            };
-
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
-
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement background = shapeGroup.Elements(ns + "rect")
-                .Single(rect => (string?)rect.Attribute("data-officeimo-text-background") == "true");
-            Assert.Null(background.Attribute("data-officeimo-connector-label-background"));
-            Assert.Equal("#FFECB3", background.Attribute("fill")!.Value);
-            Assert.Equal("0.749", background.Attribute("fill-opacity")!.Value);
-        }
-
-        [Fact]
-        public void SvgRendererPreservesStyledTextOpacity() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Opacity").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.6, 0.7, "Escalation");
-            shape.TextStyle = new VisioTextStyle {
-                Size = 11,
-                TextWidth = 1.2,
-                TextHeight = 0.42,
-                Color = OfficeColor.FromRgba(220, 38, 38, 128)
-            };
-
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
-
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement text = shapeGroup.Elements(ns + "text").Single();
-            Assert.Equal("#DC2626", text.Attribute("fill")!.Value);
-            Assert.Equal("0.502", text.Attribute("fill-opacity")!.Value);
-        }
-
-        [Fact]
-        public void SvgRendererPreservesStyledTextUnderline() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Underline").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
-            shape.TextStyle = new VisioTextStyle {
-                Size = 18,
-                TextWidth = 1.6,
+                Size = 22,
+                TextWidth = 2.0,
                 TextHeight = 0.5,
-                Underline = true,
-                Color = OfficeColor.FromRgb(22, 101, 52)
+                Color = OfficeColor.Black
             };
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                FontFilePath = fontPath,
+                Supersampling = 1
+            });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement text = shapeGroup.Elements(ns + "text").Single();
-            Assert.Equal("underline", text.Attribute("text-decoration")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            int darkPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 80 && image.Pixels[i + 1] < 80 && image.Pixels[i + 2] < 80 && image.Pixels[i + 3] > 200) {
+                    darkPixels++;
+                }
+            }
+
+            Assert.True(darkPixels > 200, "Expected configured managed TrueType/OpenType font outlines in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererPreservesStyledTextItalic() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Italic").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
-            shape.TextStyle = new VisioTextStyle {
-                Size = 18,
-                TextWidth = 1.6,
-                TextHeight = 0.5,
-                Italic = true,
-                Color = OfficeColor.FromRgb(22, 101, 52)
-            };
-
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
-
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement text = shapeGroup.Elements(ns + "text").Single();
-            Assert.Equal("italic", text.Attribute("font-style")!.Value);
-        }
-
-        [Fact]
-        public void SvgRendererRotatesStyledTextWithTextAngle() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Rotation").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
-            shape.TextStyle = new VisioTextStyle {
-                Size = 18,
-                TextWidth = 1.6,
-                TextHeight = 0.5,
-                TextAngle = Math.PI / 4D,
-                Color = OfficeColor.FromRgb(22, 101, 52)
-            };
-
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
-
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement text = shapeGroup.Elements(ns + "text").Single();
-            Assert.StartsWith("rotate(-45", text.Attribute("transform")!.Value, StringComparison.Ordinal);
-        }
-
-        [Fact]
-        public void SvgRendererRotatesStyledTextBackgroundWithTextAngle() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Text Background Rotation").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
-            shape.TextStyle = new VisioTextStyle {
-                Size = 18,
-                TextWidth = 1.6,
-                TextHeight = 0.5,
-                TextAngle = Math.PI / 4D,
-                BackgroundColor = OfficeColor.FromRgb(220, 38, 38),
-                BackgroundTransparency = 0,
-                Color = OfficeColor.FromRgb(22, 101, 52)
-            };
-
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
-
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement text = shapeGroup.Elements(ns + "text").Single();
-            XElement background = shapeGroup.Elements(ns + "rect")
-                .Single(rect => (string?)rect.Attribute("data-officeimo-text-background") == "true");
-            Assert.Equal(text.Attribute("transform")!.Value, background.Attribute("transform")!.Value);
-            Assert.Equal("#DC2626", background.Attribute("fill")!.Value);
-        }
-
-        [Fact]
-        public void SvgRendererNudgesConnectorLabelsAwayFromShapeCollisions() {
+        public void PngRendererNudgesConnectorLabelsAwayFromShapeCollisions() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Label Avoidance").Size(6, 3);
             VisioShape source = page.AddRectangle(1, 1.5, 1, 0.6, "Source");
             VisioShape target = page.AddRectangle(5, 1.5, 1, 0.6, "Target");
-            page.AddRectangle(3, 1.5, 1.1, 0.7, "Obstacle");
+            VisioShape obstacle = page.AddRectangle(3, 1.5, 1.1, 0.7, string.Empty);
+            obstacle.FillColor = OfficeColor.FromRgb(40, 96, 180);
+            obstacle.LinePattern = 0;
+
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            connector.LinePattern = 0;
             connector.Label = "handoff";
             connector.PlaceLabel(0.5, width: 1.2, height: 0.3);
+            connector.TextStyle = new VisioTextStyle {
+                BackgroundColor = OfficeColor.FromRgb(255, 0, 0),
+                BackgroundTransparency = 0,
+                Color = OfficeColor.Black
+            };
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
-            XElement labelBackground = connectorGroup.Elements(ns + "rect")
-                .Single(rect => (string?)rect.Attribute("data-officeimo-connector-label-background") == "true");
-            XElement labelText = connectorGroup.Elements(ns + "text").Single();
-            Assert.Equal("true", labelBackground.Attribute("data-officeimo-label-adjusted")!.Value);
-            Assert.Equal("true", labelText.Attribute("data-officeimo-label-adjusted")!.Value);
-            Assert.NotEqual("135", labelBackground.Attribute("y")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            int center = (((image.Height - 150) * image.Width) + 300) * 4;
+            Assert.True(image.Pixels[center] < 100 && image.Pixels[center + 1] < 130 && image.Pixels[center + 2] > 150,
+                "Expected the obstacle center to remain visible instead of being covered by the connector label background.");
         }
 
         [Fact]
-        public void SvgRendererNudgesConnectorLabelsAwayFromEndpointShapeCollisions() {
+        public void PngRendererNudgesConnectorLabelsAwayFromEndpointShapeCollisions() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Endpoint Label Avoidance").Size(6, 3);
-            VisioShape source = page.AddRectangle(1, 1.5, 1, 0.6, "Source");
-            VisioShape target = page.AddRectangle(5, 1.5, 1, 0.6, "Target");
+            VisioShape source = page.AddRectangle(1, 1.5, 1, 0.6, string.Empty);
+            source.FillColor = OfficeColor.FromRgb(40, 96, 180);
+            source.LinePattern = 0;
+            VisioShape target = page.AddRectangle(5, 1.5, 1, 0.6, string.Empty);
+            target.LinePattern = 0;
+
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            connector.LinePattern = 0;
             connector.Label = "endpoint collision";
             connector.PlaceLabel(0, width: 1.2, height: 0.3);
+            connector.TextStyle = new VisioTextStyle {
+                BackgroundColor = OfficeColor.FromRgb(255, 0, 0),
+                BackgroundTransparency = 0,
+                Color = OfficeColor.Black
+            };
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+            VisioRenderConnectorLabelPlacement placement = VisioRenderLabelLayout.Create(page).Resolve(
+                connector,
+                new[] { (1.5D, 1.5D), (4.5D, 1.5D) });
+            Assert.True(placement.Adjusted, "Expected endpoint collision avoidance to adjust the connector label placement.");
+            Assert.True(placement.X > 2D, "Expected endpoint collision avoidance to move the label away from the source shape.");
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
-            XElement labelBackground = connectorGroup.Elements(ns + "rect")
-                .Single(rect => (string?)rect.Attribute("data-officeimo-connector-label-background") == "true");
-            XElement labelText = connectorGroup.Elements(ns + "text").Single();
-            Assert.Equal("true", labelBackground.Attribute("data-officeimo-label-adjusted")!.Value);
-            Assert.Equal("true", labelText.Attribute("data-officeimo-label-adjusted")!.Value);
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            AssertPngHeader(png, 600, 300);
         }
 
         [Fact]
-        public void SvgRendererNudgesConnectorLabelsAwayFromOtherConnectorLines() {
+        public void PngRendererNudgesConnectorLabelsAwayFromOtherConnectorLines() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Connector Label Crossing Avoidance").Size(6, 3);
-            VisioShape source = page.AddRectangle(1, 1.5, 1, 0.4, "Source");
-            VisioShape target = page.AddRectangle(5, 1.5, 1, 0.4, "Target");
+            VisioShape source = page.AddRectangle(1, 1.5, 1, 0.4, string.Empty);
+            VisioShape target = page.AddRectangle(5, 1.5, 1, 0.4, string.Empty);
             VisioConnector labeled = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
             labeled.Label = "handoff";
             labeled.PlaceLabel(0.5, width: 1.2, height: 0.3);
+            labeled.TextStyle = new VisioTextStyle {
+                BackgroundColor = OfficeColor.FromRgb(255, 0, 0),
+                BackgroundTransparency = 0,
+                Color = OfficeColor.Black
+            };
 
-            VisioShape top = page.AddRectangle(3, 2.7, 0.5, 0.4, "Top");
-            VisioShape bottom = page.AddRectangle(3, 0.3, 0.5, 0.4, "Bottom");
+            VisioShape top = page.AddRectangle(3, 2.7, 0.5, 0.4, string.Empty);
+            VisioShape bottom = page.AddRectangle(3, 0.3, 0.5, 0.4, string.Empty);
             page.AddConnector(top, bottom, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+            VisioRenderConnectorLabelPlacement placement = VisioRenderLabelLayout.Create(page).Resolve(
+                labeled,
+                new[] { (1.5D, 1.5D), (4.5D, 1.5D) });
+            Assert.True(placement.Adjusted, "Expected connector-line collision avoidance to adjust the connector label placement.");
+            Assert.True(Math.Abs(placement.X - 3D) > 0.6D, "Expected connector-line collision avoidance to move the label away from the crossing connector.");
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == labeled.Id);
-            XElement labelBackground = connectorGroup.Elements(ns + "rect")
-                .Single(rect => (string?)rect.Attribute("data-officeimo-connector-label-background") == "true");
-            XElement labelText = connectorGroup.Elements(ns + "text").Single();
-            Assert.Equal("true", labelBackground.Attribute("data-officeimo-label-adjusted")!.Value);
-            Assert.Equal("true", labelText.Attribute("data-officeimo-label-adjusted")!.Value);
-            Assert.NotEqual("240", labelBackground.Attribute("x")!.Value);
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            AssertPngHeader(png, 600, 300);
         }
 
         [Fact]
-        public void SvgRendererKeepsDenseConnectorLabelsSeparated() {
+        public void PngRendererKeepsDenseConnectorLabelsSeparated() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Dense Label Clearance").Size(6, 3);
@@ -641,29 +693,29 @@ namespace OfficeIMO.Tests {
             upper.Label = "phase two";
             upper.PlaceLabel(0.5, width: 1.2, height: 0.3);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            VisioRenderLabelLayout layout = VisioRenderLabelLayout.Create(page);
+            VisioRenderConnectorLabelPlacement lowerPlacement = layout.Resolve(
+                lower,
+                new[] { (1.3D, 1.5D), (4.7D, 1.5D) });
+            VisioRenderConnectorLabelPlacement upperPlacement = layout.Resolve(
+                upper,
+                new[] { (1.3D, 1.82D), (4.7D, 1.82D) });
+
+            Assert.False(lowerPlacement.Adjusted);
+            Assert.True(upperPlacement.Adjusted, "Expected dense label clearance to move the second label away from the first label.");
+            Assert.True(Math.Abs(upperPlacement.Y - lowerPlacement.Y) > 0.32D, "Expected dense labels to keep a readable vertical gap.");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement lowerGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == lower.Id);
-            XElement upperGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-connector-id") == upper.Id);
-            XElement lowerBackground = lowerGroup.Elements(ns + "rect")
-                .Single(rect => (string?)rect.Attribute("data-officeimo-connector-label-background") == "true");
-            XElement upperBackground = upperGroup.Elements(ns + "rect")
-                .Single(rect => (string?)rect.Attribute("data-officeimo-connector-label-background") == "true");
-
-            Assert.Null(lowerBackground.Attribute("data-officeimo-label-adjusted"));
-            Assert.Equal("true", upperBackground.Attribute("data-officeimo-label-adjusted")!.Value);
-            Assert.NotEqual("103", upperBackground.Attribute("y")!.Value);
+            AssertPngHeader(png, 600, 300);
         }
 
         [Fact]
-        public void SvgRendererProjectsBuiltInStencilMetadataAsVectorArtwork() {
+        public void PngRendererProjectsBuiltInStencilMetadataAsVectorArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Stencil Artwork").Size(3, 2);
@@ -671,46 +723,69 @@ namespace OfficeIMO.Tests {
             shape.FillPattern = 0;
             shape.LinePattern = 0;
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
-
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement artwork = shapeGroup.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-officeimo-stencil-artwork") == "true");
-            Assert.Equal("security", artwork.Attribute("data-officeimo-stencil-key")!.Value);
-            Assert.Contains(artwork.Descendants(ns + "path"), path => ((string?)path.Attribute("d"))?.IndexOf("Z", StringComparison.Ordinal) >= 0);
-        }
-
-        [Fact]
-        public void SvgRendererRotatesStencilMetadataArtworkWithShape() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Rotated Stencil Artwork").Size(3, 2);
-            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
-            shape.FillPattern = 0;
-            shape.LinePattern = 0;
-            shape.Angle = Math.PI / 4D;
-            shape.SetUserCell("OfficeIMO.StencilId", "event.bus", "STR");
-
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement artwork = shapeGroup.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-officeimo-stencil-artwork") == "true");
-            Assert.Equal("event", artwork.Attribute("data-officeimo-stencil-key")!.Value);
-            Assert.StartsWith("rotate(-45", artwork.Attribute("transform")!.Value, StringComparison.Ordinal);
+            RgbaPng image = DecodeRgbaPng(png);
+            int nonWhitePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 245 || image.Pixels[i + 1] < 245 || image.Pixels[i + 2] < 245) {
+                    nonWhitePixels++;
+                }
+            }
+
+            Assert.True(nonWhitePixels > 50, "Expected native PNG stencil artwork pixels without relying on shape fill, stroke, or text.");
         }
 
         [Fact]
-        public void SvgRendererDoesNotProjectSequenceFragmentRegionsAsCloudArtwork() {
+        public void PngRendererRotatesStencilMetadataArtworkWithShape() {
+            RgbaPng upright = DecodeRgbaPng(RenderStencilArtwork(0D));
+            RgbaPng rotated = DecodeRgbaPng(RenderStencilArtwork(Math.PI / 4D));
+
+            Assert.Equal(upright.Width, rotated.Width);
+            Assert.Equal(upright.Height, rotated.Height);
+
+            int changedPixels = 0;
+            for (int i = 0; i < upright.Pixels.Length; i += 4) {
+                int delta = Math.Abs(upright.Pixels[i] - rotated.Pixels[i]) +
+                    Math.Abs(upright.Pixels[i + 1] - rotated.Pixels[i + 1]) +
+                    Math.Abs(upright.Pixels[i + 2] - rotated.Pixels[i + 2]) +
+                    Math.Abs(upright.Pixels[i + 3] - rotated.Pixels[i + 3]);
+                if (delta > 80) {
+                    changedPixels++;
+                }
+            }
+
+            Assert.True(changedPixels > 60, "Expected rotated stencil pictograms to alter the native PNG render.");
+        }
+
+        [Fact]
+        public void PngRendererRotatesCurvedStencilMetadataArtworkWithShape() {
+            RgbaPng upright = DecodeRgbaPng(RenderStencilArtwork(0D, "database"));
+            RgbaPng rotated = DecodeRgbaPng(RenderStencilArtwork(Math.PI / 2D, "database"));
+
+            Assert.Equal(upright.Width, rotated.Width);
+            Assert.Equal(upright.Height, rotated.Height);
+
+            int changedPixels = 0;
+            for (int i = 0; i < upright.Pixels.Length; i += 4) {
+                int delta = Math.Abs(upright.Pixels[i] - rotated.Pixels[i]) +
+                    Math.Abs(upright.Pixels[i + 1] - rotated.Pixels[i + 1]) +
+                    Math.Abs(upright.Pixels[i + 2] - rotated.Pixels[i + 2]) +
+                    Math.Abs(upright.Pixels[i + 3] - rotated.Pixels[i + 3]);
+                if (delta > 80) {
+                    changedPixels++;
+                }
+            }
+
+            Assert.True(changedPixels > 100, "Expected curved stencil pictograms to rotate in the native PNG render.");
+        }
+
+        [Fact]
+        public void PngRendererDoesNotProjectSequenceFragmentRegionsAsCloudArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Sequence Fragment").Size(5, 3);
@@ -723,981 +798,1144 @@ namespace OfficeIMO.Tests {
             fragment.SetUserCell("OfficeIMO.StencilAliases", "alt;combined-fragment;critical;fragment;loop;opt;region", "STR");
             fragment.SetUserCell("OfficeIMO.StencilTags", "Rectangle;seq;Sequence Diagram", "STR");
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 48,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            Assert.DoesNotContain("data-officeimo-stencil-artwork=\"true\"", svg);
-            Assert.DoesNotContain("data-officeimo-stencil-key=\"cloud\"", svg);
+            RgbaPng image = DecodeRgbaPng(png);
+            int nonWhitePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 245 || image.Pixels[i + 1] < 245 || image.Pixels[i + 2] < 245) {
+                    nonWhitePixels++;
+                }
+            }
+
+            Assert.Equal(0, nonWhitePixels);
         }
 
         [Fact]
-        public void SvgRendererProjectsPackageBackedPngPreviewArtwork() {
+        public void PngRendererProjectsPackageBackedPngPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Package Preview").Size(3, 2);
-            VisioShape shape = AddPackagePreviewShape(page);
+            AddPackagePreviewShape(page, TrueColorBluePng);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement image = shapeGroup.Elements(ns + "image")
-                .Single(element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
-            Assert.StartsWith("data:image/png;base64,", image.Attribute("href")!.Value, StringComparison.Ordinal);
-            Assert.DoesNotContain("data-officeimo-stencil-artwork=\"true\"", svg);
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, "Expected embedded package preview PNG pixels in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererSniffsPackageBackedPreviewArtworkWhenMetadataIsGeneric() {
+        public void PngRendererSniffsPackageBackedPreviewArtworkWhenMetadataIsGeneric() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Package Preview Sniff").Size(3, 2);
-            VisioShape shape = AddPackagePreviewShape(page, "application/octet-stream", ".bin", "../media/blob1.bin");
+            AddPackagePreviewShape(page, TrueColorBluePng, "application/octet-stream", ".bin", "../media/blob1.bin");
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement image = shapeGroup.Elements(ns + "image")
-                .Single(element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
-            Assert.StartsWith("data:image/png;base64,", image.Attribute("href")!.Value, StringComparison.Ordinal);
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, "Expected sniffed package preview PNG pixels in the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererNormalizesPackagePreviewContentTypeParameters() {
+        public void PngRendererNormalizesPackagePreviewContentTypeParameters() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Package Preview Content Type").Size(3, 2);
-            VisioShape shape = AddPackagePreviewShape(page, "image/png; charset=binary", ".bin", "../media/blob1.bin");
+            AddPackagePreviewShape(page, TrueColorBluePng, "image/png; charset=binary", ".bin", "../media/blob1.bin");
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement image = shapeGroup.Elements(ns + "image")
-                .Single(element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
-            Assert.StartsWith("data:image/png;base64,", image.Attribute("href")!.Value, StringComparison.Ordinal);
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, "Expected parameterized package preview PNG content type to render natively.");
         }
 
         [Fact]
-        public void SvgRendererSniffsPackageBackedSvgPreviewArtworkWithXmlPreamble() {
+        public void PngRendererPreservesPackageBackedPngPreviewAspectRatio() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Package SVG Preview").Size(3, 2);
-            byte[] svgPreview = Encoding.UTF8.GetBytes(
-                "\uFEFF<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-                "<!-- OfficeIMO package preview -->" +
-                "<!DOCTYPE svg>" +
-                "<?officeimo preview?>" +
-                "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"8\" height=\"8\"><rect width=\"8\" height=\"8\" fill=\"#2563eb\"/></svg>");
-            VisioShape shape = AddPackagePreviewShape(page, "application/octet-stream", ".bin", "../media/blob1.bin", svgPreview);
+            VisioPage page = document.AddPage("Package Preview Aspect").Size(3, 2);
+            AddPackagePreviewShape(page, WideTrueColorBluePng);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement image = shapeGroup.Elements(ns + "image")
-                .Single(element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
-            Assert.StartsWith("data:image/svg+xml;base64,", image.Attribute("href")!.Value, StringComparison.Ordinal);
-            Assert.DoesNotContain("data-officeimo-stencil-artwork=\"true\"", svg);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsBluePixel(image, 150, 100), "Expected the wide package preview to be centered in the native PNG render.");
+            Assert.True(IsWhitePixel(image, 150, 78), "Expected the native PNG renderer to letterbox package previews instead of stretching them vertically.");
+            Assert.True(IsWhitePixel(image, 150, 122), "Expected the native PNG renderer to letterbox package previews instead of stretching them vertically.");
         }
 
         [Fact]
-        public void SvgRendererRotatesPackageBackedPngPreviewArtworkWithShape() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Rotated Package Preview").Size(3, 2);
-            VisioShape shape = AddPackagePreviewShape(page);
-            shape.Angle = Math.PI / 4D;
+        public void PngRendererRotatesPackagePreviewArtworkWithShape() {
+            RgbaPng upright = DecodeRgbaPng(RenderPackagePreviewArtwork(0D));
+            RgbaPng rotated = DecodeRgbaPng(RenderPackagePreviewArtwork(Math.PI / 4D));
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
-            });
+            Assert.Equal(upright.Width, rotated.Width);
+            Assert.Equal(upright.Height, rotated.Height);
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement image = shapeGroup.Elements(ns + "image")
-                .Single(element => (string?)element.Attribute("data-officeimo-package-preview-artwork") == "true");
-            Assert.StartsWith("rotate(-45", image.Attribute("transform")!.Value, StringComparison.Ordinal);
+            int changedPixels = 0;
+            for (int i = 0; i < upright.Pixels.Length; i += 4) {
+                int delta = Math.Abs(upright.Pixels[i] - rotated.Pixels[i]) +
+                    Math.Abs(upright.Pixels[i + 1] - rotated.Pixels[i + 1]) +
+                    Math.Abs(upright.Pixels[i + 2] - rotated.Pixels[i + 2]) +
+                    Math.Abs(upright.Pixels[i + 3] - rotated.Pixels[i + 3]);
+                if (delta > 80) {
+                    changedPixels++;
+                }
+            }
+
+            Assert.True(changedPixels > 100, "Expected rotated package preview artwork to alter the native PNG render.");
         }
 
         [Fact]
-        public void SvgRendererAppliesParentTransformsToGroupChildren() {
-            using MemoryStream packageStream = new();
-            VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Groups").Size(5, 5);
-            VisioShape group = new("group", 3, 2, 2, 2, string.Empty) { Type = "Group", FillPattern = 0 };
-            VisioShape child = new("child", 1, 1, 1, 1, "Child");
-            group.Children.Add(child);
-            page.Shapes.Add(group);
-
-            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
-
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement childGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == child.Id);
-            XElement path = childGroup.Element(ns + "path")!;
-            Assert.Equal("M 250 350 L 350 350 L 350 250 L 250 250 Z", path.Attribute("d")!.Value);
-        }
-
-        [Fact]
-        public void SvgRendererUsesPreservedRelativeShapeGeometry() {
+        public void PngRendererUsesPreservedRelativeShapeGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Geometry").Size(3, 2);
-            VisioShape shape = AddRelativeTriangleGeometryShape(page);
+            AddRelativeTriangleGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 100 150 L 200 150 L 150 50 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected preserved triangle geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected preserved triangle geometry to fill the custom imported outline.");
         }
 
         [Fact]
-        public void SvgRendererPreservesGeometrySubpathBreaks() {
+        public void PngRendererPreservesGeometrySubpathBreaks() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Subpaths").Size(3, 2);
-            VisioShape shape = AddSubpathBreakGeometryShape(page);
+            AddSubpathBreakGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            List<string> pathData = shapeGroup.Elements(ns + "path")
-                .Where(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Select(element => element.Attribute("d")!.Value)
-                .ToList();
-
-            Assert.Equal(2, pathData.Count);
-            Assert.Equal("M 110 140 L 145 140 L 127.5 105 Z", pathData[0]);
-            Assert.Equal("M 155 95 L 190 95 L 172.5 60 Z", pathData[1]);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsRedPixel(image, 128, 128), "Expected the first preserved subpath to render.");
+            Assert.True(IsRedPixel(image, 173, 82), "Expected the second preserved subpath to render.");
+            Assert.True(IsWhitePixel(image, 150, 100), "Expected the break between preserved subpaths to remain unpainted.");
         }
 
         [Fact]
-        public void SvgRendererLeavesNoFillOpenGeometryUnclosed() {
+        public void PngRendererLeavesNoFillOpenGeometryUnclosed() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Open Geometry").Size(3, 2);
-            VisioShape shape = AddOpenNoFillGeometryShape(page);
+            AddOpenNoFillGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-
-            Assert.Equal("M 110 130 L 190 130 L 190 70", path.Attribute("d")!.Value);
-            Assert.Equal("none", path.Attribute("fill")!.Value);
-            Assert.NotEqual("none", path.Attribute("stroke")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsRedPixel(image, 150, 130), "Expected the horizontal open geometry stroke to render.");
+            Assert.True(IsRedPixel(image, 190, 100), "Expected the vertical open geometry stroke to render.");
+            Assert.True(IsWhitePixel(image, 150, 100), "Expected the missing closing edge of open NoFill geometry to remain unpainted.");
         }
 
         [Fact]
-        public void SvgRendererSkipsDeletedPreservedGeometryRows() {
+        public void PngRendererSkipsDeletedPreservedGeometryRows() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Deleted Rows").Size(3, 2);
-            VisioShape shape = AddDeletedGeometryRowShape(page);
+            AddDeletedGeometryRowShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-
-            Assert.Equal("M 100 150 L 200 150 L 150 50 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 190, 60), "Expected deleted geometry rows to avoid resurrecting the removed corner.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected the remaining preserved triangle geometry to fill.");
         }
 
         [Fact]
-        public void SvgRendererUsesPreservedMasterShapeGeometry() {
+        public void PngRendererUsesPreservedMasterShapeGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Master Geometry").Size(3, 2);
-            VisioShape shape = AddMasterBackedTriangleGeometryShape(page);
+            AddMasterBackedTriangleGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 100 150 L 200 150 L 150 50 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected master preserved triangle geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected master preserved triangle geometry to fill the scaled imported outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryWidthHeightFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryWidthHeightFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Formula Geometry").Size(3, 2);
-            VisioShape shape = AddFormulaGeometryShape(page);
+            AddFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 125 125 L 175 125 L 150 75 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 100), "Expected formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryLocPinFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryLocPinFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("LocPin Formula Geometry").Size(3, 2);
-            VisioShape shape = AddLocPinFormulaGeometryShape(page);
+            AddLocPinFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 96 136 L 204 136 L 150 64 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 92, 100), "Expected LocPin formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected LocPin formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryShapeTransformFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryShapeTransformFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Shape Transform Formula Geometry").Size(3, 2);
-            VisioShape shape = AddShapeTransformFormulaGeometryShape(page);
+            AddShapeTransformFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 100 150 L 200 150 L 150 50 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected shape transform formula geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected shape transform formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryMinMaxFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryMinMaxFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Min Max Formula Geometry").Size(3, 2);
-            VisioShape shape = AddMinMaxFormulaGeometryShape(page);
+            AddMinMaxFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected MIN/MAX formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected MIN/MAX formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryScalarMathFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryScalarMathFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Scalar Math Formula Geometry").Size(3, 2);
-            VisioShape shape = AddScalarMathFormulaGeometryShape(page);
+            AddScalarMathFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected ABS/SQRT formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected ABS/SQRT formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryTrigonometricFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryTrigonometricFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Trig Formula Geometry").Size(3, 2);
-            VisioShape shape = AddTrigonometricFormulaGeometryShape(page);
+            AddTrigonometricFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected SIN/COS formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected SIN/COS formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryAdvancedMathFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryAdvancedMathFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Advanced Math Formula Geometry").Size(3, 2);
-            VisioShape shape = AddAdvancedMathFormulaGeometryShape(page);
+            AddAdvancedMathFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected advanced math formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected advanced math formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryPowerOperatorFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryPowerOperatorFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Power Operator Formula Geometry").Size(3, 2);
-            VisioShape shape = AddPowerOperatorFormulaGeometryShape(page);
+            AddPowerOperatorFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected power-operator formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected power-operator formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryUnitFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryUnitFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Unit Formula Geometry").Size(3, 2);
-            VisioShape shape = AddUnitFormulaGeometryShape(page);
+            AddUnitFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected unit formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected unit formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryGuardedFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryGuardedFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Guarded Formula Geometry").Size(3, 2);
-            VisioShape shape = AddGuardedFormulaGeometryShape(page);
+            AddGuardedFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 125 125 L 175 125 L 150 75 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 100), "Expected guarded formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected guarded formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryIfFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryIfFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("If Formula Geometry").Size(3, 2);
-            VisioShape shape = AddIfFormulaGeometryShape(page);
+            AddIfFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected IF formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected IF formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesOnlySelectedPreservedGeometryIfBranches() {
+        public void PngRendererEvaluatesOnlySelectedPreservedGeometryIfBranches() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Lazy If Formula Geometry").Size(3, 2);
-            VisioShape shape = AddLazyIfFormulaGeometryShape(page);
+            AddLazyIfFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected branch-selected IF formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected branch-selected IF formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPreservedGeometryLogicalIfFormulas() {
+        public void PngRendererEvaluatesPreservedGeometryLogicalIfFormulas() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Logical If Formula Geometry").Size(3, 2);
-            VisioShape shape = AddLogicalIfFormulaGeometryShape(page);
+            AddLogicalIfFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 110 120 L 180 120 L 150 60 Z", path.Attribute("d")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected logical IF formula geometry to leave the former rectangle side untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected logical IF formula geometry to fill the evaluated custom outline.");
         }
 
         [Fact]
-        public void SvgRendererRespectsPreservedGeometryVisibilityFlags() {
+        public void PngRendererRespectsPreservedGeometryVisibilityFlags() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Geometry Flags").Size(3, 2);
-            VisioShape shape = AddGeometryFlagShape(page);
+            AddGeometryFlagShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            List<XElement> paths = shapeGroup.Elements(ns + "path")
-                .Where(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .ToList();
-
-            Assert.Equal(2, paths.Count);
-            Assert.Equal("none", paths[0].Attribute("fill")!.Value);
-            Assert.NotEqual("none", paths[0].Attribute("stroke")!.Value);
-            Assert.NotEqual("none", paths[1].Attribute("fill")!.Value);
-            Assert.Equal("none", paths[1].Attribute("stroke")!.Value);
-            Assert.DoesNotContain(paths, path => path.Attribute("d")!.Value == "M 100 150 L 200 150 L 200 50 L 100 50 Z");
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 150, 100), "Expected NoFill preserved geometry to leave the triangle interior untouched.");
+            Assert.True(IsRedPixel(image, 150, 150), "Expected visible preserved outline geometry to keep its stroke.");
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected NoShow preserved geometry to avoid falling back to the former rectangle fill.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedEllipseGeometry() {
+        public void PngRendererFlattensPreservedEllipseGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Ellipse Geometry").Size(3, 2);
-            VisioShape shape = AddEllipseGeometryShape(page);
+            AddEllipseGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 200 100 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains("150 50", pathData, StringComparison.Ordinal);
-            Assert.Contains("100 100", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 20);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected Ellipse geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected Ellipse geometry to fill inside the preserved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererDrawsPreservedInfiniteLineGeometryAsOpenPath() {
+        public void PngRendererDrawsPreservedInfiniteLineGeometryAsOpenPath() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Infinite Line Geometry").Size(3, 2);
-            VisioShape shape = AddInfiniteLineGeometryShape(page);
+            AddInfiniteLineGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            XElement path = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
-            Assert.Equal("M 100 150 L 200 50", path.Attribute("d")!.Value);
-            Assert.Equal("none", path.Attribute("fill")!.Value);
-            Assert.NotEqual("none", path.Attribute("stroke")!.Value);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsRedPixel(image, 150, 100), "Expected InfiniteLine geometry to stroke the clipped diagonal.");
+            Assert.True(IsWhitePixel(image, 150, 60), "Expected InfiniteLine geometry to stay open instead of filling the shape interior.");
         }
 
         [Fact]
-        public void SvgRendererExpandsPreservedPolylineToGeometry() {
+        public void PngRendererExpandsPreservedPolylineToGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Polyline Geometry").Size(3, 2);
-            VisioShape shape = AddPolylineGeometryShape(page);
+            AddPolylineGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.Equal("M 150 50 L 200 100 L 150 150 L 100 100 Z", pathData);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected PolylineTo diamond geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected PolylineTo geometry to fill inside the preserved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesMinMaxInsidePreservedPolylineFormula() {
+        public void PngRendererEvaluatesMinMaxInsidePreservedPolylineFormula() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Polyline Formula Geometry").Size(3, 2);
-            VisioShape shape = AddPolylineMinMaxFormulaGeometryShape(page);
+            AddPolylineMinMaxFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.Equal("M 150 60 L 180 100 L 150 140 L 110 100 Z", pathData);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 60), "Expected POLYLINE MIN/MAX geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected POLYLINE MIN/MAX geometry to fill the evaluated diamond outline.");
         }
 
         [Fact]
-        public void SvgRendererEvaluatesPercentageLiteralsInsidePreservedPolylineFormula() {
+        public void PngRendererEvaluatesPercentageLiteralsInsidePreservedPolylineFormula() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Polyline Percent Formula Geometry").Size(3, 2);
-            VisioShape shape = AddPolylinePercentageFormulaGeometryShape(page);
+            AddPolylinePercentageFormulaGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.Equal("M 150 60 L 180 100 L 150 140 L 120 100 Z", pathData);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 100, 60), "Expected POLYLINE percentage geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected POLYLINE percentage geometry to fill the evaluated diamond outline.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedArcToGeometry() {
+        public void PngRendererFlattensPreservedArcToGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Arc Geometry").Size(3, 2);
-            VisioShape shape = AddArcGeometryShape(page);
+            AddArcGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 10);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 150, 140), "Expected ArcTo geometry to cut away the lower middle instead of rendering a rectangle.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected ArcTo geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedEllipticalArcToGeometry() {
+        public void PngRendererFlattensPreservedEllipticalArcToGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Elliptical Arc Geometry").Size(3, 2);
-            VisioShape shape = AddEllipticalArcGeometryShape(page);
+            AddEllipticalArcGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.Contains("150 50", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 10);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected EllipticalArcTo geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected EllipticalArcTo geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedRelativeEllipticalArcToGeometry() {
+        public void PngRendererFlattensPreservedRelativeEllipticalArcToGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Relative Elliptical Arc Geometry").Size(3, 2);
-            VisioShape shape = AddRelativeEllipticalArcGeometryShape(page);
+            AddRelativeEllipticalArcGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.Contains("150 50", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 10);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected RelEllipticalArcTo geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected RelEllipticalArcTo geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedRelativeCubicBezierGeometry() {
+        public void PngRendererFlattensPreservedRelativeCubicBezierGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Cubic Bezier Geometry").Size(3, 2);
-            VisioShape shape = AddRelativeCubicBezierGeometryShape(page);
+            AddRelativeCubicBezierGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.Contains("150 75", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 10);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected RelCubBezTo geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected RelCubBezTo geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedAbsoluteCubicBezierGeometry() {
+        public void PngRendererFlattensPreservedAbsoluteCubicBezierGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Absolute Cubic Bezier Geometry").Size(3, 2);
-            VisioShape shape = AddAbsoluteCubicBezierGeometryShape(page);
+            AddAbsoluteCubicBezierGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.Contains("150 75", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 10);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected CubBezTo geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected CubBezTo geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedRelativeQuadraticBezierGeometry() {
+        public void PngRendererFlattensPreservedRelativeQuadraticBezierGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Quadratic Bezier Geometry").Size(3, 2);
-            VisioShape shape = AddRelativeQuadraticBezierGeometryShape(page);
+            AddRelativeQuadraticBezierGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.Contains("150 100", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 10);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected RelQuadBezTo geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 120), "Expected RelQuadBezTo geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedAbsoluteQuadraticBezierGeometry() {
+        public void PngRendererFlattensPreservedAbsoluteQuadraticBezierGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Absolute Quadratic Bezier Geometry").Size(3, 2);
-            VisioShape shape = AddAbsoluteQuadraticBezierGeometryShape(page);
+            AddAbsoluteQuadraticBezierGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.Contains("150 100", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 10);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected QuadBezTo geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 120), "Expected QuadBezTo geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedSplineGeometry() {
+        public void PngRendererFlattensPreservedSplineGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Spline Geometry").Size(3, 2);
-            VisioShape shape = AddSplineGeometryShape(page);
+            AddSplineGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains("125 50", pathData, StringComparison.Ordinal);
-            Assert.Contains("175 50", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 30);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected SplineStart/SplineKnot geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected SplineStart/SplineKnot geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererSkipsDeletedPreservedSplineKnotRows() {
+        public void PngRendererSkipsDeletedPreservedSplineKnotRows() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Deleted Spline Knot Geometry").Size(3, 2);
-            VisioShape shape = AddDeletedSplineKnotGeometryShape(page);
+            AddDeletedSplineKnotGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.Equal("M 100 150 L 200 150 L 200 50 Z", pathData);
-            Assert.DoesNotContain("100 50", pathData, StringComparison.Ordinal);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 120, 60), "Expected the deleted SplineKnot row to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 180, 100), "Expected the remaining SplineKnot row to keep the preserved triangle filled.");
         }
 
         [Fact]
-        public void SvgRendererFlattensPreservedNurbsGeometry() {
+        public void PngRendererFlattensPreservedNurbsGeometry() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved NURBS Geometry").Size(3, 2);
-            VisioShape shape = AddNurbsGeometryShape(page);
+            AddNurbsGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains("150 75", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
-            Assert.True(pathData.Split(new[] { " L " }, StringSplitOptions.None).Length > 10);
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected NURBSTo geometry to leave the former rectangle corner untouched.");
+            Assert.True(IsRedPixel(image, 150, 100), "Expected NURBSTo geometry to fill inside the curved imported outline.");
         }
 
         [Fact]
-        public void SvgRendererUsesVisioCompactNurbsKnotVector() {
+        public void PngRendererUsesVisioCompactNurbsKnotVector() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
             VisioPage page = document.AddPage("Preserved Non Uniform NURBS Geometry").Size(3, 2);
-            VisioShape shape = AddNonUniformNurbsGeometryShape(page);
+            AddNonUniformNurbsGeometryShape(page);
 
-            string svg = page.ToSvg(new VisioSvgSaveOptions {
-                BackgroundColor = null,
-                PixelsPerInch = 100
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
             });
 
-            XDocument parsed = XDocument.Parse(svg);
-            XNamespace ns = "http://www.w3.org/2000/svg";
-            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
-                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            string pathData = shapeGroup.Elements(ns + "path")
-                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Attribute("d")!.Value;
-            Assert.StartsWith("M 100 150 L ", pathData, StringComparison.Ordinal);
-            Assert.Contains("128.75 50", pathData, StringComparison.Ordinal);
-            Assert.Contains(" L 200 150", pathData, StringComparison.Ordinal);
+            RgbaPng image = DecodeRgbaPng(png);
+            bool sawApexPixel = false;
+            for (int y = 48; y <= 54; y++) {
+                for (int x = 125; x <= 133; x++) {
+                    sawApexPixel |= IsRedPixel(image, x, y);
+                }
+            }
+
+            Assert.True(IsWhitePixel(image, 110, 60), "Expected NURBSTo geometry to leave the former rectangle corner untouched.");
+            Assert.True(sawApexPixel, "Expected the compact NURBS knot span to reach the curve apex at the Visio knot boundary.");
         }
 
         [Fact]
-        public void PageCanSaveHeadlessSvgToFileAndStream() {
+        public void PngRendererProjectsIndexedPackageBackedPngPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
-            VisioPage page = document.AddPage("Export").Size(2, 1);
-            page.AddEllipse(1, 0.5, 1, 0.5, "Node");
+            VisioPage page = document.AddPage("Indexed Package Preview").Size(3, 2);
+            AddPackagePreviewShape(page, IndexedBluePng);
 
-            string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".svg");
-            try {
-                page.SaveAsSvg(path, new VisioSvgSaveOptions { IncludeXmlDeclaration = true });
-                string fileText = File.ReadAllText(path);
-                Assert.StartsWith("<?xml", fileText, StringComparison.Ordinal);
-                Assert.True(fileText.IndexOf("<ellipse", StringComparison.Ordinal) >= 0);
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
 
-                using MemoryStream stream = new();
-                document.SaveAsSvg(stream);
-                string streamText = Encoding.UTF8.GetString(stream.ToArray());
-                Assert.True(streamText.IndexOf("<svg", StringComparison.Ordinal) >= 0);
-                Assert.True(streamText.IndexOf("Node", StringComparison.Ordinal) >= 0);
-            } finally {
-                if (File.Exists(path)) {
-                    File.Delete(path);
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
                 }
             }
+
+            Assert.True(bluePixels > 100, "Expected indexed package preview PNG pixels in the native PNG render.");
         }
+
+        [Fact]
+        public void PngRendererPreservesIndexedPackagePreviewTransparency() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Indexed Transparent Package Preview").Size(3, 2);
+            AddPackagePreviewShape(page, IndexedTransparentBluePng);
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 130, 100), "Expected transparent palette preview pixels to leave the native PNG background untouched.");
+            Assert.True(IsBluePixel(image, 170, 100), "Expected opaque palette preview pixels to render after transparent pixels are skipped.");
+        }
+
+        [Fact]
+        public void PngRendererPreservesTrueColorPackagePreviewTransparency() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("TrueColor Transparent Package Preview").Size(3, 2);
+            AddPackagePreviewShape(page, TrueColorTransparentBluePng);
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 130, 100), "Expected truecolor tRNS preview pixels to leave the native PNG background untouched.");
+            Assert.True(IsBluePixel(image, 170, 100), "Expected non-transparent truecolor preview pixels to render after tRNS matching.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsGrayscaleAlphaPackageBackedPngPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Grayscale Package Preview").Size(3, 2);
+            AddPackagePreviewShape(page, GrayscaleAlphaBlackPng);
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int darkPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 50 && image.Pixels[i + 1] < 50 && image.Pixels[i + 2] < 50 && image.Pixels[i + 3] > 200) {
+                    darkPixels++;
+                }
+            }
+
+            Assert.True(darkPixels > 100, "Expected grayscale-alpha package preview PNG pixels in the native PNG render.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackedGrayscalePackageBackedPngPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Packed Grayscale Package Preview").Size(3, 2);
+            AddPackagePreviewShape(page, PackedGrayscaleBlackPng);
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int darkPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 50 && image.Pixels[i + 1] < 50 && image.Pixels[i + 2] < 50 && image.Pixels[i + 3] > 200) {
+                    darkPixels++;
+                }
+            }
+
+            Assert.True(darkPixels > 100, "Expected packed grayscale package preview PNG pixels in the native PNG render.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsSixteenBitPackageBackedPngPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Sixteen Bit Package Preview").Size(3, 2);
+            AddPackagePreviewShape(page, SixteenBitTrueColorBluePng);
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, "Expected 16-bit package preview PNG pixels in the native PNG render.");
+        }
+
+        private static void AssertPngHeader(byte[] bytes, int width, int height) {
+            Assert.True(bytes.Length > 33);
+            Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, bytes[..8]);
+            Assert.Equal("IHDR", System.Text.Encoding.ASCII.GetString(bytes, 12, 4));
+            Assert.Equal(width, ReadBigEndianInt32(bytes, 16));
+            Assert.Equal(height, ReadBigEndianInt32(bytes, 20));
+            Assert.Equal(8, bytes[24]);
+            Assert.Equal(6, bytes[25]);
+        }
+
+        private static int ReadBigEndianInt32(byte[] bytes, int offset) =>
+            (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
+
+        private static RgbaPng DecodeRgbaPng(byte[] bytes) {
+            Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, bytes[..8]);
+            int width = 0;
+            int height = 0;
+            using MemoryStream idat = new();
+            int offset = 8;
+            while (offset < bytes.Length) {
+                int length = ReadBigEndianInt32(bytes, offset);
+                string type = System.Text.Encoding.ASCII.GetString(bytes, offset + 4, 4);
+                int dataOffset = offset + 8;
+                if (type == "IHDR") {
+                    width = ReadBigEndianInt32(bytes, dataOffset);
+                    height = ReadBigEndianInt32(bytes, dataOffset + 4);
+                    Assert.Equal(8, bytes[dataOffset + 8]);
+                    Assert.Equal(6, bytes[dataOffset + 9]);
+                } else if (type == "IDAT") {
+                    idat.Write(bytes, dataOffset, length);
+                } else if (type == "IEND") {
+                    break;
+                }
+
+                offset = dataOffset + length + 4;
+            }
+
+            byte[] compressed = idat.ToArray();
+            using MemoryStream source = new(compressed, 2, compressed.Length - 6);
+            using DeflateStream deflate = new(source, CompressionMode.Decompress);
+            using MemoryStream inflated = new();
+            deflate.CopyTo(inflated);
+            byte[] scanlines = inflated.ToArray();
+            byte[] rgba = new byte[width * height * 4];
+            int sourceOffset = 0;
+            int targetOffset = 0;
+            for (int y = 0; y < height; y++) {
+                Assert.Equal(0, scanlines[sourceOffset++]);
+                Buffer.BlockCopy(scanlines, sourceOffset, rgba, targetOffset, width * 4);
+                sourceOffset += width * 4;
+                targetOffset += width * 4;
+            }
+
+            return new RgbaPng(width, height, rgba);
+        }
+
+        private static byte[] RenderStyledItalicText(bool italic) {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Text Italic").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.TextStyle = new VisioTextStyle {
+                Size = 24,
+                TextWidth = 1.6,
+                TextHeight = 0.55,
+                Italic = italic,
+                Color = OfficeColor.FromRgb(22, 101, 52)
+            };
+
+            return page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+        }
+
+        private static byte[] RenderStyledRotatedText(double textAngle) {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Text Rotation").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.TextStyle = new VisioTextStyle {
+                Size = 24,
+                TextWidth = 1.6,
+                TextHeight = 0.55,
+                TextAngle = textAngle,
+                Color = OfficeColor.FromRgb(22, 101, 52)
+            };
+
+            return page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+        }
+
+        private static byte[] RenderStyledRotatedTextBackground(double textAngle) {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Text Background Rotation").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1.8, 0.8, "OfficeIMO");
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.TextStyle = new VisioTextStyle {
+                Size = 24,
+                TextWidth = 1.6,
+                TextHeight = 0.55,
+                TextAngle = textAngle,
+                BackgroundColor = OfficeColor.FromRgb(220, 38, 38),
+                BackgroundTransparency = 0,
+                Color = OfficeColor.Transparent
+            };
+
+            return page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+        }
+
+        private static byte[] RenderEllipseShape(double angle) {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Ellipse Rotation").Size(3, 2);
+            VisioShape shape = page.AddEllipse(1.5, 1, 1.6, 0.55, string.Empty);
+            shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
+            shape.LinePattern = 0;
+            shape.Angle = angle;
+
+            return page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+        }
+
+        private static byte[] RenderPackagePreviewArtwork(double angle) {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package Preview Rotation").Size(3, 2);
+            VisioShape shape = AddPackagePreviewShape(page, WideTrueColorBluePng);
+            shape.Angle = angle;
+
+            return page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+        }
+
+        private static byte[] RenderStencilArtwork(double angle) =>
+            RenderStencilArtwork(angle, "event.bus");
+
+        private static byte[] RenderStencilArtwork(double angle, string stencilId) {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Stencil Artwork Rotation").Size(3, 2);
+            VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
+            shape.FillPattern = 0;
+            shape.LinePattern = 0;
+            shape.Angle = angle;
+            shape.SetUserCell("OfficeIMO.StencilId", stencilId, "STR");
+
+            return page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+        }
+
+        private static bool IsBluePixel(RgbaPng image, int x, int y) {
+            int offset = ((y * image.Width) + x) * 4;
+            return image.Pixels[offset] < 60 &&
+                   image.Pixels[offset + 1] < 150 &&
+                   image.Pixels[offset + 2] > 180 &&
+                   image.Pixels[offset + 3] > 200;
+        }
+
+        private static bool IsWhitePixel(RgbaPng image, int x, int y) {
+            int offset = ((y * image.Width) + x) * 4;
+            return image.Pixels[offset] > 245 &&
+                   image.Pixels[offset + 1] > 245 &&
+                   image.Pixels[offset + 2] > 245 &&
+                   image.Pixels[offset + 3] > 200;
+        }
+
+        private static bool IsRedPixel(RgbaPng image, int x, int y) {
+            int offset = ((y * image.Width) + x) * 4;
+            return image.Pixels[offset] > 180 &&
+                   image.Pixels[offset + 1] < 80 &&
+                   image.Pixels[offset + 2] < 80 &&
+                   image.Pixels[offset + 3] > 200;
+        }
+
+        private static bool IsGreenPixel(RgbaPng image, int x, int y) {
+            int offset = ((y * image.Width) + x) * 4;
+            return image.Pixels[offset] < 80 &&
+                   image.Pixels[offset + 1] > 80 &&
+                   image.Pixels[offset + 1] < 140 &&
+                   image.Pixels[offset + 2] < 90 &&
+                   image.Pixels[offset + 3] > 200;
+        }
+
+        private sealed class RgbaPng {
+            internal RgbaPng(int width, int height, byte[] pixels) {
+                Width = width;
+                Height = height;
+                Pixels = pixels;
+            }
+
+            internal int Width { get; }
+
+            internal int Height { get; }
+
+            internal byte[] Pixels { get; }
+        }
+
+        private const string TrueColorBluePng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgSPj/HwAEIgJfhz+lZwAAAABJRU5ErkJggg==";
+        private const string WideTrueColorBluePng = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAADklEQVR4nGNgSPj/H4QBEbsEvYgcJBMAAAAASUVORK5CYII=";
+        private const string IndexedBluePng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQMAAAAl21bKAAAABlBMVEX///8AYP8dPVdUAAAAAnRSTlMA/1uRIrUAAAAKSURBVHicY2gAAACCAIF3zXK2AAAAAElFTkSuQmCC";
+        private const string IndexedTransparentBluePng = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABAQMAAADO7O3JAAAABlBMVEX///8AYP8dPVdUAAAAAnRSTlMA/1uRIrUAAAAKSURBVHicY3AAAABCAEEpN/TvAAAAAElFTkSuQmCC";
+        private const string TrueColorTransparentBluePng = "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAABnRSTlMA/wAAAP+JwC+QAAAAD0lEQVR4nGP4z/CfIeE/AAu8A14nGkPMAAAAAElFTkSuQmCC";
+        private const string GrayscaleAlphaBlackPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII=";
+        private const string PackedGrayscaleBlackPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==";
+        private const string SixteenBitTrueColorBluePng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABEAIAAADA54+dAAAAD0lEQVR4nGNgYEhg+P8fAASEAl/OOhQdAAAAAElFTkSuQmCC";
 
         private static VisioShape AddPackagePreviewShape(
             VisioPage page,
+            string previewPngBase64,
             string contentType = "image/png",
             string extension = ".png",
-            string target = "../media/image1.png",
-            byte[]? data = null) {
+            string target = "../media/image1.png") {
             VisioMaster master = new("package-master", "FancyCloud", new VisioShape("master-shape", 0, 0, 1, 1, string.Empty));
             master.RawMasterRelationships.Add(new VisioAssets.MasterRelationshipContent {
                 Id = "rIdImage",
@@ -1705,7 +1943,7 @@ namespace OfficeIMO.Tests {
                 Target = target,
                 ContentType = contentType,
                 Extension = extension,
-                Data = data ?? Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgSPj/HwAEIgJfhz+lZwAAAABJRU5ErkJggg==")
+                Data = Convert.FromBase64String(previewPngBase64)
             });
             VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
             shape.FillPattern = 0;
@@ -1958,10 +2196,9 @@ namespace OfficeIMO.Tests {
         private static VisioShape AddGeometryFlagShape(VisioPage page) {
             VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
-            shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
-            shape.LineWeight = 0.03D;
+            shape.LineColor = OfficeColor.FromRgb(220, 38, 38);
+            shape.LineWeight = 0.04D;
             shape.PreservedGeometrySections.Add(CreateRelativeTriangleGeometrySection(noFill: true));
-            shape.PreservedGeometrySections.Add(CreateInsetTriangleGeometrySection(noLine: true));
             shape.PreservedGeometrySections.Add(CreateFullRectangleGeometrySection(noShow: true));
             return shape;
         }
@@ -2093,24 +2330,6 @@ namespace OfficeIMO.Tests {
                 new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "5"),
                     new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0")),
                     new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0"))));
-        }
-
-        private static XElement CreateInsetTriangleGeometrySection(bool noFill = false, bool noLine = false, bool noShow = false) {
-            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
-            return new XElement(ns + "Section", new XAttribute("N", "Geometry"), new XAttribute("IX", "1"),
-                CreateGeometryRow(ns, noFill, noLine, noShow),
-                new XElement(ns + "Row", new XAttribute("T", "RelMoveTo"), new XAttribute("IX", "1"),
-                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.25")),
-                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.25"))),
-                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "2"),
-                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.75")),
-                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.25"))),
-                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "3"),
-                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.5")),
-                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.75"))),
-                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "4"),
-                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.25")),
-                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.25"))));
         }
 
         private static XElement CreateFullRectangleGeometrySection(bool noFill = false, bool noLine = false, bool noShow = false) {

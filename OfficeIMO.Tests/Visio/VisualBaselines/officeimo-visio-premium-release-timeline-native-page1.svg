@@ -1,0 +1,102 @@
+﻿<svg width="1296" height="561.6" viewBox="0 0 1296 561.6" role="img" aria-label="Premium Release Timeline" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="officeimo-visio-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1296" height="561.6" fill="#FFFFFF" />
+  <g data-officeimo-visio-page="Premium Release Timeline">
+    <g data-visio-shape-id="timeline-axis" data-visio-nameu="Rectangle">
+      <path d="M 62.4 338.88 L 1233.6 338.88 L 1233.6 333.12 L 62.4 333.12 Z" data-officeimo-preserved-geometry="true" fill="#7E57C2" stroke="#573D8E" stroke-width="1.728" />
+    </g>
+    <g data-visio-shape-id="timeline-start-label" data-visio-nameu="Rectangle">
+      <path d="M 12 389.76 L 112.8 389.76 L 112.8 362.88 L 12 362.88 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
+      <text x="62.4" y="376.32" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+        <tspan x="62.4" dy="0">Jun 1</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="timeline-end-label" data-visio-nameu="Rectangle">
+      <path d="M 1183.2 389.76 L 1284 389.76 L 1284 362.88 L 1183.2 362.88 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
+      <text x="1233.6" y="376.32" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+        <tspan x="1233.6" dy="0">Sep 30</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="gallery" data-visio-nameu="Rectangle">
+      <path d="M 81.759 224.64 L 459.253 224.64 L 459.253 195.84 L 81.759 195.84 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
+      <text x="270.506" y="210.24" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="270.506" dy="0">Premium gallery</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="stencils" data-visio-nameu="Rectangle">
+      <path d="M 226.949 182.4 L 730.274 182.4 L 730.274 153.6 L 226.949 153.6 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
+      <text x="478.612" y="168" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="478.612" dy="0">Stencil packs</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="baselines" data-visio-nameu="Rectangle">
+      <path d="M 488.291 476.16 L 1040.013 476.16 L 1040.013 447.36 L 488.291 447.36 Z" data-officeimo-preserved-geometry="true" fill="#267E74" stroke="#185953" stroke-width="1.728" />
+      <text x="764.152" y="461.76" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="764.152" dy="0">Visual baselines</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="brief" data-visio-nameu="Diamond">
+      <path d="M 101.117 319.68 L 111.677 309.12 L 101.117 298.56 L 90.557 309.12 Z" data-officeimo-preserved-geometry="true" fill="#4169E1" stroke="#2A4BB1" stroke-width="1.728" />
+    </g>
+    <g data-visio-shape-id="brief-label" data-visio-nameu="Rectangle">
+      <path d="M 31.517 281.28 L 170.717 281.28 L 170.717 235.2 L 31.517 235.2 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
+      <text x="101.117" y="250.24" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+        <tspan x="101.117" dy="0">Design brief</tspan>
+        <tspan x="101.117" dy="16">Jun 5</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="gate" data-visio-nameu="Circle">
+      <path d="M 537.568 362.88 L 537.208 360.147 L 536.153 357.6 L 534.475 355.413 L 532.288 353.735 L 529.741 352.68 L 527.008 352.32 L 524.275 352.68 L 521.728 353.735 L 519.541 355.413 L 517.863 357.6 L 516.808 360.147 L 516.448 362.88 L 516.808 365.613 L 517.863 368.16 L 519.541 370.347 L 521.728 372.025 L 524.275 373.08 L 527.008 373.44 L 529.741 373.08 L 532.288 372.025 L 534.475 370.347 L 536.153 368.16 L 537.208 365.613 Z" data-officeimo-preserved-geometry="true" fill="#E89C30" stroke="#AB6614" stroke-width="1.728" />
+    </g>
+    <g data-visio-shape-id="gate-label" data-visio-nameu="Rectangle">
+      <path d="M 457.408 436.8 L 596.608 436.8 L 596.608 390.72 L 457.408 390.72 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
+      <text x="527.008" y="405.76" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+        <tspan x="527.008" dy="0">Visual gate</tspan>
+        <tspan x="527.008" dy="16">Jul 19</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="risk" data-visio-nameu="Circle">
+      <path d="M 789.231 309.12 L 788.871 306.387 L 787.816 303.84 L 786.138 301.653 L 783.951 299.975 L 781.404 298.92 L 778.671 298.56 L 775.938 298.92 L 773.391 299.975 L 771.204 301.653 L 769.526 303.84 L 768.471 306.387 L 768.111 309.12 L 768.471 311.853 L 769.526 314.4 L 771.204 316.587 L 773.391 318.265 L 775.938 319.32 L 778.671 319.68 L 781.404 319.32 L 783.951 318.265 L 786.138 316.587 L 787.816 314.4 L 788.871 311.853 Z" data-officeimo-preserved-geometry="true" fill="#7E57C2" stroke="#573D8E" stroke-width="1.728" />
+      <g data-officeimo-stencil-artwork="true" data-officeimo-stencil-key="security" opacity="0.42">
+        <path d="M 778.671 304.71 L 782.346 306.425 L 781.366 311.815 L 778.671 313.775 L 775.976 311.815 L 774.996 306.425 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+    </g>
+    <g data-visio-shape-id="risk-label" data-visio-nameu="Rectangle">
+      <path d="M 709.071 281.28 L 848.271 281.28 L 848.271 235.2 L 709.071 235.2 Z" data-officeimo-preserved-geometry="true" fill="#7E57C2" stroke="#573D8E" stroke-width="1.728" />
+      <text x="778.671" y="250.24" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="778.671" dy="0">Export drift</tspan>
+        <tspan x="778.671" dy="16">Aug 14</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="preview" data-visio-nameu="Circle">
+      <path d="M 992.497 362.88 L 992.137 360.147 L 991.082 357.6 L 989.404 355.413 L 987.217 353.735 L 984.67 352.68 L 981.937 352.32 L 979.204 352.68 L 976.657 353.735 L 974.47 355.413 L 972.792 357.6 L 971.737 360.147 L 971.377 362.88 L 971.737 365.613 L 972.792 368.16 L 974.47 370.347 L 976.657 372.025 L 979.204 373.08 L 981.937 373.44 L 984.67 373.08 L 987.217 372.025 L 989.404 370.347 L 991.082 368.16 L 992.137 365.613 Z" data-officeimo-preserved-geometry="true" fill="#5D9A46" stroke="#3F6F2D" stroke-width="1.728" />
+    </g>
+    <g data-visio-shape-id="preview-label" data-visio-nameu="Rectangle">
+      <path d="M 912.337 436.8 L 1051.537 436.8 L 1051.537 390.72 L 912.337 390.72 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
+      <text x="981.937" y="405.76" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+        <tspan x="981.937" dy="0">Preview</tspan>
+        <tspan x="981.937" dy="16">Sep 4</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="ship" data-visio-nameu="Diamond">
+      <path d="M 1175.524 319.68 L 1186.084 309.12 L 1175.524 298.56 L 1164.964 309.12 Z" data-officeimo-preserved-geometry="true" fill="#4169E1" stroke="#2A4BB1" stroke-width="1.728" />
+    </g>
+    <g data-visio-shape-id="ship-label" data-visio-nameu="Rectangle">
+      <path d="M 1105.924 281.28 L 1245.124 281.28 L 1245.124 235.2 L 1105.924 235.2 Z" data-officeimo-preserved-geometry="true" fill="#F5F7FA" stroke="#BEC6D3" stroke-width="1.152" />
+      <text x="1175.524" y="250.24" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#2D3748" font-weight="700">
+        <tspan x="1175.524" dy="0">Ship</tspan>
+        <tspan x="1175.524" dy="16">Sep 24</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="title" data-visio-nameu="Text Box">
+      <path d="M 62.4 96 L 1233.6 96 L 1233.6 52.8 L 62.4 52.8 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+      <text x="648" y="74.4" font-family="Aptos" font-size="26.667" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="648" dy="0">Visio Premium Gallery Roadmap</tspan>
+      </text>
+    </g>
+  </g>
+</svg>

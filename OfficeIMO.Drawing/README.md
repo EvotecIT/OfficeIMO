@@ -7,6 +7,7 @@ OfficeIMO.Drawing is the shared first-party drawing layer for OfficeIMO packages
 - `OfficeColor`: immutable RGBA color value with named colors and hex parsing.
 - `OfficeFontInfo`: immutable font family, size, and style descriptor for Office text features.
 - `OfficeFontStyle`: dependency-free font style flags.
+- `OfficeTrueTypeFont`: managed TrueType/OpenType outline reader for dependency-free raster text paths.
 - `OfficeTextMeasurer`: deterministic text measurement estimates for Office layout decisions.
 - `OfficeTextMeasurementStyle` and `OfficeTextMetrics`: normalized measurement inputs and pixel metrics.
 - `OfficeImageReader`: header-only image metadata reader for common Office image formats.
@@ -70,6 +71,19 @@ OfficeTextMetrics metrics = measurer.Measure("OfficeIMO", style);
 ```
 
 Rendering packages can use these estimates for layout planning while keeping public and shared APIs free of font-engine dependencies. Format-specific packages still own their own unit conversions and layout quirks, such as Excel column width units or PDF page coordinates.
+
+## Managed Font Outlines
+
+`OfficeTrueTypeFont` reads TrueType/OpenType font files directly and exposes flattened glyph contours for renderers that need dependency-free raster text. It does not call operating-system graphics or font APIs; callers can request a known font file or let OfficeIMO try common platform font file locations.
+
+```csharp
+using OfficeIMO.Drawing;
+
+OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? resolvedPath);
+List<List<OfficePoint>> contours = font?.GetTextContours("OfficeIMO", 0, 0, 18) ?? new List<List<OfficePoint>>();
+```
+
+This is a low-level renderer building block, not a replacement for deterministic layout estimates. Use `OfficeTextMeasurer` for layout planning and `OfficeTrueTypeFont` only when a renderer needs actual glyph outlines.
 
 ## Vector Shape Descriptors
 

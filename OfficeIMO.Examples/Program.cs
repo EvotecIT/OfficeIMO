@@ -67,10 +67,12 @@ namespace OfficeIMO.Examples {
             bool exportPreviews = HasArgument(args, "--visio-export")
                 || HasArgument(args, "--visio-showcase-export")
                 || HasArgument(args, "--visio-preview");
+            bool exportNativePreviews = HasArgument(args, "--visio-native-preview")
+                || HasArgument(args, "--visio-native-export");
             bool openVisio = HasArgument(args, "--open-visio")
                 || HasArgument(args, "--visio-open");
 
-            Visio.VisioShowcase.Example_VisioShowcase(folderPath, openVisio, exportPreviews);
+            Visio.VisioShowcase.Example_VisioShowcase(folderPath, openVisio, exportPreviews, exportNativePreviews);
         }
 
         private static void RunPowerPointExamples(string folderPath) {

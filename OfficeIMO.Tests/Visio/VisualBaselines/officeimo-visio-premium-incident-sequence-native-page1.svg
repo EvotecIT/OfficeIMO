@@ -1,0 +1,247 @@
+﻿<svg width="1406.4" height="915.84" viewBox="0 0 1406.4 915.84" role="img" aria-label="Premium Incident Sequence" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="officeimo-visio-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="context-stroke" />
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1406.4" height="915.84" fill="#FFFFFF" />
+  <g data-officeimo-visio-page="Premium Incident Sequence">
+    <g data-visio-shape-id="title" data-visio-nameu="Text Box">
+      <path d="M 76.8 115.2 L 1329.6 115.2 L 1329.6 72 L 76.8 72 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+      <text x="703.2" y="93.6" font-family="Aptos" font-size="26.667" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="703.2" dy="0">Payment Timeout - Detection and Recovery</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="support" data-visio-nameu="Circle">
+      <path d="M 196.8 178.56 L 194.756 170.858 L 188.762 163.68 L 179.226 157.517 L 166.8 152.787 L 152.329 149.814 L 136.8 148.8 L 121.271 149.814 L 106.8 152.787 L 94.374 157.517 L 84.838 163.68 L 78.844 170.858 L 76.8 178.56 L 78.844 186.262 L 84.838 193.44 L 94.374 199.603 L 106.8 204.333 L 121.271 207.306 L 136.8 208.32 L 152.329 207.306 L 166.8 204.333 L 179.226 199.603 L 188.762 193.44 L 194.756 186.262 Z" data-officeimo-preserved-geometry="true" fill="#047857" stroke="#6EE7B7" stroke-width="1.92" />
+      <g data-officeimo-stencil-artwork="true" data-officeimo-stencil-key="person" opacity="0.42">
+        <circle cx="136.8" cy="159.728" r="3.238" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1.012" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M 131.336 169.239 Q 136.8 163.775 142.264 169.239" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1.113" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <text x="136.8" y="178.56" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="136.8" dy="0">Support</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="support-lifeline-end" data-visio-nameu="Circle">
+      <path d="M 138.72 841.92 L 138.655 841.423 L 138.463 840.96 L 138.158 840.562 L 137.76 840.257 L 137.297 840.065 L 136.8 840 L 136.303 840.065 L 135.84 840.257 L 135.442 840.562 L 135.137 840.96 L 134.945 841.423 L 134.88 841.92 L 134.945 842.417 L 135.137 842.88 L 135.442 843.278 L 135.84 843.583 L 136.303 843.775 L 136.8 843.84 L 137.297 843.775 L 137.76 843.583 L 138.158 843.278 L 138.463 842.88 L 138.655 842.417 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="monitor" data-visio-nameu="Rectangle">
+      <path d="M 360 208.32 L 480 208.32 L 480 148.8 L 360 148.8 Z" data-officeimo-preserved-geometry="true" fill="#1E40AF" stroke="#93C5FD" stroke-width="1.92" />
+      <g data-officeimo-stencil-artwork="true" data-officeimo-stencil-key="compute" opacity="0.42">
+        <rect x="413.119" y="158.514" width="13.761" height="9.714" rx="0.777" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+        <line x1="415.548" y1="162.156" x2="424.452" y2="162.156" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" />
+        <line x1="415.548" y1="164.989" x2="424.452" y2="164.989" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" />
+      </g>
+      <text x="420" y="178.56" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="420" dy="0">Monitor</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="monitor-lifeline-end" data-visio-nameu="Circle">
+      <path d="M 421.92 841.92 L 421.855 841.423 L 421.663 840.96 L 421.358 840.562 L 420.96 840.257 L 420.497 840.065 L 420 840 L 419.503 840.065 L 419.04 840.257 L 418.642 840.562 L 418.337 840.96 L 418.145 841.423 L 418.08 841.92 L 418.145 842.417 L 418.337 842.88 L 418.642 843.278 L 419.04 843.583 L 419.503 843.775 L 420 843.84 L 420.497 843.775 L 420.96 843.583 L 421.358 843.278 L 421.663 842.88 L 421.855 842.417 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="api" data-visio-nameu="Rectangle">
+      <path d="M 643.2 208.32 L 763.2 208.32 L 763.2 148.8 L 643.2 148.8 Z" data-officeimo-preserved-geometry="true" fill="#1E293B" stroke="#CBD5E1" stroke-width="1.92" />
+      <text x="703.2" y="178.56" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="703.2" dy="0">Payments API</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="api-lifeline-end" data-visio-nameu="Circle">
+      <path d="M 705.12 841.92 L 705.055 841.423 L 704.863 840.96 L 704.558 840.562 L 704.16 840.257 L 703.697 840.065 L 703.2 840 L 702.703 840.065 L 702.24 840.257 L 701.842 840.562 L 701.537 840.96 L 701.345 841.423 L 701.28 841.92 L 701.345 842.417 L 701.537 842.88 L 701.842 843.278 L 702.24 843.583 L 702.703 843.775 L 703.2 843.84 L 703.697 843.775 L 704.16 843.583 L 704.558 843.278 L 704.863 842.88 L 705.055 842.417 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="queue" data-visio-nameu="Rectangle">
+      <path d="M 926.4 208.32 L 1046.4 208.32 L 1046.4 148.8 L 926.4 148.8 Z" data-officeimo-preserved-geometry="true" fill="#1E40AF" stroke="#93C5FD" stroke-width="1.92" />
+      <g data-officeimo-stencil-artwork="true" data-officeimo-stencil-key="compute" opacity="0.42">
+        <rect x="979.519" y="158.514" width="13.761" height="9.714" rx="0.777" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+        <line x1="981.948" y1="162.156" x2="990.852" y2="162.156" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" />
+        <line x1="981.948" y1="164.989" x2="990.852" y2="164.989" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" />
+      </g>
+      <text x="986.4" y="178.56" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-weight="700">
+        <tspan x="986.4" dy="0">Retry Queue</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="queue-lifeline-end" data-visio-nameu="Circle">
+      <path d="M 988.32 841.92 L 988.255 841.423 L 988.063 840.96 L 987.758 840.562 L 987.36 840.257 L 986.897 840.065 L 986.4 840 L 985.903 840.065 L 985.44 840.257 L 985.042 840.562 L 984.737 840.96 L 984.545 841.423 L 984.48 841.92 L 984.545 842.417 L 984.737 842.88 L 985.042 843.278 L 985.44 843.583 L 985.903 843.775 L 986.4 843.84 L 986.897 843.775 L 987.36 843.583 L 987.758 843.278 L 988.063 842.88 L 988.255 842.417 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="ledger" data-visio-nameu="Data">
+      <path d="M 1229.44 208.32 L 1329.6 208.32 L 1309.76 148.8 L 1209.6 148.8 Z" data-officeimo-preserved-geometry="true" fill="#111827" stroke="#64748B" stroke-width="1.344" />
+      <g data-officeimo-stencil-artwork="true" data-officeimo-stencil-key="data" opacity="0.42">
+        <path d="M 1263.327 159.615 C 1263.327 157.267 1275.873 157.267 1275.873 159.615 L 1275.873 167.126 C 1275.873 169.474 1263.327 169.474 1263.327 167.126 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M 1263.327 159.615 C 1263.327 161.962 1275.873 161.962 1275.873 159.615" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+      </g>
+      <text x="1269.6" y="178.56" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#F1F5F9" font-weight="700">
+        <tspan x="1269.6" dy="0">Ledger</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="ledger-lifeline-end" data-visio-nameu="Circle">
+      <path d="M 1271.52 841.92 L 1271.455 841.423 L 1271.263 840.96 L 1270.958 840.562 L 1270.56 840.257 L 1270.097 840.065 L 1269.6 840 L 1269.103 840.065 L 1268.64 840.257 L 1268.242 840.562 L 1267.937 840.96 L 1267.745 841.423 L 1267.68 841.92 L 1267.745 842.417 L 1267.937 842.88 L 1268.242 843.278 L 1268.64 843.583 L 1269.103 843.775 L 1269.6 843.84 L 1270.097 843.775 L 1270.56 843.583 L 1270.958 843.278 L 1271.263 842.88 L 1271.455 842.417 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="support-active" data-visio-nameu="Rectangle">
+      <path d="M 129.12 793.613 L 144.48 793.613 L 144.48 250.867 L 129.12 250.867 Z" data-officeimo-preserved-geometry="true" fill="#6D28D9" stroke="#C4B5FD" stroke-width="1.92" />
+    </g>
+    <g data-visio-shape-id="api-active" data-visio-nameu="Rectangle">
+      <path d="M 695.52 722.573 L 710.88 722.573 L 710.88 321.907 L 695.52 321.907 Z" data-officeimo-preserved-geometry="true" fill="#6D28D9" stroke="#C4B5FD" stroke-width="1.92" />
+    </g>
+    <g data-visio-shape-id="queue-active" data-visio-nameu="Rectangle">
+      <path d="M 978.72 722.573 L 994.08 722.573 L 994.08 463.987 L 978.72 463.987 Z" data-officeimo-preserved-geometry="true" fill="#6D28D9" stroke="#C4B5FD" stroke-width="1.92" />
+    </g>
+    <g data-visio-shape-id="alert-from" data-visio-nameu="Circle">
+      <path d="M 421.92 273.6 L 421.855 273.103 L 421.663 272.64 L 421.358 272.242 L 420.96 271.937 L 420.497 271.745 L 420 271.68 L 419.503 271.745 L 419.04 271.937 L 418.642 272.242 L 418.337 272.64 L 418.145 273.103 L 418.08 273.6 L 418.145 274.097 L 418.337 274.56 L 418.642 274.958 L 419.04 275.263 L 419.503 275.455 L 420 275.52 L 420.497 275.455 L 420.96 275.263 L 421.358 274.958 L 421.663 274.56 L 421.855 274.097 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="alert-to" data-visio-nameu="Circle">
+      <path d="M 138.72 273.6 L 138.655 273.103 L 138.463 272.64 L 138.158 272.242 L 137.76 271.937 L 137.297 271.745 L 136.8 271.68 L 136.303 271.745 L 135.84 271.937 L 135.442 272.242 L 135.137 272.64 L 134.945 273.103 L 134.88 273.6 L 134.945 274.097 L 135.137 274.56 L 135.442 274.958 L 135.84 275.263 L 136.303 275.455 L 136.8 275.52 L 137.297 275.455 L 137.76 275.263 L 138.158 274.958 L 138.463 274.56 L 138.655 274.097 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="check-from" data-visio-nameu="Circle">
+      <path d="M 138.72 344.64 L 138.655 344.143 L 138.463 343.68 L 138.158 343.282 L 137.76 342.977 L 137.297 342.785 L 136.8 342.72 L 136.303 342.785 L 135.84 342.977 L 135.442 343.282 L 135.137 343.68 L 134.945 344.143 L 134.88 344.64 L 134.945 345.137 L 135.137 345.6 L 135.442 345.998 L 135.84 346.303 L 136.303 346.495 L 136.8 346.56 L 137.297 346.495 L 137.76 346.303 L 138.158 345.998 L 138.463 345.6 L 138.655 345.137 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="check-to" data-visio-nameu="Circle">
+      <path d="M 705.12 344.64 L 705.055 344.143 L 704.863 343.68 L 704.558 343.282 L 704.16 342.977 L 703.697 342.785 L 703.2 342.72 L 702.703 342.785 L 702.24 342.977 L 701.842 343.282 L 701.537 343.68 L 701.345 344.143 L 701.28 344.64 L 701.345 345.137 L 701.537 345.6 L 701.842 345.998 L 702.24 346.303 L 702.703 346.495 L 703.2 346.56 L 703.697 346.495 L 704.16 346.303 L 704.558 345.998 L 704.863 345.6 L 705.055 345.137 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="message-3-from" data-visio-nameu="Circle">
+      <path d="M 705.12 415.68 L 705.055 415.183 L 704.863 414.72 L 704.558 414.322 L 704.16 414.017 L 703.697 413.825 L 703.2 413.76 L 702.703 413.825 L 702.24 414.017 L 701.842 414.322 L 701.537 414.72 L 701.345 415.183 L 701.28 415.68 L 701.345 416.177 L 701.537 416.64 L 701.842 417.038 L 702.24 417.343 L 702.703 417.535 L 703.2 417.6 L 703.697 417.535 L 704.16 417.343 L 704.558 417.038 L 704.863 416.64 L 705.055 416.177 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="message-3-to" data-visio-nameu="Circle">
+      <path d="M 138.72 415.68 L 138.655 415.183 L 138.463 414.72 L 138.158 414.322 L 137.76 414.017 L 137.297 413.825 L 136.8 413.76 L 136.303 413.825 L 135.84 414.017 L 135.442 414.322 L 135.137 414.72 L 134.945 415.183 L 134.88 415.68 L 134.945 416.177 L 135.137 416.64 L 135.442 417.038 L 135.84 417.343 L 136.303 417.535 L 136.8 417.6 L 137.297 417.535 L 137.76 417.343 L 138.158 417.038 L 138.463 416.64 L 138.655 416.177 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="pause-from" data-visio-nameu="Circle">
+      <path d="M 138.72 486.72 L 138.655 486.223 L 138.463 485.76 L 138.158 485.362 L 137.76 485.057 L 137.297 484.865 L 136.8 484.8 L 136.303 484.865 L 135.84 485.057 L 135.442 485.362 L 135.137 485.76 L 134.945 486.223 L 134.88 486.72 L 134.945 487.217 L 135.137 487.68 L 135.442 488.078 L 135.84 488.383 L 136.303 488.575 L 136.8 488.64 L 137.297 488.575 L 137.76 488.383 L 138.158 488.078 L 138.463 487.68 L 138.655 487.217 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="pause-to" data-visio-nameu="Circle">
+      <path d="M 988.32 486.72 L 988.255 486.223 L 988.063 485.76 L 987.758 485.362 L 987.36 485.057 L 986.897 484.865 L 986.4 484.8 L 985.903 484.865 L 985.44 485.057 L 985.042 485.362 L 984.737 485.76 L 984.545 486.223 L 984.48 486.72 L 984.545 487.217 L 984.737 487.68 L 985.042 488.078 L 985.44 488.383 L 985.903 488.575 L 986.4 488.64 L 986.897 488.575 L 987.36 488.383 L 987.758 488.078 L 988.063 487.68 L 988.255 487.217 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="verify-from" data-visio-nameu="Circle">
+      <path d="M 705.12 557.76 L 705.055 557.263 L 704.863 556.8 L 704.558 556.402 L 704.16 556.097 L 703.697 555.905 L 703.2 555.84 L 702.703 555.905 L 702.24 556.097 L 701.842 556.402 L 701.537 556.8 L 701.345 557.263 L 701.28 557.76 L 701.345 558.257 L 701.537 558.72 L 701.842 559.118 L 702.24 559.423 L 702.703 559.615 L 703.2 559.68 L 703.697 559.615 L 704.16 559.423 L 704.558 559.118 L 704.863 558.72 L 705.055 558.257 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="verify-to" data-visio-nameu="Circle">
+      <path d="M 1271.52 557.76 L 1271.455 557.263 L 1271.263 556.8 L 1270.958 556.402 L 1270.56 556.097 L 1270.097 555.905 L 1269.6 555.84 L 1269.103 555.905 L 1268.64 556.097 L 1268.242 556.402 L 1267.937 556.8 L 1267.745 557.263 L 1267.68 557.76 L 1267.745 558.257 L 1267.937 558.72 L 1268.242 559.118 L 1268.64 559.423 L 1269.103 559.615 L 1269.6 559.68 L 1270.097 559.615 L 1270.56 559.423 L 1270.958 559.118 L 1271.263 558.72 L 1271.455 558.257 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="message-6-from" data-visio-nameu="Circle">
+      <path d="M 1271.52 628.8 L 1271.455 628.303 L 1271.263 627.84 L 1270.958 627.442 L 1270.56 627.137 L 1270.097 626.945 L 1269.6 626.88 L 1269.103 626.945 L 1268.64 627.137 L 1268.242 627.442 L 1267.937 627.84 L 1267.745 628.303 L 1267.68 628.8 L 1267.745 629.297 L 1267.937 629.76 L 1268.242 630.158 L 1268.64 630.463 L 1269.103 630.655 L 1269.6 630.72 L 1270.097 630.655 L 1270.56 630.463 L 1270.958 630.158 L 1271.263 629.76 L 1271.455 629.297 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="message-6-to" data-visio-nameu="Circle">
+      <path d="M 705.12 628.8 L 705.055 628.303 L 704.863 627.84 L 704.558 627.442 L 704.16 627.137 L 703.697 626.945 L 703.2 626.88 L 702.703 626.945 L 702.24 627.137 L 701.842 627.442 L 701.537 627.84 L 701.345 628.303 L 701.28 628.8 L 701.345 629.297 L 701.537 629.76 L 701.842 630.158 L 702.24 630.463 L 702.703 630.655 L 703.2 630.72 L 703.697 630.655 L 704.16 630.463 L 704.558 630.158 L 704.863 629.76 L 705.055 629.297 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="resume-from" data-visio-nameu="Circle">
+      <path d="M 988.32 699.84 L 988.255 699.343 L 988.063 698.88 L 987.758 698.482 L 987.36 698.177 L 986.897 697.985 L 986.4 697.92 L 985.903 697.985 L 985.44 698.177 L 985.042 698.482 L 984.737 698.88 L 984.545 699.343 L 984.48 699.84 L 984.545 700.337 L 984.737 700.8 L 985.042 701.198 L 985.44 701.503 L 985.903 701.695 L 986.4 701.76 L 986.897 701.695 L 987.36 701.503 L 987.758 701.198 L 988.063 700.8 L 988.255 700.337 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="resume-to" data-visio-nameu="Circle">
+      <path d="M 705.12 699.84 L 705.055 699.343 L 704.863 698.88 L 704.558 698.482 L 704.16 698.177 L 703.697 697.985 L 703.2 697.92 L 702.703 697.985 L 702.24 698.177 L 701.842 698.482 L 701.537 698.88 L 701.345 699.343 L 701.28 699.84 L 701.345 700.337 L 701.537 700.8 L 701.842 701.198 L 702.24 701.503 L 702.703 701.695 L 703.2 701.76 L 703.697 701.695 L 704.16 701.503 L 704.558 701.198 L 704.863 700.8 L 705.055 700.337 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="record-from" data-visio-nameu="Circle">
+      <path d="M 138.72 770.88 L 138.655 770.383 L 138.463 769.92 L 138.158 769.522 L 137.76 769.217 L 137.297 769.025 L 136.8 768.96 L 136.303 769.025 L 135.84 769.217 L 135.442 769.522 L 135.137 769.92 L 134.945 770.383 L 134.88 770.88 L 134.945 771.377 L 135.137 771.84 L 135.442 772.238 L 135.84 772.543 L 136.303 772.735 L 136.8 772.8 L 137.297 772.735 L 137.76 772.543 L 138.158 772.238 L 138.463 771.84 L 138.655 771.377 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="record-to" data-visio-nameu="Circle">
+      <path d="M 138.72 805.44 L 138.655 804.943 L 138.463 804.48 L 138.158 804.082 L 137.76 803.777 L 137.297 803.585 L 136.8 803.52 L 136.303 803.585 L 135.84 803.777 L 135.442 804.082 L 135.137 804.48 L 134.945 804.943 L 134.88 805.44 L 134.945 805.937 L 135.137 806.4 L 135.442 806.798 L 135.84 807.103 L 136.303 807.295 L 136.8 807.36 L 137.297 807.295 L 137.76 807.103 L 138.158 806.798 L 138.463 806.4 L 138.655 805.937 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="recovery-fragment" data-visio-nameu="Rectangle">
+      <path d="M 76.8 753.638 L 1329.6 753.638 L 1329.6 361.882 L 76.8 361.882 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="#D8B4FE" stroke-width="1.92" stroke-dasharray="6 4" />
+    </g>
+    <g data-visio-shape-id="recovery-fragment-label" data-visio-nameu="Text Box">
+      <path d="M 152.16 394.522 L 278.88 394.522 L 278.88 365.722 L 152.16 365.722 Z" data-officeimo-preserved-geometry="true" fill="#111827" stroke="none" />
+      <rect data-officeimo-text-background="true" x="153.96" y="371.322" width="85.733" height="17.6" fill="#111827" />
+      <text x="156.96" y="380.122" font-family="Aptos" font-size="13.333" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9" font-weight="700">
+        <tspan x="156.96" dy="0">alt recovery</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="latency-guard-label" data-visio-nameu="Text Box">
+      <path d="M 156 419.482 L 291.36 419.482 L 291.36 396.442 L 156 396.442 Z" data-officeimo-preserved-geometry="true" fill="#111827" stroke="none" />
+      <rect data-officeimo-text-background="true" x="157.8" y="400.628" width="101.36" height="14.667" fill="#111827" />
+      <text x="160.8" y="407.962" font-family="Aptos" font-size="10.667" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9">
+        <tspan x="160.8" dy="0">[timeout elevated]</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="settlement-partition-from" data-visio-nameu="Circle">
+      <path d="M 82.56 596.122 L 82.495 595.625 L 82.303 595.162 L 81.998 594.764 L 81.6 594.459 L 81.137 594.267 L 80.64 594.202 L 80.143 594.267 L 79.68 594.459 L 79.282 594.764 L 78.977 595.162 L 78.785 595.625 L 78.72 596.122 L 78.785 596.619 L 78.977 597.082 L 79.282 597.479 L 79.68 597.784 L 80.143 597.976 L 80.64 598.042 L 81.137 597.976 L 81.6 597.784 L 81.998 597.479 L 82.303 597.082 L 82.495 596.619 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="settlement-partition-to" data-visio-nameu="Circle">
+      <path d="M 1327.68 596.122 L 1327.615 595.625 L 1327.423 595.162 L 1327.118 594.764 L 1326.72 594.459 L 1326.257 594.267 L 1325.76 594.202 L 1325.263 594.267 L 1324.8 594.459 L 1324.402 594.764 L 1324.097 595.162 L 1323.905 595.625 L 1323.84 596.122 L 1323.905 596.619 L 1324.097 597.082 L 1324.402 597.479 L 1324.8 597.784 L 1325.263 597.976 L 1325.76 598.042 L 1326.257 597.976 L 1326.72 597.784 L 1327.118 597.479 L 1327.423 597.082 L 1327.615 596.619 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
+    </g>
+    <g data-visio-shape-id="settlement-partition-label" data-visio-nameu="Text Box">
+      <path d="M 156 625.882 L 312.48 625.882 L 312.48 602.842 L 156 602.842 Z" data-officeimo-preserved-geometry="true" fill="#111827" stroke="none" />
+      <rect data-officeimo-text-background="true" x="157.8" y="607.028" width="124.4" height="14.667" fill="#111827" />
+      <text x="160.8" y="614.362" font-family="Aptos" font-size="10.667" text-anchor="start" dominant-baseline="middle" fill="#F1F5F9">
+        <tspan x="160.8" dy="0">[settlement confirmed]</tspan>
+      </text>
+    </g>
+    <g data-visio-shape-id="runbook-note" data-visio-nameu="Rectangle">
+      <path d="M 217.92 585.6 L 395.52 585.6 L 395.52 516.48 L 217.92 516.48 Z" data-officeimo-preserved-geometry="true" fill="#111827" stroke="#64748B" stroke-width="1.344" />
+      <text x="306.72" y="551.04" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#F1F5F9" font-weight="700">
+        <tspan x="306.72" dy="0">Runbook active</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="support-lifeline">
+      <path d="M 136.8 208.32 L 136.8 840" fill="none" stroke="#93C5FD" stroke-width="1.44" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+    </g>
+    <g data-visio-connector-id="monitor-lifeline">
+      <path d="M 420 208.32 L 420 840" fill="none" stroke="#93C5FD" stroke-width="1.44" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+    </g>
+    <g data-visio-connector-id="api-lifeline">
+      <path d="M 703.2 208.32 L 703.2 840" fill="none" stroke="#93C5FD" stroke-width="1.44" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+    </g>
+    <g data-visio-connector-id="queue-lifeline">
+      <path d="M 986.4 208.32 L 986.4 840" fill="none" stroke="#93C5FD" stroke-width="1.44" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+    </g>
+    <g data-visio-connector-id="ledger-lifeline">
+      <path d="M 1269.6 208.32 L 1269.6 840" fill="none" stroke="#93C5FD" stroke-width="1.44" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+    </g>
+    <g data-visio-connector-id="alert">
+      <path d="M 418.08 273.6 L 138.72 273.6" fill="none" stroke="#93C5FD" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#officeimo-visio-arrow)" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="219.96" y="250.24" width="116.88" height="16" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="278.4" y="258.24" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
+        <tspan x="278.4" dy="0">Alert: timeout spike</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="check">
+      <path d="M 138.72 344.64 L 701.28 344.64" fill="none" stroke="#93C5FD" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#officeimo-visio-arrow)" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="239.52" y="321.28" width="77.76" height="16" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="278.4" y="329.28" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
+        <tspan x="278.4" dy="0">Check health</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="message-3">
+      <path d="M 701.28 415.68 L 138.72 415.68" fill="none" stroke="#D8B4FE" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" marker-end="url(#officeimo-visio-arrow)" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="513" y="392.32" width="97.2" height="16" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="561.6" y="400.32" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
+        <tspan x="561.6" dy="0">Gateway latency</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="pause">
+      <path d="M 138.72 486.72 L 984.48 486.72" fill="none" stroke="#5EEAD4" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#officeimo-visio-arrow)" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="519.48" y="463.36" width="84.24" height="16" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="561.6" y="471.36" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
+        <tspan x="561.6" dy="0">Pause retries</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="verify">
+      <path d="M 705.12 557.76 L 1267.68 557.76" fill="none" stroke="#93C5FD" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#officeimo-visio-arrow)" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="791.4" y="534.4" width="106.8" height="16" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="844.8" y="542.4" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
+        <tspan x="844.8" dy="0">Verify settlement</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="message-6">
+      <path d="M 1267.68 628.8 L 705.12 628.8" fill="none" stroke="#D8B4FE" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" marker-end="url(#officeimo-visio-arrow)" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="811.08" y="605.44" width="67.44" height="16" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="844.8" y="613.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
+        <tspan x="844.8" dy="0">Consistent</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="resume">
+      <path d="M 984.48 699.84 L 705.12 699.84" fill="none" stroke="#5EEAD4" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#officeimo-visio-arrow)" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="774.96" y="676.48" width="139.68" height="16" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="844.8" y="684.48" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
+        <tspan x="844.8" dy="0">Resume controlled drain</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="record">
+      <path d="M 138.72 770.88 L 208.8 770.88 L 208.8 805.44 L 138.72 805.44" fill="none" stroke="#93C5FD" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#officeimo-visio-arrow)" />
+      <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="237.48" y="777.76" width="93.84" height="30.4" fill="#FFFFFF" fill-opacity="0.902" />
+      <text x="284.4" y="785.76" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#1E293B">
+        <tspan x="284.4" dy="0">Update incident</tspan>
+        <tspan x="284.4" dy="14.4">record</tspan>
+      </text>
+    </g>
+    <g data-visio-connector-id="settlement-partition">
+      <path d="M 82.56 596.122 L 1323.84 596.122" fill="none" stroke="#D8B4FE" stroke-width="1.44" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+    </g>
+  </g>
+</svg>

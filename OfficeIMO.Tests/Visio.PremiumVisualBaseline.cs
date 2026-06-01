@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using OfficeIMO.Visio;
 using Xunit;
 
@@ -64,6 +65,58 @@ namespace OfficeIMO.Tests {
                 }
             } finally {
                 TryDeleteDirectory(workDirectory);
+            }
+        }
+
+        [Fact]
+        public void PremiumGalleryNativePreviewsMatchApprovedBaselines() {
+            string workDirectory = Path.Combine(Path.GetTempPath(), "OfficeIMO.VisioPremiumNativeBaselines", Guid.NewGuid().ToString("N"));
+            string documentsDirectory = Path.Combine(workDirectory, "documents");
+            string actualDirectory = Path.Combine(workDirectory, "actual");
+
+            try {
+                IReadOnlyList<VisioGalleryResult> results = VisioPremiumGallery.Create(documentsDirectory);
+
+                Assert.Equal(BaselinePrefixes.Count, results.Count);
+                Assert.All(results, result => Assert.True(result.IsClean, FormatGalleryIssues(result)));
+
+                Directory.CreateDirectory(actualDirectory);
+                foreach (VisioGalleryResult result in results.OrderBy(result => result.Name, StringComparer.Ordinal)) {
+                    string prefix = GetBaselinePrefix(result.Name);
+                    VisioPremiumBaselineContext context = CreateBaselineContext(result, prefix);
+                    VisioDocument document = VisioDocument.Load(result.FilePath);
+
+                    string svgPath = Path.Combine(actualDirectory, prefix + "-native-page1.svg");
+                    document.SaveAsSvg(svgPath, new VisioSvgSaveOptions {
+                        PageIndex = 0,
+                        PixelsPerInch = 96
+                    });
+                    AssertBaseline(Path.GetFileName(svgPath), svgPath, context);
+
+                    string pngPath = Path.Combine(actualDirectory, prefix + "-native-page1.png");
+                    document.SaveAsPng(pngPath, new VisioPngSaveOptions {
+                        PageIndex = 0,
+                        PixelsPerInch = 96,
+                        Supersampling = 3
+                    });
+                    AssertBaseline(Path.GetFileName(pngPath), pngPath, context);
+                }
+            } finally {
+                TryDeleteDirectory(workDirectory);
+            }
+        }
+
+        [Fact]
+        public void PremiumGalleryNativeApprovedBaselinesAreRenderableAndNonBlank() {
+            string baselineDirectory = Path.Combine(GetTestsProjectRoot(), "Visio", "VisualBaselines");
+            foreach (string prefix in BaselinePrefixes.Values.OrderBy(prefix => prefix, StringComparer.Ordinal)) {
+                string svgPath = Path.Combine(baselineDirectory, prefix + "-native-page1.svg");
+                string pngPath = Path.Combine(baselineDirectory, prefix + "-native-page1.png");
+                Assert.True(File.Exists(svgPath), "Missing approved native SVG baseline: " + svgPath);
+                Assert.True(File.Exists(pngPath), "Missing approved native PNG baseline: " + pngPath);
+
+                AssertNativeSvgBaselineIsRenderable(svgPath);
+                AssertNativePngBaselineIsNonBlank(pngPath);
             }
         }
 
@@ -188,6 +241,52 @@ namespace OfficeIMO.Tests {
             }
 
             ThrowTextBaselineChanged(baselineName, expectedPath, expectedText, normalizedActual);
+        }
+
+        private static void AssertNativeSvgBaselineIsRenderable(string svgPath) {
+            XDocument document = XDocument.Load(svgPath);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            Assert.Equal(ns + "svg", document.Root!.Name);
+
+            int visibleElementCount = document.Root
+                .Descendants()
+                .Count(element =>
+                    element.Name == ns + "path" ||
+                    element.Name == ns + "rect" ||
+                    element.Name == ns + "ellipse" ||
+                    element.Name == ns + "line" ||
+                    element.Name == ns + "polyline" ||
+                    element.Name == ns + "polygon" ||
+                    element.Name == ns + "text");
+
+            Assert.True(visibleElementCount >= 5, "Native SVG baseline appears too sparse to be a rendered gallery preview: " + svgPath);
+        }
+
+        private static void AssertNativePngBaselineIsNonBlank(string pngPath) {
+            PngRaster raster = PngRaster.Decode(File.ReadAllBytes(pngPath));
+            Assert.True(raster.Width >= 200, "Native PNG baseline width is unexpectedly small: " + pngPath);
+            Assert.True(raster.Height >= 150, "Native PNG baseline height is unexpectedly small: " + pngPath);
+
+            int nonBackgroundPixels = 0;
+            for (int i = 0; i < raster.Pixels.Length; i += 4) {
+                byte alpha = raster.Pixels[i + 3];
+                if (alpha == 0) {
+                    continue;
+                }
+
+                byte red = raster.Pixels[i];
+                byte green = raster.Pixels[i + 1];
+                byte blue = raster.Pixels[i + 2];
+                if (red < 245 || green < 245 || blue < 245 || alpha < 250) {
+                    nonBackgroundPixels++;
+                }
+            }
+
+            int totalPixels = raster.Width * raster.Height;
+            int minimumVisiblePixels = Math.Max(250, totalPixels / 200);
+            Assert.True(
+                nonBackgroundPixels >= minimumVisiblePixels,
+                "Native PNG baseline appears blank or nearly blank. Visible pixels: " + nonBackgroundPixels + "/" + totalPixels + ". Path: " + pngPath);
         }
 
         private static void ThrowBaselineChanged(string baselineName, string expectedPath, string actualPath, RasterComparison? comparison, VisioPremiumBaselineContext context) {
