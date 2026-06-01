@@ -24,13 +24,22 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("System", page.Name);
-            Assert.Equal(5, page.Shapes.Count);
-            Assert.Equal(new[] { "compute", "input", "memory", "storage", "output" }, page.Shapes.Select(shape => shape.Id).ToArray());
+            Assert.Equal(6, page.Shapes.Count);
+            Assert.Equal(new[] { "compute", "compute-label", "input", "memory", "storage", "output" }, page.Shapes.Select(shape => shape.Id).ToArray());
             Assert.Equal("Rectangle", page.Shapes[0].NameU);
-            Assert.Equal("Process", page.Shapes[1].NameU);
+            Assert.Equal(string.Empty, page.Shapes[0].Text);
+            Assert.Equal("Text Box", page.Shapes[1].NameU);
+            Assert.Equal("Compute", page.Shapes[1].Text);
+            Assert.True(page.Shapes[1].PinY > page.Shapes[0].PinY + page.Shapes[0].Height / 2D);
             Assert.Equal("Process", page.Shapes[2].NameU);
-            Assert.Equal("Data", page.Shapes[3].NameU);
-            Assert.Equal("Process", page.Shapes[4].NameU);
+            Assert.Equal("Process", page.Shapes[3].NameU);
+            Assert.Equal("Data", page.Shapes[4].NameU);
+            Assert.Equal("Process", page.Shapes[5].NameU);
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(4, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Block Diagram" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "block.block" && usage.Count == 3);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "block.storage" && usage.Count == 1);
             Assert.Equal(3, page.Connectors.Count);
             Assert.Equal(2, page.Connectors.Count(connector => connector.LinePattern == 1));
             Assert.Single(page.Connectors, connector => connector.LinePattern == 2);
@@ -41,7 +50,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(5, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(6, loaded.Pages[0].Shapes.Count);
             Assert.Equal(3, loaded.Pages[0].Connectors.Count);
             Assert.Contains(loaded.Pages[0].Connectors, connector => connector.Label == "Control");
         }
@@ -157,6 +166,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BlockDiagramBuilderKeepsRegionsAndCalloutsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .BlockDiagram("Metric Blocks", diagram => diagram
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Region("compute", "Compute", 0, 0, 2, 1)
+                    .Block("input", "Input", 0, 0)
+                    .Block("processor", "Processor", 1, 0)
+                    .Callout("processor", "processor-note", "Metric note", 9, 8, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape region = Assert.Single(page.Shapes, shape => shape.Id == "compute");
+            VisioShape processor = Assert.Single(page.Shapes, shape => shape.Id == "processor");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.True(Contains(region, processor));
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width, 6);
+        }
+
+        [Fact]
         public void BlockDiagramBuilderCanAutoPlaceSemanticCalloutsBesideBlocks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
@@ -265,5 +298,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Placement must be", autoPlacement.Message);
             Assert.Contains("finite non-negative", badGap.Message);
         }
+
+        private static bool Contains(VisioShape outer, VisioShape inner) =>
+            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
+            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
+            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
+            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
     }
 }

@@ -34,6 +34,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RegisterMasterPreservesDistinctMastersWithDuplicateNameU() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioMaster first = new("1", "DuplicateName", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "DuplicateName" });
+            VisioMaster second = new("2", "DuplicateName", new VisioShape("1", 0, 0, 2, 1, string.Empty) { NameU = "DuplicateName" });
+
+            document.RegisterMaster(first);
+            document.RegisterMaster(second);
+
+            Assert.Equal(2, document.Masters.Count(master => master.NameU == "DuplicateName"));
+            Assert.True(document.TryGetMaster("DuplicateName", out VisioMaster? found));
+            Assert.Same(second, found);
+        }
+
+        [Fact]
+        public void RegisterMasterPreservesDistinctMastersWithDuplicatePackageIds() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioMaster first = new("1", "PackageA", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "PackageA" });
+            VisioMaster second = new("1", "PackageB", new VisioShape("1", 0, 0, 2, 1, string.Empty) { NameU = "PackageB" });
+
+            document.RegisterMaster(first);
+            document.RegisterMaster(second);
+
+            Assert.Contains(document.Masters, master => ReferenceEquals(master, first));
+            Assert.Contains(document.Masters, master => ReferenceEquals(master, second));
+            Assert.Equal(2, document.Masters.Count(master => master.Id == "1"));
+        }
+
+        [Fact]
         public void ImportMastersAndGetReturnsRegisteredMastersForReuse() {
             string template = Path.Combine(AssetsPath, "VisioTemplates", "DrawingWithShapes.vsdx");
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

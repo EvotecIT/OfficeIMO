@@ -82,6 +82,8 @@ namespace OfficeIMO.Visio.Stencils {
                         new XAttribute("IconNameU", shape.IconNameU),
                         shape.DefaultUnit.HasValue ? new XAttribute("DefaultUnit", shape.DefaultUnit.Value.ToString()) : null,
                         string.IsNullOrWhiteSpace(shape.SourcePackagePath) ? null : new XAttribute("SourcePackagePath", shape.SourcePackagePath),
+                        PreviewImage(shape.PreviewImage),
+                        ConnectionPoints(shape.SourceConnectionPoints),
                         Values("Keywords", shape.Keywords),
                         Values("Aliases", shape.Aliases),
                         Values("Tags", shape.Tags))));
@@ -119,7 +121,9 @@ namespace OfficeIMO.Visio.Stencils {
                     ReadValues(shape, "Tags"),
                     (string?)shape.Attribute("IconNameU"),
                     ReadUnit(shape, "DefaultUnit"),
-                    (string?)shape.Attribute("SourcePackagePath"));
+                    (string?)shape.Attribute("SourcePackagePath"),
+                    ReadPreviewImage(shape),
+                    ReadConnectionPoints(shape));
             }
 
             return builder.Build();
@@ -131,6 +135,71 @@ namespace OfficeIMO.Visio.Stencils {
                     .Where(value => !string.IsNullOrWhiteSpace(value))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .Select(value => new XElement(Ns + "Value", value)));
+        }
+
+        private static XElement? PreviewImage(VisioStencilPreviewImage? previewImage) {
+            if (previewImage == null) {
+                return null;
+            }
+
+            return new XElement(Ns + "PreviewImage",
+                new XAttribute("RelationshipId", previewImage.RelationshipId),
+                new XAttribute("Target", previewImage.Target),
+                string.IsNullOrWhiteSpace(previewImage.ContentType) ? null : new XAttribute("ContentType", previewImage.ContentType),
+                string.IsNullOrWhiteSpace(previewImage.Extension) ? null : new XAttribute("Extension", previewImage.Extension),
+                previewImage.ByteLength.HasValue ? new XAttribute("ByteLength", previewImage.ByteLength.Value) : null,
+                previewImage.IsExternal ? new XAttribute("External", true) : null);
+        }
+
+        private static XElement? ConnectionPoints(IReadOnlyList<VisioStencilConnectionPoint> points) {
+            if (points.Count == 0) {
+                return null;
+            }
+
+            return new XElement(Ns + "ConnectionPoints",
+                points.Select(point =>
+                    new XElement(Ns + "ConnectionPoint",
+                        point.SectionIndex.HasValue ? new XAttribute("IX", point.SectionIndex.Value) : null,
+                        new XAttribute("X", XmlConvert.ToString(point.X)),
+                        new XAttribute("Y", XmlConvert.ToString(point.Y)),
+                        new XAttribute("DirX", XmlConvert.ToString(point.DirX)),
+                        new XAttribute("DirY", XmlConvert.ToString(point.DirY)),
+                        point.SourceWidth.HasValue ? new XAttribute("SourceWidth", XmlConvert.ToString(point.SourceWidth.Value)) : null,
+                        point.SourceHeight.HasValue ? new XAttribute("SourceHeight", XmlConvert.ToString(point.SourceHeight.Value)) : null)));
+        }
+
+        private static VisioStencilPreviewImage? ReadPreviewImage(XElement shape) {
+            XElement? preview = shape.Element(Ns + "PreviewImage");
+            if (preview == null) {
+                return null;
+            }
+
+            return new VisioStencilPreviewImage(
+                Required(preview, "RelationshipId"),
+                Required(preview, "Target"),
+                (string?)preview.Attribute("ContentType"),
+                (string?)preview.Attribute("Extension"),
+                ReadNullableLong(preview, "ByteLength"),
+                ReadBoolean(preview, "External"));
+        }
+
+        private static IReadOnlyList<VisioStencilConnectionPoint> ReadConnectionPoints(XElement shape) {
+            XElement? section = shape.Element(Ns + "ConnectionPoints");
+            if (section == null) {
+                return Array.Empty<VisioStencilConnectionPoint>();
+            }
+
+            return section.Elements(Ns + "ConnectionPoint")
+                .Select(point => new VisioStencilConnectionPoint(
+                    ReadDouble(point, "X"),
+                    ReadDouble(point, "Y"),
+                    ReadDouble(point, "DirX"),
+                    ReadDouble(point, "DirY"),
+                    ReadNullableInt(point, "IX"),
+                    ReadNullableDouble(point, "SourceWidth"),
+                    ReadNullableDouble(point, "SourceHeight")))
+                .ToList()
+                .AsReadOnly();
         }
 
         private static IReadOnlyList<string> ReadValues(XElement shape, string name) {
@@ -175,6 +244,58 @@ namespace OfficeIMO.Visio.Stencils {
             }
 
             throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' is not a supported measurement unit.");
+        }
+
+        private static long? ReadNullableLong(XElement element, string attributeName) {
+            string? value = (string?)element.Attribute(attributeName);
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            return XmlConvert.ToInt64(value);
+        }
+
+        private static int? ReadNullableInt(XElement element, string attributeName) {
+            string? value = (string?)element.Attribute(attributeName);
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            int parsed = XmlConvert.ToInt32(value);
+            if (parsed < 0) {
+                throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be zero or greater.");
+            }
+
+            return parsed;
+        }
+
+        private static double ReadDouble(XElement element, string attributeName) {
+            string value = Required(element, attributeName);
+            double parsed = XmlConvert.ToDouble(value);
+            if (double.IsNaN(parsed) || double.IsInfinity(parsed)) {
+                throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be finite.");
+            }
+
+            return parsed;
+        }
+
+        private static double? ReadNullableDouble(XElement element, string attributeName) {
+            string? value = (string?)element.Attribute(attributeName);
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            double parsed = XmlConvert.ToDouble(value);
+            if (double.IsNaN(parsed) || double.IsInfinity(parsed) || parsed <= 0) {
+                throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be positive and finite.");
+            }
+
+            return parsed;
+        }
+
+        private static bool ReadBoolean(XElement element, string attributeName) {
+            string? value = (string?)element.Attribute(attributeName);
+            return !string.IsNullOrWhiteSpace(value) && XmlConvert.ToBoolean(value);
         }
     }
 }

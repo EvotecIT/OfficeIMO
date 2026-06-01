@@ -528,17 +528,10 @@ namespace OfficeIMO.Visio.Diagrams {
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
             VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = CreateTitleTextStyle();
+            VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
 
-        private VisioTextStyle CreateTitleTextStyle() {
-            VisioTextStyle style = _theme.Emphasis.TextStyle?.Clone() ?? new VisioTextStyle();
-            style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
-            style.Size = Math.Max(style.Size ?? 0D, 20D);
-            style.Bold = true;
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
-            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
-            return style;
-        }
+        private VisioTextStyle CreateTitleTextStyle() => VisioDiagramTitleStyles.Create(_theme);
 
         private void AddNodes(VisioPage page) {
             foreach (OrgNode node in _nodes) {
@@ -604,8 +597,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 return;
             }
 
-            double horizontalMargin = Math.Min(_leftMargin, _rightMargin);
-            double verticalMargin = Math.Min(_topMargin, _bottomMargin);
+            double horizontalMargin = Math.Min(_leftMargin, _rightMargin).ToInches(_unit);
+            double verticalMargin = Math.Min(_topMargin, _bottomMargin).ToInches(_unit);
             bool overflows = bounds.Left < horizontalMargin ||
                              bounds.Bottom < verticalMargin ||
                              bounds.Right > page.Width - horizontalMargin ||

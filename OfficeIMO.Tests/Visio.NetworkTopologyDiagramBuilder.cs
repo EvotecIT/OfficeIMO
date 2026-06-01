@@ -37,13 +37,17 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Branch Topology", page.Name);
-            Assert.Equal(12, page.Shapes.Count);
+            Assert.Equal(15, page.Shapes.Count);
             Assert.Equal(8, page.Connectors.Count);
             Assert.True(page.Shapes.Single(shape => shape.Id == "internet").PinX < page.Shapes.Single(shape => shape.Id == "firewall").PinX);
             Assert.True(page.Shapes.Single(shape => shape.Id == "firewall").PinX < page.Shapes.Single(shape => shape.Id == "core").PinX);
             Assert.True(page.Shapes.Single(shape => shape.Id == "app").PinX < page.Shapes.Single(shape => shape.Id == "db").PinX);
-            Assert.Contains(page.Shapes, shape => shape.Id == "server-zone" && shape.IsBackgroundSurface);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "server-zone").Width > page.Shapes.Single(shape => shape.Id == "app").Width);
+            VisioShape serverZone = Assert.Single(page.Shapes, shape => shape.Id == "server-zone" && shape.IsBackgroundSurface);
+            VisioShape serverZoneLabel = Assert.Single(page.Shapes, shape => shape.Id == "server-zone-label" && shape.Text == "Server Zone");
+            Assert.Equal(string.Empty, serverZone.Text);
+            Assert.Equal("Text Box", serverZoneLabel.NameU);
+            Assert.True(serverZoneLabel.PinY > serverZone.PinY + serverZone.Height / 2D);
+            Assert.True(serverZone.Width > page.Shapes.Single(shape => shape.Id == "app").Width);
             Assert.Contains(page.Shapes, shape => shape.Id == "firewall" && shape.NameU == "Decision");
             Assert.Contains(page.Shapes, shape => shape.Id == "core" && shape.NameU == "Rectangle");
             Assert.Contains(page.Shapes, shape => shape.Id == "db" && shape.NameU == "Data");
@@ -57,7 +61,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(12, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(15, loaded.Pages[0].Shapes.Count);
             Assert.Equal(8, loaded.Pages[0].Connectors.Count);
         }
 
@@ -210,6 +214,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkTopologyDiagramBuilderKeepsZonesAndCalloutsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .NetworkTopologyDiagram("Metric Topology", topology => topology
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Root("internet", "Internet", VisioNetworkNodeKind.Internet)
+                    .Firewall("firewall", "Firewall")
+                    .Switch("core", "Core")
+                    .Subnet("edge", "Edge", "internet", "firewall", "core")
+                    .Ethernet("internet", "firewall")
+                    .Callout("firewall", "firewall-note", "Metric note", 9, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape zone = Assert.Single(page.Shapes, shape => shape.Id == "edge");
+            VisioShape firewall = Assert.Single(page.Shapes, shape => shape.Id == "firewall");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.True(Contains(zone, firewall));
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.InRange(page.Shapes.Single(shape => shape.Id == "edge-label").PinX, 0D, page.Width);
+        }
+
+        [Fact]
         public void NetworkTopologyDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .NetworkTopologyDiagram("Generated", topology => topology
@@ -272,5 +302,11 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("Unknown network node id", exception.Message);
         }
+
+        private static bool Contains(VisioShape outer, VisioShape inner) =>
+            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
+            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
+            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
+            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
     }
 }

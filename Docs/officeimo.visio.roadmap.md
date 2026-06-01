@@ -1,8 +1,8 @@
 # OfficeIMO.Visio Roadmap
 
-Date: 2026-05-28
-Branch/worktree: `codex/visio-external-stencil-packs` at `C:\Support\GitHub\OfficeIMO-visio-external-stencil-packs`
-Active PR: https://github.com/EvotecIT/OfficeIMO/pull/1865
+Date: 2026-05-31
+Current branch/worktree: `codex/visio-premium-roadmap` at `C:\Support\GitHub\OfficeIMO-visio-premium-roadmap`
+Last major Visio PR merged: https://github.com/EvotecIT/OfficeIMO/pull/1865
 
 ## Where We Are
 
@@ -12,15 +12,20 @@ OfficeIMO.Visio is no longer just a basic VSDX writer. The current branch has a 
 - Pages, shapes, connectors, connection points, groups, layers, hyperlinks, User cells, typed Shape Data, protection, page settings, backgrounds, metadata, themes, style sheets, and master-backed page instances.
 - Fluent page and document authoring for lower-level diagrams.
 - High-level builders for flowcharts, block diagrams, dependency diagrams, architecture diagrams, networks, network topology, swimlanes, org charts, timelines, sequences, and generic graphs.
-- Reusable style themes and local node/edge style overrides.
-- Connector routing, label placement, label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
+- Reusable style themes, premium enterprise/technical/cloud/process/print/dark-safe presets, and local node/edge style overrides.
+- Connector routing, obstacle-aware routing around unrelated shapes, optional zone/container/group/adornment-aware routing, connector-crossing-aware route scoring, deterministic page-level routing optimization passes, multi-waypoint dogleg candidates for dense crossings, label placement, whole-page connector label optimization passes, zone-aware and connector-path-aware label cleanup, page fitting, deterministic text measurement through `OfficeIMO.Drawing`, and visual quality analysis.
+- Header-style region/zone captions for architecture, block, network, topology, and graph builders, including layout clearance and quality-analyzer handling for generated caption adornments.
 - First-party generated stencil catalogs and package-backed stencil catalogs.
 - External `.vssx`, `.vstx`, and `.vsdx` catalog loading, including multi-package external stencil repositories.
 - Native/installed Visio stencil discovery when Visio is available, without making Office automation part of the core library.
-- Optional desktop Visio validation/export helpers for local proof, separate from the dependency-free core.
+- Native headless SVG export for OfficeIMO-authored pages, plus optional desktop Visio validation/export helpers for local proof, separate from the dependency-free core.
 - Generated showcase examples and preview output for visual inspection.
+- Premium showcase diagrams with validated VSDX packages plus local PNG/SVG preview proof.
+- A reusable eight-diagram `VisioPremiumGallery` plus approved PNG/SVG baseline fixtures and PNG diff artifacts for Visio desktop preview regression.
+- Deterministic inspection snapshots and structural diffs through `CreateInspectionSnapshot()` / `VisioInspectionDiff`, including connector label placement coordinates for label-layout regression proof.
+- Deterministic stencil usage profiles through `CreateStencilProfile()`, including generated-master, package-backed, basic-geometry, stencil-backed, Shape Data key, semantic-kind, catalog, category, keyword, alias, tag, icon identity, package preview-image content type/extension, learned native connection points, source default dimensions/units, source-package, placed/source-dimension, and connection-point summaries that survive save/load for package-backed masters and generated stencil placements.
 
-The branch is green at this checkpoint, but it should be treated as the current staged PR, not the final Visio destination.
+The external stencil and graph slice from PR #1865 is merged. The next checkpoint is no longer proving that the Visio core can generate useful diagrams; it is making the public package story clean, the showcase reproducible, and the generated output visually strong enough to support premium positioning.
 
 ## Product Definition
 
@@ -64,6 +69,7 @@ That implies three durable layers:
 - External multi-file stencil-pack examples.
 - Catalog query helpers: `FindBest`, `TryFindBest`, category/tag/alias search, and graph node overloads.
 - Stencil gallery robustness around generated IDs, connector IDs, metric-page sizing, and optional-pack probing.
+- Graph, architecture, network, flowchart, block-diagram, swimlane, timeline, and sequence stencil nodes selected from a catalog preserve catalog provenance in stencil profiles, and built-in catalog stencil nodes inherit diagram theme styling unless they come from package-backed external artwork.
 
 ### Examples And Showcase
 
@@ -72,18 +78,29 @@ That implies three durable layers:
 - External stencil gallery examples.
 - Microsoft Integration/Azure pack example path.
 - Showcase preview generation with optional Visio export proof.
+- Premium gallery baseline proof through `VisioPremiumVisualBaselineTests`, including approved PNG/SVG fixtures, PNG pixel-diff artifacts on failure, tolerance knobs for renderer noise, and opt-in refresh via `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1`.
+- Inspection snapshot/diff API for deterministic structure review across pages, masters, shapes, connectors, Shape Data, User cells, semantic tags, shape connection points, and connector waypoints.
+- Stencil profile API for auditing whether diagrams are using generated masters, package-backed external masters, or plain geometry, with stable text output for regression review, aliases/keywords/tags, icon identity, placed/source dimension ranges, connection-point richness summaries, and persisted package-backed provenance after reload.
+- Architecture, network, flowchart, block-diagram, swimlane, timeline, and sequence builder components now use first-party stencil catalogs for provenance, so cloud architecture, network segmentation, print audit trail, technical topology, governed process, release timeline, and incident sequence gallery output are baseline-reviewed as stencil-backed diagram content rather than anonymous geometry.
+- Sequence diagrams now include first-party activation bars, guarded/partitioned fragments, nested/overlapping fragment layout metadata, dedicated builder API, stencil profile metadata, and gallery coverage.
+- Stencil placement now stamps stencil id/name/category/catalog/source package/tags and package preview-image relationship metadata into shape and master metadata, so profiles and inspection snapshots can prove which catalog, package, and embedded icon media supplied a shape after save/load.
+- Package stencil catalogs now extract native master connection points, persist them in catalog manifests, and scale them onto placed shapes so package-backed stencils expose usable connector attachment profiles after save/load.
+- Generated stencil master instances now emit Visio-friendly page references by keeping `Master` and local style deltas while omitting generated `MasterShape` references unless a loaded shape explicitly preserved one.
+- Shape Data data graphics now render as local badge/bar geometry even in master-backed documents, and the premium executive dependency gallery baseline promotes visible `Status` and `SLO` adornments with approved PNG/SVG plus inspection/profile proof.
+- Obstacle-aware orthogonal routing APIs plus `PolishDiagram` options for rerouting connectors around unrelated top-level shapes, containers, background zones/trust boundaries, generated adornments, and existing connector paths before label cleanup, including deterministic page-level optimization passes and multi-waypoint dogleg candidates for crossing-aware routing sweeps.
+- Group-aware obstacle routing can include nested group children while ignoring endpoint ancestors/descendants, so connectors into grouped content can avoid unrelated sibling member shapes.
+- Zone-aware and connector-path-aware connector label cleanup that can prefer common endpoint zones, avoid unrelated background surfaces, move labels away from unrelated connector paths, and run whole-page optimization passes that revisit the most conflicted labels first during deterministic label placement.
+- Lifeline-aware and fragment-label-aware normal sequence message label placement now prefers gaps between participant lifelines, activation bands, and fragment guard/adornment labels, with premium incident-sequence rendered and inspection baseline proof.
+- Premium style presets for enterprise, technical, cloud, process, print-safe, and dark-safe diagrams, with validated technical/print smoke documents and rendered gallery baseline usage for the current market-facing set.
 
 ## Immediate P0
 
 These are the items that still block "premium Visio library" positioning.
 
-1. **Merge the current green PR.**
-   Keep PR #1865 as the active external stencil/graph slice unless new review feedback appears.
-
-2. **Fix the public docs to match the real API.**
+1. **Keep the public docs matched to the real API.**
    Website and product docs should use `VisioDocument`, diagram builders, and stencil catalogs, not older pseudo-APIs.
 
-3. **Make examples visibly better.**
+2. **Make examples visibly better.**
    The library now supports richer output, but the gallery needs stronger art direction:
    - fewer plain rectangles;
    - more external/native stencil usage;
@@ -92,27 +109,31 @@ These are the items that still block "premium Visio library" positioning.
    - restrained but polished themes;
    - examples that show actual business value, not only API coverage.
 
-4. **Add a visual baseline workflow.**
-   Keep XML validation, but add generated SVG/PNG baselines for the showcase so regressions are visible.
+3. **Harden the showcase proof workflow.**
+   Keep structural package validation, write a machine-readable showcase summary, and make optional desktop Visio SVG/PNG exports easy to review when Visio is available.
 
-5. **Resolve the Visio license conflict.**
-   The package metadata says MIT, while `OfficeIMO.Visio/LICENSE.MD` is restrictive. This must be corrected before public messaging claims a clean open-source package story.
+4. **Keep visual baselines meaningful.**
+   The premium gallery now has generated SVG/PNG baselines plus PNG diff artifacts on failure. Keep them reviewable, refresh only deliberately, and pair rendered drift with structural inspection output where useful. The target gallery and proof levels are tracked in [officeimo.visio.premium-showcase.md](./officeimo.visio.premium-showcase.md).
+
+5. **Keep the license story clean.**
+   `OfficeIMO.Visio` should continue to match the repository MIT license and NuGet package metadata. Do not reintroduce local package license text that conflicts with `PackageLicenseExpression`.
 
 ## P1: Premium Diagram Experience
 
 Goal: generated diagrams should be credible without manual post-editing.
 
-- Add a richer theme catalog with tuned typography, margins, contrast, connector styling, and label rules.
-- Add builder-level `Theme(...)` presets for enterprise, technical, cloud, process, print, and dark-safe diagrams.
+- Continue tuning the richer theme catalog with diagram-specific margins, typography, connector weights, and label rules.
+- Keep builder-level `Theme(...)` presets for enterprise, technical, cloud, process, print, and dark-safe diagrams covered by package validation, and keep expanding the rendered baseline gallery beyond the current technical and print-safe scenarios.
 - Add diagram-specific visual defaults:
   - architecture zones and trust boundaries;
   - network subnets, racks, and device groupings;
   - flowchart continuation and branch retry patterns;
   - swimlane phase/lane readability;
-  - sequence activations and notes;
+  - sequence nested fragments and overlapping fragment layout: initial `NestedFragment(...)` and nested `VisioSequenceFragmentRecord.ParentFragmentId` support now inset child/overlapping frames, stamps parent/depth/overlap-lane metadata, and is promoted through the incident/runbook gallery;
   - dependency graph critical-path highlighting.
 - Add automatic label collision cleanup for dense graph diagrams.
-- Improve orthogonal routing around zones and large node groups.
+- Continue connector label cleanup beyond the current connector-path-aware, path-position-aware, whole-page optimization, lifeline-aware, and fragment-label-aware placement with denser graph and deeper sequence edge-case strategies.
+- Extend orthogonal routing beyond deterministic page-level sweeps and dogleg candidates into deeper global dense-page crossing minimization.
 - Add deterministic "polish passes" that can be applied after any builder.
 
 ## P2: Stencil Platform
@@ -120,45 +141,48 @@ Goal: generated diagrams should be credible without manual post-editing.
 Goal: native and external stencil packs feel first-class, not like shortcuts.
 
 - Preserve more imported master/package content for unsupported external masters.
-- Improve master metadata extraction: categories, keywords, preview/icon metadata, dimensions, connection points, and aliases.
+- Improve master metadata extraction: categories, keywords, preview/icon relationship metadata, dimensions, connection points, and aliases. Initial package preview metadata now records image relationship id, target, content type, extension, and embedded byte length when package masters expose image relationships, controlled by `VisioStencilPackageLoadOptions.ExtractPreviewImageMetadata`; native master connection points are learned by `ExtractConnectionPointMetadata` and persisted through catalog manifests; callers can also extract embedded preview/icon payloads with `VisioStencilPackageCatalog.ExtractPreviewImages(...)`, write them with `ExtractPreviewImagesToDirectory(...)`, or generate a reviewable HTML preview-payload gallery with deterministic SVG thumbnail artifacts for browser-renderable payloads through `CreatePreviewGallery(...)`.
 - Add package-backed master reuse without forcing generated fallback where a real master exists.
 - Add first-party generated stencil packs for:
-  - servers and devices;
-  - cloud generic;
-  - security and identity;
-  - containers/Kubernetes generic;
-  - data/platform services;
-  - collaboration/business process symbols.
-- Add a real stencil gallery document builder for catalog review and debugging.
+  - servers and devices: initial Infrastructure catalog added;
+  - cloud generic: initial Cloud catalog added;
+  - security and identity: initial Security and Identity catalog added;
+  - containers/Kubernetes generic: initial Containers and Kubernetes catalog added;
+  - data/platform services: initial Data and Platform catalog added;
+  - collaboration/business process symbols: initial Collaboration and Business Process catalog added.
+- Add a real stencil gallery document builder for catalog review and debugging. Initial support now creates overview/category-paginated `.vsdx` review documents with visible Shape Data rows for stencil id, catalog/category, master, search metadata, source package, preview image, and connection-point counts.
 - Add custom stencil export, ideally to reusable package-backed stencil form when feasible.
+- Broaden typed stencil profiles from catalog/category/source-pack/family, alias/keyword/tag, placed/source dimensions, icon identity, preview-image content type/extension, extracted package preview/icon payloads, reviewable preview-payload gallery artifacts with deterministic SVG thumbnails for browser-renderable payloads, generated paginated gallery `.vsdx` documents with Shape Data metadata, learned native connection-point metadata, and placed connection-point summaries into richer package-family and native metadata.
 - Document native Visio stencil discovery paths and external pack usage patterns.
 
 ## P3: Real Graphs And Data-Driven Diagrams
 
 Goal: users can feed real inventories, dependencies, or workflows into OfficeIMO.Visio.
 
-- Add graph import helpers from simple node/edge records.
-- Add stable ID and diff-friendly regeneration guidance.
-- Add graph clustering/grouping APIs.
+- Add graph import helpers from simple node/edge records. Initial `VisioGraphNodeRecord` / `VisioGraphEdgeRecord` support imports data-driven graph nodes and edges, including stencil catalog lookup, Shape Data, hyperlinks, roots, directed/undirected edges, and stable generated edge ids.
+- Add sequence import helpers from simple participant/message/activation/fragment/note records. Initial `VisioSequence*Record` support imports data-driven runbook sequences with participants, self-messages, activations, guarded/nested fragments, partitions, parent-fragment metadata, and semantic notes.
+- Add network import helpers from simple zone/node/link/callout records. Initial `VisioNetwork*Record` support imports data-driven network segmentation diagrams with Shape Data, hyperlinks, stable link ids, zones, stencil-backed nodes, and semantic callouts.
+- Add stable ID and diff-friendly regeneration guidance. Initial graph-record imports derive missing connector ids from endpoint ids and connector kind.
+- Add graph clustering/grouping APIs. Initial `Cluster(...)` / `Clusters(...)` support renders semantic graph clusters as background zones with Shape Data and hyperlinks, and `VisioGraphClusterRecord` can be imported with node/edge records for inventory-driven diagrams.
 - Add dependency cycle presentation instead of only rejection where the diagram type allows cycles.
-- Add legends based on used node/edge types.
+- Add legends based on used node/edge types. Initial generic graph `Legend(...)` support derives node-kind and connector-kind entries from the actual graph, reserves header layout space, and marks legend samples/text as generated diagram adornments.
 - Add data-driven examples:
-  - Azure/application dependency map;
-  - Active Directory identity/authentication flow;
-  - CI/CD pipeline and build-agent topology;
-  - Kubernetes/service-mesh topology;
-  - incident/runbook sequence;
-  - network segmentation diagram.
+  - Azure/application dependency map: initial reusable `VisioGallery` and official `--visio-showcase` example added with cloud/security/data/collaboration stencils, edge-security and application-runtime clusters, inspectable Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
+  - Active Directory identity/authentication flow: initial reusable `VisioGallery` and official `--visio-showcase` example added with security/identity stencils, trust-boundary clusters, auth token/control/data flows, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
+  - CI/CD pipeline and build-agent topology: initial reusable `VisioGallery` example added with stencil-backed node records, edge records, cluster records, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
+  - Kubernetes/service-mesh topology: initial reusable `VisioGallery` and official `--visio-showcase` example added with Kubernetes/data/cloud stencils, service-mesh clusters, mTLS/control/data flows, Shape Data, hyperlinks, validation, quality analysis, and automatic graph legend coverage;
+  - incident/runbook sequence: initial reusable `VisioGallery` and official `--visio-showcase` example added with sequence record imports, actor/control/entity/database participants, activations, guarded/nested recovery fragments, runbook notes, validation, quality analysis, and sequence-stencil profile coverage;
+  - network segmentation diagram: initial reusable `VisioGallery` and official `--visio-showcase` example added with network record imports, segmented zones, stencil-backed network nodes, Shape Data, hyperlinks, stable link ids, callouts, validation, quality analysis, and network-stencil profile coverage.
 
 ## P4: Editing Existing Diagrams
 
 Goal: OfficeIMO can safely update diagrams created elsewhere.
 
 - Expand replace-master operations for loaded external masters.
-- Add richer selection queries: geometry intersection, contained-in-zone, connected component, path search, and data predicates.
+- Add richer selection queries: geometry intersection, contained-in-zone, connected component, path search, and data predicates. Initial query support now includes `ShapesIntersecting(...)`, `ShapesContainedIn(...)`, Shape Data predicate queries, `ConnectedComponent(...)`, and `PathBetween(...)` with matching editable selection helpers.
 - Add comment APIs and richer annotation/callout editing.
 - Add containers and swimlanes as deeper typed concepts.
-- Add data graphics and richer Shape Data schema helpers.
+- Add data graphics and richer Shape Data schema helpers. Initial schema support now provides reusable `VisioShapeDataSchema` / `VisioShapeDataField` definitions with defaults, labels, prompts, types, list formats, sort keys, required-value validation, allowed-value validation, and bulk application to shapes, connectors, and selections. Initial data graphic support now turns Shape Data values into generated badge/bar adornments linked back to the target shape, field, value, and role, saves those generated visuals as renderer-friendly local geometry in master-backed documents, and is promoted through the premium executive dependency baseline.
 - Add safe relayout of selected subsets while preserving unsupported content.
 - Add round-trip tests against more Visio-authored assets.
 
@@ -166,11 +190,11 @@ Goal: OfficeIMO can safely update diagrams created elsewhere.
 
 Goal: prove quality continuously.
 
-- Add first-party SVG preview/export where feasible.
+- Initial first-party SVG preview/export is available through `ToSvg()` and `SaveAsSvg(...)` without requiring Microsoft Visio; continue expanding fidelity and add a deliberate native PNG raster path next.
 - Use `OfficeIMO.Pdf` and `OfficeIMO.Drawing` for optional previews where they fit, without making them the VSDX source of truth.
 - Expand desktop Visio validation to collect repair dialogs, export failures, and visual artifacts.
 - Add CI artifacts for generated showcase previews.
-- Add visual-diff thresholds for premium examples.
+- Use inspection diffs next to visual baseline failures so review output explains both structural and rendered changes.
 - Track compatibility with Microsoft Visio desktop, Visio web, and common VSDX consumers where practical.
 
 ## API Shape To Prefer

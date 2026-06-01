@@ -45,6 +45,13 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "start" && shape.NameU == "Ellipse");
             Assert.Contains(page.Shapes, shape => shape.Id == "approved" && shape.NameU == "Decision");
             Assert.Contains(page.Shapes, shape => shape.Id == "invoice" && shape.NameU == "Data");
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(14, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Swimlane" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "swim.lane" && usage.Count == 3);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "swim.phase" && usage.Count == 4);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "swim.activity" && usage.Count == 3);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "swim.start-end" && usage.Count == 2);
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
             Assert.Contains(page.Connectors, connector => connector.Label == "yes" && connector.LinePattern == 1);
             Assert.Contains(page.Connectors, connector => connector.Label == "no" && connector.LinePattern == 2);
@@ -194,6 +201,32 @@ namespace OfficeIMO.Tests {
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void SwimlaneDiagramBuilderKeepsBandsAndCalloutsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .SwimlaneDiagram("Metric Swimlane", swim => swim
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .GridSize(4, 2, 2, 1)
+                    .Lane("sales", "Sales")
+                    .Phase("review", "Review")
+                    .Step("qualify", "Qualify", "sales", "review")
+                    .Callout("qualify", "qualify-note", "Metric note", 9, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape laneHeader = Assert.Single(page.Shapes, shape => shape.Id == "lane-header-sales");
+            VisioShape activity = Assert.Single(page.Shapes, shape => shape.Id == "qualify");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.Equal(2D.ToInches(VisioMeasurementUnit.Centimeters), laneHeader.Width, 6);
+            Assert.Equal(2D.ToInches(VisioMeasurementUnit.Centimeters), laneHeader.Height, 6);
+            Assert.InRange(activity.PinX, 0D, page.Width);
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
         }
 
         [Fact]

@@ -183,6 +183,23 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Applies a reusable Shape Data schema on every selected shape.
+        /// </summary>
+        /// <param name="schema">Shape Data schema to apply.</param>
+        /// <param name="overwriteValues">Whether schema defaults should replace existing values.</param>
+        public VisioShapeSelection ShapeData(VisioShapeDataSchema schema, bool overwriteValues = false) {
+            if (schema == null) {
+                throw new ArgumentNullException(nameof(schema));
+            }
+
+            foreach (VisioShape shape in _shapes) {
+                schema.ApplyTo(shape, overwriteValues);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Sets or replaces a Visio User cell on every selected shape.
         /// </summary>
         /// <param name="name">User cell row name.</param>

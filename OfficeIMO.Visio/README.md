@@ -199,6 +199,48 @@ which is useful for protocols, ports, trust levels, API contracts, message
 schemas, queries, and relationship-specific runbooks. Use `NodeStyle` and
 `EdgeStyle` for local visual emphasis without cloning or forking a whole theme.
 
+For data-driven diagrams, import simple node and edge records. Missing edge IDs
+are derived from endpoint IDs and connector kind, so regenerated diagrams keep
+diff-friendly connector identity:
+
+```csharp
+var idp = new VisioGraphNodeRecord("idp", "Entra ID") {
+    StencilCatalog = VisioStencils.SecurityIdentity,
+    IsRoot = true
+};
+idp.StencilQueries.Add("idp");
+idp.ShapeData.Add("Owner", "IAM");
+
+var cluster = new VisioGraphNodeRecord("cluster", "AKS Cluster") {
+    StencilCatalog = VisioStencils.ContainersKubernetes
+};
+cluster.StencilQueries.Add("kubernetes");
+
+var flow = new VisioGraphEdgeRecord("idp", "cluster") {
+    Kind = VisioGraphConnectorKind.Control,
+    Label = "tokens"
+};
+flow.ShapeData.Add("Protocol", "OIDC");
+
+var runtime = new VisioGraphClusterRecord("runtime", "Runtime", new[] { "cluster" });
+runtime.ShapeData.Add("Owner", "Platform");
+runtime.HyperlinkAddress = "https://example.org/runtime-runbook";
+
+VisioDocument.Create("inventory-graph.vsdx")
+    .GraphDiagram("Imported Inventory", graph => graph
+        .Legend()
+        .Import(new[] { idp, cluster }, new[] { flow }, new[] { runtime })
+        .Cluster("identity", "Identity", "idp", "cluster")
+        .ZoneShapeData("identity", "Owner", "IAM"))
+    .Save();
+```
+
+Use `Legend()` on generic graph diagrams when the generated page should explain
+which node kinds and connector kinds are present. The legend is derived from the
+actual graph, reserves header space during layout, and is marked as generated
+diagram adornment so polish and quality passes do not treat it as business
+content.
+
 ## Quick sample (architecture diagram builder)
 
 ```csharp
@@ -404,33 +446,37 @@ or side-placed semantic callouts from business relationships.
 
 `VisioStyleTheme` gives diagrams and later editing passes a shared set of
 shape, connector, and readable text styles. The built-in presets are `Modern`,
-`Office`, `Fluent`, `Technical`, `Minimal`, `Dark`, and `Print`.
+`Office`, `Fluent`, `Technical`, `Enterprise`, `Cloud`, `Process`, `Minimal`,
+`Dark`, `DarkSafe`, and `Print`. `PremiumPresets()` returns the professional
+set used for market-facing diagrams: enterprise, technical, cloud, process,
+print-safe, and dark-safe.
 
 ```csharp
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
 
-var theme = VisioStyleTheme.Minimal();
-var dark = VisioStyleTheme.Dark();
+var process = VisioStyleTheme.Process();
+var darkSafe = VisioStyleTheme.DarkSafe();
+var premiumThemes = VisioStyleTheme.PremiumPresets();
 
 var doc = VisioDocument.Create("styled.vsdx")
     .Flowchart("Styled Approval Flow", flow => flow
-        .Theme(theme)
+        .Theme(process)
         .Start("start", "Request received")
         .Step("review", "Review request")
         .Decision("approved", "Approved?")
         .End("done", "Done"));
 
 var page = doc.Pages[0];
-page.SelectByMaster("Decision").Style(theme.Decision);
+page.SelectByMaster("Decision").Style(process.Decision);
 page.SelectConnectedConnectors(page.FindShapeById("approved")!)
-    .Style(theme.ControlConnector);
+    .Style(process.ControlConnector);
 page.FitToContent(0.6, 0.45);
 doc.Save();
 
 VisioDocument.Create("dark-styled.vsdx")
-    .BlockDiagram("Dark System Blocks", diagram => diagram
-        .Theme(dark)
+    .BlockDiagram("Dark-Safe System Blocks", diagram => diagram
+        .Theme(darkSafe)
         .Region("zone", "Processing Zone", 0, 0, 3, 1)
         .Block("input", "Input", 0, 0)
         .EmphasisBlock("processor", "Processor", 1, 0)
@@ -449,6 +495,20 @@ documents where a few important lines must avoid crossing the main content.
 OfficeIMO-authored explicit waypoint routes also load back into the connector
 model, so routed diagrams can be edited and saved again without losing the
 route semantics.
+Connectors can also be routed around unrelated top-level shapes with
+`RouteOrthogonalAroundShapes`, or page-wide with
+`RouteConnectorsOrthogonalAroundShapes`, when a generated path would otherwise
+cut through important content. The typed `VisioConnectorRoutingOptions` overloads
+can also treat containers, background surfaces such as zones or trust
+boundaries, and generated adornments as obstacles when those surfaces should
+visibly reserve routing space. Containers and background surfaces that contain
+the connector source or target are ignored, so a connector can still start or
+end inside its own zone. The same options can prefer lanes that reduce
+connector-to-connector crossings when reference connectors are supplied; page-wide
+routing supplies the page connector set automatically and can run deterministic
+page-level optimization passes so the most conflicted connectors are considered
+first on later sweeps. Dense pages can also use multi-waypoint dogleg candidates
+when a simple three-segment orthogonal route still crosses important content.
 Pages can also set native Visio routing defaults for connectors that do not
 carry local routing or line-jump settings, plus placement and layout-grid policy
 used by Visio's Re-Layout Page commands.
@@ -504,6 +564,14 @@ page.SelectConnectedConnectors(source)
         VisioConnectorWaypoint.At(4.5, 3))
     .Label("handoff")
     .LabelPosition(0.6, offsetX: 0.15);
+
+page.RouteConnectorsOrthogonalAroundShapes(new VisioConnectorRoutingOptions {
+    Padding = 0.12,
+    MaxLanes = 16,
+    IncludeContainers = true,
+    IncludeBackgroundSurfaces = true,
+    AvoidConnectorCrossings = true
+});
 
 doc.Save();
 ```
@@ -574,9 +642,85 @@ page.ResolveConnectorLabelOverlaps();
 doc.PolishDiagrams();
 ```
 
+The reusable gallery includes data-driven CI/CD inventory, identity
+authentication, and Kubernetes service-mesh graphs built from
+`VisioGraphNodeRecord`, `VisioGraphEdgeRecord`, and `VisioGraphClusterRecord`
+records. They use first-party stencil catalogs, generated clusters, Shape Data,
+hyperlinks, and automatic graph legends, so the gallery exercises real
+inventory-to-diagram workflows rather than only coordinate-authored examples.
+
 `EnsureVisualQuality(...)` throws `VisioDiagramQualityException` with the
 blocking issues, which makes it practical to use generated diagrams in tests or
 CI without writing custom issue-loop code.
+
+## Inspection snapshots and structural diffs
+
+Inspection snapshots give tests, review tools, and stencil/profile tooling a
+deterministic view of a generated or loaded diagram without requiring Visio
+desktop automation. The snapshot includes document metadata, pages, masters,
+shapes, connectors, Shape Data, User cells, semantic OfficeIMO tags, layers,
+waypoints, and stable text output.
+
+```csharp
+using OfficeIMO.Visio;
+
+VisioInspectionSnapshot before = doc.CreateInspectionSnapshot();
+string snapshotText = before.ToText();
+
+// ... change, reload, or regenerate the diagram ...
+
+VisioInspectionSnapshot after = doc.CreateInspectionSnapshot();
+VisioInspectionDiff diff = before.Diff(after);
+if (diff.HasDifferences) {
+    Console.WriteLine(diff.ToText());
+}
+
+VisioStencilProfile profile = after.CreateStencilProfile();
+Console.WriteLine(profile.ToText());
+```
+
+Use inspection snapshots alongside package validation and optional PNG/SVG
+preview baselines: the snapshot explains what changed structurally, while the
+stencil profile reports how much of the diagram is generated-master,
+package-backed, or basic-geometry driven. Stencil placement stamps catalog,
+category, stencil id, tags, and source package path into shape/master metadata,
+so package-backed and generated-stencil profiles survive reloads and can audit
+saved files as well as in-memory documents. The rendered preview proves how the
+diagram looks. The premium baseline lane also stores approved inspection and
+stencil-profile text snapshots for each rendered diagram. PNG drift writes
+expected, actual, and `.diff.png` artifacts with changed-pixel counts, while
+inspection/profile drift writes expected, actual, and `.diff.txt` artifacts so
+reviewers can distinguish renderer-only churn from structural or stencil usage
+changes. SVG previews use canonicalized text comparison to account for Visio's
+generated CSS class names.
+
+## Headless SVG export
+
+OfficeIMO Visio can render generated pages directly to SVG without Microsoft
+Visio desktop automation. This headless path is intended for CI artifacts,
+documentation previews, web galleries, and quick inspection of generated
+diagrams:
+
+```csharp
+using OfficeIMO.Visio;
+
+VisioDocument document = VisioDocument.Create("pipeline.vsdx");
+VisioPage page = document.AddPage("Pipeline").Size(8, 4);
+VisioShape build = page.AddProcess(1.5, 2, 1.4, 0.7, "Build");
+VisioShape ship = page.AddProcess(5.5, 2, 1.4, 0.7, "Ship");
+page.AddConnector(build, ship, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left).EndArrow = EndArrow.Arrow;
+
+string svg = document.ToSvg();
+document.SaveAsSvg("pipeline.svg", new VisioSvgSaveOptions {
+    PixelsPerInch = 96,
+    BackgroundColor = null
+});
+```
+
+The native SVG renderer covers OfficeIMO-authored shapes, connectors, labels,
+text styles, common flowchart geometry, transparency, dashed strokes, and
+arrowheads. PNG/PDF proof export is still available through the optional
+Microsoft Visio desktop validation path when Visio is installed.
 
 ## Native stencil catalogs
 
@@ -586,6 +730,12 @@ runtime dependencies. Use `Get(...)` for exact known shapes and `Search(...)`
 or `InCategory(...)` when you want user-friendly discovery by id, name, master,
 category, keyword, alias, or tag. Each stencil also carries `IconNameU` preview
 metadata for palette and picker UIs.
+
+The built-in catalog set covers basic, flowchart, block-diagram, architecture,
+network, infrastructure, cloud, security/identity, containers/Kubernetes,
+data/platform, collaboration/business process, sequence, swimlane, org-chart,
+and timeline domains. These first-party definitions are dependency-free and
+preserve searchable domain intent in inspection snapshots and stencil profiles.
 
 ```csharp
 using OfficeIMO.Visio;
@@ -600,6 +750,9 @@ var decision = page.AddStencilShape(VisioStencils.Flowchart, "branch",
     "approved", 5, 4, "Approved?");
 var switchShape = page.AddStencilShape("net.switch", "switch", 8, 6, "Switch");
 var dataStore = VisioStencils.All.Search("data-store").First();
+var identityProvider = VisioStencils.SecurityIdentity.Get("idp");
+var kubernetesCluster = VisioStencils.ContainersKubernetes.Get("kubernetes");
+var dataPipeline = VisioStencils.DataPlatform.Get("etl");
 var networkShapes = VisioStencils.All.InCategory("Network");
 var custom = VisioStencilCatalog.Create("Custom Infrastructure", catalog => catalog
     .Add("custom.cache", "Cache", "Process", "Infrastructure", 1.8, 0.9, "redis")
@@ -629,7 +782,11 @@ doc.Save();
 `.vssx`, `.vstx`, and the macro-enabled package variants. It does not use those
 files as runtime templates. The `MasterNames` filter can target the universal
 name, visible name, relationship id, numeric id, or normalized slug discovered in
-the package.
+the package. Package catalogs can learn native master dimensions, preview/icon
+image relationship metadata, and native connection points; when a package-backed
+stencil is placed, those connection points are scaled onto the page shape so
+connectors, inspection snapshots, and stencil profiles can see the real stencil
+attachment profile.
 
 When you want real external artwork, load the package catalog with
 `IncludeUnsupportedMasters = true` and place shapes from that catalog. Package
@@ -683,10 +840,54 @@ var page = doc.AddPage("Gallery", 11, 8.5);
 page.AddStencilGallery(integration, new VisioStencilGalleryOptions {
     Title = "Microsoft Integration and Azure",
     Columns = 4,
-    MaxShapes = 24
+    MaxShapes = 24,
+    IncludeStencilMetadataShapeData = true
 });
 doc.Save();
 ```
+
+For a complete catalog review artifact, create a paginated gallery document. It
+adds an overview page, splits large catalogs by category, and stamps each
+preview shape with Shape Data rows such as stencil id, category, catalog,
+master, keywords, aliases, tags, default size, source package, preview image, and
+connection-point counts where available:
+
+```csharp
+var gallery = VisioStencilGalleryDocument.Create("stencil-gallery.vsdx",
+    integration,
+    new VisioStencilGalleryDocumentOptions {
+        Title = "Microsoft Integration and Azure review",
+        Columns = 4,
+        ShapesPerPage = 24,
+        IncludeStencilMetadataShapeData = true
+    });
+gallery.Save();
+```
+
+For package-backed masters that carry embedded preview/icon payloads, export a
+reviewable HTML inventory and the raw image payloads:
+
+```csharp
+var previewGallery = VisioStencilPackageCatalog.CreatePreviewGallery(
+    @"C:\StencilPacks\Azure.vssx",
+    @"C:\Temp\AzureStencilPreview",
+    new VisioStencilPackageLoadOptions {
+        IncludeUnsupportedMasters = true
+    },
+    new VisioStencilPreviewGalleryOptions {
+        Title = "Azure stencil preview review"
+    });
+
+Console.WriteLine(previewGallery.IndexPath);
+```
+
+Browser-friendly payloads such as PNG, JPG, SVG, GIF, BMP, and WebP render
+inline in the generated index. Other native Visio/Office payloads such as EMF
+are still extracted and listed with their content type, relationship target,
+byte length, and saved file link for external review tools. Browser-renderable
+payloads also receive deterministic SVG thumbnail wrappers in the `thumbnails`
+directory by default, so catalog review output has stable visual artifacts that
+can be archived or diffed beside the raw embedded media.
 
 `DiscoverInstalledVisioPackages()` finds the local Microsoft Visio `.vssx` and
 `.vstx` content folders without automating Visio, letting you build diagrams from
@@ -705,7 +906,8 @@ var azure = VisioStencilPackageCatalog.LoadMany(installed,
 `VisioStencilCatalog.Save(...)` and `VisioStencilCatalog.Load(...)` persist
 OfficeIMO-native catalog metadata as a small XML manifest. This is useful for
 reusable first-party or application-specific palettes without requiring Visio
-stencil packages at runtime.
+stencil packages at runtime. The manifest preserves source package paths,
+preview metadata, learned default sizes, and learned source connection points.
 
 ## Query and selection editing
 
@@ -742,6 +944,15 @@ page.SelectOutgoingConnectors(review)
     .LineColor(Color.DodgerBlue)
     .EndArrow(EndArrow.Triangle);
 
+page.SelectContainedIn(page.ShapesWithData("Owner", "Ops").First().GetShapeBounds())
+    .ShapeData("ReviewScope", "Operations");
+
+page.SelectConnectedComponent(review)
+    .ShapeData("Component", "Approval");
+
+page.SelectWithShapeData("Risk", value => int.TryParse(value, out int risk) && risk >= 4)
+    .Stroke(Color.Red, 0.025);
+
 doc.Save();
 ```
 
@@ -749,6 +960,12 @@ Selection duplication remaps copied shape identifiers and duplicates only the
 connectors whose endpoints are both inside the copied selection. Shape styling,
 layers, hyperlinks, User cells, typed Shape Data, protection, layout hints, and
 connector routing metadata move with the copy.
+
+The same query surface supports editing loaded diagrams by geometry and graph
+structure: `ShapesIntersecting(...)`, `ShapesContainedIn(...)`,
+`ShapesWithShapeData(...)`, `ConnectedComponent(...)`, and `PathBetween(...)` can find contained shapes,
+overlapping annotations, connected islands, and shortest connected paths before
+applying bulk style or metadata edits.
 
 Whole pages can be duplicated as well. The copy receives fresh shape and
 connector IDs while keeping page settings, layers, background-page linkage,
@@ -865,6 +1082,50 @@ page.SelectWithShapeData("Owner", "Platform")
         VisioShapeDataType.Boolean, "Architecture review complete");
 
 doc.Save();
+```
+
+For repeatable metadata across generated or loaded diagrams, define a reusable
+schema and apply it to shapes, shape selections, connectors, or connector
+selections. Existing values are preserved by default while labels, prompts,
+types, list formats, sort keys, visibility, and verification settings are
+standardized.
+
+```csharp
+var schema = VisioShapeDataSchema.Create()
+    .Field("Owner", "Owner", VisioShapeDataType.String,
+        defaultValue: "Unassigned", prompt: "Owning team",
+        sortKey: "010", required: true)
+    .Field("Risk", "Risk", VisioShapeDataType.FixedList,
+        defaultValue: "Medium", prompt: "Operational risk",
+        sortKey: "020", required: true, verify: true,
+        allowedValues: new[] { "Low", "Medium", "High" })
+    .Field("MonthlyCost", "Monthly cost", VisioShapeDataType.Currency,
+        defaultValue: "0", prompt: "Estimated monthly run cost",
+        format: "$#,##0", sortKey: "030");
+
+schema.ApplyTo(api);
+page.SelectWithShapeData("Owner", value => string.IsNullOrWhiteSpace(value))
+    .ShapeData(schema);
+
+var issues = schema.Validate(api);
+```
+
+Shape Data can also be surfaced as visible data graphics. Generated badges and
+bars are stored as diagram adornments tied back to the target shape and source
+field, so routing, quality checks, inspection snapshots, and stencil profiles
+can distinguish them from business shapes.
+
+```csharp
+api.SetShapeData("Status", "Healthy", "Status",
+    VisioShapeDataType.FixedList, format: "Healthy;Warning;Critical");
+api.SetShapeData("Slo", "72", "SLO", VisioShapeDataType.Number);
+
+var dataGraphic = VisioDataGraphic.Create()
+    .Badge("Status")
+    .Bar("Slo", maximumValue: 100, label: "SLO");
+
+page.SelectWithShapeData("Status", value => !string.IsNullOrWhiteSpace(value))
+    .AddDataGraphics(dataGraphic);
 ```
 
 ## Page settings
@@ -1081,8 +1342,18 @@ Selections can also be aligned, distributed, resized to text, centered, and fit
 to page bounds. Page fitting and centering include explicit connector waypoints
 and connector label boxes, so routed labels do not get clipped. Text sizing uses
 the deterministic `OfficeIMO.Drawing` measurement engine, so it works without
-system font APIs. Connector labels can also be nudged deterministically away
-from page edges, unrelated shapes, and labels that were already placed.
+system font APIs. Connector labels can also be moved deterministically away
+from page edges, unrelated shapes, and connector labels. The cleanup can slide
+labels along their connector path before falling back to page-coordinate
+offsets, runs whole-page label optimization passes that revisit the most
+conflicted labels first, and ignores generated adornment captions, so premium
+zone headers do not push legitimate connector labels around. It can also prefer
+connector labels inside the shared zone of their endpoints and away from
+unrelated background zones when premium zone diagrams need stronger label
+placement hints.
+It can also opt into obstacle-aware connector routing before label placement,
+which is useful when a generated diagram has simple connector-to-shape
+intersections.
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -1102,6 +1373,16 @@ page.SelectConnectedConnectors(page.FindShapeById("approved")!)
 
 page.PolishDiagram(new VisioDiagramPolishOptions {
     ResolveShapeOverlaps = true,
+    ResolveConnectorShapeIntersections = true,
+    ConnectorRoutingObstaclePadding = 0.12,
+    ConnectorRoutingAvoidContainers = true,
+    ConnectorRoutingAvoidBackgroundSurfaces = true,
+    ConnectorRoutingAvoidConnectorCrossings = true,
+    ConnectorRoutingPageOptimizationPasses = 3,
+    PreferConnectorLabelsInsideEndpointZones = true,
+    ConnectorLabelPositionStep = 0.08,
+    ConnectorLabelMaxPositionShifts = 4,
+    ConnectorLabelOptimizationPasses = 3,
     MaximumConnectorLabelWidth = 1.6,
     FitHorizontalMargin = 0.6,
     FitVerticalMargin = 0.45
@@ -1113,8 +1394,9 @@ doc.Save();
 are deterministic and can reroute connectors whose endpoints are both inside a
 page-backed selection.
 `PolishDiagram` can also move crowded top-level shapes apart before it resolves
-connector labels and fits the page, which is useful when a generated diagram has
-reasonable structure but still needs a final visual cleanup pass.
+connector routes, connector labels, and page fitting, which is useful when a
+generated diagram has reasonable structure but still needs a final visual cleanup
+pass.
 
 ## Learning from VSDX fixtures
 
@@ -1162,8 +1444,8 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - 📄 Pages: ✅ add/remove pages
 - 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
 - 🔗 Connectors: ✅ basic connectors between shapes
-- 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ generic graph builder with cycles, disconnected components, layered/grid/radial layouts, zones, and package-backed stencil nodes, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, and legends, ✅ sequence builder with participants, lifelines, message types, and self-calls, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
-- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, sequence, swimlane, org-chart, and timeline shapes
+- 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ generic graph builder with cycles, disconnected components, layered/grid/radial layouts, zones, package-backed stencil nodes, data-driven inventory/identity/Kubernetes/application dependency gallery graphs, and generated legends, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, legends, record imports, Shape Data, and hyperlinks, ✅ sequence builder with participants, lifelines, message types, self-calls, activations, guarded/nested fragments, notes, and data-driven incident/runbook record imports, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
+- 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, infrastructure, cloud, security/identity, containers/Kubernetes, data/platform, collaboration/business process, sequence, swimlane, org-chart, and timeline shapes; ✅ external package catalogs with learned dimensions, preview metadata, source package provenance, and native connection points
 - 🎨 Style themes: ✅ reusable shape/connector/text styles and Modern/Office/Fluent/Technical/Minimal/Dark/Print authoring presets
 - 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content
 - 🧩 VSDX learning fixtures: ✅ inspect supported masters without treating sample files as runtime templates

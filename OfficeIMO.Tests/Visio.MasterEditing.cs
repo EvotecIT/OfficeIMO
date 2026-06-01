@@ -45,6 +45,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Operations", task.GetShapeDataValue("Owner"));
             Assert.Equal("Owning team", task.FindShapeData("Owner")!.Prompt);
             Assert.Equal("Review", task.GetUserCellValue("Stage"));
+            Assert.Equal("flow.decision", task.GetUserCellValue(VisioSemanticUserCells.StencilId));
             Assert.Equal("https://example.org/review", task.Hyperlinks.Single().Address);
             Assert.True(task.Protection.LockTextEdit);
             Assert.True(task.Protection.LockDelete);
@@ -55,7 +56,7 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             Assert.Empty(VisioValidator.Validate(filePath));
-            AssertShapeMaster(filePath, "Review", "Decision");
+            AssertGeneratedStencilGeometry(filePath, "Review", "Decision", "flow.decision");
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             VisioShape loadedTask = loaded.Pages[0].Shapes.Single(shape => shape.Text == "Review");
@@ -64,6 +65,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1.4, loadedTask.Height, 6);
             Assert.Equal("Operations", loadedTask.GetShapeDataValue("Owner"));
             Assert.Equal("Review", loadedTask.GetUserCellValue("Stage"));
+            Assert.Equal("flow.decision", loadedTask.GetUserCellValue(VisioSemanticUserCells.StencilId));
             Assert.Single(loaded.Pages[0].IncomingConnectors(loadedTask));
             Assert.Single(loaded.Pages[0].OutgoingConnectors(loadedTask));
         }
@@ -73,34 +75,48 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Keep Size");
             VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "shape", 2, 4, 3.2, 0.8, "Large step");
+            shape.SetUserCell(VisioSemanticUserCells.StencilPreviewImageTarget, "../media/stale.emf", "STR");
 
             page.ReplaceMaster(shape, "Decision");
 
             Assert.Equal("Decision", shape.MasterNameU);
+            Assert.Null(shape.GetUserCellValue(VisioSemanticUserCells.StencilId));
+            Assert.Null(shape.GetUserCellValue(VisioSemanticUserCells.StencilPreviewImageTarget));
             Assert.Equal(3.2, shape.Width, 6);
             Assert.Equal(0.8, shape.Height, 6);
             Assert.Equal(1.6, shape.LocPinX, 6);
             Assert.Equal(0.4, shape.LocPinY, 6);
         }
 
-        private static void AssertShapeMaster(string filePath, string shapeText, string expectedMasterNameU) {
+        private static void AssertGeneratedStencilGeometry(string filePath, string shapeText, string expectedNameU, string expectedStencilId) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
             XDocument pageDoc = ReadXml(archive, "visio/pages/page1.xml");
-            XDocument mastersDoc = ReadXml(archive, "visio/masters/masters.xml");
 
             XElement shape = pageDoc.Descendants(ns + "Shape")
                 .Single(element => element.Element(ns + "Text")?.Value == shapeText);
-            string masterId = shape.Attribute("Master")?.Value ?? throw new InvalidOperationException("Shape did not reference a master.");
-            XElement master = mastersDoc.Descendants(ns + "Master")
-                .Single(element => element.Attribute("ID")?.Value == masterId);
-            Assert.Equal(expectedMasterNameU, master.Attribute("NameU")?.Value);
+            Assert.NotNull(shape.Attribute("Master"));
+            Assert.Null(shape.Attribute("MasterShape"));
+            Assert.Equal(expectedNameU, shape.Attribute("NameU")?.Value);
+            Assert.Contains(shape.Elements(ns + "Section"), section => (string?)section.Attribute("N") == "Geometry");
+            Assert.Equal(expectedStencilId, GetUserCellValue(shape, ns, VisioSemanticUserCells.StencilId));
         }
 
         private static XDocument ReadXml(ZipArchive archive, string entryName) {
             ZipArchiveEntry entry = archive.GetEntry(entryName) ?? throw new InvalidOperationException("Missing " + entryName);
             using Stream stream = entry.Open();
             return XDocument.Load(stream);
+        }
+
+        private static string? GetUserCellValue(XElement shape, XNamespace ns, string name) {
+            XElement? row = shape.Elements(ns + "Section")
+                .FirstOrDefault(section => (string?)section.Attribute("N") == "User")
+                ?.Elements(ns + "Row")
+                .FirstOrDefault(element => (string?)element.Attribute("N") == name);
+            return row?.Elements(ns + "Cell")
+                .FirstOrDefault(cell => (string?)cell.Attribute("N") == "Value")
+                ?.Attribute("V")
+                ?.Value;
         }
     }
 }

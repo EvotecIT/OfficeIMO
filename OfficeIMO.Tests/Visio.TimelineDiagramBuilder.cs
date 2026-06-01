@@ -32,6 +32,16 @@ namespace OfficeIMO.Tests {
             Assert.Contains(page.Shapes, shape => shape.Id == "timeline-axis" && shape.NameU == "Rectangle");
             Assert.Contains(page.Shapes, shape => shape.Id == "kickoff" && shape.NameU == "Diamond");
             Assert.Contains(page.Shapes, shape => shape.Id == "preview" && shape.NameU == "Circle");
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(16, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Timeline" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.axis" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.span" && usage.Count == 3);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.label" && usage.Count == 7);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.milestone" && usage.Count == 2);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.decision" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.risk" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "time.release" && usage.Count == 1);
             Assert.True(page.FindShapeById("kickoff")!.PinX < page.FindShapeById("ga")!.PinX);
             Assert.True(page.FindShapeById("discovery")!.Width < page.FindShapeById("build")!.Width);
             string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();
@@ -163,6 +173,26 @@ namespace OfficeIMO.Tests {
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void TimelineDiagramBuilderKeepsCalloutPinsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .TimelineDiagram("Metric Timeline", timeline => timeline
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Range(new DateTime(2026, 1, 1), new DateTime(2026, 3, 31))
+                    .Milestone("kickoff", new DateTime(2026, 1, 15), "Kickoff")
+                    .Callout("kickoff", "kickoff-note", "Metric note", 8, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width, 6);
         }
 
         [Fact]

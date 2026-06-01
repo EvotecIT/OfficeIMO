@@ -78,12 +78,30 @@ namespace OfficeIMO.Visio {
                     resolvedOptions.IncludeContainersInShapeOverlapResolution);
             }
 
+            if (resolvedOptions.ResolveConnectorShapeIntersections) {
+                page.RouteConnectorsOrthogonalAroundShapes(new VisioConnectorRoutingOptions {
+                    Padding = resolvedOptions.ConnectorRoutingObstaclePadding,
+                    MaxLanes = resolvedOptions.ConnectorRoutingMaxLanes,
+                    PageOptimizationPasses = resolvedOptions.ConnectorRoutingPageOptimizationPasses,
+                    IncludeContainers = resolvedOptions.ConnectorRoutingAvoidContainers,
+                    IncludeBackgroundSurfaces = resolvedOptions.ConnectorRoutingAvoidBackgroundSurfaces,
+                    IncludeDiagramAdornments = resolvedOptions.ConnectorRoutingAvoidDiagramAdornments,
+                    IncludeGroupChildren = resolvedOptions.ConnectorRoutingAvoidGroupChildren,
+                    AvoidConnectorCrossings = resolvedOptions.ConnectorRoutingAvoidConnectorCrossings
+                });
+            }
+
             if (resolvedOptions.ResolveConnectorLabelOverlaps) {
                 page.ResolveConnectorLabelOverlaps(
                     resolvedOptions.ConnectorLabelStep,
                     resolvedOptions.ConnectorLabelMaxAttempts,
                     resolvedOptions.AvoidConnectorLabelShapeOverlaps,
-                    resolvedOptions.AvoidConnectorLabelOverlaps);
+                    resolvedOptions.AvoidConnectorLabelOverlaps,
+                    resolvedOptions.PreferConnectorLabelsInsideEndpointZones,
+                    resolvedOptions.AvoidConnectorLabelConnectorPathOverlaps,
+                    resolvedOptions.ConnectorLabelPositionStep,
+                    resolvedOptions.ConnectorLabelMaxPositionShifts,
+                    resolvedOptions.ConnectorLabelOptimizationPasses);
             }
 
             if (resolvedOptions.FitToContent) {
@@ -108,6 +126,35 @@ namespace OfficeIMO.Visio {
 
             if (options.ConnectorLabelMaxAttempts < 0) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Connector label attempt count cannot be negative.");
+            }
+
+            if (options.ConnectorLabelPositionStep <= 0D ||
+                options.ConnectorLabelPositionStep > 1D ||
+                double.IsNaN(options.ConnectorLabelPositionStep) ||
+                double.IsInfinity(options.ConnectorLabelPositionStep)) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector label position step must be a positive finite value no greater than 1.");
+            }
+
+            if (options.ConnectorLabelMaxPositionShifts < 0) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector label position shift count cannot be negative.");
+            }
+
+            if (options.ConnectorLabelOptimizationPasses < 1) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector label optimization pass count must be at least one.");
+            }
+
+            if (options.ConnectorRoutingObstaclePadding < 0D ||
+                double.IsNaN(options.ConnectorRoutingObstaclePadding) ||
+                double.IsInfinity(options.ConnectorRoutingObstaclePadding)) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector routing obstacle padding must be a non-negative finite value.");
+            }
+
+            if (options.ConnectorRoutingMaxLanes < 0) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector routing lane count cannot be negative.");
+            }
+
+            if (options.ConnectorRoutingPageOptimizationPasses < 1) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Connector routing optimization pass count must be at least one.");
             }
 
             if (options.ShapeOverlapStep <= 0D || double.IsNaN(options.ShapeOverlapStep) || double.IsInfinity(options.ShapeOverlapStep)) {

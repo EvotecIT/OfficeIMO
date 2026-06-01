@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using OfficeIMO.Visio.Stencils;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
@@ -355,6 +356,7 @@ namespace OfficeIMO.Visio.Diagrams {
             if (_theme.TitleTextStyle != null) {
                 title.TextStyle = _theme.TitleTextStyle.Clone();
             }
+            VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
 
         private VisioShape CreateShape(VisioPage page, Node node, double x, double y, double width, double height) {
@@ -402,12 +404,12 @@ namespace OfficeIMO.Visio.Diagrams {
                     break;
             }
 
-            VisioShape shape = new VisioShape(node.Id, x, y, width, height, node.Text) { NameU = nameU };
+            VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart, GetNodeStencilId(node.Kind), node.Id, x, y, width, height, node.Text);
+            shape.NameU = nameU;
             ApplyStyle(shape, fill, stroke);
             if (textStyle != null) {
                 shape.TextStyle = textStyle.Clone();
             }
-            page.Shapes.Add(shape);
 
             return shape;
         }
@@ -515,7 +517,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private void RouteBranchConnector(VisioPage page, VisioConnector connector, int branchRouteIndex) {
             VisioShapeBounds fromBounds = connector.From.GetShapeBounds();
             VisioShapeBounds toBounds = connector.To.GetShapeBounds();
-            double routeOffset = (branchRouteIndex % 3) * (_branchLaneSpacing * 0.5D);
+            double branchLaneSpacing = _branchLaneSpacing.ToInches(_unit);
+            double routeOffset = (branchRouteIndex % 3) * (branchLaneSpacing * 0.5D);
 
             if (fromBounds.Right < toBounds.Left || toBounds.Right < fromBounds.Left) {
                 double laneX = fromBounds.Right < toBounds.Left
@@ -529,13 +532,13 @@ namespace OfficeIMO.Visio.Diagrams {
 
             bool routeLeft = toBounds.CenterY >= fromBounds.CenterY;
             double laneXCandidate = routeLeft
-                ? Math.Min(fromBounds.Left, toBounds.Left) - _branchLaneSpacing - routeOffset
-                : Math.Max(fromBounds.Right, toBounds.Right) + _branchLaneSpacing + routeOffset;
+                ? Math.Min(fromBounds.Left, toBounds.Left) - branchLaneSpacing - routeOffset
+                : Math.Max(fromBounds.Right, toBounds.Right) + branchLaneSpacing + routeOffset;
 
-            if (laneXCandidate < _branchLaneSpacing) {
-                laneXCandidate = Math.Max(fromBounds.Right, toBounds.Right) + _branchLaneSpacing + routeOffset;
-            } else if (laneXCandidate > page.Width - _branchLaneSpacing) {
-                laneXCandidate = Math.Min(fromBounds.Left, toBounds.Left) - _branchLaneSpacing - routeOffset;
+            if (laneXCandidate < branchLaneSpacing) {
+                laneXCandidate = Math.Max(fromBounds.Right, toBounds.Right) + branchLaneSpacing + routeOffset;
+            } else if (laneXCandidate > page.Width - branchLaneSpacing) {
+                laneXCandidate = Math.Min(fromBounds.Left, toBounds.Left) - branchLaneSpacing - routeOffset;
             }
 
             connector.RouteThrough(
@@ -593,6 +596,24 @@ namespace OfficeIMO.Visio.Diagrams {
             shape.FillColor = fill;
             shape.LineColor = stroke;
             shape.LineWeight = _theme.LineWeight;
+        }
+
+        private static string GetNodeStencilId(VisioFlowchartNodeKind kind) {
+            switch (kind) {
+                case VisioFlowchartNodeKind.Decision:
+                    return "flow.decision";
+                case VisioFlowchartNodeKind.Data:
+                    return "flow.data";
+                case VisioFlowchartNodeKind.OffPageReference:
+                    return "flow.off-page-reference";
+                case VisioFlowchartNodeKind.Continuation:
+                    return "flow.continuation";
+                case VisioFlowchartNodeKind.Start:
+                case VisioFlowchartNodeKind.End:
+                    return "flow.start-end";
+                default:
+                    return "flow.process";
+            }
         }
 
         private static void ResolveSides(VisioShape from, VisioShape to, out VisioSide fromSide, out VisioSide toSide) {

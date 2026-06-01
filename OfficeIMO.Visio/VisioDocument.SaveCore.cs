@@ -240,7 +240,8 @@ namespace OfficeIMO.Visio {
                         if (master.RawMasterContentXml != null) {
                             using Stream stream = masterPart.GetStream(FileMode.Create, FileAccess.Write);
                             using StreamWriter streamWriter = new(stream, new UTF8Encoding(false));
-                            streamWriter.Write(master.RawMasterContentXml.Declaration + Environment.NewLine + master.RawMasterContentXml.ToString(SaveOptions.DisableFormatting));
+                            XDocument rawMasterContent = MergeRawMasterMetadata(master.RawMasterContentXml, master);
+                            streamWriter.Write(rawMasterContent.Declaration + Environment.NewLine + rawMasterContent.ToString(SaveOptions.DisableFormatting));
                             WriteRawMasterRelationships(package, masterPart, master, entry.PartNumber);
                             continue;
                         }
@@ -265,10 +266,10 @@ namespace OfficeIMO.Visio {
                             writer.WriteAttributeString("Name", masterShapeName);
                             writer.WriteAttributeString("NameU", master.NameU);
                             writer.WriteAttributeString("Type", "Shape");
-                            writer.WriteAttributeString("LineStyle", "0");
-                            writer.WriteAttributeString("FillStyle", "0");
-                            writer.WriteAttributeString("TextStyle", "0");
                             if (masterDefinition?.GeometryKind == BuiltinGeometryKind.DynamicConnector) {
+                                writer.WriteAttributeString("LineStyle", "0");
+                                writer.WriteAttributeString("FillStyle", "0");
+                                writer.WriteAttributeString("TextStyle", "0");
                                 WriteXForm1D(writer, ns, 0, 0, 1, 0);
                                 WriteCell(writer, ns, "OneD", 1);
                                 WriteCell(writer, ns, "ObjType", 2);
@@ -286,6 +287,9 @@ namespace OfficeIMO.Visio {
                                 WriteCell(writer, ns, "LayerMember", 0);
                                 WriteConnectorControlSection(writer, ns, masterHeight);
                             } else {
+                                writer.WriteAttributeString("LineStyle", "1");
+                                writer.WriteAttributeString("FillStyle", "1");
+                                writer.WriteAttributeString("TextStyle", "1");
                                 WriteXForm(writer, ns, s.PinX, s.PinY, masterWidth, masterHeight, masterLocPinX, masterLocPinY, s.Angle);
                                 WriteCell(writer, ns, "ObjType", 1);
                                 if (masterDefinition?.LockAspect == true) {
@@ -710,6 +714,9 @@ namespace OfficeIMO.Visio {
             writer.WriteAttributeString("NameU", shape.NameU ?? effectiveMaster?.NameU ?? shapeName);
 
             bool isRawMasterBackedShape = effectiveMaster?.RawMasterContentXml != null;
+            bool useLocalGeometryForGeneratedStencil = effectiveMaster != null &&
+                                                       effectiveMaster.RawMasterContentXml == null &&
+                                                       VisioStencilMetadata.HasStencilMetadata(shape);
             bool isRawMasterGroup = isRawMasterBackedShape &&
                                     string.Equals(effectiveMaster!.Shape.Type, "Group", StringComparison.OrdinalIgnoreCase);
             bool isGroup = string.Equals(shape.Type, "Group", StringComparison.OrdinalIgnoreCase) ||
@@ -724,14 +731,14 @@ namespace OfficeIMO.Visio {
 
             if (effectiveMaster != null) {
                 writer.WriteAttributeString("Master", GetPackageMasterId(packageMasters, effectiveMaster));
-                if (shape.MasterShapeId != null || effectiveMaster.RawMasterContentXml == null) {
-                    writer.WriteAttributeString("MasterShape", shape.MasterShapeId ?? effectiveMaster.Shape.Id);
+                if (!useLocalGeometryForGeneratedStencil && shape.MasterShapeId != null) {
+                    writer.WriteAttributeString("MasterShape", shape.MasterShapeId);
                 }
             }
 
             KeyValuePair<string, string>? originalIdEntry = GetOriginalIdEntry(persistedIds, shape.Id);
             bool wroteChildShapesInBody = false;
-            if (effectiveMaster != null && (isRawMasterBackedShape || !isGroup)) {
+            if (effectiveMaster != null && !useLocalGeometryForGeneratedStencil && (isRawMasterBackedShape || !isGroup)) {
                 WriteMasterBackedShapeBody(writer, ns, shape, effectiveMaster, originalIdEntry, persistedIds, layerIndexes);
                 wroteChildShapesInBody = isRawMasterBackedShape;
             } else if (shape.PreservedShapeChildren.Count > 0) {
@@ -2965,6 +2972,12 @@ namespace OfficeIMO.Visio {
             }
             bool hasPreservedLayerSection = master.PreservedPageSheetSections.Any(section =>
                 string.Equals(section.Attribute("N")?.Value, "Layer", StringComparison.OrdinalIgnoreCase));
+            bool hasPreservedUserSection = master.PreservedPageSheetSections.Any(section =>
+                string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase));
+            IReadOnlyList<VisioUserCell> masterUserCells = CreateMasterPageSheetUserCells(master);
+            if (!hasPreservedUserSection) {
+                WriteUserSection(writer, ns, masterUserCells.ToList());
+            }
             if (definition?.AddConnectorLayer == true && !hasPreservedLayerSection) {
                 writer.WriteStartElement("Section", ns);
                 writer.WriteAttributeString("N", "Layer");
@@ -2984,8 +2997,110 @@ namespace OfficeIMO.Visio {
                 writer.WriteEndElement();
                 writer.WriteEndElement();
             }
-            WritePreservedElements(writer, master.PreservedPageSheetSections);
+            WriteMasterPageSheetSections(writer, ns, master.PreservedPageSheetSections, masterUserCells);
             writer.WriteEndElement();
+        }
+
+        private static IReadOnlyList<VisioUserCell> CreateMasterPageSheetUserCells(VisioMaster master) {
+            List<VisioUserCell> userCells = new();
+            if (master.IsPackageBacked) {
+                userCells.Add(new VisioUserCell("OfficeIMO.PackageBackedMaster", "1") {
+                    Prompt = "OfficeIMO persisted package-backed stencil provenance"
+                });
+            }
+
+            userCells.AddRange(VisioStencilMetadata.CreateMasterUserCells(master));
+            return userCells.AsReadOnly();
+        }
+
+        private static XDocument MergeRawMasterMetadata(XDocument rawMasterContentXml, VisioMaster master) {
+            XDocument merged = new(rawMasterContentXml);
+            IReadOnlyList<VisioUserCell> masterUserCells = CreateMasterPageSheetUserCells(master);
+            if (masterUserCells.Count == 0 || merged.Root == null) {
+                return merged;
+            }
+
+            XNamespace ns = merged.Root.Name.Namespace;
+            XElement? pageSheet = merged.Root.Elements()
+                .FirstOrDefault(element => string.Equals(element.Name.LocalName, "PageSheet", StringComparison.OrdinalIgnoreCase));
+            if (pageSheet == null) {
+                pageSheet = new XElement(ns + "PageSheet");
+                merged.Root.Add(pageSheet);
+            }
+
+            XElement? userSection = pageSheet.Elements()
+                .FirstOrDefault(element =>
+                    string.Equals(element.Name.LocalName, "Section", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals((string?)element.Attribute("N"), "User", StringComparison.OrdinalIgnoreCase));
+            if (userSection == null) {
+                userSection = new XElement(ns + "Section", new XAttribute("N", "User"));
+                pageSheet.Add(userSection);
+            }
+
+            HashSet<string> existingRows = new(
+                userSection.Elements()
+                    .Where(element => string.Equals(element.Name.LocalName, "Row", StringComparison.OrdinalIgnoreCase))
+                    .Select(row => row.Attribute("N")?.Value)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))!,
+                StringComparer.OrdinalIgnoreCase);
+            foreach (VisioUserCell userCell in masterUserCells) {
+                if (existingRows.Add(userCell.Name)) {
+                    userSection.Add(CreateUserRowElement(ns.NamespaceName, userCell));
+                }
+            }
+
+            return merged;
+        }
+
+        private static void WriteMasterPageSheetSections(XmlWriter writer, string ns, IEnumerable<XElement> sections, IReadOnlyList<VisioUserCell> masterUserCells) {
+            foreach (XElement section in sections) {
+                if (!string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase) ||
+                    masterUserCells.Count == 0) {
+                    section.WriteTo(writer);
+                    continue;
+                }
+
+                XElement mergedSection = new(section);
+                HashSet<string> existingRows = new(
+                    mergedSection.Elements(XName.Get("Row", ns))
+                        .Select(row => row.Attribute("N")?.Value)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))!,
+                    StringComparer.OrdinalIgnoreCase);
+                foreach (VisioUserCell userCell in masterUserCells) {
+                    if (existingRows.Add(userCell.Name)) {
+                        mergedSection.Add(CreateUserRowElement(ns, userCell));
+                    }
+                }
+
+                mergedSection.WriteTo(writer);
+            }
+        }
+
+        private static XElement CreateUserRowElement(string ns, VisioUserCell userCell) {
+            XNamespace xns = ns;
+            XElement row = new(xns + "Row", new XAttribute("N", userCell.Name));
+            XElement value = new(xns + "Cell",
+                new XAttribute("N", "Value"),
+                new XAttribute("V", userCell.Value ?? string.Empty));
+            if (!string.IsNullOrEmpty(userCell.Unit)) {
+                value.Add(new XAttribute("U", userCell.Unit));
+            }
+            if (!string.IsNullOrEmpty(userCell.Formula)) {
+                value.Add(new XAttribute("F", userCell.Formula));
+            }
+            row.Add(value);
+
+            if (userCell.Prompt != null || !string.IsNullOrEmpty(userCell.PromptFormula)) {
+                XElement prompt = new(xns + "Cell",
+                    new XAttribute("N", "Prompt"),
+                    new XAttribute("V", userCell.Prompt ?? string.Empty));
+                if (!string.IsNullOrEmpty(userCell.PromptFormula)) {
+                    prompt.Add(new XAttribute("F", userCell.PromptFormula));
+                }
+                row.Add(prompt);
+            }
+
+            return row;
         }
 
         private static void WriteMasterUserSection(XmlWriter writer, string ns) {

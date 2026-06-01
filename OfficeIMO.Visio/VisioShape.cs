@@ -298,6 +298,12 @@ namespace OfficeIMO.Visio {
             string.Equals(GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.BackgroundSurfaceKind, StringComparison.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Gets whether this shape is marked as a generated diagram adornment such as a title, legend item, or zone caption.
+        /// </summary>
+        public bool IsDiagramAdornment =>
+            string.Equals(GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.DiagramAdornmentKind, StringComparison.OrdinalIgnoreCase);
+
+        /// <summary>
         /// Gets the target shape identifier for an OfficeIMO callout, if available.
         /// </summary>
         public string? CalloutTargetId => GetUserCellValue(VisioSemanticUserCells.CalloutTargetId);

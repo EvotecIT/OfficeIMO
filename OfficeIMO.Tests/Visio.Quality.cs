@@ -83,6 +83,99 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void VisualQualityAnalyzerIgnoresGeneratedBackgroundCaptionAdornments() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("BackgroundCaption", 7, 5);
+            VisioShape background = new("zone", 3, 2, 4, 2, string.Empty) { NameU = "Rectangle" };
+            page.Shapes.Add(background);
+            background.SetUserCell("OfficeIMO.Kind", "BackgroundSurface", "STR");
+            VisioShape caption = page.AddTextBox("zone-label", 3, 2.85, 3.6, 0.3, "Zone");
+            VisioSemanticUserCells.MarkGeneratedAdornment(caption);
+            VisioShape source = page.AddRectangle(0.45, 2.85, 0.6, 0.4, "Source");
+            VisioShape target = page.AddRectangle(5.55, 2.85, 0.6, 0.4, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality();
+
+            Assert.True(caption.IsDiagramAdornment);
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ShapeOverlap" && (issue.ShapeId == background.Id || issue.OtherShapeId == background.Id));
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == caption.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerReportsConnectorCrossingUserTextBoxes() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("UserTextCrossing", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape note = page.AddTextBox("user-note", 3, 2, 1.1, 0.4, "User note");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorLabels = false
+            });
+
+            Assert.True(note.IsDiagramAdornment);
+            Assert.False(VisioSemanticUserCells.IsGeneratedDiagramAdornment(note));
+            Assert.Contains(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == note.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerReportsConnectorCrossingNonContainingContainers() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("ContainerCrossing", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape container = page.AddRectangle(3, 2, 1.1, 0.7, "Container");
+            container.SetUserCell("msvStructureType", "Container", "STR");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorLabels = false
+            });
+
+            Assert.True(container.IsContainer);
+            Assert.Contains(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == container.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerReportsConnectorLabelOverlappingUserTextBoxes() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("UserTextLabel", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape note = page.AddTextBox("approval-note", 3, 2, 1.1, 0.4, "User note");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.4, height: 0.45);
+            connector.Label = "approval";
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false
+            });
+
+            Assert.Contains(issues, issue => issue.Kind == "ConnectorLabelOverlapsShape" && issue.ShapeId == note.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerIgnoresCalloutsPlacedOnBackgroundSurfaces() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("BackgroundCallout", 7, 5);
+            VisioShape background = new("lane", 3, 2.5, 5, 2.5, string.Empty) { NameU = "Rectangle" };
+            page.Shapes.Add(background);
+            background.SetUserCell("OfficeIMO.Kind", "BackgroundSurface", "STR");
+            VisioShape target = page.AddRectangle(3, 2.4, 0.8, 0.5, "Target");
+            VisioShape callout = page.AddCallout(target, "target-note", "Evidence note", VisioSide.Bottom);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality();
+
+            Assert.True(callout.IsCallout);
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ShapeOverlap" && (issue.ShapeId == background.Id || issue.OtherShapeId == background.Id));
+        }
+
+        [Fact]
         public void VisualQualityAnalyzerReportsConnectorLabelOverlaps() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("LabelLabels", 7, 5);
@@ -184,11 +277,76 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
 
-            Assert.Equal(8, results.Count);
+            Assert.Equal(14, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
             Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
             Assert.All(results, result => Assert.Empty(result.QualityIssues.Select(issue => issue.ToString())));
+
+            VisioGalleryResult inventory = results.Single(result => result.Name == "CI/CD Inventory Graph");
+            VisioDocument loaded = VisioDocument.Load(inventory.FilePath);
+            VisioPage page = Assert.Single(loaded.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "delivery-cluster" && shape.GetShapeDataValue("Owner") == "DevEx");
+            Assert.Contains(page.Shapes, shape => shape.Id == "runtime-cluster" && shape.GetShapeDataValue("Owner") == "SRE");
+            Assert.Contains(page.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(page.Connectors, connector => connector.Id == "agent-data-registry" && connector.GetShapeDataValue("Protocol") == "OCI");
+            VisioStencilProfile profile = loaded.CreateStencilProfile();
+            Assert.Contains("Containers and Kubernetes", profile.StencilCatalogs);
+            Assert.Contains("Cloud", profile.StencilCatalogs);
+            Assert.Contains("Infrastructure", profile.StencilCatalogs);
+
+            VisioGalleryResult identity = results.Single(result => result.Name == "Identity Authentication Graph");
+            VisioDocument loadedIdentity = VisioDocument.Load(identity.FilePath);
+            VisioPage identityPage = Assert.Single(loadedIdentity.Pages);
+            Assert.Contains(identityPage.Shapes, shape => shape.Id == "trust-boundary" && shape.GetShapeDataValue("Owner") == "Identity Security");
+            Assert.Contains(identityPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(identityPage.Connectors, connector => connector.Id == "idp-data-app" && connector.GetShapeDataValue("Lifetime") == "60 minutes");
+            VisioStencilProfile identityProfile = loadedIdentity.CreateStencilProfile();
+            Assert.Contains("Security and Identity", identityProfile.StencilCatalogs);
+            Assert.Contains("Collaboration and Business Process", identityProfile.StencilCatalogs);
+
+            VisioGalleryResult kubernetes = results.Single(result => result.Name == "Kubernetes Service Mesh Graph");
+            VisioDocument loadedKubernetes = VisioDocument.Load(kubernetes.FilePath);
+            VisioPage kubernetesPage = Assert.Single(loadedKubernetes.Pages);
+            Assert.Contains(kubernetesPage.Shapes, shape => shape.Id == "mesh-cluster" && shape.GetShapeDataValue("Owner") == "Platform Mesh");
+            Assert.Contains(kubernetesPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(kubernetesPage.Connectors, connector => connector.Id == "api-data-stream" && connector.GetShapeDataValue("Format") == "CloudEvents");
+            VisioStencilProfile kubernetesProfile = loadedKubernetes.CreateStencilProfile();
+            Assert.Contains("Containers and Kubernetes", kubernetesProfile.StencilCatalogs);
+            Assert.Contains("Data and Platform", kubernetesProfile.StencilCatalogs);
+
+            VisioGalleryResult application = results.Single(result => result.Name == "Application Dependency Graph");
+            VisioDocument loadedApplication = VisioDocument.Load(application.FilePath);
+            VisioPage applicationPage = Assert.Single(loadedApplication.Pages);
+            Assert.Contains(applicationPage.Shapes, shape => shape.Id == "runtime-cluster" && shape.GetShapeDataValue("Owner") == "Digital Platform");
+            Assert.Contains(applicationPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(applicationPage.Connectors, connector => connector.Id == "api-data-sql" && connector.GetShapeDataValue("Protocol") == "SQL");
+            VisioStencilProfile applicationProfile = loadedApplication.CreateStencilProfile();
+            Assert.Contains("Cloud", applicationProfile.StencilCatalogs);
+            Assert.Contains("Data and Platform", applicationProfile.StencilCatalogs);
+            Assert.Contains("Security and Identity", applicationProfile.StencilCatalogs);
+
+            VisioGalleryResult incident = results.Single(result => result.Name == "Incident Runbook Sequence");
+            VisioDocument loadedIncident = VisioDocument.Load(incident.FilePath);
+            VisioPage incidentPage = Assert.Single(loadedIncident.Pages);
+            Assert.Contains(incidentPage.Shapes, shape => shape.Id == "recovery-fragment" && shape.GetUserCellValue("OfficeIMO.Kind") == "SequenceFragment");
+            Assert.Contains(incidentPage.Shapes, shape => shape.Id == "runbook-note" && shape.GetUserCellValue("OfficeIMO.SequenceParticipantId") == "runbook");
+            Assert.Contains(incidentPage.Shapes, shape => shape.Id == "api-active" && shape.GetUserCellValue("OfficeIMO.SequenceParticipantId") == "api");
+            Assert.Contains(incidentPage.Connectors, connector => connector.Id == "record" && connector.Waypoints.Count == 2);
+            VisioStencilProfile incidentProfile = loadedIncident.CreateStencilProfile();
+            Assert.Contains("Sequence Diagram", incidentProfile.StencilCatalogs);
+            Assert.Contains("SequenceActivation", incidentProfile.SemanticKinds);
+            Assert.Contains("SequenceFragment", incidentProfile.SemanticKinds);
+
+            VisioGalleryResult networkSegmentation = results.Single(result => result.Name == "Network Segmentation Diagram");
+            VisioDocument loadedNetworkSegmentation = VisioDocument.Load(networkSegmentation.FilePath);
+            VisioPage networkSegmentationPage = Assert.Single(loadedNetworkSegmentation.Pages);
+            Assert.Contains(networkSegmentationPage.Shapes, shape => shape.Id == "perimeter" && shape.GetShapeDataValue("Owner") == "Network Security");
+            Assert.Contains(networkSegmentationPage.Shapes, shape => shape.Id == "db" && shape.GetShapeDataValue("Classification") == "Confidential");
+            Assert.Contains(networkSegmentationPage.Connectors, connector => connector.Id == "app-db" && connector.GetShapeDataValue("Port") == "1433");
+            VisioStencilProfile networkSegmentationProfile = loadedNetworkSegmentation.CreateStencilProfile();
+            Assert.Contains("Network", networkSegmentationProfile.StencilCatalogs);
+            Assert.Contains(networkSegmentationProfile.Usages, usage => usage.StencilId == "net.firewall" && usage.Count == 1);
         }
 
         [Fact]

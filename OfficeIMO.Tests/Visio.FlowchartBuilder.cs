@@ -24,6 +24,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "start", "consult", "agreement", "close" }, page.Shapes.Select(shape => shape.Id).ToArray());
             Assert.Equal(new[] { "Ellipse", "Process", "Decision", "Ellipse" }, page.Shapes.Select(shape => shape.NameU).ToArray());
             Assert.All(page.Shapes, shape => Assert.Null(shape.Master));
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(4, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Flowchart" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "flow.start-end" && usage.Count == 2);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "flow.process" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "flow.decision" && usage.Count == 1);
             Assert.Equal(4, page.Connectors.Count);
             Assert.Contains(page.Connectors, connector => connector.Label == "No");
             Assert.All(page.Connectors, connector => Assert.Equal(EndArrow.Triangle, connector.EndArrow));
@@ -56,6 +62,9 @@ namespace OfficeIMO.Tests {
             Assert.True(page.Shapes[1].PinX < page.Shapes[4].PinX);
             Assert.Equal("Off-page reference", page.Shapes[2].NameU);
             Assert.Equal("Circle", page.Shapes[3].NameU);
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "flow.off-page-reference" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "flow.continuation" && usage.Count == 1);
             Assert.DoesNotContain(page.Connectors, connector => connector.From.Id == "jump" && connector.To.Id == "resume");
         }
 
@@ -185,6 +194,26 @@ namespace OfficeIMO.Tests {
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void FlowchartBuilderKeepsCalloutPinsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .Flowchart("Metric Flow", flow => flow
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Start("start", "Start")
+                    .Step("review", "Review")
+                    .Callout("review", "review-note", "Metric note", 8, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width, 6);
         }
 
         [Fact]

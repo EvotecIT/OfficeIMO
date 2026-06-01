@@ -71,6 +71,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeDataValueQueriesMatchLegacyDataDictionaryValues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Legacy Data");
+            VisioShape web = page.AddRectangle(2, 5, 1, 1, "Web");
+            VisioShape api = page.AddRectangle(4, 5, 1, 1, "API");
+            web.Data["Owner"] = "Ops";
+            api.SetShapeData("Owner", "Platform");
+
+            Assert.Same(web, Assert.Single(page.ShapesWithData("Owner", "Ops")));
+            Assert.Same(web, Assert.Single(page.ShapesWithData("Owner", value => string.Equals(value, "Ops", StringComparison.OrdinalIgnoreCase))));
+            Assert.Same(web, page.SelectWithData("Owner", "ops").Single());
+        }
+
+        [Fact]
         public void ConnectorQueriesFindNeighborsAndSupportBulkStyling() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Connectors");
@@ -97,6 +111,102 @@ namespace OfficeIMO.Tests {
             Assert.Equal(EndArrow.Triangle, second.EndArrow);
             Assert.Equal("next", second.Label);
             Assert.Equal(Color.Black, first.LineColor);
+        }
+
+        [Fact]
+        public void GeometryQueriesSelectIntersectingAndContainedShapes() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Geometry");
+            VisioShape zone = page.AddRectangle(5, 4, 6, 4, "Zone");
+            VisioShape inside = page.AddRectangle(4, 4, 1, 1, "Inside");
+            VisioShape edge = page.AddRectangle(7.4, 4, 1, 1, "Edge");
+            VisioShape outside = page.AddRectangle(9.5, 4, 1, 1, "Outside");
+            VisioShape overlap = page.AddRectangle(2.5, 4, 1.4, 1, "Overlap");
+
+            Assert.Equal(new[] { "Edge", "Inside" }, page.ShapesContainedIn(zone).Select(shape => shape.Text).OrderBy(text => text).ToArray());
+            Assert.Equal(new[] { "Edge", "Inside", "Overlap" }, page.ShapesIntersecting(zone).Select(shape => shape.Text).OrderBy(text => text).ToArray());
+            Assert.Equal(new[] { "Edge", "Inside", "Zone" }, page.ShapesContainedIn(new OfficeIMO.Visio.VisioShapeBounds(1.9, 1.9, 8.1, 6.1)).Select(shape => shape.Text).OrderBy(text => text).ToArray());
+
+            page.SelectContainedIn(zone)
+                .ShapeData("Zone", "Trusted")
+                .Fill(Color.LightGreen);
+
+            Assert.Equal("Trusted", inside.GetShapeDataValue("Zone"));
+            Assert.Equal("Trusted", edge.GetShapeDataValue("Zone"));
+            Assert.Null(overlap.GetShapeDataValue("Zone"));
+            Assert.Equal(Color.LightGreen, inside.FillColor);
+            Assert.Equal(Color.White, outside.FillColor);
+        }
+
+        [Fact]
+        public void GeometryQueriesResolveGroupedChildBoundsInPageCoordinates() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Grouped Geometry");
+            VisioShape group = new("group") {
+                Type = "Group",
+                PinX = 5,
+                PinY = 4,
+                Width = 4,
+                Height = 3,
+                LocPinX = 2,
+                LocPinY = 1.5
+            };
+            VisioShape child = new("child", 1, 1, 1, 1, "Child");
+            group.Children.Add(child);
+            page.Shapes.Add(group);
+
+            OfficeIMO.Visio.VisioShapeBounds pageBounds = new(3.25, 2.75, 4.75, 4.25);
+            OfficeIMO.Visio.VisioShapeBounds localBounds = new(0.5, 0.5, 1.5, 1.5);
+
+            Assert.Contains(child, page.ShapesIntersecting(pageBounds));
+            Assert.Contains(child, page.ShapesContainedIn(pageBounds));
+            Assert.DoesNotContain(child, page.ShapesIntersecting(localBounds));
+        }
+
+        [Fact]
+        public void ShapeDataPredicateQueriesFindMatchingValues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Predicates");
+            VisioShape web = page.AddRectangle(2, 5, 1, 1, "Web");
+            VisioShape api = page.AddRectangle(4, 5, 1, 1, "API");
+            VisioShape database = page.AddRectangle(6, 5, 1, 1, "Database");
+            web.SetShapeData("Risk", "2");
+            api.SetShapeData("Risk", "4");
+            database.SetShapeData("Risk", "5");
+
+            VisioShapeSelection highRisk = page.SelectWithShapeData("Risk", value => int.TryParse(value, out int risk) && risk >= 4)
+                .Stroke(Color.Red, 0.025);
+
+            Assert.Equal(new[] { "API", "Database" }, highRisk.Select(shape => shape.Text).OrderBy(text => text).ToArray());
+            Assert.Equal(Color.Black, web.LineColor);
+            Assert.Equal(Color.Red, api.LineColor);
+            Assert.Equal(Color.Red, database.LineColor);
+        }
+
+        [Fact]
+        public void ConnectedComponentAndPathQueriesSupportGraphEditing() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Path");
+            VisioShape source = page.AddRectangle(1, 4, 1, 1, "Source");
+            VisioShape gateway = page.AddRectangle(3, 4, 1, 1, "Gateway");
+            VisioShape api = page.AddRectangle(5, 4, 1, 1, "API");
+            VisioShape database = page.AddRectangle(7, 4, 1, 1, "Database");
+            VisioShape isolated = page.AddRectangle(7, 1, 1, 1, "Isolated");
+            page.AddConnector(source, gateway);
+            page.AddConnector(gateway, api);
+            page.AddConnector(api, database);
+
+            Assert.Equal(new[] { "API", "Database", "Gateway", "Source" }, page.ConnectedComponent(source).Select(shape => shape.Text).OrderBy(text => text).ToArray());
+            Assert.Equal(Array.Empty<string>(), page.ConnectedComponent(isolated, includeStart: false).Select(shape => shape.Id).ToArray());
+            Assert.Equal(new[] { "Source", "Gateway", "API", "Database" }, page.PathBetween(source, database).Select(shape => shape.Text).ToArray());
+            Assert.Equal(new[] { "Gateway", "API" }, page.PathBetween(source, database, includeEndpoints: false).Select(shape => shape.Text).ToArray());
+            Assert.Empty(page.PathBetween(source, isolated));
+
+            page.SelectConnectedComponent(source)
+                .ShapeData("Component", "Payments");
+
+            Assert.Equal("Payments", database.GetShapeDataValue("Component"));
+            Assert.Null(isolated.GetShapeDataValue("Component"));
         }
 
         [Fact]

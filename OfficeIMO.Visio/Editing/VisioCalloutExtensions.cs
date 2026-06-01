@@ -25,9 +25,10 @@ namespace OfficeIMO.Visio {
             }
 
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
+            VisioCalloutOptions pageOptions = ConvertOptionsToPageUnits(effectiveOptions, page.DefaultUnit);
             EnsureTargetBelongsToPage(page, target);
-            VisioShape callout = page.AddRectangle(pinX, pinY, effectiveOptions.Width, effectiveOptions.Height, text);
-            ConfigureCallout(page, target, callout, effectiveOptions);
+            VisioShape callout = page.AddRectangle(pinX, pinY, effectiveOptions.Width, effectiveOptions.Height, text, page.DefaultUnit);
+            ConfigureCallout(page, target, callout, pageOptions);
             return callout;
         }
 
@@ -50,8 +51,9 @@ namespace OfficeIMO.Visio {
             }
 
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
-            CalculatePin(target, effectiveOptions, placement, gap, out double pinX, out double pinY);
-            return AddCallout(page, target, text, pinX, pinY, effectiveOptions);
+            VisioCalloutOptions pageOptions = ConvertOptionsToPageUnits(effectiveOptions, page.DefaultUnit);
+            CalculatePin(target, pageOptions, placement, gap.ToInches(page.DefaultUnit), out double pinX, out double pinY);
+            return AddCalloutInPageCoordinates(page, target, text, pinX, pinY, pageOptions);
         }
 
         /// <summary>
@@ -82,13 +84,14 @@ namespace OfficeIMO.Visio {
             }
 
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
+            VisioCalloutOptions pageOptions = ConvertOptionsToPageUnits(effectiveOptions, page.DefaultUnit);
             EnsureTargetBelongsToPage(page, target);
-            VisioShape callout = new VisioShape(id, pinX, pinY, effectiveOptions.Width, effectiveOptions.Height, text) {
+            VisioShape callout = new VisioShape(id, pinX.ToInches(page.DefaultUnit), pinY.ToInches(page.DefaultUnit), pageOptions.Width, pageOptions.Height, text) {
                 Name = "Callout",
                 NameU = "Rectangle"
             };
             page.Shapes.Add(callout);
-            ConfigureCallout(page, target, callout, effectiveOptions);
+            ConfigureCallout(page, target, callout, pageOptions);
             return callout;
         }
 
@@ -111,9 +114,34 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(target));
             }
 
+            if (string.IsNullOrWhiteSpace(id)) {
+                throw new ArgumentException("Callout id cannot be empty.", nameof(id));
+            }
+
             VisioCalloutOptions effectiveOptions = options ?? new VisioCalloutOptions();
-            CalculatePin(target, effectiveOptions, placement, gap, out double pinX, out double pinY);
-            return AddCallout(page, target, id, text, pinX, pinY, effectiveOptions);
+            VisioCalloutOptions pageOptions = ConvertOptionsToPageUnits(effectiveOptions, page.DefaultUnit);
+            CalculatePin(target, pageOptions, placement, gap.ToInches(page.DefaultUnit), out double pinX, out double pinY);
+            return AddCalloutInPageCoordinates(page, target, id, text, pinX, pinY, pageOptions);
+        }
+
+        private static VisioShape AddCalloutInPageCoordinates(VisioPage page, VisioShape target, string text, double pinX, double pinY, VisioCalloutOptions options) {
+            VisioShape callout = page.AddRectangle(pinX, pinY, options.Width, options.Height, text, VisioMeasurementUnit.Inches);
+            ConfigureCallout(page, target, callout, options);
+            return callout;
+        }
+
+        private static VisioShape AddCalloutInPageCoordinates(VisioPage page, VisioShape target, string id, string text, double pinX, double pinY, VisioCalloutOptions options) {
+            if (page.FindShapeById(id) != null || page.Connectors.Any(connector => string.Equals(connector.Id, id, StringComparison.OrdinalIgnoreCase))) {
+                throw new InvalidOperationException("A shape or connector with the callout id already exists on the page.");
+            }
+
+            VisioShape callout = new VisioShape(id, pinX, pinY, options.Width, options.Height, text) {
+                Name = "Callout",
+                NameU = "Rectangle"
+            };
+            page.Shapes.Add(callout);
+            ConfigureCallout(page, target, callout, options);
+            return callout;
         }
 
         private static void ConfigureCallout(VisioPage page, VisioShape target, VisioShape callout, VisioCalloutOptions options) {
@@ -180,6 +208,21 @@ namespace OfficeIMO.Visio {
             if (!page.AllShapes().Contains(target)) {
                 throw new InvalidOperationException("The target shape must belong to the page.");
             }
+        }
+
+        private static VisioCalloutOptions ConvertOptionsToPageUnits(VisioCalloutOptions options, VisioMeasurementUnit unit) {
+            return new VisioCalloutOptions {
+                Width = options.Width.ToInches(unit),
+                Height = options.Height.ToInches(unit),
+                LayerName = options.LayerName,
+                TargetSide = options.TargetSide,
+                CalloutSide = options.CalloutSide,
+                LeaderKind = options.LeaderKind,
+                RouteLeader = options.RouteLeader,
+                RouteOffset = options.RouteOffset.ToInches(unit),
+                ShapeStyle = options.ShapeStyle?.Clone(),
+                LeaderStyle = options.LeaderStyle?.Clone()
+            };
         }
 
         private static VisioSide ChooseSide(VisioShape target, VisioShape callout) {

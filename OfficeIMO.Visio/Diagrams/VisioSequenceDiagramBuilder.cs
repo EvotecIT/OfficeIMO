@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using OfficeIMO.Drawing;
+using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
@@ -10,6 +12,9 @@ namespace OfficeIMO.Visio.Diagrams {
     public sealed class VisioSequenceDiagramBuilder {
         private const string LifelineLayer = "Sequence Lifelines";
         private const string MessageLayer = "Sequence Messages";
+        private const string ActivationLayer = "Sequence Activations";
+        private const string FragmentLayer = "Sequence Fragments";
+        private const string NoteLayer = "Sequence Notes";
         private const string GuideLayer = "Sequence Guides";
 
         private sealed class ParticipantItem {
@@ -55,11 +60,202 @@ namespace OfficeIMO.Visio.Diagrams {
             public bool SelfMessage { get; }
         }
 
+        private sealed class NoteItem {
+            public NoteItem(string id, string participantId, string text, int rowIndex, VisioSide placement) {
+                Id = id;
+                ParticipantId = participantId;
+                Text = text;
+                RowIndex = rowIndex;
+                Placement = placement;
+            }
+
+            public string Id { get; }
+
+            public string ParticipantId { get; }
+
+            public string Text { get; }
+
+            public int RowIndex { get; }
+
+            public VisioSide Placement { get; }
+        }
+
+        private sealed class ActivationItem {
+            public ActivationItem(string id, string participantId, int startRowIndex, int endRowIndex) {
+                Id = id;
+                ParticipantId = participantId;
+                StartRowIndex = startRowIndex;
+                EndRowIndex = endRowIndex;
+            }
+
+            public string Id { get; }
+
+            public string ParticipantId { get; }
+
+            public int StartRowIndex { get; }
+
+            public int EndRowIndex { get; }
+        }
+
+        private sealed class FragmentItem {
+            public FragmentItem(string id, string text, int startRowIndex, int endRowIndex, IReadOnlyList<string> participantIds, string? parentFragmentId) {
+                Id = id;
+                Text = text;
+                StartRowIndex = startRowIndex;
+                EndRowIndex = endRowIndex;
+                ParticipantIds = participantIds;
+                ParentFragmentId = parentFragmentId;
+            }
+
+            public string Id { get; }
+
+            public string Text { get; }
+
+            public int StartRowIndex { get; }
+
+            public int EndRowIndex { get; }
+
+            public IReadOnlyList<string> ParticipantIds { get; }
+
+            public string? ParentFragmentId { get; }
+        }
+
+        private sealed class FragmentOperandItem {
+            public FragmentOperandItem(string id, string fragmentId, string text, int rowIndex, bool divider) {
+                Id = id;
+                FragmentId = fragmentId;
+                Text = text;
+                RowIndex = rowIndex;
+                Divider = divider;
+            }
+
+            public string Id { get; }
+
+            public string FragmentId { get; }
+
+            public string Text { get; }
+
+            public int RowIndex { get; }
+
+            public bool Divider { get; }
+        }
+
+        private readonly struct LayoutBounds {
+            public LayoutBounds(double left, double top, double right, double bottom) {
+                Left = left;
+                Top = top;
+                Right = right;
+                Bottom = bottom;
+            }
+
+            public double Left { get; }
+
+            public double Top { get; }
+
+            public double Right { get; }
+
+            public double Bottom { get; }
+
+            public static LayoutBounds FromCenter(double x, double y, double width, double height) {
+                double halfWidth = width / 2D;
+                double halfHeight = height / 2D;
+                return new LayoutBounds(x - halfWidth, y + halfHeight, x + halfWidth, y - halfHeight);
+            }
+
+            public LayoutBounds Inflate(double padding) =>
+                new(Left - padding, Top + padding, Right + padding, Bottom - padding);
+        }
+
+        private readonly struct NotePlacement {
+            public NotePlacement(double x, double y, VisioSide resolvedPlacement, LayoutBounds bounds) {
+                X = x;
+                Y = y;
+                ResolvedPlacement = resolvedPlacement;
+                Bounds = bounds;
+            }
+
+            public double X { get; }
+
+            public double Y { get; }
+
+            public VisioSide ResolvedPlacement { get; }
+
+            public LayoutBounds Bounds { get; }
+        }
+
+        private readonly struct MessageLabelPlacement {
+            public MessageLabelPlacement(double x, double y, double width, double height) {
+                X = x;
+                Y = y;
+                Width = width;
+                Height = height;
+            }
+
+            public double X { get; }
+
+            public double Y { get; }
+
+            public double Width { get; }
+
+            public double Height { get; }
+        }
+
+        private readonly struct FragmentLayout {
+            public FragmentLayout(double left, double right, double topY, double bottomY, double width, double height, double x, double y, double labelLeft, double labelWidth, double labelY, double firstParticipantX, int depth, int overlapLane) {
+                Left = left;
+                Right = right;
+                TopY = topY;
+                BottomY = bottomY;
+                Width = width;
+                Height = height;
+                X = x;
+                Y = y;
+                LabelLeft = labelLeft;
+                LabelWidth = labelWidth;
+                LabelY = labelY;
+                FirstParticipantX = firstParticipantX;
+                Depth = depth;
+                OverlapLane = overlapLane;
+            }
+
+            public double Left { get; }
+
+            public double Right { get; }
+
+            public double TopY { get; }
+
+            public double BottomY { get; }
+
+            public double Width { get; }
+
+            public double Height { get; }
+
+            public double X { get; }
+
+            public double Y { get; }
+
+            public double LabelLeft { get; }
+
+            public double LabelWidth { get; }
+
+            public double LabelY { get; }
+
+            public double FirstParticipantX { get; }
+
+            public int Depth { get; }
+
+            public int OverlapLane { get; }
+        }
+
         private readonly VisioDocument _document;
         private readonly string _pageName;
         private readonly List<ParticipantItem> _participants = new();
         private readonly Dictionary<string, ParticipantItem> _participantsById = new(StringComparer.Ordinal);
         private readonly List<MessageItem> _messages = new();
+        private readonly List<ActivationItem> _activations = new();
+        private readonly List<FragmentItem> _fragments = new();
+        private readonly List<FragmentOperandItem> _fragmentOperands = new();
+        private readonly List<NoteItem> _notes = new();
         private VisioStyleTheme _theme = VisioStyleTheme.Technical();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private double _pageWidth = 11;
@@ -75,6 +271,27 @@ namespace OfficeIMO.Visio.Diagrams {
         private double _messageSpacing = 0.62;
         private double _selfMessageWidth = 0.75;
         private double _selfMessageHeight = 0.36;
+        private const double SelfMessageLabelGap = 0.18D;
+        private const double SelfMessageLabelHeight = 0.3D;
+        private const double MessageLabelHeight = 0.28D;
+        private const double MessageLabelVerticalOffset = 0.16D;
+        private const double MessageLabelLifelinePadding = 0.14D;
+        private const double MessageLabelActivationPadding = 0.08D;
+        private const double ActivationWidth = 0.16D;
+        private const double ActivationMinimumHeight = 0.32D;
+        private const double FragmentHorizontalPadding = 0.28D;
+        private const double FragmentVerticalPadding = 0.22D;
+        private const double FragmentHeaderHeight = 0.3D;
+        private const double FragmentOperandLabelHeight = 0.24D;
+        private const double FragmentMinimumWidth = 1.2D;
+        private const double FragmentMinimumHeight = 0.72D;
+        private const double FragmentNestedHorizontalInset = 0.18D;
+        private const double FragmentNestedVerticalInset = 0.08D;
+        private const double NoteWidth = 1.85D;
+        private const double NoteHeight = 0.72D;
+        private const double NoteGap = 0.22D;
+        private const double NoteCollisionPadding = 0.08D;
+        private const double NoteVerticalCandidateStep = 0.26D;
         private string? _titleText;
         private string _titleId = "title";
         private double _titleHeight = 0.45;
@@ -179,6 +396,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
             }
 
+            EnsureGeneratedIdsAvailable(normalizedId, nameof(id), normalizedId + "-lifeline", normalizedId + "-lifeline-end");
             if (!Enum.IsDefined(typeof(VisioSequenceParticipantKind), kind)) {
                 throw new ArgumentOutOfRangeException(nameof(kind));
             }
@@ -229,6 +447,238 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
+        /// <summary>Adds an execution/focus activation bar on a known participant over a range of message rows.</summary>
+        public VisioSequenceDiagramBuilder Activation(string participantId, int startRowIndex, int endRowIndex, string? id = null) {
+            string normalizedParticipantId = RequireId(participantId, nameof(participantId), "Participant id");
+            EnsureKnownParticipant(normalizedParticipantId, nameof(participantId));
+            if (startRowIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(startRowIndex), "Start row index must be zero or greater.");
+            }
+
+            if (endRowIndex < startRowIndex) {
+                throw new ArgumentOutOfRangeException(nameof(endRowIndex), "End row index must be greater than or equal to the start row index.");
+            }
+
+            string activationId = NormalizeActivationId(id);
+            _activations.Add(new ActivationItem(activationId, normalizedParticipantId, startRowIndex, endRowIndex));
+            return this;
+        }
+
+        /// <summary>Adds a UML combined fragment spanning all known participants over a range of message rows.</summary>
+        public VisioSequenceDiagramBuilder Fragment(string text, int startRowIndex, int endRowIndex, string? id = null) =>
+            Fragment(text, startRowIndex, endRowIndex, Array.Empty<string>(), id);
+
+        /// <summary>Adds a UML combined fragment spanning selected participants over a range of message rows.</summary>
+        public VisioSequenceDiagramBuilder Fragment(string text, int startRowIndex, int endRowIndex, IEnumerable<string> participantIds, string? id = null) {
+            AddFragment(text, startRowIndex, endRowIndex, participantIds, id, parentFragmentId: null);
+            return this;
+        }
+
+        /// <summary>Adds a nested UML combined fragment inside an existing fragment.</summary>
+        public VisioSequenceDiagramBuilder NestedFragment(string parentFragmentId, string text, int startRowIndex, int endRowIndex, string? id = null) {
+            FragmentItem parent = RequireFragment(parentFragmentId);
+            AddFragment(text, startRowIndex, endRowIndex, parent.ParticipantIds, id, parent.Id);
+            return this;
+        }
+
+        /// <summary>Adds a nested UML combined fragment spanning selected participants inside an existing fragment.</summary>
+        public VisioSequenceDiagramBuilder NestedFragment(string parentFragmentId, string text, int startRowIndex, int endRowIndex, IEnumerable<string> participantIds, string? id = null) {
+            FragmentItem parent = RequireFragment(parentFragmentId);
+            AddFragment(text, startRowIndex, endRowIndex, participantIds, id, parent.Id);
+            return this;
+        }
+
+        private void AddFragment(string text, int startRowIndex, int endRowIndex, IEnumerable<string> participantIds, string? id, string? parentFragmentId) {
+            if (participantIds == null) {
+                throw new ArgumentNullException(nameof(participantIds));
+            }
+
+            if (startRowIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(startRowIndex), "Start row index must be zero or greater.");
+            }
+
+            if (endRowIndex < startRowIndex) {
+                throw new ArgumentOutOfRangeException(nameof(endRowIndex), "End row index must be greater than or equal to the start row index.");
+            }
+
+            string fragmentId = NormalizeFragmentId(id);
+            IReadOnlyList<string> normalizedParticipantIds = GetFragmentParticipantIds(participantIds);
+            if (!string.IsNullOrWhiteSpace(parentFragmentId)) {
+                FragmentItem parent = RequireFragment(parentFragmentId!);
+                if (startRowIndex < parent.StartRowIndex || endRowIndex > parent.EndRowIndex) {
+                    throw new ArgumentOutOfRangeException(nameof(startRowIndex), "Nested fragment row range must be inside the parent fragment row range.");
+                }
+
+                foreach (string participantId in normalizedParticipantIds) {
+                    if (!parent.ParticipantIds.Contains(participantId, StringComparer.Ordinal)) {
+                        throw new ArgumentException($"Nested fragment participant id '{participantId}' is outside parent fragment '{parent.Id}'.", nameof(participantIds));
+                    }
+                }
+            }
+
+            _fragments.Add(new FragmentItem(fragmentId, text ?? string.Empty, startRowIndex, endRowIndex, normalizedParticipantIds, parentFragmentId));
+        }
+
+        /// <summary>Adds a guard label inside an existing UML combined fragment.</summary>
+        public VisioSequenceDiagramBuilder FragmentGuard(string fragmentId, string text, int rowIndex, string? id = null) {
+            FragmentItem fragment = RequireFragment(fragmentId);
+            if (rowIndex < fragment.StartRowIndex || rowIndex > fragment.EndRowIndex) {
+                throw new ArgumentOutOfRangeException(nameof(rowIndex), "Guard row index must be inside the fragment row range.");
+            }
+
+            string operandId = NormalizeFragmentOperandId(fragment.Id, id, divider: false);
+            _fragmentOperands.Add(new FragmentOperandItem(operandId, fragment.Id, text ?? string.Empty, rowIndex, divider: false));
+            return this;
+        }
+
+        /// <summary>Adds an operand divider and guard label inside an existing UML combined fragment.</summary>
+        public VisioSequenceDiagramBuilder FragmentPartition(string fragmentId, string text, int beforeRowIndex, string? id = null) {
+            FragmentItem fragment = RequireFragment(fragmentId);
+            if (beforeRowIndex <= fragment.StartRowIndex || beforeRowIndex > fragment.EndRowIndex) {
+                throw new ArgumentOutOfRangeException(nameof(beforeRowIndex), "Partition row index must be inside the fragment and after the first fragment row.");
+            }
+
+            string operandId = NormalizeFragmentOperandId(fragment.Id, id, divider: true);
+            _fragmentOperands.Add(new FragmentOperandItem(operandId, fragment.Id, text ?? string.Empty, beforeRowIndex, divider: true));
+            return this;
+        }
+
+        /// <summary>Adds a semantic note near a participant at a message row.</summary>
+        public VisioSequenceDiagramBuilder Note(string participantId, string text, int rowIndex, VisioSide placement = VisioSide.Right, string? id = null) {
+            string normalizedParticipantId = RequireId(participantId, nameof(participantId), "Participant id");
+            EnsureKnownParticipant(normalizedParticipantId, nameof(participantId));
+            if (rowIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(rowIndex), "Row index must be zero or greater.");
+            }
+
+            if (placement != VisioSide.Left && placement != VisioSide.Right) {
+                throw new ArgumentOutOfRangeException(nameof(placement), "Sequence notes must be placed to the left or right of a participant.");
+            }
+
+            string noteId = NormalizeNoteId(id);
+            _notes.Add(new NoteItem(noteId, normalizedParticipantId, text ?? string.Empty, rowIndex, placement));
+            return this;
+        }
+
+        /// <summary>Imports participant records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Participants(IEnumerable<VisioSequenceParticipantRecord> participants) {
+            if (participants == null) {
+                throw new ArgumentNullException(nameof(participants));
+            }
+
+            foreach (VisioSequenceParticipantRecord participant in participants) {
+                Participant(participant.Id, participant.Text, participant.Kind);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports message records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Messages(IEnumerable<VisioSequenceMessageRecord> messages) {
+            if (messages == null) {
+                throw new ArgumentNullException(nameof(messages));
+            }
+
+            foreach (VisioSequenceMessageRecord message in messages) {
+                if (message.SelfMessage || string.Equals(message.FromId, message.ToId, StringComparison.Ordinal)) {
+                    SelfMessage(message.FromId, message.Label, message.Kind, message.Id);
+                } else {
+                    Message(message.FromId, message.ToId, message.Label, message.Kind, message.Id);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports activation records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Activations(IEnumerable<VisioSequenceActivationRecord> activations) {
+            if (activations == null) {
+                throw new ArgumentNullException(nameof(activations));
+            }
+
+            foreach (VisioSequenceActivationRecord activation in activations) {
+                Activation(activation.ParticipantId, activation.StartRowIndex, activation.EndRowIndex, activation.Id);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports combined-fragment records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Fragments(IEnumerable<VisioSequenceFragmentRecord> fragments) {
+            if (fragments == null) {
+                throw new ArgumentNullException(nameof(fragments));
+            }
+
+            foreach (VisioSequenceFragmentRecord fragment in fragments) {
+                if (string.IsNullOrWhiteSpace(fragment.ParentFragmentId)) {
+                    Fragment(fragment.Text, fragment.StartRowIndex, fragment.EndRowIndex, fragment.ParticipantIds, fragment.Id);
+                } else {
+                    NestedFragment(fragment.ParentFragmentId!, fragment.Text, fragment.StartRowIndex, fragment.EndRowIndex, fragment.ParticipantIds, fragment.Id);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports fragment guard and partition records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder FragmentOperands(IEnumerable<VisioSequenceFragmentOperandRecord> operands) {
+            if (operands == null) {
+                throw new ArgumentNullException(nameof(operands));
+            }
+
+            foreach (VisioSequenceFragmentOperandRecord operand in operands) {
+                if (operand.Divider) {
+                    FragmentPartition(operand.FragmentId, operand.Text, operand.RowIndex, operand.Id);
+                } else {
+                    FragmentGuard(operand.FragmentId, operand.Text, operand.RowIndex, operand.Id);
+                }
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports semantic note records into the sequence diagram.</summary>
+        public VisioSequenceDiagramBuilder Notes(IEnumerable<VisioSequenceNoteRecord> notes) {
+            if (notes == null) {
+                throw new ArgumentNullException(nameof(notes));
+            }
+
+            foreach (VisioSequenceNoteRecord note in notes) {
+                Note(note.ParticipantId, note.Text, note.RowIndex, note.Placement, note.Id);
+            }
+
+            return this;
+        }
+
+        /// <summary>Imports sequence participants, messages, activations, fragments, fragment operands, and notes from simple data records.</summary>
+        public VisioSequenceDiagramBuilder Import(
+            IEnumerable<VisioSequenceParticipantRecord> participants,
+            IEnumerable<VisioSequenceMessageRecord> messages,
+            IEnumerable<VisioSequenceActivationRecord>? activations = null,
+            IEnumerable<VisioSequenceFragmentRecord>? fragments = null,
+            IEnumerable<VisioSequenceFragmentOperandRecord>? fragmentOperands = null,
+            IEnumerable<VisioSequenceNoteRecord>? notes = null) {
+            Participants(participants);
+            Messages(messages);
+            if (activations != null) {
+                Activations(activations);
+            }
+
+            if (fragments != null) {
+                Fragments(fragments);
+            }
+
+            if (fragmentOperands != null) {
+                FragmentOperands(fragmentOperands);
+            }
+
+            if (notes != null) {
+                Notes(notes);
+            }
+
+            return this;
+        }
+
         internal VisioPage Build() {
             if (_built) {
                 throw new InvalidOperationException("This sequence diagram builder has already produced a page.");
@@ -241,7 +691,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double titleBand = string.IsNullOrWhiteSpace(_titleText) ? 0D : _titleHeight + _titleGap;
             double requiredWidth = _leftMargin + _rightMargin + (_participants.Count * _participantWidth) + ((_participants.Count - 1) * _participantGap);
-            double messageRows = Math.Max(1, _messages.Count);
+            double messageRows = Math.Max(1, GetRequiredRowCount());
             double requiredHeight = _topMargin + titleBand + _participantHeight + _messageGap + (messageRows * _messageSpacing) + _bottomMargin;
             double pageWidth = Math.Max(_pageWidth, requiredWidth);
             double pageHeight = Math.Max(_pageHeight, requiredHeight);
@@ -256,16 +706,49 @@ namespace OfficeIMO.Visio.Diagrams {
                 page.Grid(visible: false, snap: true);
                 page.AddLayer(LifelineLayer);
                 page.AddLayer(MessageLayer);
+                if (_activations.Count > 0) {
+                    page.AddLayer(ActivationLayer);
+                }
+
+                if (_fragments.Count > 0) {
+                    page.AddLayer(FragmentLayer);
+                }
+
+                if (_notes.Count > 0) {
+                    page.AddLayer(NoteLayer);
+                }
+
                 page.AddLayer(GuideLayer).Print = false;
 
                 AddTitle(page, pageWidth, pageHeight);
                 PlaceParticipants(page, pageWidth, headerY, lifelineBottomY);
+                AddActivations(page, firstMessageY);
                 AddMessages(page, firstMessageY);
+                AddFragments(page, firstMessageY);
+                AddNotes(page, firstMessageY);
+                EnsureNotesFitPage(page);
                 _document.RequestRecalcOnOpen();
                 return page;
             } finally {
                 _document.UseMastersByDefault = previousMastersByDefault;
             }
+        }
+
+        private int GetRequiredRowCount() {
+            int rows = _messages.Count;
+            foreach (ActivationItem activation in _activations) {
+                rows = Math.Max(rows, activation.EndRowIndex + 1);
+            }
+
+            foreach (NoteItem note in _notes) {
+                rows = Math.Max(rows, note.RowIndex + 1);
+            }
+
+            foreach (FragmentItem fragment in _fragments) {
+                rows = Math.Max(rows, fragment.EndRowIndex + 1);
+            }
+
+            return rows;
         }
 
         private void AddTitle(VisioPage page, double pageWidth, double pageHeight) {
@@ -275,9 +758,8 @@ namespace OfficeIMO.Visio.Diagrams {
 
             double y = pageHeight - _topMargin - (_titleHeight / 2D);
             VisioShape title = page.AddTextBox(_titleId, pageWidth / 2D, y, Math.Max(1D, pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
-            if (_theme.Emphasis.TextStyle != null) {
-                title.TextStyle = _theme.Emphasis.TextStyle.Clone();
-            }
+            title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
+            VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
 
         private void PlaceParticipants(VisioPage page, double pageWidth, double headerY, double lifelineBottomY) {
@@ -291,7 +773,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 participant.Header = CreateParticipantHeader(page, participant, x, headerY);
                 participant.BottomAnchor = CreateAnchor(page, participant.Id + "-lifeline-end", x, lifelineBottomY);
 
-                VisioConnector lifeline = page.AddConnector(participant.Header, participant.BottomAnchor, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
+                string lifelineId = CreateGeneratedConnectorId(page, participant.Id + "-lifeline");
+                VisioConnector lifeline = page.AddConnector(lifelineId, participant.Header, participant.BottomAnchor, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
                 lifeline.LineColor = _theme.Connector.LineColor;
                 lifeline.LineWeight = Math.Max(0.006D, _theme.Connector.LineWeight * 0.75D);
                 lifeline.LinePattern = 2;
@@ -301,14 +784,10 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioShape CreateParticipantHeader(VisioPage page, ParticipantItem participant, double x, double y) {
-            string masterNameU = GetParticipantMaster(participant.Kind);
-            VisioShape shape = new(participant.Id, x, y, _participantWidth, _participantHeight, participant.Text) {
-                NameU = masterNameU,
-            };
+            VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, GetParticipantStencilId(participant.Kind), participant.Id, x, y, _participantWidth, _participantHeight, participant.Text);
             GetParticipantStyle(participant.Kind).ApplyTo(shape);
             shape.SetUserCell(VisioSemanticUserCells.Kind, "SequenceParticipant", "STR", prompt: "OfficeIMO semantic kind");
             shape.SetUserCell("OfficeIMO.SequenceParticipantKind", participant.Kind.ToString(), "STR", prompt: "OfficeIMO sequence participant kind");
-            page.Shapes.Add(shape);
             page.AddToLayer(LifelineLayer, shape);
             return shape;
         }
@@ -320,31 +799,361 @@ namespace OfficeIMO.Visio.Diagrams {
                 if (message.SelfMessage) {
                     AddSelfMessage(page, message, y);
                 } else {
-                    AddParticipantMessage(page, message, y);
+                    AddParticipantMessage(page, message, y, firstMessageY);
                 }
             }
         }
 
-        private void AddParticipantMessage(VisioPage page, MessageItem message, double y) {
+        private void AddActivations(VisioPage page, double firstMessageY) {
+            foreach (ActivationItem activation in _activations) {
+                ParticipantItem participant = _participantsById[activation.ParticipantId];
+                double topY = firstMessageY - (activation.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.32D);
+                double bottomY = firstMessageY - (activation.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.32D);
+                double height = Math.Max(ActivationMinimumHeight, topY - bottomY);
+                double y = (topY + bottomY) / 2D;
+                VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, "seq.activation", activation.Id, participant.PinX, y, ActivationWidth, height, string.Empty);
+                _theme.Marker.ApplyTo(shape);
+                shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SequenceActivationKind, "STR", prompt: "OfficeIMO semantic kind");
+                shape.SetUserCell("OfficeIMO.SequenceParticipantId", activation.ParticipantId, "STR", prompt: "OfficeIMO sequence activation participant");
+                shape.SetUserCell("OfficeIMO.SequenceStartRowIndex", activation.StartRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence activation start row");
+                shape.SetUserCell("OfficeIMO.SequenceEndRowIndex", activation.EndRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence activation end row");
+                page.AddToLayer(ActivationLayer, shape);
+            }
+        }
+
+        private void AddFragments(VisioPage page, double firstMessageY) {
+            foreach (FragmentItem fragment in _fragments.OrderBy(GetFragmentDepth).ThenBy(item => item.StartRowIndex).ThenByDescending(item => item.EndRowIndex).ThenBy(item => item.Id, StringComparer.Ordinal)) {
+                FragmentLayout layout = CalculateFragmentLayout(page, fragment, firstMessageY);
+                VisioShape frame = page.AddStencilShape(VisioStencils.Sequence, "seq.fragment", fragment.Id, layout.X, layout.Y, layout.Width, layout.Height, string.Empty);
+                frame.FillColor = OfficeColor.Transparent;
+                frame.FillPattern = 0;
+                frame.LineColor = _theme.ControlConnector.LineColor;
+                frame.LinePattern = 2;
+                frame.LineWeight = Math.Max(0.012D, _theme.ControlConnector.LineWeight);
+                frame.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SequenceFragmentKind, "STR", prompt: "OfficeIMO semantic kind");
+                frame.SetUserCell("OfficeIMO.SequenceStartRowIndex", fragment.StartRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment start row");
+                frame.SetUserCell("OfficeIMO.SequenceEndRowIndex", fragment.EndRowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment end row");
+                frame.SetUserCell("OfficeIMO.SequenceParticipantIds", string.Join(";", fragment.ParticipantIds), "STR", prompt: "OfficeIMO sequence fragment participants");
+                if (!string.IsNullOrWhiteSpace(fragment.ParentFragmentId)) {
+                    frame.SetUserCell("OfficeIMO.SequenceParentFragmentId", fragment.ParentFragmentId, "STR", prompt: "OfficeIMO parent sequence fragment");
+                }
+
+                frame.SetUserCell("OfficeIMO.SequenceFragmentDepth", layout.Depth.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment nesting depth");
+                frame.SetUserCell("OfficeIMO.SequenceFragmentOverlapLane", layout.OverlapLane.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment overlap lane");
+                page.AddToLayer(FragmentLayer, frame);
+
+                VisioShape label = page.AddTextBox(GetFragmentLabelId(fragment.Id), layout.LabelLeft + (layout.LabelWidth / 2D), layout.LabelY, layout.LabelWidth, FragmentHeaderHeight, fragment.Text, _unit);
+                label.FillColor = _theme.Container.FillColor;
+                label.FillPattern = 1;
+                label.LineColor = OfficeColor.Transparent;
+                label.LinePattern = 0;
+                label.TextStyle = CreateFragmentLabelTextStyle();
+                VisioSemanticUserCells.MarkGeneratedAdornment(label);
+                label.SetUserCell("OfficeIMO.SequenceFragmentId", fragment.Id, "STR", prompt: "OfficeIMO sequence fragment label target");
+                page.AddToLayer(FragmentLayer, label);
+
+                foreach (FragmentOperandItem operand in _fragmentOperands.Where(item => string.Equals(item.FragmentId, fragment.Id, StringComparison.Ordinal)).OrderBy(item => item.RowIndex).ThenBy(item => item.Id, StringComparer.Ordinal)) {
+                    AddFragmentOperand(page, fragment, operand, layout, firstMessageY);
+                }
+            }
+        }
+
+        private FragmentLayout CalculateFragmentLayout(VisioPage page, FragmentItem fragment, double firstMessageY) {
+            IReadOnlyList<ParticipantItem> participants = fragment.ParticipantIds
+                .Select(id => _participantsById[id])
+                .ToArray();
+            double left = participants.Min(participant => participant.PinX) - (_participantWidth / 2D) - FragmentHorizontalPadding;
+            double right = participants.Max(participant => participant.PinX) + (_participantWidth / 2D) + FragmentHorizontalPadding;
+            left = Math.Max(_leftMargin, left);
+            double pageWidth = page.Width.FromInches(_unit);
+            right = Math.Min(pageWidth - _rightMargin, right);
+
+            double topY = firstMessageY - (fragment.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.46D) + FragmentVerticalPadding;
+            double headerBottomY = firstMessageY + _messageGap;
+            topY = Math.Min(topY, headerBottomY - 0.06D);
+            double bottomY = firstMessageY - (fragment.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.46D) - FragmentVerticalPadding;
+            int depth = GetFragmentDepth(fragment);
+            int overlapLane = GetFragmentOverlapLane(fragment);
+            double laneInset = (depth + overlapLane) * FragmentNestedHorizontalInset;
+            double verticalInset = (depth + overlapLane) * FragmentNestedVerticalInset;
+
+            if (!string.IsNullOrWhiteSpace(fragment.ParentFragmentId)) {
+                FragmentLayout parentLayout = CalculateFragmentLayout(page, RequireFragment(fragment.ParentFragmentId!), firstMessageY);
+                left = Math.Max(left, parentLayout.Left + FragmentNestedHorizontalInset);
+                right = Math.Min(right, parentLayout.Right - FragmentNestedHorizontalInset);
+                topY = Math.Min(topY, parentLayout.TopY - FragmentHeaderHeight - FragmentNestedVerticalInset);
+                bottomY = Math.Max(bottomY, parentLayout.BottomY + FragmentNestedVerticalInset);
+            }
+
+            left += laneInset;
+            right -= laneInset;
+            topY -= verticalInset;
+            bottomY += verticalInset;
+            if (right <= left) {
+                double center = (left + right) / 2D;
+                left = center - (FragmentMinimumWidth / 2D);
+                right = center + (FragmentMinimumWidth / 2D);
+            }
+
+            if (topY <= bottomY) {
+                double center = (topY + bottomY) / 2D;
+                topY = center + (FragmentMinimumHeight / 2D);
+                bottomY = center - (FragmentMinimumHeight / 2D);
+            }
+
+            double width = Math.Max(FragmentMinimumWidth, right - left);
+            double height = Math.Max(FragmentMinimumHeight, topY - bottomY);
+            double x = left + (width / 2D);
+            double y = (topY + bottomY) / 2D;
+            double labelWidth = Math.Max(0.75D, Math.Min(width - 0.1D, 0.48D + (fragment.Text.Trim().Length * 0.07D)));
+            double labelLeft = left + 0.04D + (overlapLane * 0.08D);
+            double firstParticipantX = participants.Min(participant => participant.PinX);
+            if (labelLeft < firstParticipantX + ActivationWidth && labelLeft + labelWidth > firstParticipantX - ActivationWidth) {
+                labelLeft = firstParticipantX + (ActivationWidth / 2D) + 0.08D;
+                labelLeft = Math.Min(labelLeft, left + width - labelWidth - 0.04D);
+            }
+
+            double labelY = topY - 0.04D - (FragmentHeaderHeight / 2D);
+            return new FragmentLayout(left, right, topY, bottomY, width, height, x, y, labelLeft, labelWidth, labelY, firstParticipantX, depth, overlapLane);
+        }
+
+        private int GetFragmentDepth(FragmentItem fragment) {
+            int depth = 0;
+            string? parentId = fragment.ParentFragmentId;
+            while (!string.IsNullOrWhiteSpace(parentId)) {
+                depth++;
+                FragmentItem parent = RequireFragment(parentId!);
+                parentId = parent.ParentFragmentId;
+            }
+
+            return depth;
+        }
+
+        private int GetFragmentOverlapLane(FragmentItem fragment) {
+            int lane = 0;
+            foreach (FragmentItem other in _fragments) {
+                if (ReferenceEquals(other, fragment)) {
+                    break;
+                }
+
+                if (GetFragmentDepth(other) == GetFragmentDepth(fragment) &&
+                    string.Equals(other.ParentFragmentId, fragment.ParentFragmentId, StringComparison.Ordinal) &&
+                    FragmentRowsOverlap(other, fragment) &&
+                    FragmentParticipantsOverlap(other, fragment)) {
+                    lane++;
+                }
+            }
+
+            return lane;
+        }
+
+        private static bool FragmentRowsOverlap(FragmentItem first, FragmentItem second) =>
+            first.StartRowIndex <= second.EndRowIndex && second.StartRowIndex <= first.EndRowIndex;
+
+        private static bool FragmentParticipantsOverlap(FragmentItem first, FragmentItem second) =>
+            first.ParticipantIds.Any(id => second.ParticipantIds.Contains(id, StringComparer.Ordinal));
+
+        private void AddFragmentOperand(VisioPage page, FragmentItem fragment, FragmentOperandItem operand, FragmentLayout layout, double firstMessageY) {
+            double rowY = firstMessageY - (operand.RowIndex * _messageSpacing);
+            double dividerY = rowY + (_messageSpacing * 0.46D);
+            double labelY = operand.Divider
+                ? dividerY - 0.07D - (FragmentOperandLabelHeight / 2D)
+                : Math.Min(layout.TopY - FragmentHeaderHeight - (FragmentOperandLabelHeight / 2D) - 0.06D, rowY + 0.2D);
+
+            if (operand.Divider) {
+                VisioShape leftAnchor = CreateAnchor(page, operand.Id + "-from", layout.Left + 0.04D, dividerY);
+                VisioShape rightAnchor = CreateAnchor(page, operand.Id + "-to", layout.Right - 0.04D, dividerY);
+                VisioConnector divider = page.AddConnector(operand.Id, leftAnchor, rightAnchor, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+                divider.LineColor = _theme.ControlConnector.LineColor;
+                divider.LinePattern = 2;
+                divider.LineWeight = Math.Max(0.008D, _theme.ControlConnector.LineWeight * 0.75D);
+                divider.EndArrow = EndArrow.None;
+                divider.BeginArrow = EndArrow.None;
+                page.AddToLayer(FragmentLayer, divider);
+            }
+
+            double labelWidth = Math.Max(0.72D, Math.Min(layout.Width - 0.16D, 0.42D + (operand.Text.Trim().Length * 0.055D)));
+            double labelLeft = Math.Max(layout.Left + 0.12D, layout.FirstParticipantX + (ActivationWidth / 2D) + 0.12D);
+            labelLeft = Math.Min(labelLeft, layout.Left + layout.Width - labelWidth - 0.04D);
+            VisioShape label = page.AddTextBox(GetFragmentOperandLabelId(operand.Id), labelLeft + (labelWidth / 2D), labelY, labelWidth, FragmentOperandLabelHeight, operand.Text, _unit);
+            label.FillColor = _theme.Container.FillColor;
+            label.FillPattern = 1;
+            label.LineColor = OfficeColor.Transparent;
+            label.LinePattern = 0;
+            label.TextStyle = CreateFragmentOperandTextStyle();
+            VisioSemanticUserCells.MarkGeneratedAdornment(label);
+            label.SetUserCell("OfficeIMO.SequenceFragmentId", fragment.Id, "STR", prompt: "OfficeIMO sequence fragment label target");
+            label.SetUserCell("OfficeIMO.SequenceFragmentOperandId", operand.Id, "STR", prompt: "OfficeIMO sequence fragment operand id");
+            label.SetUserCell("OfficeIMO.SequenceFragmentOperandRowIndex", operand.RowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment operand row");
+            label.SetUserCell("OfficeIMO.SequenceFragmentOperandDivider", operand.Divider ? "true" : "false", "STR", prompt: "OfficeIMO sequence fragment operand divider");
+            page.AddToLayer(FragmentLayer, label);
+        }
+
+        private void AddParticipantMessage(VisioPage page, MessageItem message, double y, double firstMessageY) {
             ParticipantItem from = _participantsById[message.FromId];
             ParticipantItem to = _participantsById[message.ToId];
             bool leftToRight = from.PinX <= to.PinX;
             VisioShape fromAnchor = CreateAnchor(page, message.Id + "-from", from.PinX, y);
             VisioShape toAnchor = CreateAnchor(page, message.Id + "-to", to.PinX, y);
             VisioConnector connector = page.AddConnector(
+                message.Id,
                 fromAnchor,
                 toAnchor,
                 ConnectorKind.Straight,
                 leftToRight ? VisioSide.Right : VisioSide.Left,
                 leftToRight ? VisioSide.Left : VisioSide.Right);
 
-            connector.Id = message.Id;
             ApplyMessageStyle(connector, message.Kind);
             connector.Label = message.Label;
-            double labelX = (from.PinX + to.PinX) / 2D;
-            double labelWidth = Math.Max(1.2D, Math.Min(2.6D, Math.Abs(to.PinX - from.PinX) - 0.2D));
-            connector.PlaceLabelAt(labelX, y + 0.16D, labelWidth, 0.28D);
+            MessageLabelPlacement label = ResolveParticipantMessageLabelPlacement(page, from, to, message, y, firstMessageY);
+            connector.PlaceLabelAt(label.X, label.Y, label.Width, label.Height);
             page.AddToLayer(MessageLayer, connector);
+        }
+
+        private MessageLabelPlacement ResolveParticipantMessageLabelPlacement(VisioPage page, ParticipantItem from, ParticipantItem to, MessageItem message, double y, double firstMessageY) {
+            double left = Math.Min(from.PinX, to.PinX);
+            double right = Math.Max(from.PinX, to.PinX);
+            double span = Math.Max(0D, right - left);
+            double desiredWidth = EstimateParticipantMessageLabelWidth(message.Label, span);
+            double labelY = y + MessageLabelVerticalOffset;
+            double midpoint = (from.PinX + to.PinX) / 2D;
+            MessageLabelPlacement best = new(midpoint, labelY, desiredWidth, MessageLabelHeight);
+            double bestScore = ScoreParticipantMessageLabel(page, best, from, to, y, firstMessageY, midpoint);
+
+            foreach (double candidateX in GetParticipantMessageLabelCandidateCenters(left, right)) {
+                double availableWidth = GetParticipantMessageLabelAvailableWidth(candidateX, left, right);
+                if (availableWidth < 0.65D) {
+                    continue;
+                }
+
+                double width = Math.Max(0.9D, Math.Min(desiredWidth, availableWidth));
+                MessageLabelPlacement candidate = new(candidateX, labelY, width, MessageLabelHeight);
+                double score = ScoreParticipantMessageLabel(page, candidate, from, to, y, firstMessageY, midpoint);
+                if (score < bestScore) {
+                    best = candidate;
+                    bestScore = score;
+                }
+            }
+
+            return best;
+        }
+
+        private IEnumerable<double> GetParticipantMessageLabelCandidateCenters(double left, double right) {
+            yield return (left + right) / 2D;
+
+            List<double> anchors = new() { left, right };
+            anchors.AddRange(_participants
+                .Select(participant => participant.PinX)
+                .Where(x => x > left && x < right));
+            anchors = anchors
+                .Distinct()
+                .OrderBy(x => x)
+                .ToList();
+
+            for (int i = 0; i < anchors.Count - 1; i++) {
+                double gapLeft = anchors[i] + MessageLabelLifelinePadding + (ActivationWidth / 2D);
+                double gapRight = anchors[i + 1] - MessageLabelLifelinePadding - (ActivationWidth / 2D);
+                if (gapRight > gapLeft) {
+                    yield return (gapLeft + gapRight) / 2D;
+                }
+            }
+        }
+
+        private double GetParticipantMessageLabelAvailableWidth(double candidateX, double left, double right) {
+            double nearestLeft = left;
+            double nearestRight = right;
+            foreach (ParticipantItem participant in _participants) {
+                if (participant.PinX <= left || participant.PinX >= right) {
+                    continue;
+                }
+
+                if (participant.PinX < candidateX) {
+                    nearestLeft = Math.Max(nearestLeft, participant.PinX);
+                } else if (participant.PinX > candidateX) {
+                    nearestRight = Math.Min(nearestRight, participant.PinX);
+                }
+            }
+
+            double available = nearestRight - nearestLeft - (2D * MessageLabelLifelinePadding) - ActivationWidth;
+            return Math.Max(0D, available);
+        }
+
+        private double ScoreParticipantMessageLabel(VisioPage page, MessageLabelPlacement placement, ParticipantItem from, ParticipantItem to, double messageY, double firstMessageY, double midpoint) {
+            LayoutBounds bounds = LayoutBounds.FromCenter(placement.X, placement.Y, placement.Width, placement.Height);
+            double left = Math.Min(from.PinX, to.PinX);
+            double right = Math.Max(from.PinX, to.PinX);
+            double score = Math.Abs(placement.X - midpoint) * 0.4D;
+
+            foreach (ParticipantItem participant in _participants) {
+                if (participant.PinX < left || participant.PinX > right) {
+                    continue;
+                }
+
+                LayoutBounds lifeline = new(
+                    participant.PinX - MessageLabelLifelinePadding,
+                    bounds.Top,
+                    participant.PinX + MessageLabelLifelinePadding,
+                    bounds.Bottom);
+                score += GetOverlapArea(bounds, lifeline) * 35D;
+            }
+
+            foreach (ActivationItem activation in _activations) {
+                ParticipantItem participant = _participantsById[activation.ParticipantId];
+                if (participant.PinX < left || participant.PinX > right || !IsActivationNearMessageRow(activation, messageY)) {
+                    continue;
+                }
+
+                LayoutBounds activationBounds = new(
+                    participant.PinX - (ActivationWidth / 2D) - MessageLabelActivationPadding,
+                    bounds.Top,
+                    participant.PinX + (ActivationWidth / 2D) + MessageLabelActivationPadding,
+                    bounds.Bottom);
+                score += GetOverlapArea(bounds, activationBounds) * 45D;
+            }
+
+            foreach (LayoutBounds obstacle in GetFragmentLabelObstacleBounds(page, firstMessageY)) {
+                score += GetOverlapArea(bounds.Inflate(0.03D), obstacle.Inflate(0.04D)) * 70D;
+            }
+
+            return score;
+        }
+
+        private IEnumerable<LayoutBounds> GetFragmentLabelObstacleBounds(VisioPage page, double firstMessageY) {
+            foreach (FragmentItem fragment in _fragments) {
+                FragmentLayout layout = CalculateFragmentLayout(page, fragment, firstMessageY);
+                yield return LayoutBounds.FromCenter(layout.LabelLeft + (layout.LabelWidth / 2D), layout.LabelY, layout.LabelWidth, FragmentHeaderHeight);
+
+                foreach (FragmentOperandItem operand in _fragmentOperands.Where(item => string.Equals(item.FragmentId, fragment.Id, StringComparison.Ordinal)).OrderBy(item => item.RowIndex).ThenBy(item => item.Id, StringComparer.Ordinal)) {
+                    double rowY = firstMessageY - (operand.RowIndex * _messageSpacing);
+                    double dividerY = rowY + (_messageSpacing * 0.46D);
+                    double operandLabelY = operand.Divider
+                        ? dividerY - 0.07D - (FragmentOperandLabelHeight / 2D)
+                        : Math.Min(layout.TopY - FragmentHeaderHeight - (FragmentOperandLabelHeight / 2D) - 0.06D, rowY + 0.2D);
+                    double operandLabelWidth = Math.Max(0.72D, Math.Min(layout.Width - 0.16D, 0.42D + (operand.Text.Trim().Length * 0.055D)));
+                    double operandLabelLeft = Math.Max(layout.Left + 0.12D, layout.FirstParticipantX + (ActivationWidth / 2D) + 0.12D);
+                    operandLabelLeft = Math.Min(operandLabelLeft, layout.Left + layout.Width - operandLabelWidth - 0.04D);
+                    yield return LayoutBounds.FromCenter(operandLabelLeft + (operandLabelWidth / 2D), operandLabelY, operandLabelWidth, FragmentOperandLabelHeight);
+                }
+            }
+        }
+
+        private bool IsActivationNearMessageRow(ActivationItem activation, double messageY) {
+            double firstMessageY = _participants.Count == 0 || _participants[0].Header == null
+                ? messageY
+                : _participants[0].Header!.PinY - (_participantHeight / 2D) - _messageGap;
+            double activationTop = firstMessageY - (activation.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.32D);
+            double activationBottom = firstMessageY - (activation.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.32D);
+            return messageY <= activationTop && messageY >= activationBottom;
+        }
+
+        private static double EstimateParticipantMessageLabelWidth(string label, double span) {
+            double maxWidth = Math.Max(0.9D, Math.Min(2.6D, span - 0.2D));
+            if (string.IsNullOrWhiteSpace(label)) {
+                return Math.Min(1.2D, maxWidth);
+            }
+
+            double estimatedWidth = 0.48D + (label.Trim().Length * 0.065D);
+            return Math.Max(0.9D, Math.Min(maxWidth, estimatedWidth));
         }
 
         private void AddSelfMessage(VisioPage page, MessageItem message, double y) {
@@ -352,26 +1161,253 @@ namespace OfficeIMO.Visio.Diagrams {
             double lowerY = y - Math.Min(_selfMessageHeight, _messageSpacing * 0.55D);
             VisioShape fromAnchor = CreateAnchor(page, message.Id + "-from", participant.PinX, y);
             VisioShape toAnchor = CreateAnchor(page, message.Id + "-to", participant.PinX, lowerY);
-            VisioConnector connector = page.AddConnector(fromAnchor, toAnchor, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Right);
-            connector.Id = message.Id;
+            ResolveSelfMessageLabelPlacement(page, participant, message.Label, out double direction, out double labelWidth, out double labelHeight);
+            VisioSide connectorSide = direction > 0D ? VisioSide.Right : VisioSide.Left;
+            double loopX = participant.PinX + (direction * _selfMessageWidth);
+            VisioConnector connector = page.AddConnector(message.Id, fromAnchor, toAnchor, ConnectorKind.RightAngle, connectorSide, connectorSide);
             ApplyMessageStyle(connector, message.Kind);
             connector.Label = message.Label;
             connector.RouteThrough(
-                VisioConnectorWaypoint.At(participant.PinX + _selfMessageWidth, y),
-                VisioConnectorWaypoint.At(participant.PinX + _selfMessageWidth, lowerY));
-            connector.PlaceLabelAt(participant.PinX + _selfMessageWidth + 0.55D, y - 0.12D, 1.4D, 0.28D);
+                VisioConnectorWaypoint.At(loopX, y),
+                VisioConnectorWaypoint.At(loopX, lowerY));
+            double labelCenterX = loopX + (direction * (SelfMessageLabelGap + (labelWidth / 2D)));
+            double labelCenterY = y - (labelHeight / 2D);
+            connector.PlaceLabelAt(labelCenterX, labelCenterY, labelWidth, labelHeight);
             page.AddToLayer(MessageLayer, connector);
         }
 
+        private void AddNotes(VisioPage page, double firstMessageY) {
+            List<LayoutBounds> reservedBounds = BuildNoteReservedBounds(page);
+            foreach (NoteItem note in _notes) {
+                NotePlacement placement = ResolveNotePlacement(page, note, firstMessageY, reservedBounds);
+
+                VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, "seq.note", note.Id, placement.X, placement.Y, NoteWidth, NoteHeight, note.Text);
+                _theme.Container.ApplyTo(shape);
+                shape.SetUserCell(VisioSemanticUserCells.Kind, "SequenceNote", "STR", prompt: "OfficeIMO semantic kind");
+                shape.SetUserCell("OfficeIMO.SequenceParticipantId", note.ParticipantId, "STR", prompt: "OfficeIMO sequence note target participant");
+                shape.SetUserCell("OfficeIMO.SequenceRowIndex", note.RowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence note row");
+                shape.SetUserCell("OfficeIMO.SequenceRequestedPlacement", note.Placement.ToString(), "STR", prompt: "OfficeIMO requested sequence note placement");
+                shape.SetUserCell("OfficeIMO.SequenceResolvedPlacement", placement.ResolvedPlacement.ToString(), "STR", prompt: "OfficeIMO resolved sequence note placement");
+                page.AddToLayer(NoteLayer, shape);
+                reservedBounds.Add(placement.Bounds.Inflate(NoteCollisionPadding));
+            }
+        }
+
+        private void EnsureNotesFitPage(VisioPage page) {
+            if (_notes.Count == 0) {
+                return;
+            }
+
+            page.FitToContent(
+                Math.Min(_leftMargin, _rightMargin).ToInches(_unit),
+                Math.Min(_topMargin, _bottomMargin).ToInches(_unit));
+        }
+
+        private NotePlacement ResolveNotePlacement(VisioPage page, NoteItem note, double firstMessageY, IReadOnlyList<LayoutBounds> reservedBounds) {
+            ParticipantItem participant = _participantsById[note.ParticipantId];
+            double baseY = firstMessageY - (note.RowIndex * _messageSpacing) - (_messageSpacing / 2D);
+            double minY = _bottomMargin + (NoteHeight / 2D);
+            double pageHeight = page.Height.FromInches(_unit);
+            double maxY = pageHeight - _topMargin - _participantHeight - NoteGap - (NoteHeight / 2D);
+            VisioSide[] sides = note.Placement == VisioSide.Right
+                ? new[] { VisioSide.Right, VisioSide.Left }
+                : new[] { VisioSide.Left, VisioSide.Right };
+
+            NotePlacement bestPlacement = default;
+            double bestScore = double.PositiveInfinity;
+            bool hasBest = false;
+            foreach (VisioSide side in sides) {
+                double x = GetNoteX(page, participant, side);
+                for (int offsetIndex = 0; offsetIndex <= 12; offsetIndex++) {
+                    foreach (double offset in GetNoteCandidateOffsets(offsetIndex)) {
+                        double y = Math.Max(minY, Math.Min(maxY, baseY + offset));
+                        LayoutBounds bounds = LayoutBounds.FromCenter(x, y, NoteWidth, NoteHeight);
+                        double score = ScoreNotePlacement(bounds.Inflate(NoteCollisionPadding), reservedBounds) +
+                                       (Math.Abs(offset) * 0.9D) +
+                                       (side == note.Placement ? 0D : 1.8D);
+
+                        if (score < bestScore) {
+                            bestScore = score;
+                            bestPlacement = new NotePlacement(x, y, side, bounds);
+                            hasBest = true;
+                        }
+
+                        if (score <= 0.0001D) {
+                            return bestPlacement;
+                        }
+                    }
+                }
+            }
+
+            return hasBest
+                ? bestPlacement
+                : new NotePlacement(GetNoteX(page, participant, note.Placement), Math.Max(minY, Math.Min(maxY, baseY)), note.Placement, LayoutBounds.FromCenter(GetNoteX(page, participant, note.Placement), Math.Max(minY, Math.Min(maxY, baseY)), NoteWidth, NoteHeight));
+        }
+
+        private static IEnumerable<double> GetNoteCandidateOffsets(int offsetIndex) {
+            if (offsetIndex == 0) {
+                yield return 0D;
+            } else {
+                double offset = offsetIndex * NoteVerticalCandidateStep;
+                yield return offset;
+                yield return -offset;
+            }
+        }
+
+        private double GetNoteX(VisioPage page, ParticipantItem participant, VisioSide placement) {
+            double direction = placement == VisioSide.Right ? 1D : -1D;
+            double x = participant.PinX + (direction * ((_participantWidth / 2D) + NoteGap + (NoteWidth / 2D)));
+            double pageWidth = page.Width.FromInches(_unit);
+            return Math.Max(_leftMargin + (NoteWidth / 2D), Math.Min(pageWidth - _rightMargin - (NoteWidth / 2D), x));
+        }
+
+        private static double ScoreNotePlacement(LayoutBounds candidate, IReadOnlyList<LayoutBounds> reservedBounds) {
+            double score = 0D;
+            foreach (LayoutBounds reserved in reservedBounds) {
+                score += GetOverlapArea(candidate, reserved) * 25D;
+            }
+
+            return score;
+        }
+
+        private static double GetOverlapArea(LayoutBounds first, LayoutBounds second) {
+            double width = Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left);
+            double height = Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom);
+            return width > 0D && height > 0D ? width * height : 0D;
+        }
+
+        private List<LayoutBounds> BuildNoteReservedBounds(VisioPage page) {
+            List<LayoutBounds> reservedBounds = new();
+            foreach (VisioShape shape in page.Shapes) {
+                if (IsIgnoredNoteObstacle(shape)) {
+                    continue;
+                }
+
+                reservedBounds.Add(LayoutBounds.FromCenter(shape.PinX, shape.PinY, shape.Width, shape.Height).Inflate(NoteCollisionPadding));
+            }
+
+            foreach (VisioConnector connector in page.Connectors) {
+                AddConnectorSegmentReservedBounds(connector, reservedBounds);
+                VisioConnectorLabelPlacement? label = connector.LabelPlacement;
+                if (label != null && label.PinX.HasValue && label.PinY.HasValue) {
+                    reservedBounds.Add(LayoutBounds.FromCenter(label.PinX.Value, label.PinY.Value, label.Width, label.Height).Inflate(NoteCollisionPadding));
+                }
+            }
+
+            return reservedBounds;
+        }
+
+        private static void AddConnectorSegmentReservedBounds(VisioConnector connector, IList<LayoutBounds> reservedBounds) {
+            List<(double X, double Y)> points = new() {
+                (connector.From.PinX, connector.From.PinY)
+            };
+            foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
+                points.Add((waypoint.X, waypoint.Y));
+            }
+
+            if (connector.Waypoints.Count == 0 && connector.Kind == ConnectorKind.RightAngle) {
+                points.Add((connector.From.PinX, connector.To.PinY));
+            }
+
+            points.Add((connector.To.PinX, connector.To.PinY));
+            const double thickness = 0.08D;
+            for (int i = 0; i < points.Count - 1; i++) {
+                double left = Math.Min(points[i].X, points[i + 1].X) - (thickness / 2D);
+                double right = Math.Max(points[i].X, points[i + 1].X) + (thickness / 2D);
+                double bottom = Math.Min(points[i].Y, points[i + 1].Y) - (thickness / 2D);
+                double top = Math.Max(points[i].Y, points[i + 1].Y) + (thickness / 2D);
+                reservedBounds.Add(new LayoutBounds(left, top, right, bottom));
+            }
+        }
+
+        private static bool IsIgnoredNoteObstacle(VisioShape shape) {
+            if (shape.Width <= 0.06D && shape.Height <= 0.06D) {
+                return true;
+            }
+
+            string? kind = shape.GetUserCellValue(VisioSemanticUserCells.Kind);
+            return string.Equals(kind, VisioSemanticUserCells.SequenceFragmentKind, StringComparison.OrdinalIgnoreCase) ||
+                   string.Equals(kind, VisioSemanticUserCells.BackgroundSurfaceKind, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private void ResolveSelfMessageLabelPlacement(VisioPage page, ParticipantItem participant, string label, out double direction, out double labelWidth, out double labelHeight) {
+            double desiredWidth = EstimateSelfMessageLabelWidth(label);
+            double rightAvailable = GetSelfMessageLabelAvailableWidth(page, participant, rightSide: true);
+            double leftAvailable = GetSelfMessageLabelAvailableWidth(page, participant, rightSide: false);
+            bool useRight = rightAvailable >= Math.Min(desiredWidth, 1.1D) || rightAvailable >= leftAvailable;
+            double available = Math.Max(0D, useRight ? rightAvailable : leftAvailable);
+
+            direction = useRight ? 1D : -1D;
+            labelWidth = Math.Max(0.2D, Math.Min(desiredWidth, available));
+            labelHeight = desiredWidth > labelWidth + 0.05D ? 0.46D : SelfMessageLabelHeight;
+        }
+
+        private double GetSelfMessageLabelAvailableWidth(VisioPage page, ParticipantItem participant, bool rightSide) {
+            double direction = rightSide ? 1D : -1D;
+            double loopX = participant.PinX + (direction * _selfMessageWidth);
+            double pageWidth = page.Width.FromInches(_unit);
+            double pageLimit = rightSide
+                ? pageWidth - _rightMargin - loopX - SelfMessageLabelGap
+                : loopX - _leftMargin - SelfMessageLabelGap;
+            double nearestParticipantLimit = double.PositiveInfinity;
+
+            foreach (ParticipantItem other in _participants) {
+                if (ReferenceEquals(other, participant)) {
+                    continue;
+                }
+
+                if (rightSide && other.PinX > participant.PinX) {
+                    nearestParticipantLimit = Math.Min(nearestParticipantLimit, other.PinX - (_participantWidth / 2D) - loopX - SelfMessageLabelGap - 0.18D);
+                } else if (!rightSide && other.PinX < participant.PinX) {
+                    nearestParticipantLimit = Math.Min(nearestParticipantLimit, loopX - (other.PinX + (_participantWidth / 2D)) - SelfMessageLabelGap - 0.18D);
+                }
+            }
+
+            return Math.Max(0D, Math.Min(pageLimit, nearestParticipantLimit));
+        }
+
+        private static double EstimateSelfMessageLabelWidth(string label) {
+            if (string.IsNullOrWhiteSpace(label)) {
+                return 1.2D;
+            }
+
+            double estimatedWidth = 0.55D + (label.Trim().Length * 0.075D);
+            return Math.Max(1.2D, Math.Min(2.4D, estimatedWidth));
+        }
+
+        private VisioTextStyle CreateFragmentLabelTextStyle() {
+            VisioTextStyle style = _theme.Container.TextStyle?.Clone() ?? new VisioTextStyle();
+            style.FontFamily ??= "Aptos";
+            style.Color ??= _theme.ControlConnector.TextStyle?.Color ?? OfficeColor.Black;
+            style.Size ??= 9D;
+            style.Bold = true;
+            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
+            style.LeftMargin = 0.06D;
+            style.RightMargin = 0.04D;
+            style.TopMargin = 0.02D;
+            style.BottomMargin = 0.02D;
+            style.BackgroundColor = _theme.Container.FillColor;
+            style.BackgroundTransparency = 0D;
+            return style;
+        }
+
+        private VisioTextStyle CreateFragmentOperandTextStyle() {
+            VisioTextStyle style = CreateFragmentLabelTextStyle();
+            style.Size = Math.Min(style.Size ?? 8D, 8D);
+            style.Bold = false;
+            return style;
+        }
+
         private VisioShape CreateAnchor(VisioPage page, string id, double x, double y) {
-            VisioShape anchor = new(id, x, y, 0.04D, 0.04D, string.Empty) {
+            VisioShape anchor = new(id, x.ToInches(_unit), y.ToInches(_unit), 0.04D.ToInches(_unit), 0.04D.ToInches(_unit), string.Empty) {
                 NameU = "Circle",
                 FillPattern = 0,
                 LinePattern = 0,
                 FillColor = OfficeColor.Transparent,
                 LineColor = OfficeColor.Transparent
             };
-            anchor.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            VisioSemanticUserCells.MarkGeneratedAdornment(anchor);
             page.Shapes.Add(anchor);
             page.AddToLayer(GuideLayer, anchor);
             return anchor;
@@ -408,11 +1444,14 @@ namespace OfficeIMO.Visio.Diagrams {
             };
         }
 
-        private static string GetParticipantMaster(VisioSequenceParticipantKind kind) {
+        private static string GetParticipantStencilId(VisioSequenceParticipantKind kind) {
             return kind switch {
-                VisioSequenceParticipantKind.Actor => "Circle",
-                VisioSequenceParticipantKind.Database => "Data",
-                _ => "Rectangle"
+                VisioSequenceParticipantKind.Actor => "seq.actor",
+                VisioSequenceParticipantKind.Boundary => "seq.boundary",
+                VisioSequenceParticipantKind.Control => "seq.control",
+                VisioSequenceParticipantKind.Entity => "seq.entity",
+                VisioSequenceParticipantKind.Database => "seq.database",
+                _ => "seq.participant"
             };
         }
 
@@ -422,7 +1461,84 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
             }
 
+            EnsureGeneratedIdsAvailable(normalizedId, nameof(id), normalizedId + "-from", normalizedId + "-to");
             return normalizedId;
+        }
+
+        private string NormalizeNoteId(string? id) {
+            string normalizedId = string.IsNullOrWhiteSpace(id) ? "note-" + (_notes.Count + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) : id!.Trim();
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            return normalizedId;
+        }
+
+        private string NormalizeFragmentId(string? id) {
+            string normalizedId = string.IsNullOrWhiteSpace(id) ? "fragment-" + (_fragments.Count + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) : id!.Trim();
+            string labelId = GetFragmentLabelId(normalizedId);
+            if (IsIdInUse(normalizedId) || IsIdInUse(labelId)) {
+                throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            return normalizedId;
+        }
+
+        private string NormalizeFragmentOperandId(string fragmentId, string? id, bool divider) {
+            int existingCount = _fragmentOperands.Count(item => string.Equals(item.FragmentId, fragmentId, StringComparison.Ordinal));
+            string normalizedId = string.IsNullOrWhiteSpace(id)
+                ? fragmentId + "-operand-" + (existingCount + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture)
+                : id!.Trim();
+            string labelId = GetFragmentOperandLabelId(normalizedId);
+            if (IsIdInUse(normalizedId) || IsIdInUse(labelId)) {
+                throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            if (divider) {
+                EnsureGeneratedIdsAvailable(normalizedId, nameof(id), normalizedId + "-from", normalizedId + "-to");
+            }
+
+            return normalizedId;
+        }
+
+        private string NormalizeActivationId(string? id) {
+            string normalizedId = string.IsNullOrWhiteSpace(id) ? "activation-" + (_activations.Count + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture) : id!.Trim();
+            if (IsIdInUse(normalizedId)) {
+                throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            return normalizedId;
+        }
+
+        private IReadOnlyList<string> GetFragmentParticipantIds(IEnumerable<string> participantIds) {
+            string[] ids = participantIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Select(id => id.Trim())
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+            if (ids.Length == 0) {
+                ids = _participants.Select(participant => participant.Id).ToArray();
+            }
+
+            if (ids.Length == 0) {
+                throw new InvalidOperationException("A sequence fragment requires at least one participant.");
+            }
+
+            foreach (string id in ids) {
+                EnsureKnownParticipant(id, nameof(participantIds));
+            }
+
+            return ids;
+        }
+
+        private FragmentItem RequireFragment(string fragmentId) {
+            string normalizedId = RequireId(fragmentId, nameof(fragmentId), "Fragment id");
+            FragmentItem? fragment = _fragments.FirstOrDefault(item => string.Equals(item.Id, normalizedId, StringComparison.Ordinal));
+            if (fragment == null) {
+                throw new ArgumentException($"Unknown sequence fragment id '{normalizedId}'.", nameof(fragmentId));
+            }
+
+            return fragment;
         }
 
         private void EnsureKnownParticipant(string id, string parameterName) {
@@ -441,14 +1557,73 @@ namespace OfficeIMO.Visio.Diagrams {
                 return true;
             }
 
+            foreach (ParticipantItem participant in _participants) {
+                if (string.Equals(participant.Id + "-lifeline", id, StringComparison.Ordinal) ||
+                    string.Equals(participant.Id + "-lifeline-end", id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
             foreach (MessageItem message in _messages) {
-                if (string.Equals(message.Id, id, StringComparison.Ordinal)) {
+                if (string.Equals(message.Id, id, StringComparison.Ordinal) ||
+                    string.Equals(message.Id + "-from", id, StringComparison.Ordinal) ||
+                    string.Equals(message.Id + "-to", id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            foreach (ActivationItem activation in _activations) {
+                if (string.Equals(activation.Id, id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            foreach (FragmentItem fragment in _fragments) {
+                if (string.Equals(fragment.Id, id, StringComparison.Ordinal) || string.Equals(GetFragmentLabelId(fragment.Id), id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            foreach (FragmentOperandItem operand in _fragmentOperands) {
+                if (string.Equals(operand.Id, id, StringComparison.Ordinal) ||
+                    string.Equals(GetFragmentOperandLabelId(operand.Id), id, StringComparison.Ordinal) ||
+                    string.Equals(operand.Id + "-from", id, StringComparison.Ordinal) ||
+                    string.Equals(operand.Id + "-to", id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
+            foreach (NoteItem note in _notes) {
+                if (string.Equals(note.Id, id, StringComparison.Ordinal)) {
                     return true;
                 }
             }
 
             return false;
         }
+
+        private void EnsureGeneratedIdsAvailable(string ownerId, string parameterName, params string[] generatedIds) {
+            foreach (string generatedId in generatedIds) {
+                if (IsIdInUse(generatedId)) {
+                    throw new ArgumentException($"A sequence diagram item with id '{ownerId}' would create generated item id '{generatedId}' that already exists.", parameterName);
+                }
+            }
+        }
+
+        private string CreateGeneratedConnectorId(VisioPage page, string baseId) {
+            string candidate = baseId;
+            int index = 2;
+            while (page.Connectors.Any(connector => string.Equals(connector.Id, candidate, StringComparison.Ordinal))) {
+                candidate = baseId + "-" + index.ToString(global::System.Globalization.CultureInfo.InvariantCulture);
+                index++;
+            }
+
+            return candidate;
+        }
+
+        private static string GetFragmentLabelId(string fragmentId) => fragmentId + "-label";
+
+        private static string GetFragmentOperandLabelId(string operandId) => operandId + "-label";
 
         private static string RequireId(string id, string parameterName, string label) {
             if (string.IsNullOrWhiteSpace(id)) {

@@ -158,6 +158,10 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
+                    if (IsBenignShapeOverlapPair(first, second)) {
+                        continue;
+                    }
+
                     if (options.IgnoreContainingShapeOverlaps &&
                         (Contains(firstBounds, secondBounds) || Contains(secondBounds, firstBounds))) {
                         continue;
@@ -226,6 +230,10 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
+                    if (IsConnectorIntersectionIgnoredShape(shape)) {
+                        continue;
+                    }
+
                     VisioShapeBounds shapeBounds = boundsByShape[shape];
                     if (options.IgnoreContainingShapeOverlaps &&
                         (Contains(shapeBounds, boundsByShape[connector.From]) || Contains(shapeBounds, boundsByShape[connector.To]))) {
@@ -267,7 +275,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    if (shape.IsContainer || shape.IsBackgroundSurface) {
+                    if (shape.IsBackgroundSurface || VisioSemanticUserCells.IsGeneratedDiagramAdornment(shape) || IsSequenceActivation(shape) || IsSequenceFragment(shape)) {
                         continue;
                     }
 
@@ -326,6 +334,29 @@ namespace OfficeIMO.Visio {
                     }
                 }
             }
+        }
+
+        private static bool IsBenignShapeOverlapPair(VisioShape first, VisioShape second) {
+            return (first.IsBackgroundSurface && second.IsDiagramAdornment) ||
+                   (second.IsBackgroundSurface && first.IsDiagramAdornment) ||
+                   (first.IsBackgroundSurface && second.IsCallout) ||
+                   (second.IsBackgroundSurface && first.IsCallout) ||
+                   (IsSequenceActivation(first) && second.IsDiagramAdornment) ||
+                   (IsSequenceActivation(second) && first.IsDiagramAdornment) ||
+                   IsSequenceFragment(first) ||
+                   IsSequenceFragment(second);
+        }
+
+        private static bool IsConnectorIntersectionIgnoredShape(VisioShape shape) {
+            return shape.IsBackgroundSurface || VisioSemanticUserCells.IsGeneratedDiagramAdornment(shape) || IsSequenceActivation(shape) || IsSequenceFragment(shape);
+        }
+
+        private static bool IsSequenceActivation(VisioShape shape) {
+            return string.Equals(shape.GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.SequenceActivationKind, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsSequenceFragment(VisioShape shape) {
+            return string.Equals(shape.GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.SequenceFragmentKind, StringComparison.OrdinalIgnoreCase);
         }
 
         private static bool HasDeterministicRoute(VisioConnector connector) {

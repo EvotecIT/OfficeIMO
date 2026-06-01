@@ -189,6 +189,12 @@ namespace OfficeIMO.Visio {
                             master.PreservedPageSheetCells.Add(new XElement(cell));
                         }
                         foreach (XElement section in masterPageSheet.Elements(ns + "Section")) {
+                            if (string.Equals(section.Attribute("N")?.Value, "User", StringComparison.OrdinalIgnoreCase)) {
+                                List<VisioUserCell> userCells = new();
+                                ParseUserCells(section, ns, userCells);
+                                master.IsPackageBacked = userCells.Any(IsPackageBackedMasterUserCell);
+                                VisioStencilMetadata.Apply(master, userCells);
+                            }
                             master.PreservedPageSheetSections.Add(new XElement(section));
                         }
                     }
@@ -218,6 +224,7 @@ namespace OfficeIMO.Visio {
                         master.PreservedMastersRootElements.Add(new XElement(element));
                     }
                     masters[masterId] = master;
+                    document.RegisterMaster(master);
                 }
             }
 
@@ -1561,6 +1568,12 @@ namespace OfficeIMO.Visio {
 
                 target.Add(userCell);
             }
+        }
+
+        private static bool IsPackageBackedMasterUserCell(VisioUserCell cell) {
+            return string.Equals(cell.Name, "OfficeIMO.PackageBackedMaster", StringComparison.OrdinalIgnoreCase) &&
+                   (string.Equals(cell.Value, "1", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(cell.Value, "true", StringComparison.OrdinalIgnoreCase));
         }
 
         private static void CopyPreservedCellAttributes(XElement cell, IList<XAttribute> target) {

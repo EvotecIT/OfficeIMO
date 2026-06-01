@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
@@ -23,9 +24,13 @@ namespace OfficeIMO.Tests {
 
             VisioStencilShape byKeyword = VisioStencils.Flowchart.Get("branch");
             Assert.Equal("Decision", byKeyword.MasterNameU);
+            Assert.Equal("Start/End", VisioStencils.Flowchart.Get("terminator").Name);
+            Assert.Equal("Continuation", VisioStencils.Flowchart.Get("continuation").Name);
 
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "basic.rectangle");
             Assert.Contains(VisioStencils.All.Shapes, shape => shape.Id == "flow.off-page-reference");
+            Assert.Equal("Block", VisioStencils.BlockDiagram.Get("component").Name);
+            Assert.Equal("Decision Block", VisioStencils.BlockDiagram.Get("branch").Name);
             Assert.Contains("Network", VisioStencils.All.Categories);
         }
 
@@ -45,6 +50,63 @@ namespace OfficeIMO.Tests {
             Assert.True(VisioStencils.All.TryFindBest(new[] { "missing", "access-point" }, out VisioStencilShape? best));
             Assert.Equal("Wireless AP", best!.Name);
             Assert.Equal("Storage", VisioStencils.All.FindBest("not-present", "data-store").Name);
+        }
+
+        [Fact]
+        public void ExpandedBuiltInCatalogsExposePremiumDomainStencilPacks() {
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Infrastructure");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Cloud");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Security and Identity");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Containers and Kubernetes");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Data and Platform");
+            Assert.Contains(VisioStencils.All.Categories, category => category == "Collaboration and Business Process");
+            Assert.True(VisioStencils.All.Shapes.Count >= 120);
+
+            Assert.Equal("Load Balancer", VisioStencils.Infrastructure.Get("traffic").Name);
+            Assert.Equal("Function", VisioStencils.Cloud.Get("serverless").Name);
+            Assert.Equal("Policy", VisioStencils.SecurityIdentity.Get("conditional-access").Name);
+            Assert.Equal("Cluster", VisioStencils.ContainersKubernetes.Get("kubernetes").Name);
+            Assert.Equal("Pipeline", VisioStencils.DataPlatform.Get("etl").Name);
+            Assert.Equal("Approval", VisioStencils.CollaborationBusiness.Get("sign-off").Name);
+            Assert.Equal("Security Alert", VisioStencils.All.FindBest("security-alert", "incident").Name);
+
+            IReadOnlyList<VisioStencilShape> identityMatches = VisioStencils.All.Search("identity");
+            Assert.Contains(identityMatches, shape => shape.Id == "sec.identity-provider");
+            Assert.Contains(VisioStencils.All.Search("kubernetes"), shape => shape.Id == "k8s.cluster");
+            Assert.Contains(VisioStencils.All.Search("event-stream"), shape => shape.Id == "data.stream");
+            Assert.All(VisioStencils.All.InCategory("Security and Identity"), shape => Assert.Equal("Security and Identity", shape.Category));
+        }
+
+        [Fact]
+        public void ExpandedBuiltInCatalogShapesArePlaceableAndProfiled() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+            VisioPage page = document.AddPage("Expanded Stencils", 11, 8.5);
+
+            VisioShape idp = page.AddStencilShape(VisioStencils.SecurityIdentity, "idp", "idp", 1.8, 6.3, "Entra ID");
+            VisioShape cluster = page.AddStencilShape(VisioStencils.ContainersKubernetes, "kubernetes", "cluster", 4.3, 6.3, "AKS Cluster");
+            VisioShape lake = page.AddStencilShape(VisioStencils.DataPlatform, "data.lake", "lake", 6.9, 6.3, "Lake");
+            VisioShape team = page.AddStencilShape(VisioStencils.CollaborationBusiness, "team", "team", 9.1, 6.3, "Ops Team");
+            page.AddConnector(idp, cluster, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).Label = "tokens";
+            page.AddConnector(cluster, lake, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left).Label = "events";
+            page.AddConnector(team, cluster, ConnectorKind.Dynamic, VisioSide.Left, VisioSide.Right).Label = "runbook";
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal(4, loaded.Pages[0].Shapes.Count);
+            Assert.Equal("sec.identity-provider", GetUserCellValue(loaded.Pages[0].Shapes.Single(shape => shape.Id == "idp"), "OfficeIMO.StencilId"));
+            Assert.Equal("k8s.cluster", GetUserCellValue(loaded.Pages[0].Shapes.Single(shape => shape.Id == "cluster"), "OfficeIMO.StencilId"));
+            Assert.Equal("data.lake", GetUserCellValue(loaded.Pages[0].Shapes.Single(shape => shape.Id == "lake"), "OfficeIMO.StencilId"));
+            Assert.Equal("collab.team", GetUserCellValue(loaded.Pages[0].Shapes.Single(shape => shape.Id == "team"), "OfficeIMO.StencilId"));
+
+            string profile = loaded.CreateStencilProfile().ToText();
+            Assert.Contains("Security and Identity", profile);
+            Assert.Contains("Containers and Kubernetes", profile);
+            Assert.Contains("Data and Platform", profile);
+            Assert.Contains("Collaboration and Business Process", profile);
         }
 
         [Fact]
@@ -69,6 +131,63 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Equal(2, loaded.Pages[0].Shapes.Count);
             Assert.Single(loaded.Pages[0].Connectors);
+        }
+
+        [Fact]
+        public void GeneratedStencilShapesUseRendererFriendlyLocalGeometry() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+            VisioPage page = document.AddPage("Stencil Page");
+
+            VisioShape service = page.AddStencilShape(VisioStencils.Architecture.Get("service"), "service", 2, 5, "Service");
+            service.FillColor = OfficeColor.FromRgb(31, 119, 180);
+            service.LineColor = OfficeColor.FromRgb(10, 70, 120);
+            VisioShape database = page.AddStencilShape(VisioStencils.Architecture.Get("database"), "database", 5, 5, "Database");
+            database.FillColor = OfficeColor.FromRgb(46, 160, 67);
+            database.LineColor = OfficeColor.FromRgb(18, 92, 43);
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            using ZipArchive zip = ZipFile.OpenRead(filePath);
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument pageXml = XDocument.Load(zip.GetEntry("visio/pages/page1.xml")!.Open());
+            XElement[] pageShapes = pageXml.Root!.Element(v + "Shapes")!.Elements(v + "Shape").ToArray();
+            XElement serviceShape = pageShapes.Single(shape => GetOriginalId(shape, v) == "service");
+            XElement databaseShape = pageShapes.Single(shape => GetOriginalId(shape, v) == "database");
+
+            Assert.NotNull(serviceShape.Attribute("Master"));
+            Assert.NotNull(databaseShape.Attribute("Master"));
+            Assert.Null(serviceShape.Attribute("MasterShape"));
+            Assert.Null(databaseShape.Attribute("MasterShape"));
+            Assert.Equal("#1F77B4", GetCellValue(serviceShape, v, "FillForegnd"));
+            Assert.Equal("#0A4678", GetCellValue(serviceShape, v, "LineColor"));
+            Assert.Equal("#2EA043", GetCellValue(databaseShape, v, "FillForegnd"));
+            Assert.Equal("#125C2B", GetCellValue(databaseShape, v, "LineColor"));
+            Assert.Contains(serviceShape.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Geometry");
+            Assert.Contains(databaseShape.Elements(v + "Section"), section => (string?)section.Attribute("N") == "Geometry");
+
+            XDocument mastersXml = XDocument.Load(zip.GetEntry("visio/masters/masters.xml")!.Open());
+            Assert.Contains(mastersXml.Root!.Elements(v + "Master"), master => (string?)master.Attribute("NameU") == "Process");
+            Assert.Contains(mastersXml.Root!.Elements(v + "Master"), master => (string?)master.Attribute("NameU") == "Data");
+
+            static string? GetCellValue(XElement shape, XNamespace ns, string name) {
+                return (string?)shape.Elements(ns + "Cell")
+                    .FirstOrDefault(cell => (string?)cell.Attribute("N") == name)
+                    ?.Attribute("V");
+            }
+
+            static string? GetOriginalId(XElement shape, XNamespace ns) {
+                return (string?)shape.Elements(ns + "Section")
+                    .Where(section => (string?)section.Attribute("N") == "Prop")
+                    .Elements(ns + "Row")
+                    .FirstOrDefault(row => (string?)row.Attribute("N") == "OfficeIMOOriginalId")
+                    ?.Elements(ns + "Cell")
+                    .FirstOrDefault(cell => (string?)cell.Attribute("N") == "Value")
+                    ?.Attribute("V");
+            }
         }
 
         [Fact]
@@ -198,6 +317,94 @@ namespace OfficeIMO.Tests {
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void StencilGalleryDocumentCreatesPagedCategoryReviewDocument() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
+                .AddWithMetadata("review.worker", "Worker", "Process", "Compute", 1.6, 0.9, keywords: new[] { "service" }, aliases: new[] { "processor" }, tags: new[] { "runtime" })
+                .AddWithMetadata("review.runtime", "Runtime", "Rectangle", "Compute", 1.6, 0.9, keywords: new[] { "container" })
+                .AddWithMetadata("review.api", "API", "Process", "Integration", 1.7, 0.9, keywords: new[] { "gateway" })
+                .AddWithMetadata("review.queue", "Queue", "Data", "Integration", 1.5, 0.85, keywords: new[] { "broker" })
+                .AddWithMetadata("review.topic", "Topic", "Data", "Integration", 1.5, 0.85, keywords: new[] { "event" }));
+
+            VisioDocument document = VisioStencilGalleryDocument.Create(filePath, catalog, new VisioStencilGalleryDocumentOptions {
+                Title = "Reusable stencil review",
+                IdPrefix = "review",
+                Columns = 2,
+                ShapesPerPage = 2,
+                PageWidth = 7,
+                PageHeight = 5,
+                IncludeStencilMetadataShapeData = true
+            });
+
+            Assert.Equal("Reusable stencil review", document.Title);
+            Assert.Equal("OfficeIMO.Visio", document.Author);
+            Assert.True(document.UseMastersByDefault);
+            Assert.Equal(4, document.Pages.Count);
+            Assert.Equal("Stencil Gallery Overview", document.Pages[0].Name);
+            Assert.Equal("01 Compute", document.Pages[1].Name);
+            Assert.Equal("02 Integration (1 of 2)", document.Pages[2].Name);
+            Assert.Equal("03 Integration (2 of 2)", document.Pages[3].Name);
+            Assert.Contains(document.Pages[0].Shapes, shape => shape.Id == "review-overview-summary" && shape.Text == "5 stencils across 2 categories");
+
+            VisioShape firstComputeShape = document.Pages[1].Shapes.Single(shape => shape.Id == "review-01-0-shape");
+            Assert.Equal("Runtime", firstComputeShape.GetShapeDataValue("StencilName"));
+            Assert.Equal("Compute", firstComputeShape.GetShapeDataValue("StencilCategory"));
+            Assert.Equal("Review Catalog - Compute", firstComputeShape.GetShapeDataValue("StencilCatalog"));
+            Assert.Equal("Rectangle", firstComputeShape.GetShapeDataValue("MasterNameU"));
+            Assert.Equal("0", firstComputeShape.GetShapeDataValue("GalleryIndex"));
+            Assert.Equal("Rectangle", firstComputeShape.MasterNameU);
+
+            VisioShape integrationShape = document.Pages[2].Shapes.Single(shape => shape.Id == "review-02-1-shape");
+            Assert.Equal("Queue", integrationShape.GetShapeDataValue("StencilName"));
+            Assert.Equal("broker", integrationShape.GetShapeDataValue("Keywords"));
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.Equal(4, loaded.Pages.Count);
+            Assert.Equal("Runtime", loaded.Pages[1].Shapes.Single(shape => shape.Id == "review-01-0-shape").GetShapeDataValue("StencilName"));
+            Assert.Equal("Queue", loaded.Pages[2].Shapes.Single(shape => shape.Id == "review-02-1-shape").GetShapeDataValue("StencilName"));
+        }
+
+        [Fact]
+        public void StencilGalleryDocumentRestoresExistingMasterPreferenceAndReservesOverviewIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
+                .AddWithMetadata("review.api", "API", "Process", "A/B", 1.7, 0.9)
+                .AddWithMetadata("review.worker", "Worker", "Process", "A B", 1.6, 0.9));
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = false;
+
+            document.AddStencilGalleryDocument(catalog, new VisioStencilGalleryDocumentOptions {
+                IdPrefix = "review",
+                ShapesPerPage = 4,
+                UseMastersByDefault = true
+            });
+
+            VisioPage overview = document.Pages.Single(page => page.Name == "Stencil Gallery Overview");
+            string[] ids = overview.Shapes.Select(shape => shape.Id).ToArray();
+            Assert.False(document.UseMastersByDefault);
+            Assert.Equal(ids.Length, ids.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.Contains(overview.Shapes, shape => shape.Id == "review-overview-category-a-b");
+            Assert.Contains(overview.Shapes, shape => shape.Id == "review-overview-category-a-b-2");
+        }
+
+        [Fact]
+        public void StencilGalleryDocumentValidatesPagingOptions() {
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
+                .Add("review.worker", "Worker", "Process", "Compute", 1.6, 0.9));
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => VisioStencilGalleryDocument.Create(filePath, catalog, new VisioStencilGalleryDocumentOptions {
+                ShapesPerPage = 0
+            }));
+            Assert.Throws<ArgumentException>(() => VisioStencilGalleryDocument.Create(filePath, catalog, new VisioStencilGalleryDocumentOptions {
+                IdPrefix = " "
+            }));
         }
 
         [Fact]
@@ -420,6 +627,72 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilCatalogLearnsNativeConnectionPointsAndAppliesThemToPlacedShapes() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithMasterConnectionPoints(packagePath, "Rectangle", "Connected Box");
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                CatalogName = "Connected Stencils",
+                Category = "Connected",
+                IdPrefix = "connected",
+                IncludeUnsupportedMasters = true
+            });
+
+            VisioStencilShape stencil = catalog.Get("connected-box");
+            Assert.Equal(3, stencil.SourceConnectionPoints.Count);
+            Assert.Equal(0, stencil.SourceConnectionPoints[0].SectionIndex);
+            Assert.Equal(3.2, stencil.SourceConnectionPoints[0].SourceWidth);
+            Assert.Equal(1.1, stencil.SourceConnectionPoints[0].SourceHeight);
+            Assert.Equal(3.2, stencil.DefaultWidth, 6);
+            Assert.Equal(1.1, stencil.DefaultHeight, 6);
+
+            using MemoryStream manifest = new();
+            catalog.Save(manifest);
+            manifest.Position = 0;
+            VisioStencilShape reloadedStencil = VisioStencilCatalog.Load(manifest).Get("connected-box");
+            Assert.Equal(3, reloadedStencil.SourceConnectionPoints.Count);
+            Assert.Equal(1.6, reloadedStencil.SourceConnectionPoints[2].X, 6);
+            Assert.Equal(3.2, reloadedStencil.SourceConnectionPoints[2].SourceWidth);
+
+            VisioStencilCatalog withoutConnectionMetadata = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                ExtractConnectionPointMetadata = false,
+                IncludeUnsupportedMasters = true
+            });
+            Assert.Empty(withoutConnectionMetadata.Get("connected-box").SourceConnectionPoints);
+            VisioStencilShape nativeSizedPoints = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                LearnMasterDimensions = false,
+                DefaultWidth = 1,
+                DefaultHeight = 1
+            }).Get("connected-box");
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Connected Stencils");
+            VisioShape shape = page.AddStencilShape(catalog, "connected-box", "node", 3, 4, 6.4, 2.2, "Connected");
+            VisioShape overriddenDefaultShape = page.AddStencilShape(nativeSizedPoints, "native-sized", 8, 4, 6.4, 2.2, "Native sized");
+            document.Save();
+
+            Assert.Equal(3, shape.ConnectionPoints.Count);
+            Assert.Equal(0, shape.ConnectionPoints[0].X, 6);
+            Assert.Equal(1.1, shape.ConnectionPoints[0].Y, 6);
+            Assert.Equal(6.4, shape.ConnectionPoints[1].X, 6);
+            Assert.Equal(1.1, shape.ConnectionPoints[1].Y, 6);
+            Assert.Equal(3.2, shape.ConnectionPoints[2].X, 6);
+            Assert.Equal(2.2, shape.ConnectionPoints[2].Y, 6);
+            Assert.Equal(6.4, overriddenDefaultShape.ConnectionPoints[1].X, 6);
+            Assert.Equal(2.2, overriddenDefaultShape.ConnectionPoints[2].Y, 6);
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedShape = loaded.Pages[0].Shapes.Single(item => item.Id == "node");
+            Assert.Equal(3, loadedShape.ConnectionPoints.Count);
+            VisioStencilProfile profile = loaded.CreateStencilProfile();
+            Assert.Equal(6, profile.TotalConnectionPoints);
+            Assert.Equal(2, profile.ConnectionPointShapeCount);
+        }
+
+        [Fact]
         public void PackageStencilCatalogLoadsFromVstxAndCanIncludeUnsupportedMasters() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vstx");
             CreatePackageWithMasters(packagePath, "Rectangle", "FancyCloud");
@@ -485,6 +758,170 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilCatalogExtractsPreviewImageMetadataFromMasterRelationships() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                Category = "External",
+                IdPrefix = "preview"
+            });
+            VisioStencilShape stencil = catalog.Get("fancy-cloud");
+            VisioStencilCatalog metadataWithoutDimensions = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                LearnMasterDimensions = false
+            });
+            VisioStencilCatalog metadataDisabled = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                ExtractPreviewImageMetadata = false
+            });
+
+            Assert.NotNull(stencil.PreviewImage);
+            Assert.Equal("rIdImage", stencil.PreviewImage!.RelationshipId);
+            Assert.Equal("../media/image1.emf", stencil.PreviewImage.Target);
+            Assert.Equal("image/x-emf", stencil.PreviewImage.ContentType);
+            Assert.Equal(".emf", stencil.PreviewImage.Extension);
+            Assert.Equal(8, stencil.PreviewImage.ByteLength);
+            Assert.Equal(".emf", metadataWithoutDimensions.Get("fancy-cloud").PreviewImage?.Extension);
+            Assert.Null(metadataDisabled.Get("fancy-cloud").PreviewImage);
+
+            VisioStencilPreviewImageData extracted = Assert.Single(VisioStencilPackageCatalog.ExtractPreviewImages(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true
+            }));
+            Assert.Equal("42", extracted.MasterId);
+            Assert.Equal("FancyCloud", extracted.MasterNameU);
+            Assert.Equal("Fancy Cloud", extracted.MasterName);
+            Assert.Equal("42-FancyCloud.emf", extracted.SuggestedFileName);
+            Assert.Equal(new byte[] { 1, 0, 0, 0, 32, 69, 77, 70 }, extracted.Data);
+            VisioStencilPreviewImageData explicitlyExtracted = Assert.Single(VisioStencilPackageCatalog.ExtractPreviewImages(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                ExtractPreviewImageMetadata = false
+            }));
+            Assert.Equal(extracted.Data, explicitlyExtracted.Data);
+
+            string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string extractedPath = Assert.Single(VisioStencilPackageCatalog.ExtractPreviewImagesToDirectory(packagePath, outputDirectory, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true
+            }));
+            Assert.True(File.Exists(extractedPath));
+            Assert.Equal(extracted.Data, File.ReadAllBytes(extractedPath));
+
+            using MemoryStream manifest = new();
+            catalog.Save(manifest);
+            manifest.Position = 0;
+            VisioStencilCatalog reloadedCatalog = VisioStencilCatalog.Load(manifest);
+            Assert.Equal(".emf", reloadedCatalog.Get("fancy-cloud").PreviewImage?.Extension);
+
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Preview Metadata");
+            page.AddStencilShape(catalog, "fancy-cloud", "cloud", 2, 4);
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioInspectionMasterSnapshot master = Assert.Single(loaded.CreateInspectionSnapshot().Masters, item => item.NameU == "FancyCloud");
+            Assert.Equal("rIdImage", master.StencilPreviewImageRelationshipId);
+            Assert.Equal("../media/image1.emf", master.StencilPreviewImageTarget);
+            Assert.Equal("image/x-emf", master.StencilPreviewImageContentType);
+            Assert.Equal(".emf", master.StencilPreviewImageExtension);
+            Assert.Equal(8, master.StencilPreviewImageByteLength);
+
+            VisioStencilProfile profile = loaded.CreateStencilProfile();
+            Assert.Equal(new[] { "image/x-emf" }, profile.StencilPreviewImageContentTypes);
+            Assert.Equal(new[] { ".emf" }, profile.StencilPreviewImageExtensions);
+            VisioStencilUsageProfile usage = Assert.Single(profile.Usages, item => item.Kind == VisioStencilProfileUsageKind.PackageBackedMaster);
+            Assert.Equal("image/x-emf", usage.StencilPreviewImageContentType);
+            Assert.Equal(".emf", usage.StencilPreviewImageExtension);
+        }
+
+        [Fact]
+        public void PackageStencilPreviewGalleryWritesReviewableHtmlIndex() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
+            string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+            VisioStencilPreviewGallery gallery = VisioStencilPackageCatalog.CreatePreviewGallery(
+                packagePath,
+                outputDirectory,
+                new VisioStencilPackageLoadOptions {
+                    IncludeUnsupportedMasters = true
+                },
+                new VisioStencilPreviewGalleryOptions {
+                    Title = "External Preview Review",
+                    PreviewDirectoryName = "assets",
+                    IndexFileName = "gallery.html"
+                });
+
+            VisioStencilPreviewGalleryEntry entry = Assert.Single(gallery.Entries);
+            Assert.Equal(Path.GetFullPath(packagePath), gallery.PackagePath);
+            Assert.Equal(Path.Combine(outputDirectory, "assets"), gallery.PreviewDirectory);
+            Assert.Equal(Path.Combine(outputDirectory, "gallery.html"), gallery.IndexPath);
+            Assert.Equal("assets/42-FancyCloud.emf", entry.RelativePath);
+            Assert.Equal("FancyCloud", entry.Image.MasterNameU);
+            Assert.False(entry.IsBrowserRenderable);
+            Assert.Equal(0, gallery.BrowserRenderableCount);
+            Assert.Equal(0, gallery.ThumbnailCount);
+            Assert.False(entry.HasThumbnail);
+            Assert.True(File.Exists(entry.FilePath));
+            Assert.True(File.Exists(gallery.IndexPath));
+            Assert.Equal(new byte[] { 1, 0, 0, 0, 32, 69, 77, 70 }, File.ReadAllBytes(entry.FilePath));
+
+            string html = File.ReadAllText(gallery.IndexPath!);
+            Assert.Contains("<h1>External Preview Review</h1>", html);
+            Assert.Contains("Fancy Cloud", html);
+            Assert.Contains("image/x-emf", html);
+            Assert.Contains("assets/42-FancyCloud.emf", html);
+            Assert.Contains("<div class=\"fallback\">emf</div>", html);
+        }
+
+        [Fact]
+        public void PackageStencilPreviewGalleryWritesBrowserRenderableThumbnailArtifacts() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lM9sWQAAAABJRU5ErkJggg==");
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud", "png", png);
+            string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+
+            VisioStencilPreviewGallery gallery = VisioStencilPackageCatalog.CreatePreviewGallery(
+                packagePath,
+                outputDirectory,
+                new VisioStencilPackageLoadOptions {
+                    IncludeUnsupportedMasters = true
+                },
+                new VisioStencilPreviewGalleryOptions {
+                    Title = "Renderable Preview Review",
+                    PreviewDirectoryName = "assets",
+                    ThumbnailDirectoryName = "thumbs",
+                    ThumbnailWidth = 180,
+                    ThumbnailHeight = 120
+                });
+
+            VisioStencilPreviewGalleryEntry entry = Assert.Single(gallery.Entries);
+            Assert.True(entry.IsBrowserRenderable);
+            Assert.True(entry.HasThumbnail);
+            Assert.Equal(1, gallery.BrowserRenderableCount);
+            Assert.Equal(1, gallery.ThumbnailCount);
+            Assert.Equal(Path.Combine(outputDirectory, "thumbs"), gallery.ThumbnailDirectory);
+            Assert.Equal("assets/42-FancyCloud.png", entry.RelativePath);
+            Assert.Equal("thumbs/42-FancyCloud.thumbnail.svg", entry.ThumbnailRelativePath);
+            Assert.True(File.Exists(entry.FilePath));
+            Assert.True(File.Exists(entry.ThumbnailFilePath));
+            Assert.Equal(png, File.ReadAllBytes(entry.FilePath));
+
+            string thumbnail = File.ReadAllText(entry.ThumbnailFilePath!);
+            Assert.Contains("width=\"180\"", thumbnail);
+            Assert.Contains("height=\"120\"", thumbnail);
+            Assert.Contains("data:image/png;base64,", thumbnail);
+            Assert.Contains(Convert.ToBase64String(png), thumbnail);
+            Assert.Contains("Fancy Cloud", thumbnail);
+
+            string html = File.ReadAllText(gallery.IndexPath!);
+            Assert.Contains("<strong>1</strong> thumbnails", html);
+            Assert.Contains("thumbs/42-FancyCloud.thumbnail.svg", html);
+            Assert.Contains("assets/42-FancyCloud.png", html);
+        }
+
+        [Fact]
         public void ImportedStencilMastersPreserveExternalMasterArtwork() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
@@ -492,6 +929,7 @@ namespace OfficeIMO.Tests {
                 IncludeUnsupportedMasters = true,
                 Category = "External"
             });
+            Assert.Equal("fancy-cloud", catalog.Get("fancy-cloud").Id);
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
@@ -512,6 +950,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("5", (string?)rootShape.Attribute("ID"));
             Assert.Equal("Group", (string?)rootShape.Attribute("Type"));
             Assert.NotNull(rootShape.Element(ns + "Shapes")?.Element(ns + "Shape"));
+            XElement masterUserSection = masterDocument.Root!.Element(ns + "PageSheet")!.Elements(ns + "Section").Single(section => (string?)section.Attribute("N") == "User");
+            Assert.Equal("1", GetUserCellValue(masterUserSection, ns, "OfficeIMO.PackageBackedMaster"));
+            Assert.Equal("fancy-cloud", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilId));
 
             XDocument pageDocument = XDocument.Load(zip.GetEntry("visio/pages/page1.xml")!.Open());
             XElement pageShape = pageDocument.Root!.Element(ns + "Shapes")!.Element(ns + "Shape")!;
@@ -530,6 +971,28 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(masterRelationships.Root!.Elements(packageRel + "Relationship").FirstOrDefault(element =>
                 (string?)element.Attribute("Id") == "rIdImage" &&
                 ((string?)element.Attribute("Target"))!.Contains("officeimo-master1-rel1.emf", StringComparison.OrdinalIgnoreCase)));
+        }
+
+        [Fact]
+        public void ReplaceMasterImportsPackageMasterWhenNameUAlreadyRegistered() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(packagePath, "Rectangle", "Package Rectangle");
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                Category = "External"
+            });
+            VisioStencilShape stencil = catalog.Get("rectangle");
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            document.RegisterMaster("Rectangle", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "Rectangle" }, "builtin-rectangle");
+            VisioPage page = document.AddPage("Replace");
+            VisioShape shape = page.AddRectangle(2, 4, 1, 1, "Shape");
+
+            page.ReplaceMaster(shape, stencil);
+
+            Assert.NotNull(shape.Master);
+            Assert.True(shape.Master!.IsPackageBacked);
+            Assert.Equal(Path.GetFullPath(packagePath), shape.Master.StencilSourcePackagePath);
+            Assert.Equal(stencil.Id, shape.GetUserCellValue(VisioSemanticUserCells.StencilId));
         }
 
         [Fact]
@@ -578,6 +1041,21 @@ namespace OfficeIMO.Tests {
             Assert.Contains("not-here", exception.Message);
         }
 
+        private static string? GetUserCellValue(VisioShape shape, string name) {
+            return shape.UserCells
+                .FirstOrDefault(cell => string.Equals(cell.Name, name, StringComparison.OrdinalIgnoreCase))
+                ?.Value;
+        }
+
+        private static string? GetUserCellValue(XElement userSection, XNamespace ns, string name) {
+            return userSection.Elements(ns + "Row")
+                .FirstOrDefault(row => string.Equals((string?)row.Attribute("N"), name, StringComparison.OrdinalIgnoreCase))
+                ?.Elements(ns + "Cell")
+                .FirstOrDefault(cell => string.Equals((string?)cell.Attribute("N"), "Value", StringComparison.OrdinalIgnoreCase))
+                ?.Attribute("V")
+                ?.Value;
+        }
+
         private static void CreatePackageWithMasters(string path, params string[] masterNames) {
             CreatePackageWithMasterMetadata(path, masterNames.Select(name => (name, (string?)null)).ToArray());
         }
@@ -605,10 +1083,12 @@ namespace OfficeIMO.Tests {
             writer.Write(document.Declaration + Environment.NewLine + document.ToString(SaveOptions.DisableFormatting));
         }
 
-        private static void CreatePackageWithRawGroupMaster(string path, string nameU, string name) {
+        private static void CreatePackageWithRawGroupMaster(string path, string nameU, string name, string imageExtension = "emf", byte[]? imageData = null) {
             const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
             const string officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
             const string packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+            string normalizedExtension = imageExtension.TrimStart('.');
+            byte[] media = imageData ?? new byte[] { 1, 0, 0, 0, 32, 69, 77, 70 };
 
             using ZipArchive zip = ZipFile.Open(path, ZipArchiveMode.Create);
             XNamespace ns = visioNamespace;
@@ -704,12 +1184,11 @@ namespace OfficeIMO.Tests {
                 new XElement(packageRel + "Relationship",
                     new XAttribute("Id", "rIdImage"),
                     new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"),
-                    new XAttribute("Target", "../media/image1.emf")));
+                    new XAttribute("Target", "../media/image1." + normalizedExtension)));
             WriteZipXml(zip, "visio/masters/_rels/master42.xml.rels", new XDocument(masterRelRoot));
 
-            ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1.emf");
+            ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1." + normalizedExtension);
             using Stream mediaStream = mediaEntry.Open();
-            byte[] media = { 1, 0, 0, 0, 32, 69, 77, 70 };
             mediaStream.Write(media, 0, media.Length);
         }
 
@@ -750,6 +1229,55 @@ namespace OfficeIMO.Tests {
                 XDocument masterDocument = new(new XElement(ns + "MasterContents", new XElement(ns + "Shapes", shape)));
                 WriteZipXml(zip, $"visio/masters/master{index + 1}.xml", masterDocument);
             }
+        }
+
+        private static void CreatePackageWithMasterConnectionPoints(string path, string nameU, string name) {
+            const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
+            const string officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+            const string packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+            using ZipArchive zip = ZipFile.Open(path, ZipArchiveMode.Create);
+            XNamespace ns = visioNamespace;
+            XNamespace rel = officeRelationshipNamespace;
+            XElement mastersRoot = new(ns + "Masters",
+                new XElement(ns + "Master",
+                    new XAttribute("ID", "1"),
+                    new XAttribute("Name", name),
+                    new XAttribute("NameU", nameU),
+                    new XElement(ns + "Rel", new XAttribute(rel + "id", "rId1"))));
+            WriteZipXml(zip, "visio/masters/masters.xml", new XDocument(mastersRoot));
+
+            XNamespace packageRel = packageRelationshipNamespace;
+            XElement relationshipsRoot = new(packageRel + "Relationships",
+                new XElement(packageRel + "Relationship",
+                    new XAttribute("Id", "rId1"),
+                    new XAttribute("Type", officeRelationshipNamespace + "/master"),
+                    new XAttribute("Target", "master1.xml")));
+            WriteZipXml(zip, "visio/masters/_rels/masters.xml.rels", new XDocument(relationshipsRoot));
+
+            XElement shape = new(ns + "Shape",
+                new XAttribute("ID", "1"),
+                new XAttribute("Name", name),
+                new XAttribute("NameU", nameU),
+                DimensionCell(ns, "Width", 3.2, null),
+                DimensionCell(ns, "Height", 1.1, null),
+                new XElement(ns + "Section",
+                    new XAttribute("N", "Connection"),
+                    ConnectionRow(ns, 0, 0, 0.55, 1, 0),
+                    ConnectionRow(ns, 1, 3.2, 0.55, -1, 0),
+                    ConnectionRow(ns, 2, 1.6, 1.1, 0, -1)));
+            XDocument masterDocument = new(new XElement(ns + "MasterContents", new XElement(ns + "Shapes", shape)));
+            WriteZipXml(zip, "visio/masters/master1.xml", masterDocument);
+        }
+
+        private static XElement ConnectionRow(XNamespace ns, int index, double x, double y, double dirX, double dirY) {
+            return new XElement(ns + "Row",
+                new XAttribute("T", "Connection"),
+                new XAttribute("IX", index),
+                DimensionCell(ns, "X", x, null),
+                DimensionCell(ns, "Y", y, null),
+                DimensionCell(ns, "DirX", dirX, null),
+                DimensionCell(ns, "DirY", dirY, null));
         }
 
         private static XElement DimensionCell(XNamespace ns, string name, double value, string? unit) {

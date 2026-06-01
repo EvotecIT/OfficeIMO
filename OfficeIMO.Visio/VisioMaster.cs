@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
@@ -33,6 +34,91 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public VisioShape Shape { get; }
 
+        /// <summary>
+        /// Gets the OfficeIMO stencil identifier associated with this master, when known.
+        /// </summary>
+        public string? StencilId { get; internal set; }
+
+        /// <summary>
+        /// Gets the OfficeIMO stencil display name associated with this master, when known.
+        /// </summary>
+        public string? StencilName { get; internal set; }
+
+        /// <summary>
+        /// Gets the OfficeIMO stencil category associated with this master, when known.
+        /// </summary>
+        public string? StencilCategory { get; internal set; }
+
+        /// <summary>
+        /// Gets the stencil catalog name associated with this master, when known.
+        /// </summary>
+        public string? StencilCatalogName { get; internal set; }
+
+        /// <summary>
+        /// Gets the source package path for package-backed stencil masters, when known.
+        /// </summary>
+        public string? StencilSourcePackagePath { get; internal set; }
+
+        /// <summary>
+        /// Gets searchable stencil keywords associated with this master.
+        /// </summary>
+        public IReadOnlyList<string> StencilKeywords { get; internal set; } = Enumerable.Empty<string>().ToList().AsReadOnly();
+
+        /// <summary>
+        /// Gets stencil lookup aliases associated with this master.
+        /// </summary>
+        public IReadOnlyList<string> StencilAliases { get; internal set; } = Enumerable.Empty<string>().ToList().AsReadOnly();
+
+        /// <summary>
+        /// Gets semantic stencil tags associated with this master.
+        /// </summary>
+        public IReadOnlyList<string> StencilTags { get; internal set; } = Enumerable.Empty<string>().ToList().AsReadOnly();
+
+        /// <summary>
+        /// Gets the preview icon master universal name associated with this stencil, when known.
+        /// </summary>
+        public string? StencilIconNameU { get; internal set; }
+
+        /// <summary>
+        /// Gets the source stencil default width, before caller placement scaling, when known.
+        /// </summary>
+        public double? StencilDefaultWidth { get; internal set; }
+
+        /// <summary>
+        /// Gets the source stencil default height, before caller placement scaling, when known.
+        /// </summary>
+        public double? StencilDefaultHeight { get; internal set; }
+
+        /// <summary>
+        /// Gets the unit for the source stencil default size, when known.
+        /// </summary>
+        public VisioMeasurementUnit? StencilDefaultUnit { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image relationship id, when known.
+        /// </summary>
+        public string? StencilPreviewImageRelationshipId { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image relationship target, when known.
+        /// </summary>
+        public string? StencilPreviewImageTarget { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image content type, when known.
+        /// </summary>
+        public string? StencilPreviewImageContentType { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image extension, when known.
+        /// </summary>
+        public string? StencilPreviewImageExtension { get; internal set; }
+
+        /// <summary>
+        /// Gets the source preview image byte length, when known.
+        /// </summary>
+        public long? StencilPreviewImageByteLength { get; internal set; }
+
         internal IList<XAttribute> PreservedMasterAttributes { get; } = new List<XAttribute>();
 
         internal IList<XAttribute> PreservedPageSheetAttributes { get; } = new List<XAttribute>();
@@ -56,6 +142,8 @@ namespace OfficeIMO.Visio {
         internal IList<XElement> PreservedMastersRootElements { get; } = new List<XElement>();
 
         internal XDocument? RawMasterContentXml { get; set; }
+
+        internal bool IsPackageBacked { get; set; }
 
         internal IList<VisioAssets.MasterRelationshipContent> RawMasterRelationships { get; } = new List<VisioAssets.MasterRelationshipContent>();
     }

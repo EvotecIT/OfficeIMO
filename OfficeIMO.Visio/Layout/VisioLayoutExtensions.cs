@@ -563,7 +563,12 @@ namespace OfficeIMO.Visio {
         /// <param name="maxAttempts">Number of search rings to try around the current label position.</param>
         /// <param name="avoidShapes">Whether labels should avoid unrelated non-container shapes.</param>
         /// <param name="avoidLabels">Whether labels should avoid other connector labels.</param>
-        public static VisioPage ResolveConnectorLabelOverlaps(this VisioPage page, double step = 0.18D, int maxAttempts = 12, bool avoidShapes = true, bool avoidLabels = true) {
+        /// <param name="preferEndpointZones">Whether labels should prefer common endpoint zones and avoid unrelated background zones.</param>
+        /// <param name="avoidConnectorPaths">Whether labels should avoid unrelated connector paths.</param>
+        /// <param name="positionStep">Connector path-position search step, from 0.0 to 1.0.</param>
+        /// <param name="maxPositionShifts">Number of positive and negative connector path-position shifts to try.</param>
+        /// <param name="optimizationPasses">Number of whole-page label optimization passes to run after the initial placement sweep.</param>
+        public static VisioPage ResolveConnectorLabelOverlaps(this VisioPage page, double step = 0.18D, int maxAttempts = 12, bool avoidShapes = true, bool avoidLabels = true, bool preferEndpointZones = false, bool avoidConnectorPaths = true, double positionStep = 0.08D, int maxPositionShifts = 4, int optimizationPasses = 1) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
@@ -576,8 +581,21 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentOutOfRangeException(nameof(maxAttempts), "Attempt count cannot be negative.");
             }
 
+            if (positionStep <= 0D || positionStep > 1D || double.IsNaN(positionStep) || double.IsInfinity(positionStep)) {
+                throw new ArgumentOutOfRangeException(nameof(positionStep), "Position step must be a positive finite value no greater than 1.");
+            }
+
+            if (maxPositionShifts < 0) {
+                throw new ArgumentOutOfRangeException(nameof(maxPositionShifts), "Position shift count cannot be negative.");
+            }
+
+            if (optimizationPasses < 1) {
+                throw new ArgumentOutOfRangeException(nameof(optimizationPasses), "Optimization pass count must be at least one.");
+            }
+
             IReadOnlyList<VisioShape> shapes = page.Shapes.ToList();
             Dictionary<VisioShape, VisioShapeBounds> shapeBounds = shapes.ToDictionary(shape => shape, shape => shape.GetShapeBounds());
+            Dictionary<VisioConnector, List<Point>> connectorPaths = BuildConnectorPaths(page);
             List<ConnectorLabelBounds> placedLabels = new();
 
             foreach (VisioConnector connector in page.Connectors) {
@@ -586,13 +604,13 @@ namespace OfficeIMO.Visio {
                     continue;
                 }
 
-                List<Point> path = BuildConnectorPath(connector);
+                List<Point> path = connectorPaths[connector];
                 if (!TryGetConnectorLabelBounds(connector, path, placement, out VisioShapeBounds currentBounds)) {
                     continue;
                 }
 
-                CandidateScore currentScore = ScoreConnectorLabel(page, connector, currentBounds, shapes, shapeBounds, placedLabels, avoidShapes, avoidLabels);
-                if (!currentScore.HasConflict) {
+                CandidateScore currentScore = ScoreConnectorLabel(page, connector, currentBounds, shapes, shapeBounds, placedLabels, connectorPaths, avoidShapes, avoidLabels, preferEndpointZones, avoidConnectorPaths);
+                if (!currentScore.HasImprovementOpportunity) {
                     placedLabels.Add(new ConnectorLabelBounds(connector, currentBounds));
                     continue;
                 }
@@ -601,20 +619,20 @@ namespace OfficeIMO.Visio {
                 VisioShapeBounds bestBounds = currentBounds;
                 CandidateScore bestScore = currentScore;
 
-                foreach (LabelCandidate candidate in EnumerateLabelCandidates(maxAttempts, step)) {
+                foreach (LabelCandidate candidate in EnumerateLabelCandidates(maxAttempts, step, maxPositionShifts, positionStep)) {
                     VisioConnectorLabelPlacement candidatePlacement = CreateCandidatePlacement(placement, candidate);
                     if (!TryGetConnectorLabelBounds(connector, path, candidatePlacement, out VisioShapeBounds candidateBounds)) {
                         continue;
                     }
 
-                    CandidateScore candidateScore = ScoreConnectorLabel(page, connector, candidateBounds, shapes, shapeBounds, placedLabels, avoidShapes, avoidLabels);
+                    CandidateScore candidateScore = ScoreConnectorLabel(page, connector, candidateBounds, shapes, shapeBounds, placedLabels, connectorPaths, avoidShapes, avoidLabels, preferEndpointZones, avoidConnectorPaths);
                     if (candidateScore.IsBetterThan(bestScore)) {
                         bestPlacement = candidatePlacement;
                         bestBounds = candidateBounds;
                         bestScore = candidateScore;
                     }
 
-                    if (!candidateScore.HasConflict) {
+                    if (!candidateScore.HasImprovementOpportunity) {
                         break;
                     }
                 }
@@ -623,7 +641,179 @@ namespace OfficeIMO.Visio {
                 placedLabels.Add(new ConnectorLabelBounds(connector, bestBounds));
             }
 
+            if (avoidLabels && page.Connectors.Count > 1) {
+                ResolveConnectorLabelGlobalOverlaps(page, step, maxAttempts, positionStep, maxPositionShifts, optimizationPasses, shapes, shapeBounds, connectorPaths, avoidShapes, preferEndpointZones, avoidConnectorPaths);
+            }
+
             return page;
+        }
+
+        private static void ResolveConnectorLabelGlobalOverlaps(
+            VisioPage page,
+            double step,
+            int maxAttempts,
+            double positionStep,
+            int maxPositionShifts,
+            int optimizationPasses,
+            IReadOnlyList<VisioShape> shapes,
+            IReadOnlyDictionary<VisioShape, VisioShapeBounds> shapeBounds,
+            IReadOnlyDictionary<VisioConnector, List<Point>> connectorPaths,
+            bool avoidShapes,
+            bool preferEndpointZones,
+            bool avoidConnectorPaths) {
+            for (int pass = 0; pass < optimizationPasses; pass++) {
+                List<ConnectorLabelBounds> labelBounds = GetConnectorLabelBounds(page);
+                if (labelBounds.Count < 2) {
+                    return;
+                }
+
+                CandidateScore before = ScorePageConnectorLabels(page, labelBounds, shapes, shapeBounds, connectorPaths, avoidShapes, preferEndpointZones, avoidConnectorPaths);
+                IReadOnlyList<VisioConnector> connectors = optimizationPasses > 1
+                    ? OrderConnectorsForLabelCleanup(page, labelBounds, shapes, shapeBounds, connectorPaths, avoidShapes, preferEndpointZones, avoidConnectorPaths)
+                    : page.Connectors.ToList();
+                foreach (VisioConnector connector in connectors) {
+                    VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+                    if (placement == null || string.IsNullOrWhiteSpace(connector.Label)) {
+                        continue;
+                    }
+
+                    List<Point> path = connectorPaths[connector];
+                    if (!TryGetConnectorLabelBounds(connector, path, placement, out VisioShapeBounds currentBounds)) {
+                        continue;
+                    }
+
+                    List<ConnectorLabelBounds> otherLabels = labelBounds
+                        .Where(label => !ReferenceEquals(label.Connector, connector))
+                        .ToList();
+                    CandidateScore currentScore = ScoreConnectorLabel(page, connector, currentBounds, shapes, shapeBounds, otherLabels, connectorPaths, avoidShapes, avoidLabels: true, preferEndpointZones: preferEndpointZones, avoidConnectorPaths: avoidConnectorPaths);
+                    if (!currentScore.HasImprovementOpportunity) {
+                        continue;
+                    }
+
+                    VisioConnectorLabelPlacement bestPlacement = placement.Clone();
+                    VisioShapeBounds bestBounds = currentBounds;
+                    CandidateScore bestScore = currentScore;
+                    foreach (LabelCandidate candidate in EnumerateLabelCandidates(maxAttempts, step, maxPositionShifts, positionStep)) {
+                        VisioConnectorLabelPlacement candidatePlacement = CreateCandidatePlacement(placement, candidate);
+                        if (!TryGetConnectorLabelBounds(connector, path, candidatePlacement, out VisioShapeBounds candidateBounds)) {
+                            continue;
+                        }
+
+                        CandidateScore candidateScore = ScoreConnectorLabel(page, connector, candidateBounds, shapes, shapeBounds, otherLabels, connectorPaths, avoidShapes, avoidLabels: true, preferEndpointZones: preferEndpointZones, avoidConnectorPaths: avoidConnectorPaths);
+                        if (candidateScore.IsBetterThan(bestScore)) {
+                            bestPlacement = candidatePlacement;
+                            bestBounds = candidateBounds;
+                            bestScore = candidateScore;
+                        }
+
+                        if (!candidateScore.HasImprovementOpportunity) {
+                            break;
+                        }
+                    }
+
+                    connector.LabelPlacement = bestPlacement;
+                    labelBounds = labelBounds
+                        .Where(label => !ReferenceEquals(label.Connector, connector))
+                        .Concat(new[] { new ConnectorLabelBounds(connector, bestBounds) })
+                        .ToList();
+                }
+
+                CandidateScore after = ScorePageConnectorLabels(page, GetConnectorLabelBounds(page), shapes, shapeBounds, connectorPaths, avoidShapes, preferEndpointZones, avoidConnectorPaths);
+                if (!after.HasImprovementOpportunity || !after.IsBetterThan(before)) {
+                    break;
+                }
+            }
+        }
+
+        private static IReadOnlyList<VisioConnector> OrderConnectorsForLabelCleanup(
+            VisioPage page,
+            IReadOnlyList<ConnectorLabelBounds> labelBounds,
+            IReadOnlyList<VisioShape> shapes,
+            IReadOnlyDictionary<VisioShape, VisioShapeBounds> shapeBounds,
+            IReadOnlyDictionary<VisioConnector, List<Point>> connectorPaths,
+            bool avoidShapes,
+            bool preferEndpointZones,
+            bool avoidConnectorPaths) {
+            List<ConnectorLabelWorkItem> workItems = new();
+            int index = 0;
+            foreach (VisioConnector connector in page.Connectors) {
+                VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+                if (placement == null || string.IsNullOrWhiteSpace(connector.Label)) {
+                    continue;
+                }
+
+                if (!connectorPaths.TryGetValue(connector, out List<Point>? path) ||
+                    !TryGetConnectorLabelBounds(connector, path, placement, out VisioShapeBounds bounds)) {
+                    continue;
+                }
+
+                List<ConnectorLabelBounds> otherLabels = labelBounds
+                    .Where(label => !ReferenceEquals(label.Connector, connector))
+                    .ToList();
+                CandidateScore score = ScoreConnectorLabel(page, connector, bounds, shapes, shapeBounds, otherLabels, connectorPaths, avoidShapes, avoidLabels: true, preferEndpointZones: preferEndpointZones, avoidConnectorPaths: avoidConnectorPaths);
+                workItems.Add(new ConnectorLabelWorkItem(connector, score, index++));
+            }
+
+            return workItems
+                .OrderByDescending(item => item.Score.TotalPenalty)
+                .ThenBy(item => item.Index)
+                .Select(item => item.Connector)
+                .ToList();
+        }
+
+        private static CandidateScore ScorePageConnectorLabels(
+            VisioPage page,
+            IReadOnlyList<ConnectorLabelBounds> labelBounds,
+            IReadOnlyList<VisioShape> shapes,
+            IReadOnlyDictionary<VisioShape, VisioShapeBounds> shapeBounds,
+            IReadOnlyDictionary<VisioConnector, List<Point>> connectorPaths,
+            bool avoidShapes,
+            bool preferEndpointZones,
+            bool avoidConnectorPaths) {
+            double pagePenalty = 0D;
+            double shapeOverlap = 0D;
+            double labelOverlap = 0D;
+            double connectorPathOverlap = 0D;
+            double zonePenalty = 0D;
+
+            foreach (ConnectorLabelBounds label in labelBounds) {
+                List<ConnectorLabelBounds> otherLabels = labelBounds
+                    .Where(other => !ReferenceEquals(other.Connector, label.Connector))
+                    .ToList();
+                CandidateScore score = ScoreConnectorLabel(page, label.Connector, label.Bounds, shapes, shapeBounds, otherLabels, connectorPaths, avoidShapes, avoidLabels: true, preferEndpointZones: preferEndpointZones, avoidConnectorPaths: avoidConnectorPaths);
+                pagePenalty += score.PagePenalty;
+                shapeOverlap += score.ShapeOverlap;
+                labelOverlap += score.LabelOverlap;
+                connectorPathOverlap += score.ConnectorPathOverlap;
+                zonePenalty += score.ZonePenalty;
+            }
+
+            return new CandidateScore(pagePenalty, shapeOverlap, labelOverlap, connectorPathOverlap, zonePenalty);
+        }
+
+        private static List<ConnectorLabelBounds> GetConnectorLabelBounds(VisioPage page) {
+            List<ConnectorLabelBounds> labels = new();
+            foreach (VisioConnector connector in page.Connectors) {
+                if (string.IsNullOrWhiteSpace(connector.Label)) {
+                    continue;
+                }
+
+                List<Point> path = BuildConnectorPath(connector);
+                if (TryGetConnectorLabelBounds(connector, path, out VisioShapeBounds bounds)) {
+                    labels.Add(new ConnectorLabelBounds(connector, bounds));
+                }
+            }
+
+            return labels;
+        }
+
+        private static Dictionary<VisioConnector, List<Point>> BuildConnectorPaths(VisioPage page) {
+            Dictionary<VisioConnector, List<Point>> paths = new();
+            foreach (VisioConnector connector in page.Connectors) {
+                paths[connector] = BuildConnectorPath(connector);
+            }
+
+            return paths;
         }
 
         private static void ValidateSelectionLayoutOptions(VisioSelectionLayoutOptions options) {
@@ -848,18 +1038,24 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
-        private static IEnumerable<LabelCandidate> EnumerateLabelCandidates(int maxAttempts, double step) {
-            yield return new LabelCandidate(0D, 0D);
+        private static IEnumerable<LabelCandidate> EnumerateLabelCandidates(int maxAttempts, double step, int maxPositionShifts, double positionStep) {
+            yield return new LabelCandidate(0D, 0D, 0D);
+            for (int shift = 1; shift <= maxPositionShifts; shift++) {
+                double delta = shift * positionStep;
+                yield return new LabelCandidate(0D, 0D, delta);
+                yield return new LabelCandidate(0D, 0D, -delta);
+            }
+
             for (int ring = 1; ring <= maxAttempts; ring++) {
                 double distance = ring * step;
-                yield return new LabelCandidate(0D, distance);
-                yield return new LabelCandidate(0D, -distance);
-                yield return new LabelCandidate(distance, 0D);
-                yield return new LabelCandidate(-distance, 0D);
-                yield return new LabelCandidate(distance, distance);
-                yield return new LabelCandidate(-distance, distance);
-                yield return new LabelCandidate(distance, -distance);
-                yield return new LabelCandidate(-distance, -distance);
+                yield return new LabelCandidate(0D, distance, 0D);
+                yield return new LabelCandidate(0D, -distance, 0D);
+                yield return new LabelCandidate(distance, 0D, 0D);
+                yield return new LabelCandidate(-distance, 0D, 0D);
+                yield return new LabelCandidate(distance, distance, 0D);
+                yield return new LabelCandidate(-distance, distance, 0D);
+                yield return new LabelCandidate(distance, -distance, 0D);
+                yield return new LabelCandidate(-distance, -distance, 0D);
             }
         }
 
@@ -884,6 +1080,7 @@ namespace OfficeIMO.Visio {
                 placement.AbsolutePinX += candidate.OffsetX;
                 placement.AbsolutePinY += candidate.OffsetY;
             } else {
+                placement.Position = VisioConnectorLabelPlacement.ClampPosition(placement.Position + candidate.PositionDelta);
                 placement.OffsetX += candidate.OffsetX;
                 placement.OffsetY += candidate.OffsetY;
             }
@@ -898,8 +1095,11 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<VisioShape> shapes,
             IReadOnlyDictionary<VisioShape, VisioShapeBounds> shapeBounds,
             IReadOnlyList<ConnectorLabelBounds> placedLabels,
+            IReadOnlyDictionary<VisioConnector, List<Point>> connectorPaths,
             bool avoidShapes,
-            bool avoidLabels) {
+            bool avoidLabels,
+            bool preferEndpointZones,
+            bool avoidConnectorPaths) {
             double pagePenalty = OutsidePageAmount(labelBounds, page);
             double shapeOverlap = 0D;
             if (avoidShapes) {
@@ -908,7 +1108,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    if (shape.IsContainer || shape.IsBackgroundSurface) {
+                    if (shape.IsContainer || shape.IsBackgroundSurface || VisioSemanticUserCells.IsGeneratedDiagramAdornment(shape)) {
                         continue;
                     }
 
@@ -921,6 +1121,9 @@ namespace OfficeIMO.Visio {
                 }
             }
 
+            double zonePenalty = preferEndpointZones
+                ? ScoreConnectorLabelZonePreference(connector, labelBounds, shapes, shapeBounds)
+                : 0D;
             double labelOverlap = 0D;
             if (avoidLabels) {
                 foreach (ConnectorLabelBounds placedLabel in placedLabels) {
@@ -928,7 +1131,73 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            return new CandidateScore(pagePenalty, shapeOverlap, labelOverlap);
+            double connectorPathOverlap = avoidConnectorPaths
+                ? ScoreConnectorPathOverlap(connector, labelBounds, connectorPaths)
+                : 0D;
+
+            return new CandidateScore(pagePenalty, shapeOverlap, labelOverlap, connectorPathOverlap, zonePenalty);
+        }
+
+        private static double ScoreConnectorPathOverlap(
+            VisioConnector connector,
+            VisioShapeBounds labelBounds,
+            IReadOnlyDictionary<VisioConnector, List<Point>> connectorPaths) {
+            double overlap = 0D;
+            foreach (KeyValuePair<VisioConnector, List<Point>> entry in connectorPaths) {
+                if (ReferenceEquals(entry.Key, connector)) {
+                    continue;
+                }
+
+                IReadOnlyList<Point> path = entry.Value;
+                for (int i = 1; i < path.Count; i++) {
+                    if (SegmentIntersectsBounds(path[i - 1], path[i], labelBounds)) {
+                        overlap++;
+                    }
+                }
+            }
+
+            return overlap;
+        }
+
+        private static double ScoreConnectorLabelZonePreference(
+            VisioConnector connector,
+            VisioShapeBounds labelBounds,
+            IReadOnlyList<VisioShape> shapes,
+            IReadOnlyDictionary<VisioShape, VisioShapeBounds> shapeBounds) {
+            VisioShapeBounds fromBounds = connector.From.GetShapeBounds();
+            VisioShapeBounds toBounds = connector.To.GetShapeBounds();
+            List<VisioShapeBounds> commonEndpointZones = new();
+            double unrelatedZoneOverlap = 0D;
+
+            foreach (VisioShape shape in shapes) {
+                if (!shape.IsBackgroundSurface) {
+                    continue;
+                }
+
+                VisioShapeBounds bounds = shapeBounds[shape];
+                if (bounds.IsEmpty) {
+                    continue;
+                }
+
+                bool containsFrom = Contains(bounds, fromBounds);
+                bool containsTo = Contains(bounds, toBounds);
+                if (containsFrom && containsTo) {
+                    commonEndpointZones.Add(bounds);
+                    continue;
+                }
+
+                if (!containsFrom && !containsTo) {
+                    unrelatedZoneOverlap += OverlapArea(labelBounds, bounds);
+                }
+            }
+
+            double commonZonePenalty = 0D;
+            if (commonEndpointZones.Count > 0) {
+                commonZonePenalty = commonEndpointZones
+                    .Min(zone => OutsideContainerAmount(labelBounds, zone));
+            }
+
+            return unrelatedZoneOverlap + commonZonePenalty;
         }
 
         private static double OutsidePageAmount(VisioShapeBounds bounds, VisioPage page) {
@@ -941,6 +1210,74 @@ namespace OfficeIMO.Visio {
             double right = Math.Max(0D, bounds.Right - page.Width);
             double top = Math.Max(0D, bounds.Top - page.Height);
             return left + bottom + right + top;
+        }
+
+        private static double OutsideContainerAmount(VisioShapeBounds inner, VisioShapeBounds outer) {
+            if (inner.IsEmpty || outer.IsEmpty) {
+                return 0D;
+            }
+
+            double left = Math.Max(0D, outer.Left - inner.Left);
+            double bottom = Math.Max(0D, outer.Bottom - inner.Bottom);
+            double right = Math.Max(0D, inner.Right - outer.Right);
+            double top = Math.Max(0D, inner.Top - outer.Top);
+            return left + bottom + right + top;
+        }
+
+        private static bool SegmentIntersectsBounds(Point a, Point b, VisioShapeBounds bounds) {
+            if (bounds.IsEmpty) {
+                return false;
+            }
+
+            if (PointInside(a, bounds) || PointInside(b, bounds)) {
+                return true;
+            }
+
+            Point bottomLeft = new(bounds.Left, bounds.Bottom);
+            Point bottomRight = new(bounds.Right, bounds.Bottom);
+            Point topLeft = new(bounds.Left, bounds.Top);
+            Point topRight = new(bounds.Right, bounds.Top);
+
+            return SegmentsIntersect(a, b, bottomLeft, bottomRight) ||
+                   SegmentsIntersect(a, b, bottomRight, topRight) ||
+                   SegmentsIntersect(a, b, topRight, topLeft) ||
+                   SegmentsIntersect(a, b, topLeft, bottomLeft);
+        }
+
+        private static bool PointInside(Point point, VisioShapeBounds bounds) {
+            return point.X > bounds.Left && point.X < bounds.Right &&
+                   point.Y > bounds.Bottom && point.Y < bounds.Top;
+        }
+
+        private static bool SegmentsIntersect(Point p1, Point p2, Point q1, Point q2) {
+            double o1 = Orientation(p1, p2, q1);
+            double o2 = Orientation(p1, p2, q2);
+            double o3 = Orientation(q1, q2, p1);
+            double o4 = Orientation(q1, q2, p2);
+
+            if (o1 * o2 < 0D && o3 * o4 < 0D) {
+                return true;
+            }
+
+            return IsZero(o1) && OnSegment(p1, q1, p2) ||
+                   IsZero(o2) && OnSegment(p1, q2, p2) ||
+                   IsZero(o3) && OnSegment(q1, p1, q2) ||
+                   IsZero(o4) && OnSegment(q1, p2, q2);
+        }
+
+        private static double Orientation(Point a, Point b, Point c) {
+            return ((b.X - a.X) * (c.Y - a.Y)) - ((b.Y - a.Y) * (c.X - a.X));
+        }
+
+        private static bool OnSegment(Point a, Point b, Point c) {
+            return b.X >= Math.Min(a.X, c.X) - 1e-9 &&
+                   b.X <= Math.Max(a.X, c.X) + 1e-9 &&
+                   b.Y >= Math.Min(a.Y, c.Y) - 1e-9 &&
+                   b.Y <= Math.Max(a.Y, c.Y) + 1e-9;
+        }
+
+        private static bool IsZero(double value) {
+            return Math.Abs(value) < 1e-9;
         }
 
         private static Point ResolvePathPoint(IReadOnlyList<Point> points, double position) {
@@ -1161,14 +1498,17 @@ namespace OfficeIMO.Visio {
         }
 
         private readonly struct LabelCandidate {
-            public LabelCandidate(double offsetX, double offsetY) {
+            public LabelCandidate(double offsetX, double offsetY, double positionDelta) {
                 OffsetX = offsetX;
                 OffsetY = offsetY;
+                PositionDelta = positionDelta;
             }
 
             public double OffsetX { get; }
 
             public double OffsetY { get; }
+
+            public double PositionDelta { get; }
         }
 
         private readonly struct ShapeCandidate {
@@ -1193,11 +1533,27 @@ namespace OfficeIMO.Visio {
             public VisioShapeBounds Bounds { get; }
         }
 
+        private readonly struct ConnectorLabelWorkItem {
+            public ConnectorLabelWorkItem(VisioConnector connector, CandidateScore score, int index) {
+                Connector = connector;
+                Score = score;
+                Index = index;
+            }
+
+            public VisioConnector Connector { get; }
+
+            public CandidateScore Score { get; }
+
+            public int Index { get; }
+        }
+
         private readonly struct CandidateScore {
-            public CandidateScore(double pagePenalty, double shapeOverlap, double labelOverlap) {
+            public CandidateScore(double pagePenalty, double shapeOverlap, double labelOverlap, double connectorPathOverlap, double zonePenalty) {
                 PagePenalty = pagePenalty;
                 ShapeOverlap = shapeOverlap;
                 LabelOverlap = labelOverlap;
+                ConnectorPathOverlap = connectorPathOverlap;
+                ZonePenalty = zonePenalty;
             }
 
             public double PagePenalty { get; }
@@ -1206,7 +1562,15 @@ namespace OfficeIMO.Visio {
 
             public double LabelOverlap { get; }
 
-            public bool HasConflict => PagePenalty > 1e-9 || ShapeOverlap > 1e-9 || LabelOverlap > 1e-9;
+            public double ConnectorPathOverlap { get; }
+
+            public double ZonePenalty { get; }
+
+            public double TotalPenalty => PagePenalty + ShapeOverlap + LabelOverlap + ConnectorPathOverlap + ZonePenalty;
+
+            public bool HasConflict => PagePenalty > 1e-9 || ShapeOverlap > 1e-9 || LabelOverlap > 1e-9 || ConnectorPathOverlap > 1e-9;
+
+            public bool HasImprovementOpportunity => HasConflict || ZonePenalty > 1e-9;
 
             public bool IsBetterThan(CandidateScore other) {
                 if (PagePenalty < other.PagePenalty - 1e-9) {
@@ -1225,7 +1589,23 @@ namespace OfficeIMO.Visio {
                     return false;
                 }
 
-                return LabelOverlap < other.LabelOverlap - 1e-9;
+                if (LabelOverlap < other.LabelOverlap - 1e-9) {
+                    return true;
+                }
+
+                if (LabelOverlap > other.LabelOverlap + 1e-9) {
+                    return false;
+                }
+
+                if (ConnectorPathOverlap < other.ConnectorPathOverlap - 1e-9) {
+                    return true;
+                }
+
+                if (ConnectorPathOverlap > other.ConnectorPathOverlap + 1e-9) {
+                    return false;
+                }
+
+                return ZonePenalty < other.ZonePenalty - 1e-9;
             }
         }
     }

@@ -178,6 +178,23 @@ namespace OfficeIMO.Visio {
         }
 
         /// <summary>
+        /// Applies a reusable Shape Data schema on every selected connector.
+        /// </summary>
+        /// <param name="schema">Shape Data schema to apply.</param>
+        /// <param name="overwriteValues">Whether schema defaults should replace existing values.</param>
+        public VisioConnectorSelection ShapeData(VisioShapeDataSchema schema, bool overwriteValues = false) {
+            if (schema == null) {
+                throw new ArgumentNullException(nameof(schema));
+            }
+
+            foreach (VisioConnector connector in _connectors) {
+                schema.ApplyTo(connector, overwriteValues);
+            }
+
+            return this;
+        }
+
+        /// <summary>
         /// Configures protection for every selected connector.
         /// </summary>
         /// <param name="configure">Protection configuration delegate.</param>

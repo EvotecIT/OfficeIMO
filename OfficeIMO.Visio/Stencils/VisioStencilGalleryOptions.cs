@@ -76,6 +76,11 @@ namespace OfficeIMO.Visio.Stencils {
         public bool ShowCategory { get; set; } = true;
 
         /// <summary>
+        /// Gets or sets whether each placed stencil preview should receive visible Shape Data rows for catalog review.
+        /// </summary>
+        public bool IncludeStencilMetadataShapeData { get; set; }
+
+        /// <summary>
         /// Gets or sets the title text color.
         /// </summary>
         public OfficeColor TitleColor { get; set; } = OfficeColor.FromRgb(31, 48, 63);

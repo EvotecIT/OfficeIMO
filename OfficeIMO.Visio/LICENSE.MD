@@ -1,6 +1,6 @@
-﻿Copyright (c) 2025 Evotec
+MIT License
 
-All rights reserved.
+Copyright (c) 2025 Evotec
 
-This software (OfficeIMO.Visio) is currently under development and not licensed for use, modification, or distribution outside of the author’s explicit permission.
-No license is granted at this time.
+OfficeIMO.Visio is licensed under the same MIT License as the OfficeIMO
+repository. See the repository root LICENSE file for the full license text.

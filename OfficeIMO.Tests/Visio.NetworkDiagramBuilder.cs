@@ -41,20 +41,32 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Branch Network", page.Name);
-            Assert.Equal(14, page.Shapes.Count);
+            Assert.Equal(17, page.Shapes.Count);
             Assert.Equal(9, page.Connectors.Count);
+            VisioShape perimeter = Assert.Single(page.Shapes, shape => shape.Id == "perimeter" && shape.IsBackgroundSurface);
+            VisioShape perimeterLabel = Assert.Single(page.Shapes, shape => shape.Id == "perimeter-label" && shape.Text == "Perimeter");
+            Assert.Equal(string.Empty, perimeter.Text);
+            Assert.Equal("Text Box", perimeterLabel.NameU);
+            Assert.True(perimeterLabel.PinY > perimeter.PinY + perimeter.Height / 2D);
             Assert.Contains(page.Shapes, shape => shape.Id == "firewall" && shape.NameU == "Decision");
             Assert.Contains(page.Shapes, shape => shape.Id == "core" && shape.NameU == "Rectangle");
             Assert.Contains(page.Shapes, shape => shape.Id == "db" && shape.NameU == "Data");
             Assert.Contains(page.Shapes, shape => shape.Id == "wifi" && shape.NameU == "Circle");
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(11, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Network" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "net.firewall" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "net.switch" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "net.note" && usage.Count == 1);
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
-            Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
+            string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();
+            Assert.True(qualityIssues.Length == 0, string.Join(Environment.NewLine, qualityIssues));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(14, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(17, loaded.Pages[0].Shapes.Count);
             Assert.Equal(9, loaded.Pages[0].Connectors.Count);
         }
 
@@ -64,6 +76,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Switch", VisioStencils.Network.Get("lan").Name);
             Assert.Equal("Firewall", VisioStencils.Network.Get("security").Name);
             Assert.Equal("Wireless AP", VisioStencils.All.Get("net.wireless").Name);
+            Assert.Equal("Network Note", VisioStencils.Network.Get("legend").Name);
         }
 
         [Fact]
@@ -86,9 +99,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Branch Network", title.Text);
             Assert.True(title.PinY > zone.PinY);
-            Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+            string[] qualityIssues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckConnectorShapeIntersections = false
-            }).Select(issue => issue.ToString()));
+            }).Select(issue => issue.ToString()).ToArray();
+            Assert.True(qualityIssues.Length == 0, string.Join(Environment.NewLine, qualityIssues));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -213,6 +227,97 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkDiagramBuilderImportsRecordSetsWithMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioNetworkZoneRecord zone = new("perimeter", "Perimeter", 0, 0, 3, 1);
+            zone.ShapeData.Add("Owner", "Network Security");
+            VisioNetworkNodeRecord internet = new("internet", "Internet", 0, 0, VisioNetworkNodeKind.Internet);
+            VisioNetworkNodeRecord firewall = new("firewall", "Firewall", 1, 0, VisioNetworkNodeKind.Firewall);
+            firewall.ShapeData.Add("Policy", "Deny inbound");
+            firewall.HyperlinkAddress = "https://example.org/firewall";
+            VisioNetworkNodeRecord core = new("core", "Core", 2, 0, VisioNetworkNodeKind.Switch);
+            VisioNetworkLinkRecord wan = new("internet-firewall", "internet", "firewall", VisioNetworkLinkKind.Ethernet, "WAN");
+            wan.ShapeData.Add("Policy", "filtered");
+            VisioNetworkLinkRecord uplink = new("firewall-core", "firewall", "core", VisioNetworkLinkKind.Trunk, "uplink");
+            VisioNetworkCalloutRecord callout = new("core-note", "core", "Segmented trunk", VisioSide.Top) {
+                Width = 2.2,
+                Height = 0.62
+            };
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .NetworkDiagram("Imported Network", network => network
+                    .PageSize(8, 5)
+                    .Import(
+                        new[] { zone },
+                        new[] { internet, firewall, core },
+                        new[] { wan, uplink },
+                        new[] { callout }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Contains(page.Shapes, shape => shape.Id == "perimeter" && shape.GetShapeDataValue("Owner") == "Network Security");
+            VisioShape firewallShape = Assert.Single(page.Shapes, shape => shape.Id == "firewall");
+            Assert.Equal("Deny inbound", firewallShape.GetShapeDataValue("Policy"));
+            Assert.Contains(firewallShape.Hyperlinks, hyperlink => hyperlink.Address == "https://example.org/firewall");
+            Assert.Contains(page.Connectors, connector => connector.Id == "internet-firewall" && connector.GetShapeDataValue("Policy") == "filtered");
+            VisioShape coreNote = Assert.Single(page.Callouts(), shape => shape.Id == "core-note");
+            Assert.Equal(2.2, coreNote.Width);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+        }
+
+        [Fact]
+        public void NetworkDiagramBuilderKeepsZonesAndCalloutsInMetricPageUnitsAndReservesExplicitLinkIds() {
+            VisioNetworkLinkRecord explicitLink = new("1", "app", "core", VisioNetworkLinkKind.Management, "explicit");
+
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .NetworkDiagram("Metric Network", network => network
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Zone("edge", "Edge", 0, 0, 2, 1)
+                    .Switch("core", "Core", 0, 0)
+                    .Server("app", "App", 1, 0)
+                    .Ethernet("core", "app", "generated")
+                    .Links(new[] { explicitLink })
+                    .Callout("core", "core-note", "Metric note", 9, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape zone = Assert.Single(page.Shapes, shape => shape.Id == "edge");
+            VisioShape core = Assert.Single(page.Shapes, shape => shape.Id == "core");
+            VisioShape app = Assert.Single(page.Shapes, shape => shape.Id == "app");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.True(Contains(zone, core));
+            Assert.True(Contains(zone, app));
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(page.Connectors.Count, page.Connectors.Select(connector => connector.Id).Distinct().Count());
+            Assert.Contains(page.Connectors, connector => connector.Id == "1" && connector.Label == "explicit");
+            Assert.Contains(page.Connectors, connector => connector.Id == "2" && connector.Label == "generated");
+        }
+
+        [Fact]
+        public void NetworkDiagramBuilderRejectsImportedLinkIdCollisions() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioNetworkNodeRecord firewall = new("firewall", "Firewall", 0, 0, VisioNetworkNodeKind.Firewall);
+            VisioNetworkNodeRecord core = new("core", "Core", 1, 0, VisioNetworkNodeKind.Switch);
+            VisioNetworkLinkRecord first = new("uplink", "firewall", "core", VisioNetworkLinkKind.Trunk);
+            VisioNetworkLinkRecord duplicate = new("uplink", "firewall", "core", VisioNetworkLinkKind.Ethernet);
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+                document.NetworkDiagram("Invalid", network => network
+                    .Import(
+                        Array.Empty<VisioNetworkZoneRecord>(),
+                        new[] { firewall, core },
+                        new[] { first, duplicate })));
+
+            Assert.Contains("already exists", exception.Message);
+        }
+
+        [Fact]
         public void NetworkDiagramBuilderRejectsTitleIdCollisions() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -263,5 +368,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Placement must be", autoPlacement.Message);
             Assert.Contains("finite non-negative", badGap.Message);
         }
+
+        private static bool Contains(VisioShape outer, VisioShape inner) =>
+            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
+            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
+            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
+            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
     }
 }

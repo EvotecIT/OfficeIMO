@@ -81,6 +81,7 @@ namespace OfficeIMO.Visio {
         private string? _filePath;
         private Stream? _sourceStream;
         private readonly Dictionary<string, VisioMaster> _builtinMasters = new(StringComparer.OrdinalIgnoreCase);
+        private readonly List<VisioMaster> _registeredMasters = new();
         internal IList<XAttribute> PreservedDocumentAttributes { get; } = new List<XAttribute>();
         internal IList<XElement> PreservedDocumentElements { get; } = new List<XElement>();
         internal IList<XAttribute> PreservedDocumentSettingsAttributes { get; } = new List<XAttribute>();
@@ -116,9 +117,9 @@ namespace OfficeIMO.Visio {
         public IReadOnlyList<VisioPage> Pages => _pages;
 
         /// <summary>
-        /// Gets the masters currently registered on the document, keyed by <see cref="VisioMaster.NameU"/>.
+        /// Gets the masters currently registered on the document.
         /// </summary>
-        public IReadOnlyCollection<VisioMaster> Masters => _builtinMasters.Values.ToList().AsReadOnly();
+        public IReadOnlyCollection<VisioMaster> Masters => _registeredMasters.ToList().AsReadOnly();
 
         /// <summary>
         /// Gets or sets the theme applied to the document.
@@ -226,7 +227,9 @@ namespace OfficeIMO.Visio {
                 XDocument rawMasterXml = new(content.MasterXml);
                 NormalizeImportedMasterRoot(rawMasterXml);
                 VisioMaster master = new(content.Id, content.NameU, shape) {
-                    RawMasterContentXml = rawMasterXml
+                    RawMasterContentXml = rawMasterXml,
+                    IsPackageBacked = true,
+                    StencilSourcePackagePath = VisioStencilMetadata.NormalizePath(packagePath)
                 };
                 foreach (VisioAssets.MasterRelationshipContent relationship in content.Relationships) {
                     master.RawMasterRelationships.Add(relationship);
@@ -259,7 +262,13 @@ namespace OfficeIMO.Visio {
             foreach (IGrouping<string, VisioStencilShape> group in shapes
                 .Where(shape => shape != null && !string.IsNullOrWhiteSpace(shape.SourcePackagePath))
                 .GroupBy(shape => shape.SourcePackagePath!, StringComparer.OrdinalIgnoreCase)) {
-                imported.AddRange(ImportStencilMastersAndGet(group.Key, group.Select(shape => shape.MasterNameU)));
+                IReadOnlyList<VisioMaster> importedFromPackage = ImportStencilMastersAndGet(group.Key, group.Select(shape => shape.MasterNameU));
+                imported.AddRange(importedFromPackage);
+                foreach (VisioStencilShape shape in group) {
+                    if (TryGetMaster(shape.MasterNameU, out VisioMaster? master) && master != null) {
+                        VisioStencilMetadata.Apply(master, shape, catalogName: null);
+                    }
+                }
             }
 
             return imported.AsReadOnly();
@@ -595,6 +604,16 @@ namespace OfficeIMO.Visio {
             if (master == null) throw new ArgumentNullException(nameof(master));
             if (string.IsNullOrWhiteSpace(master.NameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(master));
 
+            int existingIndex = _registeredMasters.FindIndex(existing =>
+                string.Equals(existing.Id, master.Id, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(existing.NameU, master.NameU, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(existing.StencilSourcePackagePath, master.StencilSourcePackagePath, StringComparison.OrdinalIgnoreCase));
+            if (existingIndex >= 0) {
+                _registeredMasters[existingIndex] = master;
+            } else {
+                _registeredMasters.Add(master);
+            }
+
             _builtinMasters[master.NameU] = master;
             return master;
         }
@@ -648,13 +667,11 @@ namespace OfficeIMO.Visio {
 
             if (!TryGetBuiltinMasterDefinition(nameU, out BuiltinMasterDefinition? definition)) {
                 VisioMaster fallbackMaster = new("10", nameU, CreateMasterBlueprint(nameU, null));
-                _builtinMasters[nameU] = fallbackMaster;
-                return fallbackMaster;
+                return RegisterMaster(fallbackMaster);
             }
 
             VisioMaster builtInMaster = new(definition!.Id, nameU, CreateMasterBlueprint(nameU, definition));
-            _builtinMasters[nameU] = builtInMaster;
-            return builtInMaster;
+            return RegisterMaster(builtInMaster);
         }
 
         internal bool TryEnsureBuiltinMaster(string nameU, out VisioMaster? master) {

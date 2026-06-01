@@ -34,21 +34,33 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Jenkins on Azure", page.Name);
-            Assert.Equal(9, page.Shapes.Count);
+            Assert.Equal(11, page.Shapes.Count);
             Assert.Equal(6, page.Connectors.Count);
-            Assert.Contains(page.Shapes, shape => shape.Id == "vnet" && shape.NameU == "Rectangle");
+            VisioShape vnet = Assert.Single(page.Shapes, shape => shape.Id == "vnet" && shape.NameU == "Rectangle");
+            VisioShape vnetLabel = Assert.Single(page.Shapes, shape => shape.Id == "vnet-label" && shape.Text == "Virtual Network");
+            Assert.True(vnet.IsBackgroundSurface);
+            Assert.Equal(string.Empty, vnet.Text);
+            Assert.Equal("Text Box", vnetLabel.NameU);
+            Assert.True(vnetLabel.PinY > vnet.PinY + vnet.Height / 2D);
             Assert.Contains(page.Shapes, shape => shape.Id == "jenkins" && shape.NameU == "Process");
             Assert.Contains(page.Shapes, shape => shape.Id == "data" && shape.NameU == "Data");
             Assert.Contains(page.Shapes, shape => shape.Id == "vault" && shape.NameU == "Decision");
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            Assert.Equal(7, profile.StencilBackedShapeCount);
+            Assert.Equal(new[] { "Architecture" }, profile.StencilCatalogs);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "arch.service" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "arch.compute" && usage.Count == 1);
+            Assert.Contains(profile.Usages, usage => usage.StencilId == "arch.security" && usage.Count == 1);
             Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
             Assert.All(page.Connectors.Where(connector => !string.IsNullOrWhiteSpace(connector.Label)), connector => Assert.NotNull(connector.LabelPlacement));
-            Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
+            string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();
+            Assert.True(qualityIssues.Length == 0, string.Join(Environment.NewLine, qualityIssues));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal(9, loaded.Pages[0].Shapes.Count);
+            Assert.Equal(11, loaded.Pages[0].Shapes.Count);
             Assert.Equal(6, loaded.Pages[0].Connectors.Count);
         }
 
@@ -58,6 +70,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Compute", VisioStencils.Architecture.Get("vm").Name);
             Assert.Equal("Security", VisioStencils.Architecture.Get("identity").Name);
             Assert.Equal("Queue", VisioStencils.All.Get("arch.queue").Name);
+            Assert.Equal("External System", VisioStencils.Architecture.Get("third-party").Name);
         }
 
         [Fact]
@@ -209,6 +222,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ArchitectureDiagramBuilderKeepsRegionsAndCalloutsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .ArchitectureDiagram("Metric Architecture", diagram => diagram
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Region("vnet", "Virtual Network", 0, 0, 2, 1)
+                    .Service("api", "API", 0, 0)
+                    .Compute("worker", "Worker", 1, 0)
+                    .Callout("api", "api-note", "Metric note", 8, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape region = Assert.Single(page.Shapes, shape => shape.Id == "vnet");
+            VisioShape api = Assert.Single(page.Shapes, shape => shape.Id == "api");
+            VisioShape worker = Assert.Single(page.Shapes, shape => shape.Id == "worker");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.True(Contains(region, api));
+            Assert.True(Contains(region, worker));
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+        }
+
+        [Fact]
         public void ArchitectureDiagramBuilderRejectsUnknownLinkEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -272,5 +310,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Placement must be", autoPlacement.Message);
             Assert.Contains("finite non-negative", badGap.Message);
         }
+
+        private static bool Contains(VisioShape outer, VisioShape inner) =>
+            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
+            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
+            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
+            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
     }
 }
