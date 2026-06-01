@@ -95,10 +95,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Annotation", geometry.ShapeNameU);
             Assert.Equal("Annotation", geometry.SemanticKind);
 
-            VisioInspectionMasterSnapshot master = Assert.Single(document.CreateInspectionSnapshot().Masters, item => item.StencilId == "profile.cache");
-            Assert.Equal("Process", master.StencilIconNameU);
-            Assert.Equal(1.4, master.StencilDefaultWidth);
-            Assert.Equal(0.8, master.StencilDefaultHeight);
+            VisioInspectionMasterSnapshot master = Assert.Single(document.CreateInspectionSnapshot().Masters, item => item.NameU == "Process");
+            Assert.Null(master.StencilId);
+            Assert.Null(master.StencilIconNameU);
+            Assert.Null(master.StencilDefaultWidth);
+            Assert.Null(master.StencilDefaultHeight);
         }
 
         [Fact]
@@ -164,6 +165,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilProfilePreservesGeneratedStencilIdentityAfterLoad() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+            VisioPage page = document.AddPage("Generated", 8, 5);
+            page.AddStencilShape(VisioStencils.Flowchart, "flow.process", "process", 2, 3, "Process");
+
+            VisioStencilProfile beforeSave = document.CreateStencilProfile();
+            document.Save();
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioStencilProfile afterLoad = loaded.CreateStencilProfile();
+
+            Assert.Equal(1, beforeSave.GeneratedMasterBackedShapeCount);
+            Assert.Equal(1, afterLoad.GeneratedMasterBackedShapeCount);
+            Assert.Equal(0, afterLoad.BasicGeometryShapeCount);
+            Assert.Equal(1, afterLoad.StencilBackedShapeCount);
+            VisioStencilUsageProfile usage = Assert.Single(afterLoad.Usages, item => item.Kind == VisioStencilProfileUsageKind.GeneratedMaster);
+            Assert.Equal("flow.process", usage.StencilId);
+            Assert.Equal("Process", usage.MasterNameU);
+            Assert.Equal(new[] { "process" }, usage.ShapeIds);
+        }
+
+        [Fact]
         public void StencilProfileRoundTripsPackageBackedMastersAfterLoad() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
@@ -194,7 +218,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { Path.GetFullPath(packagePath) }, family.StencilSourcePackagePaths);
             VisioStencilUsageProfile usage = Assert.Single(profile.Usages, item => item.Kind == VisioStencilProfileUsageKind.PackageBackedMaster);
             Assert.Equal("FancyCloud", usage.MasterNameU);
-            Assert.Equal("profile.fancycloud", usage.StencilId);
+            Assert.Equal("profile.fancy-cloud", usage.StencilId);
             Assert.Equal("External", usage.StencilCategory);
             Assert.Equal(Path.GetFileNameWithoutExtension(packagePath), usage.StencilCatalogName);
             Assert.Equal(Path.GetFullPath(packagePath), usage.StencilSourcePackagePath);
@@ -207,7 +231,7 @@ namespace OfficeIMO.Tests {
 
             VisioInspectionMasterSnapshot master = Assert.Single(loaded.CreateInspectionSnapshot().Masters, item => item.NameU == "FancyCloud");
             Assert.True(master.IsPackageBacked);
-            Assert.Equal("profile.fancycloud", master.StencilId);
+            Assert.Equal("profile.fancy-cloud", master.StencilId);
             Assert.Equal(Path.GetFullPath(packagePath), master.StencilSourcePackagePath);
             Assert.Equal("FancyCloud", master.StencilIconNameU);
             Assert.Equal(1, master.StencilDefaultWidth);
