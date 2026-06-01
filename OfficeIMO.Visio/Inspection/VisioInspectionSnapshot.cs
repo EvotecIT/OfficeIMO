@@ -59,7 +59,9 @@ namespace OfficeIMO.Visio {
             return new VisioInspectionSnapshot(
                 document.Title,
                 document.Author,
-                document.Theme != null ? document.Theme.GetType().Name : null,
+                document.Theme != null
+                    ? string.IsNullOrWhiteSpace(document.Theme.Name) ? document.Theme.GetType().Name : document.Theme.Name
+                    : null,
                 document.UseMastersByDefault,
                 document.WriteMasterDeltasOnly,
                 masters,
@@ -131,20 +133,27 @@ namespace OfficeIMO.Visio {
         }
 
         private static VisioInspectionConnectorSnapshot CreateConnectorSnapshot(VisioConnector connector) {
+            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+            ResolveConnectorLabelPin(connector, placement, out double? labelResolvedPinX, out double? labelResolvedPinY);
+
             return new VisioInspectionConnectorSnapshot(
                 connector.Id,
                 connector.From.Id,
                 connector.To.Id,
                 connector.Kind.ToString(),
                 connector.Label,
-                connector.LabelPlacement != null,
-                connector.LabelPlacement?.Position,
-                connector.LabelPlacement?.OffsetX,
-                connector.LabelPlacement?.OffsetY,
-                connector.LabelPlacement?.PinX,
-                connector.LabelPlacement?.PinY,
-                connector.LabelPlacement?.Width,
-                connector.LabelPlacement?.Height,
+                placement != null,
+                placement?.Position,
+                placement?.OffsetX,
+                placement?.OffsetY,
+                placement?.PinX,
+                placement?.PinY,
+                labelResolvedPinX,
+                labelResolvedPinY,
+                placement?.GetLocPinX(),
+                placement?.GetLocPinY(),
+                placement?.Width,
+                placement?.Height,
                 connector.Waypoints
                     .Select(waypoint => new VisioInspectionWaypointSnapshot(waypoint.X, waypoint.Y))
                     .ToList()
@@ -157,6 +166,124 @@ namespace OfficeIMO.Visio {
                 SortStrings(connector.LayerNames),
                 CreateShapeDataSnapshot(connector.ShapeData),
                 CreateDataSnapshot(connector.Data));
+        }
+
+        private static void ResolveConnectorLabelPin(VisioConnector connector, VisioConnectorLabelPlacement? placement, out double? pinX, out double? pinY) {
+            pinX = null;
+            pinY = null;
+            if (placement == null) {
+                return;
+            }
+
+            if (placement.PinX.HasValue && placement.PinY.HasValue) {
+                pinX = placement.PinX.Value;
+                pinY = placement.PinY.Value;
+                return;
+            }
+
+            List<ConnectorPathPoint> path = BuildConnectorPath(connector);
+            if (path.Count == 0) {
+                return;
+            }
+
+            ConnectorPathPoint point = ResolvePathPoint(path, placement.Position);
+            pinX = point.X + placement.OffsetX;
+            pinY = point.Y + placement.OffsetY;
+        }
+
+        private static List<ConnectorPathPoint> BuildConnectorPath(VisioConnector connector) {
+            ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
+            ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+
+            List<ConnectorPathPoint> points = new() {
+                new ConnectorPathPoint(startX, startY)
+            };
+
+            if (connector.Waypoints.Count > 0) {
+                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
+                    points.Add(new ConnectorPathPoint(waypoint.X, waypoint.Y));
+                }
+            } else if (connector.Kind == ConnectorKind.RightAngle) {
+                points.Add(new ConnectorPathPoint(startX, endY));
+            }
+
+            points.Add(new ConnectorPathPoint(endX, endY));
+            return points;
+        }
+
+        private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out double x, out double y) {
+            if (connectionPoint != null) {
+                (x, y) = shape.GetAbsolutePoint(connectionPoint.X, connectionPoint.Y);
+                return;
+            }
+
+            (double left, double bottom, double right, double top) = shape.GetBounds();
+            (double otherLeft, double otherBottom, double otherRight, double otherTop) = other.GetBounds();
+            double centerX = (left + right) / 2D;
+            double centerY = (bottom + top) / 2D;
+            double otherCenterX = (otherLeft + otherRight) / 2D;
+            double otherCenterY = (otherBottom + otherTop) / 2D;
+            double dx = otherCenterX - centerX;
+            double dy = otherCenterY - centerY;
+
+            if (Math.Abs(dx) >= Math.Abs(dy)) {
+                x = dx >= 0 ? right : left;
+                y = centerY;
+            } else {
+                x = centerX;
+                y = dy >= 0 ? top : bottom;
+            }
+        }
+
+        private static ConnectorPathPoint ResolvePathPoint(IReadOnlyList<ConnectorPathPoint> points, double position) {
+            double clampedPosition = VisioConnectorLabelPlacement.ClampPosition(position);
+            double totalLength = 0D;
+            for (int i = 1; i < points.Count; i++) {
+                totalLength += Distance(points[i - 1], points[i]);
+            }
+
+            if (totalLength <= 0D) {
+                return points[0];
+            }
+
+            double targetLength = totalLength * clampedPosition;
+            double traversed = 0D;
+            for (int i = 1; i < points.Count; i++) {
+                ConnectorPathPoint from = points[i - 1];
+                ConnectorPathPoint to = points[i];
+                double segmentLength = Distance(from, to);
+                if (segmentLength <= 0D) {
+                    continue;
+                }
+
+                if (traversed + segmentLength >= targetLength) {
+                    double segmentPosition = (targetLength - traversed) / segmentLength;
+                    return new ConnectorPathPoint(
+                        from.X + ((to.X - from.X) * segmentPosition),
+                        from.Y + ((to.Y - from.Y) * segmentPosition));
+                }
+
+                traversed += segmentLength;
+            }
+
+            return points[points.Count - 1];
+        }
+
+        private static double Distance(ConnectorPathPoint from, ConnectorPathPoint to) {
+            double dx = to.X - from.X;
+            double dy = to.Y - from.Y;
+            return Math.Sqrt((dx * dx) + (dy * dy));
+        }
+
+        private readonly struct ConnectorPathPoint {
+            public ConnectorPathPoint(double x, double y) {
+                X = x;
+                Y = y;
+            }
+
+            public double X { get; }
+
+            public double Y { get; }
         }
 
         private static IReadOnlyList<VisioInspectionShapeDataSnapshot> CreateShapeDataSnapshot(IEnumerable<VisioShapeDataRow> rows) {
@@ -308,7 +435,7 @@ namespace OfficeIMO.Visio {
         internal static void AppendLine(StringBuilder builder, string key, object? value) {
             builder.Append(key);
             builder.Append('=');
-            builder.Append(FormatValue(value));
+            builder.Append(FormatLineValue(value));
             builder.AppendLine();
         }
 
@@ -329,9 +456,97 @@ namespace OfficeIMO.Visio {
         }
 
         internal static string EscapeKey(string? value) {
-            return string.IsNullOrEmpty(value)
-                ? string.Empty
-                : value!.Replace("\\", "\\\\").Replace("]", "\\]");
+            return EscapeText(value, escapeKeyDelimiters: true);
+        }
+
+        internal static string FormatLineValue(object? value) {
+            return EscapeValue(FormatValue(value));
+        }
+
+        internal static string EscapeValue(string? value) {
+            return EscapeText(value, escapeKeyDelimiters: false);
+        }
+
+        internal static string UnescapeValue(string? value) {
+            if (string.IsNullOrEmpty(value)) {
+                return string.Empty;
+            }
+
+            StringBuilder builder = new(value!.Length);
+            bool escaped = false;
+            foreach (char c in value) {
+                if (escaped) {
+                    switch (c) {
+                        case 'r':
+                            builder.Append('\r');
+                            break;
+                        case 'n':
+                            builder.Append('\n');
+                            break;
+                        case '\\':
+                        case '[':
+                        case ']':
+                        case '=':
+                            builder.Append(c);
+                            break;
+                        default:
+                            builder.Append('\\');
+                            builder.Append(c);
+                            break;
+                    }
+
+                    escaped = false;
+                    continue;
+                }
+
+                if (c == '\\') {
+                    escaped = true;
+                    continue;
+                }
+
+                builder.Append(c);
+            }
+
+            if (escaped) {
+                builder.Append('\\');
+            }
+
+            return builder.ToString();
+        }
+
+        private static string EscapeText(string? value, bool escapeKeyDelimiters) {
+            if (string.IsNullOrEmpty(value)) {
+                return string.Empty;
+            }
+
+            StringBuilder builder = new(value!.Length);
+            foreach (char c in value) {
+                switch (c) {
+                    case '\\':
+                        builder.Append(@"\\");
+                        break;
+                    case '\r':
+                        builder.Append(@"\r");
+                        break;
+                    case '\n':
+                        builder.Append(@"\n");
+                        break;
+                    case '[' when escapeKeyDelimiters:
+                        builder.Append(@"\[");
+                        break;
+                    case ']' when escapeKeyDelimiters:
+                        builder.Append(@"\]");
+                        break;
+                    case '=' when escapeKeyDelimiters:
+                        builder.Append(@"\=");
+                        break;
+                    default:
+                        builder.Append(c);
+                        break;
+                }
+            }
+
+            return builder.ToString();
         }
     }
 
@@ -511,7 +726,7 @@ namespace OfficeIMO.Visio {
         public IReadOnlyList<VisioInspectionConnectorSnapshot> Connectors { get; }
 
         internal void AppendText(StringBuilder builder) {
-            string prefix = "page[" + Escape + "]";
+            string prefix = "page[" + Id.ToString(CultureInfo.InvariantCulture) + ":" + Escape + "]";
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".id", Id);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".nameU", NameU);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".width", Width);
@@ -780,6 +995,10 @@ namespace OfficeIMO.Visio {
             double? labelOffsetY,
             double? labelPinX,
             double? labelPinY,
+            double? labelResolvedPinX,
+            double? labelResolvedPinY,
+            double? labelLocPinX,
+            double? labelLocPinY,
             double? labelWidth,
             double? labelHeight,
             IReadOnlyList<VisioInspectionWaypointSnapshot> waypoints,
@@ -802,6 +1021,10 @@ namespace OfficeIMO.Visio {
             LabelOffsetY = labelOffsetY;
             LabelPinX = labelPinX;
             LabelPinY = labelPinY;
+            LabelResolvedPinX = labelResolvedPinX;
+            LabelResolvedPinY = labelResolvedPinY;
+            LabelLocPinX = labelLocPinX;
+            LabelLocPinY = labelLocPinY;
             LabelWidth = labelWidth;
             LabelHeight = labelHeight;
             Waypoints = waypoints;
@@ -848,6 +1071,18 @@ namespace OfficeIMO.Visio {
         /// <summary>Absolute label Y coordinate, when the label is pinned to the page.</summary>
         public double? LabelPinY { get; }
 
+        /// <summary>Resolved page X coordinate for the label pin.</summary>
+        public double? LabelResolvedPinX { get; }
+
+        /// <summary>Resolved page Y coordinate for the label pin.</summary>
+        public double? LabelResolvedPinY { get; }
+
+        /// <summary>Resolved local X pin inside the label text box.</summary>
+        public double? LabelLocPinX { get; }
+
+        /// <summary>Resolved local Y pin inside the label text box.</summary>
+        public double? LabelLocPinY { get; }
+
         /// <summary>Explicit label width, when explicit placement exists.</summary>
         public double? LabelWidth { get; }
 
@@ -893,6 +1128,10 @@ namespace OfficeIMO.Visio {
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelOffsetY", LabelOffsetY);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelPinX", LabelPinX);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelPinY", LabelPinY);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelResolvedPinX", LabelResolvedPinX);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelResolvedPinY", LabelResolvedPinY);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelLocPinX", LabelLocPinX);
+            VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelLocPinY", LabelLocPinY);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelWidth", LabelWidth);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".labelHeight", LabelHeight);
             VisioInspectionSnapshot.AppendLine(builder, prefix + ".lineColor", LineColor);
@@ -1070,9 +1309,9 @@ namespace OfficeIMO.Visio {
                 builder.Append(' ');
                 builder.Append(difference.Path);
                 builder.Append(" expected=");
-                builder.Append(VisioInspectionSnapshot.FormatValue(difference.Expected));
+                builder.Append(VisioInspectionSnapshot.FormatLineValue(difference.Expected));
                 builder.Append(" actual=");
-                builder.Append(VisioInspectionSnapshot.FormatValue(difference.Actual));
+                builder.Append(VisioInspectionSnapshot.FormatLineValue(difference.Actual));
                 builder.AppendLine();
             }
 
@@ -1092,13 +1331,37 @@ namespace OfficeIMO.Visio {
                     continue;
                 }
 
-                int separator = line.IndexOf('=');
+                int separator = FindSeparator(line);
                 string key = separator >= 0 ? line.Substring(0, separator) : line;
-                string value = separator >= 0 ? line.Substring(separator + 1) : string.Empty;
+                string value = separator >= 0
+                    ? VisioInspectionSnapshot.UnescapeValue(line.Substring(separator + 1))
+                    : string.Empty;
                 map[key] = value;
             }
 
             return map;
+        }
+
+        private static int FindSeparator(string line) {
+            bool escaped = false;
+            for (int i = 0; i < line.Length; i++) {
+                char c = line[i];
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+
+                if (c == '\\') {
+                    escaped = true;
+                    continue;
+                }
+
+                if (c == '=') {
+                    return i;
+                }
+            }
+
+            return -1;
         }
     }
 
