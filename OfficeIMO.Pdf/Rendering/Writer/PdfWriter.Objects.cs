@@ -106,33 +106,33 @@ internal static partial class PdfWriter {
     }
 
     private sealed class LinkAnnotation {
-        public double X1 { get; init; }
-        public double Y1 { get; init; }
-        public double X2 { get; init; }
-        public double Y2 { get; init; }
-        public string? Uri { get; init; }
-        public string? DestinationName { get; init; }
-        public string? Contents { get; init; }
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
+        public string? Uri { get; set; }
+        public string? DestinationName { get; set; }
+        public string? Contents { get; set; }
     }
 
     private sealed class FormFieldAnnotation {
-        public double X1 { get; init; }
-        public double Y1 { get; init; }
-        public double X2 { get; init; }
-        public double Y2 { get; init; }
-        public FormFieldAnnotationKind Kind { get; init; }
-        public string Name { get; init; } = string.Empty;
-        public string Value { get; init; } = string.Empty;
-        public IReadOnlyList<string> Values { get; init; } = Array.Empty<string>();
-        public double FontSize { get; init; }
-        public bool IsChecked { get; init; }
-        public string CheckedValueName { get; init; } = "Yes";
-        public IReadOnlyList<string> Options { get; init; } = Array.Empty<string>();
-        public double ButtonSize { get; init; }
-        public double ButtonGap { get; init; }
-        public PdfFormFieldStyle Style { get; init; } = new PdfFormFieldStyle();
-        public bool IsComboBox { get; init; }
-        public bool AllowsMultipleSelection { get; init; }
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
+        public FormFieldAnnotationKind Kind { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
+        public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
+        public double FontSize { get; set; }
+        public bool IsChecked { get; set; }
+        public string CheckedValueName { get; set; } = "Yes";
+        public IReadOnlyList<string> Options { get; set; } = Array.Empty<string>();
+        public double ButtonSize { get; set; }
+        public double ButtonGap { get; set; }
+        public PdfFormFieldStyle Style { get; set; } = new PdfFormFieldStyle();
+        public bool IsComboBox { get; set; }
+        public bool AllowsMultipleSelection { get; set; }
     }
 
     private enum FormFieldAnnotationKind {
@@ -143,14 +143,14 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageBookmark {
-        public int Level { get; init; }
-        public string Title { get; init; } = string.Empty;
-        public double Y { get; init; }
+        public int Level { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public double Y { get; set; }
     }
 
     private sealed class PageNamedDestination {
-        public string Name { get; init; } = string.Empty;
-        public double Y { get; init; }
+        public string Name { get; set; } = string.Empty;
+        public double Y { get; set; }
     }
 
     private sealed class PageNumberInfo {
@@ -183,29 +183,29 @@ internal static partial class PdfWriter {
 
     private sealed class OutlineNode {
         public int Id { get; set; }
-        public int Level { get; init; }
-        public int PageIndex { get; init; }
-        public double Y { get; init; }
-        public string Title { get; init; } = string.Empty;
+        public int Level { get; set; }
+        public int PageIndex { get; set; }
+        public double Y { get; set; }
+        public string Title { get; set; } = string.Empty;
         public OutlineNode? Parent { get; set; }
         public System.Collections.Generic.List<OutlineNode> Children { get; } = new();
     }
 
     private sealed class PageImage {
-        public byte[] Data { get; init; } = System.Array.Empty<byte>();
-        public OfficeImageInfo Info { get; init; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        public double X { get; init; }
-        public double Y { get; init; }
-        public double W { get; init; }
-        public double H { get; init; }
-        public OfficeClipPath? ClipPath { get; init; }
-        public double ClipX { get; init; }
-        public double ClipY { get; init; }
-        public double ClipHeight { get; init; }
-        public bool IsBackgroundDecoration { get; init; }
-        public double Opacity { get; init; } = 1D;
-        public double RotationAngle { get; init; }
-        public string? GraphicsStateName { get; init; }
+        public byte[] Data { get; set; } = System.Array.Empty<byte>();
+        public OfficeImageInfo Info { get; set; } = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+        public double X { get; set; }
+        public double Y { get; set; }
+        public double W { get; set; }
+        public double H { get; set; }
+        public OfficeClipPath? ClipPath { get; set; }
+        public double ClipX { get; set; }
+        public double ClipY { get; set; }
+        public double ClipHeight { get; set; }
+        public bool IsBackgroundDecoration { get; set; }
+        public double Opacity { get; set; } = 1D;
+        public double RotationAngle { get; set; }
+        public string? GraphicsStateName { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
     }

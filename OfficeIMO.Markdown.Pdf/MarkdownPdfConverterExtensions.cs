@@ -316,7 +316,7 @@ public static class MarkdownPdfConverterExtensions {
             double fontSize = heading.Level == 4 ? 13D : 11.5D;
             pdf.Paragraph(builder => {
                 builder.Bold(true).FontSize(fontSize);
-                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme) with { Bold = true, FontSize = fontSize });
+                AppendInlines(builder, heading.Inlines, CreateInlineStyle(visualTheme).With(bold: true, fontSize: fontSize));
             }, style: new PdfCore.PdfParagraphStyle { SpacingBefore = 8, SpacingAfter = 4, KeepWithNext = true });
         }
     }
@@ -421,7 +421,7 @@ public static class MarkdownPdfConverterExtensions {
             PdfCore.PdfColor iconColor = item.Checked ? visualTheme.ChecklistCheckedIconColorSnapshot : visualTheme.ChecklistUncheckedIconColorSnapshot;
             PdfCore.PdfColor textColor = item.Checked ? visualTheme.ChecklistCheckedTextColorSnapshot : visualTheme.ChecklistUncheckedTextColorSnapshot;
             PdfCore.PdfColor? fillColor = item.Checked ? visualTheme.ChecklistCheckedFillColorSnapshot : visualTheme.ChecklistUncheckedFillColorSnapshot;
-            InlineStyle textStyle = CreateInlineStyle(visualTheme) with { Color = textColor };
+            InlineStyle textStyle = CreateInlineStyle(visualTheme).With(color: textColor);
             IReadOnlyList<PdfTextRun> runs = CreateListItemRuns(item, includeTaskMarker: false, textStyle);
             icons[(i, 0)] = new PdfCore.PdfCellIcon {
                 Kind = item.Checked ? PdfCore.PdfCellIconKind.CheckBoxChecked : PdfCore.PdfCellIconKind.CheckBoxUnchecked,
@@ -567,7 +567,7 @@ public static class MarkdownPdfConverterExtensions {
                     if (IsEmpty(callout.TitleInlines)) {
                         builder.Bold(title);
                     } else {
-                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme) with { Bold = true });
+                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme).With(bold: true));
                     }
                 });
                 RenderBlocks(pdf, children, document, options, visualTheme);
@@ -581,7 +581,7 @@ public static class MarkdownPdfConverterExtensions {
                     if (IsEmpty(callout.TitleInlines)) {
                         builder.Bold(title);
                     } else {
-                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme) with { Bold = true });
+                        AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme).With(bold: true));
                     }
 
                     builder.LineBreak();
@@ -596,7 +596,7 @@ public static class MarkdownPdfConverterExtensions {
             if (IsEmpty(callout.TitleInlines)) {
                 builder.Bold(title);
             } else {
-                AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme) with { Bold = true });
+                AppendInlines(builder, callout.TitleInlines, CreateInlineStyle(visualTheme).With(bold: true));
             }
 
             if (canRenderChildrenInsidePanel) {
@@ -617,7 +617,7 @@ public static class MarkdownPdfConverterExtensions {
         if (details.Summary != null) {
             pdf.PanelParagraph(builder => {
                 builder.Bold(details.Open ? "Details: " : "Collapsed details: ");
-                AppendInlines(builder, details.Summary.Inlines, CreateInlineStyle(visualTheme) with { Bold = true });
+                AppendInlines(builder, details.Summary.Inlines, CreateInlineStyle(visualTheme).With(bold: true));
             }, visualTheme.DetailsPanelStyleSnapshot);
         }
 
@@ -632,7 +632,7 @@ public static class MarkdownPdfConverterExtensions {
 
         var rows = new List<PdfCore.PdfTableCell[]>();
         for (int i = 0; i < items.Count; i++) {
-            IReadOnlyList<PdfTextRun> termRuns = ToTextRuns(items[i].Term, CreateInlineStyle(visualTheme) with { Bold = true });
+            IReadOnlyList<PdfTextRun> termRuns = ToTextRuns(items[i].Term, CreateInlineStyle(visualTheme).With(bold: true));
             IReadOnlyList<PdfTextRun> definitionRuns = ToTextRuns(items[i].Definition, CreateInlineStyle(visualTheme));
             rows.Add(new[] {
                 termRuns.Count == 0 ? PdfCore.PdfTableCell.TextCell(string.Empty) : PdfCore.PdfTableCell.RichTextCell(termRuns),
@@ -757,7 +757,7 @@ public static class MarkdownPdfConverterExtensions {
             pdf.PanelParagraph(builder => {
                 builder.Italic(true);
                 if (canRenderChildrenInsidePanel) {
-                    renderedInsidePanel = TryAppendBlocksInsidePanel(builder, quote.Children, CreateInlineStyle(visualTheme) with { Italic = true }, visualTheme, lineBreakBeforeFirst: false);
+                    renderedInsidePanel = TryAppendBlocksInsidePanel(builder, quote.Children, CreateInlineStyle(visualTheme).With(italic: true), visualTheme, lineBreakBeforeFirst: false);
                 } else {
                     builder.Italic("Quote");
                 }
@@ -855,7 +855,7 @@ public static class MarkdownPdfConverterExtensions {
                 }
 
                 StartPanelBlock(builder, ref wroteContent, lineBreakBeforeFirst);
-                AppendInlines(builder, heading.Inlines, style with { Bold = true, FontSize = GetPanelHeadingFontSize(heading.Level) });
+                AppendInlines(builder, heading.Inlines, style.With(bold: true, fontSize: GetPanelHeadingFontSize(heading.Level)));
                 return true;
             case UnorderedListBlock unordered:
                 AppendUnorderedListInsidePanel(builder, unordered, style, visualTheme, ref wroteContent, lineBreakBeforeFirst);
@@ -933,8 +933,8 @@ public static class MarkdownPdfConverterExtensions {
         string indent = item.Level <= 0 ? string.Empty : new string(' ', item.Level * 2);
         if (item.IsTask) {
             PdfCore.PdfColor stateColor = item.Checked ? visualTheme.ChecklistCheckedTextColorSnapshot : visualTheme.ChecklistUncheckedTextColorSnapshot;
-            ApplyStyle(builder, style with { Bold = true, Color = stateColor }).Text(indent + (item.Checked ? "Done: " : "Open: "));
-            AppendInlines(builder, item.Content, style with { Color = stateColor });
+            ApplyStyle(builder, style.With(bold: true, color: stateColor)).Text(indent + (item.Checked ? "Done: " : "Open: "));
+            AppendInlines(builder, item.Content, style.With(color: stateColor));
         } else {
             ApplyStyle(builder, style).Text(indent + marker + " ");
             AppendInlines(builder, item.Content, style);
@@ -1004,7 +1004,7 @@ public static class MarkdownPdfConverterExtensions {
                         builder.Text(" | ");
                     }
 
-                    ApplyStyle(builder, style with { Bold = true }).Text(GetPlainText(headers[columnIndex]) + ": ");
+                    ApplyStyle(builder, style.With(bold: true)).Text(GetPlainText(headers[columnIndex]) + ": ");
                     if (columnIndex < row.Count) {
                         AppendInlines(builder, row[columnIndex], style);
                     }
@@ -1030,7 +1030,7 @@ public static class MarkdownPdfConverterExtensions {
     }
 
     private static void AppendQuoteInsidePanel(PdfCore.PdfParagraphBuilder builder, QuoteBlock quote, InlineStyle style, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
-        InlineStyle quoteStyle = style with { Italic = true };
+        InlineStyle quoteStyle = style.With(italic: true);
         if (quote.Children.Count > 0) {
             TryAppendBlocksInsidePanel(builder, quote.Children, quoteStyle, visualTheme, lineBreakBeforeFirst: !wroteContent && lineBreakBeforeFirst);
             wroteContent = true;
@@ -1048,8 +1048,8 @@ public static class MarkdownPdfConverterExtensions {
     private static void AppendDetailsInsidePanel(PdfCore.PdfParagraphBuilder builder, DetailsBlock details, InlineStyle style, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         if (details.Summary != null) {
             StartPanelBlock(builder, ref wroteContent, lineBreakBeforeFirst);
-            ApplyStyle(builder, style with { Bold = true }).Text(details.Open ? "Details: " : "Collapsed details: ");
-            AppendInlines(builder, details.Summary.Inlines, style with { Bold = true });
+            ApplyStyle(builder, style.With(bold: true)).Text(details.Open ? "Details: " : "Collapsed details: ");
+            AppendInlines(builder, details.Summary.Inlines, style.With(bold: true));
         }
 
         TryAppendBlocksInsidePanel(builder, details.ChildBlocks, style, visualTheme, lineBreakBeforeFirst: false);
@@ -1060,7 +1060,7 @@ public static class MarkdownPdfConverterExtensions {
         IReadOnlyList<DefinitionListInlineItem> items = definitionList.InlineItems;
         for (int i = 0; i < items.Count; i++) {
             StartPanelLine(builder, ref wroteContent, lineBreakBeforeFirst);
-            AppendInlines(builder, items[i].Term, style with { Bold = true });
+            AppendInlines(builder, items[i].Term, style.With(bold: true));
             builder.Text(": ");
             AppendInlines(builder, items[i].Definition, style);
         }
@@ -1226,10 +1226,7 @@ public static class MarkdownPdfConverterExtensions {
     }
 
     private static InlineStyle CreateInlineStyle(MarkdownPdfVisualTheme visualTheme) =>
-        InlineStyle.Default with {
-            LinkColor = visualTheme.LinkColorSnapshot,
-            UnderlineLinks = visualTheme.UnderlineLinksSnapshot
-        };
+        InlineStyle.Default.With(linkColor: visualTheme.LinkColorSnapshot, underlineLinks: visualTheme.UnderlineLinksSnapshot);
 
     private static void AppendInlines(PdfCore.PdfParagraphBuilder builder, InlineSequence sequence, InlineStyle style) {
         foreach (IMarkdownInline inline in sequence.Nodes) {
@@ -1243,34 +1240,34 @@ public static class MarkdownPdfConverterExtensions {
                 ApplyStyle(builder, style).Text(text.Text);
                 break;
             case BoldInline bold:
-                ApplyStyle(builder, style with { Bold = true }).Text(bold.Text);
+                ApplyStyle(builder, style.With(bold: true)).Text(bold.Text);
                 break;
             case ItalicInline italic:
-                ApplyStyle(builder, style with { Italic = true }).Text(italic.Text);
+                ApplyStyle(builder, style.With(italic: true)).Text(italic.Text);
                 break;
             case BoldItalicInline boldItalic:
-                ApplyStyle(builder, style with { Bold = true, Italic = true }).Text(boldItalic.Text);
+                ApplyStyle(builder, style.With(bold: true, italic: true)).Text(boldItalic.Text);
                 break;
             case UnderlineInline underline:
-                ApplyStyle(builder, style with { Underline = true }).Text(underline.Text);
+                ApplyStyle(builder, style.With(underline: true)).Text(underline.Text);
                 break;
             case StrikethroughInline strike:
-                ApplyStyle(builder, style with { Strike = true }).Text(strike.Text);
+                ApplyStyle(builder, style.With(strike: true)).Text(strike.Text);
                 break;
             case HighlightInline highlight:
-                ApplyStyle(builder, style with { Background = PdfCore.PdfColor.FromRgb(254, 243, 199) }).Text(highlight.Text);
+                ApplyStyle(builder, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199))).Text(highlight.Text);
                 break;
             case CodeSpanInline code:
-                ApplyStyle(builder, style with { Background = PdfCore.PdfColor.FromRgb(241, 245, 249), Color = PdfCore.PdfColor.FromRgb(30, 41, 59) }).Text(code.Text);
+                ApplyStyle(builder, style.With(background: PdfCore.PdfColor.FromRgb(241, 245, 249), color: PdfCore.PdfColor.FromRgb(30, 41, 59))).Text(code.Text);
                 break;
             case LinkInline link:
                 AppendLinkInline(builder, link, style);
                 break;
             case ImageInline image:
-                ApplyStyle(builder, style with { Italic = true }).Text("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
+                ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
                 break;
             case ImageLinkInline imageLink:
-                ApplyStyle(builder, style with { Italic = true }).Text("[Image: " + (imageLink.PlainAlt.Length == 0 ? imageLink.ImageUrl : imageLink.PlainAlt) + "]");
+                ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (imageLink.PlainAlt.Length == 0 ? imageLink.ImageUrl : imageLink.PlainAlt) + "]");
                 break;
             case HardBreakInline:
                 builder.LineBreak();
@@ -1292,7 +1289,7 @@ public static class MarkdownPdfConverterExtensions {
     private static void AppendLinkInline(PdfCore.PdfParagraphBuilder builder, LinkInline link, InlineStyle style) {
         string label = string.IsNullOrEmpty(link.Text) ? link.Url : link.Text;
         bool underline = style.UnderlineLinks ?? true;
-        InlineStyle linkStyle = style with { Underline = underline, Color = style.LinkColor ?? PdfCore.PdfColor.FromRgb(37, 99, 235) };
+        InlineStyle linkStyle = style.With(underline: underline, color: style.LinkColor ?? PdfCore.PdfColor.FromRgb(37, 99, 235));
         if (TryGetBookmarkTarget(link.Url, out string? bookmark)) {
             ApplyStyle(builder, linkStyle).LinkToBookmark(label, bookmark!, color: linkStyle.Color, underline: underline, contents: link.Title ?? label);
             return;
@@ -1309,13 +1306,13 @@ public static class MarkdownPdfConverterExtensions {
 
     private static void AppendHtmlTagInline(PdfCore.PdfParagraphBuilder builder, HtmlTagSequenceInline htmlTag, InlineStyle style) {
         InlineStyle tagStyle = htmlTag.TagName switch {
-            "strong" or "b" => style with { Bold = true },
-            "em" or "i" => style with { Italic = true },
-            "u" or "ins" => style with { Underline = true },
-            "del" or "s" => style with { Strike = true },
-            "sup" => style with { Baseline = PdfCore.PdfTextBaseline.Superscript },
-            "sub" => style with { Baseline = PdfCore.PdfTextBaseline.Subscript },
-            "mark" => style with { Background = PdfCore.PdfColor.FromRgb(254, 243, 199) },
+            "strong" or "b" => style.With(bold: true),
+            "em" or "i" => style.With(italic: true),
+            "u" or "ins" => style.With(underline: true),
+            "del" or "s" => style.With(strike: true),
+            "sup" => style.With(baseline: PdfCore.PdfTextBaseline.Superscript),
+            "sub" => style.With(baseline: PdfCore.PdfTextBaseline.Subscript),
+            "mark" => style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)),
             _ => style
         };
         AppendInlines(builder, htmlTag.Inlines, tagStyle);
@@ -1336,25 +1333,25 @@ public static class MarkdownPdfConverterExtensions {
                 runs.Add(CreateRun(text.Text, style));
                 break;
             case BoldInline bold:
-                runs.Add(CreateRun(bold.Text, style with { Bold = true }));
+                runs.Add(CreateRun(bold.Text, style.With(bold: true)));
                 break;
             case ItalicInline italic:
-                runs.Add(CreateRun(italic.Text, style with { Italic = true }));
+                runs.Add(CreateRun(italic.Text, style.With(italic: true)));
                 break;
             case BoldItalicInline boldItalic:
-                runs.Add(CreateRun(boldItalic.Text, style with { Bold = true, Italic = true }));
+                runs.Add(CreateRun(boldItalic.Text, style.With(bold: true, italic: true)));
                 break;
             case UnderlineInline underline:
-                runs.Add(CreateRun(underline.Text, style with { Underline = true }));
+                runs.Add(CreateRun(underline.Text, style.With(underline: true)));
                 break;
             case StrikethroughInline strike:
-                runs.Add(CreateRun(strike.Text, style with { Strike = true }));
+                runs.Add(CreateRun(strike.Text, style.With(strike: true)));
                 break;
             case HighlightInline highlight:
-                runs.Add(CreateRun(highlight.Text, style with { Background = PdfCore.PdfColor.FromRgb(254, 243, 199) }));
+                runs.Add(CreateRun(highlight.Text, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199))));
                 break;
             case CodeSpanInline code:
-                runs.Add(CreateRun(code.Text, style with { Background = PdfCore.PdfColor.FromRgb(241, 245, 249), Color = PdfCore.PdfColor.FromRgb(30, 41, 59) }));
+                runs.Add(CreateRun(code.Text, style.With(background: PdfCore.PdfColor.FromRgb(241, 245, 249), color: PdfCore.PdfColor.FromRgb(30, 41, 59))));
                 break;
             case LinkInline link:
                 AddLinkRun(runs, link, style);
@@ -1364,13 +1361,13 @@ public static class MarkdownPdfConverterExtensions {
                 break;
             case HtmlTagSequenceInline htmlTag:
                 InlineStyle tagStyle = htmlTag.TagName switch {
-                    "strong" or "b" => style with { Bold = true },
-                    "em" or "i" => style with { Italic = true },
-                    "u" or "ins" => style with { Underline = true },
-                    "del" or "s" => style with { Strike = true },
-                    "sup" => style with { Baseline = PdfCore.PdfTextBaseline.Superscript },
-                    "sub" => style with { Baseline = PdfCore.PdfTextBaseline.Subscript },
-                    "mark" => style with { Background = PdfCore.PdfColor.FromRgb(254, 243, 199) },
+                    "strong" or "b" => style.With(bold: true),
+                    "em" or "i" => style.With(italic: true),
+                    "u" or "ins" => style.With(underline: true),
+                    "del" or "s" => style.With(strike: true),
+                    "sup" => style.With(baseline: PdfCore.PdfTextBaseline.Superscript),
+                    "sub" => style.With(baseline: PdfCore.PdfTextBaseline.Subscript),
+                    "mark" => style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)),
                     _ => style
                 };
                 foreach (IMarkdownInline nested in htmlTag.Inlines.Nodes) {
@@ -1747,18 +1744,79 @@ public static class MarkdownPdfConverterExtensions {
         options.Warnings.Add(new MarkdownPdfExportWarning(code, source, message));
     }
 
-    private readonly record struct InlineStyle(
-        bool Bold,
-        bool Italic,
-        bool Underline,
-        bool Strike,
-        PdfCore.PdfTextBaseline Baseline,
-        PdfCore.PdfColor? Color,
-        PdfCore.PdfColor? Background,
-        double? FontSize,
-        PdfCore.PdfStandardFont? Font,
-        PdfCore.PdfColor? LinkColor,
-        bool? UnderlineLinks) {
+    private readonly struct InlineStyle {
+        public InlineStyle(
+            bool bold,
+            bool italic,
+            bool underline,
+            bool strike,
+            PdfCore.PdfTextBaseline baseline,
+            PdfCore.PdfColor? color,
+            PdfCore.PdfColor? background,
+            double? fontSize,
+            PdfCore.PdfStandardFont? font,
+            PdfCore.PdfColor? linkColor,
+            bool? underlineLinks) {
+            Bold = bold;
+            Italic = italic;
+            Underline = underline;
+            Strike = strike;
+            Baseline = baseline;
+            Color = color;
+            Background = background;
+            FontSize = fontSize;
+            Font = font;
+            LinkColor = linkColor;
+            UnderlineLinks = underlineLinks;
+        }
+
         public static InlineStyle Default { get; } = new InlineStyle(false, false, false, false, PdfCore.PdfTextBaseline.Normal, null, null, null, null, null, null);
+
+        public bool Bold { get; }
+
+        public bool Italic { get; }
+
+        public bool Underline { get; }
+
+        public bool Strike { get; }
+
+        public PdfCore.PdfTextBaseline Baseline { get; }
+
+        public PdfCore.PdfColor? Color { get; }
+
+        public PdfCore.PdfColor? Background { get; }
+
+        public double? FontSize { get; }
+
+        public PdfCore.PdfStandardFont? Font { get; }
+
+        public PdfCore.PdfColor? LinkColor { get; }
+
+        public bool? UnderlineLinks { get; }
+
+        public InlineStyle With(
+            bool? bold = null,
+            bool? italic = null,
+            bool? underline = null,
+            bool? strike = null,
+            PdfCore.PdfTextBaseline? baseline = null,
+            PdfCore.PdfColor? color = null,
+            PdfCore.PdfColor? background = null,
+            double? fontSize = null,
+            PdfCore.PdfStandardFont? font = null,
+            PdfCore.PdfColor? linkColor = null,
+            bool? underlineLinks = null) =>
+            new InlineStyle(
+                bold ?? Bold,
+                italic ?? Italic,
+                underline ?? Underline,
+                strike ?? Strike,
+                baseline ?? Baseline,
+                color ?? Color,
+                background ?? Background,
+                fontSize ?? FontSize,
+                font ?? Font,
+                linkColor ?? LinkColor,
+                underlineLinks ?? UnderlineLinks);
     }
 }

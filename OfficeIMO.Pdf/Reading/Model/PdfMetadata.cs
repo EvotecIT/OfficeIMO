@@ -5,11 +5,11 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfMetadata {
     /// <summary>Document title.</summary>
-    public string? Title { get; init; }
+    public string? Title { get; set; }
     /// <summary>Document author.</summary>
-    public string? Author { get; init; }
+    public string? Author { get; set; }
     /// <summary>Document subject.</summary>
-    public string? Subject { get; init; }
+    public string? Subject { get; set; }
     /// <summary>Document keywords.</summary>
-    public string? Keywords { get; init; }
+    public string? Keywords { get; set; }
 }

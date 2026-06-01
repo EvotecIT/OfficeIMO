@@ -158,7 +158,88 @@ internal static partial class PdfWriter {
     }
 
     // Rich paragraph layout
-    private sealed record RichSeg(string Text, bool Bold, bool Italic, bool Underline, bool Strike, PdfColor? Color, PdfColor? BackgroundColor, string? Uri, string? DestinationName, string? Contents, PdfStandardFont Font, double FontSize, PdfTextBaseline Baseline, bool LeadingSpace = false, double LeadingAdvance = 0, bool LeadingSpaceIsExpandable = true, PdfTabLeaderStyle LeadingTabLeader = PdfTabLeaderStyle.None, bool EndsWithHardBreak = false);
+    private sealed class RichSeg {
+        public RichSeg(
+            string text,
+            bool bold,
+            bool italic,
+            bool underline,
+            bool strike,
+            PdfColor? color,
+            PdfColor? backgroundColor,
+            string? uri,
+            string? destinationName,
+            string? contents,
+            PdfStandardFont font,
+            double fontSize,
+            PdfTextBaseline baseline,
+            bool leadingSpace = false,
+            double leadingAdvance = 0,
+            bool leadingSpaceIsExpandable = true,
+            PdfTabLeaderStyle leadingTabLeader = PdfTabLeaderStyle.None,
+            bool endsWithHardBreak = false) {
+            Text = text;
+            Bold = bold;
+            Italic = italic;
+            Underline = underline;
+            Strike = strike;
+            Color = color;
+            BackgroundColor = backgroundColor;
+            Uri = uri;
+            DestinationName = destinationName;
+            Contents = contents;
+            Font = font;
+            FontSize = fontSize;
+            Baseline = baseline;
+            LeadingSpace = leadingSpace;
+            LeadingAdvance = leadingAdvance;
+            LeadingSpaceIsExpandable = leadingSpaceIsExpandable;
+            LeadingTabLeader = leadingTabLeader;
+            EndsWithHardBreak = endsWithHardBreak;
+        }
+
+        public string Text { get; }
+
+        public bool Bold { get; }
+
+        public bool Italic { get; }
+
+        public bool Underline { get; }
+
+        public bool Strike { get; }
+
+        public PdfColor? Color { get; }
+
+        public PdfColor? BackgroundColor { get; }
+
+        public string? Uri { get; }
+
+        public string? DestinationName { get; }
+
+        public string? Contents { get; }
+
+        public PdfStandardFont Font { get; }
+
+        public double FontSize { get; }
+
+        public PdfTextBaseline Baseline { get; }
+
+        public bool LeadingSpace { get; }
+
+        public double LeadingAdvance { get; }
+
+        public bool LeadingSpaceIsExpandable { get; }
+
+        public PdfTabLeaderStyle LeadingTabLeader { get; }
+
+        public bool EndsWithHardBreak { get; }
+
+        public RichSeg WithEndsWithHardBreak() =>
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true);
+
+        public RichSeg WithoutLink() =>
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak);
+    }
 
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize) =>
         EstimateSimpleTextWidth(text, font, fontSize);
@@ -272,7 +353,7 @@ internal static partial class PdfWriter {
             }
 
             var lastSegment = currentLine[currentLine.Count - 1];
-            currentLine[currentLine.Count - 1] = lastSegment with { EndsWithHardBreak = true };
+            currentLine[currentLine.Count - 1] = lastSegment.WithEndsWithHardBreak();
         }
 
         foreach (var run in runs) {

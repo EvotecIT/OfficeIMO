@@ -846,7 +846,7 @@ internal static partial class PdfWriter {
         foreach (System.Collections.Generic.List<RichSeg> line in lines) {
             var strippedLine = new System.Collections.Generic.List<RichSeg>(line.Count);
             foreach (RichSeg segment in line) {
-                strippedLine.Add(segment with { Uri = null, DestinationName = null, Contents = null });
+                strippedLine.Add(segment.WithoutLink());
             }
 
             stripped.Add(strippedLine);

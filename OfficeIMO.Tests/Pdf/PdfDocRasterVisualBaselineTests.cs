@@ -787,7 +787,7 @@ This page renders one first-party visual profile for headings, lists, tables, co
 ```csharp
 var pdf = markdown.SaveAsPdf();
 ```
-""".Replace("THEME_NAME", themeName, StringComparison.Ordinal);
+""".Replace("THEME_NAME", themeName);
     }
 
     private static double FindWordStartX(UglyToad.PdfPig.Content.Page page, string word) {

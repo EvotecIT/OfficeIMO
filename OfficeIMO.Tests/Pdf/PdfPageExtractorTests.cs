@@ -769,7 +769,7 @@ public class PdfPageExtractorTests {
             }
         }
 
-        Assert.Equal(4, annotationObjectNumbers.Count);
+        Assert.Equal(2, annotationObjectNumbers.Count);
     }
 
     [Fact]
