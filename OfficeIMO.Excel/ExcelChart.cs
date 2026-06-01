@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -3701,17 +3702,55 @@ namespace OfficeIMO.Excel {
         }
 
         private int GetAnchorWidthPixels() {
+            Xdr.TwoCellAnchor? twoCellAnchor = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
+            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, horizontal: true, out int widthPixels)) {
+                return widthPixels;
+            }
+
             long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cx?.Value;
             return EmuToPixels(emu, 480);
         }
 
         private int GetAnchorHeightPixels() {
+            Xdr.TwoCellAnchor? twoCellAnchor = _frame.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault();
+            if (TryGetTwoCellAnchorSizePixels(twoCellAnchor, horizontal: false, out int heightPixels)) {
+                return heightPixels;
+            }
+
             long? emu = _frame.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.Extent?.Cy?.Value;
             return EmuToPixels(emu, 320);
         }
 
+        private static bool TryGetTwoCellAnchorSizePixels(Xdr.TwoCellAnchor? anchor, bool horizontal, out int pixels) {
+            pixels = 0;
+            if (anchor?.FromMarker == null || anchor.ToMarker == null) {
+                return false;
+            }
+
+            int from = horizontal ? ParseZeroBasedMarker(anchor.FromMarker.ColumnId?.Text) : ParseZeroBasedMarker(anchor.FromMarker.RowId?.Text);
+            int to = horizontal ? ParseZeroBasedMarker(anchor.ToMarker.ColumnId?.Text) : ParseZeroBasedMarker(anchor.ToMarker.RowId?.Text);
+            long fromOffset = ParseEmuOffset(horizontal ? anchor.FromMarker.ColumnOffset?.Text : anchor.FromMarker.RowOffset?.Text);
+            long toOffset = ParseEmuOffset(horizontal ? anchor.ToMarker.ColumnOffset?.Text : anchor.ToMarker.RowOffset?.Text);
+            int basePixels = Math.Max(0, to - from) * (horizontal ? 64 : 20);
+            int offsetPixels = EmuOffsetToPixels(toOffset - fromOffset);
+            pixels = Math.Max(1, basePixels + offsetPixels);
+            return pixels > 1;
+        }
+
         private static int ParseOneBasedMarker(string? value) {
             return int.TryParse(value, out int zeroBased) && zeroBased >= 0 ? zeroBased + 1 : 1;
+        }
+
+        private static int ParseZeroBasedMarker(string? value) {
+            return int.TryParse(value, out int zeroBased) && zeroBased >= 0 ? zeroBased : 0;
+        }
+
+        private static long ParseEmuOffset(string? value) {
+            return long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out long emu) ? emu : 0L;
+        }
+
+        private static int EmuOffsetToPixels(long emu) {
+            return (int)Math.Round(emu / 9525D);
         }
 
         private static int EmuToPixels(long? emu, int fallback) {

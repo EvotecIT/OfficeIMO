@@ -1158,25 +1158,64 @@ namespace OfficeIMO.Excel.Pdf {
                 return;
             }
 
-            double max = GetPositiveMax(series);
             double slot = plotWidth / categories.Count;
             double groupWidth = slot * 0.68D;
-            double barWidth = Math.Max(2D, groupWidth / series.Count);
             bool horizontal = IsBarChart(snapshot.ChartType);
+            bool stacked = IsStackedBarOrColumnChart(snapshot.ChartType) || IsPercentStackedBarOrColumnChart(snapshot.ChartType);
+            bool percentStacked = IsPercentStackedBarOrColumnChart(snapshot.ChartType);
+            double barWidth = Math.Max(2D, stacked ? groupWidth : groupWidth / series.Count);
+            (double min, double max) = percentStacked
+                ? (0D, 1D)
+                : stacked
+                    ? GetStackedSeriesRange(series, categories.Count)
+                    : GetFiniteSeriesRange(series);
+            min = Math.Min(0D, min);
+            max = Math.Max(0D, max);
+            if (max <= min) {
+                max = min + 1D;
+            }
 
             for (int category = 0; category < categories.Count; category++) {
+                double positiveBase = 0D;
+                double negativeBase = 0D;
+                double percentTotal = percentStacked ? GetPositiveCategoryTotal(series, category) : 0D;
                 for (int s = 0; s < series.Count; s++) {
-                    double value = Math.Max(0D, GetSeriesValue(series[s], category));
+                    double value = GetSeriesValue(series[s], category);
+                    if (value == 0D) {
+                        continue;
+                    }
+
+                    double baseline = 0D;
+                    double plottedValue = value;
+                    if (stacked) {
+                        if (percentStacked) {
+                            plottedValue = percentTotal <= 0D ? 0D : Math.Max(0D, value) / percentTotal;
+                        }
+
+                        baseline = plottedValue >= 0D ? positiveBase : negativeBase;
+                        if (plottedValue >= 0D) {
+                            positiveBase += plottedValue;
+                        } else {
+                            negativeBase += plottedValue;
+                        }
+                    }
+
                     OfficeColor color = GetChartSeriesColor(s);
                     if (horizontal) {
-                        double rowHeight = Math.Max(2D, plotHeight / categories.Count * 0.68D / series.Count);
-                        double y = plotTop + (plotHeight / categories.Count * category) + (plotHeight / categories.Count * 0.16D) + (rowHeight * s);
-                        double w = Math.Max(1D, plotWidth * value / max);
-                        AddShape(drawing, OfficeShape.Rectangle(w, rowHeight), plotLeft, y, color, null, 0);
+                        double categoryHeight = plotHeight / categories.Count;
+                        double rowHeight = Math.Max(2D, categoryHeight * 0.68D / (stacked ? 1D : series.Count));
+                        double y = plotTop + (categoryHeight * category) + (categoryHeight * 0.16D) + (stacked ? 0D : rowHeight * s);
+                        double x1 = ToPlotX(baseline, min, max, plotLeft, plotWidth);
+                        double x2 = ToPlotX(stacked ? baseline + plottedValue : plottedValue, min, max, plotLeft, plotWidth);
+                        double x = Math.Min(x1, x2);
+                        double w = Math.Max(1D, Math.Abs(x2 - x1));
+                        AddShape(drawing, OfficeShape.Rectangle(w, rowHeight), x, y, color, null, 0);
                     } else {
-                        double x = plotLeft + (slot * category) + ((slot - groupWidth) / 2D) + (barWidth * s);
-                        double h = Math.Max(1D, plotHeight * value / max);
-                        double y = plotTop + plotHeight - h;
+                        double x = plotLeft + (slot * category) + ((slot - groupWidth) / 2D) + (stacked ? 0D : barWidth * s);
+                        double y1 = ToPlotY(baseline, min, max, plotTop, plotHeight);
+                        double y2 = ToPlotY(stacked ? baseline + plottedValue : plottedValue, min, max, plotTop, plotHeight);
+                        double y = Math.Min(y1, y2);
+                        double h = Math.Max(1D, Math.Abs(y2 - y1));
                         AddShape(drawing, OfficeShape.Rectangle(barWidth * 0.88D, h), x, y, color, null, 0);
                     }
                 }
@@ -1506,6 +1545,28 @@ namespace OfficeIMO.Excel.Pdf {
             return total;
         }
 
+        private static (double Min, double Max) GetStackedSeriesRange(IReadOnlyList<ExcelChartSeries> series, int categoryCount) {
+            double min = 0D;
+            double max = 0D;
+            for (int category = 0; category < categoryCount; category++) {
+                double positive = 0D;
+                double negative = 0D;
+                for (int s = 0; s < series.Count; s++) {
+                    double value = GetSeriesValue(series[s], category);
+                    if (value >= 0D) {
+                        positive += value;
+                    } else {
+                        negative += value;
+                    }
+                }
+
+                if (positive > max) max = positive;
+                if (negative < min) min = negative;
+            }
+
+            return ExpandFlatRange(min, max);
+        }
+
         private static double GetSeriesValue(ExcelChartSeries series, int index) {
             double value = index >= 0 && index < series.Values.Count ? series.Values[index] : 0D;
             return double.IsNaN(value) || double.IsInfinity(value) ? 0D : value;
@@ -1751,6 +1812,20 @@ namespace OfficeIMO.Excel.Pdf {
                    || type == ExcelChartType.Area3DStacked100;
         }
 
+        private static bool IsStackedBarOrColumnChart(ExcelChartType type) {
+            return type == ExcelChartType.ColumnStacked
+                   || type == ExcelChartType.Column3DStacked
+                   || type == ExcelChartType.BarStacked
+                   || type == ExcelChartType.Bar3DStacked;
+        }
+
+        private static bool IsPercentStackedBarOrColumnChart(ExcelChartType type) {
+            return type == ExcelChartType.ColumnStacked100
+                   || type == ExcelChartType.Column3DStacked100
+                   || type == ExcelChartType.BarStacked100
+                   || type == ExcelChartType.Bar3DStacked100;
+        }
+
         private static bool IsPieChart(ExcelChartType type) {
             return type == ExcelChartType.Pie
                    || type == ExcelChartType.Pie3D
@@ -1789,6 +1864,7 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static SheetExportData ReadSheetExportData(ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelPdfSaveOptions options) {
             string normalizedRange = NormalizeA1Range(exportRange);
+            A1.TryParseRange(normalizedRange, out int rangeFirstRow, out int rangeFirstColumn, out _, out int rangeLastColumn);
             RangeExportData bodyRange = ReadRangeExportData(sheet, workbookSheet, normalizedRange, options);
             object?[,] values = bodyRange.Values;
             ExcelCellStyleSnapshot?[,]? styles = bodyRange.Styles;
@@ -1799,12 +1875,12 @@ namespace OfficeIMO.Excel.Pdf {
             RowLayoutData? rowHeights = bodyRange.RowHeights;
             int headerRows = options.HeaderRowCount;
             if (!options.UseWorksheetPrintTitleRows || workbookSheet == null) {
-                return CreateSheetExportData(workbookSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, options);
+                return CreateSheetExportData(workbookSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, options);
             }
 
             ExcelPrintTitles titles = workbookSheet.GetPrintTitles();
-            if (!titles.HasRows || !A1.TryParseRange(normalizedRange, out int rangeFirstRow, out int rangeFirstColumn, out _, out int rangeLastColumn)) {
-                return CreateSheetExportData(workbookSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, options);
+            if (!titles.HasRows) {
+                return CreateSheetExportData(workbookSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, options);
             }
 
             int firstTitleRow = titles.FirstRow!.Value;
@@ -1835,6 +1911,7 @@ namespace OfficeIMO.Excel.Pdf {
                     columnWidths,
                     prependedRowHeights,
                     Math.Max(headerRows, prependedRowCount + overlappingTitleRows),
+                    rangeFirstRow,
                     options);
             }
 
@@ -1843,17 +1920,17 @@ namespace OfficeIMO.Excel.Pdf {
                 headerRows = Math.Max(headerRows, titleRowsInsideRange);
             }
 
-            return CreateSheetExportData(workbookSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, options);
+            return CreateSheetExportData(workbookSheet, values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, rangeFirstRow, options);
         }
 
-        private static SheetExportData CreateSheetExportData(ExcelSheet? workbookSheet, object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRows, ExcelPdfSaveOptions options) {
+        private static SheetExportData CreateSheetExportData(ExcelSheet? workbookSheet, object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRows, int firstBodyRowNumber, ExcelPdfSaveOptions options) {
             ConditionalFillData? conditionalFills = ReadConditionalFillData(
                 workbookSheet,
                 values,
                 cellReferences,
                 options.UseWorksheetCellStyles);
 
-            return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, conditionalFills);
+            return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, conditionalFills);
         }
 
         private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? workbookSheet, string normalizedRange, ExcelPdfSaveOptions options) {
@@ -2803,6 +2880,10 @@ namespace OfficeIMO.Excel.Pdf {
 
             int rows = Math.Min(plan.ExportedRows, references.GetLength(0));
             foreach (int breakRow in plan.ManualRowBreaks) {
+                if (breakRow < plan.ExportData.FirstBodyRowNumber) {
+                    continue;
+                }
+
                 for (int row = 0; row < rows; row++) {
                     int originalRow = GetOriginalRowNumber(references, row);
                     if (originalRow > breakRow) {
@@ -3618,7 +3699,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static string? TryFormatCellValue(object value, ExcelCellStyleSnapshot style, string formatCode) {
-            string normalized = GetPrimaryNumberFormatSection(formatCode).Trim();
+            string normalized = GetNumberFormatSection(formatCode, 0).Trim();
             if (normalized.Length == 0 ||
                 string.Equals(normalized, "General", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(normalized, "@", StringComparison.Ordinal)) {
@@ -3638,9 +3719,22 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
+            normalized = GetNumberFormatSection(formatCode, number < 0D ? 1 : 0).Trim();
+            if (normalized.Length == 0 ||
+                string.Equals(normalized, "General", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(normalized, "@", StringComparison.Ordinal)) {
+                return null;
+            }
+
             if (normalized.IndexOf('%') >= 0) {
                 int decimals = CountDecimalPlaces(normalized);
-                string numeric = (number * 100D).ToString(decimals > 0 ? "N" + decimals.ToString(CultureInfo.InvariantCulture) : "N0", CultureInfo.InvariantCulture);
+                bool wrapPercent = ShouldWrapNegativeNumber(normalized, number);
+                double percentNumber = wrapPercent ? Math.Abs(number) : number;
+                string numeric = (percentNumber * 100D).ToString(decimals > 0 ? "N" + decimals.ToString(CultureInfo.InvariantCulture) : "N0", CultureInfo.InvariantCulture);
+                if (wrapPercent) {
+                    return "(" + numeric + "%)";
+                }
+
                 return numeric + "%";
             }
 
@@ -3648,7 +3742,10 @@ namespace OfficeIMO.Excel.Pdf {
             bool useGrouping = normalized.IndexOf(',') >= 0;
             int decimalPlaces = CountDecimalPlaces(normalized);
             string numberFormat = (useGrouping ? "N" : "F") + decimalPlaces.ToString(CultureInfo.InvariantCulture);
-            return (prefix ?? string.Empty) + number.ToString(numberFormat, CultureInfo.InvariantCulture);
+            bool wrapNumber = ShouldWrapNegativeNumber(normalized, number);
+            double displayNumber = wrapNumber ? Math.Abs(number) : number;
+            string numericValue = (prefix ?? string.Empty) + displayNumber.ToString(numberFormat, CultureInfo.InvariantCulture);
+            return wrapNumber ? "(" + numericValue + ")" : numericValue;
         }
 
         private static bool TryGetDouble(object value, out double number) {
@@ -3679,10 +3776,17 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static string GetPrimaryNumberFormatSection(string formatCode) {
-            int separator = formatCode.IndexOf(';');
-            return separator >= 0 ? formatCode.Substring(0, separator) : formatCode;
+        private static string GetNumberFormatSection(string formatCode, int sectionIndex) {
+            string[] sections = formatCode.Split(';');
+            if (sectionIndex >= 0 && sectionIndex < sections.Length) {
+                return sections[sectionIndex];
+            }
+
+            return sections.Length > 0 ? sections[0] : formatCode;
         }
+
+        private static bool ShouldWrapNegativeNumber(string formatCode, double value) =>
+            value < 0D && formatCode.IndexOf('(') >= 0 && formatCode.IndexOf(')') > formatCode.IndexOf('(');
 
         private static int CountDecimalPlaces(string formatCode) {
             int decimalIndex = formatCode.IndexOf('.');
@@ -3883,7 +3987,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class SheetExportData {
-            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, ConditionalFillData? conditionalFills = null) {
+            public SheetExportData(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, ColumnLayoutData? columnWidths, RowLayoutData? rowHeights, int headerRowCount, int firstBodyRowNumber, ConditionalFillData? conditionalFills = null) {
                 Values = values;
                 Styles = styles;
                 Hyperlinks = hyperlinks;
@@ -3892,6 +3996,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ColumnWidths = columnWidths;
                 RowHeights = rowHeights;
                 HeaderRowCount = headerRowCount;
+                FirstBodyRowNumber = firstBodyRowNumber;
                 ConditionalFills = conditionalFills;
             }
 
@@ -3903,6 +4008,7 @@ namespace OfficeIMO.Excel.Pdf {
             public ColumnLayoutData? ColumnWidths { get; }
             public RowLayoutData? RowHeights { get; }
             public int HeaderRowCount { get; }
+            public int FirstBodyRowNumber { get; }
             public ConditionalFillData? ConditionalFills { get; }
         }
 

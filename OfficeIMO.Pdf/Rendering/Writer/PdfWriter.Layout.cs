@@ -4193,8 +4193,8 @@ internal static partial class PdfWriter {
                             }
 
                             if (HasCellLinkTarget(linkUri, linkDestinationName)) {
-                                double x1 = xi;
-                                double x2 = xi + cellWidth;
+                                double x1 = xi + cellPadLeft;
+                                double x2 = xi + cellWidth - cellPadRight;
                                 double y1 = cellBottom;
                                 double y2 = y;
                                 currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text });
@@ -5414,7 +5414,7 @@ internal static partial class PdfWriter {
                                             }
 
                                             if (HasCellLinkTarget(linkUri, linkDestinationName)) {
-                                                currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi, Y1 = cellBottom, X2 = xi + cellWidth, Y2 = yCol, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text });
+                                                currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi + cellPadLeft, Y1 = cellBottom, X2 = xi + cellWidth - cellPadRight, Y2 = yCol, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text });
                                             }
                                         }
 

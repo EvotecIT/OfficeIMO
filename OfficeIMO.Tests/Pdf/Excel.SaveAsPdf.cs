@@ -382,6 +382,39 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Ignores_Manual_Row_Page_Breaks_Before_Print_Area() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfManualRowBreakBeforePrintArea.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "ManualBreaks")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "TitleOne");
+            sheet.Cell(2, 1, "TitleTwo");
+            sheet.Cell(10, 1, "BodyHeader");
+            sheet.Cell(10, 2, "ValueHeader");
+            sheet.Cell(11, 1, "ExportedBody");
+            sheet.Cell(11, 2, "BodyValue");
+            sheet.AddManualRowPageBreak(5);
+            document.SetPrintArea(sheet, "A10:B11");
+            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 2, firstCol: null, lastCol: null);
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                PageSize = new PdfCore.PageSize(420, 360),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("TitleOne", text);
+        Assert.Contains("ExportedBody", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Honors_Manual_Column_Page_Breaks() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfManualColumnPageBreaks.xlsx");
 
@@ -495,7 +528,7 @@ public partial class Excel {
         using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
         string text = pdf.GetPage(1).Text;
         Assert.Contains("Printed " + printedAt.ToString("d", CultureInfo.CurrentCulture), text);
-        Assert.Contains(printedAt.ToString("t", CultureInfo.CurrentCulture), text);
+        Assert.Contains(NormalizePdfTextSpaces(printedAt.ToString("t", CultureInfo.CurrentCulture)), NormalizePdfTextSpaces(text));
         Assert.Contains("Dir " + Path.GetDirectoryName(Path.GetFullPath(workbookPath)), text);
         Assert.Contains("File " + Path.GetFileName(workbookPath), text);
         Assert.Contains("Page 1 of 1", text);
@@ -1106,6 +1139,8 @@ public partial class Excel {
             sheet.CellAt(4, 2).SetValue(new DateTime(2026, 1, 15)).Date("yyyy-mm-dd");
             sheet.Cell(5, 1, "Minutes");
             sheet.CellAt(5, 2).SetValue(new DateTime(2026, 1, 15, 0, 30, 5)).SetNumberFormat("mm:ss");
+            sheet.Cell(6, 1, "Negative");
+            sheet.CellAt(6, 2).SetValue(-1234).SetNumberFormat("#,##0;(#,##0)");
 
             ExcelCellStyleSnapshot currencyStyle = sheet.CellAt(2, 2).GetStyle();
             Assert.Equal("\"$\"#,##0.00", currencyStyle.NumberFormatCode);
@@ -1131,9 +1166,11 @@ public partial class Excel {
         Assert.Contains("25.7%", text);
         Assert.Contains("2026-01-15", text);
         Assert.Contains("30:05", text);
+        Assert.Contains("(1,234)", text);
         Assert.DoesNotContain("01:05", text);
         Assert.DoesNotContain("1234.5", text);
         Assert.DoesNotContain("0.257", text);
+        Assert.DoesNotContain("-1,234", text);
     }
 
     [Fact]
@@ -1688,4 +1725,7 @@ public partial class Excel {
             0, 0, 0, 0
         };
     }
+
+    private static string NormalizePdfTextSpaces(string text) =>
+        text.Replace('\u00A0', ' ').Replace('\u202F', ' ');
 }
