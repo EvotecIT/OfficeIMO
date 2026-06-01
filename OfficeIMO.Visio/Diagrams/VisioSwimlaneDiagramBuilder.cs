@@ -455,7 +455,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 _theme.Emphasis.ApplyTo(laneHeader);
                 page.Shapes.Add(laneHeader);
 
-                VisioShape laneBody = page.AddStencilShape(VisioStencils.Swimlane, "lane", "lane-" + lane.Id, processCenterX, y, processWidth, _laneHeight, string.Empty);
+                VisioShape laneBody = page.AddStencilShape(VisioStencils.Swimlane, "swim.lane", "lane-" + lane.Id, processCenterX, y, processWidth, _laneHeight, string.Empty);
                 laneBody.NameU = "Rectangle";
                 ApplyLaneBodyStyle(laneBody, i);
                 laneBody.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -463,7 +463,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             for (int i = 0; i < _phases.Count; i++) {
                 PhaseItem phase = _phases[i];
-                VisioShape phaseHeader = page.AddStencilShape(VisioStencils.Swimlane, "phase", "phase-" + phase.Id, PhaseCenterX(i), PhaseHeaderCenterY(), _phaseWidth, _phaseHeaderHeight, phase.Text);
+                VisioShape phaseHeader = page.AddStencilShape(VisioStencils.Swimlane, "swim.phase", "phase-" + phase.Id, PhaseCenterX(i), PhaseHeaderCenterY(), _phaseWidth, _phaseHeaderHeight, phase.Text);
                 phaseHeader.NameU = "Rectangle";
                 _theme.Container.ApplyTo(phaseHeader);
                 phaseHeader.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
@@ -660,13 +660,13 @@ namespace OfficeIMO.Visio.Diagrams {
             switch (kind) {
                 case VisioSwimlaneActivityKind.Start:
                 case VisioSwimlaneActivityKind.End:
-                    return "start-end";
+                    return "swim.start-end";
                 case VisioSwimlaneActivityKind.Decision:
-                    return "decision";
+                    return "swim.decision";
                 case VisioSwimlaneActivityKind.Data:
-                    return "data";
+                    return "swim.data";
                 default:
-                    return "activity";
+                    return "swim.activity";
             }
         }
 

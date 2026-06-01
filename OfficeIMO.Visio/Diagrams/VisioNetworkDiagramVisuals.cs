@@ -64,29 +64,29 @@ namespace OfficeIMO.Visio.Diagrams {
         internal static string GetNodeStencilId(VisioNetworkNodeKind kind) {
             switch (kind) {
                 case VisioNetworkNodeKind.User:
-                    return "user";
+                    return "net.user";
                 case VisioNetworkNodeKind.Workstation:
-                    return "workstation";
+                    return "net.workstation";
                 case VisioNetworkNodeKind.Switch:
-                    return "switch";
+                    return "net.switch";
                 case VisioNetworkNodeKind.Router:
-                    return "router";
+                    return "net.router";
                 case VisioNetworkNodeKind.Firewall:
-                    return "firewall";
+                    return "net.firewall";
                 case VisioNetworkNodeKind.Internet:
-                    return "internet";
+                    return "net.internet";
                 case VisioNetworkNodeKind.Printer:
-                    return "printer";
+                    return "net.printer";
                 case VisioNetworkNodeKind.Storage:
-                    return "storage";
+                    return "net.storage";
                 case VisioNetworkNodeKind.Database:
-                    return "database";
+                    return "net.database";
                 case VisioNetworkNodeKind.Wireless:
-                    return "wireless";
+                    return "net.wireless";
                 case VisioNetworkNodeKind.Note:
-                    return "note";
+                    return "net.note";
                 default:
-                    return "server";
+                    return "net.server";
             }
         }
 

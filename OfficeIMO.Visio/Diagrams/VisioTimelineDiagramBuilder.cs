@@ -426,7 +426,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddAxis(VisioPage page, DateTime start, DateTime end) {
             double width = TimelineWidth();
-            VisioShape axis = page.AddStencilShape(VisioStencils.Timeline, "axis", "timeline-axis", _leftMargin + (width / 2D), _axisY, width, _axisHeight, string.Empty);
+            VisioShape axis = page.AddStencilShape(VisioStencils.Timeline, "time.axis", "timeline-axis", _leftMargin + (width / 2D), _axisY, width, _axisHeight, string.Empty);
             _theme.Emphasis.ApplyTo(axis);
 
             AddTick(page, "timeline-start", start, start);
@@ -439,7 +439,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 x = _pageWidth - _rightMargin;
             }
 
-            VisioShape label = page.AddStencilShape(VisioStencils.Timeline, "label", id + "-label", x, _axisY - 0.42D, 1.05, 0.28, FormatShortDate(date));
+            VisioShape label = page.AddStencilShape(VisioStencils.Timeline, "time.label", id + "-label", x, _axisY - 0.42D, 1.05, 0.28, FormatShortDate(date));
             _theme.Container.ApplyTo(label);
         }
 
@@ -449,7 +449,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 double endX = DateX(span.End, start, end);
                 double width = Math.Max(0.28D, endX - startX);
                 double y = SpanY(span);
-                VisioShape shape = page.AddStencilShape(VisioStencils.Timeline, "span", span.Id, startX + (width / 2D), y, width, _spanHeight, span.Text);
+                VisioShape shape = page.AddStencilShape(VisioStencils.Timeline, "time.span", span.Id, startX + (width / 2D), y, width, _spanHeight, span.Text);
                 _theme.Primary.ApplyTo(shape);
                 span.Shape = shape;
             }
@@ -478,7 +478,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 GetMilestoneStyle(milestone.Kind).ApplyTo(marker);
                 milestone.MarkerShape = marker;
 
-                VisioShape label = page.AddStencilShape(VisioStencils.Timeline, "label", GetMilestoneLabelId(milestone.Id), x, labelY, _labelWidth, _labelHeight, GetMilestoneText(milestone));
+                VisioShape label = page.AddStencilShape(VisioStencils.Timeline, "time.label", GetMilestoneLabelId(milestone.Id), x, labelY, _labelWidth, _labelHeight, GetMilestoneText(milestone));
                 GetMilestoneLabelStyle(milestone.Kind).ApplyTo(label);
             }
         }
@@ -608,13 +608,13 @@ namespace OfficeIMO.Visio.Diagrams {
         private static string GetMarkerStencilId(VisioTimelineMilestoneKind kind) {
             switch (kind) {
                 case VisioTimelineMilestoneKind.Release:
-                    return "release";
+                    return "time.release";
                 case VisioTimelineMilestoneKind.Decision:
-                    return "decision";
+                    return "time.decision";
                 case VisioTimelineMilestoneKind.Risk:
-                    return "risk";
+                    return "time.risk";
                 default:
-                    return "milestone";
+                    return "time.milestone";
             }
         }
 

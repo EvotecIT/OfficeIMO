@@ -599,18 +599,18 @@ namespace OfficeIMO.Visio.Diagrams {
         private static string GetNodeStencilId(VisioFlowchartNodeKind kind) {
             switch (kind) {
                 case VisioFlowchartNodeKind.Decision:
-                    return "decision";
+                    return "flow.decision";
                 case VisioFlowchartNodeKind.Data:
-                    return "data";
+                    return "flow.data";
                 case VisioFlowchartNodeKind.OffPageReference:
-                    return "off-page-reference";
+                    return "flow.off-page-reference";
                 case VisioFlowchartNodeKind.Continuation:
-                    return "continuation";
+                    return "flow.continuation";
                 case VisioFlowchartNodeKind.Start:
                 case VisioFlowchartNodeKind.End:
-                    return "start-end";
+                    return "flow.start-end";
                 default:
-                    return "process";
+                    return "flow.process";
             }
         }
 
