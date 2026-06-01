@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -109,6 +110,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Skips_Loaded_Unsupported_Png_Images() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedUnsupportedPng.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedUnsupportedPng.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Before unsupported image");
+            document.AddParagraph().AddImage(imagePath, 48, 48);
+            document.AddParagraph("After unsupported image");
+            document.Save();
+        }
+
+        ReplaceFirstMainDocumentImagePart(docPath, CreateUnsupportedInterlacedPng());
+
+        using (WordDocument document = WordDocument.Load(docPath)) {
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.Contains(options.Warnings, warning =>
+            warning.Code == "NativeBodyImageUnsupported" &&
+            warning.Message.Contains("PNG", StringComparison.OrdinalIgnoreCase));
+        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Before unsupported image", text);
+        Assert.Contains("After unsupported image", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Body_PictureControl_To_Image() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.pdf");
@@ -171,5 +203,18 @@ public partial class Word {
 
         using PdfDocument pdf = PdfDocument.Open(bytes);
         Assert.Contains("Logo content control in a table", pdf.GetPage(1).Text);
+    }
+
+    private static void ReplaceFirstMainDocumentImagePart(string docPath, byte[] bytes) {
+        using WordprocessingDocument package = WordprocessingDocument.Open(docPath, true);
+        ImagePart imagePart = package.MainDocumentPart!.ImageParts.First();
+        using var stream = new MemoryStream(bytes);
+        imagePart.FeedData(stream);
+    }
+
+    private static byte[] CreateUnsupportedInterlacedPng() {
+        byte[] bytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAABGdBTAAAACklEQVR42mP8z8AABQMBgA4uA1sAAAAASUVORK5CYII=");
+        bytes[28] = 1;
+        return bytes;
     }
 }

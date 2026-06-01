@@ -81,4 +81,12 @@ namespace OfficeIMO.Excel {
         /// <summary>Landscape orientation (horizontal).</summary>
         Landscape
     }
+
+    /// <summary>Worksheet print page order.</summary>
+    public enum ExcelPageOrder {
+        /// <summary>Print pages down first, then over to the next column group.</summary>
+        DownThenOver,
+        /// <summary>Print pages over first, then down to the next row group.</summary>
+        OverThenDown
+    }
 }

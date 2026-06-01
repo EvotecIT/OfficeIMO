@@ -5003,7 +5003,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            int number = footnoteNumbersById.Count + 1;
+            int number = footnoteNumbersById.Keys.Count(key => key > 0) + 1;
             footnoteNumbersById[key] = number;
             footnotes.Add(new PdfFootnote {
                 Number = number,
@@ -5022,7 +5022,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            int number = footnoteNumbersById.Count + 1;
+            int number = footnoteNumbersById.Keys.Count(key => key < 0) + 1;
             footnoteNumbersById[key] = number;
             footnotes.Add(new PdfFootnote {
                 Number = number,
@@ -5152,11 +5152,16 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            if (info.Format == OfficeImageFormat.Jpeg || info.Format == OfficeImageFormat.Png) {
+            if (info.Format == OfficeImageFormat.Jpeg) {
                 return true;
             }
 
-            unsupportedReason = "Detected " + info.Format + " (" + info.MimeType + ").";
+            if (info.Format == OfficeImageFormat.Png &&
+                PdfCore.PdfDoc.TryValidateImageBytes(bytes, out _, out unsupportedReason)) {
+                return true;
+            }
+
+            unsupportedReason ??= "Detected " + info.Format + " (" + info.MimeType + ").";
             return false;
         }
 

@@ -797,6 +797,24 @@ public sealed partial class PdfDoc {
 }
 
 public sealed partial class PdfDoc {
+    /// <summary>
+    /// Checks whether image bytes can be embedded by the first-party PDF writer.
+    /// </summary>
+    public static bool TryValidateImageBytes(byte[] data, out OfficeImageInfo? imageInfo, out string? unsupportedReason) {
+        imageInfo = null;
+        unsupportedReason = null;
+        try {
+            imageInfo = ValidateImageBytes(data);
+            return true;
+        } catch (NotSupportedException ex) {
+            unsupportedReason = ex.Message;
+            return false;
+        } catch (ArgumentException ex) {
+            unsupportedReason = ex.Message;
+            return false;
+        }
+    }
+
     internal static OfficeImageInfo ValidateImageBytes(byte[] data) {
         if (OfficeImageReader.TryIdentify(data, null, out var info)) {
             if (info.Format == OfficeImageFormat.Jpeg) {

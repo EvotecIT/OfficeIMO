@@ -30,6 +30,11 @@ namespace OfficeIMO.Excel {
         /// Manual worksheet print scale percentage, when configured.
         /// </summary>
         public uint? Scale { get; internal set; }
+
+        /// <summary>
+        /// Worksheet page order for multi-page print/export output, when configured.
+        /// </summary>
+        public ExcelPageOrder? PageOrder { get; internal set; }
     }
 
     /// <summary>
@@ -85,6 +90,11 @@ namespace OfficeIMO.Excel {
                 result.FitToWidth = pageSetup.FitToWidth?.Value;
                 result.FitToHeight = pageSetup.FitToHeight?.Value;
                 result.Scale = pageSetup.Scale?.Value;
+                if (pageSetup.PageOrder?.Value == PageOrderValues.OverThenDown) {
+                    result.PageOrder = ExcelPageOrder.OverThenDown;
+                } else if (pageSetup.PageOrder?.Value == PageOrderValues.DownThenOver) {
+                    result.PageOrder = ExcelPageOrder.DownThenOver;
+                }
             }
 
             PageMargins? margins = WorksheetRoot.GetFirstChild<PageMargins>();

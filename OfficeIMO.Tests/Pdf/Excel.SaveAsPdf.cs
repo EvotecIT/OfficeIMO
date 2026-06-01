@@ -600,6 +600,37 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Defaults_To_DownThenOver_Page_Order() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDefaultPageOrder.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PageOrder")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "TopLeftPage");
+            sheet.Cell(3, 1, "BottomLeftPage");
+            sheet.Cell(1, 3, "TopRightPage");
+            sheet.Cell(3, 3, "BottomRightPage");
+            sheet.AddManualRowPageBreak(2);
+            sheet.AddManualColumnPageBreak(2);
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                PageSize = new PdfCore.PageSize(360, 260),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(4, pdf.NumberOfPages);
+        Assert.Contains("TopLeftPage", pdf.GetPage(1).Text);
+        Assert.Contains("BottomLeftPage", pdf.GetPage(2).Text);
+        Assert.Contains("TopRightPage", pdf.GetPage(3).Text);
+        Assert.Contains("BottomRightPage", pdf.GetPage(4).Text);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Worksheet_HeaderFooter_Text_Zones() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooter.xlsx");
 
@@ -1509,6 +1540,8 @@ public partial class Excel {
             sheet.CellAt(2, 2).SetValue(1.5).SetNumberFormat("[h]:mm");
             sheet.Cell(3, 1, "Units");
             sheet.CellAt(3, 2).SetValue(12).SetNumberFormat("0 \"kg\"");
+            sheet.Cell(4, 1, "Elapsed units");
+            sheet.CellAt(4, 2).SetValue(1.5).SetNumberFormat("[h] \"hours\"");
 
             document.Save(false);
 
@@ -1526,7 +1559,10 @@ public partial class Excel {
         Assert.Contains("36:00", text);
         Assert.Contains("Units", text);
         Assert.Contains("12 kg", text);
+        Assert.Contains("Elapsed units", text);
+        Assert.Contains("36 hours", text);
         Assert.DoesNotContain("12:00", text);
+        Assert.DoesNotContain("hour0", text);
         Assert.DoesNotContain("kg12", text);
     }
 

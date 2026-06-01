@@ -75,9 +75,9 @@ namespace OfficeIMO.Tests {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
                 string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("Native footnote here1", allText);
-                Assert.Contains("Native endnote here2", allText);
+                Assert.Contains("Native endnote here1", allText);
                 Assert.Contains("1 Native footnote text", normalizedText);
-                Assert.Contains("2 Native endnote text", normalizedText);
+                Assert.Contains("1 Native endnote text", normalizedText);
                 Assert.Contains("Native after notes", allText);
             }
         }

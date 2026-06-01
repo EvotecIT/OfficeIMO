@@ -2992,15 +2992,29 @@ namespace OfficeIMO.Excel.Pdf {
             int headerRowCount = Math.Min(plan.ExportData.HeaderRowCount, plan.ExportedRows);
 
             var chunks = new List<TableChunk>(rowChunks.Count * columnChunks.Count);
-            foreach (TableAxisChunk rowChunk in rowChunks) {
-                IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
-                int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
+            if (plan.PageSetup?.PageOrder == ExcelPageOrder.OverThenDown) {
+                foreach (TableAxisChunk rowChunk in rowChunks) {
+                    AddChunksForRow(rowChunk, columnChunks, headerRowCount, chunks);
+                }
+            } else {
                 foreach (TableAxisChunk columnChunk in columnChunks) {
-                    chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count));
+                    foreach (TableAxisChunk rowChunk in rowChunks) {
+                        IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
+                        int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
+                        chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count));
+                    }
                 }
             }
 
             return chunks;
+        }
+
+        private static void AddChunksForRow(TableAxisChunk rowChunk, IReadOnlyList<TableAxisChunk> columnChunks, int headerRowCount, List<TableChunk> chunks) {
+            IReadOnlyList<int> rowIndexes = CreateChunkRowIndexes(rowChunk, headerRowCount);
+            int chunkHeaderRows = Math.Min(headerRowCount, rowIndexes.Count);
+            foreach (TableAxisChunk columnChunk in columnChunks) {
+                chunks.Add(new TableChunk(rowIndexes, chunkHeaderRows, columnChunk.Start, columnChunk.Count));
+            }
         }
 
         private static IReadOnlyList<int> CreateChunkRowIndexes(TableAxisChunk rowChunk, int headerRowCount) {
@@ -3976,12 +3990,13 @@ namespace OfficeIMO.Excel.Pdf {
                 return false;
             }
 
-            result = ReplaceIgnoreCase(result, "hh", duration.Hours.ToString("D2", CultureInfo.InvariantCulture));
-            result = ReplaceIgnoreCase(result, "h", duration.Hours.ToString(CultureInfo.InvariantCulture));
-            result = ReplaceIgnoreCase(result, "mm", duration.Minutes.ToString("D2", CultureInfo.InvariantCulture));
-            result = ReplaceIgnoreCase(result, "m", duration.Minutes.ToString(CultureInfo.InvariantCulture));
-            result = ReplaceIgnoreCase(result, "ss", duration.Seconds.ToString("D2", CultureInfo.InvariantCulture));
-            result = ReplaceIgnoreCase(result, "s", duration.Seconds.ToString(CultureInfo.InvariantCulture));
+            result = ReplaceUnquotedIgnoreCase(result, "hh", duration.Hours.ToString("D2", CultureInfo.InvariantCulture));
+            result = ReplaceUnquotedIgnoreCase(result, "h", duration.Hours.ToString(CultureInfo.InvariantCulture));
+            result = ReplaceUnquotedIgnoreCase(result, "mm", duration.Minutes.ToString("D2", CultureInfo.InvariantCulture));
+            result = ReplaceUnquotedIgnoreCase(result, "m", duration.Minutes.ToString(CultureInfo.InvariantCulture));
+            result = ReplaceUnquotedIgnoreCase(result, "ss", duration.Seconds.ToString("D2", CultureInfo.InvariantCulture));
+            result = ReplaceUnquotedIgnoreCase(result, "s", duration.Seconds.ToString(CultureInfo.InvariantCulture));
+            result = RemoveExcelFormatQuotes(result);
             text = negative ? "-" + result : result;
             return true;
         }
@@ -4109,6 +4124,50 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return prefix + numericValue + suffix;
+        }
+
+        private static string ReplaceUnquotedIgnoreCase(string value, string oldValue, string newValue) {
+            var builder = new System.Text.StringBuilder(value.Length);
+            bool inQuote = false;
+            int index = 0;
+            while (index < value.Length) {
+                char ch = value[index];
+                if (ch == '"') {
+                    inQuote = !inQuote;
+                    builder.Append(ch);
+                    index++;
+                    continue;
+                }
+
+                if (!inQuote &&
+                    index + oldValue.Length <= value.Length &&
+                    string.Compare(value, index, oldValue, 0, oldValue.Length, StringComparison.OrdinalIgnoreCase) == 0) {
+                    builder.Append(newValue);
+                    index += oldValue.Length;
+                    continue;
+                }
+
+                builder.Append(ch);
+                index++;
+            }
+
+            return builder.ToString();
+        }
+
+        private static string RemoveExcelFormatQuotes(string value) {
+            var builder = new System.Text.StringBuilder(value.Length);
+            bool inQuote = false;
+            for (int i = 0; i < value.Length; i++) {
+                char ch = value[i];
+                if (ch == '"') {
+                    inQuote = !inQuote;
+                    continue;
+                }
+
+                builder.Append(ch);
+            }
+
+            return builder.ToString();
         }
 
         private static bool HasNumberPlaceholder(string formatCode, int start, int end) {
