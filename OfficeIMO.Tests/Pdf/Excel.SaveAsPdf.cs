@@ -5,6 +5,7 @@ using OfficeIMO.Excel.Pdf;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using UglyToad.PdfPig;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
@@ -1083,6 +1084,41 @@ public partial class Excel {
 
         Assert.Equal(2, barFillCount);
         Assert.Contains(" re f", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Preserves_Negative_Conditional_DataBars() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfConditionalNegativeDataBar.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Conditional")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Delta");
+            sheet.Cell(2, 1, -100);
+            sheet.Cell(3, 1, 0);
+            sheet.Cell(4, 1, 100);
+            sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(360, 240),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        MatchCollection barRects = Regex.Matches(rawPdf, @"0\.357 0\.608 0\.835 rg\s+(?<x>-?\d+(?:\.\d+)?) (?<y>-?\d+(?:\.\d+)?) (?<width>-?\d+(?:\.\d+)?) (?<height>-?\d+(?:\.\d+)?) re f");
+
+        Assert.Equal(2, barRects.Count);
+        double firstX = double.Parse(barRects[0].Groups["x"].Value, CultureInfo.InvariantCulture);
+        double secondX = double.Parse(barRects[1].Groups["x"].Value, CultureInfo.InvariantCulture);
+        double firstWidth = double.Parse(barRects[0].Groups["width"].Value, CultureInfo.InvariantCulture);
+        double secondWidth = double.Parse(barRects[1].Groups["width"].Value, CultureInfo.InvariantCulture);
+
+        Assert.True(firstX < secondX);
+        Assert.InRange(Math.Abs(firstWidth - secondWidth), 0D, 1D);
     }
 
     [Fact]

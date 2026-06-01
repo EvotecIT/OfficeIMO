@@ -1171,10 +1171,12 @@ internal static partial class PdfWriter {
                 double padRight = GetTableCellPaddingRight(style, rowIndex, column);
                 double padTop = GetTableCellPaddingTop(style, rowIndex, column);
                 double padBottom = GetTableCellPaddingBottom(style, rowIndex, column);
-                double barWidth = System.Math.Max(0D, cellWidth - padLeft - padRight) * dataBar.Ratio;
+                double contentWidth = System.Math.Max(0D, cellWidth - padLeft - padRight);
+                double barX = cellX + padLeft + contentWidth * dataBar.StartRatio;
+                double barWidth = contentWidth * dataBar.Ratio;
                 double barHeight = System.Math.Max(0D, cellHeight - padTop - padBottom);
                 if (barWidth > 0.001D && barHeight > 0.001D) {
-                    DrawRowFill(sb, dataBar.Color, cellX + padLeft, cellBottom + padBottom, barWidth, barHeight);
+                    DrawRowFill(sb, dataBar.Color, barX, cellBottom + padBottom, barWidth, barHeight);
                     drawn = true;
                 }
             }
@@ -2880,7 +2882,8 @@ internal static partial class PdfWriter {
             double spacingBefore = ResolveTopLevelSpacingBefore(block.SpacingBefore);
             double height = block.Height;
             double needed = spacingBefore + height + block.SpacingAfter;
-            EnsureFixedFlowBlockFits("Radio button group", block.Size, needed, containerWidth);
+            double groupWidth = GetRadioButtonGroupWidth(block);
+            EnsureFixedFlowBlockFits("Radio button group", groupWidth, needed, containerWidth);
             if (y - needed < currentOpts.MarginBottom) {
                 NewPage();
                 spacingBefore = 0D;
@@ -2890,7 +2893,7 @@ internal static partial class PdfWriter {
                 y -= spacingBefore;
             }
 
-            double x = GetAlignedObjectX(containerX, containerWidth, block.Size, block.Align);
+            double x = GetAlignedObjectX(containerX, containerWidth, groupWidth, block.Align);
             currentPage!.FormFields.Add(new FormFieldAnnotation {
                 X1 = x,
                 Y1 = y - height,
@@ -2904,6 +2907,7 @@ internal static partial class PdfWriter {
                 ButtonGap = block.Gap,
                 Style = block.Style
             });
+            RenderRadioButtonLabels(block, x, y);
             pageDirty = true;
             y -= height + block.SpacingAfter;
         }
@@ -2924,7 +2928,7 @@ internal static partial class PdfWriter {
             return "Choice field";
         }
 
-        static double GetFormFieldWidth(IPdfBlock block) {
+        double GetFormFieldWidth(IPdfBlock block) {
             if (block is TextFieldBlock textField) {
                 return textField.Width;
             }
@@ -2934,7 +2938,7 @@ internal static partial class PdfWriter {
             }
 
             if (block is RadioButtonGroupBlock radioButtonGroup) {
-                return radioButtonGroup.Size;
+                return GetRadioButtonGroupWidth(radioButtonGroup);
             }
 
             return ((ChoiceFieldBlock)block).Width;
@@ -3050,6 +3054,7 @@ internal static partial class PdfWriter {
                     ButtonGap = radioButtonGroup.Gap,
                     Style = radioButtonGroup.Style
                 });
+                RenderRadioButtonLabels(radioButtonGroup, x, topY);
                 return;
             }
 
@@ -3079,6 +3084,35 @@ internal static partial class PdfWriter {
             double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
             if (blockHeight > availableHeight + 0.001) {
                 throw new ArgumentException(blockName + " height exceeds the available page content height.");
+            }
+        }
+
+        double GetRadioButtonGroupLabelFontSize(RadioButtonGroupBlock block) =>
+            System.Math.Min(System.Math.Max(8D, currentOpts.DefaultFontSize), System.Math.Max(8D, block.Size));
+
+        double GetRadioButtonGroupLabelGap(RadioButtonGroupBlock block) =>
+            System.Math.Max(4D, block.Size * 0.4D);
+
+        double GetRadioButtonGroupWidth(RadioButtonGroupBlock block) {
+            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
+            double fontSize = GetRadioButtonGroupLabelFontSize(block);
+            double labelWidth = block.Options.Max(option => EstimateSimpleTextWidth(option, font, fontSize));
+            return block.Size + GetRadioButtonGroupLabelGap(block) + labelWidth;
+        }
+
+        void RenderRadioButtonLabels(RadioButtonGroupBlock block, double x, double topY) {
+            PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
+            string fontResource = GetStandardFontResourceName(font, font);
+            double fontSize = GetRadioButtonGroupLabelFontSize(block);
+            double labelX = x + block.Size + GetRadioButtonGroupLabelGap(block);
+            double ascender = GetAscender(font, fontSize);
+            double descender = GetDescender(font, fontSize);
+            double labelBaselineOffset = (block.Size - ascender - descender) / 2D + descender;
+
+            for (int i = 0; i < block.Options.Count; i++) {
+                double optionTop = topY - i * (block.Size + block.Gap);
+                double baseline = optionTop - block.Size + labelBaselineOffset;
+                AppendPageText(sb, block.Options[i], fontResource, fontSize, block.Style.TextColor, labelX, baseline);
             }
         }
 

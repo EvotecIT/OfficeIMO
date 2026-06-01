@@ -2196,8 +2196,8 @@ namespace OfficeIMO.Excel.Pdf {
                 double min = candidates.Min(candidate => candidate.Value);
                 double max = candidates.Max(candidate => candidate.Value);
                 foreach (var candidate in candidates) {
-                    double ratio = max <= min ? 1D : Math.Max(0D, Math.Min(1D, (candidate.Value - min) / (max - min)));
-                    dataBars[(candidate.Row, candidate.Column)] = new ConditionalDataBarCell(rule.DataBarColor!, ratio);
+                    (double startRatio, double ratio) = GetDataBarGeometry(candidate.Value, min, max);
+                    dataBars[(candidate.Row, candidate.Column)] = new ConditionalDataBarCell(rule.DataBarColor!, startRatio, ratio);
                 }
             }
 
@@ -2534,6 +2534,32 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return hasAnyLink ? links : null;
+        }
+
+        private static (double StartRatio, double Ratio) GetDataBarGeometry(double value, double min, double max) {
+            if (max <= min) {
+                return value < 0D ? (0D, 1D) : (0D, 1D);
+            }
+
+            if (min < 0D && max > 0D) {
+                double range = max - min;
+                double zeroRatio = Math.Max(0D, Math.Min(1D, -min / range));
+                if (value >= 0D) {
+                    return (zeroRatio, Math.Max(0D, Math.Min(1D - zeroRatio, value / range)));
+                }
+
+                double ratio = Math.Max(0D, Math.Min(zeroRatio, -value / range));
+                return (zeroRatio - ratio, ratio);
+            }
+
+            if (max <= 0D) {
+                double maxMagnitude = Math.Max(Math.Abs(min), Math.Abs(max));
+                double ratio = maxMagnitude <= 0D ? 0D : Math.Max(0D, Math.Min(1D, Math.Abs(value) / maxMagnitude));
+                return (1D - ratio, ratio);
+            }
+
+            double positiveRatio = Math.Max(0D, Math.Min(1D, (value - min) / (max - min)));
+            return (0D, positiveRatio);
         }
 
         private static bool IsSupportedPdfHyperlink(ExcelHyperlinkSnapshot hyperlink, string currentSheetName) {
@@ -3540,6 +3566,7 @@ namespace OfficeIMO.Excel.Pdf {
                     dataBars ??= new Dictionary<(int Row, int Column), PdfCore.PdfCellDataBar>();
                     dataBars[(localRow, conditionalDataBar.Key.Column - columnOffset)] = new PdfCore.PdfCellDataBar {
                         Color = fill.Value,
+                        StartRatio = conditionalDataBar.Value.StartRatio,
                         Ratio = conditionalDataBar.Value.Ratio
                     };
                 }
@@ -4297,12 +4324,14 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private sealed class ConditionalDataBarCell {
-            public ConditionalDataBarCell(string color, double ratio) {
+            public ConditionalDataBarCell(string color, double startRatio, double ratio) {
                 Color = color;
+                StartRatio = startRatio;
                 Ratio = ratio;
             }
 
             public string Color { get; }
+            public double StartRatio { get; }
             public double Ratio { get; }
         }
 

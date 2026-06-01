@@ -220,6 +220,11 @@ public class PdfFormCreationTests {
         Assert.Contains("/Ff 49152", raw);
         Assert.Contains("/Kids [", raw);
         Assert.Contains("/V /Cash", raw);
+        using var pdfDocument = PdfDocument.Open(new MemoryStream(pdf));
+        string pageText = pdfDocument.GetPage(1).Text;
+        Assert.Contains("Card", pageText);
+        Assert.Contains("Cash", pageText);
+        Assert.Contains("Wire", pageText);
         PdfFormField field = Assert.Single(info.FormFields);
         Assert.Equal("Payment.Method", field.Name);
         Assert.Equal(PdfFormFieldKind.Button, field.Kind);
@@ -262,6 +267,19 @@ public class PdfFormCreationTests {
         Assert.DoesNotContain("/AcroForm", raw);
         Assert.DoesNotContain("/Subtype /Widget", raw);
         Assert.Contains("/OfficeIMOForm", raw);
+    }
+
+    [Fact]
+    public void RadioButtonGroup_RejectsUnknownFillValue() {
+        byte[] pdf = PdfDoc.Create()
+            .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Card")
+            .ToBytes();
+
+        ArgumentException exception = Assert.Throws<ArgumentException>(() => PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
+            ["Payment.Method"] = "WireTransfer"
+        }));
+
+        Assert.Contains("not one of the available appearance states", exception.Message);
     }
 
     [Fact]

@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfCellDataBar {
     private double _ratio;
+    private double _startRatio;
 
     /// <summary>Fill color used for the data bar.</summary>
     public PdfColor Color { get; set; } = PdfColor.LightGray;
@@ -21,11 +22,24 @@ public sealed class PdfCellDataBar {
         }
     }
 
+    /// <summary>Horizontal start position as a 0..1 fraction of the cell content width.</summary>
+    public double StartRatio {
+        get => _startRatio;
+        set {
+            if (double.IsNaN(value) || double.IsInfinity(value) || value < 0 || value > 1) {
+                throw new ArgumentOutOfRangeException(nameof(StartRatio), "PDF table data bar start ratio must be a finite value between 0 and 1.");
+            }
+
+            _startRatio = value;
+        }
+    }
+
     /// <summary>Creates a deep copy of this data bar.</summary>
     public PdfCellDataBar Clone() {
         return new PdfCellDataBar {
             Color = Color,
-            Ratio = Ratio
+            Ratio = Ratio,
+            StartRatio = StartRatio
         };
     }
 }

@@ -692,9 +692,23 @@ public static class PdfFormFiller {
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
             string name = string.IsNullOrEmpty(firstValue) ? "Off" : firstValue;
+            bool isRadioButtonGroup = (fieldFlags & RadioButtonFlag) != 0;
+            if (isRadioButtonGroup) {
+                if (values.Count > 1) {
+                    throw new ArgumentException("PDF radio button field cannot be filled with multiple values.", nameof(value));
+                }
+
+                if (!string.Equals(name, "Off", StringComparison.Ordinal)) {
+                    HashSet<string> availableStates = CollectButtonNormalAppearanceStates(objects, field, new HashSet<int>());
+                    if (!availableStates.Contains(name)) {
+                        throw new ArgumentException($"PDF radio button field cannot be filled with value '{name}' because it is not one of the available appearance states.", nameof(value));
+                    }
+                }
+            }
+
             field.Items["V"] = new PdfName(name);
             field.Items["AS"] = new PdfName(name);
-            SetWidgetAppearanceStates(objects, field, name, (fieldFlags & RadioButtonFlag) != 0, new HashSet<int>(), ref nextObjectNumber);
+            SetWidgetAppearanceStates(objects, field, name, isRadioButtonGroup, new HashSet<int>(), ref nextObjectNumber);
             return;
         }
 
@@ -758,6 +772,39 @@ public static class PdfFormFiller {
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
                 SetWidgetAppearanceStates(objects, kid, name, isRadioButtonGroup, visited, ref nextObjectNumber);
+            }
+        }
+    }
+
+    private static HashSet<string> CollectButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<int> visited) {
+        var states = new HashSet<string>(StringComparer.Ordinal);
+        CollectButtonNormalAppearanceStates(objects, field, states, visited);
+        states.Remove("Off");
+        return states;
+    }
+
+    private static void CollectButtonNormalAppearanceStates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, HashSet<string> states, HashSet<int> visited) {
+        if (IsWidget(field) &&
+            TryGetNormalAppearanceObject(objects, field, out PdfObject? normalAppearance) &&
+            normalAppearance is PdfDictionary appearanceStates) {
+            foreach (string stateName in appearanceStates.Items.Keys) {
+                states.Add(stateName);
+            }
+        }
+
+        if (!field.Items.TryGetValue("Kids", out var kidsObject) ||
+            ResolveObject(objects, kidsObject) is not PdfArray kids) {
+            return;
+        }
+
+        for (int i = 0; i < kids.Items.Count; i++) {
+            PdfObject kidObject = kids.Items[i];
+            if (kidObject is PdfReference reference && !visited.Add(reference.ObjectNumber)) {
+                continue;
+            }
+
+            if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
+                CollectButtonNormalAppearanceStates(objects, kid, states, visited);
             }
         }
     }
