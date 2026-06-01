@@ -38,7 +38,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            ApplyMaster(shape, masterNameU, master, resizeToMaster);
+            ApplyMaster(page, shape, masterNameU, master, resizeToMaster);
             return shape;
         }
 
@@ -65,7 +65,7 @@ namespace OfficeIMO.Visio {
 
             EnsureShapeBelongsToPage(page, shape);
             page.OwnerDocument?.RegisterMaster(master);
-            ApplyMaster(shape, master.NameU, master, resizeToMaster);
+            ApplyMaster(page, shape, master.NameU, master, resizeToMaster);
             return shape;
         }
 
@@ -82,8 +82,18 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(stencil));
             }
 
+            if (page == null) {
+                throw new ArgumentNullException(nameof(page));
+            }
+
+            if (page.OwnerDocument != null &&
+                !string.IsNullOrWhiteSpace(stencil.SourcePackagePath) &&
+                page.OwnerDocument.TryGetMaster(stencil.MasterNameU, out _) == false) {
+                page.OwnerDocument.ImportStencilMasters(stencil.SourcePackagePath!, new[] { stencil.MasterNameU });
+            }
+
             VisioShape updated = page.ReplaceMaster(shape, stencil.MasterNameU, resizeToMaster: false);
-            if (updated.Master != null) {
+            if (updated.Master?.IsPackageBacked == true) {
                 VisioStencilMetadata.Apply(updated.Master, stencil, catalogName: null);
             }
 
@@ -155,7 +165,7 @@ namespace OfficeIMO.Visio {
             return selection;
         }
 
-        private static void ApplyMaster(VisioShape shape, string masterNameU, VisioMaster? master, bool resizeToMaster) {
+        private static void ApplyMaster(VisioPage page, VisioShape shape, string masterNameU, VisioMaster? master, bool resizeToMaster) {
             shape.Master = master;
             shape.NameU = masterNameU;
             shape.MasterShapeId = null;
@@ -165,10 +175,19 @@ namespace OfficeIMO.Visio {
             // Local geometry from an old standalone/custom shape would otherwise
             // fight the replacement master when saving master deltas.
             shape.PreservedGeometrySections.Clear();
+            if (!HasConnectorPointReferences(page, shape)) {
+                shape.ConnectionPoints.Clear();
+            }
 
             if (resizeToMaster && master?.Shape != null) {
                 ResizeShape(shape, master.Shape.Width, master.Shape.Height);
             }
+        }
+
+        private static bool HasConnectorPointReferences(VisioPage page, VisioShape shape) {
+            return page.Connectors.Any(connector =>
+                ReferenceEquals(connector.From, shape) && connector.FromConnectionPoint != null ||
+                ReferenceEquals(connector.To, shape) && connector.ToConnectionPoint != null);
         }
 
         private static void ResizeToStencil(VisioShape shape, VisioStencilShape stencil, VisioMeasurementUnit unit) {

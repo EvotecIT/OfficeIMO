@@ -161,10 +161,6 @@ namespace OfficeIMO.Visio.Stencils {
             if (!File.Exists(packagePath)) throw new FileNotFoundException("Visio package was not found.", packagePath);
 
             options ??= new VisioStencilPackageLoadOptions();
-            if (!options.ExtractPreviewImageMetadata) {
-                return Array.Empty<VisioStencilPreviewImageData>();
-            }
-
             HashSet<string>? filter = options.MasterNames != null
                 ? new HashSet<string>(options.MasterNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase)
                 : null;

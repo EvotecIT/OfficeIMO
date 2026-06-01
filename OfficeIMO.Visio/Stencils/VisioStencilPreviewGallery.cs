@@ -192,7 +192,7 @@ namespace OfficeIMO.Visio.Stencils {
             if (string.IsNullOrWhiteSpace(options.IndexFileName)) throw new ArgumentException("Index file name cannot be null or whitespace.", nameof(options));
             if (Path.IsPathRooted(options.IndexFileName)) throw new ArgumentException("Index file name must be relative.", nameof(options));
             if (ContainsParentSegment(options.IndexFileName)) throw new ArgumentException("Index file name cannot contain parent directory segments.", nameof(options));
-            if (options.IndexFileName.Contains(Path.DirectorySeparatorChar) || options.IndexFileName.Contains(Path.AltDirectorySeparatorChar)) throw new ArgumentException("Index file name cannot contain directory separators.", nameof(options));
+            if (options.IndexFileName.IndexOf(Path.DirectorySeparatorChar) >= 0 || options.IndexFileName.IndexOf(Path.AltDirectorySeparatorChar) >= 0) throw new ArgumentException("Index file name cannot contain directory separators.", nameof(options));
             if (options.ThumbnailWidth <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Thumbnail width must be positive.");
             if (options.ThumbnailHeight <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Thumbnail height must be positive.");
         }

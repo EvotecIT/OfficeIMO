@@ -759,10 +759,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Fancy Cloud", extracted.MasterName);
             Assert.Equal("42-FancyCloud.emf", extracted.SuggestedFileName);
             Assert.Equal(new byte[] { 1, 0, 0, 0, 32, 69, 77, 70 }, extracted.Data);
-            Assert.Empty(VisioStencilPackageCatalog.ExtractPreviewImages(packagePath, new VisioStencilPackageLoadOptions {
+            VisioStencilPreviewImageData explicitlyExtracted = Assert.Single(VisioStencilPackageCatalog.ExtractPreviewImages(packagePath, new VisioStencilPackageLoadOptions {
                 IncludeUnsupportedMasters = true,
                 ExtractPreviewImageMetadata = false
             }));
+            Assert.Equal(extracted.Data, explicitlyExtracted.Data);
 
             string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
             string extractedPath = Assert.Single(VisioStencilPackageCatalog.ExtractPreviewImagesToDirectory(packagePath, outputDirectory, new VisioStencilPackageLoadOptions {
@@ -913,6 +914,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("5", (string?)rootShape.Attribute("ID"));
             Assert.Equal("Group", (string?)rootShape.Attribute("Type"));
             Assert.NotNull(rootShape.Element(ns + "Shapes")?.Element(ns + "Shape"));
+            XElement masterUserSection = masterDocument.Root!.Element(ns + "PageSheet")!.Elements(ns + "Section").Single(section => (string?)section.Attribute("N") == "User");
+            Assert.Equal("1", GetUserCellValue(masterUserSection, ns, "OfficeIMO.PackageBackedMaster"));
+            Assert.Equal("fancy-cloud", GetUserCellValue(masterUserSection, ns, VisioSemanticUserCells.StencilId));
 
             XDocument pageDocument = XDocument.Load(zip.GetEntry("visio/pages/page1.xml")!.Open());
             XElement pageShape = pageDocument.Root!.Element(ns + "Shapes")!.Element(ns + "Shape")!;
@@ -982,6 +986,15 @@ namespace OfficeIMO.Tests {
         private static string? GetUserCellValue(VisioShape shape, string name) {
             return shape.UserCells
                 .FirstOrDefault(cell => string.Equals(cell.Name, name, StringComparison.OrdinalIgnoreCase))
+                ?.Value;
+        }
+
+        private static string? GetUserCellValue(XElement userSection, XNamespace ns, string name) {
+            return userSection.Elements(ns + "Row")
+                .FirstOrDefault(row => string.Equals((string?)row.Attribute("N"), name, StringComparison.OrdinalIgnoreCase))
+                ?.Elements(ns + "Cell")
+                .FirstOrDefault(cell => string.Equals((string?)cell.Attribute("N"), "Value", StringComparison.OrdinalIgnoreCase))
+                ?.Attribute("V")
                 ?.Value;
         }
 

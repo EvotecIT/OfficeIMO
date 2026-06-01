@@ -240,7 +240,8 @@ namespace OfficeIMO.Visio {
                         if (master.RawMasterContentXml != null) {
                             using Stream stream = masterPart.GetStream(FileMode.Create, FileAccess.Write);
                             using StreamWriter streamWriter = new(stream, new UTF8Encoding(false));
-                            streamWriter.Write(master.RawMasterContentXml.Declaration + Environment.NewLine + master.RawMasterContentXml.ToString(SaveOptions.DisableFormatting));
+                            XDocument rawMasterContent = MergeRawMasterMetadata(master.RawMasterContentXml, master);
+                            streamWriter.Write(rawMasterContent.Declaration + Environment.NewLine + rawMasterContent.ToString(SaveOptions.DisableFormatting));
                             WriteRawMasterRelationships(package, masterPart, master, entry.PartNumber);
                             continue;
                         }
@@ -3010,6 +3011,45 @@ namespace OfficeIMO.Visio {
 
             userCells.AddRange(VisioStencilMetadata.CreateMasterUserCells(master));
             return userCells.AsReadOnly();
+        }
+
+        private static XDocument MergeRawMasterMetadata(XDocument rawMasterContentXml, VisioMaster master) {
+            XDocument merged = new(rawMasterContentXml);
+            IReadOnlyList<VisioUserCell> masterUserCells = CreateMasterPageSheetUserCells(master);
+            if (masterUserCells.Count == 0 || merged.Root == null) {
+                return merged;
+            }
+
+            XNamespace ns = merged.Root.Name.Namespace;
+            XElement? pageSheet = merged.Root.Elements()
+                .FirstOrDefault(element => string.Equals(element.Name.LocalName, "PageSheet", StringComparison.OrdinalIgnoreCase));
+            if (pageSheet == null) {
+                pageSheet = new XElement(ns + "PageSheet");
+                merged.Root.Add(pageSheet);
+            }
+
+            XElement? userSection = pageSheet.Elements()
+                .FirstOrDefault(element =>
+                    string.Equals(element.Name.LocalName, "Section", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals((string?)element.Attribute("N"), "User", StringComparison.OrdinalIgnoreCase));
+            if (userSection == null) {
+                userSection = new XElement(ns + "Section", new XAttribute("N", "User"));
+                pageSheet.Add(userSection);
+            }
+
+            HashSet<string> existingRows = new(
+                userSection.Elements()
+                    .Where(element => string.Equals(element.Name.LocalName, "Row", StringComparison.OrdinalIgnoreCase))
+                    .Select(row => row.Attribute("N")?.Value)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))!,
+                StringComparer.OrdinalIgnoreCase);
+            foreach (VisioUserCell userCell in masterUserCells) {
+                if (existingRows.Add(userCell.Name)) {
+                    userSection.Add(CreateUserRowElement(ns.NamespaceName, userCell));
+                }
+            }
+
+            return merged;
         }
 
         private static void WriteMasterPageSheetSections(XmlWriter writer, string ns, IEnumerable<XElement> sections, IReadOnlyList<VisioUserCell> masterUserCells) {

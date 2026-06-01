@@ -100,7 +100,7 @@ namespace OfficeIMO.Visio.Stencils {
             }
 
             if (document?.TryGetMaster(stencil.MasterNameU, out VisioMaster? registeredMaster) == true && registeredMaster != null) {
-                VisioStencilMetadata.Apply(registeredMaster, stencil, catalogName);
+                ApplyMasterMetadataIfDedicated(registeredMaster, stencil, catalogName);
                 x = x.ToInches(placementUnit);
                 y = y.ToInches(placementUnit);
                 width = width.ToInches(sizeUnit);
@@ -116,7 +116,7 @@ namespace OfficeIMO.Visio.Stencils {
 
             if (document?.UseMastersByDefault == true) {
                 VisioMaster master = document.EnsureBuiltinMaster(stencil.MasterNameU);
-                VisioStencilMetadata.Apply(master, stencil, catalogName);
+                ApplyMasterMetadataIfDedicated(master, stencil, catalogName);
                 x = x.ToInches(placementUnit);
                 y = y.ToInches(placementUnit);
                 width = width.ToInches(sizeUnit);
@@ -141,6 +141,12 @@ namespace OfficeIMO.Visio.Stencils {
             VisioStencilMetadata.Apply(shape, stencil, catalogName);
             page.Shapes.Add(shape);
             return shape;
+        }
+
+        private static void ApplyMasterMetadataIfDedicated(VisioMaster master, VisioStencilShape stencil, string? catalogName) {
+            if (master.IsPackageBacked) {
+                VisioStencilMetadata.Apply(master, stencil, catalogName);
+            }
         }
     }
 }
