@@ -287,7 +287,7 @@ namespace OfficeIMO.Visio {
                 return Array.Empty<VisioShape>();
             }
 
-            return FilterShapes(page, shape => Intersects(shape.GetShapeBounds(), bounds));
+            return FilterShapes(page, shape => Intersects(GetPageShapeBounds(shape), bounds));
         }
 
         /// <summary>
@@ -298,8 +298,8 @@ namespace OfficeIMO.Visio {
         /// <param name="includeSelf">Whether the reference shape itself should be included.</param>
         public static IReadOnlyList<VisioShape> ShapesIntersecting(this VisioPage page, VisioShape shape, bool includeSelf = false) {
             EnsureShapeBelongsToPage(page, shape);
-            VisioShapeBounds bounds = shape.GetShapeBounds();
-            return FilterShapes(page, candidate => (includeSelf || !ReferenceEquals(candidate, shape)) && Intersects(candidate.GetShapeBounds(), bounds));
+            VisioShapeBounds bounds = GetPageShapeBounds(shape);
+            return FilterShapes(page, candidate => (includeSelf || !ReferenceEquals(candidate, shape)) && Intersects(GetPageShapeBounds(candidate), bounds));
         }
 
         /// <summary>
@@ -312,7 +312,7 @@ namespace OfficeIMO.Visio {
                 return Array.Empty<VisioShape>();
             }
 
-            return FilterShapes(page, shape => Contains(bounds, shape.GetShapeBounds()));
+            return FilterShapes(page, shape => Contains(bounds, GetPageShapeBounds(shape)));
         }
 
         /// <summary>
@@ -323,8 +323,8 @@ namespace OfficeIMO.Visio {
         /// <param name="includeContainer">Whether the containing shape itself should be included.</param>
         public static IReadOnlyList<VisioShape> ShapesContainedIn(this VisioPage page, VisioShape container, bool includeContainer = false) {
             EnsureShapeBelongsToPage(page, container);
-            VisioShapeBounds bounds = container.GetShapeBounds();
-            return FilterShapes(page, shape => (includeContainer || !ReferenceEquals(shape, container)) && Contains(bounds, shape.GetShapeBounds()));
+            VisioShapeBounds bounds = GetPageShapeBounds(container);
+            return FilterShapes(page, shape => (includeContainer || !ReferenceEquals(shape, container)) && Contains(bounds, GetPageShapeBounds(shape)));
         }
 
         /// <summary>
@@ -848,6 +848,25 @@ namespace OfficeIMO.Visio {
             }
 
             return shape.Data.TryGetValue(key, out string? dataValue) ? dataValue : null;
+        }
+
+        private static VisioShapeBounds GetPageShapeBounds(VisioShape shape) {
+            (double x1, double y1) = GetPagePoint(shape, 0, 0);
+            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0);
+            (double x3, double y3) = GetPagePoint(shape, 0, shape.Height);
+            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
+            double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
+            double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
+            double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
+            double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
+            return new VisioShapeBounds(left, bottom, right, top);
+        }
+
+        private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
+            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
+            return shape.Parent != null
+                ? GetPagePoint(shape.Parent, absX, absY)
+                : (absX, absY);
         }
 
         private static IReadOnlyList<VisioShape> FilterShapes(VisioPage page, Func<VisioShape, bool> predicate) {

@@ -974,6 +974,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ReplaceMasterImportsPackageMasterWhenNameUAlreadyRegistered() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(packagePath, "Rectangle", "Package Rectangle");
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                Category = "External"
+            });
+            VisioStencilShape stencil = catalog.Get("rectangle");
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            document.RegisterMaster("Rectangle", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "Rectangle" }, "builtin-rectangle");
+            VisioPage page = document.AddPage("Replace");
+            VisioShape shape = page.AddRectangle(2, 4, 1, 1, "Shape");
+
+            page.ReplaceMaster(shape, stencil);
+
+            Assert.NotNull(shape.Master);
+            Assert.True(shape.Master!.IsPackageBacked);
+            Assert.Equal(Path.GetFullPath(packagePath), shape.Master.StencilSourcePackagePath);
+            Assert.Equal(stencil.Id, shape.GetUserCellValue(VisioSemanticUserCells.StencilId));
+        }
+
+        [Fact]
         public void PackageCatalogLoadManyAutoImportsSourceMasters() {
             string firstPackage = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             string secondPackage = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");

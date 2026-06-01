@@ -177,6 +177,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeDataSchemaPreservesLegacyDataValuesByDefault() {
+            VisioShapeDataSchema schema = VisioShapeDataSchema.Create()
+                .Field("Owner", "Owner", VisioShapeDataType.String, "Unassigned");
+            VisioShape shape = new("shape", 0, 0, 1, 1, "Shape");
+            shape.Data["Owner"] = "Ops";
+
+            schema.ApplyTo(shape);
+
+            Assert.Equal("Ops", shape.GetShapeDataValue("Owner"));
+            Assert.Equal("Ops", shape.FindShapeData("Owner")!.Value);
+        }
+
+        [Fact]
         public void DataGraphicsCreateVisibleShapeDataAdornments() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 

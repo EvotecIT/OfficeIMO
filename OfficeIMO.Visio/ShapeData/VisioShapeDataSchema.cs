@@ -202,11 +202,11 @@ namespace OfficeIMO.Visio {
         }
 
         private static string? ResolveValue(VisioShapeDataRow? existing, string? currentValue, VisioShapeDataField field, bool overwriteValues) {
-            if (overwriteValues || existing == null) {
+            if (overwriteValues) {
                 return field.DefaultValue;
             }
 
-            return currentValue;
+            return currentValue ?? field.DefaultValue;
         }
 
         private static void ApplyMetadata(VisioShapeDataRow row, VisioShapeDataField field) {

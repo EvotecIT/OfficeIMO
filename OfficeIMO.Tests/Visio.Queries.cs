@@ -139,6 +139,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GeometryQueriesResolveGroupedChildBoundsInPageCoordinates() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Grouped Geometry");
+            VisioShape group = new("group") {
+                Type = "Group",
+                PinX = 5,
+                PinY = 4,
+                Width = 4,
+                Height = 3,
+                LocPinX = 2,
+                LocPinY = 1.5
+            };
+            VisioShape child = new("child", 1, 1, 1, 1, "Child");
+            group.Children.Add(child);
+            page.Shapes.Add(group);
+
+            OfficeIMO.Visio.VisioShapeBounds pageBounds = new(3.25, 2.75, 4.75, 4.25);
+            OfficeIMO.Visio.VisioShapeBounds localBounds = new(0.5, 0.5, 1.5, 1.5);
+
+            Assert.Contains(child, page.ShapesIntersecting(pageBounds));
+            Assert.Contains(child, page.ShapesContainedIn(pageBounds));
+            Assert.DoesNotContain(child, page.ShapesIntersecting(localBounds));
+        }
+
+        [Fact]
         public void ShapeDataPredicateQueriesFindMatchingValues() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Predicates");
