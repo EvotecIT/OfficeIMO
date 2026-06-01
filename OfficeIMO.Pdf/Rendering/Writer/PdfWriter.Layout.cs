@@ -4038,7 +4038,7 @@ internal static partial class PdfWriter {
 
                     void DrawRepeatHeaders() {
                         for (int headerIndex = 0; headerIndex < repeatHeaderRowCount; headerIndex++) {
-                            DrawTableRow(headerIndex, renderAsHeader: true);
+                            DrawTableRow(headerIndex, renderAsHeader: true, suppressCellObjects: true);
                         }
                     }
 
@@ -4049,7 +4049,7 @@ internal static partial class PdfWriter {
                         }
                     }
 
-                    void DrawTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount) {
+                    void DrawTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false) {
                         bool renderAsFooter = rowIndex >= footerStartRowIndex;
                         bool rowUsesBold = rowBold[rowIndex];
                         double rowSize = rowSizes[rowIndex];
@@ -4183,7 +4183,7 @@ internal static partial class PdfWriter {
                                 var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                                 WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW);
                             }
-                            if ((cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
+                            if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                                 if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
                                     RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, firstBaseline);
                                 } else {
@@ -4193,10 +4193,10 @@ internal static partial class PdfWriter {
                             }
 
                             if (HasCellLinkTarget(linkUri, linkDestinationName)) {
-                                double x1 = xi + cellPadLeft;
-                                double x2 = xi + cellPadLeft + innerW;
-                                double y1 = cellBottom + cellPadBottom;
-                                double y2 = y - cellPadTop;
+                                double x1 = xi;
+                                double x2 = xi + cellWidth;
+                                double y1 = cellBottom;
+                                double y2 = y;
                                 currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text });
                             }
                         }
@@ -4274,8 +4274,8 @@ internal static partial class PdfWriter {
                         }
                     }
 
-                    void DrawTableRow(int rowIndex, bool renderAsHeader) =>
-                        DrawTableRowSegment(rowIndex, renderAsHeader, 0, rowLineCounts[rowIndex]);
+                    void DrawTableRow(int rowIndex, bool renderAsHeader, bool suppressCellObjects = false) =>
+                        DrawTableRowSegment(rowIndex, renderAsHeader, 0, rowLineCounts[rowIndex], suppressCellObjects);
 
                     void DrawSplitTableRow(int rowIndex, bool renderAsHeader) {
                         int startLine = 0;
@@ -5277,7 +5277,7 @@ internal static partial class PdfWriter {
                                     bool AtContinuationPageTop() =>
                                         Math.Abs(yCol - yStart) <= 0.001;
 
-                                    void DrawColumnTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount) {
+                                    void DrawColumnTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false) {
                                         bool renderAsFooter = rowIndex >= table.FooterStartRowIndex;
                                         bool rowUsesBold = table.RowBold[rowIndex];
                                         double rowSize = table.RowSizes[rowIndex];
@@ -5404,7 +5404,7 @@ internal static partial class PdfWriter {
                                                 var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
                                                 WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW);
                                             }
-                                            if ((cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
+                                            if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                                                 if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
                                                     RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[sourceStartLine], xi + cellPadLeft, innerW, firstBaseline);
                                                 } else {
@@ -5414,7 +5414,7 @@ internal static partial class PdfWriter {
                                             }
 
                                             if (HasCellLinkTarget(linkUri, linkDestinationName)) {
-                                                currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi + cellPadLeft, Y1 = cellBottom + cellPadBottom, X2 = xi + cellPadLeft + innerW, Y2 = yCol - cellPadTop, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text });
+                                                currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi, Y1 = cellBottom, X2 = xi + cellWidth, Y2 = yCol, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text });
                                             }
                                         }
 
@@ -5491,8 +5491,8 @@ internal static partial class PdfWriter {
                                         consumed += rowAdvance;
                                     }
 
-                                    void DrawColumnTableRow(int rowIndex, bool renderAsHeader) =>
-                                        DrawColumnTableRowSegment(rowIndex, renderAsHeader, 0, table.RowLineCounts[rowIndex]);
+                                    void DrawColumnTableRow(int rowIndex, bool renderAsHeader, bool suppressCellObjects = false) =>
+                                        DrawColumnTableRowSegment(rowIndex, renderAsHeader, 0, table.RowLineCounts[rowIndex], suppressCellObjects);
 
                                     int rowIndex = line;
                                     int rowStartLine = subline;
@@ -5516,7 +5516,7 @@ internal static partial class PdfWriter {
 
                                             if (repeatHeaderBeforeSegment) {
                                                 for (int headerIndex = 0; headerIndex < table.RepeatHeaderRowCount; headerIndex++) {
-                                                    DrawColumnTableRow(headerIndex, renderAsHeader: true);
+                                                    DrawColumnTableRow(headerIndex, renderAsHeader: true, suppressCellObjects: true);
                                                 }
                                             }
 
@@ -5554,7 +5554,7 @@ internal static partial class PdfWriter {
 
                                         if (repeatHeaderBeforeRow) {
                                             for (int headerIndex = 0; headerIndex < table.RepeatHeaderRowCount; headerIndex++) {
-                                                DrawColumnTableRow(headerIndex, renderAsHeader: true);
+                                                DrawColumnTableRow(headerIndex, renderAsHeader: true, suppressCellObjects: true);
                                             }
                                         }
 

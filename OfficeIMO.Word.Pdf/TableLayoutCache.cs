@@ -14,11 +14,12 @@ namespace OfficeIMO.Word.Pdf {
             List<IReadOnlyList<WordTableCell>> rows = TableBuilder.Map(table).ToList();
             int columnCount = ResolveColumnCount(table, rows);
             float[] widths = new float[columnCount];
+            float[] gridWidths = new float[columnCount];
 
             List<int> gridColumnWidths = table.GridColumnWidth;
             if (gridColumnWidths.Count > 0) {
-                for (int i = 0; i < widths.Length && i < gridColumnWidths.Count; i++) {
-                    widths[i] = gridColumnWidths[i] / 20f;
+                for (int i = 0; i < gridWidths.Length && i < gridColumnWidths.Count; i++) {
+                    gridWidths[i] = gridColumnWidths[i] / 20f;
                 }
             }
 
@@ -56,6 +57,12 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     logicalColumn += columnSpan;
+                }
+            }
+
+            for (int i = 0; i < widths.Length; i++) {
+                if (widths[i] <= 0f) {
+                    widths[i] = gridWidths[i];
                 }
             }
 

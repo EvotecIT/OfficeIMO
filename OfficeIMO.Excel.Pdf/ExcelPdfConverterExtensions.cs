@@ -145,8 +145,9 @@ namespace OfficeIMO.Excel.Pdf {
                 }
 
                 ISet<string>? exportedCellReferences = CreateExportedCellReferenceSet(exportData.CellReferences, exportedRows);
-                IReadOnlyList<WorksheetImageExportData> images = FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences);
-                IReadOnlyList<WorksheetChartExportData> charts = FilterChartsByExportedCells(ReadWorksheetCharts(workbookSheet, options, sheetName), exportedCellReferences);
+                bool filterMediaToExportedCells = HasWorksheetPrintArea(workbookSheet, options) || options.MaxRowsPerSheet.HasValue;
+                IReadOnlyList<WorksheetImageExportData> images = FilterImagesByExportedCells(ReadWorksheetImages(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
+                IReadOnlyList<WorksheetChartExportData> charts = FilterChartsByExportedCells(ReadWorksheetCharts(workbookSheet, options, sheetName), exportedCellReferences, filterMediaToExportedCells);
                 if (!hasTable && images.Count == 0 && charts.Count == 0) {
                     continue;
                 }
@@ -466,23 +467,23 @@ namespace OfficeIMO.Excel.Pdf {
                         hasVisibleContent = true;
                         break;
                     case 'A':
-                        builder.Append(sheetName);
+                        builder.Append(NormalizeHeaderFooterFieldText(sheetName));
                         hasVisibleContent = true;
                         break;
                     case 'D':
-                        builder.Append(GetHeaderFooterDateTime(options, ref headerFooterDateTime).ToString("d", CultureInfo.CurrentCulture));
+                        builder.Append(NormalizeHeaderFooterFieldText(GetHeaderFooterDateTime(options, ref headerFooterDateTime).ToString("d", CultureInfo.CurrentCulture)));
                         hasVisibleContent = true;
                         break;
                     case 'T':
-                        builder.Append(GetHeaderFooterDateTime(options, ref headerFooterDateTime).ToString("t", CultureInfo.CurrentCulture));
+                        builder.Append(NormalizeHeaderFooterFieldText(GetHeaderFooterDateTime(options, ref headerFooterDateTime).ToString("t", CultureInfo.CurrentCulture)));
                         hasVisibleContent = true;
                         break;
                     case 'F':
-                        builder.Append(GetHeaderFooterFileName(workbookPath));
+                        builder.Append(NormalizeHeaderFooterFieldText(GetHeaderFooterFileName(workbookPath)));
                         hasVisibleContent = true;
                         break;
                     case 'Z':
-                        builder.Append(GetHeaderFooterDirectory(workbookPath));
+                        builder.Append(NormalizeHeaderFooterFieldText(GetHeaderFooterDirectory(workbookPath)));
                         hasVisibleContent = true;
                         break;
                     case 'G':
@@ -702,6 +703,9 @@ namespace OfficeIMO.Excel.Pdf {
             return directory ?? string.Empty;
         }
 
+        private static string NormalizeHeaderFooterFieldText(string text) =>
+            text.Replace('\u00A0', ' ').Replace('\u202F', ' ');
+
         private static bool TryReadHeaderFooterFontSize(string text, int startIndex, out double fontSize, out int endIndex) {
             fontSize = 0D;
             endIndex = startIndex;
@@ -847,9 +851,9 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static void ApplyWorksheetPageSetup(PdfCore.PdfPageCompose page, ExcelSheetPageSetup? pageSetup, ExcelPdfSaveOptions options) {
             PdfCore.PageSize? pageSize = options.PageSize;
-            if (pageSetup?.Orientation == ExcelPageOrientation.Landscape) {
+            if (!options.PageSize.HasValue && pageSetup?.Orientation == ExcelPageOrientation.Landscape) {
                 pageSize = (pageSize ?? PdfCore.PageSizes.Letter).Landscape();
-            } else if (pageSetup?.Orientation == ExcelPageOrientation.Portrait) {
+            } else if (!options.PageSize.HasValue && pageSetup?.Orientation == ExcelPageOrientation.Portrait) {
                 pageSize = (pageSize ?? PdfCore.PageSizes.Letter).Portrait();
             }
 
@@ -1769,15 +1773,19 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static string GetExportRange(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) {
-            if (options.UseWorksheetPrintAreas && workbookSheet != null) {
-                string? printArea = workbookSheet.GetPrintArea();
-                if (!string.IsNullOrWhiteSpace(printArea)) {
-                    return NormalizeA1Range(printArea!);
-                }
+            string? printArea = GetWorksheetPrintArea(workbookSheet, options);
+            if (!string.IsNullOrWhiteSpace(printArea)) {
+                return NormalizeA1Range(printArea!);
             }
 
             return sheet.GetUsedRangeA1();
         }
+
+        private static bool HasWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) =>
+            !string.IsNullOrWhiteSpace(GetWorksheetPrintArea(workbookSheet, options));
+
+        private static string? GetWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) =>
+            options.UseWorksheetPrintAreas && workbookSheet != null ? workbookSheet.GetPrintArea() : null;
 
         private static SheetExportData ReadSheetExportData(ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelPdfSaveOptions options) {
             string normalizedRange = NormalizeA1Range(exportRange);
@@ -1801,15 +1809,22 @@ namespace OfficeIMO.Excel.Pdf {
 
             int firstTitleRow = titles.FirstRow!.Value;
             int lastTitleRow = titles.LastRow!.Value;
-            if (lastTitleRow < rangeFirstRow) {
-                string titleRange = ToA1Range(firstTitleRow, rangeFirstColumn, lastTitleRow, rangeLastColumn);
+            if (firstTitleRow < rangeFirstRow) {
+                int prependedLastTitleRow = Math.Min(lastTitleRow, rangeFirstRow - 1);
+                string titleRange = ToA1Range(firstTitleRow, rangeFirstColumn, prependedLastTitleRow, rangeLastColumn);
                 RangeExportData titleRangeData = ReadRangeExportData(sheet, workbookSheet, titleRange, options);
+                int prependedRowCount = titleRangeData.Values.GetLength(0);
+                int bodyRowCount = values.GetLength(0);
+                int columnCount = values.GetLength(1);
                 object?[,] prependedValues = PrependRows(titleRangeData.Values, values);
-                ExcelCellStyleSnapshot?[,]? prependedStyles = PrependRows(titleRangeData.Styles, styles);
-                ExcelHyperlinkSnapshot?[,]? prependedHyperlinks = PrependRows(titleRangeData.Hyperlinks, hyperlinks);
-                string?[,]? prependedCellReferences = PrependRows(titleRangeData.CellReferences, cellReferences);
-                MergeLayoutData? prependedMergedCells = PrependRows(titleRangeData.MergedCells, mergedCells, titleRangeData.Values.GetLength(0), values.GetLength(0), values.GetLength(1));
-                RowLayoutData? prependedRowHeights = PrependRows(titleRangeData.RowHeights, rowHeights, titleRangeData.Values.GetLength(0), values.GetLength(0));
+                ExcelCellStyleSnapshot?[,]? prependedStyles = PrependRows(titleRangeData.Styles, styles, prependedRowCount, bodyRowCount, columnCount);
+                ExcelHyperlinkSnapshot?[,]? prependedHyperlinks = PrependRows(titleRangeData.Hyperlinks, hyperlinks, prependedRowCount, bodyRowCount, columnCount);
+                string?[,]? prependedCellReferences = PrependRows(titleRangeData.CellReferences, cellReferences, prependedRowCount, bodyRowCount, columnCount);
+                MergeLayoutData? prependedMergedCells = PrependRows(titleRangeData.MergedCells, mergedCells, prependedRowCount, bodyRowCount, columnCount);
+                RowLayoutData? prependedRowHeights = PrependRows(titleRangeData.RowHeights, rowHeights, prependedRowCount, bodyRowCount);
+                int overlappingTitleRows = lastTitleRow >= rangeFirstRow
+                    ? Math.Min(bodyRowCount, lastTitleRow - rangeFirstRow + 1)
+                    : 0;
                 return CreateSheetExportData(
                     workbookSheet,
                     prependedValues,
@@ -1819,7 +1834,7 @@ namespace OfficeIMO.Excel.Pdf {
                     prependedMergedCells,
                     columnWidths,
                     prependedRowHeights,
-                    Math.Max(headerRows, titleRangeData.Values.GetLength(0)),
+                    Math.Max(headerRows, prependedRowCount + overlappingTitleRows),
                     options);
             }
 
@@ -2480,57 +2495,54 @@ namespace OfficeIMO.Excel.Pdf {
             return result;
         }
 
-        private static ExcelCellStyleSnapshot?[,]? PrependRows(ExcelCellStyleSnapshot?[,]? topRows, ExcelCellStyleSnapshot?[,]? bodyRows) {
-            if (topRows == null) {
-                return bodyRows;
+        private static ExcelCellStyleSnapshot?[,]? PrependRows(ExcelCellStyleSnapshot?[,]? topRows, ExcelCellStyleSnapshot?[,]? bodyRows, int topRowCount, int bodyRowCount, int columnCount) {
+            if (topRows == null && bodyRows == null) {
+                return null;
             }
 
-            if (bodyRows == null) {
-                return topRows;
-            }
-
-            int topRowCount = topRows.GetLength(0);
-            int bodyRowCount = bodyRows.GetLength(0);
-            int columnCount = bodyRows.GetLength(1);
             var result = new ExcelCellStyleSnapshot?[topRowCount + bodyRowCount, columnCount];
-            CopyRows(topRows, result, 0, columnCount);
-            CopyRows(bodyRows, result, topRowCount, columnCount);
+            if (topRows != null) {
+                CopyRows(topRows, result, 0, columnCount);
+            }
+
+            if (bodyRows != null) {
+                CopyRows(bodyRows, result, topRowCount, columnCount);
+            }
+
             return result;
         }
 
-        private static ExcelHyperlinkSnapshot?[,]? PrependRows(ExcelHyperlinkSnapshot?[,]? topRows, ExcelHyperlinkSnapshot?[,]? bodyRows) {
-            if (topRows == null) {
-                return bodyRows;
+        private static ExcelHyperlinkSnapshot?[,]? PrependRows(ExcelHyperlinkSnapshot?[,]? topRows, ExcelHyperlinkSnapshot?[,]? bodyRows, int topRowCount, int bodyRowCount, int columnCount) {
+            if (topRows == null && bodyRows == null) {
+                return null;
             }
 
-            if (bodyRows == null) {
-                return topRows;
-            }
-
-            int topRowCount = topRows.GetLength(0);
-            int bodyRowCount = bodyRows.GetLength(0);
-            int columnCount = bodyRows.GetLength(1);
             var result = new ExcelHyperlinkSnapshot?[topRowCount + bodyRowCount, columnCount];
-            CopyRows(topRows, result, 0, columnCount);
-            CopyRows(bodyRows, result, topRowCount, columnCount);
+            if (topRows != null) {
+                CopyRows(topRows, result, 0, columnCount);
+            }
+
+            if (bodyRows != null) {
+                CopyRows(bodyRows, result, topRowCount, columnCount);
+            }
+
             return result;
         }
 
-        private static string?[,]? PrependRows(string?[,]? topRows, string?[,]? bodyRows) {
-            if (topRows == null) {
-                return bodyRows;
+        private static string?[,]? PrependRows(string?[,]? topRows, string?[,]? bodyRows, int topRowCount, int bodyRowCount, int columnCount) {
+            if (topRows == null && bodyRows == null) {
+                return null;
             }
 
-            if (bodyRows == null) {
-                return topRows;
-            }
-
-            int topRowCount = topRows.GetLength(0);
-            int bodyRowCount = bodyRows.GetLength(0);
-            int columnCount = bodyRows.GetLength(1);
             var result = new string?[topRowCount + bodyRowCount, columnCount];
-            CopyRows(topRows, result, 0, columnCount);
-            CopyRows(bodyRows, result, topRowCount, columnCount);
+            if (topRows != null) {
+                CopyRows(topRows, result, 0, columnCount);
+            }
+
+            if (bodyRows != null) {
+                CopyRows(bodyRows, result, topRowCount, columnCount);
+            }
+
             return result;
         }
 
@@ -2694,8 +2706,8 @@ namespace OfficeIMO.Excel.Pdf {
             return exported;
         }
 
-        private static IReadOnlyList<WorksheetImageExportData> FilterImagesByExportedCells(IReadOnlyList<WorksheetImageExportData> images, ISet<string>? exportedCellReferences) {
-            if (images.Count == 0 || exportedCellReferences == null) {
+        private static IReadOnlyList<WorksheetImageExportData> FilterImagesByExportedCells(IReadOnlyList<WorksheetImageExportData> images, ISet<string>? exportedCellReferences, bool enabled) {
+            if (!enabled || images.Count == 0 || exportedCellReferences == null) {
                 return images;
             }
 
@@ -2704,8 +2716,8 @@ namespace OfficeIMO.Excel.Pdf {
                 .ToList();
         }
 
-        private static IReadOnlyList<WorksheetChartExportData> FilterChartsByExportedCells(IReadOnlyList<WorksheetChartExportData> charts, ISet<string>? exportedCellReferences) {
-            if (charts.Count == 0 || exportedCellReferences == null) {
+        private static IReadOnlyList<WorksheetChartExportData> FilterChartsByExportedCells(IReadOnlyList<WorksheetChartExportData> charts, ISet<string>? exportedCellReferences, bool enabled) {
+            if (!enabled || charts.Count == 0 || exportedCellReferences == null) {
                 return charts;
             }
 
