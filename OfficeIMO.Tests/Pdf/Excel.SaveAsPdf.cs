@@ -234,6 +234,29 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Uses_Single_Cell_Worksheet_Print_Area() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSingleCellPrintArea.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "OnlyCell");
+            sheet.Cell(2, 1, "OutsideCell");
+            document.SetPrintArea(sheet, "A1");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("OnlyCell", text);
+        Assert.DoesNotContain("OutsideCell", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Filters_Images_And_Charts_Outside_Print_Area() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPrintAreaMedia.xlsx");
         byte[] imageBytes = CreateMinimalRgbPng();
@@ -989,6 +1012,36 @@ public partial class Excel {
         PdfCore.PdfLogicalDocument summaryOnly = PdfCore.PdfLogicalDocument.Load(summaryOnlyBytes);
         Assert.DoesNotContain(summaryOnly.NamedDestinations, item => item.Name.IndexOf("details", StringComparison.Ordinal) >= 0);
         Assert.DoesNotContain(summaryOnly.Links, link => link.IsNamedDestinationLink);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Drops_Internal_Cell_Hyperlinks_To_Unexported_Target_Cells() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfInternalHyperlinkHiddenTarget.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
+            ExcelSheet summary = document.AddWorkSheet("Summary");
+            summary.Cell(1, 1, "Name");
+            summary.SetInternalLink(2, 1, "Details!B200", display: "Open Details B200");
+            ExcelSheet details = document.AddWorkSheet("Details");
+            details.Cell(1, 1, "Details Header");
+            details.Cell(2, 1, "Visible Detail");
+            details.Cell(200, 2, "Hidden Target");
+            document.SetPrintArea(details, "A1:B2");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = true,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(bytes);
+        Assert.Contains(logical.NamedDestinations, item => item.Name.IndexOf("details", StringComparison.Ordinal) >= 0);
+        Assert.DoesNotContain(logical.NamedDestinations, item => item.Name.EndsWith("-b200", StringComparison.Ordinal));
+        Assert.DoesNotContain(logical.Links, link => link.IsNamedDestinationLink && link.Contents == "Open Details B200");
     }
 
     [Fact]

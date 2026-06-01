@@ -2702,7 +2702,13 @@ namespace OfficeIMO.Excel.Pdf {
         private static string NormalizeA1Range(string range) {
             string withoutSheet = StripSheetPrefix(range).Replace("$", string.Empty);
             if (!A1.TryParseRange(withoutSheet, out int r1, out int c1, out int r2, out int c2)) {
-                throw new ArgumentException("Excel PDF export range must be a valid A1 range.", nameof(range));
+                (int Row, int Col) cell = A1.ParseCellRef(withoutSheet);
+                if (cell.Row <= 0 || cell.Col <= 0) {
+                    throw new ArgumentException("Excel PDF export range must be a valid A1 range.", nameof(range));
+                }
+
+                r1 = r2 = cell.Row;
+                c1 = c2 = cell.Col;
             }
 
             return ToA1Range(r1, c1, r2, c2);
@@ -3107,8 +3113,11 @@ namespace OfficeIMO.Excel.Pdf {
                 return false;
             }
 
-            return cellDestinations.TryGetValue(CreateCellDestinationKey(sheetName!, cellReference!), out destinationName) ||
-                sheetDestinations.TryGetValue(sheetName!, out destinationName);
+            if (!string.IsNullOrEmpty(cellReference)) {
+                return cellDestinations.TryGetValue(CreateCellDestinationKey(sheetName!, cellReference!), out destinationName);
+            }
+
+            return sheetDestinations.TryGetValue(sheetName!, out destinationName);
         }
 
         private static bool TryParseInternalSheetName(string? value, out string? sheetName) {

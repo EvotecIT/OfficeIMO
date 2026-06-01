@@ -4163,6 +4163,7 @@ internal static partial class PdfWriter {
                             if (cell.Runs.Any(run => run.Bold || rowUsesBold)) { currentPage!.UsedBold = true; usedBold = true; }
                             if (cell.Runs.Any(run => run.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
                             if (cell.Runs.Any(run => (run.Bold || rowUsesBold) && run.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
+                            MarkRichFonts(cell.Runs);
                             string? linkUri = cell.LinkUri;
                             string? linkDestinationName = cell.LinkDestinationName;
                             string? linkContents = cell.LinkContents;
@@ -5384,6 +5385,7 @@ internal static partial class PdfWriter {
                                             if (cell.Runs.Any(run => run.Bold || rowUsesBold)) { currentPage!.UsedBold = true; usedBold = true; }
                                             if (cell.Runs.Any(run => run.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
                                             if (cell.Runs.Any(run => (run.Bold || rowUsesBold) && run.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
+                                            MarkRichFonts(cell.Runs);
                                             string? linkUri = cell.LinkUri;
                                             string? linkDestinationName = cell.LinkDestinationName;
                                             string? linkContents = cell.LinkContents;

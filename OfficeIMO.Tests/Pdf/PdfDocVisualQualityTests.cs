@@ -2552,6 +2552,35 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void Tables_DeclareRichCellRunFontsBeforeRendering() {
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 11
+            })
+            .Table(new[] {
+                new[] {
+                    PdfTableCell.RichTextCell(new[] { TextRun.Normal("Direct table Times", font: PdfStandardFont.TimesRoman) })
+                }
+            })
+            .Compose(document =>
+                document.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column =>
+                                column.Table(new[] {
+                                    new[] {
+                                        PdfTableCell.RichTextCell(new[] { TextRun.Normal("Column table Courier", font: PdfStandardFont.Courier) })
+                                    }
+                                }))))))
+            .ToBytes();
+
+        string pdf = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("/BaseFont /Times-Roman", pdf, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Courier", pdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Bookmark_RejectsInvalidNamesAndDuplicateNames() {
         Assert.Throws<ArgumentNullException>(() =>
             PdfDoc.Create().Bookmark(null!));
