@@ -986,12 +986,12 @@ namespace OfficeIMO.Word.Pdf {
             NativeHeaderFooterText? defaultFooter = GetNativeHeaderFooterText(section.Footer?.Default);
             NativeHeaderFooterText? firstFooter = GetNativeHeaderFooterText(section.Footer?.First);
             NativeHeaderFooterText? evenFooter = GetNativeHeaderFooterText(section.Footer?.Even);
-            IReadOnlyList<NativeHeaderFooterImage> defaultHeaderImages = GetNativeHeaderFooterImages(section.Header?.Default);
-            IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = GetNativeHeaderFooterImages(section.Header?.First);
-            IReadOnlyList<NativeHeaderFooterImage> evenHeaderImages = GetNativeHeaderFooterImages(section.Header?.Even);
-            IReadOnlyList<NativeHeaderFooterImage> defaultFooterImages = GetNativeHeaderFooterImages(section.Footer?.Default);
-            IReadOnlyList<NativeHeaderFooterImage> firstFooterImages = GetNativeHeaderFooterImages(section.Footer?.First);
-            IReadOnlyList<NativeHeaderFooterImage> evenFooterImages = GetNativeHeaderFooterImages(section.Footer?.Even);
+            IReadOnlyList<NativeHeaderFooterImage> defaultHeaderImages = GetNativeHeaderFooterImages(section.Header?.Default, options, "default header image");
+            IReadOnlyList<NativeHeaderFooterImage> firstHeaderImages = GetNativeHeaderFooterImages(section.Header?.First, options, "first header image");
+            IReadOnlyList<NativeHeaderFooterImage> evenHeaderImages = GetNativeHeaderFooterImages(section.Header?.Even, options, "even header image");
+            IReadOnlyList<NativeHeaderFooterImage> defaultFooterImages = GetNativeHeaderFooterImages(section.Footer?.Default, options, "default footer image");
+            IReadOnlyList<NativeHeaderFooterImage> firstFooterImages = GetNativeHeaderFooterImages(section.Footer?.First, options, "first footer image");
+            IReadOnlyList<NativeHeaderFooterImage> evenFooterImages = GetNativeHeaderFooterImages(section.Footer?.Even, options, "even footer image");
             IReadOnlyList<NativeHeaderFooterShape> defaultHeaderShapes = GetNativeHeaderFooterShapes(section.Header?.Default);
             IReadOnlyList<NativeHeaderFooterShape> firstHeaderShapes = GetNativeHeaderFooterShapes(section.Header?.First);
             IReadOnlyList<NativeHeaderFooterShape> evenHeaderShapes = GetNativeHeaderFooterShapes(section.Header?.Even);
@@ -1552,7 +1552,7 @@ namespace OfficeIMO.Word.Pdf {
             return parts.HasContent ? parts : null;
         }
 
-        private static IReadOnlyList<NativeHeaderFooterImage> GetNativeHeaderFooterImages(WordHeaderFooter? headerFooter) {
+        private static IReadOnlyList<NativeHeaderFooterImage> GetNativeHeaderFooterImages(WordHeaderFooter? headerFooter, PdfSaveOptions? options, string source) {
             if (headerFooter == null) {
                 return Array.Empty<NativeHeaderFooterImage>();
             }
@@ -1561,10 +1561,10 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordElement element in headerFooter.Elements) {
                 switch (element) {
                     case WordParagraph paragraph:
-                        AddNativeHeaderFooterParagraphImage(images, paragraph, null);
+                        AddNativeHeaderFooterParagraphImage(images, paragraph, null, options, source);
                         break;
                     case WordTable table:
-                        AddNativeHeaderFooterTableImages(images, table);
+                        AddNativeHeaderFooterTableImages(images, table, options, source);
                         break;
                 }
             }
@@ -1615,12 +1615,12 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void AddNativeHeaderFooterTableImages(List<NativeHeaderFooterImage> images, WordTable table) {
+        private static void AddNativeHeaderFooterTableImages(List<NativeHeaderFooterImage> images, WordTable table, PdfSaveOptions? options, string source) {
             foreach (WordTableRow row in table.Rows) {
                 IReadOnlyList<WordTableCell> cells = row.Cells;
                 if (cells.Count == 1) {
                     foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[0])) {
-                        AddNativeHeaderFooterParagraphImage(images, paragraph, null);
+                        AddNativeHeaderFooterParagraphImage(images, paragraph, null, options, source);
                     }
 
                     continue;
@@ -1634,16 +1634,16 @@ namespace OfficeIMO.Word.Pdf {
                             : PdfCore.PdfAlign.Center;
 
                     foreach (WordParagraph paragraph in GetNativeCellParagraphs(cells[cellIndex])) {
-                        AddNativeHeaderFooterParagraphImage(images, paragraph, align);
+                        AddNativeHeaderFooterParagraphImage(images, paragraph, align, options, source);
                     }
                 }
             }
         }
 
-        private static void AddNativeHeaderFooterParagraphImage(List<NativeHeaderFooterImage> images, WordParagraph paragraph, PdfCore.PdfAlign? alignOverride) {
+        private static void AddNativeHeaderFooterParagraphImage(List<NativeHeaderFooterImage> images, WordParagraph paragraph, PdfCore.PdfAlign? alignOverride, PdfSaveOptions? options, string source) {
             PdfCore.PdfAlign align = alignOverride ?? MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false);
             if (paragraph.Image != null) {
-                AddNativeHeaderFooterImage(images, paragraph.Image, align);
+                AddNativeHeaderFooterImage(images, paragraph.Image, align, options, source);
             }
 
             foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
@@ -1653,12 +1653,24 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                AddNativeHeaderFooterImage(images, pictureControlImage, align);
+                AddNativeHeaderFooterImage(images, pictureControlImage, align, options, source);
             }
         }
 
-        private static void AddNativeHeaderFooterImage(List<NativeHeaderFooterImage> images, WordImage image, PdfCore.PdfAlign align) {
+        private static void AddNativeHeaderFooterImage(List<NativeHeaderFooterImage> images, WordImage image, PdfCore.PdfAlign align, PdfSaveOptions? options, string source) {
             byte[] bytes = ImageEmbedder.GetImageBytes(image);
+            if (!IsNativePdfSupportedImageBytes(bytes, out string? unsupportedReason)) {
+                if (options != null) {
+                    AddNativeExportWarning(
+                        options,
+                        "NativeHeaderFooterImageUnsupported",
+                        source,
+                        "Word header/footer image was not exported because the first-party PDF image writer supports JPEG and simple PNG images only. " + unsupportedReason);
+                }
+
+                return;
+            }
+
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
             images.Add(new NativeHeaderFooterImage(bytes, width, height, align));
@@ -2473,8 +2485,15 @@ namespace OfficeIMO.Word.Pdf {
             int headingCount = CountNativeDocumentHeadings(document);
             int currentPage = 1;
             double consumedOnPage = 0D;
+            bool firstSection = true;
 
             foreach (WordSection section in document.Sections) {
+                if (!firstSection) {
+                    currentPage++;
+                    consumedOnPage = 0D;
+                }
+
+                firstSection = false;
                 PdfCore.PageSize pageSize = GetNativePageSize(section, options);
                 PdfCore.PageMargins margins = GetNativeMargins(section, options);
                 double contentHeight = Math.Max(72D, pageSize.Height - margins.Top - margins.Bottom);
@@ -2803,6 +2822,10 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
+            if (paragraph.Image == null) {
+                RenderNativeRunImages(pdf, runs, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options);
+            }
+
             string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : AppendNativeTextWithEquation(paragraph.Text, paragraph);
             bool hasRenderableRuns = runs.Any(run => !run.IsImage && !string.IsNullOrEmpty(run.Text));
             List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, footnoteNumbers, footnoteNumbersById);
@@ -3105,6 +3128,14 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 AddNativeFootnoteReferences(builder, paragraphFootnoteNumbers);
+        }
+
+        private static void RenderNativeRunImages(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, PdfSaveOptions? options) {
+            foreach (WordParagraph run in runs) {
+                if (run.IsImage && run.Image != null) {
+                    RenderNativeImage(pdf, run.Image, align, options, "body paragraph image run");
+                }
+            }
         }
 
         private static string? GetNativeSupplementalTextAfterRuns(string content, IReadOnlyList<WordParagraph> runs) {

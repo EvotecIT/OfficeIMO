@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -605,6 +606,36 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Skips_Unsupported_HeaderFooter_Images() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeUnsupportedHeaderImage.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeUnsupportedHeaderImage.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph().AddImage(imagePath, 32, 32);
+            document.AddParagraph("Native unsupported header image body");
+            document.Save();
+        }
+
+        ReplaceFirstHeaderImagePartWithGif(docPath);
+
+        using (WordDocument document = WordDocument.Load(docPath)) {
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.Contains(options.Warnings, warning =>
+            warning.Code == "NativeHeaderFooterImageUnsupported" &&
+            warning.Source == "default header image");
+        Assert.True(File.Exists(pdfPath));
+        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        Assert.Contains("Native unsupported header image body", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_TextBoxes() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterTextBoxes.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterTextBoxes.pdf");
@@ -1167,4 +1198,13 @@ public partial class Word {
 
     private static string NormalizePdfText(string text) =>
         string.Join(" ", text.Split(new[] { ' ', '\r', '\n', '\t', '\f' }, StringSplitOptions.RemoveEmptyEntries));
+
+    private static void ReplaceFirstHeaderImagePartWithGif(string docPath) {
+        byte[] gifBytes = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+        using WordprocessingDocument package = WordprocessingDocument.Open(docPath, true);
+        HeaderPart headerPart = package.MainDocumentPart!.HeaderParts.First();
+        ImagePart imagePart = headerPart.ImageParts.First();
+        using var stream = new MemoryStream(gifBytes);
+        imagePart.FeedData(stream);
+    }
 }

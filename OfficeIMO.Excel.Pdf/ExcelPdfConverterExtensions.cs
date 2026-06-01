@@ -1341,15 +1341,15 @@ namespace OfficeIMO.Excel.Pdf {
                 return;
             }
 
-            double max = GetPositiveMax(series);
+            (double min, double max) = GetFiniteSeriesRange(series);
             double step = plotWidth / (categories.Count - 1);
             for (int s = 0; s < series.Count; s++) {
                 OfficeColor color = GetChartSeriesColor(s);
                 for (int i = 1; i < categories.Count; i++) {
                     double x1 = plotLeft + step * (i - 1);
-                    double y1 = plotTop + plotHeight - (plotHeight * Math.Max(0D, GetSeriesValue(series[s], i - 1)) / max);
+                    double y1 = ToPlotY(GetSeriesValue(series[s], i - 1), min, max, plotTop, plotHeight);
                     double x2 = plotLeft + step * i;
-                    double y2 = plotTop + plotHeight - (plotHeight * Math.Max(0D, GetSeriesValue(series[s], i)) / max);
+                    double y2 = ToPlotY(GetSeriesValue(series[s], i), min, max, plotTop, plotHeight);
                     double minX = Math.Min(x1, x2);
                     double minY = Math.Min(y1, y2);
                     AddShape(drawing, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, color, 1.75);
@@ -1357,7 +1357,7 @@ namespace OfficeIMO.Excel.Pdf {
 
                 for (int i = 0; i < categories.Count; i++) {
                     double x = plotLeft + step * i - 2D;
-                    double y = plotTop + plotHeight - (plotHeight * Math.Max(0D, GetSeriesValue(series[s], i)) / max) - 2D;
+                    double y = ToPlotY(GetSeriesValue(series[s], i), min, max, plotTop, plotHeight) - 2D;
                     AddShape(drawing, OfficeShape.Ellipse(4D, 4D), x, y, OfficeColor.White, color, 1D);
                 }
             }
@@ -3827,7 +3827,7 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
-            normalized = GetNumberFormatSection(formatCode, number < 0D ? 1 : 0).Trim();
+            normalized = GetNumberFormatSection(formatCode, GetNumberFormatSectionIndex(number)).Trim();
             if (normalized.Length == 0 ||
                 string.Equals(normalized, "General", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(normalized, "@", StringComparison.Ordinal)) {
@@ -3891,6 +3891,14 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return sections.Length > 0 ? sections[0] : formatCode;
+        }
+
+        private static int GetNumberFormatSectionIndex(double number) {
+            if (number < 0D) {
+                return 1;
+            }
+
+            return number == 0D ? 2 : 0;
         }
 
         private static bool ShouldWrapNegativeNumber(string formatCode, double value) =>

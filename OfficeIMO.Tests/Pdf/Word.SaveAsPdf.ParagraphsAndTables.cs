@@ -472,6 +472,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_TableOfContents_Accounts_For_Section_Page_Starts() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableOfContentsSections.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableOfContentsSections.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddTableOfContent();
+                document.AddParagraph("Native TOC first section heading").SetStyle(WordParagraphStyles.Heading1);
+                document.AddParagraph("Native TOC first section body");
+                WordSection secondSection = document.AddSection();
+                secondSection.AddParagraph("Native TOC second section heading").SetStyle(WordParagraphStyles.Heading1);
+                secondSection.AddParagraph("Native TOC second section body");
+
+                MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("BuildNativeTableOfContentsEntries", BindingFlags.NonPublic | BindingFlags.Static)!;
+                object entries = method.Invoke(null, new object[] {
+                    document,
+                    new PdfSaveOptions { IncludePageNumbers = false },
+                    new Dictionary<DocumentFormat.OpenXml.Wordprocessing.Paragraph, string>()
+                })!;
+                object secondEntry = ((System.Collections.IEnumerable)entries)
+                    .Cast<object>()
+                    .First(entry => string.Equals((string)entry.GetType().GetProperty("Text")!.GetValue(entry)!, "Native TOC second section heading", StringComparison.Ordinal));
+                int secondEntryPage = (int)secondEntry.GetType().GetProperty("PageNumber")!.GetValue(secondEntry)!;
+                Assert.Equal(2, secondEntryPage);
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfDocument pdf = PdfDocument.Open(pdfPath);
+            Assert.True(pdf.NumberOfPages >= 2, "Expected the second Word section to start on a new PDF page.");
+            string secondPageText = pdf.GetPage(2).Text;
+            Assert.Contains("Native TOC second section heading", secondPageText);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Creates_Pdf_Outlines_From_Word_Headings() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeadingOutlines.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeadingOutlines.pdf");

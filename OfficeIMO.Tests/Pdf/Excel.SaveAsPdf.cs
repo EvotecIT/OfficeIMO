@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using System.Globalization;
+using System.Reflection;
 using System.Text;
 using UglyToad.PdfPig;
 using Xunit;
@@ -1337,6 +1338,8 @@ public partial class Excel {
             sheet.CellAt(5, 2).SetValue(new DateTime(2026, 1, 15, 0, 30, 5)).SetNumberFormat("mm:ss");
             sheet.Cell(6, 1, "Negative");
             sheet.CellAt(6, 2).SetValue(-1234).SetNumberFormat("#,##0;(#,##0)");
+            sheet.Cell(7, 1, "Zero");
+            sheet.CellAt(7, 2).SetValue(0).SetNumberFormat("#,##0;(#,##0);-");
 
             ExcelCellStyleSnapshot currencyStyle = sheet.CellAt(2, 2).GetStyle();
             Assert.Equal("\"$\"#,##0.00", currencyStyle.NumberFormatCode);
@@ -1363,6 +1366,8 @@ public partial class Excel {
         Assert.Contains("2026-01-15", text);
         Assert.Contains("30:05", text);
         Assert.Contains("(1,234)", text);
+        Assert.Contains("Zero", text);
+        Assert.Contains("-", text);
         Assert.DoesNotContain("01:05", text);
         Assert.DoesNotContain("1234.5", text);
         Assert.DoesNotContain("0.257", text);
@@ -1710,6 +1715,57 @@ public partial class Excel {
         string rawPdf = Encoding.ASCII.GetString(bytes);
         Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.184 0.435 0.243 RG", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Preserves_Negative_Line_Chart_Values() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfNegativeLineChart.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            var data = new ExcelChartData(
+                new[] { "Low", "Zero", "High" },
+                new[] {
+                    new ExcelChartSeries("Profit", new[] { -10D, 0D, 10D }, ExcelChartType.Line)
+                });
+
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Line, title: "Profit Trend");
+
+            ExcelChart chart = Assert.Single(sheet.Charts);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.Equal(ExcelChartType.Line, snapshot.ChartType);
+
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(480, 360),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Profit Trend", text);
+        Assert.Contains("Profit", text);
+
+        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<ExcelChartSeries> { new ExcelChartSeries("Profit", new[] { -10D, 0D, 10D }, ExcelChartType.Line) } })!;
+        double min = (double)range.GetType().GetField("Item1")!.GetValue(range)!;
+        double max = (double)range.GetType().GetField("Item2")!.GetValue(range)!;
+
+        MethodInfo plotYMethod = typeof(ExcelPdfConverterExtensions)
+            .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
+            .Single(method => method.Name == "ToPlotY" && method.GetParameters().Length == 5);
+        double negativeY = (double)plotYMethod.Invoke(null, new object[] { -10D, min, max, 0D, 100D })!;
+        double zeroY = (double)plotYMethod.Invoke(null, new object[] { 0D, min, max, 0D, 100D })!;
+        double positiveY = (double)plotYMethod.Invoke(null, new object[] { 10D, min, max, 0D, 100D })!;
+
+        Assert.Equal(-10D, min);
+        Assert.Equal(10D, max);
+        Assert.True(negativeY > zeroY && zeroY > positiveY, "Expected negative, zero, and positive line chart values to map to separate vertical positions.");
     }
 
     [Fact]

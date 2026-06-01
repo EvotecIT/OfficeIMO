@@ -78,6 +78,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Exports_Loaded_Inline_Paragraph_Images() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedInlineImage.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLoadedInlineImage.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph.AddText("Before loaded image ");
+            paragraph.AddImage(imagePath, 48, 48);
+            paragraph.AddText(" after loaded image");
+            document.Save();
+        }
+
+        using (WordDocument document = WordDocument.Load(docPath)) {
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyImageUnsupported");
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/Subtype /Image", pdfContent);
+
+        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Before loaded image", text);
+        Assert.Contains("after loaded image", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Body_PictureControl_To_Image() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativePictureControl.pdf");
