@@ -94,7 +94,7 @@ namespace OfficeIMO.Visio {
                     i = end;
                 }
             } else if (kind == "ellipse" || kind == "circle") {
-                (double centerX, double centerY) = GetPagePoint(shape, shape.LocPinX, shape.LocPinY);
+                (double centerX, double centerY) = GetPagePoint(shape, shape.Width / 2D, shape.Height / 2D);
                 (double cx, double cy) = ToRaster(page, centerX, centerY, canvas.Scale);
                 canvas.DrawEllipse(
                     cx,

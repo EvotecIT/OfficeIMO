@@ -95,6 +95,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SvgRendererCentersEllipseOnGeometryCenterWhenLocPinIsOffset() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Off Pin Ellipse").Size(3, 2);
+            VisioShape shape = page.AddEllipse(1, 1, 1, 0.5, string.Empty);
+            shape.LocPinX = 0;
+            shape.LocPinY = 0;
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
+            XElement ellipse = shapeGroup.Elements(ns + "ellipse").Single();
+            Assert.Equal("150", ellipse.Attribute("cx")!.Value);
+            Assert.Equal("75", ellipse.Attribute("cy")!.Value);
+        }
+
+        [Fact]
         public void SvgRendererSuppressesArrowheadsWhenConnectorLineIsHidden() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -598,6 +621,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SvgRendererHonorsConnectorLabelTextLocPin() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Connector Label LocPin").Size(4, 3);
+            VisioShape source = page.AddRectangle(1, 1.5, 0.4, 0.4, string.Empty);
+            VisioShape target = page.AddRectangle(3, 1.5, 0.4, 0.4, string.Empty);
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+            connector.LinePattern = 0;
+            connector.Label = "locpin";
+            connector.PlaceLabelAt(2, 1.5, width: 0.9, height: 0.4);
+            connector.TextStyle = new VisioTextStyle {
+                TextWidth = 0.9,
+                TextHeight = 0.4,
+                TextLocPinX = 0,
+                TextLocPinY = 0
+            };
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions { PixelsPerInch = 100 });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement connectorGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-connector-id") == connector.Id);
+            XElement labelText = connectorGroup.Elements(ns + "text").Single();
+            Assert.Equal("245", labelText.Attribute("x")!.Value);
+        }
+
+        [Fact]
         public void SvgRendererNudgesConnectorLabelsAwayFromGroupedChildrenInPageSpace() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -939,6 +990,27 @@ namespace OfficeIMO.Tests {
             XElement path = shapeGroup.Elements(ns + "path")
                 .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
             Assert.Equal("M 100 150 L 200 150 L 150 50 Z", path.Attribute("d")!.Value);
+        }
+
+        [Fact]
+        public void SvgRendererFallsBackWhenVisiblePreservedGeometrySectionIsUnsupported() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Unsupported Preserved Geometry").Size(3, 2);
+            VisioShape shape = AddUnsupportedVisibleGeometryShape(page);
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
+            XElement path = shapeGroup.Elements(ns + "path").Single();
+            Assert.Null(path.Attribute("data-officeimo-preserved-geometry"));
+            Assert.Equal("M 100 150 L 200 150 L 200 50 L 100 50 Z", path.Attribute("d")!.Value);
         }
 
         [Fact]
@@ -1842,6 +1914,15 @@ namespace OfficeIMO.Tests {
             return shape;
         }
 
+        private static VisioShape AddUnsupportedVisibleGeometryShape(VisioPage page) {
+            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
+            shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
+            shape.PreservedGeometrySections.Add(CreateRelativeTriangleGeometrySection());
+            shape.PreservedGeometrySections.Add(CreateUnsupportedVisibleGeometrySection());
+            return shape;
+        }
+
         private static VisioShape AddSubpathBreakGeometryShape(VisioPage page) {
             VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
@@ -2216,6 +2297,18 @@ namespace OfficeIMO.Tests {
                 new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "10"),
                     new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.35")),
                     new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.35"))));
+        }
+
+        private static XElement CreateUnsupportedVisibleGeometrySection() {
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            return new XElement(ns + "Section", new XAttribute("N", "Geometry"), new XAttribute("IX", "3"),
+                CreateGeometryRow(ns, noFill: false, noLine: false, noShow: false),
+                new XElement(ns + "Row", new XAttribute("T", "RelMoveTo"), new XAttribute("IX", "1"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.1")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.1"))),
+                new XElement(ns + "Row", new XAttribute("T", "UnsupportedTo"), new XAttribute("IX", "2"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.9")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.9"))));
         }
 
         private static XElement CreateOpenNoFillGeometrySection() {

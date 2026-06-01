@@ -67,7 +67,8 @@ namespace OfficeIMO.Visio {
             int fillGroup = 0;
             foreach (XElement section in shape.PreservedGeometrySections) {
                 if (!TryParseGeometrySection(shape, section, fillGroup, out List<VisioShapeGeometryPath> sectionPaths)) {
-                    continue;
+                    paths.Clear();
+                    return false;
                 }
 
                 handledGeometry = true;

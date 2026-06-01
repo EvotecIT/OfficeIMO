@@ -530,6 +530,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PngRendererCentersEllipseOnGeometryCenterWhenLocPinIsOffset() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Off Pin Ellipse").Size(3, 2);
+            VisioShape shape = page.AddEllipse(1, 1, 1, 0.5, string.Empty);
+            shape.LocPinX = 0;
+            shape.LocPinY = 0;
+            shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
+            shape.LinePattern = 0;
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsRedPixel(image, 150, 75), "Expected off-pin ellipse fill around the local geometry center.");
+            Assert.True(IsWhitePixel(image, 100, 100), "Expected the shape pin to remain outside the off-pin ellipse geometry.");
+        }
+
+        [Fact]
         public void PngRendererPreservesRgbWhenDownsamplingTransparentEdges() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);

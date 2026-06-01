@@ -136,7 +136,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (kind == "ellipse" || kind == "circle") {
-                (double centerX, double centerY) = GetPagePoint(shape, shape.LocPinX, shape.LocPinY);
+                (double centerX, double centerY) = GetPagePoint(shape, shape.Width / 2D, shape.Height / 2D);
                 (double cx, double cy) = ToSvg(page, centerX, centerY, scale);
                 writer.WriteStartElement("ellipse", SvgNamespace);
                 writer.WriteAttributeString("cx", Format(cx));
@@ -450,7 +450,8 @@ namespace OfficeIMO.Visio {
 
             if (options.RenderConnectorLabels && !string.IsNullOrEmpty(connector.Label)) {
                 VisioRenderConnectorLabelPlacement label = labelLayout?.Resolve(connector, points) ?? ResolveConnectorLabel(connector, points);
-                (double x, double y) = ToSvg(page, label.X, label.Y, scale);
+                (double labelCenterX, double labelCenterY) = ResolveTextBoxCenter(label.X, label.Y, label.Width, label.Height, connector.TextStyle);
+                (double x, double y) = ToSvg(page, labelCenterX, labelCenterY, scale);
                 double maxWidth = label.Width * scale;
                 double maxHeight = label.Height * scale;
                 WriteText(
