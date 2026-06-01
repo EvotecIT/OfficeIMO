@@ -33,7 +33,12 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         public static VisioDocument AddStencilGalleryDocument(this VisioDocument document, VisioStencilCatalog catalog, VisioStencilGalleryDocumentOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
-            return Populate(document, catalog, options);
+            bool originalUseMastersByDefault = document.UseMastersByDefault;
+            try {
+                return Populate(document, catalog, options);
+            } finally {
+                document.UseMastersByDefault = originalUseMastersByDefault;
+            }
         }
 
         private static VisioDocument Populate(VisioDocument document, VisioStencilCatalog catalog, VisioStencilGalleryDocumentOptions? options) {
@@ -82,10 +87,11 @@ namespace OfficeIMO.Visio.Stencils {
 
         private static void AddOverviewPage(VisioDocument document, VisioStencilCatalog catalog, VisioStencilGalleryDocumentOptions options, string title) {
             VisioPage page = document.AddPage("Stencil Gallery Overview", options.PageWidth, options.PageHeight, options.PageUnit);
+            HashSet<string> usedIds = new(StringComparer.OrdinalIgnoreCase);
             double contentWidth = Math.Max(1D, page.Width - 1.2D);
             double centerX = page.Width / 2D;
             double headingY = Math.Max(0.8D, page.Height - 0.75D);
-            VisioShape heading = page.AddTextBox(MakeId(options.IdPrefix, "overview-title"), centerX, headingY, contentWidth, 0.55, title, VisioMeasurementUnit.Inches);
+            VisioShape heading = page.AddTextBox(ReserveId(usedIds, MakeId(options.IdPrefix, "overview-title")), centerX, headingY, contentWidth, 0.55, title, VisioMeasurementUnit.Inches);
             heading.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos Display",
                 Size = 22D,
@@ -99,7 +105,7 @@ namespace OfficeIMO.Visio.Stencils {
                              " stencils across " +
                              catalog.Categories.Count.ToString(CultureInfo.InvariantCulture) +
                              " categories";
-            VisioShape subtitle = page.AddTextBox(MakeId(options.IdPrefix, "overview-summary"), centerX, headingY - 0.55D, contentWidth, 0.35, summary, VisioMeasurementUnit.Inches);
+            VisioShape subtitle = page.AddTextBox(ReserveId(usedIds, MakeId(options.IdPrefix, "overview-summary")), centerX, headingY - 0.55D, contentWidth, 0.35, summary, VisioMeasurementUnit.Inches);
             subtitle.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 10.5D,
@@ -113,9 +119,9 @@ namespace OfficeIMO.Visio.Stencils {
             double metricTotalWidth = (metricWidth * 3D) + (metricGap * 2D);
             double metricStartX = centerX - (metricTotalWidth / 2D) + (metricWidth / 2D);
             double metricY = Math.Max(1.8D, headingY - 1.45D);
-            AddMetric(page, MakeId(options.IdPrefix, "overview-count"), metricStartX, metricY, metricWidth, "Shapes", catalog.Shapes.Count.ToString(CultureInfo.InvariantCulture), options.AccentColor);
-            AddMetric(page, MakeId(options.IdPrefix, "overview-categories"), metricStartX + metricWidth + metricGap, metricY, metricWidth, "Categories", catalog.Categories.Count.ToString(CultureInfo.InvariantCulture), OfficeColor.FromRgb(46, 160, 67));
-            AddMetric(page, MakeId(options.IdPrefix, "overview-packages"), metricStartX + ((metricWidth + metricGap) * 2D), metricY, metricWidth, "Source packs", CountSourcePackages(catalog).ToString(CultureInfo.InvariantCulture), OfficeColor.FromRgb(137, 87, 229));
+            AddMetric(page, ReserveId(usedIds, MakeId(options.IdPrefix, "overview-count")), metricStartX, metricY, metricWidth, "Shapes", catalog.Shapes.Count.ToString(CultureInfo.InvariantCulture), options.AccentColor);
+            AddMetric(page, ReserveId(usedIds, MakeId(options.IdPrefix, "overview-categories")), metricStartX + metricWidth + metricGap, metricY, metricWidth, "Categories", catalog.Categories.Count.ToString(CultureInfo.InvariantCulture), OfficeColor.FromRgb(46, 160, 67));
+            AddMetric(page, ReserveId(usedIds, MakeId(options.IdPrefix, "overview-packages")), metricStartX + ((metricWidth + metricGap) * 2D), metricY, metricWidth, "Source packs", CountSourcePackages(catalog).ToString(CultureInfo.InvariantCulture), OfficeColor.FromRgb(137, 87, 229));
 
             double y = metricY - 1.05D;
             foreach (IGrouping<string, VisioStencilShape> group in catalog.Shapes
@@ -123,7 +129,7 @@ namespace OfficeIMO.Visio.Stencils {
                 .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
                 .Take(10)) {
                 VisioShape row = page.AddTextBox(
-                    MakeId(options.IdPrefix, "overview-category-" + Slug(group.Key)),
+                    ReserveId(usedIds, MakeId(options.IdPrefix, "overview-category-" + Slug(group.Key))),
                     centerX,
                     y,
                     contentWidth,
@@ -228,6 +234,17 @@ namespace OfficeIMO.Visio.Stencils {
 
         private static string MakeId(string prefix, string suffix) {
             return Slug(prefix) + "-" + Slug(suffix);
+        }
+
+        private static string ReserveId(HashSet<string> usedIds, string baseId) {
+            string id = baseId;
+            int suffix = 2;
+            while (!usedIds.Add(id)) {
+                id = baseId + "-" + suffix.ToString(CultureInfo.InvariantCulture);
+                suffix++;
+            }
+
+            return id;
         }
 
         private static string Slug(string value) {

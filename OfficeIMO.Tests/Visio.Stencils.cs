@@ -371,6 +371,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilGalleryDocumentRestoresExistingMasterPreferenceAndReservesOverviewIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
+                .AddWithMetadata("review.api", "API", "Process", "A/B", 1.7, 0.9)
+                .AddWithMetadata("review.worker", "Worker", "Process", "A B", 1.6, 0.9));
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = false;
+
+            document.AddStencilGalleryDocument(catalog, new VisioStencilGalleryDocumentOptions {
+                IdPrefix = "review",
+                ShapesPerPage = 4,
+                UseMastersByDefault = true
+            });
+
+            VisioPage overview = document.Pages.Single(page => page.Name == "Stencil Gallery Overview");
+            string[] ids = overview.Shapes.Select(shape => shape.Id).ToArray();
+            Assert.False(document.UseMastersByDefault);
+            Assert.Equal(ids.Length, ids.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+            Assert.Contains(overview.Shapes, shape => shape.Id == "review-overview-category-a-b");
+            Assert.Contains(overview.Shapes, shape => shape.Id == "review-overview-category-a-b-2");
+        }
+
+        [Fact]
         public void StencilGalleryDocumentValidatesPagingOptions() {
             VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
                 .Add("review.worker", "Worker", "Process", "Compute", 1.6, 0.9));
