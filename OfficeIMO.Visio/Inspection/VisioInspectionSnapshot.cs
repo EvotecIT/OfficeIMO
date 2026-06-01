@@ -213,12 +213,12 @@ namespace OfficeIMO.Visio {
 
         private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out double x, out double y) {
             if (connectionPoint != null) {
-                (x, y) = shape.GetAbsolutePoint(connectionPoint.X, connectionPoint.Y);
+                (x, y) = GetPagePoint(shape, connectionPoint.X, connectionPoint.Y);
                 return;
             }
 
-            (double left, double bottom, double right, double top) = shape.GetBounds();
-            (double otherLeft, double otherBottom, double otherRight, double otherTop) = other.GetBounds();
+            (double left, double bottom, double right, double top) = GetPageBounds(shape);
+            (double otherLeft, double otherBottom, double otherRight, double otherTop) = GetPageBounds(other);
             double centerX = (left + right) / 2D;
             double centerY = (bottom + top) / 2D;
             double otherCenterX = (otherLeft + otherRight) / 2D;
@@ -233,6 +233,25 @@ namespace OfficeIMO.Visio {
                 x = centerX;
                 y = dy >= 0 ? top : bottom;
             }
+        }
+
+        private static (double Left, double Bottom, double Right, double Top) GetPageBounds(VisioShape shape) {
+            (double x1, double y1) = GetPagePoint(shape, 0, 0);
+            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0);
+            (double x3, double y3) = GetPagePoint(shape, 0, shape.Height);
+            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
+            double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
+            double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
+            double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
+            double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
+            return (left, bottom, right, top);
+        }
+
+        private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
+            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
+            return shape.Parent != null
+                ? GetPagePoint(shape.Parent, absX, absY)
+                : (absX, absY);
         }
 
         private static ConnectorPathPoint ResolvePathPoint(IReadOnlyList<ConnectorPathPoint> points, double position) {

@@ -172,5 +172,32 @@ namespace OfficeIMO.Tests {
                 difference.Expected == "2" &&
                 difference.Actual == "2.25");
         }
+
+        [Fact]
+        public void InspectionSnapshotResolvesGroupedConnectorEndpointLabelsInPageCoordinates() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Grouped labels", 8, 5);
+            VisioShape source = page.AddRectangle(1, 3.5, 0.8, 0.5, "Source");
+            VisioShape group = new("group") {
+                Type = "Group",
+                PinX = 5,
+                PinY = 10,
+                Width = 1,
+                Height = 1,
+                LocPinX = 0.5,
+                LocPinY = 0.5
+            };
+            VisioShape child = new("child", 0.5, -6, 1, 1, "Child");
+            group.Children.Add(child);
+            page.Shapes.Add(group);
+            VisioConnector connector = page.AddConnector(source, child, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left)
+                .PlaceLabel(0.5);
+
+            VisioInspectionConnectorSnapshot snapshot = Assert.Single(document.CreateInspectionSnapshot().Pages[0].Connectors);
+
+            Assert.Equal(connector.Id, snapshot.Id);
+            Assert.Equal(2.95, snapshot.LabelResolvedPinX);
+            Assert.Equal(3.5, snapshot.LabelResolvedPinY);
+        }
     }
 }

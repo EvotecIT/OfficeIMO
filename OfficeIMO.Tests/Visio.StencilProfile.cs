@@ -205,6 +205,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilProfilePreservesDistinctSameIdMasters() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioMaster first = new("1", "PackageA", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "PackageA" }) {
+                IsPackageBacked = true,
+                StencilId = "pkg.a",
+                StencilName = "Package A",
+                StencilSourcePackagePath = "a.vssx"
+            };
+            VisioMaster second = new("1", "PackageB", new VisioShape("1", 0, 0, 1, 1, string.Empty) { NameU = "PackageB" }) {
+                IsPackageBacked = true,
+                StencilId = "pkg.b",
+                StencilName = "Package B",
+                StencilSourcePackagePath = "b.vssx"
+            };
+            document.RegisterMaster(first);
+            document.RegisterMaster(second);
+            VisioPage page = document.AddPage("Packages", 8, 5);
+            page.AddShape("a", "PackageA", 2, 3, 1, 1, "A");
+            page.AddShape("b", "PackageB", 5, 3, 1, 1, "B");
+
+            VisioStencilProfile profile = document.CreateStencilProfile();
+
+            Assert.Contains(profile.Usages, usage => usage.MasterNameU == "PackageA" && usage.StencilId == "pkg.a");
+            Assert.Contains(profile.Usages, usage => usage.MasterNameU == "PackageB" && usage.StencilId == "pkg.b");
+            Assert.Equal(2, profile.Usages.Count(usage => usage.Kind == VisioStencilProfileUsageKind.PackageBackedMaster));
+        }
+
+        [Fact]
         public void StencilProfileDisambiguatesDuplicateUsageSnapshotPrefixes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);

@@ -170,9 +170,9 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(snapshot));
             }
 
-            Dictionary<string, VisioInspectionMasterSnapshot> masters = snapshot.Masters
+            Dictionary<string, IReadOnlyList<VisioInspectionMasterSnapshot>> masters = snapshot.Masters
                 .GroupBy(master => master.Id, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+                .ToDictionary(group => group.Key, group => (IReadOnlyList<VisioInspectionMasterSnapshot>)group.ToList().AsReadOnly(), StringComparer.OrdinalIgnoreCase);
             List<VisioInspectionShapeSnapshot> shapes = snapshot.Pages
                 .SelectMany(page => page.Shapes)
                 .Where(shape => !IsMasterArtworkChild(shape))
@@ -258,12 +258,9 @@ namespace OfficeIMO.Visio {
 
         private static VisioStencilUsageKey CreateUsageKey(
             VisioInspectionShapeSnapshot shape,
-            IReadOnlyDictionary<string, VisioInspectionMasterSnapshot> masters) {
+            IReadOnlyDictionary<string, IReadOnlyList<VisioInspectionMasterSnapshot>> masters) {
             string? semanticKind = GetSemanticKind(shape);
-            VisioInspectionMasterSnapshot? master = null;
-            if (!string.IsNullOrWhiteSpace(shape.MasterId)) {
-                masters.TryGetValue(shape.MasterId!, out master);
-            }
+            VisioInspectionMasterSnapshot? master = ResolveMaster(shape, masters);
 
             if (master != null) {
                 VisioStencilProfileUsageKind kind = master.IsPackageBacked
@@ -363,6 +360,32 @@ namespace OfficeIMO.Visio {
                 null,
                 null,
                 null);
+        }
+
+        private static VisioInspectionMasterSnapshot? ResolveMaster(
+            VisioInspectionShapeSnapshot shape,
+            IReadOnlyDictionary<string, IReadOnlyList<VisioInspectionMasterSnapshot>> masters) {
+            if (string.IsNullOrWhiteSpace(shape.MasterId) ||
+                !masters.TryGetValue(shape.MasterId!, out IReadOnlyList<VisioInspectionMasterSnapshot>? candidates) ||
+                candidates.Count == 0) {
+                return null;
+            }
+
+            if (candidates.Count == 1) {
+                return candidates[0];
+            }
+
+            string? sourcePackagePath = GetStencilSourcePackagePath(shape, null);
+            VisioInspectionMasterSnapshot? match = candidates.FirstOrDefault(master =>
+                string.Equals(master.NameU, shape.MasterNameU, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(master.StencilSourcePackagePath, sourcePackagePath, StringComparison.OrdinalIgnoreCase));
+            if (match != null) {
+                return match;
+            }
+
+            match = candidates.FirstOrDefault(master =>
+                string.Equals(master.NameU, shape.MasterNameU, StringComparison.OrdinalIgnoreCase));
+            return match ?? candidates[0];
         }
 
         internal static string? GetSemanticKind(VisioInspectionShapeSnapshot shape) {
