@@ -1007,6 +1007,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 HorizontalAlignment = VisioTextHorizontalAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
+            MarkDiagramAdornment(label);
         }
 
         private void AddEdges(VisioPage page) {
@@ -1102,6 +1103,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
             VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
+            MarkDiagramAdornment(title);
         }
 
         private void AddLegend(VisioPage page) {
@@ -1214,7 +1216,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private static void MarkDiagramAdornment(VisioShape shape) {
-            shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            VisioSemanticUserCells.MarkGeneratedAdornment(shape);
         }
 
         private void GetZoneBounds(ZoneItem zone, out double left, out double bottom, out double right, out double top) {

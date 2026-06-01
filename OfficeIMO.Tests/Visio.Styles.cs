@@ -159,6 +159,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DiagramTitleStylePreservesThemeColor() {
+            VisioStyleTheme theme = VisioStyleTheme.Technical();
+            theme.Emphasis.TextStyle!.Color = Color.Red;
+
+            VisioTextStyle style = VisioDiagramTitleStyles.Create(theme);
+
+            Assert.Equal(Color.Red, style.Color);
+        }
+
+        [Fact]
         public void TechnicalAndPrintThemesGenerateValidatedDiagrams() {
             string technicalPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string printPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

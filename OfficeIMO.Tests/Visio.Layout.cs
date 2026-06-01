@@ -524,6 +524,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("LabelAdornmentCleanup", 7, 5);
             VisioShape adornment = page.AddTextBox("zone-caption", 3, 2, 2, 0.35, "Zone caption");
+            VisioSemanticUserCells.MarkGeneratedAdornment(adornment);
             VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
             VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
@@ -536,6 +537,32 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(3, connector.LabelPlacement!.AbsolutePinX!.Value, 6);
             Assert.Equal(2, connector.LabelPlacement.AbsolutePinY!.Value, 6);
+        }
+
+        [Fact]
+        public void ResolveConnectorLabelOverlapsMovesLabelsAwayFromUserTextBoxes() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("LabelUserTextCleanup", 7, 5);
+            VisioShape note = page.AddTextBox("user-caption", 3, 2, 1.0, 0.3, "User note");
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.3, height: 0.4);
+            connector.Label = "approval";
+
+            Assert.False(VisioSemanticUserCells.IsGeneratedDiagramAdornment(note));
+            Assert.Contains(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false
+            }), issue => issue.Kind == "ConnectorLabelOverlapsShape" && issue.ShapeId == note.Id);
+
+            page.ResolveConnectorLabelOverlaps();
+
+            Assert.NotEqual(2, connector.LabelPlacement!.AbsolutePinY!.Value);
+            Assert.DoesNotContain(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false
+            }), issue => issue.Kind == "ConnectorLabelOverlapsShape" && issue.ShapeId == note.Id);
         }
 
         [Fact]

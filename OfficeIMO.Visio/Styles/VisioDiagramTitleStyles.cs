@@ -8,7 +8,9 @@ namespace OfficeIMO.Visio {
             style.FontFamily = string.IsNullOrWhiteSpace(style.FontFamily) ? "Aptos Display" : style.FontFamily;
             style.Size = Math.Max(style.Size ?? 0D, minimumSize);
             style.Bold = true;
-            style.Color = Color.FromRgb(32, 55, 75);
+            if (!style.Color.HasValue || style.Color.Value.A == 0) {
+                style.Color = Color.FromRgb(32, 55, 75);
+            }
             style.HorizontalAlignment = VisioTextHorizontalAlignment.Center;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
             return style;

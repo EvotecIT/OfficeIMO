@@ -1108,7 +1108,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    if (shape.IsContainer || shape.IsBackgroundSurface || shape.IsDiagramAdornment) {
+                    if (shape.IsContainer || shape.IsBackgroundSurface || VisioSemanticUserCells.IsGeneratedDiagramAdornment(shape)) {
                         continue;
                     }
 

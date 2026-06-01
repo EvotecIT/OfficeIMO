@@ -140,6 +140,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 0.3D,
                 text);
             label.TextStyle = CreateBackgroundZoneCaptionTextStyle(theme);
+            VisioSemanticUserCells.MarkGeneratedAdornment(label);
             return label;
         }
 

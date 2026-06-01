@@ -139,6 +139,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ObstacleAwareRoutingScoresImplicitRightAngleBends() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Implicit right angle", 7, 5);
+            VisioShape source = page.AddRectangle(1, 4, 0.8, 0.5, "Source");
+            VisioShape obstacle = page.AddRectangle(1.4, 3, 0.5, 0.5, "Obstacle");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.RightAngle, VisioSide.Right, VisioSide.Left);
+
+            connector.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions {
+                Padding = 0.05D,
+                MaxLanes = 16
+            });
+
+            Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
+            Assert.NotEmpty(connector.Waypoints);
+            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(obstacle.GetShapeBounds(), 0.05D)));
+        }
+
+        [Fact]
+        public void ObstacleAwareRoutingAvoidsUserTextBoxesByDefault() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Text obstacle routes", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2.5, 0.8, 0.5, "Source");
+            VisioShape note = page.AddTextBox("user-note", 3, 2.5, 1.1, 0.4, "User note");
+            VisioShape target = page.AddRectangle(5, 2.5, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            connector.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions {
+                Padding = 0.08D,
+                MaxLanes = 16
+            });
+
+            Assert.True(note.IsDiagramAdornment);
+            Assert.False(VisioSemanticUserCells.IsGeneratedDiagramAdornment(note));
+            Assert.Equal(ConnectorKind.RightAngle, connector.Kind);
+            Assert.NotEmpty(connector.Waypoints);
+            Assert.DoesNotContain(GetRouteSegments(connector), segment => SegmentIntersectsBounds(segment.Start, segment.End, Inflate(note.GetShapeBounds(), 0.08D)));
+        }
+
+        [Fact]
         public void ObstacleAwareRoutingCanAvoidUnrelatedBackgroundZones() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Zone routes", 8, 5);
@@ -435,10 +475,14 @@ namespace OfficeIMO.Tests {
         private static RouteSegment[] GetRouteSegments(VisioConnector connector) {
             ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out RoutePoint start);
             ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out RoutePoint end);
-            RoutePoint[] points = new[] { start }
-                .Concat(connector.Waypoints.Select(waypoint => new RoutePoint(waypoint.X, waypoint.Y)))
-                .Concat(new[] { end })
-                .ToArray();
+            List<RoutePoint> points = new() { start };
+            if (connector.Waypoints.Count > 0) {
+                points.AddRange(connector.Waypoints.Select(waypoint => new RoutePoint(waypoint.X, waypoint.Y)));
+            } else if (connector.Kind == ConnectorKind.RightAngle) {
+                points.Add(new RoutePoint(start.X, end.Y));
+            }
+
+            points.Add(end);
             return points.Zip(points.Skip(1), (from, to) => new RouteSegment(from, to)).ToArray();
         }
 

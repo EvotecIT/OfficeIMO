@@ -356,6 +356,7 @@ namespace OfficeIMO.Visio.Diagrams {
             if (_theme.TitleTextStyle != null) {
                 title.TextStyle = _theme.TitleTextStyle.Clone();
             }
+            VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
 
         private VisioShape CreateShape(VisioPage page, Node node, double x, double y, double width, double height) {

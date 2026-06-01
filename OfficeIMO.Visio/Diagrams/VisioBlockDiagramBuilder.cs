@@ -475,6 +475,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 if (_theme.TitleTextStyle != null) {
                     title.TextStyle = _theme.TitleTextStyle.Clone();
                 }
+                VisioSemanticUserCells.MarkGeneratedAdornment(title);
             }
 
             if (_showLegend) {
@@ -491,12 +492,13 @@ namespace OfficeIMO.Visio.Diagrams {
             sample.LineColor = color;
             sample.LinePattern = linePattern;
             sample.LineWeight = Math.Max(0.018D, _theme.LineWeight);
-            sample.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            VisioSemanticUserCells.MarkGeneratedAdornment(sample);
 
             VisioShape text = page.AddTextBox(x + 1.5D, y, 1.4D, 0.28D, label);
             if (_theme.LegendTextStyle != null) {
                 text.TextStyle = _theme.LegendTextStyle.Clone();
             }
+            VisioSemanticUserCells.MarkGeneratedAdornment(text);
         }
 
         private double GridX(int column, int span) {

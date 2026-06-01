@@ -420,6 +420,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
             VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = CreateTitleTextStyle();
+            VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
 
         private VisioTextStyle CreateTitleTextStyle() => VisioDiagramTitleStyles.Create(_theme);

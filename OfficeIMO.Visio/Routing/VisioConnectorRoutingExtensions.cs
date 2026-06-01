@@ -479,7 +479,7 @@ namespace OfficeIMO.Visio {
                     continue;
                 }
 
-                if (obstacle.IsDiagramAdornment && !options.IncludeDiagramAdornments) {
+                if (VisioSemanticUserCells.IsGeneratedDiagramAdornment(obstacle) && !options.IncludeDiagramAdornments) {
                     continue;
                 }
 
@@ -644,8 +644,12 @@ namespace OfficeIMO.Visio {
                 new RoutePoint(startX, startY)
             };
 
-            foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                points.Add(new RoutePoint(waypoint.X, waypoint.Y));
+            if (connector.Waypoints.Count > 0) {
+                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
+                    points.Add(new RoutePoint(waypoint.X, waypoint.Y));
+                }
+            } else if (connector.Kind == ConnectorKind.RightAngle) {
+                points.Add(new RoutePoint(startX, endY));
             }
 
             points.Add(new RoutePoint(endX, endY));

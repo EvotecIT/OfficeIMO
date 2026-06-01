@@ -62,6 +62,7 @@ namespace OfficeIMO.Visio.Stencils {
                 titleHeight,
                 title,
                 VisioMeasurementUnit.Inches);
+            VisioSemanticUserCells.MarkGeneratedAdornment(titleShape);
             titleShape.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos Display",
                 Size = 18D,
@@ -173,6 +174,7 @@ namespace OfficeIMO.Visio.Stencils {
 
         private static void AddLabel(VisioPage page, string id, double x, double y, double width, double height, string text, double size, bool bold, OfficeColor color) {
             VisioShape label = page.AddTextBox(id, x, y, width, height, text, VisioMeasurementUnit.Inches);
+            VisioSemanticUserCells.MarkGeneratedAdornment(label);
             label.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = size,

@@ -757,6 +757,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double y = pageHeight - _topMargin - (_titleHeight / 2D);
             VisioShape title = page.AddTextBox(_titleId, pageWidth / 2D, y, Math.Max(1D, pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = VisioDiagramTitleStyles.Create(_theme);
+            VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
 
         private void PlaceParticipants(VisioPage page, double pageWidth, double headerY, double lifelineBottomY) {
@@ -844,7 +845,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 label.LineColor = OfficeColor.Transparent;
                 label.LinePattern = 0;
                 label.TextStyle = CreateFragmentLabelTextStyle();
-                label.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+                VisioSemanticUserCells.MarkGeneratedAdornment(label);
                 label.SetUserCell("OfficeIMO.SequenceFragmentId", fragment.Id, "STR", prompt: "OfficeIMO sequence fragment label target");
                 page.AddToLayer(FragmentLayer, label);
 
@@ -974,7 +975,7 @@ namespace OfficeIMO.Visio.Diagrams {
             label.LineColor = OfficeColor.Transparent;
             label.LinePattern = 0;
             label.TextStyle = CreateFragmentOperandTextStyle();
-            label.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            VisioSemanticUserCells.MarkGeneratedAdornment(label);
             label.SetUserCell("OfficeIMO.SequenceFragmentId", fragment.Id, "STR", prompt: "OfficeIMO sequence fragment label target");
             label.SetUserCell("OfficeIMO.SequenceFragmentOperandId", operand.Id, "STR", prompt: "OfficeIMO sequence fragment operand id");
             label.SetUserCell("OfficeIMO.SequenceFragmentOperandRowIndex", operand.RowIndex.ToString(global::System.Globalization.CultureInfo.InvariantCulture), "STR", prompt: "OfficeIMO sequence fragment operand row");
@@ -1388,7 +1389,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 FillColor = OfficeColor.Transparent,
                 LineColor = OfficeColor.Transparent
             };
-            anchor.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            VisioSemanticUserCells.MarkGeneratedAdornment(anchor);
             page.Shapes.Add(anchor);
             page.AddToLayer(GuideLayer, anchor);
             return anchor;

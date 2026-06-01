@@ -92,6 +92,7 @@ namespace OfficeIMO.Visio.Stencils {
             double centerX = page.Width / 2D;
             double headingY = Math.Max(0.8D, page.Height - 0.75D);
             VisioShape heading = page.AddTextBox(ReserveId(usedIds, MakeId(options.IdPrefix, "overview-title")), centerX, headingY, contentWidth, 0.55, title, VisioMeasurementUnit.Inches);
+            VisioSemanticUserCells.MarkGeneratedAdornment(heading);
             heading.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos Display",
                 Size = 22D,
@@ -106,6 +107,7 @@ namespace OfficeIMO.Visio.Stencils {
                              catalog.Categories.Count.ToString(CultureInfo.InvariantCulture) +
                              " categories";
             VisioShape subtitle = page.AddTextBox(ReserveId(usedIds, MakeId(options.IdPrefix, "overview-summary")), centerX, headingY - 0.55D, contentWidth, 0.35, summary, VisioMeasurementUnit.Inches);
+            VisioSemanticUserCells.MarkGeneratedAdornment(subtitle);
             subtitle.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 10.5D,
@@ -136,6 +138,7 @@ namespace OfficeIMO.Visio.Stencils {
                     0.32,
                     group.Key + " - " + group.Count().ToString(CultureInfo.InvariantCulture) + " stencils",
                     VisioMeasurementUnit.Inches);
+                VisioSemanticUserCells.MarkGeneratedAdornment(row);
                 row.TextStyle = new VisioTextStyle {
                     FontFamily = "Aptos",
                     Size = 9.4D,
@@ -176,6 +179,7 @@ namespace OfficeIMO.Visio.Stencils {
                                 " of " +
                                 pageCount.ToString(CultureInfo.InvariantCulture);
             VisioShape footer = page.AddTextBox(MakeId(options.IdPrefix, "footer-" + pageIndex.ToString(CultureInfo.InvariantCulture)), page.Width / 2D, 0.28D, page.Width - 1D, 0.22D, footerText, VisioMeasurementUnit.Inches);
+            VisioSemanticUserCells.MarkGeneratedAdornment(footer);
             footer.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 7.5D,

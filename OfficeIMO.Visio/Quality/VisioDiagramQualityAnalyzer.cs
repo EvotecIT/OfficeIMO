@@ -275,7 +275,7 @@ namespace OfficeIMO.Visio {
                         continue;
                     }
 
-                    if (shape.IsContainer || shape.IsBackgroundSurface || shape.IsDiagramAdornment || IsSequenceActivation(shape) || IsSequenceFragment(shape)) {
+                    if (shape.IsBackgroundSurface || VisioSemanticUserCells.IsGeneratedDiagramAdornment(shape) || IsSequenceActivation(shape) || IsSequenceFragment(shape)) {
                         continue;
                     }
 
@@ -348,7 +348,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool IsConnectorIntersectionIgnoredShape(VisioShape shape) {
-            return shape.IsContainer || shape.IsBackgroundSurface || shape.IsDiagramAdornment || IsSequenceActivation(shape) || IsSequenceFragment(shape);
+            return shape.IsBackgroundSurface || VisioSemanticUserCells.IsGeneratedDiagramAdornment(shape) || IsSequenceActivation(shape) || IsSequenceFragment(shape);
         }
 
         private static bool IsSequenceActivation(VisioShape shape) {

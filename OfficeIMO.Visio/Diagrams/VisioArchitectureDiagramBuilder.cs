@@ -379,6 +379,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 double width = Math.Max(1D, _pageWidth - 1.6D);
                 VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, titleY, width, _titleHeight, _titleText, _unit);
                 title.TextStyle = CreateTitleTextStyle();
+                VisioSemanticUserCells.MarkGeneratedAdornment(title);
             }
 
             if (_showLegend) {
@@ -398,10 +399,11 @@ namespace OfficeIMO.Visio.Diagrams {
             sample.LineColor = connectorStyle.LineColor;
             sample.LinePattern = connectorStyle.LinePattern;
             sample.LineWeight = Math.Max(0.018D, connectorStyle.LineWeight);
-            sample.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            VisioSemanticUserCells.MarkGeneratedAdornment(sample);
 
             VisioShape text = page.AddTextBox(x + 1.55D, y, 1.65D, _legendHeight, label, _unit);
             text.TextStyle = CreateLegendTextStyle(connectorStyle);
+            VisioSemanticUserCells.MarkGeneratedAdornment(text);
         }
 
         private VisioTextStyle CreateLegendTextStyle(VisioConnectorStyle connectorStyle) {

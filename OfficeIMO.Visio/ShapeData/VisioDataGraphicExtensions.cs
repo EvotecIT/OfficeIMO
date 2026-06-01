@@ -177,7 +177,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static void MarkDataGraphic(VisioShape shape, VisioShape target, VisioDataGraphicItem item, string value, string role) {
-            shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            VisioSemanticUserCells.MarkGeneratedAdornment(shape);
             shape.SetUserCell(VisioSemanticUserCells.DataGraphicTargetId, target.Id, "STR", prompt: "OfficeIMO data graphic target shape id");
             shape.SetUserCell(VisioSemanticUserCells.DataGraphicField, item.FieldName, "STR", prompt: "OfficeIMO data graphic field");
             shape.SetUserCell(VisioSemanticUserCells.DataGraphicValue, value, "STR", prompt: "OfficeIMO data graphic value");

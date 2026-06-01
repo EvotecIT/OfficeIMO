@@ -90,6 +90,7 @@ namespace OfficeIMO.Tests {
             page.Shapes.Add(background);
             background.SetUserCell("OfficeIMO.Kind", "BackgroundSurface", "STR");
             VisioShape caption = page.AddTextBox("zone-label", 3, 2.85, 3.6, 0.3, "Zone");
+            VisioSemanticUserCells.MarkGeneratedAdornment(caption);
             VisioShape source = page.AddRectangle(0.45, 2.85, 0.6, 0.4, "Source");
             VisioShape target = page.AddRectangle(5.55, 2.85, 0.6, 0.4, "Target");
             VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
@@ -99,6 +100,63 @@ namespace OfficeIMO.Tests {
             Assert.True(caption.IsDiagramAdornment);
             Assert.DoesNotContain(issues, issue => issue.Kind == "ShapeOverlap" && (issue.ShapeId == background.Id || issue.OtherShapeId == background.Id));
             Assert.DoesNotContain(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == caption.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerReportsConnectorCrossingUserTextBoxes() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("UserTextCrossing", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape note = page.AddTextBox("user-note", 3, 2, 1.1, 0.4, "User note");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorLabels = false
+            });
+
+            Assert.True(note.IsDiagramAdornment);
+            Assert.False(VisioSemanticUserCells.IsGeneratedDiagramAdornment(note));
+            Assert.Contains(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == note.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerReportsConnectorCrossingNonContainingContainers() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("ContainerCrossing", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape container = page.AddRectangle(3, 2, 1.1, 0.7, "Container");
+            container.SetUserCell("msvStructureType", "Container", "STR");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorLabels = false
+            });
+
+            Assert.True(container.IsContainer);
+            Assert.Contains(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == container.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void VisualQualityAnalyzerReportsConnectorLabelOverlappingUserTextBoxes() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("UserTextLabel", 7, 5);
+            VisioShape source = page.AddRectangle(1, 2, 0.8, 0.5, "Source");
+            VisioShape note = page.AddTextBox("approval-note", 3, 2, 1.1, 0.4, "User note");
+            VisioShape target = page.AddRectangle(5, 2, 0.8, 0.5, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left)
+                .PlaceLabelAt(3, 2, width: 1.4, height: 0.45);
+            connector.Label = "approval";
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
+                CheckShapeOverlaps = false,
+                CheckConnectorShapeIntersections = false
+            });
+
+            Assert.Contains(issues, issue => issue.Kind == "ConnectorLabelOverlapsShape" && issue.ShapeId == note.Id && issue.ConnectorId == connector.Id);
         }
 
         [Fact]

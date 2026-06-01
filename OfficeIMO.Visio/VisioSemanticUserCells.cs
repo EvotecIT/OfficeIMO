@@ -4,6 +4,9 @@ namespace OfficeIMO.Visio {
         public const string CalloutKind = "Callout";
         public const string DiagramAdornmentKind = "DiagramAdornment";
         public const string BackgroundSurfaceKind = "BackgroundSurface";
+        public const string DiagramAdornmentRole = "OfficeIMO.DiagramAdornmentRole";
+        public const string GeneratedAdornmentRole = "Generated";
+        public const string UserAdornmentRole = "User";
         public const string SequenceActivationKind = "SequenceActivation";
         public const string SequenceFragmentKind = "SequenceFragment";
         public const string CalloutTargetId = "OfficeIMO.CalloutTargetId";
@@ -29,5 +32,22 @@ namespace OfficeIMO.Visio {
         public const string StencilPreviewImageContentType = "OfficeIMO.StencilPreviewImageContentType";
         public const string StencilPreviewImageExtension = "OfficeIMO.StencilPreviewImageExtension";
         public const string StencilPreviewImageByteLength = "OfficeIMO.StencilPreviewImageByteLength";
+
+        public static void MarkGeneratedAdornment(VisioShape shape) {
+            if (shape == null) {
+                throw new ArgumentNullException(nameof(shape));
+            }
+
+            shape.SetUserCell(Kind, DiagramAdornmentKind, "STR", prompt: "OfficeIMO semantic kind");
+            shape.SetUserCell(DiagramAdornmentRole, GeneratedAdornmentRole, "STR", prompt: "OfficeIMO diagram adornment role");
+        }
+
+        public static bool IsGeneratedDiagramAdornment(VisioShape shape) {
+            if (shape == null || !shape.IsDiagramAdornment) {
+                return false;
+            }
+
+            return string.Equals(shape.GetUserCellValue(DiagramAdornmentRole), GeneratedAdornmentRole, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
