@@ -188,6 +188,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void StencilProfileReportsPagesForRepeatedShapeIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage first = document.AddPage("First", 8, 5);
+            VisioPage second = document.AddPage("Second", 8, 5);
+            VisioShape firstShape = first.AddRectangle(2, 3, 1, 0.5, "Cache");
+            VisioShape secondShape = second.AddRectangle(2, 3, 1, 0.5, "Cache");
+            firstShape.SetUserCell(VisioSemanticUserCells.StencilId, "shared.cache");
+            secondShape.SetUserCell(VisioSemanticUserCells.StencilId, "shared.cache");
+
+            Assert.Equal(firstShape.Id, secondShape.Id);
+            VisioStencilUsageProfile usage = Assert.Single(document.CreateStencilProfile().Usages);
+
+            Assert.Equal(new[] { "First", "Second" }, usage.PageNames);
+        }
+
+        [Fact]
+        public void StencilProfileDisambiguatesDuplicateUsageSnapshotPrefixes() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            document.UseMastersByDefault = true;
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Mixed", builder => builder
+                .AddWithMetadata("shared.cache", "Cache", "Process", "Infrastructure", 1.4, 0.8));
+            VisioPage page = document.AddPage("Mixed", 8, 5);
+            page.AddStencilShape(catalog, "shared.cache", "master-cache", 2, 3, "Master");
+            VisioShape geometry = page.AddRectangle(5, 3, 1.4, 0.8, "Geometry");
+            geometry.SetUserCell(VisioSemanticUserCells.StencilId, "shared.cache");
+
+            VisioStencilProfile profile = document.CreateStencilProfile();
+            string text = profile.ToText();
+
+            Assert.Equal(2, profile.Usages.Count);
+            Assert.Contains("usage[GeneratedMaster:", text, StringComparison.Ordinal);
+            Assert.Contains(":stencil:shared.cache].kind=GeneratedMaster", text, StringComparison.Ordinal);
+            Assert.Contains("usage[BasicGeometry:", text, StringComparison.Ordinal);
+            Assert.Contains(":stencil:shared.cache].kind=BasicGeometry", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void StencilProfileRoundTripsPackageBackedMastersAfterLoad() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");

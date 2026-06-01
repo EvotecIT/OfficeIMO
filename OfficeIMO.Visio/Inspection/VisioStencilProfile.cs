@@ -186,6 +186,7 @@ namespace OfficeIMO.Visio {
                 .OrderBy(usage => usage.Kind)
                 .ThenBy(usage => usage.Key, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+            DisambiguateUsageSnapshotKeys(usages);
             List<VisioStencilFamilyProfile> stencilFamilies = VisioStencilFamilyProfile.FromUsages(usages);
 
             return new VisioStencilProfile(
@@ -370,6 +371,18 @@ namespace OfficeIMO.Visio {
                 ?.Value;
         }
 
+        private static void DisambiguateUsageSnapshotKeys(IReadOnlyList<VisioStencilUsageProfile> usages) {
+            foreach (IGrouping<string, VisioStencilUsageProfile> group in usages.GroupBy(usage => usage.Key, StringComparer.OrdinalIgnoreCase)) {
+                if (group.Count() == 1) {
+                    continue;
+                }
+
+                foreach (VisioStencilUsageProfile usage in group) {
+                    usage.SnapshotKey = usage.Kind + ":" + (usage.MasterId ?? usage.MasterNameU ?? usage.ShapeNameU ?? usage.SemanticKind ?? "none") + ":" + usage.Key;
+                }
+            }
+        }
+
         private static bool IsMasterArtworkChild(VisioInspectionShapeSnapshot shape) {
             return !string.IsNullOrWhiteSpace(shape.ParentId) &&
                    !string.IsNullOrWhiteSpace(shape.MasterShapeId);
@@ -378,7 +391,7 @@ namespace OfficeIMO.Visio {
         internal static void AppendLine(StringBuilder builder, string key, object? value) {
             builder.Append(key);
             builder.Append('=');
-            builder.Append(VisioInspectionSnapshot.FormatValue(value));
+            builder.Append(VisioInspectionSnapshot.FormatLineValue(value));
             builder.AppendLine();
         }
 
@@ -865,10 +878,13 @@ namespace OfficeIMO.Visio {
             PlacedWidthMaximum = placedWidthMaximum;
             PlacedHeightMinimum = placedHeightMinimum;
             PlacedHeightMaximum = placedHeightMaximum;
+            SnapshotKey = key;
         }
 
         /// <summary>Stable usage key.</summary>
         public string Key { get; }
+
+        internal string SnapshotKey { get; set; }
 
         /// <summary>Usage classification.</summary>
         public VisioStencilProfileUsageKind Kind { get; }
@@ -962,10 +978,9 @@ namespace OfficeIMO.Visio {
             IEnumerable<VisioInspectionShapeSnapshot> shapes,
             IReadOnlyList<VisioInspectionPageSnapshot> pages) {
             List<VisioInspectionShapeSnapshot> shapeList = shapes.ToList();
-            Dictionary<string, string> pageByShapeId = pages
-                .SelectMany(page => page.Shapes.Select(shape => new { shape.Id, Page = page.Name }))
-                .GroupBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.First().Page, StringComparer.OrdinalIgnoreCase);
+            Dictionary<VisioInspectionShapeSnapshot, string> pageByShape = pages
+                .SelectMany(page => page.Shapes.Select(shape => new { Shape = shape, Page = page.Name }))
+                .ToDictionary(item => item.Shape, item => item.Page);
 
             IReadOnlyList<string> shapeIds = shapeList
                 .Select(shape => shape.Id)
@@ -973,7 +988,7 @@ namespace OfficeIMO.Visio {
                 .ToList()
                 .AsReadOnly();
             IReadOnlyList<string> pageNames = shapeList
-                .Select(shape => pageByShapeId.TryGetValue(shape.Id, out string? pageName) ? pageName : string.Empty)
+                .Select(shape => pageByShape.TryGetValue(shape, out string? pageName) ? pageName : string.Empty)
                 .Where(pageName => !string.IsNullOrWhiteSpace(pageName))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(pageName => pageName, StringComparer.OrdinalIgnoreCase)
@@ -1021,7 +1036,7 @@ namespace OfficeIMO.Visio {
         }
 
         internal void AppendText(StringBuilder builder) {
-            string prefix = "usage[" + VisioInspectionSnapshot.EscapeKey(Key) + "]";
+            string prefix = "usage[" + VisioInspectionSnapshot.EscapeKey(SnapshotKey) + "]";
             VisioStencilProfile.AppendLine(builder, prefix + ".kind", Kind);
             VisioStencilProfile.AppendLine(builder, prefix + ".masterId", MasterId);
             VisioStencilProfile.AppendLine(builder, prefix + ".masterNameU", MasterNameU);
