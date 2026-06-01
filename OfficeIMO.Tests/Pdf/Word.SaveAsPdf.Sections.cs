@@ -532,6 +532,42 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Blank_First_And_Even_HeaderFooter_Variants() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            document.DifferentFirstPage = true;
+            document.DifferentOddAndEvenPages = true;
+
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Footer");
+
+            for (int i = 0; i < 240; i++) {
+                document.AddParagraph("Native blank variant body");
+            }
+
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            Assert.True(pdf.NumberOfPages >= 3);
+            string firstPageText = pdf.GetPage(1).Text;
+            string secondPageText = pdf.GetPage(2).Text;
+            string thirdPageText = pdf.GetPage(3).Text;
+
+            Assert.DoesNotContain("Native Odd Header", firstPageText);
+            Assert.DoesNotContain("Native Odd Footer", firstPageText);
+            Assert.DoesNotContain("Native Odd Header", secondPageText);
+            Assert.DoesNotContain("Native Odd Footer", secondPageText);
+            Assert.Contains("Native Odd Header", thirdPageText);
+            Assert.Contains("Native Odd Footer", thirdPageText);
+        }
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Records_Warnings_For_Unsupported_HeaderFooter_Content() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterWarnings.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterWarnings.pdf");

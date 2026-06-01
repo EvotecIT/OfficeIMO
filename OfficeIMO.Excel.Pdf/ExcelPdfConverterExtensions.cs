@@ -228,7 +228,7 @@ namespace OfficeIMO.Excel.Pdf {
                             continue;
                         }
 
-                        if (TryParseInternalTarget(hyperlink.Target, out string? sheetName, out string? cellReference)) {
+                        if (TryParseInternalTarget(hyperlink.Target, plan.SheetName, out string? sheetName, out string? cellReference)) {
                             targetCells.Add(CreateCellDestinationKey(sheetName!, cellReference!));
                         }
                     }
@@ -280,7 +280,9 @@ namespace OfficeIMO.Excel.Pdf {
             var evenHeaderZones = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven
                 ? ConvertHeaderFooterZones(headerFooter.EvenHeaderLeft, headerFooter.EvenHeaderCenter, headerFooter.EvenHeaderRight, sheetName, workbookPath, options, "even-page header")
                 : null;
-            if (HasAnyText(headerZones) || HasAnyText(firstHeaderZones) || HasAnyText(evenHeaderZones) || HasAnyHeaderImage(headerFooter, options)) {
+            bool hasFirstHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage;
+            bool hasEvenHeaderVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
+            if (HasAnyText(headerZones) || hasFirstHeaderVariant || hasEvenHeaderVariant || HasAnyHeaderImage(headerFooter, options)) {
                 page.Header(header => {
                     ApplyHeaderFooterStyle(header, ResolveSharedHeaderFooterStyle(new[] { headerZones, firstHeaderZones, evenHeaderZones }, sheetName, options, "header"));
 
@@ -290,10 +292,14 @@ namespace OfficeIMO.Excel.Pdf {
 
                     if (HasAnyText(firstHeaderZones)) {
                         header.FirstPageZones(firstHeaderZones!.Left, firstHeaderZones.Center, firstHeaderZones.Right);
+                    } else if (hasFirstHeaderVariant) {
+                        header.FirstPageText(string.Empty);
                     }
 
                     if (HasAnyText(evenHeaderZones)) {
                         header.EvenPagesZones(evenHeaderZones!.Left, evenHeaderZones.Center, evenHeaderZones.Right);
+                    } else if (hasEvenHeaderVariant) {
+                        header.EvenPagesText(string.Empty);
                     }
 
                     AddHeaderImage(header, headerFooter.HeaderLeftImage, options, PdfCore.PdfAlign.Left);
@@ -309,7 +315,9 @@ namespace OfficeIMO.Excel.Pdf {
             var evenFooterZones = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven
                 ? ConvertHeaderFooterZones(headerFooter.EvenFooterLeft, headerFooter.EvenFooterCenter, headerFooter.EvenFooterRight, sheetName, workbookPath, options, "even-page footer")
                 : null;
-            if (HasAnyText(footerZones) || HasAnyText(firstFooterZones) || HasAnyText(evenFooterZones) || HasAnyFooterImage(headerFooter, options)) {
+            bool hasFirstFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentFirstPage;
+            bool hasEvenFooterVariant = options.UseWorksheetHeadersAndFooters && headerFooter.DifferentOddEven;
+            if (HasAnyText(footerZones) || hasFirstFooterVariant || hasEvenFooterVariant || HasAnyFooterImage(headerFooter, options)) {
                 page.Footer(footer => {
                     ApplyHeaderFooterStyle(footer, ResolveSharedHeaderFooterStyle(new[] { footerZones, firstFooterZones, evenFooterZones }, sheetName, options, "footer"));
 
@@ -319,10 +327,14 @@ namespace OfficeIMO.Excel.Pdf {
 
                     if (HasAnyText(firstFooterZones)) {
                         footer.FirstPageZones(firstFooterZones!.Left, firstFooterZones.Center, firstFooterZones.Right);
+                    } else if (hasFirstFooterVariant) {
+                        footer.FirstPageText(string.Empty);
                     }
 
                     if (HasAnyText(evenFooterZones)) {
                         footer.EvenPagesZones(evenFooterZones!.Left, evenFooterZones.Center, evenFooterZones.Right);
+                    } else if (hasEvenFooterVariant) {
+                        footer.EvenPagesText(string.Empty);
                     }
 
                     AddFooterImage(footer, headerFooter.FooterLeftImage, options, PdfCore.PdfAlign.Left);
@@ -363,7 +375,8 @@ namespace OfficeIMO.Excel.Pdf {
                    && image.Bytes.Length > 0
                    && image.WidthPoints > 0D
                    && image.HeightPoints > 0D
-                   && IsPdfSupportedImageContentType(image.ContentType);
+                   && IsPdfSupportedImageContentType(image.ContentType)
+                   && TryValidatePdfImageBytes(image.Bytes, image.ContentType, out _);
         }
 
         private static bool HasAnyText(params string?[] values) {
@@ -927,6 +940,15 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
+                if (!TryValidatePdfImageBytes(bytes, image.ContentType, out string? unsupportedReason)) {
+                    AddWarning(
+                        options,
+                        sheetName,
+                        "WorksheetImage",
+                        $"Worksheet image anchored at {A1.CellReference(image.RowIndex, image.ColumnIndex)} was not exported because the first-party PDF image writer cannot export the image bytes. {unsupportedReason}");
+                    continue;
+                }
+
                 images.Add(new WorksheetImageExportData(bytes, PixelsToPoints(image.WidthPixels), PixelsToPoints(image.HeightPixels), A1.CellReference(image.RowIndex, image.ColumnIndex)));
             }
 
@@ -994,6 +1016,45 @@ namespace OfficeIMO.Excel.Pdf {
                    || string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
                    || string.Equals(contentType, "image/jpg", StringComparison.OrdinalIgnoreCase);
         }
+
+        private static bool TryValidatePdfImageBytes(byte[] bytes, string contentType, out string? unsupportedReason) {
+            unsupportedReason = null;
+            if (!OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo imageInfo)) {
+                unsupportedReason = "Image bytes do not contain a supported image header.";
+                return false;
+            }
+
+            if (IsPngContentType(contentType) && imageInfo.Format != OfficeImageFormat.Png) {
+                unsupportedReason = $"Image bytes were declared as PNG but were detected as {imageInfo.Format}.";
+                return false;
+            }
+
+            if (IsJpegContentType(contentType) && imageInfo.Format != OfficeImageFormat.Jpeg) {
+                unsupportedReason = $"Image bytes were declared as JPEG but were detected as {imageInfo.Format}.";
+                return false;
+            }
+
+            try {
+                _ = new PdfCore.PdfTableCellImage(bytes, 1D, 1D);
+                return true;
+            } catch (ArgumentException ex) {
+                unsupportedReason = ex.Message;
+                return false;
+            } catch (InvalidDataException ex) {
+                unsupportedReason = ex.Message;
+                return false;
+            } catch (NotSupportedException ex) {
+                unsupportedReason = ex.Message;
+                return false;
+            }
+        }
+
+        private static bool IsPngContentType(string contentType) =>
+            string.Equals(contentType, "image/png", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsJpegContentType(string contentType) =>
+            string.Equals(contentType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(contentType, "image/jpg", StringComparison.OrdinalIgnoreCase);
 
         private static double PixelsToPoints(int pixels) {
             return pixels * 72D / 96D;
@@ -1850,10 +1911,37 @@ namespace OfficeIMO.Excel.Pdf {
         private static string GetExportRange(ExcelSheetReader sheet, ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) {
             string? printArea = GetWorksheetPrintArea(workbookSheet, options);
             if (!string.IsNullOrWhiteSpace(printArea)) {
+                if (ContainsMultiplePrintAreas(printArea!)) {
+                    AddWarning(
+                        options,
+                        sheet.Name,
+                        "WorksheetPrintArea",
+                        "Multi-area worksheet print areas are not supported by the first-party PDF exporter; exporting the worksheet used range instead.");
+                    return sheet.GetUsedRangeA1();
+                }
+
                 return NormalizeA1Range(printArea!);
             }
 
             return sheet.GetUsedRangeA1();
+        }
+
+        private static bool ContainsMultiplePrintAreas(string printArea) {
+            bool inQuotedSheetName = false;
+            for (int i = 0; i < printArea.Length; i++) {
+                char current = printArea[i];
+                if (current == '\'') {
+                    if (inQuotedSheetName && i + 1 < printArea.Length && printArea[i + 1] == '\'') {
+                        i++;
+                    } else {
+                        inQuotedSheetName = !inQuotedSheetName;
+                    }
+                } else if (current == ',' && !inQuotedSheetName) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static bool HasWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) =>
@@ -2383,7 +2471,7 @@ namespace OfficeIMO.Excel.Pdf {
                     int sourceColumn = visibility?.ColumnOffsets[column] ?? column;
                     string reference = A1.CellReference(firstRow + sourceRow, firstColumn + sourceColumn);
                     if (TryGetHyperlink(worksheetHyperlinks, reference, out ExcelHyperlinkSnapshot? hyperlink) &&
-                        IsSupportedPdfHyperlink(hyperlink)) {
+                        IsSupportedPdfHyperlink(hyperlink, workbookSheet.Name)) {
                         links[row, column] = hyperlink;
                         hasAnyLink = true;
                     }
@@ -2393,12 +2481,12 @@ namespace OfficeIMO.Excel.Pdf {
             return hasAnyLink ? links : null;
         }
 
-        private static bool IsSupportedPdfHyperlink(ExcelHyperlinkSnapshot hyperlink) {
+        private static bool IsSupportedPdfHyperlink(ExcelHyperlinkSnapshot hyperlink, string currentSheetName) {
             if (hyperlink.IsExternal) {
                 return Uri.TryCreate(hyperlink.Target, UriKind.Absolute, out _);
             }
 
-            return TryParseInternalSheetName(hyperlink.Target, out _);
+            return TryParseInternalSheetName(hyperlink.Target, currentSheetName, out _);
         }
 
         private static bool TryGetHyperlink(IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> hyperlinks, string cellReference, out ExcelHyperlinkSnapshot hyperlink) {
@@ -3013,7 +3101,7 @@ namespace OfficeIMO.Excel.Pdf {
                         ? destinationName
                         : null;
                     IReadOnlyList<WorksheetImageExportData>? cellImages = GetCellImages(imagesByCellReference, cellReferences, row, column);
-                    cells.Add(CreatePdfCell(text, style, hyperlink, span, sheetDestinations, cellDestinations, cellDestinationName, cellImages));
+                    cells.Add(CreatePdfCell(text, style, hyperlink, span, sheetDestinations, cellDestinations, sheetName, cellDestinationName, cellImages));
                 }
 
                 yield return cells.ToArray();
@@ -3058,12 +3146,12 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
         }
 
-        private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleSnapshot? style, ExcelHyperlinkSnapshot? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages) {
+        private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleSnapshot? style, ExcelHyperlinkSnapshot? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages) {
             int rowSpan = span?.RowSpan ?? 1;
             int columnSpan = span?.ColumnSpan ?? 1;
             PdfCore.PdfColor? textColor = ToPdfColor(style?.FontColorHex);
             string? linkUri = hyperlink?.IsExternal == true ? hyperlink.Target : null;
-            string? linkDestinationName = TryGetInternalHyperlinkDestinationName(hyperlink, sheetDestinations, cellDestinations, out string? destinationName)
+            string? linkDestinationName = TryGetInternalHyperlinkDestinationName(hyperlink, sheetName, sheetDestinations, cellDestinations, out string? destinationName)
                 ? destinationName
                 : null;
             string? linkContents = linkUri == null && linkDestinationName == null ? null : text;
@@ -3107,9 +3195,9 @@ namespace OfficeIMO.Excel.Pdf {
                 cellDestinations.TryGetValue(CreateCellDestinationKey(sheetName, cellReference!), out destinationName);
         }
 
-        private static bool TryGetInternalHyperlinkDestinationName(ExcelHyperlinkSnapshot? hyperlink, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, out string? destinationName) {
+        private static bool TryGetInternalHyperlinkDestinationName(ExcelHyperlinkSnapshot? hyperlink, string currentSheetName, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, out string? destinationName) {
             destinationName = null;
-            if (hyperlink == null || hyperlink.IsExternal || !TryParseInternalTarget(hyperlink.Target, out string? sheetName, out string? cellReference)) {
+            if (hyperlink == null || hyperlink.IsExternal || !TryParseInternalTarget(hyperlink.Target, currentSheetName, out string? sheetName, out string? cellReference)) {
                 return false;
             }
 
@@ -3120,8 +3208,8 @@ namespace OfficeIMO.Excel.Pdf {
             return sheetDestinations.TryGetValue(sheetName!, out destinationName);
         }
 
-        private static bool TryParseInternalSheetName(string? value, out string? sheetName) {
-            if (TryParseInternalTarget(value, out sheetName, out _)) {
+        private static bool TryParseInternalSheetName(string? value, string currentSheetName, out string? sheetName) {
+            if (TryParseInternalTarget(value, currentSheetName, out sheetName, out _)) {
                 return true;
             }
 
@@ -3129,7 +3217,7 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static bool TryParseInternalTarget(string? value, out string? sheetName, out string? cellReference) {
+        private static bool TryParseInternalTarget(string? value, string currentSheetName, out string? sheetName, out string? cellReference) {
             sheetName = null;
             cellReference = null;
             if (string.IsNullOrWhiteSpace(value)) {
@@ -3138,7 +3226,18 @@ namespace OfficeIMO.Excel.Pdf {
 
             string trimmedValue = value!.Trim();
             int bangIndex = trimmedValue.LastIndexOf('!');
-            if (bangIndex <= 0 || bangIndex >= trimmedValue.Length - 1) {
+            if (bangIndex < 0) {
+                string sameSheetReferenceToken = trimmedValue.Replace("$", string.Empty);
+                if (!TryGetTopLeftCellReference(sameSheetReferenceToken, out string? sameSheetReference)) {
+                    return false;
+                }
+
+                sheetName = currentSheetName;
+                cellReference = sameSheetReference;
+                return true;
+            }
+
+            if (bangIndex == 0 || bangIndex >= trimmedValue.Length - 1) {
                 return false;
             }
 

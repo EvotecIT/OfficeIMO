@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
@@ -102,6 +103,41 @@ public partial class Excel {
         Assert.True(extractedImage.IsImageFile);
         Assert.Equal(1, extractedImage.Width);
         Assert.Equal(1, extractedImage.Height);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Warns_And_Skips_Invalid_Worksheet_Image_Bytes() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfInvalidImageBytes.xlsx");
+        byte[] invalidPngBytes = new byte[] {
+            137, 80, 78, 71, 13, 10, 26, 10,
+            0, 0, 0, 13,
+            73, 72, 68, 82,
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            16, 2, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            73, 69, 78, 68,
+            0, 0, 0, 0
+        };
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false
+        };
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "ImageMarker");
+            sheet.AddImage(2, 1, invalidPngBytes, "image/png", widthPixels: 24, heightPixels: 16, name: "Invalid PNG");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("ImageMarker", pdf.GetPage(1).Text);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(bytes));
+        Assert.Contains(options.Warnings, warning => warning.SheetName == "Images" && warning.Feature == "WorksheetImage");
     }
 
     [Fact]
@@ -254,6 +290,49 @@ public partial class Excel {
         string text = pdf.GetPage(1).Text;
         Assert.Contains("OnlyCell", text);
         Assert.DoesNotContain("OutsideCell", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Warns_And_Falls_Back_For_MultiArea_Print_Area() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMultiAreaPrintArea.xlsx");
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            UseWorksheetPrintAreas = true
+        };
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Report")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "UsedRangeTop");
+            sheet.Cell(2, 2, "AreaOne");
+            sheet.Cell(2, 4, "AreaTwo");
+            sheet.Cell(5, 5, "UsedRangeBottom");
+            document.Save(false);
+        }
+
+        using (SpreadsheetDocument package = SpreadsheetDocument.Open(workbookPath, true)) {
+            WorkbookPart workbookPart = package.WorkbookPart ?? throw new InvalidOperationException("Workbook part was not available.");
+            Workbook workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook root was not available.");
+            workbook.DefinedNames ??= new DefinedNames();
+            workbook.DefinedNames.Append(new DefinedName {
+                Name = "_xlnm.Print_Area",
+                LocalSheetId = 0U,
+                Text = "'Report'!$B$2:$B$2,'Report'!$D$2:$D$2"
+            });
+            workbook.Save();
+        }
+
+        using (ExcelDocument document = ExcelDocument.Load(workbookPath)) {
+            bytes = document.SaveAsPdf(options);
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("UsedRangeTop", text);
+        Assert.Contains("AreaOne", text);
+        Assert.Contains("AreaTwo", text);
+        Assert.Contains("UsedRangeBottom", text);
+        Assert.Contains(options.Warnings, warning => warning.SheetName == "Report" && warning.Feature == "WorksheetPrintArea");
     }
 
     [Fact]
@@ -682,6 +761,44 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Preserves_Blank_First_And_Even_HeaderFooter_Variants() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfBlankHeaderFooterVariants.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Ledger")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Entry");
+            for (int row = 2; row <= 90; row++) {
+                sheet.Cell(row, 1, "Ledger row " + row.ToString(CultureInfo.InvariantCulture));
+            }
+
+            sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
+            sheet.SetFirstPageHeaderFooter();
+            sheet.SetEvenPageHeaderFooter();
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(48)
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        Assert.True(pdf.NumberOfPages >= 3);
+        string firstPage = pdf.GetPage(1).Text;
+        string secondPage = pdf.GetPage(2).Text;
+        string thirdPage = pdf.GetPage(3).Text;
+        Assert.DoesNotContain("Odd Header Ledger", firstPage);
+        Assert.DoesNotContain("Odd Footer 1", firstPage);
+        Assert.DoesNotContain("Odd Header Ledger", secondPage);
+        Assert.DoesNotContain("Odd Footer 2", secondPage);
+        Assert.Contains("Odd Header Ledger", thirdPage);
+        Assert.Contains("Odd Footer 3", thirdPage);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Worksheet_HeaderFooter_Images() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterImages.xlsx");
 
@@ -1012,6 +1129,32 @@ public partial class Excel {
         PdfCore.PdfLogicalDocument summaryOnly = PdfCore.PdfLogicalDocument.Load(summaryOnlyBytes);
         Assert.DoesNotContain(summaryOnly.NamedDestinations, item => item.Name.IndexOf("details", StringComparison.Ordinal) >= 0);
         Assert.DoesNotContain(summaryOnly.Links, link => link.IsNamedDestinationLink);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Maps_SameSheet_Internal_Cell_Hyperlinks_To_Cell_Destinations() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSameSheetInternalHyperlinks.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Links")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Top Target");
+            sheet.SetInternalLink(2, 1, "A1", display: "Back to Top");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = true,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(bytes);
+        PdfCore.PdfNamedDestination destination = Assert.Single(logical.NamedDestinations, item => item.Name.EndsWith("-a1", StringComparison.Ordinal));
+        PdfCore.PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByDestinationName(destination.Name));
+        Assert.Equal("Back to Top", link.Contents);
+        Assert.Equal(destination.Name, link.DestinationName);
     }
 
     [Fact]

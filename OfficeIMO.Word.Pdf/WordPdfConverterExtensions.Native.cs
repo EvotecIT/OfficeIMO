@@ -999,7 +999,11 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<NativeHeaderFooterShape> firstFooterShapes = GetNativeHeaderFooterShapes(section.Footer?.First);
             IReadOnlyList<NativeHeaderFooterShape> evenFooterShapes = GetNativeHeaderFooterShapes(section.Footer?.Even);
             ApplyNativeHeaderFooterPageNumberStyle(page, defaultHeader, firstHeader, evenHeader, defaultFooter, firstFooter, evenFooter);
-            if (defaultHeader != null || firstHeader != null || evenHeader != null ||
+            bool hasFirstHeaderVariant = section.DifferentFirstPage || firstHeader != null || firstHeaderImages.Count > 0 || firstHeaderShapes.Count > 0;
+            bool hasEvenHeaderVariant = section.DifferentOddAndEvenPages || evenHeader != null || evenHeaderImages.Count > 0 || evenHeaderShapes.Count > 0;
+            bool hasFirstFooterVariant = section.DifferentFirstPage || firstFooter != null || firstFooterImages.Count > 0 || firstFooterShapes.Count > 0;
+            bool hasEvenFooterVariant = section.DifferentOddAndEvenPages || evenFooter != null || evenFooterImages.Count > 0 || evenFooterShapes.Count > 0;
+            if (defaultHeader != null || hasFirstHeaderVariant || hasEvenHeaderVariant ||
                 defaultHeaderImages.Count > 0 || firstHeaderImages.Count > 0 || evenHeaderImages.Count > 0 ||
                 defaultHeaderShapes.Count > 0 || firstHeaderShapes.Count > 0 || evenHeaderShapes.Count > 0) {
                 page.Header(header => {
@@ -1012,6 +1016,8 @@ namespace OfficeIMO.Word.Pdf {
 
                     if (firstHeader != null) {
                         header.FirstPageZones(firstHeader.Left, firstHeader.Center, firstHeader.Right);
+                    } else if (hasFirstHeaderVariant) {
+                        header.FirstPageText(string.Empty);
                     }
 
                     AddNativeHeaderImages(header, firstHeaderImages, W.HeaderFooterValues.First);
@@ -1019,6 +1025,8 @@ namespace OfficeIMO.Word.Pdf {
 
                     if (evenHeader != null) {
                         header.EvenPagesZones(evenHeader.Left, evenHeader.Center, evenHeader.Right);
+                    } else if (hasEvenHeaderVariant) {
+                        header.EvenPagesText(string.Empty);
                     }
 
                     AddNativeHeaderImages(header, evenHeaderImages, W.HeaderFooterValues.Even);
@@ -1027,7 +1035,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             bool includePageNumbers = options?.IncludePageNumbers ?? true;
-            if (!includePageNumbers && defaultFooter == null && firstFooter == null && evenFooter == null &&
+            if (!includePageNumbers && defaultFooter == null && !hasFirstFooterVariant && !hasEvenFooterVariant &&
                 defaultFooterImages.Count == 0 && firstFooterImages.Count == 0 && evenFooterImages.Count == 0 &&
                 defaultFooterShapes.Count == 0 && firstFooterShapes.Count == 0 && evenFooterShapes.Count == 0) {
                 return;
@@ -1046,6 +1054,8 @@ namespace OfficeIMO.Word.Pdf {
                 NativeHeaderFooterText? resolvedFirstFooter = WithNativeFooterPageNumber(firstFooter, includePageNumbers && firstFooter != null, pageNumberFormat);
                 if (resolvedFirstFooter != null) {
                     footer.FirstPageZones(resolvedFirstFooter.Left, resolvedFirstFooter.Center, resolvedFirstFooter.Right);
+                } else if (hasFirstFooterVariant) {
+                    footer.FirstPageText(string.Empty);
                 }
 
                 AddNativeFooterImages(footer, firstFooterImages, W.HeaderFooterValues.First);
@@ -1054,6 +1064,8 @@ namespace OfficeIMO.Word.Pdf {
                 NativeHeaderFooterText? resolvedEvenFooter = WithNativeFooterPageNumber(evenFooter, includePageNumbers && evenFooter != null, pageNumberFormat);
                 if (resolvedEvenFooter != null) {
                     footer.EvenPagesZones(resolvedEvenFooter.Left, resolvedEvenFooter.Center, resolvedEvenFooter.Right);
+                } else if (hasEvenFooterVariant) {
+                    footer.EvenPagesText(string.Empty);
                 }
 
                 AddNativeFooterImages(footer, evenFooterImages, W.HeaderFooterValues.Even);
