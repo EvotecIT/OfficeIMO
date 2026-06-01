@@ -1399,16 +1399,16 @@ internal static partial class PdfWriter {
         return false;
     }
 
-    private static string BuildFooter(PdfOptions opts, int variantPage, int page, int pages, PdfStandardFont footerFont, string footerFontResource) {
+    private static string BuildFooter(PdfOptions opts, int variantPage, int page, int pages, int documentPages, PdfStandardFont footerFont, string footerFontResource) {
         string text;
         var footerSegments = opts.GetFooterSegmentsForPage(variantPage);
         var footerZones = opts.GetFooterZonesForPage(variantPage);
         if (HasPageTextZones(footerZones)) {
-            return BuildPageTextZones(opts, footerZones, page, pages, footerFont, footerFontResource, opts.FooterFontSize, opts.FooterTextColor, opts.FooterOffsetY, isHeader: false);
+            return BuildPageTextZones(opts, footerZones, page, pages, documentPages, footerFont, footerFontResource, opts.FooterFontSize, opts.FooterTextColor, opts.FooterOffsetY, isHeader: false);
         } else if (footerSegments != null && footerSegments.Count > 0) {
             text = BuildPageTextFromSegments(footerSegments, page, pages, opts.PageNumberStyle);
         } else {
-            text = FormatPageText(opts.GetFooterFormatForPage(variantPage), page, pages, opts.PageNumberStyle);
+            text = FormatPageText(opts.GetFooterFormatForPage(variantPage), page, pages, documentPages, opts.PageNumberStyle);
         }
         double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double textWidth = EstimateSimpleTextWidth(text, footerFont, opts.FooterFontSize);
@@ -1432,16 +1432,16 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static string BuildHeader(PdfOptions opts, int variantPage, int page, int pages, PdfStandardFont headerFont, string headerFontResource) {
+    private static string BuildHeader(PdfOptions opts, int variantPage, int page, int pages, int documentPages, PdfStandardFont headerFont, string headerFontResource) {
         string text;
         var headerSegments = opts.GetHeaderSegmentsForPage(variantPage);
         var headerZones = opts.GetHeaderZonesForPage(variantPage);
         if (HasPageTextZones(headerZones)) {
-            return BuildPageTextZones(opts, headerZones, page, pages, headerFont, headerFontResource, opts.HeaderFontSize, opts.HeaderTextColor, opts.HeaderOffsetY, isHeader: true);
+            return BuildPageTextZones(opts, headerZones, page, pages, documentPages, headerFont, headerFontResource, opts.HeaderFontSize, opts.HeaderTextColor, opts.HeaderOffsetY, isHeader: true);
         } else if (headerSegments != null && headerSegments.Count > 0) {
             text = BuildPageTextFromSegments(headerSegments, page, pages, opts.PageNumberStyle);
         } else {
-            text = FormatPageText(opts.GetHeaderFormatForPage(variantPage), page, pages, opts.PageNumberStyle);
+            text = FormatPageText(opts.GetHeaderFormatForPage(variantPage), page, pages, documentPages, opts.PageNumberStyle);
         }
 
         double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
@@ -1477,6 +1477,7 @@ internal static partial class PdfWriter {
         (string? Left, string? Center, string? Right) zones,
         int page,
         int pages,
+        int documentPages,
         PdfStandardFont font,
         string fontResource,
         double fontSize,
@@ -1486,7 +1487,7 @@ internal static partial class PdfWriter {
         double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double y = isHeader ? opts.PageHeight - opts.MarginTop + offset : opts.MarginBottom - offset;
         var sb = new StringBuilder();
-        var zoneLayouts = BuildPageTextZoneLayouts(opts, zones, page, pages, font, fontSize, isHeader);
+        var zoneLayouts = BuildPageTextZoneLayouts(opts, zones, page, pages, documentPages, font, fontSize, isHeader);
         foreach (var zone in zoneLayouts) {
             AppendPageText(sb, zone.Text, fontResource, fontSize, color, zone.X, y);
         }
@@ -1499,6 +1500,7 @@ internal static partial class PdfWriter {
         (string? Left, string? Center, string? Right) zones,
         int page,
         int pages,
+        int documentPages,
         PdfStandardFont font,
         double fontSize,
         bool isHeader) {
@@ -1507,19 +1509,19 @@ internal static partial class PdfWriter {
         var layouts = new System.Collections.Generic.List<(string Name, string Text, double X, double Width)>();
 
         if (!string.IsNullOrEmpty(zones.Left)) {
-            string text = FormatPageText(zones.Left!, page, pages, opts.PageNumberStyle);
+            string text = FormatPageText(zones.Left!, page, pages, documentPages, opts.PageNumberStyle);
             double textWidth = EstimateSimpleTextWidth(text, font, fontSize);
             layouts.Add(("left", text, contentLeft, textWidth));
         }
 
         if (!string.IsNullOrEmpty(zones.Center)) {
-            string text = FormatPageText(zones.Center!, page, pages, opts.PageNumberStyle);
+            string text = FormatPageText(zones.Center!, page, pages, documentPages, opts.PageNumberStyle);
             double textWidth = EstimateSimpleTextWidth(text, font, fontSize);
             layouts.Add(("center", text, contentLeft + ((contentWidth - textWidth) / 2), textWidth));
         }
 
         if (!string.IsNullOrEmpty(zones.Right)) {
-            string text = FormatPageText(zones.Right!, page, pages, opts.PageNumberStyle);
+            string text = FormatPageText(zones.Right!, page, pages, documentPages, opts.PageNumberStyle);
             double textWidth = EstimateSimpleTextWidth(text, font, fontSize);
             layouts.Add(("right", text, contentLeft + contentWidth - textWidth, textWidth));
         }
@@ -1581,12 +1583,14 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
-    private static string FormatPageText(string format, int page, int pages, PdfPageNumberStyle style) {
+    private static string FormatPageText(string format, int page, int pages, int documentPages, PdfPageNumberStyle style) {
         string pageText = FormatPageNumber(page, style);
         string pagesText = FormatPageNumber(pages, style);
+        string documentPagesText = FormatPageNumber(documentPages, style);
         return format
             .Replace("{page}", pageText)
-            .Replace("{pages}", pagesText);
+            .Replace("{pages}", pagesText)
+            .Replace("{documentpages}", documentPagesText);
     }
 
     private static string FormatPageNumber(int number, PdfPageNumberStyle style) {

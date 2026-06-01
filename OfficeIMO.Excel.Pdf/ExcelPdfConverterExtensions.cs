@@ -302,9 +302,9 @@ namespace OfficeIMO.Excel.Pdf {
                         header.EvenPagesText(string.Empty);
                     }
 
-                    AddHeaderImage(header, headerFooter.HeaderLeftImage, options, PdfCore.PdfAlign.Left);
-                    AddHeaderImage(header, headerFooter.HeaderCenterImage, options, PdfCore.PdfAlign.Center);
-                    AddHeaderImage(header, headerFooter.HeaderRightImage, options, PdfCore.PdfAlign.Right);
+                    AddHeaderImage(header, headerFooter.HeaderLeftImage, options, PdfCore.PdfAlign.Left, headerFooter.HeaderLeft, headerFooter.FirstHeaderLeft, headerFooter.EvenHeaderLeft);
+                    AddHeaderImage(header, headerFooter.HeaderCenterImage, options, PdfCore.PdfAlign.Center, headerFooter.HeaderCenter, headerFooter.FirstHeaderCenter, headerFooter.EvenHeaderCenter);
+                    AddHeaderImage(header, headerFooter.HeaderRightImage, options, PdfCore.PdfAlign.Right, headerFooter.HeaderRight, headerFooter.FirstHeaderRight, headerFooter.EvenHeaderRight);
                 });
             }
 
@@ -337,9 +337,9 @@ namespace OfficeIMO.Excel.Pdf {
                         footer.EvenPagesText(string.Empty);
                     }
 
-                    AddFooterImage(footer, headerFooter.FooterLeftImage, options, PdfCore.PdfAlign.Left);
-                    AddFooterImage(footer, headerFooter.FooterCenterImage, options, PdfCore.PdfAlign.Center);
-                    AddFooterImage(footer, headerFooter.FooterRightImage, options, PdfCore.PdfAlign.Right);
+                    AddFooterImage(footer, headerFooter.FooterLeftImage, options, PdfCore.PdfAlign.Left, headerFooter.FooterLeft, headerFooter.FirstFooterLeft, headerFooter.EvenFooterLeft);
+                    AddFooterImage(footer, headerFooter.FooterCenterImage, options, PdfCore.PdfAlign.Center, headerFooter.FooterCenter, headerFooter.FirstFooterCenter, headerFooter.EvenFooterCenter);
+                    AddFooterImage(footer, headerFooter.FooterRightImage, options, PdfCore.PdfAlign.Right, headerFooter.FooterRight, headerFooter.FirstFooterRight, headerFooter.EvenFooterRight);
                 });
             }
         }
@@ -358,17 +358,48 @@ namespace OfficeIMO.Excel.Pdf {
                        || IsPdfSupportedImage(headerFooter.FooterRightImage));
         }
 
-        private static void AddHeaderImage(PdfCore.PdfHeaderCompose header, ExcelSheet.HeaderFooterImageSnapshot? image, ExcelPdfSaveOptions options, PdfCore.PdfAlign align) {
+        private static void AddHeaderImage(PdfCore.PdfHeaderCompose header, ExcelSheet.HeaderFooterImageSnapshot? image, ExcelPdfSaveOptions options, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
             if (options.UseWorksheetHeaderFooterImages && IsPdfSupportedImage(image)) {
-                header.Image(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                bool defaultHasImage = HasPicturePlaceholder(defaultZone);
+                bool firstHasImage = HasPicturePlaceholder(firstZone);
+                bool evenHasImage = HasPicturePlaceholder(evenZone);
+                bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
+                if (!hasSpecificPlaceholder || defaultHasImage) {
+                    header.Image(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                }
+
+                if (firstHasImage) {
+                    header.FirstPageImage(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                }
+
+                if (evenHasImage) {
+                    header.EvenPagesImage(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                }
             }
         }
 
-        private static void AddFooterImage(PdfCore.PdfFooterCompose footer, ExcelSheet.HeaderFooterImageSnapshot? image, ExcelPdfSaveOptions options, PdfCore.PdfAlign align) {
+        private static void AddFooterImage(PdfCore.PdfFooterCompose footer, ExcelSheet.HeaderFooterImageSnapshot? image, ExcelPdfSaveOptions options, PdfCore.PdfAlign align, string defaultZone, string firstZone, string evenZone) {
             if (options.UseWorksheetHeaderFooterImages && IsPdfSupportedImage(image)) {
-                footer.Image(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                bool defaultHasImage = HasPicturePlaceholder(defaultZone);
+                bool firstHasImage = HasPicturePlaceholder(firstZone);
+                bool evenHasImage = HasPicturePlaceholder(evenZone);
+                bool hasSpecificPlaceholder = defaultHasImage || firstHasImage || evenHasImage;
+                if (!hasSpecificPlaceholder || defaultHasImage) {
+                    footer.Image(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                }
+
+                if (firstHasImage) {
+                    footer.FirstPageImage(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                }
+
+                if (evenHasImage) {
+                    footer.EvenPagesImage(image!.Bytes, image.WidthPoints, image.HeightPoints, align);
+                }
             }
         }
+
+        private static bool HasPicturePlaceholder(string? text) =>
+            text?.IndexOf("&G", StringComparison.Ordinal) >= 0;
 
         private static bool IsPdfSupportedImage(ExcelSheet.HeaderFooterImageSnapshot? image) {
             return image != null
@@ -1292,9 +1323,14 @@ namespace OfficeIMO.Excel.Pdf {
 
             bool stacked = IsStackedAreaChart(snapshot.ChartType) || IsPercentStackedAreaChart(snapshot.ChartType);
             bool percentStacked = IsPercentStackedAreaChart(snapshot.ChartType);
-            double max = percentStacked ? 1D : stacked ? GetPositiveStackedMax(series, categories.Count) : GetPositiveMax(series);
+            (double min, double max) = percentStacked
+                ? (0D, 1D)
+                : stacked
+                    ? GetStackedSeriesRange(series, categories.Count)
+                    : GetFiniteSeriesRange(series);
             double step = plotWidth / (categories.Count - 1);
-            var cumulative = new double[categories.Count];
+            var positiveCumulative = new double[categories.Count];
+            var negativeCumulative = new double[categories.Count];
 
             for (int s = 0; s < series.Count; s++) {
                 OfficeColor color = GetChartSeriesColor(s);
@@ -1302,8 +1338,11 @@ namespace OfficeIMO.Excel.Pdf {
                 var bottomPoints = new List<OfficePoint>(categories.Count);
 
                 for (int i = 0; i < categories.Count; i++) {
-                    double rawValue = Math.Max(0D, GetSeriesValue(series[s], i));
-                    double baseline = stacked ? cumulative[i] : 0D;
+                    double value = GetSeriesValue(series[s], i);
+                    double rawValue = percentStacked ? Math.Max(0D, value) : value;
+                    double baseline = stacked
+                        ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
+                        : 0D;
                     double topValue = baseline + rawValue;
 
                     if (percentStacked) {
@@ -1313,8 +1352,8 @@ namespace OfficeIMO.Excel.Pdf {
                     }
 
                     double x = plotLeft + step * i;
-                    topPoints.Add(new OfficePoint(x, ToPlotY(topValue, max, plotTop, plotHeight)));
-                    bottomPoints.Add(new OfficePoint(x, ToPlotY(baseline, max, plotTop, plotHeight)));
+                    topPoints.Add(new OfficePoint(x, ToPlotY(topValue, min, max, plotTop, plotHeight)));
+                    bottomPoints.Add(new OfficePoint(x, ToPlotY(baseline, min, max, plotTop, plotHeight)));
                 }
 
                 var areaPoints = new List<OfficePoint>(topPoints.Count + bottomPoints.Count);
@@ -1328,7 +1367,12 @@ namespace OfficeIMO.Excel.Pdf {
 
                 if (stacked) {
                     for (int i = 0; i < categories.Count; i++) {
-                        cumulative[i] += Math.Max(0D, GetSeriesValue(series[s], i));
+                        double value = percentStacked ? Math.Max(0D, GetSeriesValue(series[s], i)) : GetSeriesValue(series[s], i);
+                        if (value >= 0D) {
+                            positiveCumulative[i] += value;
+                        } else {
+                            negativeCumulative[i] += value;
+                        }
                     }
                 }
             }
@@ -3814,6 +3858,20 @@ namespace OfficeIMO.Excel.Pdf {
                 return null;
             }
 
+            if (ContainsElapsedToken(normalized)) {
+                double elapsedNumber;
+                if (value is DateTime elapsedDate) {
+                    elapsedNumber = elapsedDate.ToOADate();
+                } else if (!TryGetDouble(value, out elapsedNumber)) {
+                    elapsedNumber = double.NaN;
+                }
+
+                if (!double.IsNaN(elapsedNumber) &&
+                    TryFormatElapsedDuration(elapsedNumber, normalized, out string? elapsedText)) {
+                    return elapsedText;
+                }
+            }
+
             if (value is DateTime dateValue || style.IsDateLike) {
                 DateTime date = value is DateTime directDate
                     ? directDate
@@ -3846,14 +3904,69 @@ namespace OfficeIMO.Excel.Pdf {
                 return numeric + "%";
             }
 
-            string? prefix = ExtractQuotedLiteralPrefix(normalized);
             bool useGrouping = normalized.IndexOf(',') >= 0;
             int decimalPlaces = CountDecimalPlaces(normalized);
             string numberFormat = (useGrouping ? "N" : "F") + decimalPlaces.ToString(CultureInfo.InvariantCulture);
             bool wrapNumber = ShouldWrapNegativeNumber(normalized, number);
             double displayNumber = wrapNumber ? Math.Abs(number) : number;
-            string numericValue = (prefix ?? string.Empty) + displayNumber.ToString(numberFormat, CultureInfo.InvariantCulture);
+            string numericValue = ApplyQuotedLiterals(normalized, displayNumber.ToString(numberFormat, CultureInfo.InvariantCulture));
             return wrapNumber ? "(" + numericValue + ")" : numericValue;
+        }
+
+        private static bool TryFormatElapsedDuration(double value, string formatCode, out string? text) {
+            text = null;
+            if (!ContainsElapsedToken(formatCode)) {
+                return false;
+            }
+
+            bool negative = value < 0D;
+            TimeSpan duration = TimeSpan.FromDays(Math.Abs(value));
+            string result = formatCode;
+            bool replaced = false;
+            if (TryReplaceElapsedToken(ref result, "[hh]", (long)Math.Floor(duration.TotalHours), 2) ||
+                TryReplaceElapsedToken(ref result, "[h]", (long)Math.Floor(duration.TotalHours), 1)) {
+                replaced = true;
+            } else if (TryReplaceElapsedToken(ref result, "[mm]", (long)Math.Floor(duration.TotalMinutes), 2) ||
+                       TryReplaceElapsedToken(ref result, "[m]", (long)Math.Floor(duration.TotalMinutes), 1)) {
+                replaced = true;
+            } else if (TryReplaceElapsedToken(ref result, "[ss]", (long)Math.Floor(duration.TotalSeconds), 2) ||
+                       TryReplaceElapsedToken(ref result, "[s]", (long)Math.Floor(duration.TotalSeconds), 1)) {
+                replaced = true;
+            }
+
+            if (!replaced) {
+                return false;
+            }
+
+            result = ReplaceIgnoreCase(result, "hh", duration.Hours.ToString("D2", CultureInfo.InvariantCulture));
+            result = ReplaceIgnoreCase(result, "h", duration.Hours.ToString(CultureInfo.InvariantCulture));
+            result = ReplaceIgnoreCase(result, "mm", duration.Minutes.ToString("D2", CultureInfo.InvariantCulture));
+            result = ReplaceIgnoreCase(result, "m", duration.Minutes.ToString(CultureInfo.InvariantCulture));
+            result = ReplaceIgnoreCase(result, "ss", duration.Seconds.ToString("D2", CultureInfo.InvariantCulture));
+            result = ReplaceIgnoreCase(result, "s", duration.Seconds.ToString(CultureInfo.InvariantCulture));
+            text = negative ? "-" + result : result;
+            return true;
+        }
+
+        private static bool ContainsElapsedToken(string formatCode) =>
+            formatCode.IndexOf("[h]", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            formatCode.IndexOf("[hh]", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            formatCode.IndexOf("[m]", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            formatCode.IndexOf("[mm]", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            formatCode.IndexOf("[s]", StringComparison.OrdinalIgnoreCase) >= 0 ||
+            formatCode.IndexOf("[ss]", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        private static bool TryReplaceElapsedToken(ref string formatCode, string token, long value, int minimumDigits) {
+            int index = formatCode.IndexOf(token, StringComparison.OrdinalIgnoreCase);
+            if (index < 0) {
+                return false;
+            }
+
+            string replacement = minimumDigits > 1
+                ? value.ToString("D" + minimumDigits.ToString(CultureInfo.InvariantCulture), CultureInfo.InvariantCulture)
+                : value.ToString(CultureInfo.InvariantCulture);
+            formatCode = formatCode.Substring(0, index) + replacement + formatCode.Substring(index + token.Length);
+            return true;
         }
 
         private static bool TryGetDouble(object value, out double number) {
@@ -3924,19 +4037,51 @@ namespace OfficeIMO.Excel.Pdf {
             return count;
         }
 
-        private static string? ExtractQuotedLiteralPrefix(string formatCode) {
-            int quoteStart = formatCode.IndexOf('"');
-            if (quoteStart < 0) {
-                return null;
+        private static string ApplyQuotedLiterals(string formatCode, string numericValue) {
+            string prefix = string.Empty;
+            string suffix = string.Empty;
+            int index = 0;
+            while (index < formatCode.Length) {
+                int quoteStart = formatCode.IndexOf('"', index);
+                if (quoteStart < 0) {
+                    break;
+                }
+
+                int quoteEnd = formatCode.IndexOf('"', quoteStart + 1);
+                if (quoteEnd <= quoteStart + 1) {
+                    break;
+                }
+
+                string literal = formatCode.Substring(quoteStart + 1, quoteEnd - quoteStart - 1);
+                bool hasPlaceholderBefore = HasNumberPlaceholder(formatCode, 0, quoteStart);
+                if (hasPlaceholderBefore) {
+                    if (quoteStart > 0 && char.IsWhiteSpace(formatCode[quoteStart - 1])) {
+                        suffix += " ";
+                    }
+
+                    suffix += literal;
+                } else {
+                    prefix += literal;
+                    if (quoteEnd + 1 < formatCode.Length && char.IsWhiteSpace(formatCode[quoteEnd + 1])) {
+                        prefix += " ";
+                    }
+                }
+
+                index = quoteEnd + 1;
             }
 
-            int quoteEnd = formatCode.IndexOf('"', quoteStart + 1);
-            if (quoteEnd <= quoteStart + 1) {
-                return null;
+            return prefix + numericValue + suffix;
+        }
+
+        private static bool HasNumberPlaceholder(string formatCode, int start, int end) {
+            for (int i = start; i < end && i < formatCode.Length; i++) {
+                char ch = formatCode[i];
+                if (ch == '0' || ch == '#' || ch == '?') {
+                    return true;
+                }
             }
 
-            string literal = formatCode.Substring(quoteStart + 1, quoteEnd - quoteStart - 1);
-            return literal.Length == 0 ? null : literal;
+            return false;
         }
 
         private static string ToDotNetDateTimeFormat(string excelFormat) {

@@ -117,7 +117,7 @@ internal static partial class PdfWriter {
             AddHeaderFooterImages(page, pageOpts, headerFooterVariantPageNumber);
             string contentStr = pageBackgroundContent + headerFooterShapeContent;
             if (pageOpts.HasHeaderTextContentForPage(headerFooterVariantPageNumber)) {
-                string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, pageOpts.HeaderFont, headerFontAlias!);
+                string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!);
                 contentStr += headerContent;
             }
             contentStr += page.Content;
@@ -165,7 +165,7 @@ internal static partial class PdfWriter {
                 contentStr += sbImgs.ToString();
             }
             if (pageOpts.HasFooterTextContentForPage(headerFooterVariantPageNumber)) {
-                string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, pageOpts.FooterFont, footerFontAlias!);
+                string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!);
                 contentStr += footer;
             }
             int contentId = AddStreamObject(objects, Encoding.ASCII.GetBytes(contentStr));

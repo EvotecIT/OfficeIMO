@@ -2073,7 +2073,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (field?.FieldType == WordFieldType.NumPages) {
-                token = "{pages}";
+                token = "{documentpages}";
                 style = MapNativePageNumberFieldStyle(field.Field);
                 return true;
             }
@@ -2102,7 +2102,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (string.Equals(fieldType, "NUMPAGES", StringComparison.OrdinalIgnoreCase)) {
-                token = "{pages}";
+                token = "{documentpages}";
                 style = MapNativePageNumberFieldStyle(trimmed);
                 return true;
             }

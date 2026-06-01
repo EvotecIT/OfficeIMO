@@ -91,6 +91,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Keeps_NumPages_As_Document_Total_When_Section_Restarts() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeNumPagesDocumentTotal.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeNumPagesDocumentTotal.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddHeadersAndFooters();
+                RequireSectionFooter(document, 0, HeaderFooterValues.Default)
+                    .AddParagraph("First field footer ")
+                    .AddPageNumber(includeTotalPages: true, separator: " / ");
+                document.AddParagraph("First section first page");
+                document.AddPageBreak();
+                document.AddParagraph("First section second page");
+
+                WordSection secondSection = document.AddSection();
+                secondSection.AddPageNumbering(1, NumberFormatValues.Decimal);
+                RequireSectionFooter(document, 1, HeaderFooterValues.Default)
+                    .AddParagraph("Restart field footer ")
+                    .AddPageNumber(includeTotalPages: true, separator: " / ");
+                secondSection.AddParagraph("Restarted section first page");
+                document.AddPageBreak();
+                secondSection.AddParagraph("Restarted section second page");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfDocument pdf = PdfDocument.Open(pdfPath);
+            Assert.Equal(4, pdf.NumberOfPages);
+            string page3Text = NormalizeNativePageNumberText(pdf.GetPage(3).Text);
+            string page4Text = NormalizeNativePageNumberText(pdf.GetPage(4).Text);
+            Assert.Contains("Restartfieldfooter1/4", page3Text, StringComparison.Ordinal);
+            Assert.Contains("Restartfieldfooter2/4", page4Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("Restartfieldfooter1/2", page3Text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_PageFields_To_PageTokens() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFields.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFields.pdf");

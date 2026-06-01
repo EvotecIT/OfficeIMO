@@ -855,6 +855,63 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Routes_HeaderFooter_Images_To_First_And_Even_Variants() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterVariantImages.xlsx");
+
+        byte[] imageBytes = CreateMinimalRgbPng();
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Ledger")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Entry");
+            for (int row = 2; row <= 90; row++) {
+                sheet.Cell(row, 1, "Ledger row " + row.ToString(CultureInfo.InvariantCulture));
+            }
+
+            sheet.SetHeaderFooter(headerCenter: "Odd Header &A", footerCenter: "Odd Footer &P");
+            sheet.SetHeaderImage(HeaderFooterPosition.Center, imageBytes, "image/png", widthPoints: 24, heightPoints: 16);
+
+            HeaderFooter headerFooter = sheet.WorksheetPart.Worksheet.GetFirstChild<HeaderFooter>()!;
+            headerFooter.DifferentFirst = true;
+            headerFooter.DifferentOddEven = true;
+            headerFooter.OddHeader = new OddHeader("&COdd Header &A");
+            headerFooter.FirstHeader = new FirstHeader("&C&GFirst Header &A");
+            headerFooter.EvenHeader = new EvenHeader("&C&GEven Header &A");
+            sheet.WorksheetPart.Worksheet.Save();
+
+            ExcelSheet.HeaderFooterSnapshot snapshot = sheet.GetHeaderFooter();
+            Assert.Equal("Odd Header &A", snapshot.HeaderCenter);
+            Assert.Equal("&GFirst Header &A", snapshot.FirstHeaderCenter);
+            Assert.Equal("&GEven Header &A", snapshot.EvenHeaderCenter);
+
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(48)
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        Assert.True(pdf.NumberOfPages >= 3);
+        Assert.Contains("First Header Ledger", pdf.GetPage(1).Text);
+        Assert.Contains("Even Header Ledger", pdf.GetPage(2).Text);
+        Assert.Contains("Odd Header Ledger", pdf.GetPage(3).Text);
+
+        int[] imagePages = PdfCore.PdfImageExtractor
+            .ExtractImages(bytes)
+            .Select(image => image.PageNumber)
+            .Distinct()
+            .OrderBy(page => page)
+            .ToArray();
+        Assert.Contains(1, imagePages);
+        Assert.Contains(2, imagePages);
+        Assert.DoesNotContain(3, imagePages);
+        Assert.All(imagePages, page => Assert.True(page == 1 || page % 2 == 0, "Expected header image only on first and even pages."));
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Can_Disable_Worksheet_HeaderFooter_Text_Zones() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterDisabled.xlsx");
 
@@ -1354,13 +1411,13 @@ public partial class Excel {
             bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
-                PageSize = new PdfCore.PageSize(420, 260),
+                PageSize = new PdfCore.PageSize(420, 360),
                 Margins = PdfCore.PageMargins.Uniform(24)
             });
         }
 
         using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
-        string text = pdf.GetPage(1).Text;
+        string text = string.Concat(Enumerable.Range(1, pdf.NumberOfPages).Select(page => pdf.GetPage(page).Text));
         Assert.Contains("$1,234.50", text);
         Assert.Contains("25.7%", text);
         Assert.Contains("2026-01-15", text);
@@ -1372,6 +1429,40 @@ public partial class Excel {
         Assert.DoesNotContain("1234.5", text);
         Assert.DoesNotContain("0.257", text);
         Assert.DoesNotContain("-1,234", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Maps_Elapsed_Time_And_Quoted_Number_Literals() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfElapsedAndQuotedFormats.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Formats")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Kind");
+            sheet.Cell(1, 2, "Value");
+            sheet.Cell(2, 1, "Elapsed");
+            sheet.CellAt(2, 2).SetValue(1.5).SetNumberFormat("[h]:mm");
+            sheet.Cell(3, 1, "Units");
+            sheet.CellAt(3, 2).SetValue(12).SetNumberFormat("0 \"kg\"");
+
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Elapsed", text);
+        Assert.Contains("36:00", text);
+        Assert.Contains("Units", text);
+        Assert.Contains("12 kg", text);
+        Assert.DoesNotContain("12:00", text);
+        Assert.DoesNotContain("kg12", text);
     }
 
     [Fact]
@@ -1766,6 +1857,44 @@ public partial class Excel {
         Assert.Equal(-10D, min);
         Assert.Equal(10D, max);
         Assert.True(negativeY > zeroY && zeroY > positiveY, "Expected negative, zero, and positive line chart values to map to separate vertical positions.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Exports_Negative_Area_Chart_Values() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfNegativeAreaChart.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            var data = new ExcelChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Delta", new[] { -6D, 0D, 9D }, ExcelChartType.Area)
+                });
+
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.Area, title: "Delta Area");
+            ExcelChart chart = Assert.Single(sheet.Charts);
+            Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+            Assert.Equal(ExcelChartType.Area, snapshot.ChartType);
+
+            document.Save(false);
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(480, 360),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfDocument pdf = PdfDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Delta Area", text);
+        Assert.Contains("Delta", text);
+
+        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<ExcelChartSeries> { new ExcelChartSeries("Delta", new[] { -6D, 0D, 9D }, ExcelChartType.Area) } })!;
+        Assert.Equal(-6D, (double)range.GetType().GetField("Item1")!.GetValue(range)!);
+        Assert.Equal(9D, (double)range.GetType().GetField("Item2")!.GetValue(range)!);
     }
 
     [Fact]
