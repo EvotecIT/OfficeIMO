@@ -129,6 +129,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_SectionPages_Field_To_Section_Total() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionPagesField.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSectionPagesField.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddHeadersAndFooters();
+                WordParagraph firstFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("First section ");
+                firstFooter.AddField(WordFieldType.Page);
+                firstFooter.AddText(" / ");
+                firstFooter.AddField(WordFieldType.SectionPages);
+                firstFooter.AddText(" / ");
+                firstFooter.AddField(WordFieldType.NumPages);
+                document.AddParagraph("First section first page");
+                document.AddPageBreak();
+                document.AddParagraph("First section second page");
+
+                WordSection secondSection = document.AddSection();
+                secondSection.AddPageNumbering(1, NumberFormatValues.Decimal);
+                WordParagraph secondFooter = RequireSectionFooter(document, 1, HeaderFooterValues.Default).AddParagraph("Second section ");
+                secondFooter.AddField(WordFieldType.Page);
+                secondFooter.AddText(" / ");
+                secondFooter.AddField(WordFieldType.SectionPages);
+                secondFooter.AddText(" / ");
+                secondFooter.AddField(WordFieldType.NumPages);
+                secondSection.AddParagraph("Second section first page");
+                document.AddPageBreak();
+                secondSection.AddParagraph("Second section second page");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfDocument pdf = PdfDocument.Open(pdfPath);
+            Assert.Equal(4, pdf.NumberOfPages);
+            string page1Text = NormalizeNativePageNumberText(pdf.GetPage(1).Text);
+            string page3Text = NormalizeNativePageNumberText(pdf.GetPage(3).Text);
+
+            Assert.Contains("Firstsection1/2/4", page1Text, StringComparison.Ordinal);
+            Assert.Contains("Secondsection1/2/4", page3Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("Secondsection1/4/4", page3Text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_PageFields_To_PageTokens() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFields.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterPageFields.pdf");

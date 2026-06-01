@@ -1447,7 +1447,7 @@ namespace OfficeIMO.Excel.Pdf {
             double centerX = width / 2D;
             double centerY = height / 2D;
             double radius = Math.Max(36D, Math.Min(width - 52D, height - 42D) / 2D);
-            double max = GetPositiveMax(series);
+            var (min, max) = GetRadarValueRange(series);
 
             for (int ring = 1; ring <= 4; ring++) {
                 double ringRadius = radius * ring / 4D;
@@ -1474,8 +1474,8 @@ namespace OfficeIMO.Excel.Pdf {
                 OfficeColor color = GetChartSeriesColor(s);
                 var points = new List<OfficePoint>(categories.Count);
                 for (int i = 0; i < categories.Count; i++) {
-                    double value = Math.Max(0D, GetSeriesValue(series[s], i));
-                    double pointRadius = radius * Math.Min(1D, value / max);
+                    double value = GetSeriesValue(series[s], i);
+                    double pointRadius = radius * ToRadarRadiusRatio(value, min, max);
                     points.Add(CreateRadarPoint(i, categories.Count, centerX, centerY, pointRadius));
                 }
 
@@ -1785,6 +1785,27 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return any ? ExpandFlatRange(min, max) : (0D, 1D);
+        }
+
+        private static (double Min, double Max) GetRadarValueRange(IReadOnlyList<ExcelChartSeries> series) {
+            var (min, max) = GetFiniteSeriesRange(series);
+            min = Math.Min(0D, min);
+            max = Math.Max(0D, max);
+            return ExpandFlatRange(min, max);
+        }
+
+        private static double ToRadarRadiusRatio(double value, double min, double max) {
+            double range = max - min;
+            double ratio = range <= 0D ? 0.5D : (value - min) / range;
+            if (ratio < 0D) {
+                return 0D;
+            }
+
+            if (ratio > 1D) {
+                return 1D;
+            }
+
+            return ratio;
         }
 
         private static (double Min, double Max) ExpandFlatRange(double min, double max) {

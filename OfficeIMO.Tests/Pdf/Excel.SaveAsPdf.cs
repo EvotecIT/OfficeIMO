@@ -2085,6 +2085,28 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Preserves_Negative_Radar_Chart_Values() {
+        var series = new List<ExcelChartSeries> {
+            new ExcelChartSeries("Delta", new[] { -10D, -2D, 0D, 10D }, ExcelChartType.Radar)
+        };
+
+        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetRadarValueRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { series })!;
+        double min = (double)range.GetType().GetField("Item1")!.GetValue(range)!;
+        double max = (double)range.GetType().GetField("Item2")!.GetValue(range)!;
+
+        MethodInfo ratioMethod = typeof(ExcelPdfConverterExtensions).GetMethod("ToRadarRadiusRatio", BindingFlags.NonPublic | BindingFlags.Static)!;
+        double negativeRatio = (double)ratioMethod.Invoke(null, new object[] { -2D, min, max })!;
+        double zeroRatio = (double)ratioMethod.Invoke(null, new object[] { 0D, min, max })!;
+        double positiveRatio = (double)ratioMethod.Invoke(null, new object[] { 10D, min, max })!;
+
+        Assert.Equal(-10D, min);
+        Assert.Equal(10D, max);
+        Assert.True(negativeRatio > 0D, "Expected below-zero radar values inside the axis range to render away from the center.");
+        Assert.True(negativeRatio < zeroRatio && zeroRatio < positiveRatio, "Expected signed radar values to keep their axis order.");
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Rejects_Invalid_Options() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelPdfSaveOptions { HeaderRowCount = -1 });
         Assert.Throws<ArgumentOutOfRangeException>(() => new ExcelPdfSaveOptions { MaxRowsPerSheet = 0 });

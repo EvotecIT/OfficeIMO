@@ -483,9 +483,10 @@ public static class PdfFormFiller {
 
             int appearanceObjectNumber;
             if (isButtonField) {
-                if (!TryGetButtonAppearanceReference(objects, field, value, out PdfReference? appearanceReference)) {
-                    EnsureButtonWidgetAppearances(objects, field, value ?? "Off", ref nextObjectNumber);
-                    if (!TryGetButtonAppearanceReference(objects, field, value, out appearanceReference)) {
+                string appearanceState = GetButtonWidgetFlattenAppearanceState(objects, field, value);
+                if (!TryGetButtonAppearanceReference(objects, field, appearanceState, out PdfReference? appearanceReference)) {
+                    EnsureButtonWidgetAppearances(objects, field, appearanceState, ref nextObjectNumber);
+                    if (!TryGetButtonAppearanceReference(objects, field, appearanceState, out appearanceReference)) {
                         throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
                     }
                 }
@@ -1040,6 +1041,20 @@ public static class PdfFormFiller {
         return width > 0D && height > 0D;
     }
 
+    private static string GetButtonWidgetFlattenAppearanceState(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedValue) {
+        string? widgetState = TryReadName(objects, widget, "AS");
+        if (!string.IsNullOrEmpty(widgetState)) {
+            return widgetState!;
+        }
+
+        if (!string.IsNullOrEmpty(inheritedValue) &&
+            HasButtonNormalAppearanceState(objects, widget, inheritedValue!)) {
+            return inheritedValue!;
+        }
+
+        return "Off";
+    }
+
     private static bool TryGetNormalAppearanceReference(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, out PdfReference? reference) {
         reference = null;
         if (!TryGetNormalAppearanceObject(objects, widget, out PdfObject? normalAppearance) ||
@@ -1051,7 +1066,7 @@ public static class PdfFormFiller {
         return true;
     }
 
-    private static bool TryGetButtonAppearanceReference(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string? inheritedValue, out PdfReference? reference) {
+    private static bool TryGetButtonAppearanceReference(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, string inheritedValue, out PdfReference? reference) {
         reference = null;
         if (!TryGetNormalAppearanceObject(objects, widget, out PdfObject? normalAppearance)) {
             return false;
@@ -1066,9 +1081,8 @@ public static class PdfFormFiller {
             return false;
         }
 
-        string? stateName = TryReadName(objects, widget, "AS") ?? inheritedValue;
-        if (stateName is { Length: > 0 } &&
-            TryGetAppearanceStateReference(appearanceStates, stateName, out reference)) {
+        if (!string.IsNullOrEmpty(inheritedValue) &&
+            TryGetAppearanceStateReference(appearanceStates, inheritedValue, out reference)) {
             return true;
         }
 

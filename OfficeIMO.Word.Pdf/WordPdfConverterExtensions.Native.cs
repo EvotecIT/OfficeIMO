@@ -2079,6 +2079,12 @@ namespace OfficeIMO.Word.Pdf {
                 return true;
             }
 
+            if (field?.FieldType == WordFieldType.SectionPages) {
+                token = "{pages}";
+                style = MapNativePageNumberFieldStyle(field.Field);
+                return true;
+            }
+
             return false;
         }
 
@@ -2104,6 +2110,12 @@ namespace OfficeIMO.Word.Pdf {
 
             if (string.Equals(fieldType, "NUMPAGES", StringComparison.OrdinalIgnoreCase)) {
                 token = "{documentpages}";
+                style = MapNativePageNumberFieldStyle(trimmed);
+                return true;
+            }
+
+            if (string.Equals(fieldType, "SECTIONPAGES", StringComparison.OrdinalIgnoreCase)) {
+                token = "{pages}";
                 style = MapNativePageNumberFieldStyle(trimmed);
                 return true;
             }
