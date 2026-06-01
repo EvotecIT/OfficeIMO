@@ -53,6 +53,7 @@ namespace OfficeIMO.Visio {
         private static void DrawShape(RasterCanvas canvas, VisioPage page, VisioShape shape, VisioPngSaveOptions options) {
             string kind = VisioShapeGeometry.ResolveRenderKind(shape);
             if (VisioShapeGeometry.TryGetRenderClosedPaths(shape, out List<VisioShapeGeometryPath> preservedPaths)) {
+                List<RenderedPreservedPath> renderedPaths = new();
                 foreach (VisioShapeGeometryPath preservedPath in preservedPaths) {
                     List<(double X, double Y)> points = new();
                     for (int i = 0; i < preservedPath.Points.Count; i++) {
@@ -60,14 +61,37 @@ namespace OfficeIMO.Visio {
                         points.Add(ToRaster(page, px, py, canvas.Scale));
                     }
 
-                    Color stroke = preservedPath.NoLine || !HasVisibleLine(shape) ? Color.Transparent : shape.LineColor;
-                    double strokeWidth = Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling);
-                    if (preservedPath.IsClosed) {
-                        canvas.FillPolygon(points, preservedPath.NoFill || shape.FillPattern == 0 ? Color.Transparent : shape.FillColor);
-                        canvas.StrokePolygon(points, stroke, strokeWidth, shape.LinePattern != 1);
-                    } else {
-                        canvas.StrokePolyline(points, stroke, strokeWidth, shape.LinePattern != 1);
+                    renderedPaths.Add(new RenderedPreservedPath(preservedPath, points));
+                }
+
+                Color fill = shape.FillPattern == 0 ? Color.Transparent : shape.FillColor;
+                Color stroke = HasVisibleLine(shape) ? shape.LineColor : Color.Transparent;
+                double strokeWidth = Math.Max(shape.LineWeight * canvas.Scale, canvas.Supersampling);
+                for (int i = 0; i < renderedPaths.Count;) {
+                    RenderedPreservedPath renderedPath = renderedPaths[i];
+                    if (!renderedPath.Path.IsClosed || renderedPath.Path.NoFill || fill.A == 0) {
+                        StrokeRenderedPreservedPath(canvas, renderedPath, stroke, strokeWidth, shape.LinePattern != 1);
+                        i++;
+                        continue;
                     }
+
+                    int fillGroup = renderedPath.Path.FillGroup;
+                    List<List<(double X, double Y)>> contours = new() { renderedPath.Points };
+                    int end = i + 1;
+                    while (end < renderedPaths.Count &&
+                           renderedPaths[end].Path.IsClosed &&
+                           !renderedPaths[end].Path.NoFill &&
+                           renderedPaths[end].Path.FillGroup == fillGroup) {
+                        contours.Add(renderedPaths[end].Points);
+                        end++;
+                    }
+
+                    canvas.FillPolygonsEvenOdd(contours, fill);
+                    for (int pathIndex = i; pathIndex < end; pathIndex++) {
+                        StrokeRenderedPreservedPath(canvas, renderedPaths[pathIndex], stroke, strokeWidth, shape.LinePattern != 1);
+                    }
+
+                    i = end;
                 }
             } else if (kind == "ellipse" || kind == "circle") {
                 (double centerX, double centerY) = GetPagePoint(shape, shape.LocPinX, shape.LocPinY);
@@ -108,8 +132,12 @@ namespace OfficeIMO.Visio {
                 VisioTextStyle? style = shape.TextStyle;
                 double textWidth = Math.Max(0.05D, style?.TextWidth ?? shape.Width);
                 double textHeight = Math.Max(0.05D, style?.TextHeight ?? shape.Height);
-                double localX = (style?.TextPinX ?? shape.Width / 2D) + (textWidth / 2D) - (style?.TextLocPinX ?? textWidth / 2D);
-                double localY = (style?.TextPinY ?? shape.Height / 2D) + (textHeight / 2D) - (style?.TextLocPinY ?? textHeight / 2D);
+                (double localX, double localY) = ResolveTextBoxCenter(
+                    style?.TextPinX ?? shape.Width / 2D,
+                    style?.TextPinY ?? shape.Height / 2D,
+                    textWidth,
+                    textHeight,
+                    style);
                 (double textX, double textY) = GetPagePoint(shape, localX, localY);
                 (double x, double y) = ToRaster(page, textX, textY, canvas.Scale);
                 double horizontalMargins = (style?.LeftMargin ?? 0.05D) + (style?.RightMargin ?? 0.05D);
@@ -130,6 +158,37 @@ namespace OfficeIMO.Visio {
             foreach (VisioShape child in shape.Children) {
                 DrawShape(canvas, page, child, options);
             }
+        }
+
+        private static void StrokeRenderedPreservedPath(
+            RasterCanvas canvas,
+            RenderedPreservedPath renderedPath,
+            Color stroke,
+            double strokeWidth,
+            bool dashed) {
+            Color pathStroke = renderedPath.Path.NoLine ? Color.Transparent : stroke;
+            if (renderedPath.Path.IsClosed) {
+                canvas.StrokePolygon(renderedPath.Points, pathStroke, strokeWidth, dashed);
+            } else {
+                canvas.StrokePolyline(renderedPath.Points, pathStroke, strokeWidth, dashed);
+            }
+        }
+
+        private readonly struct RenderedPreservedPath {
+            internal RenderedPreservedPath(VisioShapeGeometryPath path, List<(double X, double Y)> points) {
+                Path = path;
+                Points = points;
+            }
+
+            internal VisioShapeGeometryPath Path { get; }
+
+            internal List<(double X, double Y)> Points { get; }
+        }
+
+        private static (double X, double Y) ResolveTextBoxCenter(double pinX, double pinY, double width, double height, VisioTextStyle? style) {
+            double locPinX = style?.TextLocPinX ?? width / 2D;
+            double locPinY = style?.TextLocPinY ?? height / 2D;
+            return (pinX + (width / 2D) - locPinX, pinY + (height / 2D) - locPinY);
         }
 
         private static bool HasVisibleLine(VisioShape shape) =>
@@ -203,7 +262,8 @@ namespace OfficeIMO.Visio {
 
             if (options.RenderConnectorLabels && !string.IsNullOrEmpty(connector.Label)) {
                 VisioRenderConnectorLabelPlacement label = labelLayout?.Resolve(connector, pagePoints) ?? ResolveConnectorLabel(connector, pagePoints);
-                (double x, double y) = ToRaster(page, label.X, label.Y, canvas.Scale);
+                (double labelCenterX, double labelCenterY) = ResolveTextBoxCenter(label.X, label.Y, label.Width, label.Height, connector.TextStyle);
+                (double x, double y) = ToRaster(page, labelCenterX, labelCenterY, canvas.Scale);
                 double maxWidth = label.Width * canvas.Scale;
                 double maxHeight = label.Height * canvas.Scale;
                 DrawText(canvas, connector.Label!, x, y, connector.TextStyle, 9D, maxWidth, maxHeight, 0D, true);
@@ -1262,6 +1322,25 @@ namespace OfficeIMO.Visio {
                 }
             }
 
+            internal void FillPolygonsEvenOdd(IReadOnlyList<List<(double X, double Y)>> contours, Color color) {
+                if (color.A == 0 || contours.Count == 0) return;
+                (int minX, int minY, int maxX, int maxY) = BoundsPolygons(contours, 1D);
+                for (int y = minY; y <= maxY; y++) {
+                    for (int x = minX; x <= maxX; x++) {
+                        int hits = 0;
+                        for (int i = 0; i < contours.Count; i++) {
+                            if (contours[i].Count >= 3 && ContainsPoint(contours[i], x + 0.5D, y + 0.5D)) {
+                                hits++;
+                            }
+                        }
+
+                        if ((hits & 1) == 1) {
+                            BlendPixel(x, y, color);
+                        }
+                    }
+                }
+            }
+
             internal void StrokePolygon(IReadOnlyList<(double X, double Y)> points, Color color, double width, bool dashed) {
                 if (points.Count == 0) return;
                 List<(double X, double Y)> closed = new(points) { points[0] };
@@ -1665,6 +1744,31 @@ namespace OfficeIMO.Visio {
             }
 
             private (int MinX, int MinY, int MaxX, int MaxY) BoundsContours(IReadOnlyList<List<OfficePoint>> contours, double pad) {
+                double minX = double.PositiveInfinity;
+                double maxX = double.NegativeInfinity;
+                double minY = double.PositiveInfinity;
+                double maxY = double.NegativeInfinity;
+                for (int i = 0; i < contours.Count; i++) {
+                    for (int j = 0; j < contours[i].Count; j++) {
+                        minX = Math.Min(minX, contours[i][j].X);
+                        maxX = Math.Max(maxX, contours[i][j].X);
+                        minY = Math.Min(minY, contours[i][j].Y);
+                        maxY = Math.Max(maxY, contours[i][j].Y);
+                    }
+                }
+
+                if (double.IsInfinity(minX) || double.IsInfinity(minY)) {
+                    return (0, 0, -1, -1);
+                }
+
+                return (
+                    ClampToInt(Math.Floor(minX - pad), 0, _renderWidth - 1),
+                    ClampToInt(Math.Floor(minY - pad), 0, _renderHeight - 1),
+                    ClampToInt(Math.Ceiling(maxX + pad), 0, _renderWidth - 1),
+                    ClampToInt(Math.Ceiling(maxY + pad), 0, _renderHeight - 1));
+            }
+
+            private (int MinX, int MinY, int MaxX, int MaxY) BoundsPolygons(IReadOnlyList<List<(double X, double Y)>> contours, double pad) {
                 double minX = double.PositiveInfinity;
                 double maxX = double.NegativeInfinity;
                 double minY = double.PositiveInfinity;

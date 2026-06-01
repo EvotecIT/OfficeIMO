@@ -46,11 +46,15 @@ namespace OfficeIMO.Visio {
             string? target = shape.GetUserCellValue(VisioSemanticUserCells.StencilPreviewImageTarget) ??
                              shape.Master.StencilPreviewImageTarget;
 
+            bool hasRelationshipId = !string.IsNullOrWhiteSpace(relationshipId);
+            bool hasTarget = !string.IsNullOrWhiteSpace(target);
+            string? normalizedTarget = hasTarget ? NormalizePath(target!) : null;
+
             relationship = shape.Master.RawMasterRelationships
                 .Where(item => !item.IsExternal && item.Data != null && item.Data.Length > 0)
-                .OrderByDescending(item => !string.IsNullOrWhiteSpace(relationshipId) && string.Equals(item.Id, relationshipId, StringComparison.OrdinalIgnoreCase))
-                .ThenByDescending(item => !string.IsNullOrWhiteSpace(target) && string.Equals(NormalizePath(item.Target), NormalizePath(target!), StringComparison.OrdinalIgnoreCase))
-                .ThenBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
+                .Where(item => !hasRelationshipId || string.Equals(item.Id, relationshipId, StringComparison.OrdinalIgnoreCase))
+                .Where(item => !hasTarget || string.Equals(NormalizePath(item.Target), normalizedTarget, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(item => item.Id, StringComparer.OrdinalIgnoreCase)
                 .FirstOrDefault(IsImageRelationship);
 
             return relationship != null;

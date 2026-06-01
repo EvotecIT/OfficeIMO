@@ -6,11 +6,12 @@ using System.Xml.Linq;
 
 namespace OfficeIMO.Visio {
     internal sealed class VisioShapeGeometryPath {
-        internal VisioShapeGeometryPath(List<(double X, double Y)> points, bool noFill, bool noLine, bool isClosed) {
+        internal VisioShapeGeometryPath(List<(double X, double Y)> points, bool noFill, bool noLine, bool isClosed, int fillGroup) {
             Points = points;
             NoFill = noFill;
             NoLine = noLine;
             IsClosed = isClosed;
+            FillGroup = fillGroup;
         }
 
         internal List<(double X, double Y)> Points { get; }
@@ -20,6 +21,8 @@ namespace OfficeIMO.Visio {
         internal bool NoLine { get; }
 
         internal bool IsClosed { get; }
+
+        internal int FillGroup { get; }
     }
 
     internal static class VisioShapeGeometry {
@@ -61,13 +64,15 @@ namespace OfficeIMO.Visio {
         internal static bool TryGetPreservedClosedPaths(VisioShape shape, out List<VisioShapeGeometryPath> paths) {
             paths = new List<VisioShapeGeometryPath>();
             bool handledGeometry = false;
+            int fillGroup = 0;
             foreach (XElement section in shape.PreservedGeometrySections) {
-                if (!TryParseGeometrySection(shape, section, out List<VisioShapeGeometryPath> sectionPaths)) {
+                if (!TryParseGeometrySection(shape, section, fillGroup, out List<VisioShapeGeometryPath> sectionPaths)) {
                     continue;
                 }
 
                 handledGeometry = true;
                 paths.AddRange(sectionPaths);
+                fillGroup++;
             }
 
             return handledGeometry;
@@ -89,7 +94,7 @@ namespace OfficeIMO.Visio {
 
                 int minimumPoints = sourcePath.IsClosed ? 3 : 2;
                 if (scaledPath.Count >= minimumPoints) {
-                    scaledPaths.Add(new VisioShapeGeometryPath(scaledPath, sourcePath.NoFill, sourcePath.NoLine, sourcePath.IsClosed));
+                    scaledPaths.Add(new VisioShapeGeometryPath(scaledPath, sourcePath.NoFill, sourcePath.NoLine, sourcePath.IsClosed, sourcePath.FillGroup));
                 }
             }
 
@@ -315,7 +320,7 @@ namespace OfficeIMO.Visio {
             return new string(buffer, 0, index);
         }
 
-        private static bool TryParseGeometrySection(VisioShape shape, XElement section, out List<VisioShapeGeometryPath> paths) {
+        private static bool TryParseGeometrySection(VisioShape shape, XElement section, int fillGroup, out List<VisioShapeGeometryPath> paths) {
             paths = new List<VisioShapeGeometryPath>();
             List<(double X, double Y)> points = new();
             XNamespace ns = section.Name.Namespace;
@@ -557,7 +562,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 if (isMove && points.Count > 0) {
-                    if (!TryAddGeometryPath(paths, points, noFill, noLine, closedPath)) {
+                    if (!TryAddGeometryPath(paths, points, noFill, noLine, closedPath, fillGroup)) {
                         return false;
                     }
 
@@ -568,7 +573,7 @@ namespace OfficeIMO.Visio {
                 points.Add(point);
             }
 
-            return TryAddGeometryPath(paths, points, noFill, noLine, closedPath);
+            return TryAddGeometryPath(paths, points, noFill, noLine, closedPath, fillGroup);
         }
 
         private static bool TryAddGeometryPath(
@@ -576,7 +581,8 @@ namespace OfficeIMO.Visio {
             List<(double X, double Y)> points,
             bool noFill,
             bool noLine,
-            bool closedPath) {
+            bool closedPath,
+            int fillGroup) {
             bool explicitlyClosed = points.Count > 1 && NearlyEqual(points[0], points[points.Count - 1]);
             bool renderClosedPath = closedPath && (!noFill || explicitlyClosed);
             int minimumPointCount = renderClosedPath ? 3 : 2;
@@ -592,7 +598,7 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            paths.Add(new VisioShapeGeometryPath(points, noFill, noLine, renderClosedPath));
+            paths.Add(new VisioShapeGeometryPath(points, noFill, noLine, renderClosedPath, fillGroup));
             return true;
         }
 

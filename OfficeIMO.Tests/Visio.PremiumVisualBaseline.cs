@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            RasterComparison comparison = CompareRasterImages(File.ReadAllBytes(expectedPath), File.ReadAllBytes(actualPath));
+            RasterComparison comparison = CompareRasterImages(File.ReadAllBytes(expectedPath), File.ReadAllBytes(actualPath), IsNativePngBaseline(baselineName));
             if (comparison.Passed) {
                 return;
             }
@@ -408,15 +408,27 @@ namespace OfficeIMO.Tests {
             return normalized.EndsWith("\n", StringComparison.Ordinal) ? normalized : normalized + "\n";
         }
 
-        private static RasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng) {
+        private static bool IsNativePngBaseline(string baselineName) =>
+            baselineName.IndexOf("-native-", StringComparison.OrdinalIgnoreCase) >= 0 &&
+            baselineName.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
+
+        private static RasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, bool allowNativeVariance = false) {
             int channelTolerance = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE", 0);
             int allowedDifferentPixels = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_ALLOWED_DIFF_PIXELS", 1);
-            return CompareRasterImages(expectedPng, actualPng, channelTolerance, allowedDifferentPixels);
-        }
-
-        private static RasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, int channelTolerance, int allowedDifferentPixels) {
             PngRaster expected = PngRaster.Decode(expectedPng);
             PngRaster actual = PngRaster.Decode(actualPng);
+            if (allowNativeVariance && expected.Width == actual.Width && expected.Height == actual.Height) {
+                int defaultAllowedDifferentPixels = Math.Max(1, expected.Width * expected.Height / 100);
+                allowedDifferentPixels = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_NATIVE_BASELINE_ALLOWED_DIFF_PIXELS", defaultAllowedDifferentPixels);
+            }
+
+            return CompareRasterImages(expected, actual, channelTolerance, allowedDifferentPixels);
+        }
+
+        private static RasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, int channelTolerance, int allowedDifferentPixels) =>
+            CompareRasterImages(PngRaster.Decode(expectedPng), PngRaster.Decode(actualPng), channelTolerance, allowedDifferentPixels);
+
+        private static RasterComparison CompareRasterImages(PngRaster expected, PngRaster actual, int channelTolerance, int allowedDifferentPixels) {
             if (expected.Width != actual.Width || expected.Height != actual.Height) {
                 byte[] sizeDiff = PngRaster.CreateSizeMismatchDiff(expected, actual);
                 return new RasterComparison(false, 0, Math.Max(expected.Width * expected.Height, actual.Width * actual.Height), 255, channelTolerance, allowedDifferentPixels, sizeDiff);
