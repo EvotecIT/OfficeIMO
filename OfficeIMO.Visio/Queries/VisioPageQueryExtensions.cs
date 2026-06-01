@@ -121,7 +121,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(value));
             }
 
-            return FilterShapes(page, shape => string.Equals(shape.GetShapeDataValue(key), value, comparison));
+            return FilterShapes(page, shape => string.Equals(GetDataValue(shape, key), value, comparison));
         }
 
         /// <summary>
@@ -139,7 +139,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(predicate));
             }
 
-            return FilterShapes(page, shape => predicate(shape.GetShapeDataValue(key)));
+            return FilterShapes(page, shape => predicate(GetDataValue(shape, key)));
         }
 
         /// <summary>
@@ -839,6 +839,15 @@ namespace OfficeIMO.Visio {
         /// <param name="predicate">Protection predicate.</param>
         public static VisioConnectorSelection SelectConnectorsWithProtection(this VisioPage page, Func<VisioProtection, bool> predicate) {
             return new VisioConnectorSelection(page.ConnectorsWithProtection(predicate));
+        }
+
+        private static string? GetDataValue(VisioShape shape, string key) {
+            string? shapeDataValue = shape.GetShapeDataValue(key);
+            if (shapeDataValue != null) {
+                return shapeDataValue;
+            }
+
+            return shape.Data.TryGetValue(key, out string? dataValue) ? dataValue : null;
         }
 
         private static IReadOnlyList<VisioShape> FilterShapes(VisioPage page, Func<VisioShape, bool> predicate) {

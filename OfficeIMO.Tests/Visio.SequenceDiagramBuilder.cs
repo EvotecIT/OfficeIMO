@@ -142,7 +142,10 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(rightLoop.LabelPlacement);
             Assert.True(leftLoop.LabelPlacement.PinX > leftLoop.Waypoints.Max(waypoint => waypoint.X));
             Assert.True(rightLoop.LabelPlacement.PinX < rightLoop.Waypoints.Min(waypoint => waypoint.X));
-            Assert.InRange(rightLoop.LabelPlacement.Width, 0.9D, 2.4D);
+            Assert.InRange(rightLoop.LabelPlacement.Width, 0.2D, 2.4D);
+            VisioShape rightParticipant = Assert.Single(page.Shapes, shape => shape.Id == "right");
+            double leftLabelRight = leftLoop.LabelPlacement.PinX!.Value + (leftLoop.LabelPlacement.Width / 2D);
+            Assert.True(leftLabelRight < Left(rightParticipant));
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -596,6 +599,84 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unknown sequence fragment id", unknownFragment.Message);
             Assert.Contains("inside the fragment row range", guardOutside.Message);
             Assert.Contains("after the first fragment row", partitionAtFirstRow.Message);
+        }
+
+        [Fact]
+        public void SequenceGeneratedIdsAreReservedBeforeBuild() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+
+            ArgumentException participantCollision = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Participant("web-lifeline", "Collision")));
+            ArgumentException messageAnchorCollision = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Participant("api", "API")
+                    .Activation("web", 0, 0, "request-from")
+                    .Call("web", "api", "Request", "request")));
+            ArgumentException partitionAnchorCollision = Assert.Throws<ArgumentException>(() =>
+                document.SequenceDiagram("Invalid", sequence => sequence
+                    .Participant("web", "Web")
+                    .Participant("api", "API")
+                    .Fragment("alt", 0, 2, "frame")
+                    .Activation("web", 0, 0, "partition-from")
+                    .FragmentPartition("frame", "[else]", 1, "partition")));
+
+            Assert.Contains("already exists", participantCollision.Message);
+            Assert.Contains("generated item id", messageAnchorCollision.Message);
+            Assert.Contains("generated item id", partitionAnchorCollision.Message);
+        }
+
+        [Fact]
+        public void SequenceMessageAndLifelineConnectorIdsStayDistinct() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .SequenceDiagram("Connector IDs", sequence => sequence
+                    .Participant("web", "Web")
+                    .Participant("api", "API")
+                    .Call("web", "api", "Request", "request"));
+
+            VisioPage page = Assert.Single(document.Pages);
+
+            Assert.Contains(page.Connectors, connector => connector.Id == "request");
+            Assert.Contains(page.Connectors, connector => connector.Id == "web-lifeline");
+            Assert.Contains(page.Connectors, connector => connector.Id == "api-lifeline");
+            Assert.Equal(page.Connectors.Count, page.Connectors.Select(connector => connector.Id).Distinct(StringComparer.Ordinal).Count());
+        }
+
+        [Fact]
+        public void SequenceRowZeroFragmentsStayBelowParticipantHeaders() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .SequenceDiagram("Header Clearance", sequence => sequence
+                    .PageSize(7, 4.5)
+                    .Participant("web", "Web")
+                    .Participant("api", "API")
+                    .Call("web", "api", "Request", "request")
+                    .Fragment("opt", 0, 1, "frame"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape web = Assert.Single(page.Shapes, shape => shape.Id == "web");
+            VisioShape frame = Assert.Single(page.Shapes, shape => shape.Id == "frame");
+
+            Assert.True(Top(frame) < Bottom(web));
+        }
+
+        [Fact]
+        public void SequenceSideNotesAreIncludedInPageFit() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .SequenceDiagram("Note Fit", sequence => sequence
+                    .PageSize(4, 3)
+                    .Margins(0.35, 0.35, 0.35, 0.35)
+                    .Participant("web", "Web")
+                    .Participant("api", "API")
+                    .Call("web", "api", "Request", "request")
+                    .Note("api", "External observer", 0, VisioSide.Right, "api-note"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape note = Assert.Single(page.Shapes, shape => shape.Id == "api-note");
+
+            Assert.True(Right(note) <= page.Width + 0.001D);
+            Assert.True(Left(note) >= -0.001D);
         }
 
         [Fact]

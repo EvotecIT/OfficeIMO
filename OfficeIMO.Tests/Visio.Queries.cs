@@ -71,6 +71,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ShapeDataValueQueriesMatchLegacyDataDictionaryValues() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Legacy Data");
+            VisioShape web = page.AddRectangle(2, 5, 1, 1, "Web");
+            VisioShape api = page.AddRectangle(4, 5, 1, 1, "API");
+            web.Data["Owner"] = "Ops";
+            api.SetShapeData("Owner", "Platform");
+
+            Assert.Same(web, Assert.Single(page.ShapesWithData("Owner", "Ops")));
+            Assert.Same(web, Assert.Single(page.ShapesWithData("Owner", value => string.Equals(value, "Ops", StringComparison.OrdinalIgnoreCase))));
+            Assert.Same(web, page.SelectWithData("Owner", "ops").Single());
+        }
+
+        [Fact]
         public void ConnectorQueriesFindNeighborsAndSupportBulkStyling() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Connectors");

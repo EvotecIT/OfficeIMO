@@ -190,24 +190,32 @@ namespace OfficeIMO.Visio {
 
         private static void GetItemCenter(VisioShape target, int itemIndex, double width, double height, double gap, double itemSpacing, VisioDataGraphicPlacement placement, out double x, out double y) {
             double offset = itemIndex * itemSpacing;
+            (double targetX, double targetY) = GetPagePoint(target, target.LocPinX, target.LocPinY);
             switch (placement) {
                 case VisioDataGraphicPlacement.Left:
-                    x = target.PinX - (target.Width / 2D) - gap - (width / 2D);
-                    y = target.PinY + offset;
+                    x = targetX - (target.Width / 2D) - gap - (width / 2D);
+                    y = targetY + offset;
                     break;
                 case VisioDataGraphicPlacement.Top:
-                    x = target.PinX + offset;
-                    y = target.PinY + (target.Height / 2D) + gap + (height / 2D);
+                    x = targetX + offset;
+                    y = targetY + (target.Height / 2D) + gap + (height / 2D);
                     break;
                 case VisioDataGraphicPlacement.Bottom:
-                    x = target.PinX + offset;
-                    y = target.PinY - (target.Height / 2D) - gap - (height / 2D);
+                    x = targetX + offset;
+                    y = targetY - (target.Height / 2D) - gap - (height / 2D);
                     break;
                 default:
-                    x = target.PinX + (target.Width / 2D) + gap + (width / 2D);
-                    y = target.PinY - offset;
+                    x = targetX + (target.Width / 2D) + gap + (width / 2D);
+                    y = targetY - offset;
                     break;
             }
+        }
+
+        private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
+            (double absX, double absY) = shape.GetAbsolutePoint(x, y);
+            return shape.Parent != null
+                ? GetPagePoint(shape.Parent, absX, absY)
+                : (absX, absY);
         }
 
         private static double ResolvePercent(string value, VisioDataGraphicItem item) {

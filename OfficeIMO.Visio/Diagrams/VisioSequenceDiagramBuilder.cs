@@ -396,6 +396,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
             }
 
+            EnsureGeneratedIdsAvailable(normalizedId, nameof(id), normalizedId + "-lifeline", normalizedId + "-lifeline-end");
             if (!Enum.IsDefined(typeof(VisioSequenceParticipantKind), kind)) {
                 throw new ArgumentOutOfRangeException(nameof(kind));
             }
@@ -525,7 +526,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentOutOfRangeException(nameof(rowIndex), "Guard row index must be inside the fragment row range.");
             }
 
-            string operandId = NormalizeFragmentOperandId(fragment.Id, id);
+            string operandId = NormalizeFragmentOperandId(fragment.Id, id, divider: false);
             _fragmentOperands.Add(new FragmentOperandItem(operandId, fragment.Id, text ?? string.Empty, rowIndex, divider: false));
             return this;
         }
@@ -537,7 +538,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentOutOfRangeException(nameof(beforeRowIndex), "Partition row index must be inside the fragment and after the first fragment row.");
             }
 
-            string operandId = NormalizeFragmentOperandId(fragment.Id, id);
+            string operandId = NormalizeFragmentOperandId(fragment.Id, id, divider: true);
             _fragmentOperands.Add(new FragmentOperandItem(operandId, fragment.Id, text ?? string.Empty, beforeRowIndex, divider: true));
             return this;
         }
@@ -725,6 +726,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 AddMessages(page, firstMessageY);
                 AddFragments(page, firstMessageY);
                 AddNotes(page, firstMessageY);
+                EnsureNotesFitPage(page);
                 _document.RequestRecalcOnOpen();
                 return page;
             } finally {
@@ -771,7 +773,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 participant.Header = CreateParticipantHeader(page, participant, x, headerY);
                 participant.BottomAnchor = CreateAnchor(page, participant.Id + "-lifeline-end", x, lifelineBottomY);
 
-                VisioConnector lifeline = page.AddConnector(participant.Header, participant.BottomAnchor, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
+                string lifelineId = CreateGeneratedConnectorId(page, participant.Id + "-lifeline");
+                VisioConnector lifeline = page.AddConnector(lifelineId, participant.Header, participant.BottomAnchor, ConnectorKind.Straight, VisioSide.Bottom, VisioSide.Top);
                 lifeline.LineColor = _theme.Connector.LineColor;
                 lifeline.LineWeight = Math.Max(0.006D, _theme.Connector.LineWeight * 0.75D);
                 lifeline.LinePattern = 2;
@@ -866,6 +869,8 @@ namespace OfficeIMO.Visio.Diagrams {
             right = Math.Min(pageWidth - _rightMargin, right);
 
             double topY = firstMessageY - (fragment.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.46D) + FragmentVerticalPadding;
+            double headerBottomY = firstMessageY + _messageGap;
+            topY = Math.Min(topY, headerBottomY - 0.06D);
             double bottomY = firstMessageY - (fragment.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.46D) - FragmentVerticalPadding;
             int depth = GetFragmentDepth(fragment);
             int overlapLane = GetFragmentOverlapLane(fragment);
@@ -991,13 +996,13 @@ namespace OfficeIMO.Visio.Diagrams {
             VisioShape fromAnchor = CreateAnchor(page, message.Id + "-from", from.PinX, y);
             VisioShape toAnchor = CreateAnchor(page, message.Id + "-to", to.PinX, y);
             VisioConnector connector = page.AddConnector(
+                message.Id,
                 fromAnchor,
                 toAnchor,
                 ConnectorKind.Straight,
                 leftToRight ? VisioSide.Right : VisioSide.Left,
                 leftToRight ? VisioSide.Left : VisioSide.Right);
 
-            connector.Id = message.Id;
             ApplyMessageStyle(connector, message.Kind);
             connector.Label = message.Label;
             MessageLabelPlacement label = ResolveParticipantMessageLabelPlacement(page, from, to, message, y, firstMessageY);
@@ -1159,8 +1164,7 @@ namespace OfficeIMO.Visio.Diagrams {
             ResolveSelfMessageLabelPlacement(page, participant, message.Label, out double direction, out double labelWidth, out double labelHeight);
             VisioSide connectorSide = direction > 0D ? VisioSide.Right : VisioSide.Left;
             double loopX = participant.PinX + (direction * _selfMessageWidth);
-            VisioConnector connector = page.AddConnector(fromAnchor, toAnchor, ConnectorKind.RightAngle, connectorSide, connectorSide);
-            connector.Id = message.Id;
+            VisioConnector connector = page.AddConnector(message.Id, fromAnchor, toAnchor, ConnectorKind.RightAngle, connectorSide, connectorSide);
             ApplyMessageStyle(connector, message.Kind);
             connector.Label = message.Label;
             connector.RouteThrough(
@@ -1187,6 +1191,16 @@ namespace OfficeIMO.Visio.Diagrams {
                 page.AddToLayer(NoteLayer, shape);
                 reservedBounds.Add(placement.Bounds.Inflate(NoteCollisionPadding));
             }
+        }
+
+        private void EnsureNotesFitPage(VisioPage page) {
+            if (_notes.Count == 0) {
+                return;
+            }
+
+            page.FitToContent(
+                Math.Min(_leftMargin, _rightMargin).ToInches(_unit),
+                Math.Min(_topMargin, _bottomMargin).ToInches(_unit));
         }
 
         private NotePlacement ResolveNotePlacement(VisioPage page, NoteItem note, double firstMessageY, IReadOnlyList<LayoutBounds> reservedBounds) {
@@ -1324,7 +1338,7 @@ namespace OfficeIMO.Visio.Diagrams {
             double available = Math.Max(0D, useRight ? rightAvailable : leftAvailable);
 
             direction = useRight ? 1D : -1D;
-            labelWidth = Math.Max(0.9D, Math.Min(desiredWidth, available));
+            labelWidth = Math.Max(0.2D, Math.Min(desiredWidth, available));
             labelHeight = desiredWidth > labelWidth + 0.05D ? 0.46D : SelfMessageLabelHeight;
         }
 
@@ -1343,9 +1357,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (rightSide && other.PinX > participant.PinX) {
-                    nearestParticipantLimit = Math.Min(nearestParticipantLimit, other.PinX - loopX - SelfMessageLabelGap - 0.18D);
+                    nearestParticipantLimit = Math.Min(nearestParticipantLimit, other.PinX - (_participantWidth / 2D) - loopX - SelfMessageLabelGap - 0.18D);
                 } else if (!rightSide && other.PinX < participant.PinX) {
-                    nearestParticipantLimit = Math.Min(nearestParticipantLimit, loopX - other.PinX - SelfMessageLabelGap - 0.18D);
+                    nearestParticipantLimit = Math.Min(nearestParticipantLimit, loopX - (other.PinX + (_participantWidth / 2D)) - SelfMessageLabelGap - 0.18D);
                 }
             }
 
@@ -1447,6 +1461,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
             }
 
+            EnsureGeneratedIdsAvailable(normalizedId, nameof(id), normalizedId + "-from", normalizedId + "-to");
             return normalizedId;
         }
 
@@ -1469,7 +1484,7 @@ namespace OfficeIMO.Visio.Diagrams {
             return normalizedId;
         }
 
-        private string NormalizeFragmentOperandId(string fragmentId, string? id) {
+        private string NormalizeFragmentOperandId(string fragmentId, string? id, bool divider) {
             int existingCount = _fragmentOperands.Count(item => string.Equals(item.FragmentId, fragmentId, StringComparison.Ordinal));
             string normalizedId = string.IsNullOrWhiteSpace(id)
                 ? fragmentId + "-operand-" + (existingCount + 1).ToString(global::System.Globalization.CultureInfo.InvariantCulture)
@@ -1477,6 +1492,10 @@ namespace OfficeIMO.Visio.Diagrams {
             string labelId = GetFragmentOperandLabelId(normalizedId);
             if (IsIdInUse(normalizedId) || IsIdInUse(labelId)) {
                 throw new ArgumentException($"A sequence diagram item with id '{normalizedId}' already exists.", nameof(id));
+            }
+
+            if (divider) {
+                EnsureGeneratedIdsAvailable(normalizedId, nameof(id), normalizedId + "-from", normalizedId + "-to");
             }
 
             return normalizedId;
@@ -1538,8 +1557,17 @@ namespace OfficeIMO.Visio.Diagrams {
                 return true;
             }
 
+            foreach (ParticipantItem participant in _participants) {
+                if (string.Equals(participant.Id + "-lifeline", id, StringComparison.Ordinal) ||
+                    string.Equals(participant.Id + "-lifeline-end", id, StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+
             foreach (MessageItem message in _messages) {
-                if (string.Equals(message.Id, id, StringComparison.Ordinal)) {
+                if (string.Equals(message.Id, id, StringComparison.Ordinal) ||
+                    string.Equals(message.Id + "-from", id, StringComparison.Ordinal) ||
+                    string.Equals(message.Id + "-to", id, StringComparison.Ordinal)) {
                     return true;
                 }
             }
@@ -1557,7 +1585,10 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             foreach (FragmentOperandItem operand in _fragmentOperands) {
-                if (string.Equals(operand.Id, id, StringComparison.Ordinal) || string.Equals(GetFragmentOperandLabelId(operand.Id), id, StringComparison.Ordinal)) {
+                if (string.Equals(operand.Id, id, StringComparison.Ordinal) ||
+                    string.Equals(GetFragmentOperandLabelId(operand.Id), id, StringComparison.Ordinal) ||
+                    string.Equals(operand.Id + "-from", id, StringComparison.Ordinal) ||
+                    string.Equals(operand.Id + "-to", id, StringComparison.Ordinal)) {
                     return true;
                 }
             }
@@ -1569,6 +1600,25 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             return false;
+        }
+
+        private void EnsureGeneratedIdsAvailable(string ownerId, string parameterName, params string[] generatedIds) {
+            foreach (string generatedId in generatedIds) {
+                if (IsIdInUse(generatedId)) {
+                    throw new ArgumentException($"A sequence diagram item with id '{ownerId}' would create generated item id '{generatedId}' that already exists.", parameterName);
+                }
+            }
+        }
+
+        private string CreateGeneratedConnectorId(VisioPage page, string baseId) {
+            string candidate = baseId;
+            int index = 2;
+            while (page.Connectors.Any(connector => string.Equals(connector.Id, candidate, StringComparison.Ordinal))) {
+                candidate = baseId + "-" + index.ToString(global::System.Globalization.CultureInfo.InvariantCulture);
+                index++;
+            }
+
+            return candidate;
         }
 
         private static string GetFragmentLabelId(string fragmentId) => fragmentId + "-label";

@@ -262,6 +262,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DataGraphicsUsePageCoordinatesForGroupedChildren() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Grouped Data Graphics", 8.5, 6);
+            VisioShape group = new("group") {
+                Type = "Group",
+                PinX = 5,
+                PinY = 4,
+                Width = 4,
+                Height = 3,
+                LocPinX = 2,
+                LocPinY = 1.5
+            };
+            VisioShape child = new("child", 1.25, 1.25, 1, 0.6, "Child");
+            child.SetShapeData("Status", "Healthy", "Status", VisioShapeDataType.String);
+            group.Children.Add(child);
+            page.Shapes.Add(group);
+
+            VisioDataGraphic graphic = VisioDataGraphic.Create();
+            graphic.Gap = 0.2D;
+            VisioShape badge = Assert.Single(page.AddDataGraphics(child, graphic.Badge("Status")));
+
+            double childPageX = group.PinX - group.LocPinX + child.PinX;
+            double childPageY = group.PinY - group.LocPinY + child.PinY;
+            Assert.Equal(childPageX + (child.Width / 2D) + 0.2D + (badge.Width / 2D), badge.PinX, 3);
+            Assert.Equal(childPageY, badge.PinY, 3);
+        }
+
+        [Fact]
         public void PremiumGalleryPromotesDataGraphicsIntoExecutiveScenario() {
             string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Premium-DataGraphics-" + Guid.NewGuid().ToString("N"));
             try {

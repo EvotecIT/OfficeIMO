@@ -605,7 +605,9 @@ namespace OfficeIMO.Visio {
             if (string.IsNullOrWhiteSpace(master.NameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(master));
 
             int existingIndex = _registeredMasters.FindIndex(existing =>
-                string.Equals(existing.Id, master.Id, StringComparison.OrdinalIgnoreCase));
+                string.Equals(existing.Id, master.Id, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(existing.NameU, master.NameU, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(existing.StencilSourcePackagePath, master.StencilSourcePackagePath, StringComparison.OrdinalIgnoreCase));
             if (existingIndex >= 0) {
                 _registeredMasters[existingIndex] = master;
             } else {
