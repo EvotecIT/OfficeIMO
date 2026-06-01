@@ -210,7 +210,6 @@
           "registry_label": "NuGet",
           "registry_package": "OfficeIMO.Excel.Pdf",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.Excel.Pdf",
-          "release_product": "officeimo.excel.pdf",
           "title": "OfficeIMO.Excel.Pdf",
           "summary": "Export Excel workbooks and selected worksheets to PDF using the first-party OfficeIMO.Pdf engine.",
           "best_for": "workbook-first reporting flows that need printable PDF delivery without desktop Excel",
