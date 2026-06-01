@@ -902,14 +902,37 @@ namespace OfficeIMO.Tests {
             XNamespace ns = "http://www.w3.org/2000/svg";
             XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
                 .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
-            List<string> pathData = shapeGroup.Elements(ns + "path")
-                .Where(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true")
-                .Select(element => element.Attribute("d")!.Value)
-                .ToList();
+            XElement path = shapeGroup.Elements(ns + "path")
+                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
 
-            Assert.Equal(2, pathData.Count);
-            Assert.Equal("M 110 140 L 145 140 L 127.5 105 Z", pathData[0]);
-            Assert.Equal("M 155 95 L 190 95 L 172.5 60 Z", pathData[1]);
+            Assert.Equal("M 110 140 L 145 140 L 127.5 105 Z M 155 95 L 190 95 L 172.5 60 Z", path.Attribute("d")!.Value);
+            Assert.Equal("evenodd", path.Attribute("fill-rule")!.Value);
+            Assert.Equal("evenodd", path.Attribute("clip-rule")!.Value);
+        }
+
+        [Fact]
+        public void SvgRendererPreservesHolesInPreservedGeometry() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Preserved Geometry Hole").Size(3, 2);
+            VisioShape shape = AddDonutGeometryShape(page);
+
+            string svg = page.ToSvg(new VisioSvgSaveOptions {
+                BackgroundColor = null,
+                PixelsPerInch = 100
+            });
+
+            XDocument parsed = XDocument.Parse(svg);
+            XNamespace ns = "http://www.w3.org/2000/svg";
+            XElement shapeGroup = parsed.Root!.Descendants(ns + "g")
+                .Single(g => (string?)g.Attribute("data-visio-shape-id") == shape.Id);
+            XElement path = shapeGroup.Elements(ns + "path")
+                .Single(element => (string?)element.Attribute("data-officeimo-preserved-geometry") == "true");
+
+            Assert.Equal("M 110 140 L 190 140 L 190 60 L 110 60 Z M 135 115 L 165 115 L 165 85 L 135 85 Z", path.Attribute("d")!.Value);
+            Assert.Equal("evenodd", path.Attribute("fill-rule")!.Value);
+            Assert.Equal("evenodd", path.Attribute("clip-rule")!.Value);
+            Assert.NotEqual("none", path.Attribute("fill")!.Value);
         }
 
         [Fact]
@@ -1736,6 +1759,14 @@ namespace OfficeIMO.Tests {
             return shape;
         }
 
+        private static VisioShape AddDonutGeometryShape(VisioPage page) {
+            VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
+            shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
+            shape.LineColor = OfficeColor.FromRgb(127, 29, 29);
+            shape.PreservedGeometrySections.Add(CreateDonutGeometrySection());
+            return shape;
+        }
+
         private static VisioShape AddOpenNoFillGeometryShape(VisioPage page) {
             VisioShape shape = page.AddRectangle(1.5, 1, 1, 1, string.Empty);
             shape.FillColor = OfficeColor.FromRgb(220, 38, 38);
@@ -2057,6 +2088,42 @@ namespace OfficeIMO.Tests {
                 new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "8"),
                     new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.55")),
                     new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.55"))));
+        }
+
+        private static XElement CreateDonutGeometrySection() {
+            XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";
+            return new XElement(ns + "Section", new XAttribute("N", "Geometry"), new XAttribute("IX", "0"),
+                CreateGeometryRow(ns, noFill: false, noLine: false, noShow: false),
+                new XElement(ns + "Row", new XAttribute("T", "RelMoveTo"), new XAttribute("IX", "1"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.1")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.1"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "2"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.9")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.1"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "3"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.9")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.9"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "4"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.1")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.9"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "5"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.1")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.1"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelMoveTo"), new XAttribute("IX", "6"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.35")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.35"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "7"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.65")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.35"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "8"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.65")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.65"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "9"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.35")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.65"))),
+                new XElement(ns + "Row", new XAttribute("T", "RelLineTo"), new XAttribute("IX", "10"),
+                    new XElement(ns + "Cell", new XAttribute("N", "X"), new XAttribute("V", "0.35")),
+                    new XElement(ns + "Cell", new XAttribute("N", "Y"), new XAttribute("V", "0.35"))));
         }
 
         private static XElement CreateOpenNoFillGeometrySection() {
