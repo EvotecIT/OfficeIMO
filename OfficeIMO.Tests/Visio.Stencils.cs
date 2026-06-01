@@ -618,6 +618,8 @@ namespace OfficeIMO.Tests {
             VisioStencilShape stencil = catalog.Get("connected-box");
             Assert.Equal(3, stencil.SourceConnectionPoints.Count);
             Assert.Equal(0, stencil.SourceConnectionPoints[0].SectionIndex);
+            Assert.Equal(3.2, stencil.SourceConnectionPoints[0].SourceWidth);
+            Assert.Equal(1.1, stencil.SourceConnectionPoints[0].SourceHeight);
             Assert.Equal(3.2, stencil.DefaultWidth, 6);
             Assert.Equal(1.1, stencil.DefaultHeight, 6);
 
@@ -627,17 +629,25 @@ namespace OfficeIMO.Tests {
             VisioStencilShape reloadedStencil = VisioStencilCatalog.Load(manifest).Get("connected-box");
             Assert.Equal(3, reloadedStencil.SourceConnectionPoints.Count);
             Assert.Equal(1.6, reloadedStencil.SourceConnectionPoints[2].X, 6);
+            Assert.Equal(3.2, reloadedStencil.SourceConnectionPoints[2].SourceWidth);
 
             VisioStencilCatalog withoutConnectionMetadata = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
                 ExtractConnectionPointMetadata = false,
                 IncludeUnsupportedMasters = true
             });
             Assert.Empty(withoutConnectionMetadata.Get("connected-box").SourceConnectionPoints);
+            VisioStencilShape nativeSizedPoints = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                LearnMasterDimensions = false,
+                DefaultWidth = 1,
+                DefaultHeight = 1
+            }).Get("connected-box");
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Connected Stencils");
             VisioShape shape = page.AddStencilShape(catalog, "connected-box", "node", 3, 4, 6.4, 2.2, "Connected");
+            VisioShape overriddenDefaultShape = page.AddStencilShape(nativeSizedPoints, "native-sized", 8, 4, 6.4, 2.2, "Native sized");
             document.Save();
 
             Assert.Equal(3, shape.ConnectionPoints.Count);
@@ -647,14 +657,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1.1, shape.ConnectionPoints[1].Y, 6);
             Assert.Equal(3.2, shape.ConnectionPoints[2].X, 6);
             Assert.Equal(2.2, shape.ConnectionPoints[2].Y, 6);
+            Assert.Equal(6.4, overriddenDefaultShape.ConnectionPoints[1].X, 6);
+            Assert.Equal(2.2, overriddenDefaultShape.ConnectionPoints[2].Y, 6);
             Assert.Empty(VisioValidator.Validate(filePath));
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            VisioShape loadedShape = Assert.Single(loaded.Pages[0].Shapes);
+            VisioShape loadedShape = loaded.Pages[0].Shapes.Single(item => item.Id == "node");
             Assert.Equal(3, loadedShape.ConnectionPoints.Count);
             VisioStencilProfile profile = loaded.CreateStencilProfile();
-            Assert.Equal(3, profile.TotalConnectionPoints);
-            Assert.Equal(1, profile.ConnectionPointShapeCount);
+            Assert.Equal(6, profile.TotalConnectionPoints);
+            Assert.Equal(2, profile.ConnectionPointShapeCount);
         }
 
         [Fact]
@@ -894,6 +906,7 @@ namespace OfficeIMO.Tests {
                 IncludeUnsupportedMasters = true,
                 Category = "External"
             });
+            Assert.Equal("fancy-cloud", catalog.Get("fancy-cloud").Id);
 
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);

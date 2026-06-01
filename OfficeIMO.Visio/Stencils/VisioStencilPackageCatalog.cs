@@ -37,7 +37,7 @@ namespace OfficeIMO.Visio.Stencils {
             string extension = Path.GetExtension(packagePath).TrimStart('.').ToLowerInvariant();
             string catalogName = string.IsNullOrWhiteSpace(options.CatalogName) ? fileName : options.CatalogName!;
             string category = string.IsNullOrWhiteSpace(options.Category) ? catalogName : options.Category!;
-            string idPrefix = string.IsNullOrWhiteSpace(options.IdPrefix) ? Slug(fileName) : Slug(options.IdPrefix!);
+            string? idPrefix = string.IsNullOrWhiteSpace(options.IdPrefix) ? null : Slug(options.IdPrefix!);
             HashSet<string>? filter = options.MasterNames != null
                 ? new HashSet<string>(options.MasterNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase)
                 : null;
@@ -62,13 +62,14 @@ namespace OfficeIMO.Visio.Stencils {
                 }
 
                 string displayName = string.IsNullOrWhiteSpace(master.Name) ? master.NameU : master.Name!;
-                string localId = VisioMasterIdentity.ToSlug(master.NameU, "package");
-                string id = UniqueId(idPrefix + "." + localId, master.Id, usedIds);
+                string masterSlug = VisioMasterIdentity.ToSlug(master.NameU, "package");
+                string localId = VisioMasterIdentity.ToSlug(displayName, masterSlug);
+                string id = UniqueId(ComposeId(idPrefix, localId), master.Id, usedIds);
                 string[] keywords = new[] { master.NameU, displayName, extension }
                     .Where(value => !string.IsNullOrWhiteSpace(value))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToArray();
-                string[] aliases = new[] { master.Id, master.RelationshipId, localId, displayName.Replace(" ", "-") }
+                string[] aliases = new[] { master.Id, master.RelationshipId, masterSlug, localId, displayName.Replace(" ", "-") }
                     .Where(value => !string.IsNullOrWhiteSpace(value))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToArray();
@@ -394,6 +395,8 @@ namespace OfficeIMO.Visio.Stencils {
                 return Array.Empty<VisioStencilConnectionPoint>();
             }
 
+            double? sourceWidth = shape != null && TryReadPositiveCell(shape, "Width", out double width) ? width : null;
+            double? sourceHeight = shape != null && TryReadPositiveCell(shape, "Height", out double height) ? height : null;
             List<VisioStencilConnectionPoint> points = new();
             foreach (XElement row in connectionSection.Elements().Where(element => string.Equals(element.Name.LocalName, "Row", StringComparison.OrdinalIgnoreCase))) {
                 if (!TryReadCell(row, "X", out double x) ||
@@ -409,7 +412,7 @@ namespace OfficeIMO.Visio.Stencils {
                     sectionIndex = parsedSectionIndex;
                 }
 
-                points.Add(new VisioStencilConnectionPoint(x, y, dirX, dirY, sectionIndex));
+                points.Add(new VisioStencilConnectionPoint(x, y, dirX, dirY, sectionIndex, sourceWidth, sourceHeight));
             }
 
             return points.AsReadOnly();
@@ -472,6 +475,10 @@ namespace OfficeIMO.Visio.Stencils {
             }
 
             return id;
+        }
+
+        private static string ComposeId(string? prefix, string localId) {
+            return string.IsNullOrWhiteSpace(prefix) ? localId : prefix + "." + localId;
         }
 
         private static string Slug(string value) => VisioMasterIdentity.ToSlug(value, "package");

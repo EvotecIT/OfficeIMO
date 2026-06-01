@@ -163,7 +163,9 @@ namespace OfficeIMO.Visio.Stencils {
                         new XAttribute("X", XmlConvert.ToString(point.X)),
                         new XAttribute("Y", XmlConvert.ToString(point.Y)),
                         new XAttribute("DirX", XmlConvert.ToString(point.DirX)),
-                        new XAttribute("DirY", XmlConvert.ToString(point.DirY)))));
+                        new XAttribute("DirY", XmlConvert.ToString(point.DirY)),
+                        point.SourceWidth.HasValue ? new XAttribute("SourceWidth", XmlConvert.ToString(point.SourceWidth.Value)) : null,
+                        point.SourceHeight.HasValue ? new XAttribute("SourceHeight", XmlConvert.ToString(point.SourceHeight.Value)) : null)));
         }
 
         private static VisioStencilPreviewImage? ReadPreviewImage(XElement shape) {
@@ -193,7 +195,9 @@ namespace OfficeIMO.Visio.Stencils {
                     ReadDouble(point, "Y"),
                     ReadDouble(point, "DirX"),
                     ReadDouble(point, "DirY"),
-                    ReadNullableInt(point, "IX")))
+                    ReadNullableInt(point, "IX"),
+                    ReadNullableDouble(point, "SourceWidth"),
+                    ReadNullableDouble(point, "SourceHeight")))
                 .ToList()
                 .AsReadOnly();
         }
@@ -270,6 +274,20 @@ namespace OfficeIMO.Visio.Stencils {
             double parsed = XmlConvert.ToDouble(value);
             if (double.IsNaN(parsed) || double.IsInfinity(parsed)) {
                 throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be finite.");
+            }
+
+            return parsed;
+        }
+
+        private static double? ReadNullableDouble(XElement element, string attributeName) {
+            string? value = (string?)element.Attribute(attributeName);
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            double parsed = XmlConvert.ToDouble(value);
+            if (double.IsNaN(parsed) || double.IsInfinity(parsed) || parsed <= 0) {
+                throw new InvalidDataException($"Stencil manifest attribute '{attributeName}' must be positive and finite.");
             }
 
             return parsed;
