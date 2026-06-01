@@ -374,8 +374,10 @@ namespace OfficeIMO.Visio.Diagrams {
         /// <summary>Imports graph edges from simple data records.</summary>
         public VisioGraphDiagramBuilder Edges(IEnumerable<VisioGraphEdgeRecord> edges) {
             if (edges == null) throw new ArgumentNullException(nameof(edges));
-            foreach (VisioGraphEdgeRecord edge in edges) {
-                AddEdgeRecord(edge);
+            List<VisioGraphEdgeRecord> edgeRecords = edges.ToList();
+            HashSet<string> reservedExplicitIds = ReserveExplicitEdgeRecordIds(edgeRecords);
+            foreach (VisioGraphEdgeRecord edge in edgeRecords) {
+                AddEdgeRecord(edge, reservedExplicitIds);
             }
 
             return this;
@@ -666,10 +668,10 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
-        private void AddEdgeRecord(VisioGraphEdgeRecord record) {
+        private void AddEdgeRecord(VisioGraphEdgeRecord record, ISet<string>? reservedExplicitIds = null) {
             if (record == null) throw new ArgumentNullException(nameof(record));
             string edgeId = string.IsNullOrWhiteSpace(record.Id)
-                ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind)
+                ? CreateStableEdgeId(record.FromId, record.ToId, record.Kind, reservedExplicitIds)
                 : RequireId(record.Id!, nameof(record.Id), "Edge id");
             Edge(edgeId, record.FromId, record.ToId, record.Kind, record.Label, record.Directed);
             foreach (KeyValuePair<string, string?> item in record.ShapeData) {
@@ -711,7 +713,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
         }
 
-        private string CreateStableEdgeId(string fromId, string toId, VisioGraphConnectorKind kind) {
+        private string CreateStableEdgeId(string fromId, string toId, VisioGraphConnectorKind kind, ISet<string>? reservedExplicitIds = null) {
             string baseId = SlugId(fromId) + "-" + SlugId(kind.ToString()) + "-" + SlugId(toId);
             if (string.IsNullOrWhiteSpace(baseId.Replace("-", string.Empty))) {
                 baseId = "edge";
@@ -719,12 +721,32 @@ namespace OfficeIMO.Visio.Diagrams {
 
             string candidate = baseId;
             int index = 2;
-            while (IsIdInUse(candidate)) {
+            while (IsIdInUse(candidate) || reservedExplicitIds?.Contains(candidate) == true) {
                 candidate = baseId + "-" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 index++;
             }
 
             return candidate;
+        }
+
+        private HashSet<string> ReserveExplicitEdgeRecordIds(IEnumerable<VisioGraphEdgeRecord> records) {
+            HashSet<string> ids = new(StringComparer.Ordinal);
+            foreach (VisioGraphEdgeRecord record in records) {
+                if (record == null) {
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(record.Id)) {
+                    continue;
+                }
+
+                string normalizedId = RequireId(record.Id!, nameof(record.Id), "Edge id");
+                if (IsIdInUse(normalizedId) || !ids.Add(normalizedId)) {
+                    throw new ArgumentException($"A graph item with id '{normalizedId}' already exists.", nameof(records));
+                }
+            }
+
+            return ids;
         }
 
         internal VisioPage Build() {
@@ -931,7 +953,8 @@ namespace OfficeIMO.Visio.Diagrams {
                     width,
                     height,
                     string.Empty,
-                    _theme);
+                    _theme,
+                    _unit);
                 page.Shapes.Add(shape);
                 ApplyZoneMetadata(shape, zone);
                 VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
@@ -954,7 +977,7 @@ namespace OfficeIMO.Visio.Diagrams {
                     VisioShapeStyle? stencilStyle = node.StyleOverride ?? GetBuiltInStencilNodeStyle(node);
                     stencilStyle?.ApplyTo(shape);
                 } else {
-                    shape = new VisioShape(node.Id, node.PinX, node.PinY, width, height, node.Text) {
+                    shape = new VisioShape(node.Id, node.PinX.ToInches(_unit), node.PinY.ToInches(_unit), width.ToInches(_unit), height.ToInches(_unit), node.Text) {
                         NameU = masterNameU,
                     };
                     (node.StyleOverride ?? GetNodeStyle(node.Kind)).ApplyTo(shape);
@@ -1134,13 +1157,13 @@ namespace OfficeIMO.Visio.Diagrams {
         private void AddLegendItem(VisioPage page, LegendItem item, double left, double y, double width) {
             double sampleX = left + 0.28D;
             if (item.NodeKind.HasValue) {
-                VisioShape sample = new VisioShape(CreateGeneratedId("legend-" + item.IdSuffix + "-sample"), sampleX, y, 0.34D, 0.18D, string.Empty) { NameU = "Rectangle" };
+                VisioShape sample = new VisioShape(CreateGeneratedId("legend-" + item.IdSuffix + "-sample"), sampleX.ToInches(_unit), y.ToInches(_unit), 0.34D.ToInches(_unit), 0.18D.ToInches(_unit), string.Empty) { NameU = "Rectangle" };
                 GetNodeStyle(item.NodeKind.Value).ApplyTo(sample);
                 MarkDiagramAdornment(sample);
                 page.Shapes.Add(sample);
             } else if (item.ConnectorKind.HasValue) {
                 VisioConnectorStyle style = GetConnectorStyle(item.ConnectorKind.Value, item.Directed);
-                VisioShape sample = new VisioShape(CreateGeneratedId("legend-" + item.IdSuffix + "-sample"), sampleX, y, 0.48D, 0.06D, string.Empty) { NameU = "Rectangle" };
+                VisioShape sample = new VisioShape(CreateGeneratedId("legend-" + item.IdSuffix + "-sample"), sampleX.ToInches(_unit), y.ToInches(_unit), 0.48D.ToInches(_unit), 0.06D.ToInches(_unit), string.Empty) { NameU = "Rectangle" };
                 sample.FillPattern = 0;
                 sample.LineColor = style.LineColor;
                 sample.LinePattern = style.LinePattern;

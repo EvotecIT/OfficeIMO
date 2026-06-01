@@ -197,6 +197,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FlowchartBuilderKeepsCalloutPinsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .Flowchart("Metric Flow", flow => flow
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Start("start", "Start")
+                    .Step("review", "Review")
+                    .Callout("review", "review-note", "Metric note", 8, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width, 6);
+        }
+
+        [Fact]
         public void FlowchartBuilderNormalizesNodeAndConnectorIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .Flowchart("Trimmed", flow => flow

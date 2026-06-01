@@ -509,8 +509,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 return;
             }
 
-            double horizontalMargin = Math.Min(_leftMargin, _rightMargin);
-            double verticalMargin = Math.Min(_topMargin, _bottomMargin);
+            double horizontalMargin = Math.Min(_leftMargin, _rightMargin).ToInches(_unit);
+            double verticalMargin = Math.Min(_topMargin, _bottomMargin).ToInches(_unit);
             bool overflows = bounds.Left < horizontalMargin ||
                              bounds.Bottom < verticalMargin ||
                              bounds.Right > page.Width - horizontalMargin ||

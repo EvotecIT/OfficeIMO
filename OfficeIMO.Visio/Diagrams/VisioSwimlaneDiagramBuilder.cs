@@ -450,7 +450,7 @@ namespace OfficeIMO.Visio.Diagrams {
             for (int i = 0; i < _lanes.Count; i++) {
                 LaneItem lane = _lanes[i];
                 double y = LaneCenterY(i);
-                VisioShape laneHeader = new("lane-header-" + lane.Id, _leftMargin + (_laneHeaderWidth / 2D), y, _laneHeaderWidth, _laneHeight, lane.Text) {
+                VisioShape laneHeader = new("lane-header-" + lane.Id, (_leftMargin + (_laneHeaderWidth / 2D)).ToInches(_unit), y.ToInches(_unit), _laneHeaderWidth.ToInches(_unit), _laneHeight.ToInches(_unit), lane.Text) {
                     NameU = "Rectangle",
                 };
                 _theme.Emphasis.ApplyTo(laneHeader);
@@ -571,8 +571,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 return;
             }
 
-            double horizontalMargin = Math.Min(_leftMargin, _rightMargin);
-            double verticalMargin = Math.Min(_topMargin, _bottomMargin);
+            double horizontalMargin = Math.Min(_leftMargin, _rightMargin).ToInches(_unit);
+            double verticalMargin = Math.Min(_topMargin, _bottomMargin).ToInches(_unit);
             bool overflows = bounds.Left < horizontalMargin ||
                              bounds.Bottom < verticalMargin ||
                              bounds.Right > page.Width - horizontalMargin ||

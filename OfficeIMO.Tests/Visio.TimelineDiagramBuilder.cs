@@ -176,6 +176,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void TimelineDiagramBuilderKeepsCalloutPinsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .TimelineDiagram("Metric Timeline", timeline => timeline
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Range(new DateTime(2026, 1, 1), new DateTime(2026, 3, 31))
+                    .Milestone("kickoff", new DateTime(2026, 1, 15), "Kickoff")
+                    .Callout("kickoff", "kickoff-note", "Metric note", 8, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width, 6);
+        }
+
+        [Fact]
         public void TimelineDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .TimelineDiagram("Generated", timeline => timeline

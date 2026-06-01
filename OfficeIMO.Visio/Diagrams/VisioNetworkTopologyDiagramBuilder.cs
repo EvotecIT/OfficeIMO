@@ -494,7 +494,8 @@ namespace OfficeIMO.Visio.Diagrams {
                     width,
                     height,
                     string.Empty,
-                    _theme);
+                    _theme,
+                    _unit);
                 page.Shapes.Add(shape);
                 VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
                     page,
@@ -510,7 +511,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private void AddNodes(VisioPage page) {
             foreach (NodeItem node in _nodes) {
                 VisioNetworkDiagramVisuals.GetNodeShape(node.Kind, _nodeWidth, _nodeHeight, out string masterNameU, out double width, out double height);
-                VisioShape shape = new(node.Id, XForLayer(node.Layer), YForRow(node.Layer, node.Row), width, height, node.Text) {
+                VisioShape shape = new(node.Id, XForLayer(node.Layer).ToInches(_unit), YForRow(node.Layer, node.Row).ToInches(_unit), width.ToInches(_unit), height.ToInches(_unit), node.Text) {
                     NameU = masterNameU,
                 };
                 VisioNetworkDiagramVisuals.GetNodeStyle(_theme, node.Kind).ApplyTo(shape);

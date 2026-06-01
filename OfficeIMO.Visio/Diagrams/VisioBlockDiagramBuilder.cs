@@ -334,7 +334,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 double y = GridY(region.Row, region.RowSpan);
                 double width = region.ColumnSpan * _theme.BlockWidth + (region.ColumnSpan - 1) * _theme.ColumnGap + 0.7;
                 double height = region.RowSpan * _theme.BlockHeight + (region.RowSpan - 1) * _theme.RowGap + 0.55;
-                VisioShape shape = new VisioShape(region.Id, x, y, width, height, string.Empty) { NameU = "Rectangle" };
+                VisioShape shape = new VisioShape(region.Id, x.ToInches(_unit), y.ToInches(_unit), width.ToInches(_unit), height.ToInches(_unit), string.Empty) { NameU = "Rectangle" };
                 shape.FillColor = _theme.RegionFill;
                 shape.LineColor = _theme.RegionStroke;
                 shape.LineWeight = _theme.LineWeight;
@@ -486,7 +486,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void AddLegendItem(VisioPage page, double x, double y, string label, Color color, int linePattern) {
-            VisioShape sample = page.AddRectangle(x + 0.32D, y, 0.64D, 0.08D, string.Empty);
+            VisioShape sample = page.AddRectangle(x + 0.32D, y, 0.64D, 0.08D, string.Empty, _unit);
             sample.NameU = "Rectangle";
             sample.FillPattern = 0;
             sample.LineColor = color;
@@ -494,7 +494,7 @@ namespace OfficeIMO.Visio.Diagrams {
             sample.LineWeight = Math.Max(0.018D, _theme.LineWeight);
             VisioSemanticUserCells.MarkGeneratedAdornment(sample);
 
-            VisioShape text = page.AddTextBox(x + 1.5D, y, 1.4D, 0.28D, label);
+            VisioShape text = page.AddTextBox(x + 1.5D, y, 1.4D, 0.28D, label, _unit);
             if (_theme.LegendTextStyle != null) {
                 text.TextStyle = _theme.LegendTextStyle.Clone();
             }

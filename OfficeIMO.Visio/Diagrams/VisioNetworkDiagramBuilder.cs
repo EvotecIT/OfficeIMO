@@ -528,7 +528,8 @@ namespace OfficeIMO.Visio.Diagrams {
                     width,
                     height,
                     string.Empty,
-                    _theme);
+                    _theme,
+                    _unit);
                 page.Shapes.Add(shape);
                 ApplyMetadata(shape, zone.ShapeData, zone.HyperlinkAddress, zone.HyperlinkDescription);
                 VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
@@ -563,6 +564,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private void AddLinks(VisioPage page) {
             int routeIndex = 0;
+            HashSet<string> reservedConnectorIds = BuildReservedConnectorIds(page);
             foreach (LinkItem link in _links) {
                 NodeItem from = _nodesById[link.FromId];
                 NodeItem to = _nodesById[link.ToId];
@@ -571,10 +573,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 VisioNetworkDiagramVisuals.ResolveSides(from.Shape, to.Shape, out VisioSide fromSide, out VisioSide toSide);
-                VisioConnector connector = page.AddConnector(from.Shape, to.Shape, ConnectorKind.RightAngle, fromSide, toSide);
-                if (!string.IsNullOrWhiteSpace(link.Id)) {
-                    connector.Id = link.Id!;
-                }
+                string connectorId = link.Id ?? ReserveGeneratedConnectorId(reservedConnectorIds);
+                VisioConnector connector = page.AddConnector(connectorId, from.Shape, to.Shape, ConnectorKind.RightAngle, fromSide, toSide);
 
                 VisioNetworkDiagramVisuals.GetConnectorStyle(_theme, link.Kind).ApplyTo(connector);
                 connector.Label = link.Label;
@@ -585,6 +585,44 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 routeIndex++;
+            }
+        }
+
+        private HashSet<string> BuildReservedConnectorIds(VisioPage page) {
+            HashSet<string> ids = new(StringComparer.OrdinalIgnoreCase);
+            foreach (VisioShape shape in page.Shapes) {
+                ReserveShapeIds(shape, ids);
+            }
+
+            foreach (VisioConnector connector in page.Connectors) {
+                ids.Add(connector.Id);
+            }
+
+            foreach (LinkItem link in _links) {
+                if (link.Id != null) {
+                    ids.Add(link.Id);
+                }
+            }
+
+            return ids;
+        }
+
+        private static void ReserveShapeIds(VisioShape shape, HashSet<string> ids) {
+            ids.Add(shape.Id);
+            foreach (VisioShape child in shape.Children) {
+                ReserveShapeIds(child, ids);
+            }
+        }
+
+        private static string ReserveGeneratedConnectorId(HashSet<string> reservedIds) {
+            int nextId = 1;
+            while (true) {
+                string candidate = nextId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (reservedIds.Add(candidate)) {
+                    return candidate;
+                }
+
+                nextId++;
             }
         }
 

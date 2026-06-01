@@ -268,6 +268,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkDiagramBuilderKeepsZonesAndCalloutsInMetricPageUnitsAndReservesExplicitLinkIds() {
+            VisioNetworkLinkRecord explicitLink = new("1", "app", "core", VisioNetworkLinkKind.Management, "explicit");
+
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .NetworkDiagram("Metric Network", network => network
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Zone("edge", "Edge", 0, 0, 2, 1)
+                    .Switch("core", "Core", 0, 0)
+                    .Server("app", "App", 1, 0)
+                    .Ethernet("core", "app", "generated")
+                    .Links(new[] { explicitLink })
+                    .Callout("core", "core-note", "Metric note", 9, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape zone = Assert.Single(page.Shapes, shape => shape.Id == "edge");
+            VisioShape core = Assert.Single(page.Shapes, shape => shape.Id == "core");
+            VisioShape app = Assert.Single(page.Shapes, shape => shape.Id == "app");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.True(Contains(zone, core));
+            Assert.True(Contains(zone, app));
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.Equal(page.Connectors.Count, page.Connectors.Select(connector => connector.Id).Distinct().Count());
+            Assert.Contains(page.Connectors, connector => connector.Id == "1" && connector.Label == "explicit");
+            Assert.Contains(page.Connectors, connector => connector.Id == "2" && connector.Label == "generated");
+        }
+
+        [Fact]
         public void NetworkDiagramBuilderRejectsImportedLinkIdCollisions() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioNetworkNodeRecord firewall = new("firewall", "Firewall", 0, 0, VisioNetworkNodeKind.Firewall);
@@ -336,5 +368,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Placement must be", autoPlacement.Message);
             Assert.Contains("finite non-negative", badGap.Message);
         }
+
+        private static bool Contains(VisioShape outer, VisioShape inner) =>
+            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
+            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
+            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
+            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
     }
 }

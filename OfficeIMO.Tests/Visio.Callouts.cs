@@ -119,6 +119,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CalloutsConvertPinsOptionsAndSidePlacementFromPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Metric", 20, 12, VisioMeasurementUnit.Centimeters);
+            VisioShape target = page.AddRectangle(4, 5, 2, 1, "Target");
+
+            VisioShape explicitCallout = page.AddCallout(target, "metric-note", "Metric", 7, 6, new VisioCalloutOptions {
+                Width = 3,
+                Height = 1.2,
+                RouteOffset = 0.5
+            });
+            VisioShape sideCallout = page.AddCallout(target, "side-note", "Side", VisioSide.Right, 0.8, new VisioCalloutOptions {
+                Width = 2,
+                Height = 1
+            });
+
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.PinX, 6);
+            Assert.Equal(6D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.PinY, 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.Width, 6);
+            Assert.Equal(1.2D.ToInches(VisioMeasurementUnit.Centimeters), explicitCallout.Height, 6);
+            Assert.Equal(target.PinX + (target.Width / 2D) + 0.8D.ToInches(VisioMeasurementUnit.Centimeters) + (sideCallout.Width / 2D), sideCallout.PinX, 6);
+            Assert.Equal(target.PinY, sideCallout.PinY, 6);
+        }
+
+        [Fact]
         public void AutoPlacedCalloutsValidatePlacementInputsBeforeMutatingPage() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Invalid");

@@ -421,7 +421,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 double height = (region.RowSpan * _componentHeight) + ((region.RowSpan - 1) * _rowGap) + 0.6;
                 double x = GridX(region.Column, region.ColumnSpan);
                 double y = GridY(region.Row, region.RowSpan);
-                VisioShape shape = new(region.Id, x, y, width, height, string.Empty) {
+                VisioShape shape = new(region.Id, x.ToInches(_unit), y.ToInches(_unit), width.ToInches(_unit), height.ToInches(_unit), string.Empty) {
                     NameU = "Rectangle",
                 };
                 _theme.Container.ApplyTo(shape);

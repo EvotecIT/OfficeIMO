@@ -399,6 +399,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SequenceDiagramBuilderKeepsGeneratedAnchorsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .SequenceDiagram("Metric Sequence", sequence => sequence
+                    .PageSize(16, 10, VisioMeasurementUnit.Centimeters)
+                    .Margins(1, 1, 1, 1)
+                    .ParticipantSize(2, 1)
+                    .Spacing(3, 1.2, 1)
+                    .Participant("client", "Client")
+                    .Participant("api", "API")
+                    .Call("client", "api", "Request", "request"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape client = Assert.Single(page.Shapes, shape => shape.Id == "client");
+            VisioShape requestFrom = Assert.Single(page.Shapes, shape => shape.Id == "request-from");
+            VisioShape requestTo = Assert.Single(page.Shapes, shape => shape.Id == "request-to");
+            VisioConnector request = Assert.Single(page.Connectors, connector => connector.Id == "request");
+
+            Assert.Equal(client.PinX, requestFrom.PinX, 6);
+            Assert.Equal(0.04D.ToInches(VisioMeasurementUnit.Centimeters), requestFrom.Width, 6);
+            Assert.InRange(requestTo.PinX, 0D, page.Width);
+            Assert.Same(requestFrom, request.From);
+            Assert.Same(requestTo, request.To);
+        }
+
+        [Fact]
         public void SequenceDiagramBuilderRejectsUnknownParticipants() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 

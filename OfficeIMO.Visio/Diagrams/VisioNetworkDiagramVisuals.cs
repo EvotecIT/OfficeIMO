@@ -111,8 +111,9 @@ namespace OfficeIMO.Visio.Diagrams {
             double width,
             double height,
             string text,
-            VisioStyleTheme theme) {
-            VisioShape shape = new(id, pinX, pinY, width, height, text) {
+            VisioStyleTheme theme,
+            VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            VisioShape shape = new(id, pinX.ToInches(unit), pinY.ToInches(unit), width.ToInches(unit), height.ToInches(unit), text) {
                 NameU = "Rectangle",
             };
             theme.Container.ApplyTo(shape);

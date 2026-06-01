@@ -207,6 +207,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void GraphDiagramBuilderKeepsNativeNodesZonesAndLegendInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .GraphDiagram("Metric Graph", graph => graph
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Legend()
+                    .Root("client", "Client", VisioGraphNodeKind.External)
+                    .Node("api", "API")
+                    .Node("db", "Database", VisioGraphNodeKind.Data)
+                    .Zone("runtime", "Runtime", "api", "db")
+                    .Edge("client", "api")
+                    .DataEdge("api", "db"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape api = Assert.Single(page.Shapes, shape => shape.Id == "api");
+            VisioShape database = Assert.Single(page.Shapes, shape => shape.Id == "db");
+            VisioShape runtime = Assert.Single(page.Shapes, shape => shape.Id == "runtime");
+            VisioShape legendSample = Assert.Single(page.Shapes, shape => shape.Id == "legend-node-process-sample");
+
+            Assert.InRange(api.PinX, 0D, page.Width);
+            Assert.InRange(database.PinX, 0D, page.Width);
+            Assert.InRange(legendSample.PinX, 0D, page.Width);
+            Assert.True(Contains(runtime, api));
+            Assert.True(Contains(runtime, database));
+        }
+
+        [Fact]
+        public void GraphDiagramBuilderReservesExplicitImportedEdgeIdsBeforeGeneratedIds() {
+            VisioGraphEdgeRecord generated = new("source", "target") {
+                Label = "generated"
+            };
+            VisioGraphEdgeRecord explicitEdge = new("source-standard-target", "target", "middle") {
+                Label = "explicit"
+            };
+
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .GraphDiagram("Imported Edge Ids", graph => graph
+                    .Node("source", "Source")
+                    .Node("target", "Target")
+                    .Node("middle", "Middle")
+                    .Edges(new[] { generated, explicitEdge }));
+
+            VisioPage page = Assert.Single(document.Pages);
+
+            Assert.Contains(page.Connectors, connector => connector.Id == "source-standard-target-2" && connector.Label == "generated");
+            Assert.Contains(page.Connectors, connector => connector.Id == "source-standard-target" && connector.Label == "explicit");
+            Assert.Equal(page.Connectors.Count, page.Connectors.Select(connector => connector.Id).Distinct().Count());
+        }
+
+        [Fact]
         public void GraphDiagramBuilderBudgetsLayoutFromActualStencilDimensions() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioStencilShape largeStencil = new("large-device", "Large Device", "Process", "Custom", 4.2, 1.8);
@@ -560,5 +609,11 @@ namespace OfficeIMO.Tests {
                     return value;
             }
         }
+
+        private static bool Contains(VisioShape outer, VisioShape inner) =>
+            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
+            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
+            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
+            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
     }
 }

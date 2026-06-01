@@ -222,6 +222,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ArchitectureDiagramBuilderKeepsRegionsAndCalloutsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .ArchitectureDiagram("Metric Architecture", diagram => diagram
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Region("vnet", "Virtual Network", 0, 0, 2, 1)
+                    .Service("api", "API", 0, 0)
+                    .Compute("worker", "Worker", 1, 0)
+                    .Callout("api", "api-note", "Metric note", 8, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape region = Assert.Single(page.Shapes, shape => shape.Id == "vnet");
+            VisioShape api = Assert.Single(page.Shapes, shape => shape.Id == "api");
+            VisioShape worker = Assert.Single(page.Shapes, shape => shape.Id == "worker");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.True(Contains(region, api));
+            Assert.True(Contains(region, worker));
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+        }
+
+        [Fact]
         public void ArchitectureDiagramBuilderRejectsUnknownLinkEndpoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
@@ -285,5 +310,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Placement must be", autoPlacement.Message);
             Assert.Contains("finite non-negative", badGap.Message);
         }
+
+        private static bool Contains(VisioShape outer, VisioShape inner) =>
+            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
+            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
+            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
+            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
     }
 }

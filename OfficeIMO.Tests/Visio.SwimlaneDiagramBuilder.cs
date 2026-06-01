@@ -204,6 +204,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SwimlaneDiagramBuilderKeepsBandsAndCalloutsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .SwimlaneDiagram("Metric Swimlane", swim => swim
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .GridSize(4, 2, 2, 1)
+                    .Lane("sales", "Sales")
+                    .Phase("review", "Review")
+                    .Step("qualify", "Qualify", "sales", "review")
+                    .Callout("qualify", "qualify-note", "Metric note", 9, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape laneHeader = Assert.Single(page.Shapes, shape => shape.Id == "lane-header-sales");
+            VisioShape activity = Assert.Single(page.Shapes, shape => shape.Id == "qualify");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.Equal(2D.ToInches(VisioMeasurementUnit.Centimeters), laneHeader.Width, 6);
+            Assert.Equal(2D.ToInches(VisioMeasurementUnit.Centimeters), laneHeader.Height, 6);
+            Assert.InRange(activity.PinX, 0D, page.Width);
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+        }
+
+        [Fact]
         public void SwimlaneDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .SwimlaneDiagram("Generated", swim => swim

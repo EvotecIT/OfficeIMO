@@ -379,7 +379,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private void AddNodes(VisioPage page) {
             foreach (NodeItem node in _nodes) {
                 GetNodeShape(node.Kind, out string masterNameU, out double width, out double height);
-                VisioShape shape = new(node.Id, XForLayer(node.Layer), YForRow(node.Layer, node.Row), width, height, node.Text) {
+                VisioShape shape = new(node.Id, XForLayer(node.Layer).ToInches(_unit), YForRow(node.Layer, node.Row).ToInches(_unit), width.ToInches(_unit), height.ToInches(_unit), node.Text) {
                     NameU = masterNameU,
                 };
                 GetNodeStyle(node.Kind).ApplyTo(shape);
@@ -436,8 +436,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 return;
             }
 
-            double horizontalMargin = Math.Min(_leftMargin, _rightMargin);
-            double verticalMargin = Math.Min(_topMargin, _bottomMargin);
+            double horizontalMargin = Math.Min(_leftMargin, _rightMargin).ToInches(_unit);
+            double verticalMargin = Math.Min(_topMargin, _bottomMargin).ToInches(_unit);
             bool overflows = bounds.Left < horizontalMargin ||
                              bounds.Bottom < verticalMargin ||
                              bounds.Right > page.Width - horizontalMargin ||

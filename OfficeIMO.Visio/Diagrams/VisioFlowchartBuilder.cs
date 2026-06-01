@@ -517,7 +517,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private void RouteBranchConnector(VisioPage page, VisioConnector connector, int branchRouteIndex) {
             VisioShapeBounds fromBounds = connector.From.GetShapeBounds();
             VisioShapeBounds toBounds = connector.To.GetShapeBounds();
-            double routeOffset = (branchRouteIndex % 3) * (_branchLaneSpacing * 0.5D);
+            double branchLaneSpacing = _branchLaneSpacing.ToInches(_unit);
+            double routeOffset = (branchRouteIndex % 3) * (branchLaneSpacing * 0.5D);
 
             if (fromBounds.Right < toBounds.Left || toBounds.Right < fromBounds.Left) {
                 double laneX = fromBounds.Right < toBounds.Left
@@ -531,13 +532,13 @@ namespace OfficeIMO.Visio.Diagrams {
 
             bool routeLeft = toBounds.CenterY >= fromBounds.CenterY;
             double laneXCandidate = routeLeft
-                ? Math.Min(fromBounds.Left, toBounds.Left) - _branchLaneSpacing - routeOffset
-                : Math.Max(fromBounds.Right, toBounds.Right) + _branchLaneSpacing + routeOffset;
+                ? Math.Min(fromBounds.Left, toBounds.Left) - branchLaneSpacing - routeOffset
+                : Math.Max(fromBounds.Right, toBounds.Right) + branchLaneSpacing + routeOffset;
 
-            if (laneXCandidate < _branchLaneSpacing) {
-                laneXCandidate = Math.Max(fromBounds.Right, toBounds.Right) + _branchLaneSpacing + routeOffset;
-            } else if (laneXCandidate > page.Width - _branchLaneSpacing) {
-                laneXCandidate = Math.Min(fromBounds.Left, toBounds.Left) - _branchLaneSpacing - routeOffset;
+            if (laneXCandidate < branchLaneSpacing) {
+                laneXCandidate = Math.Max(fromBounds.Right, toBounds.Right) + branchLaneSpacing + routeOffset;
+            } else if (laneXCandidate > page.Width - branchLaneSpacing) {
+                laneXCandidate = Math.Min(fromBounds.Left, toBounds.Left) - branchLaneSpacing - routeOffset;
             }
 
             connector.RouteThrough(

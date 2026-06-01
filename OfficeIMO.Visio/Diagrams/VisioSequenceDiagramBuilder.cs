@@ -862,7 +862,8 @@ namespace OfficeIMO.Visio.Diagrams {
             double left = participants.Min(participant => participant.PinX) - (_participantWidth / 2D) - FragmentHorizontalPadding;
             double right = participants.Max(participant => participant.PinX) + (_participantWidth / 2D) + FragmentHorizontalPadding;
             left = Math.Max(_leftMargin, left);
-            right = Math.Min(page.Width - _rightMargin, right);
+            double pageWidth = page.Width.FromInches(_unit);
+            right = Math.Min(pageWidth - _rightMargin, right);
 
             double topY = firstMessageY - (fragment.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.46D) + FragmentVerticalPadding;
             double bottomY = firstMessageY - (fragment.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.46D) - FragmentVerticalPadding;
@@ -1192,7 +1193,8 @@ namespace OfficeIMO.Visio.Diagrams {
             ParticipantItem participant = _participantsById[note.ParticipantId];
             double baseY = firstMessageY - (note.RowIndex * _messageSpacing) - (_messageSpacing / 2D);
             double minY = _bottomMargin + (NoteHeight / 2D);
-            double maxY = page.Height - _topMargin - _participantHeight - NoteGap - (NoteHeight / 2D);
+            double pageHeight = page.Height.FromInches(_unit);
+            double maxY = pageHeight - _topMargin - _participantHeight - NoteGap - (NoteHeight / 2D);
             VisioSide[] sides = note.Placement == VisioSide.Right
                 ? new[] { VisioSide.Right, VisioSide.Left }
                 : new[] { VisioSide.Left, VisioSide.Right };
@@ -1241,7 +1243,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private double GetNoteX(VisioPage page, ParticipantItem participant, VisioSide placement) {
             double direction = placement == VisioSide.Right ? 1D : -1D;
             double x = participant.PinX + (direction * ((_participantWidth / 2D) + NoteGap + (NoteWidth / 2D)));
-            return Math.Max(_leftMargin + (NoteWidth / 2D), Math.Min(page.Width - _rightMargin - (NoteWidth / 2D), x));
+            double pageWidth = page.Width.FromInches(_unit);
+            return Math.Max(_leftMargin + (NoteWidth / 2D), Math.Min(pageWidth - _rightMargin - (NoteWidth / 2D), x));
         }
 
         private static double ScoreNotePlacement(LayoutBounds candidate, IReadOnlyList<LayoutBounds> reservedBounds) {
@@ -1328,8 +1331,9 @@ namespace OfficeIMO.Visio.Diagrams {
         private double GetSelfMessageLabelAvailableWidth(VisioPage page, ParticipantItem participant, bool rightSide) {
             double direction = rightSide ? 1D : -1D;
             double loopX = participant.PinX + (direction * _selfMessageWidth);
+            double pageWidth = page.Width.FromInches(_unit);
             double pageLimit = rightSide
-                ? page.Width - _rightMargin - loopX - SelfMessageLabelGap
+                ? pageWidth - _rightMargin - loopX - SelfMessageLabelGap
                 : loopX - _leftMargin - SelfMessageLabelGap;
             double nearestParticipantLimit = double.PositiveInfinity;
 
@@ -1382,7 +1386,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioShape CreateAnchor(VisioPage page, string id, double x, double y) {
-            VisioShape anchor = new(id, x, y, 0.04D, 0.04D, string.Empty) {
+            VisioShape anchor = new(id, x.ToInches(_unit), y.ToInches(_unit), 0.04D.ToInches(_unit), 0.04D.ToInches(_unit), string.Empty) {
                 NameU = "Circle",
                 FillPattern = 0,
                 LinePattern = 0,

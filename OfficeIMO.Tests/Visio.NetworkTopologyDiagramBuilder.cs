@@ -214,6 +214,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NetworkTopologyDiagramBuilderKeepsZonesAndCalloutsInMetricPageUnits() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
+                .NetworkTopologyDiagram("Metric Topology", topology => topology
+                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
+                    .Root("internet", "Internet", VisioNetworkNodeKind.Internet)
+                    .Firewall("firewall", "Firewall")
+                    .Switch("core", "Core")
+                    .Subnet("edge", "Edge", "internet", "firewall", "core")
+                    .Ethernet("internet", "firewall")
+                    .Callout("firewall", "firewall-note", "Metric note", 9, 7, options => {
+                        options.Width = 3;
+                        options.Height = 1;
+                    }));
+
+            VisioPage page = Assert.Single(document.Pages);
+            VisioShape zone = Assert.Single(page.Shapes, shape => shape.Id == "edge");
+            VisioShape firewall = Assert.Single(page.Shapes, shape => shape.Id == "firewall");
+            VisioShape callout = Assert.Single(page.Callouts());
+
+            Assert.True(Contains(zone, firewall));
+            Assert.Equal(9D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
+            Assert.InRange(page.Shapes.Single(shape => shape.Id == "edge-label").PinX, 0D, page.Width);
+        }
+
+        [Fact]
         public void NetworkTopologyDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
                 .NetworkTopologyDiagram("Generated", topology => topology
@@ -276,5 +302,11 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("Unknown network node id", exception.Message);
         }
+
+        private static bool Contains(VisioShape outer, VisioShape inner) =>
+            inner.PinX - inner.Width / 2D >= outer.PinX - outer.Width / 2D &&
+            inner.PinX + inner.Width / 2D <= outer.PinX + outer.Width / 2D &&
+            inner.PinY - inner.Height / 2D >= outer.PinY - outer.Height / 2D &&
+            inner.PinY + inner.Height / 2D <= outer.PinY + outer.Height / 2D;
     }
 }
