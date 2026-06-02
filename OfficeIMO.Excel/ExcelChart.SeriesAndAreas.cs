@@ -1,0 +1,304 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
+
+namespace OfficeIMO.Excel {
+    /// <summary>
+    /// Represents a chart on a worksheet.
+    /// </summary>
+    public sealed partial class ExcelChart {
+        /// <summary>
+        /// Sets the fill color for a chart series by index.
+        /// </summary>
+        public ExcelChart SetSeriesFillColor(int seriesIndex, string color) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (string.IsNullOrWhiteSpace(color)) {
+                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                ApplySolidFill(props, NormalizeHexColor(color));
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the fill color for a chart series by name.
+        /// </summary>
+        public ExcelChart SetSeriesFillColor(string seriesName, string color, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (string.IsNullOrWhiteSpace(color)) {
+                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                ApplySolidFill(props, NormalizeHexColor(color));
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the line color for a chart series by index.
+        /// </summary>
+        public ExcelChart SetSeriesLineColor(int seriesIndex, string color, double? widthPoints = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (string.IsNullOrWhiteSpace(color)) {
+                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                ApplyLine(props, NormalizeHexColor(color), widthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the line color for a chart series by name.
+        /// </summary>
+        public ExcelChart SetSeriesLineColor(string seriesName, string color, double? widthPoints = null, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (string.IsNullOrWhiteSpace(color)) {
+                throw new ArgumentException("Series color cannot be null or empty.", nameof(color));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                C.ChartShapeProperties props = EnsureChartShapeProperties(series);
+                ApplyLine(props, NormalizeHexColor(color), widthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the marker style for a chart series by index.
+        /// </summary>
+        public ExcelChart SetSeriesMarker(int seriesIndex, C.MarkerStyleValues style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            if (size is < 1 or > 72) {
+                throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
+            }
+            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
+                throw new ArgumentException("Marker fill color cannot be empty.", nameof(fillColor));
+            }
+            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
+                throw new ArgumentException("Marker line color cannot be empty.", nameof(lineColor));
+            }
+
+            bool applied = ApplySeriesMarkerByIndex(seriesIndex, marker => {
+                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the marker style for a chart series by name.
+        /// </summary>
+        public ExcelChart SetSeriesMarker(string seriesName, C.MarkerStyleValues style, int? size = null, string? fillColor = null, string? lineColor = null, double? lineWidthPoints = null, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            if (size is < 1 or > 72) {
+                throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
+            }
+            if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
+                throw new ArgumentException("Marker fill color cannot be empty.", nameof(fillColor));
+            }
+            if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
+                throw new ArgumentException("Marker line color cannot be empty.", nameof(lineColor));
+            }
+
+            bool applied = ApplySeriesMarkerByName(seriesName, ignoreCase, marker => {
+                ApplyMarker(marker, style, size, fillColor, lineColor, lineWidthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets chart area fill/line styling.
+        /// </summary>
+        public ExcelChart SetChartAreaStyle(string? fillColor = null, string? lineColor = null,
+            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
+            ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            ChartPart chartPart = GetChartPart();
+            C.ChartSpace? chartSpace = chartPart.ChartSpace;
+            if (chartSpace == null) {
+                return this;
+            }
+
+            C.ShapeProperties props = chartSpace.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            if (props.Parent == null) {
+                chartSpace.Append(props);
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets plot area fill/line styling.
+        /// </summary>
+        public ExcelChart SetPlotAreaStyle(string? fillColor = null, string? lineColor = null,
+            double? lineWidthPoints = null, bool noFill = false, bool noLine = false) {
+            ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidthPoints, noFill, noLine);
+
+            C.Chart chart = GetChart();
+            C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            if (plotArea == null) {
+                return this;
+            }
+
+            C.ShapeProperties props = plotArea.GetFirstChild<C.ShapeProperties>() ?? new C.ShapeProperties();
+            ApplyAreaStyle(props, fillColor, lineColor, lineWidthPoints, noFill, noLine);
+            if (props.Parent == null) {
+                plotArea.Append(props);
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Adds or replaces a trendline for a chart series by index.
+        /// </summary>
+        public ExcelChart SetSeriesTrendline(int seriesIndex, C.TrendlineValues type,
+            int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
+            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidthPoints);
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Adds or replaces a trendline for a chart series by name.
+        /// </summary>
+        public ExcelChart SetSeriesTrendline(string seriesName, C.TrendlineValues type,
+            int? order = null, int? period = null, double? forward = null, double? backward = null, double? intercept = null,
+            bool displayEquation = false, bool displayRSquared = false, string? lineColor = null, double? lineWidthPoints = null,
+            bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+            ValidateTrendline(type, order, period, forward, backward, lineColor, lineWidthPoints);
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                ApplyTrendline(series, type, order, period, forward, backward, intercept, displayEquation, displayRSquared, lineColor, lineWidthPoints);
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Removes trendlines from a chart series by index.
+        /// </summary>
+        public ExcelChart ClearSeriesTrendline(int seriesIndex) {
+            if (seriesIndex < 0) {
+                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+            }
+
+            bool applied = ApplySeriesByIndex(seriesIndex, series => {
+                series.RemoveAllChildren<C.Trendline>();
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series index {seriesIndex} was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+        /// <summary>
+        /// Removes trendlines from a chart series by name.
+        /// </summary>
+        public ExcelChart ClearSeriesTrendline(string seriesName, bool ignoreCase = true) {
+            if (seriesName == null) {
+                throw new ArgumentNullException(nameof(seriesName));
+            }
+
+            bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
+                series.RemoveAllChildren<C.Trendline>();
+            });
+
+            if (!applied) {
+                throw new InvalidOperationException($"Series '{seriesName}' was not found.");
+            }
+
+            Save();
+            return this;
+        }
+
+    }
+}
