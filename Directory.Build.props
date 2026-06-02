@@ -14,7 +14,7 @@
   </PropertyGroup>
   <ItemGroup Condition="Exists('$(OfficeIMOSharedDir)')">
     <Compile Include="$(OfficeIMOSharedDir)\**\*.cs"
-             Exclude="$(OfficeIMOSharedDir)\OfficeEncryption.cs"
+             Exclude="$(OfficeIMOSharedDir)\OfficeEncryption*.cs"
              Link="Shared\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
