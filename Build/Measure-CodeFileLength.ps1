@@ -7,18 +7,40 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $root = Split-Path -Parent $PSScriptRoot
-$excludedSegments = @('\bin\', '\obj\', '\Ignore\', '\OfficeIMO.Examples\', '\OfficeIMO.Excel.Benchmarks\', '\OfficeIMO.Excel.Benchmarks.LegacyEpPlus\')
+$excludedDirectoryNames = @('bin', 'obj', 'Ignore', 'OfficeIMO.Examples', 'OfficeIMO.Excel.Benchmarks', 'OfficeIMO.Excel.Benchmarks.LegacyEpPlus')
 $rg = Get-Command rg -ErrorAction SilentlyContinue
 
 if (-not $IncludeTests) {
-    $excludedSegments += '\OfficeIMO.Tests\'
-    $excludedSegments += '\OfficeIMO.CSV.Tests\'
-    $excludedSegments += '\OfficeIMO.VerifyTests\'
-    $excludedSegments += '\OfficeIMO.MarkdownRenderer.Wpf.Tests\'
+    $excludedDirectoryNames += 'OfficeIMO.Tests'
+    $excludedDirectoryNames += 'OfficeIMO.CSV.Tests'
+    $excludedDirectoryNames += 'OfficeIMO.VerifyTests'
+    $excludedDirectoryNames += 'OfficeIMO.MarkdownRenderer.Wpf.Tests'
 }
 
 if (-not $IncludeAssets) {
-    $excludedSegments += '\Assets\'
+    $excludedDirectoryNames += 'Assets'
+}
+
+function Get-CodeFiles {
+    param(
+        [Parameter(Mandatory)]
+        [string] $Path
+    )
+
+    foreach ($item in Get-ChildItem -LiteralPath $Path -Force) {
+        if ($item.PSIsContainer) {
+            if ($excludedDirectoryNames -contains $item.Name) {
+                continue
+            }
+
+            Get-CodeFiles -Path $item.FullName
+            continue
+        }
+
+        if ($item.Extension -eq '.cs' -or $item.Extension -eq '.ps1' -or $item.Extension -eq '.psm1') {
+            $item.FullName
+        }
+    }
 }
 
 if ($rg) {
@@ -48,21 +70,15 @@ if ($rg) {
         $patterns += @('-g', '!Assets/**')
     }
 
-    $files = & $rg.Source @patterns |
-        ForEach-Object { Join-Path $root $_ }
+    Push-Location -LiteralPath $root
+    try {
+        $files = & $rg.Source @patterns |
+            ForEach-Object { Join-Path $root $_ }
+    } finally {
+        Pop-Location
+    }
 } else {
-    $files = Get-ChildItem -LiteralPath $root -Recurse -File -Include *.cs,*.ps1,*.psm1 |
-        Where-Object {
-            $path = $_.FullName
-            foreach ($segment in $excludedSegments) {
-                if ($path.Contains($segment)) {
-                    return $false
-                }
-            }
-
-            return $true
-        } |
-        ForEach-Object { $_.FullName }
+    $files = Get-CodeFiles -Path $root
 }
 
 $results = foreach ($file in $files) {
