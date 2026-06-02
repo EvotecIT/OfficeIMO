@@ -169,6 +169,138 @@ public sealed class PdfTheme {
         };
     }
 
+    /// <summary>
+    /// Creates a technical-document theme for specifications, READMEs, and operational guides with stronger heading contrast and compact table rhythm.
+    /// </summary>
+    public static PdfTheme TechnicalDocument() {
+        PdfTheme theme = WordLike();
+        theme.TableStyle = TableStyles.TechnicalDocument();
+        theme.PanelStyle = new PanelStyle {
+            Background = Color(248, 250, 252),
+            BorderColor = Color(203, 213, 225),
+            BorderWidth = 0.5,
+            PaddingX = 9,
+            PaddingY = 7,
+            SpacingBefore = 2,
+            SpacingAfter = 9,
+            KeepTogether = true
+        };
+        theme.HorizontalRuleStyle = new PdfHorizontalRuleStyle {
+            Color = Color(203, 213, 225),
+            Thickness = 0.6,
+            SpacingBefore = 8,
+            SpacingAfter = 10
+        };
+        return theme;
+    }
+
+    /// <summary>
+    /// Creates a compact document theme for dense notes and narrow reports that still need readable rhythm.
+    /// </summary>
+    public static PdfTheme Compact() {
+        PdfTheme theme = WordLike();
+        PdfColor bodyText = Color(31, 41, 55);
+        theme.TextStyle = new PdfTextStyle {
+            Font = PdfStandardFont.Helvetica,
+            FontSize = 10,
+            Color = bodyText
+        };
+        theme.ParagraphStyle = new PdfParagraphStyle {
+            LineHeight = 1.08,
+            SpacingAfter = 4,
+            WidowControl = true
+        };
+        theme.ListStyle = new PdfListStyle {
+            FontSize = 10,
+            LineHeight = 1.08,
+            LeftIndent = 15,
+            MarkerGap = 5,
+            ItemSpacing = 1,
+            SpacingAfter = 4,
+            Color = bodyText
+        };
+        theme.TableStyle = TableStyles.Compact();
+        theme.PanelStyle = new PanelStyle {
+            Background = Color(248, 250, 252),
+            BorderColor = Color(203, 213, 225),
+            BorderWidth = 0.4,
+            PaddingX = 7,
+            PaddingY = 5,
+            SpacingBefore = 1,
+            SpacingAfter = 5,
+            KeepTogether = true
+        };
+        theme.HorizontalRuleStyle = new PdfHorizontalRuleStyle {
+            Color = Color(226, 232, 240),
+            Thickness = 0.5,
+            SpacingBefore = 5,
+            SpacingAfter = 6
+        };
+        theme.RowStyle = new PdfRowStyle {
+            Gap = 14,
+            SpacingAfter = 5
+        };
+        return theme;
+    }
+
+    /// <summary>
+    /// Creates a report-oriented theme with stronger table hierarchy, summary-row separators, and calm document colors.
+    /// </summary>
+    public static PdfTheme Report() {
+        PdfTheme theme = WordLike();
+        PdfColor headingText = Color(30, 41, 59);
+        PdfColor accent = Color(30, 64, 175);
+        theme.TextStyle = new PdfTextStyle {
+            Font = PdfStandardFont.Helvetica,
+            FontSize = 10.5,
+            Color = headingText
+        };
+        theme.HeadingStyles = new PdfHeadingStyles {
+            Level1 = new PdfHeadingStyle {
+                FontSize = 21,
+                LineHeight = 1.12,
+                SpacingBefore = 0,
+                SpacingAfter = 9,
+                Color = headingText,
+                KeepWithNext = true
+            },
+            Level2 = new PdfHeadingStyle {
+                FontSize = 15.5,
+                LineHeight = 1.14,
+                SpacingBefore = 12,
+                SpacingAfter = 6,
+                Color = accent,
+                KeepWithNext = true
+            },
+            Level3 = new PdfHeadingStyle {
+                FontSize = 12.75,
+                LineHeight = 1.15,
+                SpacingBefore = 8,
+                SpacingAfter = 4,
+                Color = headingText,
+                KeepWithNext = true
+            }
+        };
+        theme.TableStyle = TableStyles.Report();
+        theme.PanelStyle = new PanelStyle {
+            Background = Color(239, 246, 255),
+            BorderColor = Color(191, 219, 254),
+            BorderWidth = 0.6,
+            PaddingX = 10,
+            PaddingY = 8,
+            SpacingBefore = 3,
+            SpacingAfter = 10,
+            KeepTogether = true
+        };
+        theme.HorizontalRuleStyle = new PdfHorizontalRuleStyle {
+            Color = Color(191, 219, 254),
+            Thickness = 0.75,
+            SpacingBefore = 8,
+            SpacingAfter = 10
+        };
+        return theme;
+    }
+
     /// <summary>Creates a deep copy of this theme.</summary>
     public PdfTheme Clone() {
         return new PdfTheme {
@@ -224,4 +356,6 @@ public sealed class PdfTheme {
             options.DefaultRowStyle = _rowStyle;
         }
     }
+
+    private static PdfColor Color(byte red, byte green, byte blue) => PdfColor.FromRgb(red, green, blue);
 }

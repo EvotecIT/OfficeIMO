@@ -68,6 +68,15 @@ public class PdfRowColumnCompose {
         _col.AddBlock(new PanelParagraphBlock(builder.Build().Runs, align, defaultColor, style));
         return this;
     }
+    /// <summary>Adds a styled panel from common column flow blocks such as paragraphs, headings, lists, simple tables, rules, and nested panel paragraphs.</summary>
+    public PdfRowColumnCompose Panel(System.Action<PdfRowColumnCompose> build, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
+        Guard.NotNull(build, nameof(build));
+        Guard.ParagraphAlign(align, nameof(align), "Panel");
+        var panelColumn = new RowColumn(100);
+        build(new PdfRowColumnCompose(panelColumn));
+        _col.AddBlock(PdfDoc.CreatePanelParagraphBlock(panelColumn.Blocks, style, align, defaultColor));
+        return this;
+    }
     /// <summary>Adds a simple table in the column.</summary>
     public PdfRowColumnCompose Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
         _col.AddBlock(new TableBlock(rows, align, style));

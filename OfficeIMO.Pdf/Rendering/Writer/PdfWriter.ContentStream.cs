@@ -225,5 +225,11 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
-    private static string F(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+    private static string F(double value) {
+        if (Math.Abs(value) < 0.0005D) {
+            value = 0D;
+        }
+
+        return value.ToString("0.###", CultureInfo.InvariantCulture);
+    }
 }

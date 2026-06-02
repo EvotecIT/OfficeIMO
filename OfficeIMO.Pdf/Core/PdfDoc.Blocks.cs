@@ -67,6 +67,123 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Sets or clears the document-wide default text watermark rendered behind page content.</summary>
+    public PdfDoc Watermark(PdfTextWatermark? watermark) {
+        _options.TextWatermark = watermark;
+        return this;
+    }
+
+    /// <summary>Sets a document-wide default text watermark rendered behind page content.</summary>
+    public PdfDoc Watermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+        var watermark = new PdfTextWatermark(text) {
+            Bold = bold,
+            Italic = italic
+        };
+        if (fontSize.HasValue) watermark.FontSize = fontSize.Value;
+        if (color.HasValue) watermark.Color = color.Value;
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        if (font.HasValue) watermark.Font = font.Value;
+        _options.TextWatermark = watermark;
+        return this;
+    }
+
+    /// <summary>Sets or clears the document-wide default image watermark rendered behind page content.</summary>
+    public PdfDoc ImageWatermark(PdfImageWatermark? watermark) {
+        _options.ImageWatermark = watermark;
+        return this;
+    }
+
+    /// <summary>Sets a document-wide default image watermark rendered behind page content.</summary>
+    public PdfDoc ImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+        var watermark = new PdfImageWatermark(imageBytes, width, height);
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        _options.ImageWatermark = watermark;
+        return this;
+    }
+
+    /// <summary>Sets or clears the document-wide default page border.</summary>
+    public PdfDoc PageBorder(PdfPageBorder? border) {
+        _options.PageBorder = border;
+        return this;
+    }
+
+    /// <summary>Sets a document-wide default page border.</summary>
+    public PdfDoc PageBorder(PdfColor? color = null, double? width = null, double? inset = null, double? opacity = null, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
+        var border = new PdfPageBorder {
+            DashStyle = dashStyle
+        };
+        if (color.HasValue) border.Color = color.Value;
+        if (width.HasValue) border.Width = width.Value;
+        if (inset.HasValue) border.Inset = inset.Value;
+        if (opacity.HasValue) border.Opacity = opacity.Value;
+        _options.PageBorder = border;
+        return this;
+    }
+
+    /// <summary>Sets or clears the document-wide default page background image.</summary>
+    public PdfDoc BackgroundImage(PdfPageBackgroundImage? image) {
+        _options.PageBackgroundImage = image;
+        return this;
+    }
+
+    /// <summary>Sets a document-wide default page background image.</summary>
+    public PdfDoc BackgroundImage(byte[] imageBytes, OfficeImageFit fit = OfficeImageFit.Cover, double? opacity = null) {
+        var image = new PdfPageBackgroundImage(imageBytes) {
+            Fit = fit
+        };
+        if (opacity.HasValue) image.Opacity = opacity.Value;
+        _options.PageBackgroundImage = image;
+        return this;
+    }
+
+    /// <summary>Adds a document-wide default page background shape rendered behind page content.</summary>
+    public PdfDoc BackgroundShape(PdfPageBackgroundShape shape) {
+        _options.AddPageBackgroundShape(shape);
+        return this;
+    }
+
+    /// <summary>Replaces or clears document-wide default page background shapes.</summary>
+    public PdfDoc BackgroundShapes(System.Collections.Generic.IEnumerable<PdfPageBackgroundShape>? shapes) {
+        _options.PageBackgroundShapes = shapes?.ToList();
+        return this;
+    }
+
+    /// <summary>Clears document-wide default page background shapes.</summary>
+    public PdfDoc ClearBackgroundShapes() {
+        _options.ClearPageBackgroundShapes();
+        return this;
+    }
+
+    /// <summary>Adds a document-wide default rectangle page background shape.</summary>
+    public PdfDoc BackgroundRectangle(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.Rectangle(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+
+    /// <summary>Adds a document-wide default rounded rectangle page background shape.</summary>
+    public PdfDoc BackgroundRoundedRectangle(double x, double y, double width, double height, double cornerRadius, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.RoundedRectangle(x, y, width, height, cornerRadius, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+
+    /// <summary>Adds a document-wide default ellipse page background shape.</summary>
+    public PdfDoc BackgroundEllipse(double x, double y, double width, double height, PdfColor? fill = null, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.Ellipse(x, y, width, height, fill, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+
+    /// <summary>Adds a document-wide default top page background band using the current page size.</summary>
+    public PdfDoc BackgroundTopBand(double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.TopBand(_options.PageWidth, _options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+
+    /// <summary>Adds a document-wide default bottom page background band using the current page size.</summary>
+    public PdfDoc BackgroundBottomBand(double height, PdfColor? fill = null, double insetX = 0D, double offsetY = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.BottomBand(_options.PageWidth, _options.PageHeight, height, fill, insetX, offsetY, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+
+    /// <summary>Adds a document-wide default left page background band using the current page size.</summary>
+    public PdfDoc BackgroundLeftBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.LeftBand(_options.PageWidth, _options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+
+    /// <summary>Adds a document-wide default right page background band using the current page size.</summary>
+    public PdfDoc BackgroundRightBand(double width, PdfColor? fill = null, double insetY = 0D, double offsetX = 0D, double cornerRadius = 0D, PdfColor? stroke = null, double strokeWidth = 0D, double? fillOpacity = null, double? strokeOpacity = null, OfficeLinearGradient? fillGradient = null) =>
+        BackgroundShape(PdfPageBackgroundShape.RightBand(_options.PageWidth, _options.PageHeight, width, fill, insetY, offsetX, cornerRadius, stroke, strokeWidth, fillOpacity, strokeOpacity, fillGradient));
+
     /// <summary>Sets the document-wide default page orientation to portrait.</summary>
     public PdfDoc Portrait() => Orientation(PdfPageOrientation.Portrait);
 
@@ -126,6 +243,71 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Requests a generated-PDF compliance profile for this document.</summary>
+    public PdfDoc Compliance(PdfComplianceProfile profile) {
+        _options.RequireCompliance(profile);
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated catalog output intent.</summary>
+    public PdfDoc OutputIntent(PdfOutputIntent? outputIntent) {
+        _options.SetOutputIntent(outputIntent);
+        return this;
+    }
+
+    /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
+    public PdfDoc OutputIntent(byte[] iccProfile, string outputConditionIdentifier = "sRGB IEC61966-2.1") {
+        _options.SetOutputIntent(iccProfile, outputConditionIdentifier);
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated catalog document language, for example "en-US".</summary>
+    public PdfDoc Language(string? language) {
+        _options.SetLanguage(language);
+        return this;
+    }
+
+    /// <summary>Enables generated catalog page labels that match the configured page-number style and start number.</summary>
+    public PdfDoc PageLabels(string? prefix = null) {
+        _options.SetPageLabels(true, prefix);
+        return this;
+    }
+
+    /// <summary>Enables or disables generated catalog page labels.</summary>
+    public PdfDoc PageLabels(bool include, string? prefix = null) {
+        _options.SetPageLabels(include, prefix);
+        return this;
+    }
+
+    /// <summary>Sets or clears generated catalog viewer preferences.</summary>
+    public PdfDoc ViewerPreferences(PdfViewerPreferencesOptions? preferences) {
+        _options.SetViewerPreferences(preferences);
+        return this;
+    }
+
+    /// <summary>Configures generated catalog viewer preferences.</summary>
+    public PdfDoc ViewerPreferences(System.Action<PdfViewerPreferencesOptions> configure) {
+        _options.ConfigureViewerPreferences(configure);
+        return this;
+    }
+
+    /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
+    public PdfDoc AttachFile(PdfEmbeddedFile file) {
+        _options.AddEmbeddedFile(file);
+        return this;
+    }
+
+    /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
+    public PdfDoc AttachFile(
+        string fileName,
+        byte[] data,
+        string? mimeType = null,
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Unspecified,
+        string? description = null) {
+        _options.AddEmbeddedFile(fileName, data, mimeType, relationship, description);
+        return this;
+    }
+
     /// <summary>Sets document-wide default text styling used by following page-flow content.</summary>
     public PdfDoc DefaultTextStyle(System.Action<PdfTextStyleCompose> style) {
         Guard.NotNull(style, nameof(style));
@@ -138,6 +320,18 @@ public sealed partial class PdfDoc {
     public PdfDoc DefaultTextStyle(PdfTextStyle style) {
         Guard.NotNull(style, nameof(style));
         style.Clone().ApplyTo(_options);
+        return this;
+    }
+
+    /// <summary>Embeds a TrueType font file for a generated standard-font slot in this document.</summary>
+    public PdfDoc EmbedStandardFont(PdfStandardFont font, byte[] data, string? fontName = null) {
+        _options.EmbedStandardFont(font, data, fontName);
+        return this;
+    }
+
+    /// <summary>Embeds a TrueType font file from disk for a generated standard-font slot in this document.</summary>
+    public PdfDoc EmbedStandardFont(PdfStandardFont font, string path, string? fontName = null) {
+        _options.EmbedStandardFont(font, path, fontName);
         return this;
     }
 
@@ -396,6 +590,21 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>
+    /// Adds a styled panel from common flow blocks such as paragraphs, headings, lists, simple tables, rules, and nested panel paragraphs.
+    /// </summary>
+    public PdfDoc Panel(System.Action<PdfItemCompose> compose, PanelStyle? style = null, PdfAlign align = PdfAlign.Left, PdfColor? defaultColor = null) {
+        Guard.NotNull(compose, nameof(compose));
+        Guard.ParagraphAlign(align, nameof(align), "Panel");
+        var blocks = new System.Collections.Generic.List<IPdfBlock>();
+        using (PushBlockScope(blocks.Add)) {
+            compose(new PdfItemCompose(this));
+        }
+
+        AddBlock(CreatePanelParagraphBlock(blocks, style, align, defaultColor));
+        return this;
+    }
+
     /// <summary>Adds a supported image at the current flow position. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
     public PdfDoc Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
@@ -418,6 +627,171 @@ public sealed partial class PdfDoc {
 
     // Internal for Compose Row
     internal void AddRow(RowBlock row) { AddBlock(row); }
+
+    internal static PanelParagraphBlock CreatePanelParagraphBlock(System.Collections.Generic.IEnumerable<IPdfBlock> blocks, PanelStyle? style, PdfAlign align, PdfColor? defaultColor) {
+        Guard.NotNull(blocks, nameof(blocks));
+        var runs = new System.Collections.Generic.List<TextRun>();
+        bool wroteContent = false;
+        foreach (IPdfBlock block in blocks) {
+            AppendPanelBlockRuns(runs, block, ref wroteContent);
+        }
+
+        if (runs.Count == 0) {
+            runs.Add(TextRun.Normal(string.Empty));
+        }
+
+        return new PanelParagraphBlock(runs, align, defaultColor, style);
+    }
+
+    private static void AppendPanelBlockRuns(System.Collections.Generic.List<TextRun> runs, IPdfBlock block, ref bool wroteContent) {
+        switch (block) {
+            case BookmarkBlock:
+                return;
+            case SpacerBlock spacer:
+                if (spacer.Height > 0) {
+                    AppendPanelLineBreak(runs, ref wroteContent);
+                }
+
+                return;
+            case HorizontalRuleBlock:
+                AppendPanelBlockBreak(runs, ref wroteContent);
+                runs.Add(TextRun.Normal(new string('-', 32)));
+                return;
+            case RichParagraphBlock paragraph:
+                if (paragraph.Runs.Count == 0) {
+                    return;
+                }
+
+                AppendPanelBlockBreak(runs, ref wroteContent);
+                runs.AddRange(paragraph.Runs);
+                return;
+            case PanelParagraphBlock panel:
+                if (panel.Runs.Count == 0) {
+                    return;
+                }
+
+                AppendPanelBlockBreak(runs, ref wroteContent);
+                runs.AddRange(panel.Runs);
+                return;
+            case HeadingBlock heading:
+                AppendPanelBlockBreak(runs, ref wroteContent);
+                AppendPanelHeadingRun(runs, heading);
+                return;
+            case BulletListBlock bullets:
+                AppendPanelListRuns(runs, bullets.RichItems, startNumber: null, ref wroteContent);
+                return;
+            case NumberedListBlock numbered:
+                AppendPanelListRuns(runs, numbered.RichItems, numbered.StartNumber, ref wroteContent);
+                return;
+            case TableBlock table:
+                AppendPanelTableRuns(runs, table, ref wroteContent);
+                return;
+            default:
+                throw new System.NotSupportedException("Panel currently supports paragraphs, headings, lists, simple tables, horizontal rules, spacers, bookmarks, and nested panel paragraphs.");
+        }
+    }
+
+    private static void AppendPanelHeadingRun(System.Collections.Generic.List<TextRun> runs, HeadingBlock heading) {
+        double fontSize = heading.Style?.GetFontSize(heading.Level) ?? PdfHeadingStyle.GetDefaultFontSize(heading.Level);
+        bool bold = heading.Style?.Bold ?? true;
+        PdfColor? color = heading.Color ?? heading.Style?.Color;
+        runs.Add(new TextRun(
+            heading.Text,
+            bold: bold,
+            underline: heading.LinkUri != null || heading.LinkDestinationName != null,
+            color: color,
+            fontSize: fontSize,
+            linkUri: heading.LinkUri,
+            linkContents: heading.LinkContents,
+            linkDestinationName: heading.LinkDestinationName));
+    }
+
+    private static void AppendPanelListRuns(System.Collections.Generic.List<TextRun> runs, System.Collections.Generic.IReadOnlyList<PdfListItem> items, int? startNumber, ref bool wroteContent) {
+        for (int i = 0; i < items.Count; i++) {
+            AppendPanelLineBreak(runs, ref wroteContent);
+            string marker = items[i].Marker ?? (startNumber.HasValue
+                ? (startNumber.Value + i).ToString(System.Globalization.CultureInfo.InvariantCulture) + "."
+                : "•");
+            runs.Add(TextRun.Normal(marker + " "));
+            runs.AddRange(items[i].Runs);
+        }
+    }
+
+    private static void AppendPanelTableRuns(System.Collections.Generic.List<TextRun> runs, TableBlock table, ref bool wroteContent) {
+        if (table.Cells.Count == 0) {
+            return;
+        }
+
+        PdfTableStyle? tableStyle = table.Style;
+        if (TryAppendChecklistTableRuns(runs, table, tableStyle, ref wroteContent)) {
+            return;
+        }
+
+        int headerRowCount = tableStyle?.HeaderRowCount ?? 0;
+        System.Collections.Generic.IReadOnlyList<PdfTableCell>? headers = headerRowCount > 0 ? table.Cells[0] : null;
+        int startRow = headers == null ? 0 : 1;
+        for (int rowIndex = startRow; rowIndex < table.Cells.Count; rowIndex++) {
+            AppendPanelLineBreak(runs, ref wroteContent);
+            System.Collections.Generic.IReadOnlyList<PdfTableCell> row = table.Cells[rowIndex];
+            for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
+                if (columnIndex > 0) {
+                    runs.Add(TextRun.Normal(" | "));
+                }
+
+                if (headers != null && columnIndex < headers.Count) {
+                    runs.Add(TextRun.Bolded(headers[columnIndex].Text + ": "));
+                }
+
+                runs.AddRange(row[columnIndex].Runs);
+            }
+        }
+    }
+
+    private static bool TryAppendChecklistTableRuns(System.Collections.Generic.List<TextRun> runs, TableBlock table, PdfTableStyle? tableStyle, ref bool wroteContent) {
+        if (tableStyle?.CellIcons == null || table.ColumnCount < 2) {
+            return false;
+        }
+
+        bool foundChecklistRow = false;
+        for (int rowIndex = 0; rowIndex < table.Cells.Count; rowIndex++) {
+            if (!tableStyle.CellIcons.TryGetValue((rowIndex, 0), out PdfCellIcon? icon)
+                || (icon.Kind != PdfCellIconKind.CheckBoxChecked && icon.Kind != PdfCellIconKind.CheckBoxUnchecked)) {
+                continue;
+            }
+
+            foundChecklistRow = true;
+            AppendPanelLineBreak(runs, ref wroteContent);
+            bool isChecked = icon.Kind == PdfCellIconKind.CheckBoxChecked;
+            runs.Add(TextRun.Bolded(isChecked ? "Done: " : "Open: "));
+            System.Collections.Generic.IReadOnlyList<PdfTableCell> row = table.Cells[rowIndex];
+            for (int columnIndex = 1; columnIndex < row.Count; columnIndex++) {
+                if (columnIndex > 1) {
+                    runs.Add(TextRun.Normal(" "));
+                }
+
+                runs.AddRange(row[columnIndex].Runs);
+            }
+        }
+
+        return foundChecklistRow;
+    }
+
+    private static void AppendPanelBlockBreak(System.Collections.Generic.List<TextRun> runs, ref bool wroteContent) {
+        if (wroteContent) {
+            runs.Add(TextRun.LineBreak());
+            runs.Add(TextRun.LineBreak());
+        }
+
+        wroteContent = true;
+    }
+
+    private static void AppendPanelLineBreak(System.Collections.Generic.List<TextRun> runs, ref bool wroteContent) {
+        if (wroteContent) {
+            runs.Add(TextRun.LineBreak());
+        }
+
+        wroteContent = true;
+    }
 
     /// <summary>Adds a simple table from rows of string arrays.</summary>
     public PdfDoc Table(System.Collections.Generic.IEnumerable<string[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {

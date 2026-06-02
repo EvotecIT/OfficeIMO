@@ -15,5 +15,9 @@ public enum PdfCellIconKind {
     /// <summary>A filled right-pointing triangle.</summary>
     TriangleRight,
     /// <summary>A filled downward triangle.</summary>
-    TriangleDown
+    TriangleDown,
+    /// <summary>An outlined square checkbox.</summary>
+    CheckBoxUnchecked,
+    /// <summary>An outlined square checkbox with a check mark.</summary>
+    CheckBoxChecked
 }

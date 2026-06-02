@@ -43,33 +43,33 @@ public sealed class StructuredPage {
 /// <summary>Represents a horizontal band grouping multiple lines.</summary>
 public sealed class StructuredBand {
     /// <summary>Top Y (points) of the band (higher value is nearer top of page).</summary>
-    public double YTop { get; init; }
+    public double YTop { get; set; }
     /// <summary>Bottom Y (points) of the band.</summary>
-    public double YBottom { get; init; }
+    public double YBottom { get; set; }
     /// <summary>Texts of lines grouped into this band in their original order.</summary>
-    public List<string> Lines { get; init; } = new();
+    public List<string> Lines { get; set; } = new();
 }
 
 /// <summary>Represents a parsed list item (bullet or numbered) with hierarchy.</summary>
 public sealed class StructuredListItem {
     /// <summary>1-based nesting level (best effort).</summary>
-    public int Level { get; init; }
+    public int Level { get; set; }
     /// <summary>Original marker like "1.2.3", "-", "•", "(a)".</summary>
-    public string Marker { get; init; } = string.Empty;
+    public string Marker { get; set; } = string.Empty;
     /// <summary>Normalized text of the list item.</summary>
-    public string Text { get; init; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
     /// <summary>Line geometry for the source list item.</summary>
-    public StructuredLine Line { get; init; } = new();
+    public StructuredLine Line { get; set; } = new();
 }
 
 /// <summary>Table model with column geometry and extracted rows.</summary>
 public sealed class StructuredTable {
     /// <summary>Top Y (points) of the band that produced this table.</summary>
-    public double YTop { get; init; }
+    public double YTop { get; set; }
     /// <summary>Bottom Y (points) of the band that produced this table.</summary>
-    public double YBottom { get; init; }
+    public double YBottom { get; set; }
     /// <summary>Reason/heuristic for detection (e.g., band-splits, leaders).</summary>
-    public string Kind { get; init; } = "band-splits";
+    public string Kind { get; set; } = "band-splits";
     /// <summary>Detected columns with X ranges.</summary>
     public List<StructuredTableColumn> Columns { get; } = new();
     /// <summary>Extracted row values aligned to Columns.</summary>
@@ -79,9 +79,9 @@ public sealed class StructuredTable {
 /// <summary>Column geometry for a detected table.</summary>
 public sealed class StructuredTableColumn {
     /// <summary>Left X coordinate (points).</summary>
-    public double From { get; init; }
+    public double From { get; set; }
     /// <summary>Right X coordinate (points).</summary>
-    public double To { get; init; }
+    public double To { get; set; }
 }
 
 /// <summary>Detected tables for a single document page.</summary>
@@ -163,45 +163,45 @@ public sealed class StructuredListItemPage {
 /// <summary>Heuristic heading line inferred from font size and geometry.</summary>
 public sealed class StructuredHeading {
     /// <summary>Best-effort heading level, where 1 is the largest heading tier.</summary>
-    public int Level { get; init; }
+    public int Level { get; set; }
     /// <summary>Heading text.</summary>
-    public string Text { get; init; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
     /// <summary>Line geometry for the heading.</summary>
-    public StructuredLine Line { get; init; } = new();
+    public StructuredLine Line { get; set; } = new();
     /// <summary>Representative font size in points.</summary>
-    public double FontSize { get; init; }
+    public double FontSize { get; set; }
 }
 
 /// <summary>Heuristic paragraph group built from nearby non-list, non-table lines.</summary>
 public sealed class StructuredParagraph {
     /// <summary>Paragraph text with grouped lines joined by spaces.</summary>
-    public string Text { get; init; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
     /// <summary>Line geometry entries that make up the paragraph.</summary>
     public List<StructuredLine> Lines { get; } = new();
     /// <summary>Leftmost X coordinate (points).</summary>
-    public double XStart { get; init; }
+    public double XStart { get; set; }
     /// <summary>Rightmost X coordinate (points).</summary>
-    public double XEnd { get; init; }
+    public double XEnd { get; set; }
     /// <summary>Top baseline Y coordinate (points).</summary>
-    public double YTop { get; init; }
+    public double YTop { get; set; }
     /// <summary>Bottom baseline Y coordinate (points).</summary>
-    public double YBottom { get; init; }
+    public double YBottom { get; set; }
 }
 
 /// <summary>Geometry detail for a single emitted line.</summary>
 public sealed class StructuredLine {
     /// <summary>Baseline Y coordinate for the line (points from bottom).</summary>
-    public double Y { get; init; }
+    public double Y { get; set; }
     /// <summary>Leftmost X coordinate (points).</summary>
-    public double XStart { get; init; }
+    public double XStart { get; set; }
     /// <summary>Rightmost X coordinate (points).</summary>
-    public double XEnd { get; init; }
+    public double XEnd { get; set; }
     /// <summary>Line text.</summary>
-    public string Text { get; init; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
     /// <summary>Representative font size in points.</summary>
-    public double FontSize { get; init; }
+    public double FontSize { get; set; }
     /// <summary>Number of underlying spans grouped into this line.</summary>
-    public int SpanCount { get; init; }
+    public int SpanCount { get; set; }
 }
 
 internal static class ContentStructureExtractor {

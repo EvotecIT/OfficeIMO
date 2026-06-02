@@ -100,6 +100,33 @@ internal static class Guard {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ComplianceProfile(PdfComplianceProfile value, string paramName) {
+        if (value != PdfComplianceProfile.None &&
+            value != PdfComplianceProfile.PdfA2B &&
+            value != PdfComplianceProfile.PdfA2U &&
+            value != PdfComplianceProfile.PdfA2A &&
+            value != PdfComplianceProfile.PdfA3B &&
+            value != PdfComplianceProfile.PdfA3U &&
+            value != PdfComplianceProfile.PdfA3A &&
+            value != PdfComplianceProfile.PdfUa1 &&
+            value != PdfComplianceProfile.FacturX &&
+            value != PdfComplianceProfile.Zugferd) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF compliance profile must be None, PdfA2B, PdfA2U, PdfA2A, PdfA3B, PdfA3U, PdfA3A, PdfUa1, FacturX, or Zugferd.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void AssociatedFileRelationship(PdfAssociatedFileRelationship value, string paramName) {
+        if (value != PdfAssociatedFileRelationship.Unspecified &&
+            value != PdfAssociatedFileRelationship.Source &&
+            value != PdfAssociatedFileRelationship.Data &&
+            value != PdfAssociatedFileRelationship.Alternative &&
+            value != PdfAssociatedFileRelationship.Supplement) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF associated-file relationship must be Unspecified, Source, Data, Alternative, or Supplement.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void TextBaseline(PdfTextBaseline value, string paramName) {
         if (value != PdfTextBaseline.Normal &&
             value != PdfTextBaseline.Superscript &&

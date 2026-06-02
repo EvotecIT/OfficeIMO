@@ -18,6 +18,16 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
     public bool Ordered { get; set; }
     /// <summary>Normalize indentation to the minimum included heading level (default true).</summary>
     public bool NormalizeLevels { get; set; } = true;
+    /// <summary>Include a title above the generated table of contents when an output format supports it.</summary>
+    public bool IncludeTitle { get; set; }
+    /// <summary>Title text for output formats that render TOC chrome.</summary>
+    public string Title { get; set; } = "Table of Contents";
+    /// <summary>Heading level for the title when an output format renders it as a heading.</summary>
+    public int TitleLevel { get; set; } = 2;
+    /// <summary>Preferred visual layout for output formats that support TOC chrome.</summary>
+    public TocLayout Layout { get; set; } = TocLayout.List;
+    /// <summary>Preferred visual chrome for output formats that support TOC containers.</summary>
+    public TocChrome Chrome { get; set; } = TocChrome.Default;
     /// <summary>Entries included in the TOC.</summary>
     public List<Entry> Entries { get; } = new List<Entry>();
 

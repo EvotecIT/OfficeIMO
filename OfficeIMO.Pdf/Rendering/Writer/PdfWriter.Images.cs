@@ -6,11 +6,11 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     internal sealed class PdfImageStream {
-        public byte[] Data { get; init; } = Array.Empty<byte>();
-        public string DictionarySuffix { get; init; } = string.Empty;
-        public int PixelWidth { get; init; }
-        public int PixelHeight { get; init; }
-        public PdfImageStream? SoftMask { get; init; }
+        public byte[] Data { get; set; } = Array.Empty<byte>();
+        public string DictionarySuffix { get; set; } = string.Empty;
+        public int PixelWidth { get; set; }
+        public int PixelHeight { get; set; }
+        public PdfImageStream? SoftMask { get; set; }
     }
 
     internal static bool TryGetPngImageData(byte[] data, out PdfImageStream image, out string? unsupportedReason) {

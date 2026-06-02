@@ -400,6 +400,29 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void RowColumn_CanComposePanelFromCommonFlowBlocks() {
+            var doc = PdfDoc.Create();
+
+            doc.Compose(compose =>
+                compose.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column => column.Panel(panel => panel
+                                .H3("Column Panel")
+                                .Paragraph(paragraph => paragraph.Text("Column-local composed panels reuse the same core primitive."))
+                                .Bullets(new[] { "Stable in row flow" })))))));
+
+            var page = Assert.IsType<PageBlock>(Assert.Single(doc.Blocks));
+            var row = Assert.IsType<RowBlock>(Assert.Single(page.Blocks));
+            var panel = Assert.IsType<PanelParagraphBlock>(Assert.Single(row.Columns[0].Blocks));
+            string text = string.Concat(panel.Runs.Select(run => run.Text));
+
+            Assert.Contains("Column Panel", text, StringComparison.Ordinal);
+            Assert.Contains("Column-local composed panels", text, StringComparison.Ordinal);
+            Assert.Contains("Stable in row flow", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void RowColumn_CanComposeTable() {
             var doc = PdfDoc.Create();
             var style = TableStyles.Light();

@@ -474,6 +474,9 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(
                 "<< /Type /Font /Subtype /Type1 /BaseFont /Times-BoldItalic /Encoding /WinAnsiEncoding >>\n",
                 PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(PdfStandardFont.TimesBoldItalic));
+            Assert.Equal(
+                "<< /Type /Font /Subtype /Type1 /BaseFont /Times-BoldItalic /Encoding /WinAnsiEncoding /ToUnicode 7 0 R >>\n",
+                PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(PdfStandardFont.TimesBoldItalic, 7));
 
             PdfDictionary dictionary = PdfStandardFontDictionaryBuilder.BuildStandardType1FontDictionary(PdfStandardFont.CourierOblique);
 
@@ -484,6 +487,8 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject((PdfStandardFont)99));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(PdfStandardFont.Helvetica, -1));
         }
 
         [Fact]
@@ -508,17 +513,108 @@ namespace OfficeIMO.Tests.Pdf {
                 "<< /Type /Catalog /Pages 2 0 R /AcroForm 8 0 R >>\n",
                 PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 8));
 
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /Metadata 9 0 R >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 9));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /OutputIntents [10 0 R] >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 0, 10));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /Metadata 9 0 R /OutputIntents [10 0 R] >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 9, 10));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /Lang <656E2D5553> >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 0, 0, "en-US"));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /Lang <656E2D5553> /Metadata 9 0 R /OutputIntents [10 0 R] >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 9, 10, "en-US"));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /PageLabels 14 0 R >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, pageLabelsId: 14));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /Lang <656E2D5553> /PageLabels 14 0 R /Metadata 9 0 R /OutputIntents [10 0 R] >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 9, 10, "en-US", pageLabelsId: 14));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /ViewerPreferences 15 0 R >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, viewerPreferencesId: 15));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /Lang <656E2D5553> /PageLabels 14 0 R /ViewerPreferences 15 0 R /Metadata 9 0 R /OutputIntents [10 0 R] >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 9, 10, "en-US", pageLabelsId: 14, viewerPreferencesId: 15));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /Names << /EmbeddedFiles 11 0 R >> /AF [12 0 R] >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, embeddedFilesNameTreeId: 11, associatedFileIds: new[] { 12 }));
+
+            Assert.Equal(
+                "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 7 0 R /EmbeddedFiles 11 0 R >> /AF [12 0 R 13 0 R] >>\n",
+                PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 7, embeddedFilesNameTreeId: 11, associatedFileIds: new[] { 12, 13 }));
+
             var sb = new StringBuilder();
             PdfCatalogDictionaryBuilder.AppendCatalogStart(sb, 3);
             PdfCatalogDictionaryBuilder.AppendNameEntry(sb, "PageLayout", "TwoColumnLeft");
+            PdfCatalogDictionaryBuilder.AppendTextStringEntry(sb, "Lang", "pl-PL");
             PdfCatalogDictionaryBuilder.AppendReferenceEntry(sb, "Outlines", 9);
             sb.Append(" >>\n");
 
-            Assert.Equal("<< /Type /Catalog /Pages 3 0 R /PageLayout /TwoColumnLeft /Outlines 9 0 R >>\n", sb.ToString());
+            Assert.Equal("<< /Type /Catalog /Pages 3 0 R /PageLayout /TwoColumnLeft /Lang <706C2D504C> /Outlines 9 0 R >>\n", sb.ToString());
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(0, 0));
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, -1));
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, -1));
             Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 0, -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, embeddedFilesNameTreeId: -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, associatedFileIds: new[] { 0 }));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, pageLabelsId: -1));
+            Assert.Throws<ArgumentOutOfRangeException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, viewerPreferencesId: -1));
+            Assert.Throws<ArgumentException>(() => PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(2, 0, 0, 0, 0, 0, ""));
+        }
+
+        [Fact]
+        public void PageLabelDictionaryBuilder_EmitsSimpleNumberTree() {
+            Assert.Equal(
+                "<< /Nums [0 << /S /D /St 1 >>] >>\n",
+                PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(PdfPageNumberStyle.Arabic, 1));
+
+            Assert.Equal(
+                "<< /Nums [0 << /S /R /St 5 /P <412D> >>] >>\n",
+                PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(PdfPageNumberStyle.UpperRoman, 5, "A-"));
+
+            Assert.Equal("r", PdfPageLabelDictionaryBuilder.GetStyleName(PdfPageNumberStyle.LowerRoman));
+            Assert.Equal("a", PdfPageLabelDictionaryBuilder.GetStyleName(PdfPageNumberStyle.LowerLetter));
+            Assert.Equal("A", PdfPageLabelDictionaryBuilder.GetStyleName(PdfPageNumberStyle.UpperLetter));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(PdfPageNumberStyle.Arabic, 0));
+            Assert.Throws<ArgumentException>(() =>
+                PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(PdfPageNumberStyle.Arabic, 1, ""));
+            Assert.Throws<ArgumentException>(() =>
+                PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary((PdfPageNumberStyle)99, 1));
+        }
+
+        [Fact]
+        public void ViewerPreferenceDictionaryBuilder_EmitsConfiguredBooleans() {
+            var preferences = new PdfViewerPreferencesOptions {
+                HideToolbar = true,
+                FitWindow = false,
+                DisplayDocTitle = true
+            };
+
+            Assert.Equal(
+                "<< /HideToolbar true /FitWindow false /DisplayDocTitle true >>\n",
+                PdfViewerPreferenceDictionaryBuilder.BuildGeneratedViewerPreferencesDictionary(preferences));
+
+            Assert.Throws<ArgumentNullException>(() =>
+                PdfViewerPreferenceDictionaryBuilder.BuildGeneratedViewerPreferencesDictionary(null!));
+            Assert.Throws<ArgumentException>(() =>
+                PdfViewerPreferenceDictionaryBuilder.BuildGeneratedViewerPreferencesDictionary(new PdfViewerPreferencesOptions()));
         }
 
         [Fact]

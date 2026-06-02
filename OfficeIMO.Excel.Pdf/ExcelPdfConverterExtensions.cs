@@ -813,7 +813,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             string[] parts = token.Split(new[] { ',' }, 2);
-            if (!TryMapHeaderFooterFontFamily(parts[0], out HeaderFooterFontFamily family)) {
+            if (!PdfCore.PdfStandardFontMapper.TryMapFontFamily(parts[0], out PdfCore.PdfStandardFont family)) {
                 return false;
             }
 
@@ -826,38 +826,6 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return true;
-        }
-
-        private static bool TryMapHeaderFooterFontFamily(string value, out HeaderFooterFontFamily family) {
-            string normalized = NormalizeHeaderFooterFontName(value);
-            if (normalized == "arial" || normalized == "calibri" || normalized == "helvetica") {
-                family = HeaderFooterFontFamily.Helvetica;
-                return true;
-            }
-
-            if (normalized == "times" || normalized == "timesnewroman") {
-                family = HeaderFooterFontFamily.Times;
-                return true;
-            }
-
-            if (normalized == "courier" || normalized == "couriernew") {
-                family = HeaderFooterFontFamily.Courier;
-                return true;
-            }
-
-            family = HeaderFooterFontFamily.Helvetica;
-            return false;
-        }
-
-        private static string NormalizeHeaderFooterFontName(string value) {
-            var builder = new System.Text.StringBuilder(value.Length);
-            foreach (char ch in value) {
-                if (char.IsLetterOrDigit(ch)) {
-                    builder.Append(char.ToLowerInvariant(ch));
-                }
-            }
-
-            return builder.ToString();
         }
 
         private static int SkipExcelHeaderFooterColorToken(string text, int index) {
@@ -1093,12 +1061,6 @@ namespace OfficeIMO.Excel.Pdf {
             return pixels * 72D / 96D;
         }
 
-        private enum HeaderFooterFontFamily {
-            Helvetica,
-            Times,
-            Courier
-        }
-
         private sealed class HeaderFooterZone {
             internal static readonly HeaderFooterZone Empty = new HeaderFooterZone(null, null);
 
@@ -1134,7 +1096,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             internal PdfCore.PdfColor? Color { get; set; }
 
-            internal HeaderFooterFontFamily? FontFamily { get; set; }
+            internal PdfCore.PdfStandardFont? FontFamily { get; set; }
 
             internal bool Bold { get; set; }
 
@@ -1146,24 +1108,8 @@ namespace OfficeIMO.Excel.Pdf {
                         return null;
                     }
 
-                    HeaderFooterFontFamily family = FontFamily ?? HeaderFooterFontFamily.Helvetica;
-                    switch (family) {
-                        case HeaderFooterFontFamily.Times:
-                            if (Bold && Italic) return PdfCore.PdfStandardFont.TimesBoldItalic;
-                            if (Bold) return PdfCore.PdfStandardFont.TimesBold;
-                            if (Italic) return PdfCore.PdfStandardFont.TimesItalic;
-                            return PdfCore.PdfStandardFont.TimesRoman;
-                        case HeaderFooterFontFamily.Courier:
-                            if (Bold && Italic) return PdfCore.PdfStandardFont.CourierBoldOblique;
-                            if (Bold) return PdfCore.PdfStandardFont.CourierBold;
-                            if (Italic) return PdfCore.PdfStandardFont.CourierOblique;
-                            return PdfCore.PdfStandardFont.Courier;
-                        default:
-                            if (Bold && Italic) return PdfCore.PdfStandardFont.HelveticaBoldOblique;
-                            if (Bold) return PdfCore.PdfStandardFont.HelveticaBold;
-                            if (Italic) return PdfCore.PdfStandardFont.HelveticaOblique;
-                            return PdfCore.PdfStandardFont.Helvetica;
-                    }
+                    PdfCore.PdfStandardFont family = FontFamily ?? PdfCore.PdfStandardFont.Helvetica;
+                    return PdfCore.PdfStandardFontMapper.GetStyledFont(family, Bold, Italic);
                 }
             }
 

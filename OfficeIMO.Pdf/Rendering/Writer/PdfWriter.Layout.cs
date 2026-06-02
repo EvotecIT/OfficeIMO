@@ -846,7 +846,7 @@ internal static partial class PdfWriter {
         foreach (System.Collections.Generic.List<RichSeg> line in lines) {
             var strippedLine = new System.Collections.Generic.List<RichSeg>(line.Count);
             foreach (RichSeg segment in line) {
-                strippedLine.Add(segment with { Uri = null, DestinationName = null, Contents = null });
+                strippedLine.Add(segment.WithoutLink());
             }
 
             stripped.Add(strippedLine);
@@ -1210,9 +1210,30 @@ internal static partial class PdfWriter {
                 double iconSize = Math.Min(icon.Size, Math.Max(1D, Math.Min(cellWidth, cellHeight) - 2D));
                 if (iconSize > 0.001D) {
                     double padLeft = GetTableCellPaddingLeft(style, rowIndex, column);
-                    double iconInset = Math.Max(1D, Math.Min(padLeft, 4D));
-                    double iconX = cellX + iconInset;
-                    double iconY = cellBottom + Math.Max(0D, (cellHeight - iconSize) / 2D);
+                    double padRight = GetTableCellPaddingRight(style, rowIndex, column);
+                    double padTop = GetTableCellPaddingTop(style, rowIndex, column);
+                    double padBottom = GetTableCellPaddingBottom(style, rowIndex, column);
+                    double contentLeft = cellX + padLeft;
+                    double contentRight = cellX + cellWidth - padRight;
+                    double contentBottom = cellBottom + padBottom;
+                    double contentTop = cellBottom + cellHeight - padTop;
+                    double contentWidth = Math.Max(0D, contentRight - contentLeft);
+                    double contentHeight = Math.Max(0D, contentTop - contentBottom);
+                    PdfColumnAlign horizontalAlign = GetTableCellAlignment(style, rowIndex, column, cell.Text);
+                    PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(style, rowIndex, column);
+                    double iconX = horizontalAlign switch {
+                        PdfColumnAlign.Center => contentLeft + Math.Max(0D, (contentWidth - iconSize) / 2D),
+                        PdfColumnAlign.Right => contentRight - iconSize,
+                        _ => contentLeft
+                    };
+                    double iconY = verticalAlign switch {
+                        PdfCellVerticalAlign.Middle => contentBottom + Math.Max(0D, (contentHeight - iconSize) / 2D),
+                        PdfCellVerticalAlign.Bottom => contentBottom,
+                        _ => contentTop - iconSize
+                    };
+
+                    iconX += icon.OffsetX;
+                    iconY += icon.OffsetY;
                     DrawTableCellIcon(sb, icon, iconX, iconY, iconSize);
                     drawn = true;
                 }
@@ -1248,9 +1269,39 @@ internal static partial class PdfWriter {
             case PdfCellIconKind.TriangleDown:
                 content.MoveTo(x, y + size).LineTo(x + size, y + size).LineTo(midX, y).ClosePath().FillPath();
                 break;
+            case PdfCellIconKind.CheckBoxUnchecked:
+                DrawCheckBoxIcon(content, icon.Color, x, y, size, selected: false);
+                break;
+            case PdfCellIconKind.CheckBoxChecked:
+                DrawCheckBoxIcon(content, icon.Color, x, y, size, selected: true);
+                break;
             default:
                 throw new ArgumentOutOfRangeException(nameof(icon), icon.Kind, "PDF table cell icon kind is not supported.");
         }
+    }
+
+    private static void DrawCheckBoxIcon(ContentStreamBuilder content, PdfColor color, double x, double y, double size, bool selected) {
+        double strokeWidth = Math.Max(0.75D, size * 0.085D);
+        double inset = strokeWidth / 2D;
+        content.StrokeColor(color)
+            .LineWidth(strokeWidth)
+            .Rectangle(x + inset, y + inset, size - (inset * 2D), size - (inset * 2D))
+            .StrokePath();
+
+        if (!selected) {
+            return;
+        }
+
+        content.StrokeColor(color)
+            .LineWidth(Math.Max(1D, size * 0.14D))
+            .LineCap(1)
+            .LineJoin(1)
+            .MoveTo(x + (size * 0.24D), y + (size * 0.52D))
+            .LineTo(x + (size * 0.43D), y + (size * 0.31D))
+            .LineTo(x + (size * 0.78D), y + (size * 0.72D))
+            .StrokePath()
+            .LineCap(0)
+            .LineJoin(0);
     }
 
     private static void DrawFilledCircle(ContentStreamBuilder content, double centerX, double centerY, double radius) {
@@ -1931,7 +1982,7 @@ internal static partial class PdfWriter {
     private static double[] MeasureAutoFitColumnMinimumWidths(TableBlock table, PdfOptions options, PdfTableStyle style, double fontSize, int headerRowCount, int footerStartRowIndex) {
         int cols = GetTableColumnCount(table);
         var widths = new double[cols];
-        double maximumTokenWidth = Math.Max(1D, fontSize * 12D);
+        double maximumTokenWidth = Math.Max(1D, fontSize * Math.Max(4D, 13D - cols));
 
         for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
             double rowSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStartRowIndex, fontSize);

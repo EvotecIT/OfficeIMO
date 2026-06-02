@@ -3,15 +3,24 @@ namespace OfficeIMO.Pdf;
 internal static class PdfStandardFontDictionaryBuilder {
     private const string FontType = "Font";
     private const string Type1Subtype = "Type1";
+    private const string TrueTypeSubtype = "TrueType";
     private const string WinAnsiEncoding = "WinAnsiEncoding";
 
-    internal static string BuildStandardType1FontObject(PdfStandardFont font) {
+    internal static string BuildStandardType1FontObject(PdfStandardFont font, int toUnicodeObjectId = 0) {
+        if (toUnicodeObjectId < 0) {
+            throw new ArgumentOutOfRangeException(nameof(toUnicodeObjectId), "PDF ToUnicode object number cannot be negative.");
+        }
+
         string baseFont = font.ToBaseFontName();
-        return "<< /Type /" + PdfSyntaxEscaper.Name(FontType) +
+        string body = "<< /Type /" + PdfSyntaxEscaper.Name(FontType) +
             " /Subtype /" + PdfSyntaxEscaper.Name(Type1Subtype) +
             " /BaseFont /" + PdfSyntaxEscaper.Name(baseFont) +
-            " /Encoding /" + PdfSyntaxEscaper.Name(WinAnsiEncoding) +
-            " >>\n";
+            " /Encoding /" + PdfSyntaxEscaper.Name(WinAnsiEncoding);
+        if (toUnicodeObjectId > 0) {
+            body += " /ToUnicode " + PdfSyntaxEscaper.IndirectReference(toUnicodeObjectId);
+        }
+
+        return body + " >>\n";
     }
 
     internal static PdfDictionary BuildStandardType1FontDictionary(PdfStandardFont font) {
@@ -22,5 +31,59 @@ internal static class PdfStandardFontDictionaryBuilder {
         dictionary.Items["BaseFont"] = new PdfName(baseFont);
         dictionary.Items["Encoding"] = new PdfName(WinAnsiEncoding);
         return dictionary;
+    }
+
+    internal static string BuildEmbeddedTrueTypeFontObject(PdfTrueTypeFontProgram font, int descriptorObjectId, int toUnicodeObjectId = 0) {
+        Guard.NotNull(font, nameof(font));
+        if (descriptorObjectId <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(descriptorObjectId), "PDF font descriptor object number must be positive.");
+        }
+
+        if (toUnicodeObjectId < 0) {
+            throw new ArgumentOutOfRangeException(nameof(toUnicodeObjectId), "PDF ToUnicode object number cannot be negative.");
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("<< /Type /").Append(PdfSyntaxEscaper.Name(FontType))
+            .Append(" /Subtype /").Append(PdfSyntaxEscaper.Name(TrueTypeSubtype))
+            .Append(" /BaseFont /").Append(PdfSyntaxEscaper.Name(font.FontName))
+            .Append(" /Encoding /").Append(PdfSyntaxEscaper.Name(WinAnsiEncoding))
+            .Append(" /FirstChar 32 /LastChar 255 /Widths [");
+        int[] widths = font.BuildWinAnsiWidths();
+        for (int i = 0; i < widths.Length; i++) {
+            if (i > 0) {
+                sb.Append(' ');
+            }
+
+            sb.Append(widths[i].ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        sb.Append("] /FontDescriptor ")
+            .Append(PdfSyntaxEscaper.IndirectReference(descriptorObjectId));
+        if (toUnicodeObjectId > 0) {
+            sb.Append(" /ToUnicode ")
+                .Append(PdfSyntaxEscaper.IndirectReference(toUnicodeObjectId));
+        }
+
+        sb.Append(" >>\n");
+        return sb.ToString();
+    }
+
+    internal static string BuildTrueTypeFontDescriptorObject(PdfTrueTypeFontProgram font, int fontFileObjectId) {
+        Guard.NotNull(font, nameof(font));
+        if (fontFileObjectId <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(fontFileObjectId), "PDF embedded font file object number must be positive.");
+        }
+
+        return "<< /Type /FontDescriptor /FontName /" + PdfSyntaxEscaper.Name(font.FontName) +
+            " /Flags " + font.Flags.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /FontBBox [" + string.Join(" ", font.FontBBox.Select(value => value.ToString(System.Globalization.CultureInfo.InvariantCulture))) + "]" +
+            " /ItalicAngle " + font.ItalicAngle.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture) +
+            " /Ascent " + font.Ascent.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /Descent " + font.Descent.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /CapHeight " + font.CapHeight.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /StemV " + font.StemV.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " /FontFile2 " + PdfSyntaxEscaper.IndirectReference(fontFileObjectId) +
+            " >>\n";
     }
 }

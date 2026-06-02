@@ -396,12 +396,12 @@ public class PdfInspectorTests {
 
         Assert.True(info.HasAnnotations);
         Assert.True(info.HasLinkAnnotations);
-        Assert.Equal(2, info.LinkAnnotationCount);
-        Assert.Equal(2, info.LinkAnnotations.Count);
+        Assert.Equal(1, info.LinkAnnotationCount);
+        Assert.Single(info.LinkAnnotations);
         Assert.Equal(1, info.LinkUriCount);
         Assert.Equal(new[] { "https://evotec.xyz" }, info.LinkUris);
         Assert.Single(info.Pages);
-        Assert.Equal(2, info.Pages[0].LinkAnnotations.Count);
+        Assert.Single(info.Pages[0].LinkAnnotations);
         Assert.All(info.LinkAnnotations, link => Assert.Equal(1, link.PageNumber));
         foreach (var link in info.Pages[0].LinkAnnotations) {
             Assert.Equal(1, link.PageNumber);
