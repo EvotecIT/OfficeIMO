@@ -1,0 +1,199 @@
+using AngleSharp;
+using AngleSharp.Css;
+using AngleSharp.Css.Dom;
+using AngleSharp.Css.Parser;
+using AngleSharp.Dom;
+using AngleSharp.Html.Dom;
+using AngleSharp.Io;
+using DocumentFormat.OpenXml.Wordprocessing;
+using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace OfficeIMO.Word.Html {
+    internal partial class HtmlToWordConverter {
+        private static void AddBookmarkIfPresent(IElement element, WordParagraph paragraph) {
+            var id = element.GetAttribute("id");
+            if (string.IsNullOrEmpty(id)) {
+                id = element.GetAttribute("name");
+            }
+            if (!string.IsNullOrEmpty(id)) {
+                WordBookmark.AddBookmark(paragraph, id!);
+            }
+        }
+
+        private WordParagraph AddNoteReference(WordParagraph paragraph, string text, HtmlToWordOptions options) {
+            return options.NoteReferenceType == NoteReferenceType.Endnote
+                ? paragraph.AddEndNote(text)
+                : paragraph.AddFootNote(text);
+        }
+
+        private void TryLinkNoteReference(WordParagraph noteReference, string text, HtmlToWordOptions options) {
+            if (!options.LinkNoteUrls) {
+                return;
+            }
+            if (!TryCreateUriFromText(text, out var uri, out var displayText)) {
+                return;
+            }
+
+            var noteParagraph = options.NoteReferenceType == NoteReferenceType.Endnote
+                ? noteReference.EndNote?.Paragraphs?.FirstOrDefault()
+                : noteReference.FootNote?.Paragraphs?.FirstOrDefault();
+            if (noteParagraph == null) {
+                return;
+            }
+
+            ReplaceNoteParagraphWithHyperlink(noteParagraph, uri, displayText);
+        }
+
+        private static void ReplaceNoteParagraphWithHyperlink(WordParagraph paragraph, Uri uri, string displayText) {
+            if (paragraph == null) {
+                return;
+            }
+            var runs = paragraph._paragraph.Elements<Run>().ToList();
+            foreach (var run in runs) {
+                if (run.GetFirstChild<FootnoteReferenceMark>() != null) {
+                    continue;
+                }
+                if (run.GetFirstChild<EndnoteReferenceMark>() != null) {
+                    continue;
+                }
+                run.Remove();
+            }
+
+            WordHyperLink.AddHyperLink(paragraph, displayText, uri);
+        }
+
+        private void InsertTopBookmarkIfNeeded(WordDocument doc) {
+            if (!_pendingTopBookmark) {
+                return;
+            }
+
+            if (doc.Bookmarks.Any(b => string.Equals(b.Name, "_top", StringComparison.OrdinalIgnoreCase))) {
+                _pendingTopBookmark = false;
+                return;
+            }
+
+            var firstParagraph = doc.Paragraphs.FirstOrDefault();
+            if (firstParagraph == null) {
+                return;
+            }
+
+            WordBookmark.AddBookmark(firstParagraph, "_top");
+            _pendingTopBookmark = false;
+        }
+
+        private static bool IsInvalidHref(string href) {
+            if (string.IsNullOrWhiteSpace(href)) {
+                return true;
+            }
+            var trimmed = href.Trim();
+            if (trimmed == "#") {
+                return true;
+            }
+            return trimmed.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.StartsWith("vbscript:", StringComparison.OrdinalIgnoreCase) ||
+                   trimmed.StartsWith("data:", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string NormalizeHref(string href) {
+            var trimmed = href.Trim();
+            if (trimmed.StartsWith("://", StringComparison.Ordinal)) {
+                return "http" + trimmed;
+            }
+            if (trimmed.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) {
+                return "http://" + trimmed;
+            }
+            return trimmed;
+        }
+
+        private static bool TryCreateUriFromText(string text, out Uri uri, out string displayText) {
+            uri = null!;
+            displayText = text;
+            if (string.IsNullOrWhiteSpace(text)) {
+                return false;
+            }
+
+            var trimmed = text.Trim();
+            displayText = trimmed;
+
+            if (trimmed.StartsWith(@"\\", StringComparison.Ordinal)) {
+                var normalized = "file://" + trimmed.TrimStart('\\').Replace('\\', '/');
+                if (Uri.TryCreate(normalized, UriKind.Absolute, out var parsed) && parsed != null) {
+                    uri = parsed;
+                    return true;
+                }
+            }
+
+            var candidate = NormalizeHref(trimmed);
+            if (Uri.TryCreate(candidate, UriKind.Absolute, out var absolute) && absolute != null) {
+                uri = absolute;
+                return true;
+            }
+
+            if (Uri.TryCreate(candidate, UriKind.RelativeOrAbsolute, out var maybe) && maybe != null && maybe.IsAbsoluteUri) {
+                uri = maybe;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool? GetBidiFromDir(IElement element) {
+            for (IElement? current = element; current != null; current = current.ParentElement) {
+                var dir = current.GetAttribute("dir");
+                if (!string.IsNullOrWhiteSpace(dir)) {
+                    if (string.Equals(dir, "rtl", StringComparison.OrdinalIgnoreCase)) {
+                        return true;
+                    }
+                    if (string.Equals(dir, "ltr", StringComparison.OrdinalIgnoreCase)) {
+                        return false;
+                    }
+                }
+                var style = current.GetAttribute("style");
+                if (TryGetDirectionFromStyle(style, out var bidi)) {
+                    return bidi;
+                }
+            }
+            return null;
+        }
+
+        private static bool TryGetDirectionFromStyle(string? style, out bool bidi) {
+            bidi = false;
+            if (string.IsNullOrWhiteSpace(style)) {
+                return false;
+            }
+            foreach (var part in (style ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                var pieces = part.Split(new[] { ':' }, 2);
+                if (pieces.Length != 2) {
+                    continue;
+                }
+                if (!string.Equals(pieces[0].Trim(), "direction", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+                var value = pieces[1].Trim();
+                if (string.Equals(value, "rtl", StringComparison.OrdinalIgnoreCase)) {
+                    bidi = true;
+                    return true;
+                }
+                if (string.Equals(value, "ltr", StringComparison.OrdinalIgnoreCase)) {
+                    bidi = false;
+                    return true;
+                }
+                return false;
+            }
+            return false;
+        }
+
+        private static void ApplyBidiIfPresent(IElement element, WordParagraph paragraph) {
+            var bidi = GetBidiFromDir(element);
+            if (bidi.HasValue) {
+                paragraph.BiDi = bidi.Value;
+            }
+        }
+    }
+}
