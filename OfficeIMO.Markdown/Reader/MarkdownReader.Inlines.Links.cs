@@ -1,0 +1,351 @@
+namespace OfficeIMO.Markdown;
+
+public static partial class MarkdownReader {
+    private static int FindMatchingBracket(string text, int openIndex) {
+        if (string.IsNullOrEmpty(text) || openIndex < 0 || openIndex >= text.Length || text[openIndex] != '[') return -1;
+
+        int depth = 0;
+        bool escaped = false;
+        for (int i = openIndex; i < text.Length; i++) {
+            char c = text[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '[') {
+                depth++;
+                continue;
+            }
+
+            if (c == ']') {
+                depth--;
+                if (depth == 0) return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int FindReferenceLabelEnd(string text, int openIndex) {
+        if (string.IsNullOrEmpty(text) || openIndex < 0 || openIndex >= text.Length || text[openIndex] != '[') return -1;
+
+        bool escaped = false;
+        for (int i = openIndex + 1; i < text.Length; i++) {
+            char c = text[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '[') return -1;
+            if (c == ']') return i;
+        }
+
+        return -1;
+    }
+
+    private static string UnescapeMarkdownBackslashEscapes(string value) {
+        if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
+
+        var sb = new StringBuilder(value.Length);
+        for (int i = 0; i < value.Length; i++) {
+            char c = value[i];
+            if (c == '\\' && i + 1 < value.Length && IsBackslashEscapable(value[i + 1])) {
+                sb.Append(value[i + 1]);
+                i++;
+                continue;
+            }
+
+            sb.Append(c);
+        }
+
+        return sb.ToString();
+    }
+
+    private static bool TryParseRefLink(string text, int start, out int consumed, out string label, out string refLabel) {
+        consumed = 0; label = refLabel = string.Empty;
+        if (start >= text.Length || text[start] != '[') return false;
+        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        if (rb + 1 >= text.Length || text[rb + 1] != '[') return false;
+        int rb2 = FindMatchingBracket(text, rb + 1); if (rb2 < 0) return false;
+        label = text.Substring(start + 1, rb - (start + 1));
+        refLabel = text.Substring(rb + 2, rb2 - (rb + 2));
+        consumed = rb2 - start + 1; return true;
+    }
+
+    private static bool TryParseCollapsedRef(string text, int start, out int consumed, out string label) {
+        consumed = 0; label = string.Empty;
+        if (start >= text.Length || text[start] != '[') return false;
+        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        if (rb + 2 >= text.Length || text[rb + 1] != '[' || text[rb + 2] != ']') return false;
+        label = text.Substring(start + 1, rb - (start + 1));
+        consumed = rb + 3 - start;
+        return true;
+    }
+
+    private static bool TryParseShortcutRef(string text, int start, out int consumed, out string label) {
+        consumed = 0; label = string.Empty;
+        if (start >= text.Length || text[start] != '[') return false;
+        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        if (rb + 1 < text.Length && text[rb + 1] == '[') return false;
+        label = text.Substring(start + 1, rb - (start + 1));
+        consumed = rb + 1 - start;
+        return true;
+    }
+
+    private static bool TryParseLink(
+        string text,
+        int start,
+        out int consumed,
+        out string label,
+        out string href,
+        out string? title,
+        out int hrefStart,
+        out int hrefLength,
+        out int? titleStart,
+        out int? titleLength) {
+        consumed = 0; label = href = string.Empty; title = null;
+        hrefStart = 0; hrefLength = 0; titleStart = null; titleLength = null;
+        if (start >= text.Length || text[start] != '[') return false;
+        int labelEnd = FindMatchingBracket(text, start);
+        if (labelEnd < 0) return false;
+        int parenOpen = (labelEnd + 1 < text.Length && text[labelEnd + 1] == '(') ? labelEnd + 1 : -1;
+        if (parenOpen < 0) return false;
+        int parenClose = FindMatchingParen(text, parenOpen);
+        if (parenClose < 0) return false;
+        label = text.Substring(start + 1, labelEnd - (start + 1));
+        string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
+        if (!TrySplitUrlAndOptionalTitle(inner, out href, out title, out int hrefInnerStart, out int hrefInnerLength, out int? titleInnerStart, out int? titleInnerLength)) {
+            if (!TryParseTrimmedLiteralDestination(inner, out href, out hrefInnerStart, out hrefInnerLength)) return false;
+            title = null;
+            titleInnerStart = null;
+            titleInnerLength = null;
+        }
+
+        hrefStart = parenOpen + 1 + hrefInnerStart;
+        hrefLength = hrefInnerLength;
+        if (titleInnerStart.HasValue && titleInnerLength.HasValue) {
+            titleStart = parenOpen + 1 + titleInnerStart.Value;
+            titleLength = titleInnerLength.Value;
+        }
+
+        consumed = parenClose - start + 1;
+        return true;
+    }
+
+    private static bool TrySplitUrlAndOptionalTitle(
+        string? inner,
+        out string url,
+        out string? title,
+        out int urlStart,
+        out int urlLength,
+        out int? titleStart,
+        out int? titleLength) {
+        url = string.Empty;
+        title = null;
+        urlStart = 0;
+        urlLength = 0;
+        titleStart = null;
+        titleLength = null;
+        if (inner == null) return false;
+        if (string.IsNullOrWhiteSpace(inner)) return false;
+
+        int start = 0;
+        while (start < inner.Length && char.IsWhiteSpace(inner[start])) {
+            start++;
+        }
+
+        int endExclusive = inner.Length;
+        while (endExclusive > start && char.IsWhiteSpace(inner[endExclusive - 1])) {
+            endExclusive--;
+        }
+
+        if (endExclusive <= start) return false;
+
+        // CommonMark: destination can be wrapped in <...> to allow spaces and parentheses safely.
+        if (inner[start] == '<') {
+            int gt = inner.IndexOf('>', start + 1);
+            if (gt >= start + 1 && gt < endExclusive) {
+                urlStart = start + 1;
+                urlLength = gt - urlStart;
+                url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength).Trim());
+
+                int restStart = gt + 1;
+                while (restStart < endExclusive && char.IsWhiteSpace(inner[restStart])) {
+                    restStart++;
+                }
+
+                if (restStart >= endExclusive) {
+                    return true;
+                }
+
+                if (!TryParseOptionalTitleToken(inner, restStart, endExclusive, out title, out int parsedTitleStart, out int parsedTitleLength)) {
+                    return false;
+                }
+
+                title = UnescapeMarkdownBackslashEscapes(title!);
+                titleStart = parsedTitleStart;
+                titleLength = parsedTitleLength;
+                return true;
+            }
+        }
+
+        int ws = -1;
+        for (int i = start; i < endExclusive; i++) {
+            if (char.IsWhiteSpace(inner[i])) {
+                ws = i;
+                break;
+            }
+        }
+
+        if (ws < 0) {
+            urlStart = start;
+            urlLength = endExclusive - start;
+            url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength));
+            title = null;
+            return true;
+        }
+
+        urlStart = start;
+        urlLength = ws - start;
+        url = UnescapeMarkdownBackslashEscapes(inner.Substring(urlStart, urlLength).Trim());
+
+        int remainingStart = ws;
+        while (remainingStart < endExclusive && char.IsWhiteSpace(inner[remainingStart])) {
+            remainingStart++;
+        }
+
+        if (remainingStart >= endExclusive) { title = null; return true; }
+
+        if (!TryParseOptionalTitleToken(inner, remainingStart, endExclusive, out title, out int parsedStart, out int parsedLength)) return false;
+        title = UnescapeMarkdownBackslashEscapes(title!);
+        titleStart = parsedStart;
+        titleLength = parsedLength;
+        return true;
+    }
+
+    private static bool TrySplitUrlAndOptionalTitle(string? inner, out string url, out string? title) =>
+        TrySplitUrlAndOptionalTitle(inner, out url, out title, out _, out _, out _, out _);
+
+    private static bool TryParseTrimmedLiteralDestination(string inner, out string destination, out int destinationStart, out int destinationLength) {
+        destination = string.Empty;
+        destinationStart = 0;
+        destinationLength = 0;
+
+        string trimmed = inner.Trim();
+        if (IndexOfWhitespace(trimmed) >= 0) return false;
+
+        int trimmedStart = 0;
+        while (trimmedStart < inner.Length && char.IsWhiteSpace(inner[trimmedStart])) {
+            trimmedStart++;
+        }
+
+        int trimmedEndExclusive = inner.Length;
+        while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(inner[trimmedEndExclusive - 1])) {
+            trimmedEndExclusive--;
+        }
+
+        destination = UnescapeMarkdownBackslashEscapes(trimmed);
+        destinationStart = trimmedStart;
+        destinationLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
+        return true;
+    }
+
+    private static int IndexOfWhitespace(string s) {
+        for (int i = 0; i < s.Length; i++) if (char.IsWhiteSpace(s[i])) return i;
+        return -1;
+    }
+
+    private static string? TryParseOptionalTitleToken(string s) {
+        if (string.IsNullOrWhiteSpace(s)) return null;
+        int start = 0;
+        while (start < s.Length && char.IsWhiteSpace(s[start])) {
+            start++;
+        }
+
+        int endExclusive = s.Length;
+        while (endExclusive > start && char.IsWhiteSpace(s[endExclusive - 1])) {
+            endExclusive--;
+        }
+
+        return TryParseOptionalTitleToken(s, start, endExclusive, out string? title, out _, out _) ? title : null;
+    }
+
+    private static bool TryParseOptionalTitleToken(
+        string s,
+        int start,
+        int endExclusive,
+        out string? title,
+        out int titleStart,
+        out int titleLength) {
+        title = null;
+        titleStart = 0;
+        titleLength = 0;
+        if (string.IsNullOrEmpty(s) || endExclusive - start < 2) {
+            return false;
+        }
+
+        char open = s[start];
+        char close = s[endExclusive - 1];
+        if ((open == '"' && close == '"') ||
+            (open == '\'' && close == '\'') ||
+            (open == '(' && close == ')')) {
+            titleStart = start + 1;
+            titleLength = endExclusive - start - 2;
+            title = s.Substring(titleStart, titleLength);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static int FindMatchingParen(string text, int openIndex) {
+        int depth = 0;
+        bool inDoubleQuotes = false;
+        bool inSingleQuotes = false;
+        bool inAngle = false;
+        bool escaped = false;
+        for (int i = openIndex; i < text.Length; i++) {
+            char c = text[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+            if (inAngle) {
+                if (c == '>') inAngle = false;
+                continue;
+            }
+            if (inDoubleQuotes) {
+                if (c == '"') inDoubleQuotes = false;
+                continue;
+            }
+            if (inSingleQuotes) {
+                if (c == '\'') inSingleQuotes = false;
+                continue;
+            }
+            if (c == '(') { depth++; continue; }
+            if (c == ')') { depth--; if (depth == 0) return i; continue; }
+            if (depth == 1) {
+                if (c == '<') { inAngle = true; continue; }
+                if (c == '"') { inDoubleQuotes = true; continue; }
+                if (c == '\'') { inSingleQuotes = true; continue; }
+            }
+        }
+        return -1;
+    }
+}

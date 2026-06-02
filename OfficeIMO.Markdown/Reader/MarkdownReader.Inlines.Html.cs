@@ -1,0 +1,153 @@
+namespace OfficeIMO.Markdown;
+
+public static partial class MarkdownReader {
+    private static bool TryParseSupportedInlineHtmlTag(
+        string text,
+        int start,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        bool allowLinks,
+        bool allowImages,
+        out int consumed,
+        out IMarkdownInline htmlNode) {
+        consumed = 0;
+        htmlNode = null!;
+
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '<') {
+            return false;
+        }
+
+        string[] tags = { "u", "sup", "sub", "ins", "q" };
+        for (int i = 0; i < tags.Length; i++) {
+            if (!TryParseInlineHtmlWrapper(text, start, tags[i], options, state, allowLinks, allowImages, out consumed, out var inlines)) {
+                continue;
+            }
+
+            htmlNode = new HtmlTagSequenceInline(tags[i], inlines);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseInlineHtmlWrapper(
+        string text,
+        int start,
+        string tagName,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        bool allowLinks,
+        bool allowImages,
+        out int consumed,
+        out InlineSequence inlines) {
+        consumed = 0;
+        inlines = new InlineSequence();
+
+        if (!StartsWithExactHtmlTag(text, start, tagName, opening: true)) {
+            return false;
+        }
+
+        int openLength = tagName.Length + 2;
+        int scan = start + openLength;
+        int depth = 1;
+
+        while (scan < text.Length) {
+            if (StartsWithExactHtmlTag(text, scan, tagName, opening: false)) {
+                depth--;
+                if (depth == 0) {
+                    string inner = text.Substring(start + openLength, scan - (start + openLength));
+                    inlines = ParseInlinesInternal(inner, options, state, allowLinks, allowImages);
+                    DecodeHtmlEntitiesInTextRuns(inlines);
+                    consumed = (scan - start) + tagName.Length + 3;
+                    return true;
+                }
+
+                scan += tagName.Length + 3;
+                continue;
+            }
+
+            if (StartsWithExactHtmlTag(text, scan, tagName, opening: true)) {
+                depth++;
+                scan += openLength;
+                continue;
+            }
+
+            scan++;
+        }
+
+        return false;
+    }
+
+    private static bool DecodeHtmlEntitiesInTextRuns(InlineSequence sequence) {
+        if (sequence == null || sequence.Nodes.Count == 0) {
+            return false;
+        }
+
+        var rewritten = new List<IMarkdownInline>(sequence.Nodes.Count);
+        bool changed = false;
+
+        for (int i = 0; i < sequence.Nodes.Count; i++) {
+            var node = sequence.Nodes[i];
+            if (node == null) {
+                continue;
+            }
+
+            rewritten.Add(DecodeHtmlEntitiesInInlineNode(node, ref changed));
+        }
+
+        if (changed) {
+            sequence.ReplaceItems(rewritten);
+        }
+
+        return changed;
+    }
+
+    private static IMarkdownInline DecodeHtmlEntitiesInInlineNode(IMarkdownInline node, ref bool changed) {
+        if (node is TextRun text) {
+            string decoded = System.Net.WebUtility.HtmlDecode(text.Text);
+            if (!string.Equals(decoded, text.Text, StringComparison.Ordinal)) {
+                changed = true;
+                return new DecodedHtmlEntityTextRun(decoded);
+            }
+
+            return text;
+        }
+
+        if (node is IInlineContainerMarkdownInline container && container.NestedInlines != null) {
+            if (DecodeHtmlEntitiesInTextRuns(container.NestedInlines)) {
+                changed = true;
+            }
+        }
+
+        return node;
+    }
+
+    private static bool StartsWithExactHtmlTag(string text, int start, string tagName, bool opening) {
+        if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(tagName) || start < 0 || start >= text.Length || text[start] != '<') {
+            return false;
+        }
+
+        int position = start + 1;
+        if (!opening) {
+            if (position >= text.Length || text[position] != '/') {
+                return false;
+            }
+            position++;
+        }
+
+        if (position + tagName.Length >= text.Length) {
+            return false;
+        }
+
+        if (string.Compare(text, position, tagName, 0, tagName.Length, StringComparison.OrdinalIgnoreCase) != 0) {
+            return false;
+        }
+
+        position += tagName.Length;
+        if (position >= text.Length || text[position] != '>') {
+            return false;
+        }
+
+        return true;
+    }
+}

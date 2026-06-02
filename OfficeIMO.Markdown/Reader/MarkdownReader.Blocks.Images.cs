@@ -58,21 +58,8 @@ public static partial class MarkdownReader {
         string alt = t.Substring(2, altEnd - 2);
         string inner = t.Substring(altEnd + 2, parenClose - (altEnd + 2));
         if (!TrySplitUrlAndOptionalTitle(inner, out var src, out var title, out int srcStart, out int srcLength, out int? titleStart, out int? titleLength)) {
-            if (IndexOfWhitespace(inner.Trim()) >= 0) return false;
-            src = UnescapeMarkdownBackslashEscapes(inner.Trim());
+            if (!TryParseTrimmedLiteralDestination(inner, out src, out srcStart, out srcLength)) return false;
             title = null;
-            int trimmedStart = 0;
-            while (trimmedStart < inner.Length && char.IsWhiteSpace(inner[trimmedStart])) {
-                trimmedStart++;
-            }
-
-            int trimmedEndExclusive = inner.Length;
-            while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(inner[trimmedEndExclusive - 1])) {
-                trimmedEndExclusive--;
-            }
-
-            srcStart = trimmedStart;
-            srcLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
             titleStart = null;
             titleLength = null;
         }
