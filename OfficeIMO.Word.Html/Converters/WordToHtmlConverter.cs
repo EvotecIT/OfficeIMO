@@ -11,7 +11,7 @@ namespace OfficeIMO.Word.Html {
     /// <summary>
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>
-    internal class WordToHtmlConverter {
+    internal partial class WordToHtmlConverter {
         public string Convert(WordDocument document, WordToHtmlOptions options) {
             return ConvertAsync(document, options, CancellationToken.None).GetAwaiter().GetResult();
         }
@@ -111,69 +111,6 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            string MimeFromFileName(string fileName) {
-                var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
-                return ext switch {
-                    ".jpg" => "image/jpeg",
-                    ".jpeg" => "image/jpeg",
-                    ".png" => "image/png",
-                    ".gif" => "image/gif",
-                    ".bmp" => "image/bmp",
-                    ".tif" => "image/tiff",
-                    ".tiff" => "image/tiff",
-                    _ => "image/png"
-                };
-            }
-
-            string FormatNumber(double value) {
-                return value.ToString("0.##", CultureInfo.InvariantCulture);
-            }
-
-            string FormatTwips(int twips) {
-                return FormatNumber(twips / 20.0) + "pt";
-            }
-
-            string? GetHighlightKey(HighlightColorValues value) {
-                if (value is IEnumValue enumValue && !string.IsNullOrWhiteSpace(enumValue.Value)) {
-                    return enumValue.Value;
-                }
-                return value.ToString();
-            }
-
-            string? GetHighlightCss(HighlightColorValues? highlight) {
-                if (highlight == null) {
-                    return null;
-                }
-                var key = GetHighlightKey(highlight.Value);
-                if (key == null) {
-                    return null;
-                }
-                key = key.Trim();
-                if (key.Length == 0) {
-                    return null;
-                }
-                key = key.ToLowerInvariant();
-                return key switch {
-                    "none" => null,
-                    "yellow" => "#ffff00",
-                    "green" => "#00ff00",
-                    "cyan" => "#00ffff",
-                    "magenta" => "#ff00ff",
-                    "blue" => "#0000ff",
-                    "red" => "#ff0000",
-                    "darkblue" => "#00008b",
-                    "darkcyan" => "#008b8b",
-                    "darkgreen" => "#006400",
-                    "darkmagenta" => "#8b008b",
-                    "darkred" => "#8b0000",
-                    "darkyellow" => "#808000",
-                    "darkgray" => "#a9a9a9",
-                    "lightgray" => "#d3d3d3",
-                    "black" => "#000000",
-                    "white" => "#ffffff",
-                    _ => null
-                };
-            }
 
             void AppendRuns(IElement parent, WordParagraph para, bool processFootnotes = true) {
                 var runs = para.GetRuns().ToList();
@@ -443,20 +380,6 @@ namespace OfficeIMO.Word.Html {
                 return runs.Count > 0 && runs.All(r => r.Code);
             }
 
-            bool IsStructuralTag(string tag) {
-                switch (tag) {
-                    case "section":
-                    case "article":
-                    case "aside":
-                    case "nav":
-                    case "header":
-                    case "footer":
-                    case "main":
-                        return true;
-                    default:
-                        return false;
-                }
-            }
 
             void AppendParagraph(IElement parent, WordParagraph para) {
                 if (para.IsBookmark && para.Bookmark != null) {
@@ -550,152 +473,6 @@ namespace OfficeIMO.Word.Html {
                 parent.AppendChild(element);
             }
 
-            string? GetWidthCss(TableWidthUnitValues? type, int? width) {
-                if (type == null || width == null) {
-                    return null;
-                }
-
-                if (type == TableWidthUnitValues.Pct) {
-                    return $"{width.Value / 50}%";
-                }
-
-                if (type == TableWidthUnitValues.Dxa) {
-                    double points = width.Value / 20.0;
-                    double pixels = points * 96 / 72;
-                    return $"{Math.Round(pixels)}px";
-                }
-
-                return null;
-            }
-
-            string? GetTextAlignCss(JustificationValues? justification) {
-                if (justification == null) {
-                    return null;
-                }
-
-                if (justification == JustificationValues.Center) {
-                    return "center";
-                }
-
-                if (justification == JustificationValues.Right) {
-                    return "right";
-                }
-
-                if (justification == JustificationValues.Left) {
-                    return "left";
-                }
-
-                if (justification == JustificationValues.Both) {
-                    return "justify";
-                }
-
-                return null;
-            }
-
-            JustificationValues? GetCellAlignment(WordTableCell cell) {
-                JustificationValues? align = null;
-                foreach (var p in cell.Paragraphs) {
-                    if (p.ParagraphAlignment == null) {
-                        continue;
-                    }
-                    if (align == null) {
-                        align = p.ParagraphAlignment;
-                    } else if (align != p.ParagraphAlignment) {
-                        return null;
-                    }
-                }
-                return align;
-            }
-
-            string? BuildBorderCss(BorderValues? style, string? colorHex, UInt32Value? size) {
-                if (style == null) {
-                    return null;
-                }
-
-                string cssStyle = "solid";
-                if (style == BorderValues.Dashed) {
-                    cssStyle = "dashed";
-                } else if (style == BorderValues.Dotted) {
-                    cssStyle = "dotted";
-                } else if (style == BorderValues.Double) {
-                    cssStyle = "double";
-                }
-
-                string color = !string.IsNullOrEmpty(colorHex) ? $"#{colorHex}" : "black";
-                double widthPt = size != null ? size.Value / 8.0 : 1.0;
-                double widthPx = widthPt * 96 / 72;
-                string width = $"{Math.Round(widthPx)}px";
-                return $"{width} {cssStyle} {color}";
-            }
-
-            List<string> GetBorderCss(WordTableCell cell) {
-                List<string> styles = new();
-                var b = cell.Borders;
-                if (b == null) {
-                    return styles;
-                }
-
-                var left = BuildBorderCss(b.LeftStyle, b.LeftColorHex, b.LeftSize);
-                var right = BuildBorderCss(b.RightStyle, b.RightColorHex, b.RightSize);
-                var top = BuildBorderCss(b.TopStyle, b.TopColorHex, b.TopSize);
-                var bottom = BuildBorderCss(b.BottomStyle, b.BottomColorHex, b.BottomSize);
-
-                if (left == null && right == null && top == null && bottom == null) {
-                    return styles;
-                }
-
-                if (left == top && top == right && right == bottom && left != null) {
-                    styles.Add($"border:{left}");
-                } else {
-                    if (left != null) {
-                        styles.Add($"border-left:{left}");
-                    }
-                    if (right != null) {
-                        styles.Add($"border-right:{right}");
-                    }
-                    if (top != null) {
-                        styles.Add($"border-top:{top}");
-                    }
-                    if (bottom != null) {
-                        styles.Add($"border-bottom:{bottom}");
-                    }
-                }
-
-                return styles;
-            }
-
-            List<string> GetParagraphBorderCss(WordParagraph p) {
-                List<string> styles = new();
-                var b = p.Borders;
-                if (b == null) return styles;
-
-                var left = BuildBorderCss(b.LeftStyle, b.LeftColorHex, b.LeftSize);
-                var right = BuildBorderCss(b.RightStyle, b.RightColorHex, b.RightSize);
-                var top = BuildBorderCss(b.TopStyle, b.TopColorHex, b.TopSize);
-                var bottom = BuildBorderCss(b.BottomStyle, b.BottomColorHex, b.BottomSize);
-
-                if (left == null && right == null && top == null && bottom == null) {
-                    return styles;
-                }
-                if (left == top && top == right && right == bottom && left != null) {
-                    styles.Add($"border:{left}");
-                } else {
-                    if (left != null) styles.Add($"border-left:{left}");
-                    if (right != null) styles.Add($"border-right:{right}");
-                    if (top != null) styles.Add($"border-top:{top}");
-                    if (bottom != null) styles.Add($"border-bottom:{bottom}");
-                }
-                return styles;
-            }
-
-            bool CellHasBorder(WordTableCell cell) {
-                var b = cell.Borders;
-                return b != null && (b.LeftStyle != null || b.RightStyle != null || b.TopStyle != null || b.BottomStyle != null);
-            }
-
-            bool TableHasBorder(WordTable table) {
-                return table.Rows.Any(r => r.Cells.Any(CellHasBorder));
-            }
 
             void AppendTable(IElement parent, WordTable table) {
                 var tableEl = htmlDoc.CreateElement("table");
