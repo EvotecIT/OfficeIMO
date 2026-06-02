@@ -1,0 +1,180 @@
+namespace OfficeIMO.Pdf;
+
+public sealed partial class PdfOptions {
+    /// <summary>Creates a deep copy of the options.</summary>
+    public PdfOptions Clone() {
+        var clone = new PdfOptions {
+            PageWidth = PageWidth,
+            PageHeight = PageHeight,
+            BackgroundColor = BackgroundColor,
+            TextWatermark = _textWatermark?.Clone(),
+            ImageWatermark = _imageWatermark?.Clone(),
+            PageBorder = _pageBorder?.Clone(),
+            PageBackgroundImage = _pageBackgroundImage?.Clone(),
+            PageBackgroundShapes = ClonePageBackgroundShapes(_pageBackgroundShapes),
+            MarginLeft = MarginLeft,
+            MarginRight = MarginRight,
+            MarginTop = MarginTop,
+            MarginBottom = MarginBottom,
+            DefaultFont = DefaultFont,
+            DefaultFontSize = DefaultFontSize,
+            CompressContentStreams = CompressContentStreams,
+            IncludeStandardFontToUnicodeMaps = IncludeStandardFontToUnicodeMaps,
+            CompressEmbeddedFonts = CompressEmbeddedFonts,
+            IncludeXmpMetadata = IncludeXmpMetadata,
+            IncludePageLabels = IncludePageLabels,
+            PageLabelPrefix = PageLabelPrefix,
+            ComplianceProfile = ComplianceProfile,
+            OutputIntent = _outputIntent?.Clone(),
+            Language = Language,
+            ViewerPreferences = _viewerPreferences?.Clone(),
+            _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
+            _embeddedFiles = CloneEmbeddedFiles(_embeddedFiles),
+            ShowHeader = ShowHeader,
+            HeaderFormat = HeaderFormat,
+            DifferentFirstPageHeaderFooter = DifferentFirstPageHeaderFooter,
+            FirstPageHeaderFormat = FirstPageHeaderFormat,
+            DifferentOddAndEvenPagesHeaderFooter = DifferentOddAndEvenPagesHeaderFooter,
+            EvenPageHeaderFormat = EvenPageHeaderFormat,
+            HeaderFont = HeaderFont,
+            HeaderFontSize = HeaderFontSize,
+            HeaderTextColor = HeaderTextColor,
+            HeaderAlign = HeaderAlign,
+            HeaderOffsetY = HeaderOffsetY,
+            ShowPageNumbers = ShowPageNumbers,
+            FooterFormat = FooterFormat,
+            FirstPageFooterFormat = FirstPageFooterFormat,
+            EvenPageFooterFormat = EvenPageFooterFormat,
+            FooterFont = FooterFont,
+            FooterFontSize = FooterFontSize,
+            FooterTextColor = FooterTextColor,
+            FooterAlign = FooterAlign,
+            FooterOffsetY = FooterOffsetY,
+            PageNumberStyle = PageNumberStyle,
+            DefaultTextColor = DefaultTextColor,
+            DefaultParagraphStyle = _defaultParagraphStyle?.Clone(),
+            DefaultTableStyle = _defaultTableStyle?.Clone(),
+            DefaultHeadingStyles = _defaultHeadingStyles?.Clone(),
+            DefaultListStyle = _defaultListStyle?.Clone(),
+            DefaultPanelStyle = _defaultPanelStyle?.Clone(),
+            DefaultHorizontalRuleStyle = _defaultHorizontalRuleStyle?.Clone(),
+            DefaultImageStyle = _defaultImageStyle?.Clone(),
+            DefaultDrawingStyle = _defaultDrawingStyle?.Clone(),
+            DefaultRowStyle = _defaultRowStyle?.Clone(),
+            CreateOutlineFromHeadings = CreateOutlineFromHeadings,
+            Debug = Debug is null ? null : new PdfDebugOptions {
+                ShowContentArea = Debug.ShowContentArea,
+                ShowTableBaselines = Debug.ShowTableBaselines,
+                ShowTableRowBoxes = Debug.ShowTableRowBoxes,
+                ShowTableColumnGuides = Debug.ShowTableColumnGuides
+            },
+            _headerSegments = _headerSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_headerSegments),
+            _firstPageHeaderSegments = _firstPageHeaderSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_firstPageHeaderSegments),
+            _evenPageHeaderSegments = _evenPageHeaderSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_evenPageHeaderSegments),
+            FooterSegments = _footerSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_footerSegments),
+            FirstPageFooterSegments = _firstPageFooterSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_firstPageFooterSegments),
+            EvenPageFooterSegments = _evenPageFooterSegments is null ? null : new System.Collections.Generic.List<FooterSegment>(_evenPageFooterSegments),
+            _headerLeftFormat = _headerLeftFormat,
+            _headerCenterFormat = _headerCenterFormat,
+            _headerRightFormat = _headerRightFormat,
+            _firstPageHeaderLeftFormat = _firstPageHeaderLeftFormat,
+            _firstPageHeaderCenterFormat = _firstPageHeaderCenterFormat,
+            _firstPageHeaderRightFormat = _firstPageHeaderRightFormat,
+            _evenPageHeaderLeftFormat = _evenPageHeaderLeftFormat,
+            _evenPageHeaderCenterFormat = _evenPageHeaderCenterFormat,
+            _evenPageHeaderRightFormat = _evenPageHeaderRightFormat,
+            _footerLeftFormat = _footerLeftFormat,
+            _footerCenterFormat = _footerCenterFormat,
+            _footerRightFormat = _footerRightFormat,
+            _firstPageFooterLeftFormat = _firstPageFooterLeftFormat,
+            _firstPageFooterCenterFormat = _firstPageFooterCenterFormat,
+            _firstPageFooterRightFormat = _firstPageFooterRightFormat,
+            _evenPageFooterLeftFormat = _evenPageFooterLeftFormat,
+            _evenPageFooterCenterFormat = _evenPageFooterCenterFormat,
+            _evenPageFooterRightFormat = _evenPageFooterRightFormat,
+            _headerImages = CloneHeaderFooterImages(_headerImages),
+            _firstPageHeaderImages = CloneHeaderFooterImages(_firstPageHeaderImages),
+            _evenPageHeaderImages = CloneHeaderFooterImages(_evenPageHeaderImages),
+            _footerImages = CloneHeaderFooterImages(_footerImages),
+            _firstPageFooterImages = CloneHeaderFooterImages(_firstPageFooterImages),
+            _evenPageFooterImages = CloneHeaderFooterImages(_evenPageFooterImages),
+            _headerShapes = CloneHeaderFooterShapes(_headerShapes),
+            _firstPageHeaderShapes = CloneHeaderFooterShapes(_firstPageHeaderShapes),
+            _evenPageHeaderShapes = CloneHeaderFooterShapes(_evenPageHeaderShapes),
+            _footerShapes = CloneHeaderFooterShapes(_footerShapes),
+            _firstPageFooterShapes = CloneHeaderFooterShapes(_firstPageFooterShapes),
+            _evenPageFooterShapes = CloneHeaderFooterShapes(_evenPageFooterShapes)
+        };
+        clone._pageNumberStart = _pageNumberStart;
+        clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;
+        return clone;
+    }
+
+    private static System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? CloneEmbeddedFonts(System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? fonts) {
+        if (fonts == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>();
+        foreach (var font in fonts) {
+            clone[font.Key] = font.Value.Clone();
+        }
+
+        return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfEmbeddedFile>? CloneEmbeddedFiles(System.Collections.Generic.IEnumerable<PdfEmbeddedFile>? files) {
+        if (files == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfEmbeddedFile>();
+        foreach (PdfEmbeddedFile file in files) {
+            Guard.NotNull(file, nameof(EmbeddedFiles));
+            clone.Add(file.Clone());
+        }
+
+        return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfHeaderFooterImage>? CloneHeaderFooterImages(System.Collections.Generic.List<PdfHeaderFooterImage>? images) {
+        if (images == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfHeaderFooterImage>(images.Count);
+        foreach (PdfHeaderFooterImage image in images) {
+            clone.Add(image.Clone());
+        }
+
+        return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfHeaderFooterShape>? CloneHeaderFooterShapes(System.Collections.Generic.List<PdfHeaderFooterShape>? shapes) {
+        if (shapes == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfHeaderFooterShape>(shapes.Count);
+        foreach (PdfHeaderFooterShape shape in shapes) {
+            clone.Add(shape.Clone());
+        }
+
+        return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfPageBackgroundShape>? ClonePageBackgroundShapes(System.Collections.Generic.IEnumerable<PdfPageBackgroundShape>? shapes) {
+        if (shapes == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfPageBackgroundShape>();
+        foreach (PdfPageBackgroundShape shape in shapes) {
+            Guard.NotNull(shape, nameof(PageBackgroundShapes));
+            clone.Add(shape.Clone());
+        }
+
+        return clone;
+    }
+
+}
