@@ -561,6 +561,28 @@ public class DrawingTests {
         Assert.True(measurer.DefaultStyle.MaximumDigitWidthPixels > 0);
     }
 
+    [Fact]
+    public void OfficeTrueTypeFontRejectsInvalidData() {
+        Assert.Null(OfficeTrueTypeFont.TryLoad(Array.Empty<byte>()));
+        Assert.Null(OfficeTrueTypeFont.TryLoad(new byte[] { 1, 2, 3, 4, 5 }));
+    }
+
+    [Fact]
+    public void OfficeTrueTypeFontReadsDefaultFontOutlinesWhenAvailable() {
+        OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? path);
+        if (font == null) {
+            return;
+        }
+
+        Assert.False(string.IsNullOrWhiteSpace(path));
+        Assert.True(font.Measure("OfficeIMO", 18) > 0);
+        Assert.True(font.LineHeight(18) > 0);
+
+        List<List<OfficePoint>> contours = font.GetTextContours("OfficeIMO", 0, 0, 18);
+        Assert.NotEmpty(contours);
+        Assert.Contains(contours, contour => contour.Count >= 3);
+    }
+
     [Theory]
     [InlineData("png", OfficeImageFormat.Png)]
     [InlineData(".png", OfficeImageFormat.Png)]

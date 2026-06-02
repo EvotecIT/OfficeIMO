@@ -2,16 +2,16 @@ using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
     /// <summary>
-    /// Options for headless SVG export from an in-memory Visio page.
+    /// Options for native dependency-free PNG export from an in-memory Visio page.
     /// </summary>
-    public sealed class VisioSvgSaveOptions {
+    public sealed class VisioPngSaveOptions {
         /// <summary>
         /// Zero-based page index used when exporting a document. Defaults to the first page.
         /// </summary>
         public int PageIndex { get; set; }
 
         /// <summary>
-        /// Number of SVG units used per Visio inch. Defaults to 96 so the SVG maps naturally to browser pixels.
+        /// Number of output pixels used per Visio inch. Defaults to 96.
         /// </summary>
         public double PixelsPerInch { get; set; } = 96D;
 
@@ -21,9 +21,24 @@ namespace OfficeIMO.Visio {
         public Color? BackgroundColor { get; set; } = Color.White;
 
         /// <summary>
-        /// Gets or sets whether shape text is emitted.
+        /// Gets or sets whether shape text is rendered.
         /// </summary>
         public bool RenderText { get; set; } = true;
+
+        /// <summary>
+        /// Optional TrueType/OpenType font file used for native PNG text outlines. When unset or unreadable, the renderer uses the built-in managed fallback discovery path.
+        /// </summary>
+        public string? FontFilePath { get; set; }
+
+        /// <summary>
+        /// Optional font face name used when selecting a face from a TrueType/OpenType collection.
+        /// </summary>
+        public string? FontFaceName { get; set; }
+
+        /// <summary>
+        /// Optional zero-based face index used when selecting a face from a TrueType/OpenType collection.
+        /// </summary>
+        public int? FontCollectionIndex { get; set; }
 
         /// <summary>
         /// Gets or sets whether built-in OfficeIMO stencil metadata is projected as dependency-free vector artwork.
@@ -31,7 +46,7 @@ namespace OfficeIMO.Visio {
         public bool RenderStencilArtwork { get; set; } = true;
 
         /// <summary>
-        /// Gets or sets whether connector labels are emitted.
+        /// Gets or sets whether connector labels are rendered.
         /// </summary>
         public bool RenderConnectorLabels { get; set; } = true;
 
@@ -41,8 +56,8 @@ namespace OfficeIMO.Visio {
         public bool ResolveConnectorLabelOverlaps { get; set; } = true;
 
         /// <summary>
-        /// Gets or sets whether an XML declaration should be included.
+        /// Supersampling factor used for smoother native raster output. Defaults to 3.
         /// </summary>
-        public bool IncludeXmlDeclaration { get; set; }
+        public int Supersampling { get; set; } = 3;
     }
 }

@@ -34,7 +34,6 @@ namespace OfficeIMO.Visio {
                 writer.WriteAttributeString("role", "img");
                 writer.WriteAttributeString("aria-label", string.IsNullOrWhiteSpace(page.Name) ? "OfficeIMO Visio page" : page.Name);
 
-                WriteDefinitions(writer);
                 if (options.BackgroundColor.HasValue && options.BackgroundColor.Value.A > 0) {
                     writer.WriteStartElement("rect", SvgNamespace);
                     writer.WriteAttributeString("x", "0");
@@ -52,8 +51,11 @@ namespace OfficeIMO.Visio {
                     WriteShape(writer, page, shape, options, scale);
                 }
 
+                VisioRenderLabelLayout? labelLayout = options.ResolveConnectorLabelOverlaps
+                    ? VisioRenderLabelLayout.Create(page)
+                    : null;
                 foreach (VisioConnector connector in page.Connectors) {
-                    WriteConnector(writer, page, connector, options, scale);
+                    WriteConnector(writer, page, connector, options, scale, labelLayout);
                 }
 
                 writer.WriteEndElement();
@@ -64,24 +66,6 @@ namespace OfficeIMO.Visio {
             return builder.ToString();
         }
 
-        private static void WriteDefinitions(XmlWriter writer) {
-            writer.WriteStartElement("defs", SvgNamespace);
-            writer.WriteStartElement("marker", SvgNamespace);
-            writer.WriteAttributeString("id", "officeimo-visio-arrow");
-            writer.WriteAttributeString("viewBox", "0 0 10 10");
-            writer.WriteAttributeString("refX", "9");
-            writer.WriteAttributeString("refY", "5");
-            writer.WriteAttributeString("markerWidth", "8");
-            writer.WriteAttributeString("markerHeight", "8");
-            writer.WriteAttributeString("orient", "auto-start-reverse");
-            writer.WriteStartElement("path", SvgNamespace);
-            writer.WriteAttributeString("d", "M 0 0 L 10 5 L 0 10 z");
-            writer.WriteAttributeString("fill", "context-stroke");
-            writer.WriteEndElement();
-            writer.WriteEndElement();
-            writer.WriteEndElement();
-        }
-
         private static void WriteShape(XmlWriter writer, VisioPage page, VisioShape shape, VisioSvgSaveOptions options, double scale) {
             writer.WriteStartElement("g", SvgNamespace);
             writer.WriteAttributeString("data-visio-shape-id", shape.Id);
@@ -90,6 +74,12 @@ namespace OfficeIMO.Visio {
             }
 
             WriteShapeGeometry(writer, page, shape, scale);
+
+            if (options.RenderStencilArtwork) {
+                if (!WritePackagePreviewArtwork(writer, page, shape, scale)) {
+                    WriteStencilArtwork(writer, page, shape, scale);
+                }
+            }
 
             if (options.RenderText && !string.IsNullOrEmpty(shape.Text)) {
                 WriteShapeText(writer, page, shape, scale);
@@ -103,9 +93,50 @@ namespace OfficeIMO.Visio {
         }
 
         private static void WriteShapeGeometry(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
-            string kind = NormalizeKind(shape.MasterNameU ?? shape.NameU ?? shape.Name ?? string.Empty);
+            string kind = VisioShapeGeometry.ResolveRenderKind(shape);
+            if (VisioShapeGeometry.TryGetRenderClosedPaths(shape, out List<VisioShapeGeometryPath> preservedPaths)) {
+                for (int i = 0; i < preservedPaths.Count;) {
+                    VisioShapeGeometryPath preservedPath = preservedPaths[i];
+                    if (!preservedPath.IsClosed || preservedPath.NoFill || shape.FillPattern == 0) {
+                        writer.WriteStartElement("path", SvgNamespace);
+                        writer.WriteAttributeString("d", BuildPath(page, shape, preservedPath.Points, scale, preservedPath.IsClosed));
+                        writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
+                        WriteShapeStyle(writer, shape, scale, preservedPath.NoFill || !preservedPath.IsClosed, preservedPath.NoLine);
+                        writer.WriteEndElement();
+                        i++;
+                        continue;
+                    }
+
+                    int fillGroup = preservedPath.FillGroup;
+                    List<VisioShapeGeometryPath> contours = new() { preservedPath };
+                    int end = i + 1;
+                    while (end < preservedPaths.Count &&
+                           preservedPaths[end].IsClosed &&
+                           !preservedPaths[end].NoFill &&
+                           preservedPaths[end].FillGroup == fillGroup) {
+                        contours.Add(preservedPaths[end]);
+                        end++;
+                    }
+
+                    if (contours.Count == 1) {
+                        writer.WriteStartElement("path", SvgNamespace);
+                        writer.WriteAttributeString("d", BuildPath(page, shape, preservedPath.Points, scale, isClosed: true));
+                        writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
+                        WriteShapeStyle(writer, shape, scale, noFill: false, noLine: preservedPath.NoLine);
+                        writer.WriteEndElement();
+                    } else {
+                        WritePreservedGeometryFillPath(writer, page, shape, contours, scale);
+                        WritePreservedGeometryStrokePaths(writer, page, shape, contours, scale);
+                    }
+
+                    i = end;
+                }
+
+                return;
+            }
+
             if (kind == "ellipse" || kind == "circle") {
-                (double centerX, double centerY) = GetPagePoint(shape, shape.LocPinX, shape.LocPinY);
+                (double centerX, double centerY) = GetPagePoint(shape, shape.Width / 2D, shape.Height / 2D);
                 (double cx, double cy) = ToSvg(page, centerX, centerY, scale);
                 writer.WriteStartElement("ellipse", SvgNamespace);
                 writer.WriteAttributeString("cx", Format(cx));
@@ -121,62 +152,179 @@ namespace OfficeIMO.Visio {
                 return;
             }
 
-            List<(double X, double Y)> points = GetShapePoints(shape, kind);
-            if (points.Count == 0) {
-                points = GetShapePoints(shape, "rectangle");
+            if (kind == "database") {
+                WriteDatabaseGeometry(writer, page, shape, scale);
+                return;
             }
 
+            List<(double X, double Y)> points = VisioShapeGeometry.GetBuiltinClosedPath(shape, kind);
+
             writer.WriteStartElement("path", SvgNamespace);
-            writer.WriteAttributeString("d", BuildClosedPath(page, shape, points, scale));
+            writer.WriteAttributeString("d", BuildPath(page, shape, points, scale, isClosed: true));
             WriteShapeStyle(writer, shape, scale);
             writer.WriteEndElement();
         }
 
-        private static List<(double X, double Y)> GetShapePoints(VisioShape shape, string kind) {
-            double width = shape.Width;
-            double height = shape.Height;
-            double midX = width / 2D;
-            double midY = height / 2D;
-            switch (kind) {
-                case "diamond":
-                case "decision":
-                    return new List<(double X, double Y)> { (midX, 0), (width, midY), (midX, height), (0, midY) };
-                case "triangle":
-                    return new List<(double X, double Y)> { (0, 0), (midX, height), (width, 0) };
-                case "pentagon":
-                case "offpagereference":
-                    return new List<(double X, double Y)> {
-                        (midX, height),
-                        (width, height * 0.62D),
-                        (width * 0.8D, 0),
-                        (width * 0.2D, 0),
-                        (0, height * 0.62D)
-                    };
-                case "parallelogram":
-                case "data":
-                    double offset = Math.Min(width / 4D, Math.Max(width / 10D, height / 3D));
-                    return new List<(double X, double Y)> { (offset, 0), (width, 0), (width - offset, height), (0, height) };
-                case "hexagon":
-                case "preparation":
-                    double inset = Math.Min(width / 4D, Math.Max(width / 8D, height / 4D));
-                    return new List<(double X, double Y)> { (inset, 0), (width - inset, 0), (width, midY), (width - inset, height), (inset, height), (0, midY) };
-                case "trapezoid":
-                case "manualoperation":
-                    double trapInset = Math.Min(width / 5D, Math.Max(width / 10D, height / 4D));
-                    return new List<(double X, double Y)> { (trapInset, height), (width - trapInset, height), (width, 0), (0, 0) };
-                default:
-                    return new List<(double X, double Y)> { (0, 0), (width, 0), (width, height), (0, height) };
+        private static void WriteDatabaseGeometry(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
+            (double centerXPage, double centerYPage) = GetPagePoint(shape, shape.LocPinX, shape.LocPinY);
+            (double centerX, double centerY) = ToSvg(page, centerXPage, centerYPage, scale);
+            double width = Math.Max(0.01D, shape.Width * scale);
+            double height = Math.Max(0.01D, shape.Height * scale);
+            double capHeight = Math.Min(height * 0.18D, width * 0.16D);
+            double left = centerX - (width / 2D);
+            double right = centerX + (width / 2D);
+            double top = centerY - (height / 2D);
+            double bottom = centerY + (height / 2D);
+            string transform = Math.Abs(shape.Angle) > 1e-9
+                ? FormatTextRotation(shape.Angle, centerX, centerY)
+                : string.Empty;
+
+            writer.WriteStartElement("path", SvgNamespace);
+            writer.WriteAttributeString("data-officeimo-database-geometry", "true");
+            writer.WriteAttributeString(
+                "d",
+                "M " + Format(left) + " " + Format(top + capHeight) +
+                " C " + Format(left) + " " + Format(top - (capHeight * 0.35D)) +
+                " " + Format(right) + " " + Format(top - (capHeight * 0.35D)) +
+                " " + Format(right) + " " + Format(top + capHeight) +
+                " L " + Format(right) + " " + Format(bottom - capHeight) +
+                " C " + Format(right) + " " + Format(bottom + (capHeight * 0.35D)) +
+                " " + Format(left) + " " + Format(bottom + (capHeight * 0.35D)) +
+                " " + Format(left) + " " + Format(bottom - capHeight) +
+                " Z");
+            if (!string.IsNullOrEmpty(transform)) {
+                writer.WriteAttributeString("transform", transform);
             }
+
+            WriteShapeStyle(writer, shape, scale);
+            writer.WriteEndElement();
+
+            writer.WriteStartElement("path", SvgNamespace);
+            writer.WriteAttributeString("data-officeimo-database-seam", "true");
+            writer.WriteAttributeString(
+                "d",
+                "M " + Format(left) + " " + Format(top + capHeight) +
+                " C " + Format(left) + " " + Format(top + (capHeight * 2.35D)) +
+                " " + Format(right) + " " + Format(top + (capHeight * 2.35D)) +
+                " " + Format(right) + " " + Format(top + capHeight));
+            if (!string.IsNullOrEmpty(transform)) {
+                writer.WriteAttributeString("transform", transform);
+            }
+
+            WriteShapeStyle(writer, shape, scale, noFill: true);
+            writer.WriteEndElement();
         }
 
-        private static void WriteShapeStyle(XmlWriter writer, VisioShape shape, double scale) {
-            if (shape.FillPattern == 0 || shape.FillColor.A == 0) {
+        private static void WriteStencilArtwork(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
+            string? stencilKey = VisioStencilArtwork.GetKey(shape);
+            if (string.IsNullOrEmpty(stencilKey)) {
+                return;
+            }
+
+            double placementScale = string.IsNullOrWhiteSpace(shape.Text) ? 0.58D : 0.34D;
+            double iconSize = Math.Max(0.08D, Math.Min(shape.Width, shape.Height) * placementScale);
+            double localCx = shape.Width / 2D;
+            double localCy = string.IsNullOrWhiteSpace(shape.Text)
+                ? shape.Height / 2D
+                : shape.Height - Math.Min(shape.Height * 0.28D, iconSize * 0.72D);
+            (double cx, double cy) = GetPagePoint(shape, localCx, localCy);
+            (double x, double y) = ToSvg(page, cx, cy, scale);
+            double size = iconSize * scale;
+            Color color = VisioStencilArtwork.ResolveColor(shape, 210);
+
+            writer.WriteStartElement("g", SvgNamespace);
+            writer.WriteAttributeString("data-officeimo-stencil-artwork", "true");
+            writer.WriteAttributeString("data-officeimo-stencil-key", stencilKey);
+            writer.WriteAttributeString("opacity", "0.42");
+            if (Math.Abs(shape.Angle) > 1e-9) {
+                writer.WriteAttributeString("transform", FormatTextRotation(shape.Angle, x, y));
+            }
+
+            switch (stencilKey) {
+                case "person":
+                    WriteSvgCircle(writer, x, y - size * 0.18D, size * 0.16D, color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
+                    WriteSvgPath(writer, "M " + Format(x - size * 0.27D) + " " + Format(y + size * 0.29D) +
+                                         " Q " + Format(x) + " " + Format(y + size * 0.02D) +
+                                         " " + Format(x + size * 0.27D) + " " + Format(y + size * 0.29D), color, fill: false, strokeWidth: Math.Max(1D, size * 0.055D));
+                    break;
+                case "data":
+                    WriteSvgCylinder(writer, x, y, size, color);
+                    break;
+                case "security":
+                    WriteSvgShield(writer, x, y, size, color);
+                    break;
+                case "compute":
+                    WriteSvgRect(writer, x - size * 0.34D, y - size * 0.24D, size * 0.68D, size * 0.48D, color, fill: false, strokeWidth: Math.Max(1D, size * 0.045D));
+                    WriteSvgLine(writer, x - size * 0.22D, y - size * 0.06D, x + size * 0.22D, y - size * 0.06D, color, Math.Max(1D, size * 0.04D));
+                    WriteSvgLine(writer, x - size * 0.22D, y + size * 0.08D, x + size * 0.22D, y + size * 0.08D, color, Math.Max(1D, size * 0.04D));
+                    break;
+                case "cloud":
+                    WriteSvgPath(writer, BuildCloudPath(x, y, size), color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
+                    break;
+                case "container":
+                    WriteSvgHex(writer, x, y, size, color);
+                    break;
+                case "event":
+                    WriteSvgLine(writer, x - size * 0.32D, y - size * 0.16D, x + size * 0.28D, y - size * 0.16D, color, Math.Max(1D, size * 0.045D));
+                    WriteSvgLine(writer, x - size * 0.32D, y, x + size * 0.18D, y, color, Math.Max(1D, size * 0.045D));
+                    WriteSvgLine(writer, x - size * 0.32D, y + size * 0.16D, x + size * 0.28D, y + size * 0.16D, color, Math.Max(1D, size * 0.045D));
+                    break;
+                case "monitoring":
+                    WriteSvgPath(writer, "M " + Format(x - size * 0.36D) + " " + Format(y) +
+                                         " L " + Format(x - size * 0.14D) + " " + Format(y) +
+                                         " L " + Format(x - size * 0.04D) + " " + Format(y - size * 0.22D) +
+                                         " L " + Format(x + size * 0.09D) + " " + Format(y + size * 0.2D) +
+                                         " L " + Format(x + size * 0.19D) + " " + Format(y) +
+                                         " L " + Format(x + size * 0.36D) + " " + Format(y), color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
+                    break;
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private static bool WritePackagePreviewArtwork(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
+            if (!VisioPackagePreviewArtwork.TryGetBrowserImage(shape, out VisioPreviewImage image)) {
+                return false;
+            }
+
+            double placementScale = string.IsNullOrWhiteSpace(shape.Text) ? 0.64D : 0.42D;
+            double imageWidth = Math.Max(0.01D, shape.Width * placementScale);
+            double imageHeight = Math.Max(0.01D, shape.Height * placementScale);
+            double localCx = shape.Width / 2D;
+            double localCy = string.IsNullOrWhiteSpace(shape.Text)
+                ? shape.Height / 2D
+                : shape.Height - Math.Min(shape.Height * 0.3D, imageHeight * 0.72D);
+            (double cx, double cy) = GetPagePoint(shape, localCx, localCy);
+            (double centerX, double centerY) = ToSvg(page, cx, cy, scale);
+            double width = imageWidth * scale;
+            double height = imageHeight * scale;
+            double x = centerX - (width / 2D);
+            double y = centerY - (height / 2D);
+
+            writer.WriteStartElement("image", SvgNamespace);
+            writer.WriteAttributeString("data-officeimo-package-preview-artwork", "true");
+            writer.WriteAttributeString("x", Format(x));
+            writer.WriteAttributeString("y", Format(y));
+            writer.WriteAttributeString("width", Format(width));
+            writer.WriteAttributeString("height", Format(height));
+            writer.WriteAttributeString("preserveAspectRatio", "xMidYMid meet");
+            if (Math.Abs(shape.Angle) > 1e-9) {
+                writer.WriteAttributeString("transform", FormatTextRotation(shape.Angle, centerX, centerY));
+            }
+
+            writer.WriteAttributeString("href", "data:" + image.ContentType + ";base64," + Convert.ToBase64String(image.Data));
+            writer.WriteEndElement();
+            return true;
+        }
+
+        private static void WriteShapeStyle(XmlWriter writer, VisioShape shape, double scale, bool noFill = false, bool noLine = false) {
+            if (noFill || shape.FillPattern == 0 || shape.FillColor.A == 0) {
                 writer.WriteAttributeString("fill", "none");
             } else {
                 WriteColor(writer, "fill", shape.FillColor);
             }
 
-            if (shape.LinePattern == 0 || shape.LineWeight <= 0D || shape.LineColor.A == 0) {
+            if (noLine || shape.LinePattern == 0 || shape.LineWeight <= 0D || shape.LineColor.A == 0) {
                 writer.WriteAttributeString("stroke", "none");
             } else {
                 WriteColor(writer, "stroke", shape.LineColor);
@@ -187,12 +335,62 @@ namespace OfficeIMO.Visio {
             }
         }
 
+        private static string BuildPreservedGeometryPath(VisioPage page, VisioShape shape, IReadOnlyList<VisioShapeGeometryPath> paths, double scale) {
+            StringBuilder builder = new();
+            for (int i = 0; i < paths.Count; i++) {
+                if (builder.Length > 0) {
+                    builder.Append(' ');
+                }
+
+                builder.Append(BuildPath(page, shape, paths[i].Points, scale, isClosed: true));
+            }
+
+            return builder.ToString();
+        }
+
+        private static void WritePreservedGeometryFillPath(XmlWriter writer, VisioPage page, VisioShape shape, IReadOnlyList<VisioShapeGeometryPath> contours, double scale) {
+            writer.WriteStartElement("path", SvgNamespace);
+            writer.WriteAttributeString("d", BuildPreservedGeometryPath(page, shape, contours, scale));
+            writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
+            if (contours.Count > 1) {
+                writer.WriteAttributeString("fill-rule", "evenodd");
+                writer.WriteAttributeString("clip-rule", "evenodd");
+            }
+
+            WriteShapeStyle(writer, shape, scale, noFill: false, noLine: true);
+            writer.WriteEndElement();
+        }
+
+        private static void WritePreservedGeometryStrokePaths(XmlWriter writer, VisioPage page, VisioShape shape, IReadOnlyList<VisioShapeGeometryPath> contours, double scale) {
+            if (!HasVisibleLine(shape)) {
+                return;
+            }
+
+            for (int i = 0; i < contours.Count; i++) {
+                VisioShapeGeometryPath contour = contours[i];
+                if (contour.NoLine) {
+                    continue;
+                }
+
+                writer.WriteStartElement("path", SvgNamespace);
+                writer.WriteAttributeString("d", BuildPath(page, shape, contour.Points, scale, isClosed: true));
+                writer.WriteAttributeString("data-officeimo-preserved-geometry", "true");
+                WriteShapeStyle(writer, shape, scale, noFill: true, noLine: false);
+                writer.WriteEndElement();
+            }
+        }
+
         private static void WriteShapeText(XmlWriter writer, VisioPage page, VisioShape shape, double scale) {
             VisioTextStyle? style = shape.TextStyle;
-            double localX = style?.TextPinX ?? shape.Width / 2D;
-            double localY = style?.TextPinY ?? shape.Height / 2D;
+            double textWidth = Math.Max(0.05D, style?.TextWidth ?? shape.Width);
+            double textHeight = Math.Max(0.05D, style?.TextHeight ?? shape.Height);
+            double pinX = style?.TextPinX ?? shape.Width / 2D;
+            double pinY = style?.TextPinY ?? shape.Height / 2D;
+            (double localX, double localY) = ResolveTextBoxCenter(pinX, pinY, textWidth, textHeight, style);
             (double textX, double textY) = GetPagePoint(shape, localX, localY);
             (double x, double y) = ToSvg(page, textX, textY, scale);
+            double horizontalMargins = (style?.LeftMargin ?? 0.05D) + (style?.RightMargin ?? 0.05D);
+            double verticalMargins = (style?.TopMargin ?? 0.03D) + (style?.BottomMargin ?? 0.03D);
             WriteText(
                 writer,
                 shape.Text!,
@@ -201,10 +399,22 @@ namespace OfficeIMO.Visio {
                 style,
                 defaultSize: 10D,
                 scale: scale,
-                rotateRadians: shape.Angle + (style?.TextAngle ?? 0D));
+                rotateRadians: shape.Angle + (style?.TextAngle ?? 0D),
+                maxWidth: Math.Max(12D, (textWidth - horizontalMargins) * scale),
+                maxHeight: Math.Max(8D, (textHeight - verticalMargins) * scale),
+                drawLabelBackground: false);
         }
 
-        private static void WriteConnector(XmlWriter writer, VisioPage page, VisioConnector connector, VisioSvgSaveOptions options, double scale) {
+        private static (double X, double Y) ResolveTextBoxCenter(double pinX, double pinY, double width, double height, VisioTextStyle? style) {
+            double locPinX = style?.TextLocPinX ?? width / 2D;
+            double locPinY = style?.TextLocPinY ?? height / 2D;
+            return (pinX + (width / 2D) - locPinX, pinY + (height / 2D) - locPinY);
+        }
+
+        private static bool HasVisibleLine(VisioShape shape) =>
+            shape.LinePattern != 0 && shape.LineWeight > 0D && shape.LineColor.A > 0;
+
+        private static void WriteConnector(XmlWriter writer, VisioPage page, VisioConnector connector, VisioSvgSaveOptions options, double scale, VisioRenderLabelLayout? labelLayout) {
             List<(double X, double Y)> points = GetConnectorPoints(connector);
             writer.WriteStartElement("g", SvgNamespace);
             writer.WriteAttributeString("data-visio-connector-id", connector.Id);
@@ -212,11 +422,13 @@ namespace OfficeIMO.Visio {
             writer.WriteStartElement("path", SvgNamespace);
             writer.WriteAttributeString("d", BuildOpenPath(page, points, scale));
             writer.WriteAttributeString("fill", "none");
-            if (connector.LinePattern == 0 || connector.LineWeight <= 0D || connector.LineColor.A == 0) {
+            bool visibleLine = connector.LinePattern != 0 && connector.LineWeight > 0D && connector.LineColor.A > 0;
+            double strokeWidth = Math.Max(connector.LineWeight * scale, 0.75D);
+            if (!visibleLine) {
                 writer.WriteAttributeString("stroke", "none");
             } else {
                 WriteColor(writer, "stroke", connector.LineColor);
-                writer.WriteAttributeString("stroke-width", Format(Math.Max(connector.LineWeight * scale, 0.75D)));
+                writer.WriteAttributeString("stroke-width", Format(strokeWidth));
                 writer.WriteAttributeString("stroke-linecap", "round");
                 writer.WriteAttributeString("stroke-linejoin", "round");
                 if (connector.LinePattern != 1) {
@@ -224,20 +436,37 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            if (connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None) {
-                writer.WriteAttributeString("marker-start", "url(#officeimo-visio-arrow)");
-            }
-
-            if (connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None) {
-                writer.WriteAttributeString("marker-end", "url(#officeimo-visio-arrow)");
-            }
-
             writer.WriteEndElement();
 
+            if (visibleLine) {
+                if (connector.BeginArrow.HasValue && connector.BeginArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: true, out (double X, double Y) beginTip, out (double X, double Y) beginFrom)) {
+                    WriteArrow(writer, page, beginTip, beginFrom, scale, connector.LineColor, strokeWidth, "start");
+                }
+
+                if (connector.EndArrow.HasValue && connector.EndArrow.Value != EndArrow.None && TryGetArrowSegment(points, fromStart: false, out (double X, double Y) endTip, out (double X, double Y) endFrom)) {
+                    WriteArrow(writer, page, endTip, endFrom, scale, connector.LineColor, strokeWidth, "end");
+                }
+            }
+
             if (options.RenderConnectorLabels && !string.IsNullOrEmpty(connector.Label)) {
-                (double labelX, double labelY) = ResolveConnectorLabelPoint(connector, points);
-                (double x, double y) = ToSvg(page, labelX, labelY, scale);
-                WriteText(writer, connector.Label!, x, y, connector.TextStyle, defaultSize: 9D, scale, rotateRadians: 0D);
+                VisioRenderConnectorLabelPlacement label = labelLayout?.Resolve(connector, points) ?? ResolveConnectorLabel(connector, points);
+                (double labelCenterX, double labelCenterY) = ResolveTextBoxCenter(label.X, label.Y, label.Width, label.Height, connector.TextStyle);
+                (double x, double y) = ToSvg(page, labelCenterX, labelCenterY, scale);
+                double maxWidth = label.Width * scale;
+                double maxHeight = label.Height * scale;
+                WriteText(
+                    writer,
+                    connector.Label!,
+                    x,
+                    y,
+                    connector.TextStyle,
+                    defaultSize: 9D,
+                    scale,
+                    rotateRadians: 0D,
+                    maxWidth,
+                    maxHeight,
+                    drawLabelBackground: true,
+                    labelAdjusted: label.Adjusted);
             }
 
             writer.WriteEndElement();
@@ -287,6 +516,14 @@ namespace OfficeIMO.Visio {
             return (x + (placement?.OffsetX ?? 0D), y + (placement?.OffsetY ?? 0D));
         }
 
+        private static VisioRenderConnectorLabelPlacement ResolveConnectorLabel(VisioConnector connector, IReadOnlyList<(double X, double Y)> points) {
+            (double x, double y) = ResolveConnectorLabelPoint(connector, points);
+            VisioConnectorLabelPlacement? placement = connector.LabelPlacement;
+            double width = Math.Max(0.6D, connector.TextStyle?.TextWidth ?? placement?.Width ?? 1.35D);
+            double height = Math.Max(0.18D, connector.TextStyle?.TextHeight ?? placement?.Height ?? 0.34D);
+            return new VisioRenderConnectorLabelPlacement(x, y, width, height, adjusted: false);
+        }
+
         private static (double X, double Y) InterpolatePath(IReadOnlyList<(double X, double Y)> points, double position) {
             if (points.Count == 0) return (0D, 0D);
             if (points.Count == 1) return points[0];
@@ -314,36 +551,316 @@ namespace OfficeIMO.Visio {
             return points[points.Count - 1];
         }
 
-        private static void WriteText(XmlWriter writer, string text, double x, double y, VisioTextStyle? style, double defaultSize, double scale, double rotateRadians) {
+        private static void WriteText(
+            XmlWriter writer,
+            string text,
+            double x,
+            double y,
+            VisioTextStyle? style,
+            double defaultSize,
+            double scale,
+            double rotateRadians,
+            double maxWidth = 0D,
+            double maxHeight = 0D,
+            bool drawLabelBackground = false,
+            bool labelAdjusted = false) {
             double fontSize = PointsToSvgPixels(style?.Size ?? defaultSize, scale);
+            double availableWidth = IsFinitePositive(maxWidth) ? maxWidth : double.PositiveInfinity;
+            double availableHeight = IsFinitePositive(maxHeight) ? maxHeight : double.PositiveInfinity;
+            TextLayout layout = CreateTextLayout(text, fontSize, availableWidth, availableHeight);
+            fontSize = layout.FontSize;
+            double anchorX = ResolveTextAnchorX(x, availableWidth, style?.HorizontalAlignment);
+            double top = ResolveTextTop(y, layout.Height, availableHeight, style?.VerticalAlignment);
+
+            Color? backgroundColor = ResolveTextBackground(style, drawLabelBackground);
+            if (backgroundColor.HasValue) {
+                double padX = Math.Max(3D, fontSize * 0.22D);
+                double padY = Math.Max(2D, fontSize * 0.16D);
+                double backgroundLeft = GetAlignedTextLeft(anchorX, layout.Width, style?.HorizontalAlignment) - padX;
+                writer.WriteStartElement("rect", SvgNamespace);
+                writer.WriteAttributeString("data-officeimo-text-background", "true");
+                if (drawLabelBackground) {
+                    writer.WriteAttributeString("data-officeimo-connector-label-background", "true");
+                }
+
+                if (labelAdjusted) {
+                    writer.WriteAttributeString("data-officeimo-label-adjusted", "true");
+                }
+
+                writer.WriteAttributeString("x", Format(backgroundLeft));
+                writer.WriteAttributeString("y", Format(top - padY));
+                writer.WriteAttributeString("width", Format(layout.Width + (padX * 2D)));
+                writer.WriteAttributeString("height", Format(layout.Height + (padY * 2D)));
+                if (Math.Abs(rotateRadians) > 1e-9) {
+                    writer.WriteAttributeString("transform", FormatTextRotation(rotateRadians, x, y));
+                }
+
+                WriteColor(writer, "fill", backgroundColor.Value);
+                writer.WriteEndElement();
+            }
+
             writer.WriteStartElement("text", SvgNamespace);
-            writer.WriteAttributeString("x", Format(x));
-            writer.WriteAttributeString("y", Format(y));
+            if (labelAdjusted) {
+                writer.WriteAttributeString("data-officeimo-label-adjusted", "true");
+            }
+
+            writer.WriteAttributeString("x", Format(anchorX));
+            writer.WriteAttributeString("y", Format(top + (fontSize / 2D)));
             writer.WriteAttributeString("font-family", string.IsNullOrWhiteSpace(style?.FontFamily) ? "Aptos, Calibri, Arial, sans-serif" : style!.FontFamily);
             writer.WriteAttributeString("font-size", Format(fontSize));
             writer.WriteAttributeString("text-anchor", GetTextAnchor(style));
             writer.WriteAttributeString("dominant-baseline", "middle");
-            writer.WriteAttributeString("fill", style?.Color.HasValue == true ? "#" + style.Color.Value.ToRgbHex() : "#111827");
+            WriteColor(writer, "fill", style?.Color ?? Color.FromRgb(17, 24, 39));
             if (style?.Bold == true) writer.WriteAttributeString("font-weight", "700");
             if (style?.Italic == true) writer.WriteAttributeString("font-style", "italic");
             if (style?.Underline == true) writer.WriteAttributeString("text-decoration", "underline");
             if (Math.Abs(rotateRadians) > 1e-9) {
-                writer.WriteAttributeString("transform", "rotate(" + Format(RadiansToDegrees(-rotateRadians)) + " " + Format(x) + " " + Format(y) + ")");
+                writer.WriteAttributeString("transform", FormatTextRotation(rotateRadians, x, y));
             }
 
-            string[] lines = text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
-            double lineHeight = fontSize * 1.2D;
-            double startOffset = -((lines.Length - 1) * lineHeight) / 2D;
-            for (int i = 0; i < lines.Length; i++) {
+            for (int i = 0; i < layout.Lines.Length; i++) {
                 writer.WriteStartElement("tspan", SvgNamespace);
-                writer.WriteAttributeString("x", Format(x));
-                writer.WriteAttributeString("dy", i == 0 ? Format(startOffset) : Format(lineHeight));
-                writer.WriteString(lines[i]);
+                writer.WriteAttributeString("x", Format(anchorX));
+                writer.WriteAttributeString("dy", i == 0 ? "0" : Format(layout.LineHeight));
+                writer.WriteString(layout.Lines[i]);
                 writer.WriteEndElement();
             }
 
             writer.WriteEndElement();
         }
+
+        private static void WriteArrow(
+            XmlWriter writer,
+            VisioPage page,
+            (double X, double Y) tip,
+            (double X, double Y) from,
+            double scale,
+            Color color,
+            double strokeWidth,
+            string position) {
+            (double tipX, double tipY) = ToSvg(page, tip.X, tip.Y, scale);
+            (double fromX, double fromY) = ToSvg(page, from.X, from.Y, scale);
+            double angle = Math.Atan2(tipY - fromY, tipX - fromX);
+            double length = Math.Max(strokeWidth * 4D, 8D);
+            double wing = Math.PI / 7D;
+            double x1 = tipX - (Math.Cos(angle - wing) * length);
+            double y1 = tipY - (Math.Sin(angle - wing) * length);
+            double x2 = tipX - (Math.Cos(angle + wing) * length);
+            double y2 = tipY - (Math.Sin(angle + wing) * length);
+
+            writer.WriteStartElement("path", SvgNamespace);
+            writer.WriteAttributeString("data-officeimo-connector-arrow", position);
+            writer.WriteAttributeString("d", "M " + Format(tipX) + " " + Format(tipY) +
+                                             " L " + Format(x1) + " " + Format(y1) +
+                                             " L " + Format(x2) + " " + Format(y2) + " Z");
+            WriteColor(writer, "fill", color);
+            writer.WriteAttributeString("stroke", "none");
+            writer.WriteEndElement();
+        }
+
+        private static bool TryGetArrowSegment(
+            IReadOnlyList<(double X, double Y)> points,
+            bool fromStart,
+            out (double X, double Y) tip,
+            out (double X, double Y) from) {
+            if (points.Count < 2) {
+                tip = default;
+                from = default;
+                return false;
+            }
+
+            if (fromStart) {
+                tip = points[0];
+                for (int i = 1; i < points.Count; i++) {
+                    if (Distance(tip, points[i]) > 1e-6D) {
+                        from = points[i];
+                        return true;
+                    }
+                }
+            } else {
+                tip = points[points.Count - 1];
+                for (int i = points.Count - 2; i >= 0; i--) {
+                    if (Distance(tip, points[i]) > 1e-6D) {
+                        from = points[i];
+                        return true;
+                    }
+                }
+            }
+
+            from = default;
+            return false;
+        }
+
+        private static TextLayout CreateTextLayout(string text, double fontSize, double maxWidth, double maxHeight) {
+            string[] lines = WrapText(text, fontSize, maxWidth);
+            double lineHeight = fontSize * 1.2D;
+            double measuredWidth = MeasureMaxLineWidth(lines, fontSize);
+            double measuredHeight = Math.Max(fontSize, ((lines.Length - 1) * lineHeight) + fontSize);
+            double scaleDown = Math.Min(1D, Math.Min(maxWidth / Math.Max(measuredWidth, 1D), maxHeight / Math.Max(measuredHeight, 1D)));
+            if (scaleDown < 0.98D) {
+                fontSize = Math.Max(5D, fontSize * scaleDown);
+                lines = WrapText(text, fontSize, maxWidth);
+                lineHeight = fontSize * 1.2D;
+                measuredWidth = MeasureMaxLineWidth(lines, fontSize);
+                measuredHeight = Math.Max(fontSize, ((lines.Length - 1) * lineHeight) + fontSize);
+            }
+
+            return new TextLayout(lines, fontSize, lineHeight, measuredWidth, measuredHeight);
+        }
+
+        private static string[] WrapText(string text, double fontSize, double maxWidth) {
+            string[] sourceLines = text.Replace("\r\n", "\n").Replace("\r", "\n").Split('\n');
+            List<string> output = new();
+            foreach (string sourceLine in sourceLines) {
+                string line = sourceLine.Trim();
+                if (line.Length == 0) {
+                    output.Add(string.Empty);
+                    continue;
+                }
+
+                string[] words = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                string current = string.Empty;
+                for (int i = 0; i < words.Length; i++) {
+                    string word = words[i];
+                    if (EstimateTextWidth(word, fontSize) > maxWidth) {
+                        if (current.Length > 0) {
+                            output.Add(current);
+                            current = string.Empty;
+                        }
+
+                        foreach (string part in BreakWord(word, fontSize, maxWidth)) {
+                            output.Add(part);
+                        }
+
+                        continue;
+                    }
+
+                    string candidate = current.Length == 0 ? word : current + " " + word;
+                    if (current.Length > 0 && EstimateTextWidth(candidate, fontSize) > maxWidth) {
+                        output.Add(current);
+                        current = word;
+                    } else {
+                        current = candidate;
+                    }
+                }
+
+                if (current.Length > 0) {
+                    output.Add(current);
+                }
+            }
+
+            return output.Count == 0 ? new[] { string.Empty } : output.ToArray();
+        }
+
+        private static IEnumerable<string> BreakWord(string word, double fontSize, double maxWidth) {
+            StringBuilder part = new();
+            foreach (char c in word) {
+                string candidate = part.ToString() + c;
+                if (part.Length > 0 && EstimateTextWidth(candidate, fontSize) > maxWidth) {
+                    yield return part.ToString();
+                    part.Clear();
+                }
+
+                part.Append(c);
+            }
+
+            if (part.Length > 0) {
+                yield return part.ToString();
+            }
+        }
+
+        private static double MeasureMaxLineWidth(IReadOnlyList<string> lines, double fontSize) {
+            double max = 0D;
+            for (int i = 0; i < lines.Count; i++) {
+                max = Math.Max(max, EstimateTextWidth(lines[i], fontSize));
+            }
+
+            return max;
+        }
+
+        private static double EstimateTextWidth(string text, double fontSize) {
+            double width = 0D;
+            foreach (char c in text) {
+                if (char.IsWhiteSpace(c)) {
+                    width += fontSize * 0.32D;
+                } else if ("ilI.,'!:;|".IndexOf(c) >= 0) {
+                    width += fontSize * 0.26D;
+                } else if ("MW@#%&".IndexOf(c) >= 0) {
+                    width += fontSize * 0.86D;
+                } else if (char.IsDigit(c)) {
+                    width += fontSize * 0.56D;
+                } else {
+                    width += fontSize * 0.54D;
+                }
+            }
+
+            return width;
+        }
+
+        private static double ResolveTextAnchorX(double centerX, double maxWidth, VisioTextHorizontalAlignment? alignment) {
+            if (!IsFinitePositive(maxWidth)) {
+                return centerX;
+            }
+
+            switch (alignment) {
+                case VisioTextHorizontalAlignment.Left:
+                    return centerX - (maxWidth / 2D);
+                case VisioTextHorizontalAlignment.Right:
+                    return centerX + (maxWidth / 2D);
+                default:
+                    return centerX;
+            }
+        }
+
+        private static double ResolveTextTop(double centerY, double measuredHeight, double maxHeight, VisioTextVerticalAlignment? alignment) {
+            if (!IsFinitePositive(maxHeight)) {
+                return centerY - (measuredHeight / 2D);
+            }
+
+            switch (alignment) {
+                case VisioTextVerticalAlignment.Top:
+                    return centerY - (maxHeight / 2D);
+                case VisioTextVerticalAlignment.Bottom:
+                    return centerY + (maxHeight / 2D) - measuredHeight;
+                default:
+                    return centerY - (measuredHeight / 2D);
+            }
+        }
+
+        private static double GetAlignedTextLeft(double anchorX, double width, VisioTextHorizontalAlignment? alignment) {
+            switch (alignment) {
+                case VisioTextHorizontalAlignment.Left:
+                    return anchorX;
+                case VisioTextHorizontalAlignment.Right:
+                    return anchorX - width;
+                default:
+                    return anchorX - (width / 2D);
+            }
+        }
+
+        private static bool IsFinitePositive(double value) =>
+            value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
+
+        private static Color? ResolveTextBackground(VisioTextStyle? style, bool drawLabelBackground) {
+            if (style?.BackgroundColor.HasValue == true) {
+                return ApplyBackgroundTransparency(style.BackgroundColor.Value, style.BackgroundTransparency);
+            }
+
+            return drawLabelBackground ? Color.FromRgba(255, 255, 255, 230) : null;
+        }
+
+        private static Color ApplyBackgroundTransparency(Color color, double? transparency) {
+            if (!transparency.HasValue) {
+                return color;
+            }
+
+            double clamped = Math.Max(0D, Math.Min(100D, transparency.Value));
+            byte alpha = (byte)Math.Round(color.A * (1D - (clamped / 100D)));
+            return Color.FromRgba(color.R, color.G, color.B, alpha);
+        }
+
+        private static string FormatTextRotation(double radians, double centerX, double centerY) =>
+            "rotate(" + Format(RadiansToDegrees(-radians)) + " " + Format(centerX) + " " + Format(centerY) + ")";
 
         private static string GetTextAnchor(VisioTextStyle? style) {
             switch (style?.HorizontalAlignment) {
@@ -356,7 +873,7 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static string BuildClosedPath(VisioPage page, VisioShape shape, IReadOnlyList<(double X, double Y)> localPoints, double scale) {
+        private static string BuildPath(VisioPage page, VisioShape shape, IReadOnlyList<(double X, double Y)> localPoints, double scale, bool isClosed) {
             StringBuilder builder = new();
             for (int i = 0; i < localPoints.Count; i++) {
                 (double absX, double absY) = GetPagePoint(shape, localPoints[i].X, localPoints[i].Y);
@@ -365,7 +882,10 @@ namespace OfficeIMO.Visio {
                 builder.Append(Format(x)).Append(' ').Append(Format(y));
             }
 
-            builder.Append(" Z");
+            if (isClosed) {
+                builder.Append(" Z");
+            }
+
             return builder.ToString();
         }
 
@@ -442,15 +962,147 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static string NormalizeKind(string value) {
-            StringBuilder builder = new();
-            foreach (char c in value) {
-                if (char.IsLetterOrDigit(c)) {
-                    builder.Append(char.ToLowerInvariant(c));
-                }
+        private static void WriteSvgCircle(XmlWriter writer, double cx, double cy, double radius, Color color, bool fill, double strokeWidth) {
+            writer.WriteStartElement("circle", SvgNamespace);
+            writer.WriteAttributeString("cx", Format(cx));
+            writer.WriteAttributeString("cy", Format(cy));
+            writer.WriteAttributeString("r", Format(radius));
+            if (fill) {
+                WriteColor(writer, "fill", color);
+                writer.WriteAttributeString("stroke", "none");
+            } else {
+                writer.WriteAttributeString("fill", "none");
+                WriteColor(writer, "stroke", color);
+                writer.WriteAttributeString("stroke-width", Format(strokeWidth));
+                writer.WriteAttributeString("stroke-linecap", "round");
+                writer.WriteAttributeString("stroke-linejoin", "round");
             }
 
-            return builder.ToString();
+            writer.WriteEndElement();
+        }
+
+        private static void WriteSvgRect(XmlWriter writer, double x, double y, double width, double height, Color color, bool fill, double strokeWidth) {
+            writer.WriteStartElement("rect", SvgNamespace);
+            writer.WriteAttributeString("x", Format(x));
+            writer.WriteAttributeString("y", Format(y));
+            writer.WriteAttributeString("width", Format(width));
+            writer.WriteAttributeString("height", Format(height));
+            writer.WriteAttributeString("rx", Format(Math.Min(width, height) * 0.08D));
+            if (fill) {
+                WriteColor(writer, "fill", color);
+                writer.WriteAttributeString("stroke", "none");
+            } else {
+                writer.WriteAttributeString("fill", "none");
+                WriteColor(writer, "stroke", color);
+                writer.WriteAttributeString("stroke-width", Format(strokeWidth));
+                writer.WriteAttributeString("stroke-linecap", "round");
+                writer.WriteAttributeString("stroke-linejoin", "round");
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private static void WriteSvgLine(XmlWriter writer, double x1, double y1, double x2, double y2, Color color, double strokeWidth) {
+            writer.WriteStartElement("line", SvgNamespace);
+            writer.WriteAttributeString("x1", Format(x1));
+            writer.WriteAttributeString("y1", Format(y1));
+            writer.WriteAttributeString("x2", Format(x2));
+            writer.WriteAttributeString("y2", Format(y2));
+            WriteColor(writer, "stroke", color);
+            writer.WriteAttributeString("stroke-width", Format(strokeWidth));
+            writer.WriteAttributeString("stroke-linecap", "round");
+            writer.WriteEndElement();
+        }
+
+        private static void WriteSvgPath(XmlWriter writer, string data, Color color, bool fill, double strokeWidth) {
+            writer.WriteStartElement("path", SvgNamespace);
+            writer.WriteAttributeString("d", data);
+            if (fill) {
+                WriteColor(writer, "fill", color);
+                writer.WriteAttributeString("stroke", "none");
+            } else {
+                writer.WriteAttributeString("fill", "none");
+                WriteColor(writer, "stroke", color);
+                writer.WriteAttributeString("stroke-width", Format(strokeWidth));
+                writer.WriteAttributeString("stroke-linecap", "round");
+                writer.WriteAttributeString("stroke-linejoin", "round");
+            }
+
+            writer.WriteEndElement();
+        }
+
+        private static void WriteSvgCylinder(XmlWriter writer, double x, double y, double size, Color color) {
+            double width = size * 0.62D;
+            double height = size * 0.58D;
+            double left = x - width / 2D;
+            double top = y - height / 2D;
+            WriteSvgPath(writer, "M " + Format(left) + " " + Format(top + height * 0.18D) +
+                                 " C " + Format(left) + " " + Format(top - height * 0.02D) +
+                                 " " + Format(left + width) + " " + Format(top - height * 0.02D) +
+                                 " " + Format(left + width) + " " + Format(top + height * 0.18D) +
+                                 " L " + Format(left + width) + " " + Format(top + height * 0.82D) +
+                                 " C " + Format(left + width) + " " + Format(top + height * 1.02D) +
+                                 " " + Format(left) + " " + Format(top + height * 1.02D) +
+                                 " " + Format(left) + " " + Format(top + height * 0.82D) +
+                                 " Z", color, fill: false, strokeWidth: Math.Max(1D, size * 0.045D));
+            WriteSvgPath(writer, "M " + Format(left) + " " + Format(top + height * 0.18D) +
+                                 " C " + Format(left) + " " + Format(top + height * 0.38D) +
+                                 " " + Format(left + width) + " " + Format(top + height * 0.38D) +
+                                 " " + Format(left + width) + " " + Format(top + height * 0.18D), color, fill: false, strokeWidth: Math.Max(1D, size * 0.045D));
+        }
+
+        private static void WriteSvgShield(XmlWriter writer, double x, double y, double size, Color color) {
+            WriteSvgPath(writer, "M " + Format(x) + " " + Format(y - size * 0.36D) +
+                                 " L " + Format(x + size * 0.3D) + " " + Format(y - size * 0.22D) +
+                                 " L " + Format(x + size * 0.22D) + " " + Format(y + size * 0.22D) +
+                                 " L " + Format(x) + " " + Format(y + size * 0.38D) +
+                                 " L " + Format(x - size * 0.22D) + " " + Format(y + size * 0.22D) +
+                                 " L " + Format(x - size * 0.3D) + " " + Format(y - size * 0.22D) +
+                                 " Z", color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
+        }
+
+        private static void WriteSvgHex(XmlWriter writer, double x, double y, double size, Color color) {
+            double r = size * 0.36D;
+            WriteSvgPath(writer, "M " + Format(x) + " " + Format(y - r) +
+                                 " L " + Format(x + r * 0.86D) + " " + Format(y - r * 0.5D) +
+                                 " L " + Format(x + r * 0.86D) + " " + Format(y + r * 0.5D) +
+                                 " L " + Format(x) + " " + Format(y + r) +
+                                 " L " + Format(x - r * 0.86D) + " " + Format(y + r * 0.5D) +
+                                 " L " + Format(x - r * 0.86D) + " " + Format(y - r * 0.5D) +
+                                 " Z", color, fill: false, strokeWidth: Math.Max(1D, size * 0.05D));
+        }
+
+        private static string BuildCloudPath(double x, double y, double size) =>
+            "M " + Format(x - size * 0.34D) + " " + Format(y + size * 0.12D) +
+            " C " + Format(x - size * 0.48D) + " " + Format(y + size * 0.1D) +
+            " " + Format(x - size * 0.45D) + " " + Format(y - size * 0.18D) +
+            " " + Format(x - size * 0.2D) + " " + Format(y - size * 0.16D) +
+            " C " + Format(x - size * 0.11D) + " " + Format(y - size * 0.42D) +
+            " " + Format(x + size * 0.22D) + " " + Format(y - size * 0.35D) +
+            " " + Format(x + size * 0.24D) + " " + Format(y - size * 0.1D) +
+            " C " + Format(x + size * 0.48D) + " " + Format(y - size * 0.12D) +
+            " " + Format(x + size * 0.51D) + " " + Format(y + size * 0.14D) +
+            " " + Format(x + size * 0.3D) + " " + Format(y + size * 0.14D) +
+            " Z";
+
+        private sealed class TextLayout {
+            internal TextLayout(string[] lines, double fontSize, double lineHeight, double width, double height) {
+                Lines = lines;
+                FontSize = fontSize;
+                LineHeight = lineHeight;
+                Width = width;
+                Height = height;
+            }
+
+            internal string[] Lines { get; }
+
+            internal double FontSize { get; }
+
+            internal double LineHeight { get; }
+
+            internal double Width { get; }
+
+            internal double Height { get; }
         }
 
         private static double Distance((double X, double Y) a, (double X, double Y) b) {

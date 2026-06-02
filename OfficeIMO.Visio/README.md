@@ -692,13 +692,16 @@ expected, actual, and `.diff.png` artifacts with changed-pixel counts, while
 inspection/profile drift writes expected, actual, and `.diff.txt` artifacts so
 reviewers can distinguish renderer-only churn from structural or stencil usage
 changes. SVG previews use canonicalized text comparison to account for Visio's
-generated CSS class names.
+generated CSS class names. A no-Visio premium baseline lane also compares
+first-party native SVG and PNG output for representative gallery diagrams, so
+renderer drift can be caught on machines that do not have Microsoft Visio
+installed.
 
-## Headless SVG export
+## Headless SVG and PNG export
 
-OfficeIMO Visio can render generated pages directly to SVG without Microsoft
-Visio desktop automation. This headless path is intended for CI artifacts,
-documentation previews, web galleries, and quick inspection of generated
+OfficeIMO Visio can render generated pages directly to SVG or PNG without
+Microsoft Visio desktop automation. These headless paths are intended for CI
+artifacts, documentation previews, web galleries, and quick inspection of generated
 diagrams:
 
 ```csharp
@@ -715,12 +718,53 @@ document.SaveAsSvg("pipeline.svg", new VisioSvgSaveOptions {
     PixelsPerInch = 96,
     BackgroundColor = null
 });
+
+byte[] png = document.ToPng(new VisioPngSaveOptions {
+    PixelsPerInch = 144,
+    Supersampling = 3,
+    FontFilePath = "path/to/font.ttf"
+});
+document.SaveAsPng("pipeline.png");
 ```
 
 The native SVG renderer covers OfficeIMO-authored shapes, connectors, labels,
-text styles, common flowchart geometry, transparency, dashed strokes, and
-arrowheads. PNG/PDF proof export is still available through the optional
-Microsoft Visio desktop validation path when Visio is installed.
+bounded text wrapping/scaling with long-word breaks, styled underline/italic attributes, text rotation, rotated styled text-block backgrounds with Visio
+transparency, connector-label backgrounds, render-time connector-label overlap
+avoidance including endpoint-shape, dense-label clearance, and connector-line crossing avoidance, metadata-driven
+first-party stencil pictograms with authored shape rotation for straight and curved glyphs, text styles, common
+flowchart geometry, simple preserved Visio `MoveTo`/`LineTo`/`PolylineTo` and relative
+geometry-row outlines with intra-section subpath breaks and unclosed NoFill open
+paths, deleted Geometry/SplineKnot rows, simple preserved `Width`/`Height`/`LocPinX`/`LocPinY`/`PinX`/`PinY`/`Angle`/`MIN`/`MAX`/`ABS`/`SQRT`/`PI`/`SIN`/`COS`/`TAN`/`ATAN`/`ATAN2`/`RAD`/`DEG`/`INT`/`POW`/`^`/`ROUND`/`AND`/`OR`/`NOT`/`GUARD`/`IF` formulas including `POLYLINE` arguments and percentage plus angle/length unit-suffixed numeric literals,
+preserved `NoFill`/`NoLine`/`NoShow` geometry flags, scaled master/master-shape
+preserved outlines, preserved `Ellipse` and open clipped `InfiniteLine` rows,
+flattened preserved `ArcTo`/`EllipticalArcTo`, `RelEllipticalArcTo`,
+`CubBezTo`/`QuadBezTo`, and `RelCubBezTo`/`RelQuadBezTo`,
+`SplineStart`/`SplineKnot`, plus `NURBSTo`
+formula outlines with Visio compact knot-vector expansion,
+transparency, dashed strokes, semantic database/storage cylinder bodies, semantic flowchart start/end terminator capsules, semantic document stencil wavy bottoms, built-in chevron polygons, delay D-shapes, and manual input slanted quadrilaterals, color/opacity-matching inline arrowheads, and rotated browser-renderable package-backed preview/icon payloads, including content-sniffed generic media relationships, when
+package masters expose embedded PNG/JPG/GIF/SVG media. The native PNG renderer uses the same
+OfficeIMO-authored geometry surface and writes PNG bytes directly, including
+basic anti-aliased shapes with authored ellipse rotation, semantic database/storage cylinder bodies, semantic flowchart start/end terminator capsules, semantic document stencil wavy bottoms, built-in chevron polygons, delay D-shapes, and manual input slanted quadrilaterals, dashed shape/connector strokes, connectors, arrows,
+wrapped labels and long unspaced shape text, styled text-block backgrounds, metadata-driven first-party
+stencil pictograms with authored shape rotation for straight and curved glyphs, embedded package PNG preview/icon payloads including content-sniffed generic media relationships, truecolor, indexed-palette, grayscale, and
+grayscale-alpha PNGs, including packed 1/2/4-bit indexed/grayscale icons and
+16-bit channel payloads downsampled into the native preview buffer, honoring
+palette and truecolor tRNS transparency, with
+aspect-preserving placement and shape rotation, managed TrueType/OpenType outline text from a
+configured `FontFilePath`/`FontCollectionIndex`/`FontFaceName` or from managed
+default font-file discovery where available, styled text underlines/italics, TextAngle rotation, rotated styled text-block backgrounds, a small stroke-font fallback, and optional
+transparent backgrounds. The PNG writer uses managed DEFLATE
+compression, shares the same render-time connector-label overlap avoidance
+including endpoint-shape, dense-label clearance, and connector-line crossing avoidance, and does not call operating-system
+graphics or font APIs. Set
+`ResolveConnectorLabelOverlaps = false` when a preview must preserve authored
+label pins exactly, or
+`RenderStencilArtwork = false` when the native SVG/PNG preview should show only
+the authored shape geometry. Desktop Visio export remains the higher-fidelity
+proof path for complex Visio-authored content, non-PNG package media in native
+PNG, native master/vector geometry, and final visual parity. The no-Visio native
+baseline lane now covers all eight premium gallery diagrams so renderer drift is
+gated without requiring Microsoft Visio.
 
 ## Native stencil catalogs
 
