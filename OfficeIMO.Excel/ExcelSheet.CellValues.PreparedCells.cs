@@ -1,0 +1,302 @@
+using System;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Spreadsheet;
+using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace OfficeIMO.Excel {
+    public partial class ExcelSheet {
+        private void ApplyPreparedCells(
+            (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared,
+            IReadOnlyList<(int Row, int Column, object Value)> source) {
+            if (TryApplyPreparedCellsByAppendingRows(prepared, source)) {
+                return;
+            }
+
+            var writer = new BatchCellWriter(this);
+
+            for (int i = 0; i < prepared.Length; i++) {
+                var p = prepared[i];
+                var originalValue = source[i].Value;
+                var cell = writer.GetOrCreateCell(p.Row, p.Col);
+                cell.CellValue = p.Val;
+                cell.DataType = p.Type;
+                ApplyAutomaticCellFormatting(cell, originalValue, p.Type);
+            }
+
+            ClearHeaderCache();
+        }
+
+        private bool TryApplyPreparedCellsByAppendingRows(
+            (int Row, int Col, CellValue Val, EnumValue<DocumentFormat.OpenXml.Spreadsheet.CellValues> Type)[] prepared,
+            IReadOnlyList<(int Row, int Column, object Value)> source) {
+            if (prepared.Length != source.Count) {
+                return false;
+            }
+
+            if (prepared.Length == 0) {
+                ClearHeaderCache();
+                return true;
+            }
+
+            int firstRow = prepared[0].Row;
+            int currentRow = 0;
+            int currentColumn = 0;
+            int maxColumn = 0;
+
+            for (int i = 0; i < prepared.Length; i++) {
+                var p = prepared[i];
+                if (p.Row <= 0 || p.Col <= 0 || p.Col > A1.MaxColumns || p.Row < currentRow) {
+                    return false;
+                }
+
+                if (p.Row != currentRow) {
+                    currentRow = p.Row;
+                    currentColumn = 0;
+                }
+
+                if (p.Col <= currentColumn) {
+                    return false;
+                }
+
+                currentColumn = p.Col;
+                if (p.Col > maxColumn) {
+                    maxColumn = p.Col;
+                }
+            }
+
+            var sheetData = GetOrCreateSheetData();
+            foreach (var existingRow in sheetData.Elements<Row>()) {
+                if (existingRow.RowIndex == null) {
+                    return false;
+                }
+
+                if (existingRow.RowIndex != null && existingRow.RowIndex.Value >= (uint)firstRow) {
+                    return false;
+                }
+            }
+
+            bool needsAutomaticFormatting = false;
+            for (int i = 0; i < source.Count; i++) {
+                if (RequiresAutomaticCellFormatting(source[i].Value, prepared[i].Type)) {
+                    needsAutomaticFormatting = true;
+                    break;
+                }
+            }
+
+            var columnNames = new string[maxColumn + 1];
+            for (int column = 1; column <= maxColumn; column++) {
+                columnNames[column] = GetColumnName(column);
+            }
+
+            var baseStyleIndexes = needsAutomaticFormatting
+                ? GetAppendBaseStyleIndexes(sheetData, firstRow, maxColumn)
+                : null;
+            Row? row = null;
+            int rowIndex = 0;
+            string rowReference = string.Empty;
+            Dictionary<uint, uint>? appendedDateStyleIndexes = null;
+            Dictionary<uint, uint>? appendedDurationStyleIndexes = null;
+            Dictionary<uint, uint>? appendedWrapStyleIndexes = null;
+            for (int i = 0; i < prepared.Length; i++) {
+                var p = prepared[i];
+                if (p.Row != rowIndex) {
+                    rowIndex = p.Row;
+                    rowReference = InvariantNumberText.Get(rowIndex);
+                    row = new Row { RowIndex = (uint)rowIndex };
+                    sheetData.Append(row);
+                }
+
+                var cell = new Cell {
+                    CellReference = columnNames[p.Col] + rowReference,
+                    CellValue = p.Val,
+                    DataType = p.Type
+                };
+
+                row!.Append(cell);
+                if (needsAutomaticFormatting) {
+                    ApplyAutomaticCellFormattingForAppendedCell(
+                        cell,
+                        source[i].Value,
+                        p.Type,
+                        baseStyleIndexes![p.Col] ?? 0U,
+                        ref appendedDateStyleIndexes,
+                        ref appendedDurationStyleIndexes,
+                        ref appendedWrapStyleIndexes);
+                }
+            }
+
+            ClearHeaderCache();
+            return true;
+        }
+
+        private static uint?[] GetAppendBaseStyleIndexes(SheetData sheetData, int firstRow, int maxColumn) {
+            var baseStyleIndexes = new uint?[maxColumn + 1];
+            var baseStyleRows = new int[maxColumn + 1];
+
+            foreach (var existingRow in sheetData.Elements<Row>()) {
+                if (existingRow.RowIndex == null) {
+                    continue;
+                }
+
+                int existingRowIndex = (int)existingRow.RowIndex.Value;
+                if (existingRowIndex >= firstRow) {
+                    continue;
+                }
+
+                foreach (var existingCell in existingRow.Elements<Cell>()) {
+                    if (existingCell.CellReference == null || existingCell.StyleIndex == null) {
+                        continue;
+                    }
+
+                    int columnIndex = A1.ParseColumnIndexFromCellReference(existingCell.CellReference.Value);
+                    if (columnIndex <= 0 || columnIndex > maxColumn) {
+                        continue;
+                    }
+
+                    if (existingRowIndex >= baseStyleRows[columnIndex]) {
+                        baseStyleRows[columnIndex] = existingRowIndex;
+                        baseStyleIndexes[columnIndex] = existingCell.StyleIndex.Value;
+                    }
+                }
+            }
+
+            return baseStyleIndexes;
+        }
+
+        private sealed class BatchCellWriter {
+            private readonly ExcelSheet _sheet;
+            private readonly SheetData _sheetData;
+            private readonly Dictionary<int, BatchRowState> _rows;
+            private Row? _lastRow;
+            private int _lastRowIndex;
+
+            internal BatchCellWriter(ExcelSheet sheet) {
+                _sheet = sheet;
+                _sheetData = sheet.GetOrCreateSheetData();
+                _rows = new Dictionary<int, BatchRowState>();
+
+                foreach (var row in _sheetData.Elements<Row>()) {
+                    if (row.RowIndex == null) {
+                        continue;
+                    }
+
+                    _rows[(int)row.RowIndex.Value] = new BatchRowState(_sheet, row);
+                    if (row.RowIndex.Value >= _lastRowIndex) {
+                        _lastRowIndex = (int)row.RowIndex.Value;
+                        _lastRow = row;
+                    }
+                }
+            }
+
+            internal Cell GetOrCreateCell(int rowIndex, int columnIndex) {
+                if (!_rows.TryGetValue(rowIndex, out BatchRowState? rowState)) {
+                    var row = GetOrCreateRow(rowIndex);
+                    rowState = new BatchRowState(_sheet, row);
+                    _rows[rowIndex] = rowState;
+                }
+
+                return rowState.GetOrCreateCell(columnIndex, rowIndex);
+            }
+
+            private Row GetOrCreateRow(int rowIndex) {
+                if (_lastRow != null && rowIndex > _lastRowIndex) {
+                    var appended = new Row { RowIndex = (uint)rowIndex };
+                    _sheetData.Append(appended);
+                    _lastRow = appended;
+                    _lastRowIndex = rowIndex;
+                    return appended;
+                }
+
+                var row = _sheet.GetOrCreateRowElement(_sheetData, rowIndex);
+                if (row.RowIndex != null && row.RowIndex.Value >= _lastRowIndex) {
+                    _lastRow = row;
+                    _lastRowIndex = (int)row.RowIndex.Value;
+                }
+
+                return row;
+            }
+
+            private sealed class BatchRowState {
+                private readonly ExcelSheet _sheet;
+                private readonly Row _row;
+                private readonly Dictionary<int, Cell> _cells;
+                private Cell? _lastCell;
+                private int _lastColumnIndex;
+
+                internal BatchRowState(ExcelSheet sheet, Row row) {
+                    _sheet = sheet;
+                    _row = row;
+                    _cells = new Dictionary<int, Cell>();
+
+                    foreach (var cell in row.Elements<Cell>()) {
+                        var reference = cell.CellReference?.Value;
+                        if (string.IsNullOrEmpty(reference)) {
+                            continue;
+                        }
+
+                        int columnIndex = GetColumnIndex(reference!);
+                        _cells[columnIndex] = cell;
+
+                        if (columnIndex >= _lastColumnIndex) {
+                            _lastColumnIndex = columnIndex;
+                            _lastCell = cell;
+                        }
+                    }
+                }
+
+                internal Cell GetOrCreateCell(int columnIndex, int rowIndex) {
+                    if (_cells.TryGetValue(columnIndex, out Cell? existing)) {
+                        return existing;
+                    }
+
+                    string cellReference = _sheet.BuildCellReference(rowIndex, columnIndex);
+                    var cell = new Cell { CellReference = cellReference };
+
+                    if (_lastCell == null) {
+                        var firstCell = _row.Elements<Cell>().FirstOrDefault();
+                        if (firstCell != null) {
+                            _row.InsertBefore(cell, firstCell);
+                        } else {
+                            _row.Append(cell);
+                        }
+                    } else if (columnIndex > _lastColumnIndex) {
+                        _row.InsertAfter(cell, _lastCell);
+                    } else {
+                        Cell? insertAfter = null;
+                        foreach (var existingCell in _row.Elements<Cell>()) {
+                            var existingReference = existingCell.CellReference?.Value;
+                            if (string.IsNullOrEmpty(existingReference)) {
+                                continue;
+                            }
+
+                            int existingColumnIndex = GetColumnIndex(existingReference!);
+                            if (existingColumnIndex > columnIndex) {
+                                _row.InsertBefore(cell, existingCell);
+                                _cells[columnIndex] = cell;
+                                return cell;
+                            }
+
+                            insertAfter = existingCell;
+                        }
+
+                        if (insertAfter != null) {
+                            _row.InsertAfter(cell, insertAfter);
+                        } else {
+                            _row.Append(cell);
+                        }
+                    }
+
+                    _cells[columnIndex] = cell;
+                    if (columnIndex >= _lastColumnIndex) {
+                        _lastColumnIndex = columnIndex;
+                        _lastCell = cell;
+                    }
+
+                    return cell;
+                }
+            }
+        }
+    }
+}

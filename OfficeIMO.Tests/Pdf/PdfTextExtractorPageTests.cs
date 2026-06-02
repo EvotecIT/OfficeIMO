@@ -20,6 +20,30 @@ public class PdfTextExtractorPageTests {
     }
 
     [Fact]
+    public void ExtractTextByPage_NullLayoutOptionsUseNoOptionsPath() {
+        byte[] pdf = BuildThreePagePdf();
+        IReadOnlyList<string> expected = PdfTextExtractor.ExtractTextByPage(pdf);
+
+        IReadOnlyList<string> bytePages = PdfTextExtractor.ExtractTextByPage(pdf, (PdfTextLayoutOptions?)null);
+        using var stream = new MemoryStream(pdf);
+        IReadOnlyList<string> streamPages = PdfTextExtractor.ExtractTextByPage(stream, (PdfTextLayoutOptions?)null);
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
+
+        try {
+            File.WriteAllBytes(path, pdf);
+            IReadOnlyList<string> pathPages = PdfTextExtractor.ExtractTextByPage(path, (PdfTextLayoutOptions?)null);
+
+            Assert.Equal(expected, bytePages);
+            Assert.Equal(expected, streamPages);
+            Assert.Equal(expected, pathPages);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void ExtractTextByPageRanges_ReturnsParsedRangesInCallerOrderWithRepeatedPages() {
         byte[] pdf = BuildThreePagePdf();
 
