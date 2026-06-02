@@ -331,6 +331,10 @@ public static partial class PdfTextExtractor {
     /// <summary>Extracts plain text from each page using layout options such as column detection and header/footer trimming.</summary>
     public static IReadOnlyList<string> ExtractTextByPage(byte[] pdf, PdfTextLayoutOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
-        return ExtractTextByPage(PdfReadDocument.Load(pdf), options ?? new PdfTextLayoutOptions());
+        if (options is null) {
+            return ExtractTextByPage(pdf);
+        }
+
+        return ExtractTextByPage(PdfReadDocument.Load(pdf), options);
     }
 }
