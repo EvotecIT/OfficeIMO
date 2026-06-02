@@ -1,0 +1,584 @@
+using System.Globalization;
+using System.Linq;
+using System.Text;
+
+namespace OfficeIMO.Markdown;
+
+public static partial class MarkdownReader {
+    private static void ConsumeNestedBlocksForListItem(
+        string[] lines,
+        ref int index,
+        int itemLevelAbs,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        ListItem item,
+        bool allowNestedOrdered,
+        bool allowNestedUnordered) {
+
+        if (lines == null || item == null) return;
+
+        while (index < lines.Length) {
+            if (IsStructurallyBlankListItem(item) && string.IsNullOrWhiteSpace(lines[index])) {
+                return;
+            }
+
+            int k = index;
+            bool sawBlankLine = false;
+
+            // Skip blank lines only when they are followed by nested content.
+            while (k < lines.Length && string.IsNullOrWhiteSpace(lines[k])) {
+                sawBlankLine = true;
+                int peek = k + 1;
+                if (peek >= lines.Length) return;
+                var next = lines[peek] ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(next)) {
+                    k = peek;
+                    continue;
+                }
+                if (CountLeadingIndentColumns(next) < continuationIndent) return;
+                if (!IsListNestedBlockStart(next, continuationIndent, itemLevelAbs, allowNestedOrdered, allowNestedUnordered, options)) {
+                    k = peek;
+                    break;
+                }
+                k = peek;
+            }
+
+            if (k >= lines.Length) { index = k; return; }
+            if (!sawBlankLine && k > 0 && string.IsNullOrWhiteSpace(lines[k - 1])) sawBlankLine = true;
+
+            // Nested fenced code block
+            int tmp = k;
+            if (TryParseNestedFencedCodeBlock(lines, ref tmp, continuationIndent, options, out var code) && code != null) {
+                item.Children.Add(code);
+                AddListItemChildSyntaxNode(item, code, k, tmp, state);
+                if (sawBlankLine) item.ForceLoose = true;
+                index = tmp;
+                continue;
+            }
+
+            // Nested indented code block
+            tmp = k;
+            if (TryParseNestedIndentedCodeBlock(lines, ref tmp, continuationIndent, options, out var indented) && indented != null) {
+                item.Children.Add(indented);
+                AddListItemChildSyntaxNode(item, indented, k, tmp, state);
+                if (sawBlankLine) item.ForceLoose = true;
+                index = tmp;
+                continue;
+            }
+
+            // Nested blockquote
+            tmp = k;
+            if (TryParseNestedQuoteBlock(lines, ref tmp, continuationIndent, options, state, out var quote) && quote != null) {
+                item.Children.Add(quote);
+                AddListItemChildSyntaxNode(item, quote, k, tmp, state);
+                if (sawBlankLine) item.ForceLoose = true;
+                index = tmp;
+                continue;
+            }
+
+            // Nested table
+            tmp = k;
+            if (TryParseNestedTableBlock(lines, ref tmp, continuationIndent, options, state, out var table) && table != null) {
+                item.Children.Add(table);
+                AddListItemChildSyntaxNode(item, table, k, tmp, state);
+                if (sawBlankLine) item.ForceLoose = true;
+                index = tmp;
+                continue;
+            }
+
+            // Nested HTML blocks (details / raw HTML) when HtmlBlocks are enabled.
+            tmp = k;
+            if (TryParseNestedHtmlBlock(lines, ref tmp, continuationIndent, options, state, out var htmlBlock) && htmlBlock != null) {
+                item.Children.Add(htmlBlock);
+                AddListItemChildSyntaxNode(item, htmlBlock, k, tmp, state);
+                if (sawBlankLine) item.ForceLoose = true;
+                index = tmp;
+                continue;
+            }
+
+            // Nested ordered list
+            if (allowNestedOrdered
+                && options.OrderedLists
+                && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
+                && IsOrderedListLine(lines[k], out int lvlAbsO2, out _, out _)
+                && lvlAbsO2 >= itemLevelAbs + 1) {
+                if (TryParseNestedListBlock(lines, k, options, state, new OrderedListParser(), out var orderedList, out var orderedEndIndex)) {
+                    item.Children.Add(orderedList);
+                    AddListItemChildSyntaxNode(item, orderedList, k, orderedEndIndex, state);
+                    if (sawBlankLine) item.ForceLoose = true;
+                    index = orderedEndIndex;
+                    continue;
+                }
+            }
+
+            // Nested unordered list
+            if (allowNestedUnordered
+                && options.UnorderedLists
+                && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
+                && IsUnorderedListLine(lines[k], out int lvlAbsU2, out _, out _, out _)
+                && lvlAbsU2 >= itemLevelAbs + 1) {
+                if (TryParseNestedListBlock(lines, k, options, state, new UnorderedListParser(), out var unorderedList, out var unorderedEndIndex)) {
+                    item.Children.Add(unorderedList);
+                    AddListItemChildSyntaxNode(item, unorderedList, k, unorderedEndIndex, state);
+                    if (sawBlankLine) item.ForceLoose = true;
+                    index = unorderedEndIndex;
+                    continue;
+                }
+            }
+
+            tmp = k;
+            if (TryParseTrailingParagraphsForListItem(lines, ref tmp, itemLevelAbs, continuationIndent, options, state, out var trailingParagraphs, out var trailingSyntaxNodes) && trailingParagraphs.Count > 0) {
+                foreach (var paragraph in trailingParagraphs) {
+                    item.Children.Add(paragraph);
+                }
+                for (int p = 0; p < trailingSyntaxNodes.Count; p++) {
+                    item.SyntaxChildren.Add(trailingSyntaxNodes[p]);
+                }
+                if (sawBlankLine || item.Children.Count > 0) item.ForceLoose = true;
+                index = tmp;
+                continue;
+            }
+
+            // Nothing nested to consume.
+            index = k;
+            return;
+        }
+    }
+
+    private static bool IsStructurallyBlankListItem(ListItem item) {
+        return item.Content.Nodes.Count == 0
+               && item.AdditionalParagraphs.Count == 0
+               && item.Children.Count == 0;
+    }
+
+    private static bool TryParseNestedListBlock(
+        string[] lines,
+        int startIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state,
+        IMarkdownBlockParser parser,
+        out IMarkdownListBlock list,
+        out int endIndex) {
+        int idx = startIndex;
+        var tempDoc = MarkdownDoc.Create();
+        var effectiveState = state ?? new MarkdownReaderState();
+        if (parser.TryParse(lines, ref idx, options, tempDoc, effectiveState) &&
+            tempDoc.Blocks.Count == 1 &&
+            tempDoc.Blocks[0] is IMarkdownListBlock parsedList) {
+            list = parsedList;
+            endIndex = idx;
+            return true;
+        }
+
+        list = null!;
+        endIndex = startIndex;
+        return false;
+    }
+
+    private static bool TryParseTrailingParagraphsForListItem(
+        string[] lines,
+        ref int index,
+        int itemLevelAbs,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        out List<ParagraphBlock> paragraphs,
+        out List<MarkdownSyntaxNode> syntaxNodes) {
+
+        paragraphs = new List<ParagraphBlock>();
+        syntaxNodes = new List<MarkdownSyntaxNode>();
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+
+        string line = lines[index] ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+        if (IsListNestedBlockStart(line, continuationIndent, itemLevelAbs, allowNestedOrdered: true, allowNestedUnordered: true, options)) return false;
+        if (IsUnorderedListLine(line, out _, out _, out _, out _) || IsOrderedListLine(line, out _, out _, out _)) return false;
+
+        string firstContent = StripLeadingIndentColumns(line, continuationIndent);
+        firstContent = firstContent.TrimStart();
+        int firstStartColumn = continuationIndent + CountLeadingIndentColumns(StripLeadingIndentColumns(line, continuationIndent)) + 1;
+
+        int next = index + 1;
+        var paragraphSourceLines = new List<MarkdownSourceLineSlice>();
+        var paragraphLines = ConsumeListContinuationLines(
+            lines,
+            ref next,
+            continuationIndent,
+            firstContent,
+            options,
+            sourceLines: paragraphSourceLines,
+            absoluteLineOffset: state.SourceLineOffset,
+            initialLineIndex: index,
+            initialStartColumn: firstStartColumn);
+        paragraphs.AddRange(ParseParagraphBlocksFromSourceLines(paragraphSourceLines, options, state));
+        AddParagraphSyntaxNodes(syntaxNodes, paragraphSourceLines, options, state);
+
+        index = next;
+        return paragraphs.Count > 0;
+    }
+
+    private static bool IsListNestedBlockStart(
+        string line,
+        int continuationIndent,
+        int itemLevelAbs,
+        bool allowNestedOrdered,
+        bool allowNestedUnordered,
+        MarkdownReaderOptions options) {
+
+        if (string.IsNullOrEmpty(line)) return false;
+
+        int nextIndentColumns = CountLeadingIndentColumns(line);
+        if (nextIndentColumns < continuationIndent) return false;
+
+        if (allowNestedOrdered && options.OrderedLists &&
+            IsOrderedListLine(line, out int lvlAbsO, out _, out _) &&
+            lvlAbsO >= itemLevelAbs + 1) {
+            return true;
+        }
+
+        if (allowNestedUnordered && options.UnorderedLists &&
+            IsUnorderedListLine(line, out int lvlAbsU, out _, out _, out _) &&
+            lvlAbsU >= itemLevelAbs + 1) {
+            return true;
+        }
+
+        var slice = StripLeadingIndentColumns(line, continuationIndent);
+        var sliceTrim = slice.TrimStart();
+
+        if (options.FencedCode && IsCodeFenceOpen(slice, out _, out _, out _)) return true;
+        if (options.IndentedCodeBlocks && nextIndentColumns >= continuationIndent + 4 && !string.IsNullOrWhiteSpace(slice)) return true;
+        if (sliceTrim.StartsWith(">")) return true;
+
+        if (options.Tables && LooksLikeTableRow(sliceTrim)) return true;
+
+        if (options.HtmlBlocks && sliceTrim.StartsWith("<") && !TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsOrderedListLine(string line, out int number, out string content) {
+        number = 0;
+        content = string.Empty;
+        if (!TryGetOrderedListMarkerInfo(line, out _, out number, out int contentStartIndex)) return false;
+        content = line.Substring(contentStartIndex);
+        return true;
+    }
+
+    private static bool IsOrderedListLine(string line, out int level, out int number, out string content) {
+        level = 0;
+        number = 0;
+        content = string.Empty;
+        if (!TryGetOrderedListMarkerInfo(line, out int spaces, out number, out int contentStartIndex)) return false;
+        content = line.Substring(contentStartIndex);
+        level = spaces / 2;
+        return true;
+    }
+
+    private static bool IsUnorderedListLine(string line, out bool isTask, out bool done, out string content) {
+        isTask = false;
+        done = false;
+        content = string.Empty;
+        if (!TryGetUnorderedListMarkerInfo(line, out _, out int contentStartIndex)) return false;
+
+        var c = line.Substring(contentStartIndex);
+        if (c.StartsWith("[ ]", StringComparison.Ordinal)) {
+            isTask = true;
+            done = false;
+            content = c.Length > 3 && c[2] == ']' && c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c;
+            return true;
+        }
+
+        if (c.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) {
+            isTask = true;
+            done = true;
+            content = c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c;
+            return true;
+        }
+
+        content = c;
+        return true;
+    }
+
+    private static bool IsUnorderedListLine(string line, out int level, out bool isTask, out bool done, out string content) {
+        level = 0;
+        isTask = false;
+        done = false;
+        content = string.Empty;
+        if (!TryGetUnorderedListMarkerInfo(line, out int spaces, out int contentStartIndex)) return false;
+
+        string c = line.Substring(contentStartIndex);
+        if (c.StartsWith("[ ]", StringComparison.Ordinal)) {
+            isTask = true;
+            done = false;
+            content = c.Length > 3 && c[2] == ']' && c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c;
+            level = spaces / 2;
+            return true;
+        }
+
+        if (c.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) {
+            isTask = true;
+            done = true;
+            content = c.Length > 4 && c[3] == ' ' ? c.Substring(4) : c;
+            level = spaces / 2;
+            return true;
+        }
+
+        content = c;
+        level = spaces / 2;
+        return true;
+    }
+
+    private static string GetUnorderedListItemContent(string line) {
+        return TryGetUnorderedListMarkerInfo(line, out _, out int contentStartIndex)
+            ? line.Substring(contentStartIndex)
+            : string.Empty;
+    }
+
+    private static bool IsCalloutHeader(string line, out string kind, out string title) {
+        kind = string.Empty; title = string.Empty;
+        if (string.IsNullOrEmpty(line)) return false;
+        var t = line.TrimStart();
+        if (!t.StartsWith(">")) return false;
+        t = t.Substring(1).TrimStart();
+        if (!t.StartsWith("[!")) return false;
+        int close = t.IndexOf(']');
+        if (close < 0 || close < 3) return false;
+        string marker = t.Substring(2, close - 2);
+        for (int i = 0; i < marker.Length; i++) if (!char.IsLetter(marker[i])) return false;
+        kind = marker.ToLowerInvariant();
+        title = t.Substring(close + 1).TrimStart();
+        // Title is optional: "> [!NOTE]" is valid and should produce a callout with the default title for the kind.
+        return true;
+    }
+
+    private static int GetListContinuationIndent(string line) {
+        if (string.IsNullOrEmpty(line)) return 0;
+        if (TryGetOrderedListMarkerInfo(line, out int orderedLeadingSpaces, out _, out int orderedContentStartIndex)) {
+            if (string.IsNullOrWhiteSpace(line.Substring(orderedContentStartIndex))
+                && TryGetOrderedListMarkerWidth(line, orderedLeadingSpaces, out int orderedMarkerWidth)) {
+                return orderedLeadingSpaces + orderedMarkerWidth + 1;
+            }
+
+            return orderedContentStartIndex;
+        }
+
+        if (TryGetUnorderedListMarkerInfo(line, out int unorderedLeadingSpaces, out int unorderedContentStartIndex)) {
+            if (string.IsNullOrWhiteSpace(line.Substring(unorderedContentStartIndex))) {
+                return unorderedLeadingSpaces + 2;
+            }
+
+            return unorderedContentStartIndex;
+        }
+
+        int spaces = CountLeadingSpaces(line);
+        return spaces + 2;
+    }
+
+    private static int GetRelativeListItemLevel(List<int>? continuationIndentsByLevel, string line) {
+        if (continuationIndentsByLevel == null || continuationIndentsByLevel.Count == 0 || string.IsNullOrEmpty(line)) {
+            return 0;
+        }
+
+        int indentColumns = CountLeadingIndentColumns(line);
+        for (int level = continuationIndentsByLevel.Count - 1; level >= 0; level--) {
+            if (indentColumns >= continuationIndentsByLevel[level]) {
+                return level + 1;
+            }
+        }
+
+        return 0;
+    }
+
+    private static void TrackListItemContinuationIndent(List<int> continuationIndentsByLevel, int level, int continuationIndent) {
+        if (continuationIndentsByLevel == null) {
+            return;
+        }
+
+        while (continuationIndentsByLevel.Count > level) {
+            continuationIndentsByLevel.RemoveAt(continuationIndentsByLevel.Count - 1);
+        }
+
+        if (continuationIndentsByLevel.Count == level) {
+            continuationIndentsByLevel.Add(continuationIndent);
+            return;
+        }
+
+        continuationIndentsByLevel[level] = continuationIndent;
+    }
+
+    private static int GetTaskMarkerConsumedColumns(string content) {
+        if (string.IsNullOrEmpty(content)) return 0;
+        if (content.StartsWith("[ ]", StringComparison.Ordinal)) {
+            return content.Length > 4 && content[3] == ' ' ? 4 : 0;
+        }
+
+        if (content.StartsWith("[x]", StringComparison.OrdinalIgnoreCase)) {
+            return content.Length > 4 && content[3] == ' ' ? 4 : 0;
+        }
+
+        return 0;
+    }
+
+    private static bool TryGetRawListItemContentAfterMarker(string line, out string content) {
+        content = string.Empty;
+        if (string.IsNullOrEmpty(line)) return false;
+        if (TryGetOrderedListMarkerInfo(line, out _, out _, out int orderedContentStartIndex)) {
+            content = line.Substring(orderedContentStartIndex);
+            return true;
+        }
+
+        if (TryGetUnorderedListMarkerInfo(line, out _, out int unorderedContentStartIndex)) {
+            content = line.Substring(unorderedContentStartIndex);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryGetOrderedListMarkerInfo(string line, out int leadingSpaces, out int number, out int contentStartIndex) {
+        return TryGetOrderedListMarkerInfo(line, out leadingSpaces, out number, out contentStartIndex, out _);
+    }
+
+    private static bool TryGetOrderedListMarkerInfo(string line, out int leadingSpaces, out int number, out int contentStartIndex, out char delimiter) {
+        leadingSpaces = 0;
+        number = 0;
+        contentStartIndex = 0;
+        delimiter = '\0';
+        if (string.IsNullOrEmpty(line)) return false;
+
+        while (leadingSpaces < line.Length && line[leadingSpaces] == ' ') leadingSpaces++;
+
+        int digitsStart = leadingSpaces;
+        int digitsEnd = digitsStart;
+        while (digitsEnd < line.Length && char.IsDigit(line[digitsEnd])) digitsEnd++;
+        if (digitsEnd == digitsStart) return false;
+        if (digitsEnd - digitsStart > 9) return false;
+        if (digitsEnd >= line.Length || (line[digitsEnd] != '.' && line[digitsEnd] != ')')) return false;
+        delimiter = line[digitsEnd];
+        if (!TryGetListContentStartIndex(line, digitsEnd, out contentStartIndex)) return false;
+        if (!int.TryParse(line.Substring(digitsStart, digitsEnd - digitsStart), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
+        return true;
+    }
+
+    private static bool TryGetUnorderedListMarkerInfo(string line, out int leadingSpaces, out int contentStartIndex) {
+        return TryGetUnorderedListMarkerInfo(line, out leadingSpaces, out contentStartIndex, out _);
+    }
+
+    private static bool TryGetUnorderedListMarkerInfo(string line, out int leadingSpaces, out int contentStartIndex, out char marker) {
+        leadingSpaces = 0;
+        contentStartIndex = 0;
+        marker = '\0';
+        if (string.IsNullOrEmpty(line)) return false;
+
+        while (leadingSpaces < line.Length && line[leadingSpaces] == ' ') leadingSpaces++;
+        if (leadingSpaces >= line.Length) return false;
+
+        marker = line[leadingSpaces];
+        if (marker != '-' && marker != '*' && marker != '+') return false;
+        return TryGetListContentStartIndex(line, leadingSpaces, out contentStartIndex);
+    }
+
+    private static bool TryGetListContentStartIndex(string line, int markerIndex, out int contentStartIndex) {
+        contentStartIndex = 0;
+        int paddingStart = markerIndex + 1;
+        if (paddingStart >= line.Length) {
+            contentStartIndex = line.Length;
+            return true;
+        }
+
+        int paddingColumns = 0;
+        int cursor = paddingStart;
+        while (cursor < line.Length) {
+            char ch = line[cursor];
+            if (ch == ' ' && paddingColumns < 4) {
+                paddingColumns++;
+                cursor++;
+                continue;
+            }
+
+            if (ch == '\t' && paddingColumns == 0) {
+                contentStartIndex = cursor + 1;
+                return true;
+            }
+
+            break;
+        }
+
+        if (cursor >= line.Length) {
+            contentStartIndex = line.Length;
+            return true;
+        }
+
+        if (paddingColumns == 0) return false;
+        contentStartIndex = cursor;
+        return true;
+    }
+
+    private static bool TryGetIndentedCodeListLead(string line, out int continuationIndent, out string content, out int startColumn) {
+        continuationIndent = 0;
+        content = string.Empty;
+        startColumn = 1;
+        if (string.IsNullOrEmpty(line)) return false;
+
+        int leadingSpaces = 0;
+        while (leadingSpaces < line.Length && line[leadingSpaces] == ' ') leadingSpaces++;
+        if (leadingSpaces >= line.Length) return false;
+
+        int markerWidth;
+        if (TryGetOrderedListMarkerWidth(line, leadingSpaces, out markerWidth)) {
+            if (!HasIndentedCodePaddingAfterMarker(line, leadingSpaces + markerWidth - 1)) return false;
+        } else {
+            char marker = line[leadingSpaces];
+            if (marker != '-' && marker != '*' && marker != '+') return false;
+            markerWidth = 1;
+            if (!HasIndentedCodePaddingAfterMarker(line, leadingSpaces)) return false;
+        }
+
+        continuationIndent = leadingSpaces + markerWidth + 1;
+        if (continuationIndent >= line.Length) return false;
+
+        content = line.Substring(continuationIndent);
+        startColumn = continuationIndent + 1;
+        return CountLeadingIndentColumns(content) >= 4;
+    }
+
+    private static bool TryGetOrderedListMarkerWidth(string line, int leadingSpaces, out int markerWidth) {
+        markerWidth = 0;
+        if (string.IsNullOrEmpty(line) || leadingSpaces >= line.Length) return false;
+
+        int digitsEnd = leadingSpaces;
+        while (digitsEnd < line.Length && char.IsDigit(line[digitsEnd])) digitsEnd++;
+        if (digitsEnd == leadingSpaces || digitsEnd - leadingSpaces > 9) return false;
+        if (digitsEnd >= line.Length || (line[digitsEnd] != '.' && line[digitsEnd] != ')')) return false;
+
+        markerWidth = digitsEnd - leadingSpaces + 1;
+        return true;
+    }
+
+    private static bool HasIndentedCodePaddingAfterMarker(string line, int markerEndIndex) {
+        int paddingStart = markerEndIndex + 1;
+        if (paddingStart >= line.Length || line[paddingStart] != ' ') return false;
+
+        int spaces = 0;
+        int cursor = paddingStart;
+        while (cursor < line.Length && line[cursor] == ' ') {
+            spaces++;
+            cursor++;
+        }
+
+        return spaces >= 5;
+    }
+
+    private static int GetListLeadContentStartColumn(string line, bool stripTaskMarker = false) {
+        int startColumn = GetListContinuationIndent(line) + 1;
+        if (!stripTaskMarker) return startColumn;
+
+        return TryGetRawListItemContentAfterMarker(line, out string content)
+            ? startColumn + GetTaskMarkerConsumedColumns(content)
+            : startColumn;
+    }
+}

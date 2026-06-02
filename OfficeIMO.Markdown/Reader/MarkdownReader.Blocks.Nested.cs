@@ -1,0 +1,517 @@
+using System.Globalization;
+using System.Linq;
+using System.Text;
+
+namespace OfficeIMO.Markdown;
+
+public static partial class MarkdownReader {
+    private static bool IsParagraphInterruptingOrderedListLine(string line) {
+        if (!IsOrderedListLine(line, out _, out int number, out string content)) return false;
+        return number == 1 && !string.IsNullOrWhiteSpace(content);
+    }
+
+    private static bool IsParagraphInterruptingUnorderedListLine(string line) {
+        return IsUnorderedListLine(line, out _, out _, out string content)
+               && !string.IsNullOrWhiteSpace(content);
+    }
+
+    private static bool LastCollectedLinePreservesIndentedContinuation(List<string> collected) {
+        if (collected == null || collected.Count == 0) return false;
+
+        for (int i = collected.Count - 1; i >= 0; i--) {
+            var line = collected[i];
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (!IsOrderedListLine(line, out _, out int number, out _)) return false;
+            return number != 1;
+        }
+
+        return false;
+    }
+
+    private static List<string> ConsumeListContinuationLines(
+        string[] lines,
+        ref int nextIndex,
+        int continuationIndent,
+        string initialContent,
+        MarkdownReaderOptions options,
+        bool breakOnAnyOrderedListLine = false,
+        List<MarkdownSourceLineSlice>? sourceLines = null,
+        int absoluteLineOffset = 0,
+        int initialLineIndex = -1,
+        int initialStartColumn = 1) {
+        if (lines == null) return new List<string> { initialContent ?? string.Empty };
+        if (nextIndex < 0) nextIndex = 0;
+
+        var collected = new List<string> { initialContent ?? string.Empty };
+        if (sourceLines != null) {
+            int initialAbsoluteLine = initialLineIndex >= 0
+                ? absoluteLineOffset + initialLineIndex + 1
+                : absoluteLineOffset + nextIndex + 1;
+            sourceLines.Add(new MarkdownSourceLineSlice(initialContent ?? string.Empty, initialAbsoluteLine, initialStartColumn));
+        }
+
+        int k = nextIndex;
+
+        while (k < lines.Length) {
+            var line = lines[k] ?? string.Empty;
+            bool collectingLeadFencedCode = TryGetOpenLeadFencedCode(collected, out _, out _, out _);
+
+            if (collectingLeadFencedCode) {
+                if (string.IsNullOrWhiteSpace(line)) {
+                    collected.Add(string.Empty);
+                    sourceLines?.Add(new MarkdownSourceLineSlice(string.Empty, absoluteLineOffset + k + 1, 1));
+                    k++;
+                    continue;
+                }
+
+                int fencedIndentColumns = CountLeadingIndentColumns(line);
+                if (fencedIndentColumns < continuationIndent) {
+                    break;
+                }
+
+                string fencedContent = StripLeadingIndentColumns(line, continuationIndent);
+                int fencedStartColumn = continuationIndent + 1;
+                sourceLines?.Add(new MarkdownSourceLineSlice(fencedContent, absoluteLineOffset + k + 1, fencedStartColumn));
+                collected.Add(fencedContent);
+                k++;
+                continue;
+            }
+
+            // Stop before the next list item (including nested items).
+            if (IsUnorderedListLine(line, out _, out _, out _, out _) ||
+                (breakOnAnyOrderedListLine ? IsOrderedListLine(line, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line))) {
+                break;
+            }
+
+            // Stop before nested blocks; they are handled as child blocks of the list item.
+            if (CountLeadingIndentColumns(line) >= continuationIndent) {
+                var slice = StripLeadingIndentColumns(line, continuationIndent);
+                var sliceTrim = slice.TrimStart();
+                if (IsCodeFenceOpen(slice, out _, out _, out _)) break;
+                if (sliceTrim.StartsWith(">")) break;
+
+                if (options.HtmlBlocks && sliceTrim.StartsWith("<")) {
+                    // Avoid breaking on angle-bracket autolinks like "<https://...>".
+                    if (!TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) break;
+                }
+
+                // Indented code block inside list item: continuationIndent + 4 spaces.
+                if (options.IndentedCodeBlocks) {
+                    int lineIndentColumns = CountLeadingIndentColumns(line);
+                    if (lineIndentColumns >= continuationIndent + 4 && !LastCollectedLinePreservesIndentedContinuation(collected)) break;
+                }
+
+                // Table inside list item: a pipe row followed by an alignment/row.
+                if (options.Tables && LooksLikeTableRow(sliceTrim)) {
+                    int peek = k + 1;
+                    if (peek < lines.Length && CountLeadingIndentColumns(lines[peek] ?? string.Empty) >= continuationIndent) {
+                        var nextSlice = StripLeadingIndentColumns(lines[peek] ?? string.Empty, continuationIndent).TrimStart();
+                        // Reduce false positives: require an alignment row, or explicit outer pipes on both rows.
+                        bool curOuter = sliceTrim.Length > 0 && sliceTrim[0] == '|' && sliceTrim[sliceTrim.Length - 1] == '|';
+                        bool nextOuter = nextSlice.Length > 0 && nextSlice[0] == '|' && nextSlice[nextSlice.Length - 1] == '|';
+                        if (IsAlignmentRow(nextSlice) || (curOuter && nextOuter)) break;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(line)) {
+                if (collected.Count == 1 && string.IsNullOrWhiteSpace(collected[0])) {
+                    break;
+                }
+
+                // Keep blank lines only if followed by an indented continuation line; otherwise end item.
+                int peek = k + 1;
+                if (peek >= lines.Length) break;
+                var next = lines[peek] ?? string.Empty;
+                if (IsUnorderedListLine(next, out _, out _, out _, out _) ||
+                    (breakOnAnyOrderedListLine ? IsOrderedListLine(next, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(next))) {
+                    break;
+                }
+                int nextIndentColumns = CountLeadingIndentColumns(next);
+                if (nextIndentColumns < continuationIndent) break;
+
+                collected.Add(string.Empty);
+                sourceLines?.Add(new MarkdownSourceLineSlice(string.Empty, absoluteLineOffset + k + 1, 1));
+                k++;
+                continue;
+            }
+
+            int indentColumns = CountLeadingIndentColumns(line);
+            if (indentColumns < continuationIndent) {
+                if (collected.Count > 0 &&
+                    !string.IsNullOrWhiteSpace(collected[collected.Count - 1]) &&
+                    LooksLikeParagraphLine(collected, collected.Count - 1, options) &&
+                    TryNormalizeListLazyContinuationLine(lines, k, options, breakOnAnyOrderedListLine, out var normalizedLazyLine)) {
+                    collected.Add(normalizedLazyLine);
+                    sourceLines?.Add(new MarkdownSourceLineSlice(normalizedLazyLine, absoluteLineOffset + k + 1, indentColumns + 1));
+                    k++;
+                    continue;
+                }
+
+                break;
+            }
+
+            // Strip the required indent; keep the remainder as-is (including additional indentation).
+            string cont = StripLeadingIndentColumns(line, continuationIndent);
+            int startColumn = continuationIndent + 1;
+            startColumn += CountLeadingIndentColumns(cont);
+            cont = cont.TrimStart();
+            collected.Add(cont);
+            sourceLines?.Add(new MarkdownSourceLineSlice(cont, absoluteLineOffset + k + 1, startColumn));
+            k++;
+        }
+
+        nextIndex = k;
+        return collected;
+    }
+
+    private static bool TryGetOpenLeadFencedCode(
+        IReadOnlyList<string>? collected,
+        out string language,
+        out char fenceChar,
+        out int fenceLength) {
+        language = string.Empty;
+        fenceChar = '\0';
+        fenceLength = 0;
+
+        if (collected == null || collected.Count == 0) {
+            return false;
+        }
+
+        if (!IsCodeFenceOpen(collected[0] ?? string.Empty, out language, out fenceChar, out fenceLength)) {
+            return false;
+        }
+
+        for (int i = 1; i < collected.Count; i++) {
+            if (IsCodeFenceClose(collected[i] ?? string.Empty, fenceChar, fenceLength)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool TryNormalizeListLazyContinuationLine(IReadOnlyList<string>? lines, int index, MarkdownReaderOptions options, bool breakOnAnyOrderedListLine, out string normalized) {
+        var source = lines != null && index >= 0 && index < lines.Count ? (lines[index] ?? string.Empty) : string.Empty;
+        normalized = source;
+        if (string.IsNullOrWhiteSpace(source)) return false;
+
+        var trimmed = source.TrimStart();
+        if (trimmed.Length == 0) return false;
+        if (trimmed.StartsWith(">")) return false;
+        if (IsAtxHeading(trimmed, out _, out _)) return false;
+        if (LooksLikeHr(trimmed)) return false;
+        if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
+        if (LooksLikeTableRow(trimmed)) return false;
+        if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
+        if (options.Callouts && IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (IsUnorderedListLine(trimmed, out _, out _, out _, out _)) return false;
+        if (breakOnAnyOrderedListLine ? IsOrderedListLine(trimmed, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(trimmed)) return false;
+
+        if (options.HtmlBlocks && trimmed.StartsWith("<") && !TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
+            return false;
+        }
+
+        normalized = trimmed;
+        return true;
+    }
+
+    private static bool TryParseNestedFencedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, out IMarkdownBlock? block) {
+        block = null;
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+        if (!options.FencedCode) return false;
+
+        string line = lines[index] ?? string.Empty;
+        int indent = CountLeadingIndentColumns(line);
+        if (indent < continuationIndent) return false;
+
+        string first = StripLeadingIndentColumns(line, continuationIndent);
+        int openingFenceIndent = CountLeadingIndentColumns(first);
+        if (openingFenceIndent > 3) return false;
+
+        string openingFence = StripLeadingIndentColumns(first, openingFenceIndent);
+        if (!IsCodeFenceOpen(openingFence, out string language, out char fenceChar, out int fenceLen)) return false;
+
+        int j = index + 1;
+        var code = new StringBuilder();
+        while (j < lines.Length) {
+            string raw = lines[j] ?? string.Empty;
+            int ind = CountLeadingIndentColumns(raw);
+            string sliced = ind >= continuationIndent ? StripLeadingIndentColumns(raw, continuationIndent) : raw.TrimStart();
+            if (IsCodeFenceClose(sliced, fenceChar, fenceLen)) { j++; break; }
+            int contentIndentToStrip = Math.Min(openingFenceIndent, CountLeadingIndentColumns(sliced));
+            if (contentIndentToStrip > 0) {
+                sliced = StripLeadingIndentColumns(sliced, contentIndentToStrip);
+            }
+            code.AppendLine(sliced);
+            j++;
+        }
+
+        var content = RemoveSingleTrailingLineEnding(code.ToString());
+        string? caption = null;
+        // Optional caption line (indented like other nested content)
+        if (j < lines.Length) {
+            var capLine = lines[j] ?? string.Empty;
+            if (CountLeadingIndentColumns(capLine) >= continuationIndent) {
+                var capSlice = StripLeadingIndentColumns(capLine, continuationIndent);
+                if (TryParseCaption(capSlice, out var cap)) { caption = cap; j++; }
+            }
+        }
+
+        block = CreateParsedFencedBlock(language, content, isFenced: true, caption, options);
+        index = j;
+        return true;
+    }
+
+    private static bool TryParseNestedIndentedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, out CodeBlock? block) {
+        block = null;
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+        if (!options.IndentedCodeBlocks) return false;
+
+        string line = lines[index] ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(line)) return false;
+
+        int spaces = CountLeadingIndentColumns(line);
+        int required = continuationIndent + 4;
+        if (spaces < required) return false;
+
+        int j = index;
+        var sb = new StringBuilder();
+        while (j < lines.Length) {
+            string cur = lines[j] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(cur)) {
+                int peek = j + 1;
+                if (peek >= lines.Length) break;
+                int nextSpaces = CountLeadingIndentColumns(lines[peek] ?? string.Empty);
+                if (nextSpaces < required) break;
+                sb.AppendLine();
+                j++;
+                continue;
+            }
+
+            int curSpaces = CountLeadingIndentColumns(cur);
+            if (curSpaces < required) break;
+            sb.AppendLine(StripLeadingIndentColumns(cur, required));
+            j++;
+        }
+
+        block = new CodeBlock(string.Empty, RemoveSingleTrailingLineEnding(sb.ToString()), isFenced: false);
+        index = j;
+        return true;
+    }
+
+    private static bool TryParseNestedQuoteBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out QuoteBlock? quote) {
+        quote = null;
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+
+        string line = lines[index] ?? string.Empty;
+        if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+        string slice = StripLeadingIndentColumns(line, continuationIndent);
+        if (!slice.TrimStart().StartsWith(">")) return false;
+
+        int j = index;
+        var collected = new List<string>();
+        bool sawQuotedLine = false;
+        string? lastQuoteContent = null;
+        while (j < lines.Length) {
+            string raw = lines[j] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(raw)) {
+                int peek = j + 1;
+                if (peek >= lines.Length) break;
+                var next = lines[peek] ?? string.Empty;
+                if (CountLeadingIndentColumns(next) < continuationIndent) break;
+                string nextPart = StripLeadingIndentColumns(next, continuationIndent);
+                if (!nextPart.TrimStart().StartsWith(">")) break;
+                collected.Add(string.Empty);
+                j++;
+                continue;
+            }
+
+            if (CountLeadingIndentColumns(raw) < continuationIndent) break;
+            string part = StripLeadingIndentColumns(raw, continuationIndent);
+
+            if (string.IsNullOrWhiteSpace(part)) {
+                int peek = j + 1;
+                if (peek >= lines.Length) break;
+                var next = lines[peek] ?? string.Empty;
+                if (CountLeadingIndentColumns(next) < continuationIndent) break;
+                string nextPart = StripLeadingIndentColumns(next, continuationIndent);
+                if (!nextPart.TrimStart().StartsWith(">")) break;
+                collected.Add(string.Empty);
+                j++;
+                continue;
+            }
+
+            if (part.TrimStart().StartsWith(">")) {
+                string quoteContent = StripSingleQuoteMarker(part);
+                if (TryNormalizeQuotedListContinuationLine(lastQuoteContent, quoteContent, options, out var normalizedQuotedLine)) {
+                    quoteContent = normalizedQuotedLine;
+                } else if (TryNormalizeQuotedIndentedParagraphContinuation(lastQuoteContent, quoteContent, options, out var normalizedQuotedParagraphLine)) {
+                    quoteContent = normalizedQuotedParagraphLine;
+                }
+
+                collected.Add("> " + quoteContent);
+                sawQuotedLine = true;
+                lastQuoteContent = quoteContent;
+                j++;
+                continue;
+            }
+
+            // Match the top-level quote parser's lazy continuation behavior inside list items too.
+            if (!sawQuotedLine) break;
+            var previousQuoteContent = lastQuoteContent;
+            if (previousQuoteContent == null || previousQuoteContent.Length == 0) break;
+            var quoteContext = new[] { previousQuoteContent, part };
+            if (!LooksLikeParagraphLine(quoteContext, 0, options) ||
+                !TryNormalizeQuoteLazyContinuationLine(quoteContext, 1, options, out var normalizedLazyLine)) break;
+
+            collected.Add("> " + normalizedLazyLine);
+            lastQuoteContent = normalizedLazyLine;
+            j++;
+        }
+
+        if (collected.Count == 0) return false;
+
+        if (TryParseCollectedNestedBlock(collected, options, state, index, out QuoteBlock? parsedQuote)) {
+            quote = parsedQuote;
+            index = j;
+            return true;
+        }
+        return false;
+    }
+
+    private static string StripSingleQuoteMarker(string line) {
+        if (string.IsNullOrEmpty(line)) return string.Empty;
+        var trimmed = line.TrimStart();
+        if (!trimmed.StartsWith(">")) return trimmed;
+        return trimmed.Length >= 2 && trimmed[1] == ' ' ? trimmed.Substring(2) : trimmed.Substring(1);
+    }
+
+    private static int GetQuoteContentStartColumn(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return 1;
+        }
+
+        int column = 1;
+        int index = 0;
+        while (index < line.Length) {
+            char ch = line[index];
+            if (ch == ' ') {
+                column++;
+                index++;
+                continue;
+            }
+
+            if (ch == '\t') {
+                column += 4 - ((column - 1) % 4);
+                index++;
+                continue;
+            }
+
+            break;
+        }
+
+        if (index < line.Length && line[index] == '>') {
+            column++;
+            index++;
+        }
+
+        if (index < line.Length && line[index] == ' ') {
+            column++;
+        }
+
+        return column;
+    }
+
+    private static bool TryParseNestedTableBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out TableBlock? table) {
+        table = null;
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+        if (!options.Tables) return false;
+
+        string line = lines[index] ?? string.Empty;
+        if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+        string slice = StripLeadingIndentColumns(line, continuationIndent);
+        if (!LooksLikeTableRow(slice.TrimStart())) return false;
+
+        int j = index;
+        var collected = new List<string>();
+        while (j < lines.Length) {
+            string raw = lines[j] ?? string.Empty;
+            if (CountLeadingIndentColumns(raw) < continuationIndent) break;
+            string part = StripLeadingIndentColumns(raw, continuationIndent);
+            if (string.IsNullOrWhiteSpace(part)) break;
+            // Stop when the row no longer looks table-ish.
+            if (!LooksLikeTableRow(part.TrimStart()) && !IsAlignmentRow(part.TrimStart())) break;
+            collected.Add(part);
+            j++;
+        }
+
+        if (collected.Count == 0) return false;
+        if (TryParseCollectedNestedBlock(collected, options, state, index, out TableBlock? parsedTable)) {
+            table = parsedTable;
+            index = j;
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryParseCollectedNestedBlock<TBlock>(
+        List<string> lines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        int lineOffset,
+        out TBlock? block)
+        where TBlock : class, IMarkdownBlock {
+        block = null;
+        if (lines == null || lines.Count == 0) return false;
+
+        var nested = ParseBlocksFromLines(lines.ToArray(), options, state, lineOffset: lineOffset);
+        if (nested.Count == 0 || nested[0] is not TBlock parsedBlock) {
+            return false;
+        }
+
+        block = parsedBlock;
+        return true;
+    }
+
+    private static bool TryParseNestedHtmlBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out IMarkdownBlock? block) {
+        block = null;
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+        if (!options.HtmlBlocks) return false;
+
+        string line = lines[index] ?? string.Empty;
+        if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+        string slice = StripLeadingIndentColumns(line, continuationIndent);
+        string sliceTrim = slice.TrimStart();
+        if (!sliceTrim.StartsWith("<")) return false;
+        if (TryParseAngleAutolink(sliceTrim, 0, out _, out _, out _)) return false;
+
+        // Collect contiguous indented lines and let HtmlBlockParser decide the extent.
+        int j = index;
+        var collected = new List<string>();
+        while (j < lines.Length) {
+            string raw = lines[j] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(raw)) {
+                // Allow unindented blank lines inside HTML blocks within list items.
+                collected.Add(string.Empty);
+                j++;
+                continue;
+            }
+            if (CountLeadingIndentColumns(raw) < continuationIndent) break;
+            collected.Add(StripLeadingIndentColumns(raw, continuationIndent));
+            j++;
+        }
+        if (collected.Count == 0) return false;
+
+        int local = 0;
+        var tempDoc = MarkdownDoc.Create();
+        var parser = new HtmlBlockParser();
+        if (!parser.TryParse(collected.ToArray(), ref local, options, tempDoc, state)) return false;
+        if (tempDoc.Blocks.Count != 1) return false;
+
+        block = tempDoc.Blocks[0];
+        index = index + local;
+        return true;
+    }
+
+}
