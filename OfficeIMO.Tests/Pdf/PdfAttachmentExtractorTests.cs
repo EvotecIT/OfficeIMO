@@ -48,6 +48,21 @@ public class PdfAttachmentExtractorTests {
     }
 
     [Fact]
+    public void GeneratedEmbeddedFileNameTreeSortsAttachmentNames() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .AttachFile("z.xml", Encoding.UTF8.GetBytes("<z />"), "application/xml", PdfAssociatedFileRelationship.Data)
+            .AttachFile("a.xml", Encoding.UTF8.GetBytes("<a />"), "application/xml", PdfAssociatedFileRelationship.Data)
+            .Paragraph(p => p.Text("Sorted attachment name tree."))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Matches(@"/Names \[<612E786D6C> \d+ 0 R <7A2E786D6C> \d+ 0 R\]", content);
+    }
+
+    [Fact]
     public void ExtractAttachments_ReadsSimpleHandBuiltEmbeddedFilePdf() {
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(BuildSimpleEmbeddedFilePdf());
 

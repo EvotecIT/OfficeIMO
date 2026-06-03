@@ -7,6 +7,7 @@ internal sealed class PdfCiiTaxCategoryRateEvidence {
         bool hasRateRequirementCoverage,
         bool allZeroRatedCategoriesUseZeroRate,
         IReadOnlyList<string> nonZeroRatedCategoryRates,
+        IReadOnlyList<string> missingRateCategoryCodes,
         IReadOnlyList<string> forbiddenRateCategoryCodes,
         string? parseDiagnostic) {
         HasApplicableTradeTax = hasApplicableTradeTax;
@@ -14,6 +15,7 @@ internal sealed class PdfCiiTaxCategoryRateEvidence {
         HasRateRequirementCoverage = hasRateRequirementCoverage;
         AllZeroRatedCategoriesUseZeroRate = allZeroRatedCategoriesUseZeroRate;
         NonZeroRatedCategoryRates = nonZeroRatedCategoryRates;
+        MissingRateCategoryCodes = missingRateCategoryCodes;
         ForbiddenRateCategoryCodes = forbiddenRateCategoryCodes;
         ParseDiagnostic = parseDiagnostic;
     }
@@ -27,6 +29,8 @@ internal sealed class PdfCiiTaxCategoryRateEvidence {
     internal bool AllZeroRatedCategoriesUseZeroRate { get; }
 
     internal IReadOnlyList<string> NonZeroRatedCategoryRates { get; }
+
+    internal IReadOnlyList<string> MissingRateCategoryCodes { get; }
 
     internal IReadOnlyList<string> ForbiddenRateCategoryCodes { get; }
 

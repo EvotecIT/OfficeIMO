@@ -38,11 +38,23 @@ internal static partial class PdfWriter {
                 currentPage!.Bookmarks.Add(new PageBookmark { Level = hb.Level, Title = hb.Text, Y = y });
             }
             double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);
-            AddHeadingLinkAnnotations(hb, lines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline);
             string headingFontResource = GetHeadingFontResource(headingStyle);
             string structureType = "H" + hb.Level.ToString(CultureInfo.InvariantCulture);
-            int? markedContentId = RegisterTextStructureElement(structureType);
-            WriteLines(headingFontResource, size, leading, currentOpts.MarginLeft, firstBaseline, lines, hb.Align, hb.Color ?? headingStyle?.Color, applyBaselineTweak: false, structureType: structureType, markedContentId: markedContentId);
+            bool hasLinkTarget = !string.IsNullOrEmpty(hb.LinkUri) || !string.IsNullOrEmpty(hb.LinkDestinationName);
+            int? linkStructElementIndex = null;
+            string markedStructureType = structureType;
+            int? markedContentId;
+            if (hasLinkTarget && emitGeneratedStructure && currentPage != null) {
+                int? headingElementIndex = RegisterStructureContainer(structureType);
+                linkStructElementIndex = currentPage.StructElements.Count;
+                markedStructureType = "Link";
+                markedContentId = RegisterTextStructureElement(markedStructureType, headingElementIndex);
+            } else {
+                markedContentId = RegisterTextStructureElement(structureType);
+            }
+
+            AddHeadingLinkAnnotations(hb, lines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline, linkStructElementIndex);
+            WriteLines(headingFontResource, size, leading, currentOpts.MarginLeft, firstBaseline, lines, hb.Align, hb.Color ?? headingStyle?.Color, applyBaselineTweak: false, structureType: markedStructureType, markedContentId: markedContentId);
             if (GetHeadingBold(headingStyle)) {
                 currentPage!.UsedBold = true;
                 usedBold = true;

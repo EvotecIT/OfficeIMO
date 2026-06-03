@@ -352,7 +352,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static bool DrawTableCellDataBars(StringBuilder sb, PdfTableStyle style, System.Collections.Generic.List<TableCellLayout> cells, int rowIndex, int columnCount, double xOrigin, double yTop, double rowBottom, double rowHeight, double[] columnWidths, double columnGap, double[] rowHeights, double rowGap, bool wholeRowSegment, int startLine, bool[] skipColumns) {
+    private static bool DrawTableCellDataBars(StringBuilder sb, PdfTableStyle style, System.Collections.Generic.List<TableCellLayout> cells, int rowIndex, int columnCount, double xOrigin, double yTop, double rowBottom, double rowHeight, double[] columnWidths, double columnGap, double[] rowHeights, double rowGap, bool wholeRowSegment, int startLine, bool[] skipColumns, bool artifact = false) {
         if (style.CellDataBars == null || style.CellDataBars.Count == 0 || startLine != 0) {
             return false;
         }
@@ -382,7 +382,7 @@ internal static partial class PdfWriter {
                 double barWidth = contentWidth * dataBar.Ratio;
                 double barHeight = System.Math.Max(0D, cellHeight - padTop - padBottom);
                 if (barWidth > 0.001D && barHeight > 0.001D) {
-                    DrawRowFill(sb, dataBar.Color, barX, cellBottom + padBottom, barWidth, barHeight);
+                    DrawRowFill(sb, dataBar.Color, barX, cellBottom + padBottom, barWidth, barHeight, artifact);
                     drawn = true;
                 }
             }

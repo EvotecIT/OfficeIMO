@@ -127,7 +127,8 @@ internal static partial class PdfWriter {
                 if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom, emitGeneratedStructure); }
                 if (DrawPanelBorder(sb, panelStyle, xLeft, panelBottom, panelWidth, panelTop - panelBottom, emitGeneratedStructure)) { pageDirty = true; }
                 pageDirty = true;
-                WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), lines, lineHeights, currentOpts, panelTop - panelStyle.PaddingY - firstBaselineOffset, size, leading, currentPage!.Annotations, xLeft + panelStyle.PaddingX, textWidthAvail, structurePage: currentPage);
+                int? panelMarkedContentId = RegisterTextStructureElement("P");
+                WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), lines, lineHeights, currentOpts, panelTop - panelStyle.PaddingY - firstBaselineOffset, size, leading, currentPage!.Annotations, xLeft + panelStyle.PaddingX, textWidthAvail, structureType: "P", markedContentId: panelMarkedContentId, structurePage: currentPage);
                 MarkRichFonts(ppb.Runs);
                 y = panelBottom;
                 if (panelStyle.SpacingAfter > 0) {
@@ -163,7 +164,8 @@ internal static partial class PdfWriter {
                     var sliceHeights = new System.Collections.Generic.List<double>();
                     for (int k = 0; k < take; k++) { sliceLines.Add(lines[li + k]); sliceHeights.Add(lineHeights[li + k]); }
                     pageDirty = true;
-                    WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), sliceLines, sliceHeights, currentOpts, panelTop - topPad - firstBaselineOffset, size, leading, currentPage!.Annotations, xLeft + panelStyle.PaddingX, textWidthAvail, structurePage: currentPage);
+                    int? panelMarkedContentId = RegisterTextStructureElement("P");
+                    WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), sliceLines, sliceHeights, currentOpts, panelTop - topPad - firstBaselineOffset, size, leading, currentPage!.Annotations, xLeft + panelStyle.PaddingX, textWidthAvail, structureType: "P", markedContentId: panelMarkedContentId, structurePage: currentPage);
                     MarkRichFonts(ppb.Runs);
                     y = panelBottom; li += take; firstSeg = false;
                     if (li < lines.Count) {

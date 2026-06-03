@@ -244,10 +244,22 @@ internal static partial class PdfWriter {
                             }
                             var headingFont = ch.Bold ? ChooseBold(ChooseNormal(currentOpts.DefaultFont)) : ChooseNormal(currentOpts.DefaultFont);
                             double firstBaseline = FirstTextBaselineFromTop(headingFont, size, yCol);
-                            AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline);
                             string structureType = "H" + hb2.Level.ToString(CultureInfo.InvariantCulture);
-                            int? markedContentId = RegisterTextStructureElement(structureType);
-                            WriteLinesInternal(ch.Bold ? "F2" : "F1", size, leading, xCol, wCol, firstBaseline, lines, hb2.Align, ch.Color, applyBaselineTweak: false, structureType: structureType, markedContentId: markedContentId);
+                            bool hasLinkTarget = !string.IsNullOrEmpty(hb2.LinkUri) || !string.IsNullOrEmpty(hb2.LinkDestinationName);
+                            int? linkStructElementIndex = null;
+                            string markedStructureType = structureType;
+                            int? markedContentId;
+                            if (hasLinkTarget && emitGeneratedStructure && currentPage != null) {
+                                int? headingElementIndex = RegisterStructureContainer(structureType);
+                                linkStructElementIndex = currentPage.StructElements.Count;
+                                markedStructureType = "Link";
+                                markedContentId = RegisterTextStructureElement(markedStructureType, headingElementIndex);
+                            } else {
+                                markedContentId = RegisterTextStructureElement(structureType);
+                            }
+
+                            AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline, linkStructElementIndex);
+                            WriteLinesInternal(ch.Bold ? "F2" : "F1", size, leading, xCol, wCol, firstBaseline, lines, hb2.Align, ch.Color, applyBaselineTweak: false, structureType: markedStructureType, markedContentId: markedContentId);
                             if (ch.Bold) {
                                 currentPage!.UsedBold = true;
                                 usedBold = true;
@@ -389,7 +401,8 @@ internal static partial class PdfWriter {
                                 if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xPanel, panelBottom, panel.PanelWidth, panelTop - panelBottom, emitGeneratedStructure); }
                                 if (DrawPanelBorder(sb, panelStyle, xPanel, panelBottom, panel.PanelWidth, panelTop - panelBottom, emitGeneratedStructure)) { pageDirty = true; }
                                 pageDirty = true;
-                                WriteRichParagraph(sb, new RichParagraphBlock(pblock.Runs, pblock.Align, pblock.DefaultColor), lines, heights, currentOpts, panelTop - panelStyle.PaddingY - panel.FirstBaselineOffset, panel.Size, panel.Leading, currentPage!.Annotations, xPanel + panelStyle.PaddingX, panel.TextWidth, structurePage: currentPage);
+                                int? panelMarkedContentId = RegisterTextStructureElement("P");
+                                WriteRichParagraph(sb, new RichParagraphBlock(pblock.Runs, pblock.Align, pblock.DefaultColor), lines, heights, currentOpts, panelTop - panelStyle.PaddingY - panel.FirstBaselineOffset, panel.Size, panel.Leading, currentPage!.Annotations, xPanel + panelStyle.PaddingX, panel.TextWidth, structureType: "P", markedContentId: panelMarkedContentId, structurePage: currentPage);
                                 MarkRichFonts(pblock.Runs);
 
                                 yCol = panelBottom;
@@ -443,7 +456,8 @@ internal static partial class PdfWriter {
                                 }
 
                                 pageDirty = true;
-                                WriteRichParagraph(sb, new RichParagraphBlock(pblock.Runs, pblock.Align, pblock.DefaultColor), sliceLines, sliceHeights, currentOpts, panelTop - topPad - panel.FirstBaselineOffset, panel.Size, panel.Leading, currentPage!.Annotations, xPanel + panelStyle.PaddingX, panel.TextWidth, structurePage: currentPage);
+                                int? panelMarkedContentId = RegisterTextStructureElement("P");
+                                WriteRichParagraph(sb, new RichParagraphBlock(pblock.Runs, pblock.Align, pblock.DefaultColor), sliceLines, sliceHeights, currentOpts, panelTop - topPad - panel.FirstBaselineOffset, panel.Size, panel.Leading, currentPage!.Annotations, xPanel + panelStyle.PaddingX, panel.TextWidth, structureType: "P", markedContentId: panelMarkedContentId, structurePage: currentPage);
                                 MarkRichFonts(pblock.Runs);
 
                                 double segmentHeight = panelTop - panelBottom;
@@ -612,7 +626,7 @@ internal static partial class PdfWriter {
                                         fillX += table.ColumnWidths[fillColumn] + columnGap;
                                     }
                                 }
-                                if (DrawTableCellDataBars(sb, tableStyle, cells, rowIndex, table.Columns, xTable, yCol, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips)) {
+                                if (DrawTableCellDataBars(sb, tableStyle, cells, rowIndex, table.Columns, xTable, yCol, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips, emitGeneratedStructure)) {
                                     pageDirty = true;
                                 }
                                 if (DrawTableCellIcons(sb, tableStyle, cells, rowIndex, table.Columns, xTable, yCol, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips)) {

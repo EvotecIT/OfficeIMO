@@ -1729,6 +1729,32 @@ public class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void FacturXReadinessRequiresRatesForEveryNonOCategory() {
+        var missingRateOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile(
+                "factur-x.xml",
+                CreateCiiXml(
+                    includeTradeTaxRate: false,
+                    lineTradeTaxCategoryCodeValue: "O",
+                    includeLineTradeTaxRate: false),
+                "application/xml",
+                PdfAssociatedFileRelationship.Data);
+
+        PdfComplianceRequirement missingRate = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingRateOptions),
+            "einvoice-xml-tax-category-rate",
+            PdfComplianceRequirementStatus.Missing);
+
+        Assert.Contains("RateApplicablePercent", missingRate.Diagnostic);
+        Assert.Contains("Missing tax category rate", missingRate.Diagnostic);
+        Assert.Contains("non-O", missingRate.Diagnostic);
+        Assert.Contains("S", missingRate.Diagnostic);
+    }
+
+    [Fact]
     public void FacturXReadinessRequiresParseableCiiTaxCategoryAmounts() {
         var malformedAmountOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")

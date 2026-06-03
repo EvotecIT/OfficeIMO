@@ -16,6 +16,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasTaxCategoryRate = false;
                 bool hasRateRequirementCoverage = false;
                 var nonZeroRatedCategoryRates = new List<string>();
+                var missingRateCategoryCodes = new List<string>();
                 var forbiddenRateCategoryCodes = new List<string>();
                 string? parseDiagnostic = null;
 
@@ -34,7 +35,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                     if (string.Equals(reader.LocalName, "ApplicableTradeTax", StringComparison.Ordinal)) {
                         hasApplicableTradeTax = true;
-                        ReadTaxCategoryRateSemantics(reader, ref hasTaxCategoryRate, ref hasRateRequirementCoverage, nonZeroRatedCategoryRates, forbiddenRateCategoryCodes, ref parseDiagnostic);
+                        ReadTaxCategoryRateSemantics(reader, ref hasTaxCategoryRate, ref hasRateRequirementCoverage, nonZeroRatedCategoryRates, missingRateCategoryCodes, forbiddenRateCategoryCodes, ref parseDiagnostic);
                         continue;
                     }
 
@@ -54,6 +55,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     hasRateRequirementCoverage,
                     nonZeroRatedCategoryRates.Count == 0 && parseDiagnostic == null,
                     nonZeroRatedCategoryRates.Distinct(StringComparer.Ordinal).ToArray(),
+                    missingRateCategoryCodes.Distinct(StringComparer.Ordinal).ToArray(),
                     forbiddenRateCategoryCodes.Distinct(StringComparer.Ordinal).ToArray(),
                     parseDiagnostic);
                 diagnostic = null;
@@ -151,6 +153,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         ref bool hasTaxCategoryRate,
         ref bool hasRateRequirementCoverage,
         List<string> nonZeroRatedCategoryRates,
+        List<string> missingRateCategoryCodes,
         List<string> forbiddenRateCategoryCodes,
         ref string? parseDiagnostic) {
         if (reader.IsEmptyElement) {
@@ -202,6 +205,8 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
 
         if (string.IsNullOrWhiteSpace(rawRate)) {
+            hasRateRequirementCoverage = true;
+            missingRateCategoryCodes.Add(normalizedCategoryCode);
             return;
         }
 

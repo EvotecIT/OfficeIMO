@@ -524,6 +524,26 @@ public class PdfDocComplianceAssessmentTests {
     }
 
     [Fact]
+    public void TaggedLinkedHeadingEmitsLinkStructureForVisibleText() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .H1("Premium PDF fonts", linkUri: "https://officeimo.net/", linkContents: "OfficeIMO PDF")
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Subtype /Link", content, StringComparison.Ordinal);
+        Assert.Contains("/Link << /MCID", content, StringComparison.Ordinal);
+        Assert.Contains("/Type /StructElem /S /H1", content, StringComparison.Ordinal);
+        Assert.Contains("/Type /StructElem /S /Link", content, StringComparison.Ordinal);
+        Assert.Matches(@"/Type /StructElem /S /H1 /P \d+ 0 R /Pg \d+ 0 R /K \[\d+ 0 R\]", content);
+        Assert.Matches(@"/Type /StructElem /S /Link /P \d+ 0 R /Pg \d+ 0 R /K \[<< /Type /MCR /Pg \d+ 0 R /MCID 0 >> << /Type /OBJR /Obj \d+ 0 R >>\]", content);
+        Assert.Contains("/Type /OBJR /Obj", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TaggedRichTextDecorationsEmitArtifactMarkedContent() {
         byte[] pdf = PdfDoc.Create(new PdfOptions {
                 CompressContentStreams = false
@@ -692,6 +712,33 @@ public class PdfDocComplianceAssessmentTests {
         Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
         Assert.Contains("/ParentTree", content, StringComparison.Ordinal);
         Assert.Contains("/Nums [0 [", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TaggedTableDataBarsEmitArtifactMarkedContent() {
+        PdfTableStyle style = TableStyles.Minimal();
+        style.CellDataBars = new Dictionary<(int Row, int Column), PdfCellDataBar> {
+            [(1, 1)] = new PdfCellDataBar {
+                Ratio = 0.75,
+                Color = PdfColor.FromRgb(34, 197, 94)
+            }
+        };
+
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Table(new[] {
+                new[] { "Name", "Progress" },
+                new[] { "Alpha", "75%" }
+            }, style: style)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
+        Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
+        Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -911,6 +958,7 @@ public class PdfDocComplianceAssessmentTests {
         string content = Encoding.ASCII.GetString(pdf);
 
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 8);
+        Assert.Contains("/P << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/TH << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/TD << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /Table", content, StringComparison.Ordinal);

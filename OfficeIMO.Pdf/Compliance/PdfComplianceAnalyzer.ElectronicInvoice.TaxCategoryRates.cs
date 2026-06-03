@@ -43,6 +43,14 @@ public static partial class PdfComplianceAnalyzer {
                     evidence.ParseDiagnostic!);
             }
 
+            if (evidence.MissingRateCategoryCodes.Count > 0) {
+                return new PdfComplianceRequirement(
+                    "einvoice-xml-tax-category-rate",
+                    "EN 16931 XML tax category rate",
+                    PdfComplianceRequirementStatus.Missing,
+                    "Set factur-x.xml RateApplicablePercent for every non-O ApplicableTradeTax before Mustang validation. Missing tax category rate categories: " + string.Join(", ", evidence.MissingRateCategoryCodes.ToArray()) + ".");
+            }
+
             if (evidence.ForbiddenRateCategoryCodes.Count > 0) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-tax-category-rate",
