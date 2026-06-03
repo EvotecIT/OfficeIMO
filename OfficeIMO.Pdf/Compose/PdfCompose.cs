@@ -4,8 +4,8 @@ namespace OfficeIMO.Pdf;
 /// Entry point for the fluent composition DSL. Use <see cref="Page"/> to configure a page and its content.
 /// </summary>
 public class PdfCompose {
-    private readonly PdfDoc _doc;
-    internal PdfCompose(PdfDoc doc) { _doc = doc; }
+    private readonly PdfDocument _doc;
+    internal PdfCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Configures a page (size, margins, content, footer).</summary>
     public PdfCompose Page(System.Action<PdfPageCompose> configure) {
         _doc.AddComposedPage(configure);

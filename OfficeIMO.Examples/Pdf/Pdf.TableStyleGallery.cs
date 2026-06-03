@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Pdf {
                 new[] { "Flow", "Generic", "Borders, row separators, and spacing should reveal the preset shape at raster level." }
             };
 
-            PdfDoc doc = PdfDoc.Create(new PdfOptions {
+            PdfDocument doc = PdfDocument.Create(new PdfOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 9.5,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

@@ -6,11 +6,11 @@ using System.Linq;
 /// <summary>Row builder with percentage-based columns.</summary>
 public class PdfRowCompose {
     private const double WidthTolerance = 0.0001;
-    private readonly PdfDoc _doc;
+    private readonly PdfDocument _doc;
     private readonly RowBlock _row = new RowBlock();
     private double _allocatedWidth;
 
-    internal PdfRowCompose(PdfDoc doc) { _doc = doc; }
+    internal PdfRowCompose(PdfDocument doc) { _doc = doc; }
 
     /// <summary>Sets the horizontal gutter, in points, between columns in this row.</summary>
     public PdfRowCompose Gap(double points) {

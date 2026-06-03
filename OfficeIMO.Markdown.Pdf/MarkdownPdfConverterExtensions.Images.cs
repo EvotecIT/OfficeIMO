@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderImageBlock(PdfCore.PdfDoc pdf, ImageBlock image, MarkdownPdfSaveOptions options) {
+    private static void RenderImageBlock(PdfCore.PdfDocument pdf, ImageBlock image, MarkdownPdfSaveOptions options) {
         if (!options.IncludeLocalImages) {
             RenderImagePlaceholder(pdf, image);
             return;
@@ -33,7 +33,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void RenderImagePlaceholder(PdfCore.PdfDoc pdf, ImageBlock image) {
+    private static void RenderImagePlaceholder(PdfCore.PdfDocument pdf, ImageBlock image) {
         string label = image.PlainAlt ?? image.Alt ?? image.Path;
         if (string.IsNullOrWhiteSpace(label)) {
             label = "Image";

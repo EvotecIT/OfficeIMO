@@ -74,7 +74,7 @@ public class PdfRowColumnCompose {
         Guard.ParagraphAlign(align, nameof(align), "Panel");
         var panelColumn = new RowColumn(100);
         build(new PdfRowColumnCompose(panelColumn));
-        _col.AddBlock(PdfDoc.CreatePanelParagraphBlock(panelColumn.Blocks, style, align, defaultColor));
+        _col.AddBlock(PdfDocument.CreatePanelParagraphBlock(panelColumn.Blocks, style, align, defaultColor));
         return this;
     }
     /// <summary>Adds a simple table in the column.</summary>
@@ -89,12 +89,12 @@ public class PdfRowColumnCompose {
     }
     /// <summary>Adds a simple table in the column and attaches link URIs to specific cells.</summary>
     public PdfRowColumnCompose TableWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
-        _col.AddBlock(PdfDoc.CreateTableBlockWithLinks(rows, links, align, style));
+        _col.AddBlock(PdfDocument.CreateTableBlockWithLinks(rows, links, align, style));
         return this;
     }
     /// <summary>Adds a horizontal rule in the column.</summary>
     public PdfRowColumnCompose HR(double? thickness = null, PdfColor? color = null, double? spacingBefore = null, double? spacingAfter = null, PdfHorizontalRuleStyle? style = null) {
-        _col.AddBlock(new HorizontalRuleBlock(PdfDoc.CreateHorizontalRuleStyle(thickness, color, spacingBefore, spacingAfter, style)));
+        _col.AddBlock(new HorizontalRuleBlock(PdfDocument.CreateHorizontalRuleStyle(thickness, color, spacingBefore, spacingAfter, style)));
         return this;
     }
     /// <summary>Adds a named bookmark at the current column flow position.</summary>
@@ -125,9 +125,9 @@ public class PdfRowColumnCompose {
         return this;
     }
     /// <summary>Adds a shared OfficeIMO.Drawing shape in the column.</summary>
-    public PdfRowColumnCompose Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(PdfDoc.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents)); return this; }
+    public PdfRowColumnCompose Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents)); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing scene in the column.</summary>
-    public PdfRowColumnCompose Drawing(OfficeDrawing drawing, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(PdfDoc.CreateDrawingBlock(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents)); return this; }
+    public PdfRowColumnCompose Drawing(OfficeDrawing drawing, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(PdfDocument.CreateDrawingBlock(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents)); return this; }
     /// <summary>Adds a line vector shape in the column.</summary>
     public PdfRowColumnCompose Line(double x1, double y1, double x2, double y2, PdfColor? strokeColor = null, double strokeWidth = 1, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, OfficeStrokeDashStyle strokeDashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap? strokeLineCap = null, OfficeStrokeLineJoin? strokeLineJoin = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         var shape = OfficeShape.Line(x1, y1, x2, y2);
@@ -136,7 +136,7 @@ public class PdfRowColumnCompose {
         shape.StrokeDashStyle = strokeDashStyle;
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
-        _col.AddBlock(PdfDoc.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
+        _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
     /// <summary>Adds a rectangle vector shape in the column.</summary>
@@ -148,7 +148,7 @@ public class PdfRowColumnCompose {
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
         shape.FillColor = fillColor?.ToOfficeColor();
-        _col.AddBlock(PdfDoc.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
+        _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
     /// <summary>Adds a rounded rectangle vector shape in the column.</summary>
@@ -160,7 +160,7 @@ public class PdfRowColumnCompose {
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
         shape.FillColor = fillColor?.ToOfficeColor();
-        _col.AddBlock(PdfDoc.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
+        _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
     /// <summary>Adds an ellipse vector shape in the column.</summary>
@@ -172,7 +172,7 @@ public class PdfRowColumnCompose {
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
         shape.FillColor = fillColor?.ToOfficeColor();
-        _col.AddBlock(PdfDoc.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
+        _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
     /// <summary>Adds a polygon vector shape in the column.</summary>
@@ -184,7 +184,7 @@ public class PdfRowColumnCompose {
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
         shape.FillColor = fillColor?.ToOfficeColor();
-        _col.AddBlock(PdfDoc.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
+        _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
     /// <summary>Adds a freeform path vector shape in the column.</summary>
@@ -196,7 +196,7 @@ public class PdfRowColumnCompose {
         shape.StrokeLineCap = strokeLineCap;
         shape.StrokeLineJoin = strokeLineJoin;
         shape.FillColor = fillColor?.ToOfficeColor();
-        _col.AddBlock(PdfDoc.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
+        _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
         return this;
     }
     /// <summary>Adds a supported image in the column. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
@@ -213,14 +213,14 @@ public class PdfRowColumnCompose {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
-        PdfImageStyle? imageStyle = PdfDoc.CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
+        PdfImageStyle? imageStyle = PdfDocument.CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
         if (imageStyle != null) {
-            PdfDoc.ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
+            PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }
 
-        var imageInfo = PdfDoc.ValidateImageBytes(jpegBytes);
+        var imageInfo = PdfDocument.ValidateImageBytes(jpegBytes);
         if (imageStyle != null) {
-            PdfDoc.ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(fit));
+            PdfDocument.ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(fit));
         }
 
         _col.AddBlock(new ImageBlock(jpegBytes, width, height, imageInfo, imageStyle, linkUri, linkContents));

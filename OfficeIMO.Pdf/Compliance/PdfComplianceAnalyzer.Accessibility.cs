@@ -14,7 +14,7 @@ public static partial class PdfComplianceAnalyzer {
         Add(requirements, "tagged-catalog-markers", "Tagged PDF catalog markers",
             options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers,
             "Catalog /MarkInfo and /StructTreeRoot markers are configured as tagged-PDF groundwork.",
-            "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() to emit tagged-PDF catalog markers. This is groundwork only; full structure-tree content generation is still required.");
+            "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() to emit tagged-PDF catalog markers. This is groundwork only; full structure-tree content generation is still required.");
         requirements.Add(BuildTaggedPageTabOrderRequirement(options));
         requirements.Add(BuildTaggedParentTreeNextKeyRequirement(options));
         requirements.Add(BuildGeneratedDocumentStructureRootRequirement(options));
@@ -55,7 +55,7 @@ public static partial class PdfComplianceAnalyzer {
                 "tagged-page-tab-order",
                 "Tagged page tab order",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated page dictionaries can emit /Tabs /S and follow structure-tree order for tab navigation.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated page dictionaries can emit /Tabs /S and follow structure-tree order for tab navigation.");
         }
 
         return new PdfComplianceRequirement(
@@ -71,7 +71,7 @@ public static partial class PdfComplianceAnalyzer {
                 "tagged-parent-tree-next-key",
                 "Tagged parent-tree next key",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated StructTreeRoot dictionaries can emit /ParentTreeNextKey for generated parent-tree entries.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated StructTreeRoot dictionaries can emit /ParentTreeNextKey for generated parent-tree entries.");
         }
 
         return new PdfComplianceRequirement(
@@ -87,7 +87,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-document-structure-root",
                 "Generated document structure root",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated top-level structure elements can be nested below a /Document structure element.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated top-level structure elements can be nested below a /Document structure element.");
         }
 
         return new PdfComplianceRequirement(
@@ -103,7 +103,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-document-structure-language",
                 "Generated document structure language",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated /Document structure elements can carry document language metadata.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated /Document structure elements can carry document language metadata.");
         }
 
         if (string.IsNullOrWhiteSpace(options.Language)) {
@@ -111,7 +111,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-document-structure-language",
                 "Generated document structure language",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.Language or PdfDoc.Language(...) so generated /Document structure elements can emit /Lang metadata.");
+                "Set PdfOptions.Language or PdfDocument.Language(...) so generated /Document structure elements can emit /Lang metadata.");
         }
 
         if (!IsValidPdfLanguageTag(options.Language)) {
@@ -119,7 +119,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-document-structure-language",
                 "Generated document structure language",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.Language or PdfDoc.Language(...) to a valid language tag such as en-US before emitting generated /Document /Lang metadata.");
+                "Set PdfOptions.Language or PdfDocument.Language(...) to a valid language tag such as en-US before emitting generated /Document /Lang metadata.");
         }
 
         return new PdfComplianceRequirement(
@@ -135,7 +135,7 @@ public static partial class PdfComplianceAnalyzer {
                 "document-language",
                 "Document language",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.Language or PdfDoc.Language(...) for accessibility-oriented profiles.");
+                "Set PdfOptions.Language or PdfDocument.Language(...) for accessibility-oriented profiles.");
         }
 
         if (!IsValidPdfLanguageTag(options.Language)) {
@@ -143,7 +143,7 @@ public static partial class PdfComplianceAnalyzer {
                 "document-language",
                 "Document language",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.Language or PdfDoc.Language(...) to a valid language tag such as en-US before claiming accessibility-oriented profiles.");
+                "Set PdfOptions.Language or PdfDocument.Language(...) to a valid language tag such as en-US before claiming accessibility-oriented profiles.");
         }
 
         return new PdfComplianceRequirement(
@@ -219,7 +219,7 @@ public static partial class PdfComplianceAnalyzer {
                 "document-title",
                 "Document title metadata",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Document title metadata was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include document metadata evidence.");
+                "Document title metadata was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include document metadata evidence.");
         }
 
         bool emitsXmpMetadata = WillEmitXmpMetadata(options);
@@ -232,7 +232,7 @@ public static partial class PdfComplianceAnalyzer {
         }
 
         string diagnostic = string.IsNullOrWhiteSpace(documentTitle)
-            ? "Set a non-empty PdfDoc.Meta(title: ...) value before claiming accessibility-oriented profiles."
+            ? "Set a non-empty PdfDocument.Meta(title: ...) value before claiming accessibility-oriented profiles."
             : "Enable XMP metadata emission with PdfOptions.IncludeXmpMetadata or profile identification metadata so the document title is emitted as dc:title.";
         return new PdfComplianceRequirement(
             "document-title",
@@ -255,7 +255,7 @@ public static partial class PdfComplianceAnalyzer {
             "display-document-title",
             "Viewer displays document title",
             PdfComplianceRequirementStatus.Missing,
-            "Set PdfOptions.ViewerPreferences.DisplayDocTitle or configure PdfDoc.ViewerPreferences(...) so the catalog ViewerPreferences dictionary includes DisplayDocTitle true.");
+            "Set PdfOptions.ViewerPreferences.DisplayDocTitle or configure PdfDocument.ViewerPreferences(...) so the catalog ViewerPreferences dictionary includes DisplayDocTitle true.");
     }
 
     private static PdfComplianceRequirement BuildGeneratedImageAlternativeTextRequirement(PdfGeneratedImageAccessibilityEvidence[]? generatedImages) {
@@ -264,7 +264,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-image-alternate-text",
                 "Generated image alternate text",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated image evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include generated image evidence.");
+                "Generated image evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include generated image evidence.");
         }
 
         PdfGeneratedImageAccessibilityEvidence[] meaningfulImages = generatedImages
@@ -304,7 +304,7 @@ public static partial class PdfComplianceAnalyzer {
                 "decorative-image-artifacts",
                 "Decorative image artifact markers",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated image evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include generated decorative-image evidence.");
+                "Generated image evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include generated decorative-image evidence.");
         }
 
         int decorativeCount = generatedImages.Count(image => image.IsDecorativeArtifact);
@@ -329,7 +329,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-drawing-alternate-text",
                 "Generated drawing alternate text",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated drawing evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include generated shape and drawing evidence.");
+                "Generated drawing evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include generated shape and drawing evidence.");
         }
 
         PdfGeneratedDrawingAccessibilityEvidence[] meaningfulDrawings = generatedDrawings
@@ -369,7 +369,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-drawing-structure-references",
                 "Generated drawing structure references",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated drawing evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include generated drawing structure-reference evidence.");
+                "Generated drawing evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include generated drawing structure-reference evidence.");
         }
 
         PdfGeneratedDrawingAccessibilityEvidence[] meaningfulDrawings = generatedDrawings
@@ -388,7 +388,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-drawing-structure-references",
                 "Generated drawing structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated shape and drawing figures can receive MCID and parent-tree structure references.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated shape and drawing figures can receive MCID and parent-tree structure references.");
         }
 
         int missingAltText = meaningfulDrawings.Count(drawing => !drawing.HasAlternativeText);
@@ -413,7 +413,7 @@ public static partial class PdfComplianceAnalyzer {
                 "decorative-drawing-artifacts",
                 "Decorative drawing artifact markers",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated drawing evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include generated decorative-drawing evidence.");
+                "Generated drawing evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include generated decorative-drawing evidence.");
         }
 
         int decorativeCount = generatedDrawings.Count(drawing => drawing.IsDecorativeArtifact);
@@ -430,7 +430,7 @@ public static partial class PdfComplianceAnalyzer {
                 "decorative-drawing-artifacts",
                 "Decorative drawing artifact markers",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated decorative shape and drawing scene flow blocks can be emitted as artifact marked content.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated decorative shape and drawing scene flow blocks can be emitted as artifact marked content.");
         }
 
         return new PdfComplianceRequirement(
@@ -446,7 +446,7 @@ public static partial class PdfComplianceAnalyzer {
                 "alternate-text",
                 "Alternate text for meaningful visuals",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated visual evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include image and drawing alternate-text evidence.");
+                "Generated visual evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include image and drawing alternate-text evidence.");
         }
 
         int missingImages = generatedImages.Count(image => !image.IsDecorativeArtifact && !image.HasAlternativeText);
@@ -481,7 +481,7 @@ public static partial class PdfComplianceAnalyzer {
                 "decorative-running-page-text-artifacts",
                 "Decorative running page text artifact markers",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated running header/footer text can be emitted as artifact marked content.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated running header/footer text can be emitted as artifact marked content.");
         }
 
         return new PdfComplianceRequirement(
@@ -497,7 +497,7 @@ public static partial class PdfComplianceAnalyzer {
                 "decorative-flow-rule-artifacts",
                 "Decorative flow rule artifact markers",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated horizontal rules in document and row/column flow can be emitted as artifact marked content.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated horizontal rules in document and row/column flow can be emitted as artifact marked content.");
         }
 
         return new PdfComplianceRequirement(
@@ -513,7 +513,7 @@ public static partial class PdfComplianceAnalyzer {
                 "decorative-layout-artifacts",
                 "Decorative layout artifact markers",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated panel and table layout chrome can be emitted as artifact marked content.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated panel and table layout chrome can be emitted as artifact marked content.");
         }
 
         return new PdfComplianceRequirement(
@@ -529,7 +529,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-text-structure-references",
                 "Generated paragraph and heading structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated paragraphs and headings can receive MCID and parent-tree structure references.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated paragraphs and headings can receive MCID and parent-tree structure references.");
         }
 
         return new PdfComplianceRequirement(
@@ -545,7 +545,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-list-structure-references",
                 "Generated list item structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated list labels and bodies can receive MCID and parent-tree structure references.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated list labels and bodies can receive MCID and parent-tree structure references.");
         }
 
         return new PdfComplianceRequirement(
@@ -561,7 +561,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-list-structure-containers",
                 "Generated list structure containers",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated list content can be nested below L, LI, Lbl, and LBody structure elements.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated list content can be nested below L, LI, Lbl, and LBody structure elements.");
         }
 
         return new PdfComplianceRequirement(
@@ -577,7 +577,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-table-cell-structure-references",
                 "Generated table cell structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated table header and data cell slices can receive MCID and parent-tree structure references.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated table header and data cell slices can receive MCID and parent-tree structure references.");
         }
 
         return new PdfComplianceRequirement(
@@ -593,7 +593,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-table-structure-containers",
                 "Generated table structure containers",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated table cell slices can be nested below Table and TR structure elements.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated table cell slices can be nested below Table and TR structure elements.");
         }
 
         return new PdfComplianceRequirement(
@@ -609,7 +609,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-table-header-scope-attributes",
                 "Generated table header scope attributes",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated table header cells can receive table header scope attributes.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated table header cells can receive table header scope attributes.");
         }
 
         return new PdfComplianceRequirement(
@@ -625,7 +625,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-table-span-attributes",
                 "Generated table span attributes",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated column-spanned and row-spanned table cells can receive table span attributes.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated column-spanned and row-spanned table cells can receive table span attributes.");
         }
 
         return new PdfComplianceRequirement(
@@ -641,7 +641,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-table-caption-structure-references",
                 "Generated table caption structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated table captions can receive MCID and parent-tree structure references below generated Table structure elements.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated table captions can receive MCID and parent-tree structure references below generated Table structure elements.");
         }
 
         return new PdfComplianceRequirement(
@@ -657,7 +657,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-link-annotation-structure-references",
                 "Generated link annotation structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated link annotations can receive /Link OBJR structure references and annotation StructParent entries.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated link annotations can receive /Link OBJR structure references and annotation StructParent entries.");
         }
 
         return new PdfComplianceRequirement(
@@ -673,7 +673,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-link-text-structure-references",
                 "Generated link text structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated rich text links can combine visible /Link MCID references with annotation OBJR references.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated rich text links can combine visible /Link MCID references with annotation OBJR references.");
         }
 
         return new PdfComplianceRequirement(
@@ -689,7 +689,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-form-widget-structure-references",
                 "Generated form widget structure references",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated form widget evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include generated AcroForm widget evidence.");
+                "Generated form widget evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include generated AcroForm widget evidence.");
         }
 
         if (generatedForms.Length == 0) {
@@ -706,7 +706,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-form-widget-structure-references",
                 "Generated form widget structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated AcroForm widgets can receive /Form OBJR structure references and annotation StructParent entries.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated AcroForm widgets can receive /Form OBJR structure references and annotation StructParent entries.");
         }
 
         return new PdfComplianceRequirement(
@@ -722,7 +722,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-form-field-accessible-names",
                 "Generated form field accessible names",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated form field evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include generated AcroForm field evidence.");
+                "Generated form field evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include generated AcroForm field evidence.");
         }
 
         if (generatedForms.Length == 0) {
@@ -758,7 +758,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-image-structure-references",
                 "Generated image structure references",
                 PdfComplianceRequirementStatus.Unsupported,
-                "Generated image evidence was not supplied for this options-only readiness assessment. Use PdfDoc.AssessCompliance(...) to include generated image structure-reference evidence.");
+                "Generated image evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to include generated image structure-reference evidence.");
         }
 
         PdfGeneratedImageAccessibilityEvidence[] meaningfulImages = generatedImages
@@ -777,7 +777,7 @@ public static partial class PdfComplianceAnalyzer {
                 "generated-image-structure-references",
                 "Generated image structure references",
                 PdfComplianceRequirementStatus.Missing,
-                "Set PdfOptions.TaggedStructureMode or PdfDoc.TaggedPdfCatalogMarkers() so generated image figures can receive MCID and parent-tree structure references.");
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated image figures can receive MCID and parent-tree structure references.");
         }
 
         int missingAltText = meaningfulImages.Count(image => !image.HasAlternativeText);

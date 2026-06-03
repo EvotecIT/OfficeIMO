@@ -4,7 +4,7 @@ using OfficeIMO.Word.Pdf;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -337,7 +337,7 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         var hello = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Hello");
         double expectedMarginPoints = marginCm * 72D / 2.54D;
         Assert.InRange(hello.BoundingBox.Left, expectedMarginPoints - 2D, expectedMarginPoints + 4D);
@@ -359,7 +359,7 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
 
-        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         var hello = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "Hello");
         double expectedLeftMarginPoints = 72D / 2.54D;
         Assert.InRange(hello.BoundingBox.Left, expectedLeftMarginPoints - 2D, expectedLeftMarginPoints + 4D);
@@ -515,7 +515,7 @@ public partial class Word {
     }
 
     private static void AssertPdfUsesFont(string pdfPath, string expectedFontNamePart) {
-        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         Assert.Contains(pdf.GetPage(1).Letters, letter =>
             letter.FontName != null &&
             letter.FontName.Contains(expectedFontNamePart, StringComparison.OrdinalIgnoreCase));

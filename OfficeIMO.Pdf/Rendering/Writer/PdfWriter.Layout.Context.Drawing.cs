@@ -244,7 +244,7 @@ internal static partial class PdfWriter {
 
         private void RenderShapeBlock(ShapeBlock block, double containerX, double containerWidth) {
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
-            PdfDoc.ValidateDrawingStyle(style, "Shape");
+            PdfDocument.ValidateDrawingStyle(style, "Shape");
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
             double needed = spacingBefore + block.Shape.Height + style.SpacingAfter;
             EnsureFixedFlowBlockFits("Shape", block.Shape.Width, needed, containerWidth);
@@ -260,7 +260,7 @@ internal static partial class PdfWriter {
 
         private void RenderDrawingBlock(DrawingBlock block, double containerX, double containerWidth) {
             PdfDrawingStyle style = ResolveDrawingStyle(block, currentOpts);
-            PdfDoc.ValidateDrawingStyle(style, "Drawing");
+            PdfDocument.ValidateDrawingStyle(style, "Drawing");
             double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
             double needed = spacingBefore + block.Drawing.Height + style.SpacingAfter;
             EnsureFixedFlowBlockFits("Drawing", block.Drawing.Width, needed, containerWidth);

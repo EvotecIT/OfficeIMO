@@ -1,8 +1,9 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System.IO;
-using UglyToad.PdfPig;
-using Xunit;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using Xunit;
+
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
@@ -17,9 +18,11 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Test");
                 document.Save();
                 document.SaveAsPdf(pdfPath);
-            }
-            Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            }
+
+            Assert.True(File.Exists(pdfPath));
+
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 var info = pdf.Information;
                 Assert.Equal("Pdf Title", info.Title);
                 Assert.Equal("Pdf Author", info.Author);
@@ -45,7 +48,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(File.Exists(pdfPath));
 
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 var info = pdf.Information;
                 Assert.Equal("Native Pdf Title", info.Title);
                 Assert.Equal("Native Pdf Author", info.Author);

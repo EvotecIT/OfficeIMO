@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -103,7 +103,7 @@ public partial class Word {
         string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
         Assert.Contains("/Subtype /Image", pdfContent);
 
-        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
         Assert.Contains("Before loaded image", text);
         Assert.Contains("after loaded image", text);
@@ -134,7 +134,7 @@ public partial class Word {
         Assert.Contains(options.Warnings, warning =>
             warning.Code == "NativeBodyImageUnsupported" &&
             warning.Message.Contains("PNG", StringComparison.OrdinalIgnoreCase));
-        using PdfDocument pdf = PdfDocument.Open(pdfPath);
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
         string text = pdf.GetPage(1).Text;
         Assert.Contains("Before unsupported image", text);
         Assert.Contains("After unsupported image", text);
@@ -201,7 +201,7 @@ public partial class Word {
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("36 0 0 36", pdfContent);
 
-        using PdfDocument pdf = PdfDocument.Open(bytes);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("Logo content control in a table", pdf.GetPage(1).Text);
     }
 

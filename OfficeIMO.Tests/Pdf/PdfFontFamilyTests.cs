@@ -39,7 +39,7 @@ public class PdfFontFamilyTests {
         }
 
         PdfOptions options = new PdfOptions().UseFontFamily(family);
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily(family)
@@ -195,7 +195,7 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
-    public void PdfDoc_UseFontFamilyObjectReusesTrueTypeFamilyForGeneratedText() {
+    public void PdfDocument_UseFontFamilyObjectReusesTrueTypeFamilyForGeneratedText() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
             return;
@@ -203,7 +203,7 @@ public class PdfFontFamilyTests {
 
         byte[] fontData = File.ReadAllBytes(fontPath);
         var family = new PdfEmbeddedFontFamily("OfficeIMO Object Font", fontData);
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily(family)
@@ -239,7 +239,7 @@ public class PdfFontFamilyTests {
         }
 
         var family = PdfEmbeddedFontFamily.FromFiles("OfficeIMO Page Font", fontPath);
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .Paragraph(paragraph => paragraph.Text("Before page font"))
@@ -268,7 +268,7 @@ public class PdfFontFamilyTests {
         }
 
         var family = PdfEmbeddedFontFamily.FromFiles("OfficeIMO Page Form Font", fontPath);
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .Page(page => page
@@ -292,7 +292,7 @@ public class PdfFontFamilyTests {
 
         byte[] fontData = File.ReadAllBytes(fontPath);
         var family = new PdfEmbeddedFontFamily("OfficeIMO Style Font", fontData);
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .Header(header => header.Font(PdfStandardFont.TimesRoman).Text("Times header"))
@@ -313,14 +313,14 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
-    public void PdfDoc_UseFontFamilyWritesUnicodeGlyphsAndToUnicodeExtraction() {
+    public void PdfDocument_UseFontFamilyWritesUnicodeGlyphsAndToUnicodeExtraction() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
             return;
         }
 
         const string polish = "Zażółć gęślą jaźń Łódź";
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Unicode Font", fontPath)
@@ -345,13 +345,13 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
-    public void PdfDoc_UseFontFamilyEncodesTextWatermarkWithEmbeddedGlyphs() {
+    public void PdfDocument_UseFontFamilyEncodesTextWatermarkWithEmbeddedGlyphs() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
             return;
         }
 
-        byte[] pdf = PdfDoc.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Watermark Font", fontPath)
@@ -367,11 +367,11 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
-    public void PdfDoc_UseFontFamilyWrapsLongNonBmpTokensWithoutSplittingSurrogates() {
+    public void PdfDocument_UseFontFamilyWrapsLongNonBmpTokensWithoutSplittingSurrogates() {
         foreach (string fontPath in EnumerateLocalNonBmpTrueTypeFonts()) {
             byte[] bytes;
             try {
-                bytes = PdfDoc.Create(new PdfOptions {
+                bytes = PdfDocument.Create(new PdfOptions {
                     CompressContentStreams = false,
                     PageWidth = 120,
                     MarginLeft = 24,

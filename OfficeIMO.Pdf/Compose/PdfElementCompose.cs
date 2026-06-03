@@ -4,8 +4,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for nested elements used within item builders.</summary>
 public class PdfElementCompose {
-    private readonly PdfDoc _doc;
-    internal PdfElementCompose(PdfDoc doc) { _doc = doc; }
+    private readonly PdfDocument _doc;
+    internal PdfElementCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>
     public PdfElementCompose Spacer(double height) { _doc.Spacer(height); return this; }
     /// <summary>Starts a new page from the current nested element flow.</summary>

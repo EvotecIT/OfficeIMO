@@ -3,7 +3,7 @@ using OfficeIMO.Word.Pdf;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
 
@@ -109,7 +109,7 @@ public partial class Word {
         Assert.Equal(240, pageInfo.Width, 1);
         Assert.Equal(320, pageInfo.Height, 1);
 
-        using PdfDocument pdf = PdfDocument.Open(bytes);
+        using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         Assert.Contains("Hello native async bytes", pdf.GetPage(1).Text);
     }
 }

@@ -26,7 +26,7 @@ public sealed class PdfImageStyle {
     public OfficeImageFit Fit {
         get => _fit;
         set {
-            PdfDoc.ValidateImageFit(value, nameof(Fit));
+            PdfDocument.ValidateImageFit(value, nameof(Fit));
             _fit = value;
         }
     }

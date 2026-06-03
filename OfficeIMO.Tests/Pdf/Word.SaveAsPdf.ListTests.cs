@@ -1,0 +1,263 @@
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+using OfficeIMO.Pdf;
+using DocumentFormat.OpenXml.Wordprocessing;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public partial class Word {
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Simple_Lists_With_Native_List_Blocks() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeLists.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeLists.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                bulletList.AddItem("Native bullet one");
+                bulletList.AddItem("Native bullet two");
+
+                WordList numberedList = document.AddCustomList();
+                numberedList.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot).SetStartNumberingValue(3));
+                numberedList.AddItem("Native step three");
+                numberedList.AddItem("Native step four");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+                .SelectMany(page => page.ListItems)
+                .ToList();
+
+            Assert.Contains(listItems, item => item.Text == "Native bullet one");
+            Assert.Contains(listItems, item => item.Text == "Native bullet two");
+            Assert.Contains(listItems, item => item.Marker == "3" && item.Text == "Native step three");
+            Assert.Contains(listItems, item => item.Marker == "4" && item.Text == "Native step four");
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Uses_Word_List_Hanging_Indent_In_Native_List_Blocks() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListHangingIndent.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListHangingIndent.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                WordListLevel level = bulletList.Numbering.Levels[0];
+                level.IndentationLeft = 720;
+                level.IndentationHanging = 360;
+                bulletList.AddItem("Wrapped native bullet item with enough body text to flow onto a second line so the generated PDF can prove the continuation aligns with the Word text position.");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var lineGroups = pdf.GetPage(1).Letters
+                .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .OrderByDescending(group => group.Key)
+                .Select(group => group.OrderBy(letter => letter.StartBaseLine.X).ToList())
+                .ToList();
+
+            int bulletLineIndex = lineGroups.FindIndex(line => line.Any(letter => letter.Value == "•"));
+            Assert.True(bulletLineIndex >= 0, "Expected a native bullet marker in the generated PDF.");
+
+            var bulletLine = lineGroups[bulletLineIndex];
+            double bulletX = bulletLine.First(letter => letter.Value == "•").StartBaseLine.X;
+            double textX = bulletLine.First(letter => letter.Value == "W").StartBaseLine.X;
+            Assert.InRange(textX - bulletX, 14D, 24D);
+
+            var continuationLine = lineGroups
+                .Skip(bulletLineIndex + 1)
+                .First(line => !line.Any(letter => letter.Value == "•"));
+            double continuationX = continuationLine[0].StartBaseLine.X;
+            Assert.InRange(continuationX, textX - 1D, textX + 1D);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Custom_And_Nested_Word_List_Markers() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCustomNestedListMarkers.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList list = document.AddCustomList();
+                list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.LowerLetterDot));
+                list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.LowerRomanDot));
+                list.Numbering.Levels[0].IndentationLeft = 720;
+                list.Numbering.Levels[0].IndentationHanging = 360;
+                list.Numbering.Levels[1].IndentationLeft = 1440;
+                list.Numbering.Levels[1].IndentationHanging = 360;
+
+                list.AddItem("Lower alpha item");
+                list.AddItem("Nested roman item", 1);
+                list.AddItem("Second alpha item");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var page = pdf.GetPage(1);
+            Assert.Contains("a.Lower alpha item", page.Text, StringComparison.Ordinal);
+            Assert.Contains("i.Nested roman item", page.Text, StringComparison.Ordinal);
+            Assert.Contains("b.Second alpha item", page.Text, StringComparison.Ordinal);
+
+            var lineGroups = page.Letters
+                .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1))
+                .OrderByDescending(group => group.Key)
+                .Select(group => group.OrderBy(letter => letter.StartBaseLine.X).ToList())
+                .ToList();
+
+            var alphaLine = lineGroups.First(line => string.Concat(line.Select(letter => letter.Value)).IndexOf("Loweralphaitem", StringComparison.Ordinal) >= 0);
+            var nestedLine = lineGroups.First(line => string.Concat(line.Select(letter => letter.Value)).IndexOf("Nestedromanitem", StringComparison.Ordinal) >= 0);
+
+            Assert.StartsWith("a.", string.Concat(alphaLine.Select(letter => letter.Value)), StringComparison.Ordinal);
+            Assert.StartsWith("i.", string.Concat(nestedLine.Select(letter => letter.Value)), StringComparison.Ordinal);
+            Assert.True(nestedLine[0].StartBaseLine.X > alphaLine[0].StartBaseLine.X + 30D, "Expected nested Word list marker to render with deeper indentation.");
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_List_Item_Bookmarks_Through_Native_List_Blocks() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListBookmarks.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListBookmarks.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                bulletList.AddItem("Bookmarked native bullet").AddBookmark("NativeListBookmark");
+                bulletList.AddItem("Following native bullet");
+
+                WordParagraph linkParagraph = document.AddParagraph();
+                linkParagraph.AddHyperLink("Jump to native list bookmark", "NativeListBookmark", addStyle: true, tooltip: "Native list bookmark metadata");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            });
+            var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+                .SelectMany(page => page.ListItems)
+                .ToList();
+
+            Assert.Contains(listItems, item => item.Text == "Bookmarked native bullet");
+            Assert.Contains(listItems, item => item.Text == "Following native bullet");
+            Assert.Contains(logical.NamedDestinations, destination => destination.Name == "NativeListBookmark");
+            var bookmarkLinks = logical.GetLinksByDestinationName("NativeListBookmark").ToList();
+            Assert.NotEmpty(bookmarkLinks);
+            Assert.All(bookmarkLinks, link => Assert.Equal("Native list bookmark metadata", link.Contents));
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_Rich_List_Item_Runs() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRichListRuns.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRichListRuns.pdf");
+            const string linkUri = "https://evotec.xyz/native-list";
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                WordParagraph item = bulletList.AddItem(string.Empty);
+                item.AddText("ListPlain ");
+                WordParagraph red = item.AddText("ListRed");
+                red.ColorHex = "ff0000";
+                item.AddText(" ");
+                item.AddText("ListBold").SetBold();
+                item.AddText(" ");
+                item.AddText("ListMarked").SetHighlight(HighlightColorValues.Yellow);
+                item.AddText(" ");
+                item.AddHyperLink("ListLink", new System.Uri(linkUri), addStyle: true, tooltip: "Native list link metadata");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = Encoding.ASCII.GetString(bytes);
+            int redText = content.IndexOf("<4C697374526564>", StringComparison.Ordinal);
+            int boldText = content.IndexOf("<4C697374426F6C64>", StringComparison.Ordinal);
+            int markedText = content.IndexOf("<4C6973744D61726B6564>", StringComparison.Ordinal);
+
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+                Assert.Equal(1, CountOccurrences(pageText, "ListPlain"));
+                Assert.Equal(1, CountOccurrences(pageText, "ListRed"));
+                Assert.Equal(1, CountOccurrences(pageText, "ListBold"));
+                Assert.Equal(1, CountOccurrences(pageText, "ListMarked"));
+                Assert.Equal(1, CountOccurrences(pageText, "ListLink"));
+            }
+
+            var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+                .SelectMany(page => page.ListItems)
+                .ToList();
+            PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            });
+            PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByUri(linkUri));
+
+            Assert.Contains(listItems, item => item.Text == "ListPlain ListRed ListBold ListMarked ListLink");
+            Assert.True(redText >= 0, "Expected encoded 'ListRed' text in the native list PDF content stream.");
+            Assert.True(boldText > redText, "Expected encoded 'ListBold' text after the colored list run.");
+            Assert.True(markedText > boldText, "Expected encoded 'ListMarked' text after the bold list run.");
+            Assert.True(content.LastIndexOf("1 0 0 rg", redText, StringComparison.Ordinal) >= 0, "Expected Word list run color to emit a red PDF fill color.");
+            Assert.True(content.LastIndexOf("/F2 11 Tf", boldText, StringComparison.Ordinal) >= 0, "Expected Word list bold run to use the bold PDF font resource.");
+            Assert.True(content.LastIndexOf("1 1 0 rg", markedText, StringComparison.Ordinal) >= 0, "Expected Word list run highlight to emit a yellow PDF fill color.");
+            Assert.Equal("Native list link metadata", link.Contents);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Maps_List_Item_Footnotes_Through_Native_List_Blocks() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeListFootnotes.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordList bulletList = document.AddList(WordListStyle.Bulleted);
+                bulletList.AddItem("Footnoted native list item").AddFootNote("Native list footnote text");
+                bulletList.AddItem("Following native list item");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            var listItems = PdfTextExtractor.ExtractListItemsByPage(bytes)
+                .SelectMany(page => page.ListItems)
+                .ToList();
+
+            using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+                string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
+
+                Assert.Contains("Footnoted native list item1", allText);
+                Assert.Contains("Following native list item", allText);
+                Assert.Equal(1, CountOccurrences(allText, "Native list footnote text"));
+            }
+
+            Assert.Contains(listItems, item => item.Text == "Footnoted native list item");
+            Assert.DoesNotContain(listItems, item => item.Text == "Footnoted native list item1");
+            Assert.Contains(listItems, item => item.Text == "Following native list item");
+        }
+    }
+}

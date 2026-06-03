@@ -22,12 +22,12 @@ public sealed class PdfTableCellImage {
 
         PdfImageStyle? imageStyle = style?.Clone();
         if (imageStyle != null) {
-            PdfDoc.ValidateImageStyleForBox(imageStyle, width, height, nameof(style));
+            PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(style));
         }
 
-        OfficeImageInfo info = PdfDoc.ValidateImageBytes(data);
+        OfficeImageInfo info = PdfDocument.ValidateImageBytes(data);
         if (imageStyle != null) {
-            PdfDoc.ValidateImageFitDimensions(info, imageStyle.Fit, nameof(style));
+            PdfDocument.ValidateImageFitDimensions(info, imageStyle.Fit, nameof(style));
         }
 
         Data = (byte[])data.Clone();

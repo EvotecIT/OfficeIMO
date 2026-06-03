@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfImageExtractorTests {
     [Fact]
     public void ExtractImages_ReturnsPngFilesByPageFromGeneratedPdf() {
-        byte[] source = PdfDoc.Create()
+        byte[] source = PdfDocument.Create()
             .Image(CreateMinimalRgbPng(), 24, 24)
             .Paragraph(p => p.Text("Image page marker"))
             .ToBytes();
@@ -33,7 +33,7 @@ public class PdfImageExtractorTests {
 
     [Fact]
     public void ExtractImages_ReturnsRgbaPngWhenImageHasSoftMask() {
-        byte[] source = PdfDoc.Create()
+        byte[] source = PdfDocument.Create()
             .Image(CreateMinimalRgbaPng(), 24, 24)
             .Paragraph(p => p.Text("Transparent image marker"))
             .ToBytes();
@@ -89,7 +89,7 @@ public class PdfImageExtractorTests {
 
     [Fact]
     public void ExtractImages_ReturnsEmptyListWhenPdfHasNoImages() {
-        byte[] source = PdfDoc.Create()
+        byte[] source = PdfDocument.Create()
             .Paragraph(p => p.Text("No images here"))
             .ToBytes();
 
@@ -105,7 +105,7 @@ public class PdfImageExtractorTests {
 
         try {
             Directory.CreateDirectory(directory);
-            File.WriteAllBytes(inputPath, PdfDoc.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes());
+            File.WriteAllBytes(inputPath, PdfDocument.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes());
 
             var images = PdfImageExtractor.ExtractImages(inputPath);
 
@@ -121,7 +121,7 @@ public class PdfImageExtractorTests {
 
     [Fact]
     public void ExtractImages_ReadsFromCurrentStreamPosition() {
-        byte[] pdf = PdfDoc.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes();
+        byte[] pdf = PdfDocument.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes();
         using var stream = BuildPrefixedStream(pdf);
         stream.Position = 5;
 
@@ -140,7 +140,7 @@ public class PdfImageExtractorTests {
 
         try {
             Directory.CreateDirectory(directory);
-            File.WriteAllBytes(inputPath, PdfDoc.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes());
+            File.WriteAllBytes(inputPath, PdfDocument.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes());
 
             IReadOnlyList<string> paths = PdfImageExtractor.ExtractImages(inputPath, outputDirectory);
 
@@ -150,7 +150,7 @@ public class PdfImageExtractorTests {
             Assert.True(File.Exists(path));
             AssertPngSignature(File.ReadAllBytes(path));
 
-            using var stream = new MemoryStream(PdfDoc.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes());
+            using var stream = new MemoryStream(PdfDocument.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes());
             string streamOutputDirectory = Path.Combine(directory, "stream-images");
             IReadOnlyList<string> streamPaths = PdfImageExtractor.ExtractImages(stream, streamOutputDirectory, "stream-source.pdf");
 
@@ -162,7 +162,7 @@ public class PdfImageExtractorTests {
 
             string byteOutputDirectory = Path.Combine(directory, "byte-images");
             IReadOnlyList<string> bytePaths = PdfImageExtractor.ExtractImages(
-                PdfDoc.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes(),
+                PdfDocument.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes(),
                 byteOutputDirectory,
                 "byte-source.pdf");
 
@@ -310,7 +310,7 @@ public class PdfImageExtractorTests {
     }
 
     private static byte[] BuildTwoPagePdf() {
-        var doc = PdfDoc.Create();
+        var doc = PdfDocument.Create();
         doc.Compose(compose => {
             compose.Page(page => {
                 page.Size(PageSizes.A4);
@@ -327,7 +327,7 @@ public class PdfImageExtractorTests {
     }
 
     private static byte[] BuildThreePagePdf() {
-        var doc = PdfDoc.Create();
+        var doc = PdfDocument.Create();
         doc.Compose(compose => {
             compose.Page(page => {
                 page.Size(PageSizes.A4);
@@ -349,7 +349,7 @@ public class PdfImageExtractorTests {
     }
 
     private static byte[] CreateImagePdf() {
-        return PdfDoc.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes();
+        return PdfDocument.Create().Image(CreateMinimalRgbPng(), 24, 24).ToBytes();
     }
 
     private static void AssertPngSignature(byte[] bytes) {

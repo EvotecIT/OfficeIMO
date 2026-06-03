@@ -563,7 +563,7 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_CanReadPdf() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pdf");
         try {
-            var pdf = PdfDoc.Create(new PdfOptions {
+            var pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
                 PageHeight = 360,
                 MarginLeft = 36,

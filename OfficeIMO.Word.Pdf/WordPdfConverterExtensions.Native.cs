@@ -31,10 +31,10 @@ namespace OfficeIMO.Word.Pdf {
             void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null);
         }
 
-        private sealed class NativePdfDocFlow : INativePdfFlow {
-            private readonly PdfCore.PdfDoc _pdf;
+        private sealed class NativePdfDocumentFlow : INativePdfFlow {
+            private readonly PdfCore.PdfDocument _pdf;
 
-            public NativePdfDocFlow(PdfCore.PdfDoc pdf) {
+            public NativePdfDocumentFlow(PdfCore.PdfDocument pdf) {
                 _pdf = pdf;
             }
 
@@ -85,11 +85,11 @@ namespace OfficeIMO.Word.Pdf {
             public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _column.Image(bytes, width, height, align);
         }
 
-        private static PdfCore.PdfDoc CreateOfficeIMOPdfDocument(WordDocument document, PdfSaveOptions? options) {
+        private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, PdfSaveOptions? options) {
             options?.Warnings.Clear();
 
             BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
-            PdfCore.PdfDoc pdf = PdfCore.PdfDoc.Create(CreateNativeOptions(document, options))
+            PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(document, options))
                 .Meta(
                     title: options?.Title ?? properties.Title,
                     author: options?.Author ?? properties.Creator,
@@ -109,7 +109,7 @@ namespace OfficeIMO.Word.Pdf {
                     page.Margin(GetNativeMargins(section, options));
                     ConfigureNativePageNumbering(page, section);
                     ConfigureNativeHeaderFooter(page, section, options);
-                    var flow = new NativePdfDocFlow(pdf);
+                    var flow = new NativePdfDocumentFlow(pdf);
 
                     if (TryRenderNativeSectionColumns(
                         page,

@@ -53,8 +53,8 @@ internal static partial class PdfWriter {
             PdfImageStyle imageStyle = block.Style ?? new PdfImageStyle {
                 Align = imageAlign
             };
-            PdfDoc.ValidateImageStyleForBox(imageStyle, block.Width, block.Height, nameof(image.Style));
-            PdfDoc.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(image.Style));
+            PdfDocument.ValidateImageStyleForBox(imageStyle, block.Width, block.Height, nameof(image.Style));
+            PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(image.Style));
             double x = imageStyle.Align switch {
                 PdfAlign.Center => textX + System.Math.Max(0D, (innerWidth - block.Width) / 2D),
                 PdfAlign.Right => textX + System.Math.Max(0D, innerWidth - block.Width),

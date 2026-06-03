@@ -1,0 +1,185 @@
+using System;
+using System.IO;
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public partial class PdfReadStreamTests {
+    [Fact]
+    public void RewriteApis_PreserveDirectNamedDestinationsForCopiedPages() {
+        byte[] namedDestinationPdf = BuildNamedDestinationPdf();
+        byte[] twoPageNamedDestinationPdf = BuildTwoPageNamedDestinationPdf();
+
+        AssertNamedDestinations(PdfPageExtractor.ExtractPages(namedDestinationPdf, 1));
+        var splitPages = PdfPageExtractor.SplitPages(namedDestinationPdf);
+        Assert.Single(splitPages);
+        AssertNamedDestinations(splitPages[0]);
+        AssertNamedDestinations(PdfPageEditor.DeletePages(twoPageNamedDestinationPdf, 2), containsSecondDestination: false);
+        AssertNamedDestinations(PdfPageEditor.ReorderPages(twoPageNamedDestinationPdf, 2, 1), containsSecondDestination: true);
+        AssertNamedDestinations(PdfPageEditor.RotatePages(namedDestinationPdf, 90));
+        AssertNamedDestinations(PdfMetadataEditor.UpdateMetadata(namedDestinationPdf, title: "Updated"));
+        AssertNamedDestinations(PdfMerger.Merge(namedDestinationPdf));
+        AssertNamedDestinations(PdfStamper.StampText(namedDestinationPdf, "STAMP"));
+
+        static void AssertNamedDestinations(byte[] output, bool containsSecondDestination = false) {
+            string text = System.Text.Encoding.ASCII.GetString(output);
+            Assert.Contains("/Dests ", text, StringComparison.Ordinal);
+            Assert.Contains("/Chapter1 [", text, StringComparison.Ordinal);
+            Assert.Contains("/XYZ 0 200 0", text, StringComparison.Ordinal);
+            if (containsSecondDestination) {
+                Assert.Contains("/Chapter2 [", text, StringComparison.Ordinal);
+                Assert.Contains("/Fit", text, StringComparison.Ordinal);
+            } else {
+                Assert.DoesNotContain("/Chapter2 [", text, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    public void RewriteApis_PreserveNamedDestinationNameTreesForCopiedPages() {
+        byte[] namedDestinationPdf = BuildNamedDestinationNameTreePdf();
+        byte[] twoPageNamedDestinationPdf = BuildTwoPageNamedDestinationNameTreePdf();
+
+        AssertNamedDestinations(PdfPageExtractor.ExtractPages(namedDestinationPdf, 1));
+        var splitPages = PdfPageExtractor.SplitPages(namedDestinationPdf);
+        Assert.Single(splitPages);
+        AssertNamedDestinations(splitPages[0]);
+        AssertNamedDestinations(PdfPageEditor.DeletePages(twoPageNamedDestinationPdf, 2), containsSecondDestination: false);
+        AssertNamedDestinations(PdfPageEditor.ReorderPages(twoPageNamedDestinationPdf, 2, 1), containsSecondDestination: true);
+        AssertNamedDestinations(PdfPageEditor.RotatePages(namedDestinationPdf, 90));
+        AssertNamedDestinations(PdfMetadataEditor.UpdateMetadata(namedDestinationPdf, title: "Updated"));
+        AssertNamedDestinations(PdfMerger.Merge(namedDestinationPdf));
+        AssertNamedDestinations(PdfStamper.StampText(namedDestinationPdf, "STAMP"));
+
+        static void AssertNamedDestinations(byte[] output, bool containsSecondDestination = false) {
+            string text = System.Text.Encoding.ASCII.GetString(output);
+            Assert.Contains("/Names << /Dests << /Names [", text, StringComparison.Ordinal);
+            Assert.Contains("(Chapter1)", text, StringComparison.Ordinal);
+            Assert.Contains("/XYZ 0 200 0", text, StringComparison.Ordinal);
+            if (containsSecondDestination) {
+                Assert.Contains("(Chapter2)", text, StringComparison.Ordinal);
+                Assert.Contains("/Fit", text, StringComparison.Ordinal);
+            } else {
+                Assert.DoesNotContain("(Chapter2)", text, StringComparison.Ordinal);
+            }
+        }
+    }
+
+    [Fact]
+    public void RewriteApis_PreserveNamedDestinationNameTreeKidsForCopiedPages() {
+        byte[] namedDestinationPdf = BuildNamedDestinationNameTreeWithKidsPdf();
+        byte[] twoPageNamedDestinationPdf = BuildTwoPageNamedDestinationNameTreeWithKidsPdf();
+
+        AssertNamedDestinations(PdfPageExtractor.ExtractPages(namedDestinationPdf, 1));
+        AssertNamedDestinations(PdfPageEditor.DeletePages(twoPageNamedDestinationPdf, 2), containsSecondDestination: false);
+        AssertNamedDestinations(PdfPageEditor.ReorderPages(twoPageNamedDestinationPdf, 2, 1), containsSecondDestination: true, chapter1Page: 2, chapter2Page: 1);
+        AssertNamedDestinations(PdfMetadataEditor.UpdateMetadata(namedDestinationPdf, title: "Updated"));
+
+        static void AssertNamedDestinations(byte[] output, bool containsSecondDestination = false, int chapter1Page = 1, int chapter2Page = 2) {
+            string text = System.Text.Encoding.ASCII.GetString(output);
+            Assert.Contains("/Names << /Dests << /Names [", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("/Dests << /Kids", text, StringComparison.Ordinal);
+
+            PdfDocumentInfo info = PdfInspector.Inspect(output);
+            AssertDestination(info, "Chapter1", chapter1Page, 200);
+            if (containsSecondDestination) {
+                AssertDestination(info, "Chapter2", chapter2Page, null);
+            } else {
+                Assert.DoesNotContain(info.NamedDestinations, destination => destination.Name == "Chapter2");
+            }
+        }
+
+        static void AssertDestination(PdfDocumentInfo info, string name, int pageNumber, double? top) {
+            PdfNamedDestination destination = Assert.Single(info.NamedDestinations, item => item.Name == name);
+            Assert.Equal(pageNumber, destination.PageNumber);
+            Assert.Equal(top, destination.DestinationTop);
+        }
+    }
+
+    [Fact]
+    public void RewriteApis_PreserveSimpleLinkAnnotationsWithContentsMetadata() {
+        byte[] linkedPdf = BuildTwoPageLinkAnnotationPdf();
+
+        AssertSinglePageLink(PdfPageExtractor.ExtractPages(linkedPdf, 1), "https://evotec.xyz/first", "First link metadata");
+        var splitPages = PdfPageExtractor.SplitPages(linkedPdf);
+        Assert.Equal(2, splitPages.Count);
+        AssertSinglePageLink(splitPages[0], "https://evotec.xyz/first", "First link metadata");
+        AssertSinglePageLink(splitPages[1], "https://evotec.xyz/second", "Second link metadata");
+
+        AssertSinglePageLink(PdfPageEditor.DeletePages(linkedPdf, 2), "https://evotec.xyz/first", "First link metadata");
+        AssertTwoPageLinks(
+            PdfPageEditor.ReorderPages(linkedPdf, 2, 1),
+            ("https://evotec.xyz/second", "Second link metadata"),
+            ("https://evotec.xyz/first", "First link metadata"));
+        AssertTwoPageLinks(
+            PdfPageEditor.RotatePages(linkedPdf, 90),
+            ("https://evotec.xyz/first", "First link metadata"),
+            ("https://evotec.xyz/second", "Second link metadata"));
+        AssertTwoPageLinks(
+            PdfMetadataEditor.UpdateMetadata(linkedPdf, title: "Updated"),
+            ("https://evotec.xyz/first", "First link metadata"),
+            ("https://evotec.xyz/second", "Second link metadata"));
+        AssertTwoPageLinks(
+            PdfMerger.Merge(linkedPdf),
+            ("https://evotec.xyz/first", "First link metadata"),
+            ("https://evotec.xyz/second", "Second link metadata"));
+        AssertTwoPageLinks(
+            PdfStamper.StampText(linkedPdf, "STAMP"),
+            ("https://evotec.xyz/first", "First link metadata"),
+            ("https://evotec.xyz/second", "Second link metadata"));
+
+        static void AssertSinglePageLink(byte[] output, string uri, string contents) {
+            PdfDocumentInfo info = PdfInspector.Inspect(output);
+            Assert.Single(info.Pages);
+            AssertPageLink(info.Pages[0], uri, contents);
+        }
+
+        static void AssertTwoPageLinks(byte[] output, (string Uri, string Contents) first, (string Uri, string Contents) second) {
+            PdfDocumentInfo info = PdfInspector.Inspect(output);
+            Assert.Equal(2, info.PageCount);
+            Assert.Equal(2, info.LinkAnnotationCount);
+            Assert.Equal(2, info.LinkAnnotations.Count);
+            Assert.Equal(2, info.LinkUriCount);
+            Assert.Equal(new[] { first.Uri, second.Uri }, info.LinkUris);
+            AssertPageLink(info.Pages[0], first.Uri, first.Contents);
+            AssertPageLink(info.Pages[1], second.Uri, second.Contents);
+            Assert.Equal(first.Uri, info.LinkAnnotations[0].Uri);
+            Assert.Equal(1, info.LinkAnnotations[0].PageNumber);
+            Assert.Equal(second.Uri, info.LinkAnnotations[1].Uri);
+            Assert.Equal(2, info.LinkAnnotations[1].PageNumber);
+        }
+
+        static void AssertPageLink(PdfPageInfo page, string uri, string contents) {
+            var link = Assert.Single(page.LinkAnnotations);
+            Assert.Equal(page.PageNumber, link.PageNumber);
+            Assert.Equal(uri, link.Uri);
+            Assert.Equal(contents, link.Contents);
+            Assert.True(link.Width > 0);
+            Assert.True(link.Height > 0);
+            Assert.InRange(link.X1, 0, page.Width);
+            Assert.InRange(link.X2, 0, page.Width);
+            Assert.InRange(link.Y1, 0, page.Height);
+            Assert.InRange(link.Y2, 0, page.Height);
+        }
+    }
+
+    [Fact]
+    public void RewriteApis_RejectComplexNamedDestinationNameTreesWithClearUnsupportedDiagnostic() {
+        byte[] namedDestinationPdf = BuildComplexNamedDestinationNameTreePdf();
+
+        static void AssertNamedDestinations(Action action) {
+            var exception = Assert.Throws<NotSupportedException>(action);
+            Assert.Contains("PDF named destinations are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
+        }
+
+        AssertNamedDestinations(() => PdfPageExtractor.ExtractPages(namedDestinationPdf, 1));
+        AssertNamedDestinations(() => PdfPageExtractor.SplitPages(namedDestinationPdf));
+        AssertNamedDestinations(() => PdfPageEditor.DeletePages(namedDestinationPdf, 1));
+        AssertNamedDestinations(() => PdfMetadataEditor.UpdateMetadata(namedDestinationPdf, title: "Updated"));
+        AssertNamedDestinations(() => PdfMerger.Merge(namedDestinationPdf));
+        AssertNamedDestinations(() => PdfStamper.StampText(namedDestinationPdf, "STAMP"));
+    }
+
+
+}

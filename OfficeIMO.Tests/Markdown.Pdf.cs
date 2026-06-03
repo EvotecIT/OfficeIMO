@@ -1,7 +1,7 @@
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -148,6 +148,46 @@ _Figure 1. Embedded from a relative Markdown path._
                 Directory.Delete(directory, recursive: true);
             }
         }
+    }
+
+    [Fact]
+    public void Markdown_TrySaveAsPdf_ReturnsCoreSaveResult() {
+        string markdown = "# Result Adapter\n\nPDF output should report bytes and diagnostics.";
+        using var stream = new MemoryStream();
+
+        PdfCore.PdfSaveResult streamResult = markdown.TrySaveAsPdf(stream);
+
+        Assert.True(streamResult.Succeeded);
+        Assert.Null(streamResult.OutputPath);
+        Assert.True(streamResult.BytesWritten > 0);
+        Assert.Empty(streamResult.Diagnostics);
+        Assert.Equal(streamResult.BytesWritten, stream.ToArray().LongLength);
+
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.Result", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        string pdfPath = Path.Combine(directory, "result.pdf");
+        try {
+            PdfCore.PdfSaveResult pathResult = markdown.TrySaveAsPdf(pdfPath);
+
+            Assert.True(pathResult.Succeeded);
+            Assert.Equal(Path.GetFullPath(pdfPath), pathResult.OutputPath);
+            Assert.Equal(File.ReadAllBytes(pdfPath).LongLength, pathResult.BytesWritten);
+
+            PdfCore.PdfSaveResult directoryResult = markdown.TrySaveAsPdf(directory);
+
+            Assert.False(directoryResult.Succeeded);
+            Assert.NotEmpty(directoryResult.Diagnostics);
+            Assert.Throws<InvalidOperationException>(() => directoryResult.RequireSuccess());
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+
+        PdfCore.PdfSaveResult conversionFailure = ((string)null!).TrySaveAsPdf(new MemoryStream());
+
+        Assert.False(conversionFailure.Succeeded);
+        Assert.NotEmpty(conversionFailure.Diagnostics);
     }
 
     [Fact]
@@ -910,7 +950,7 @@ Content.
     private sealed record PdfLineProbe(string Text, double BaselineY);
 
     private static IReadOnlyList<PdfLineProbe> ExtractPdfLines(byte[] pdf) {
-        using PdfDocument document = PdfDocument.Open(new MemoryStream(pdf));
+        using PdfPigDocument document = PdfPigDocument.Open(new MemoryStream(pdf));
         return document.GetPage(1)
             .Letters
             .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))

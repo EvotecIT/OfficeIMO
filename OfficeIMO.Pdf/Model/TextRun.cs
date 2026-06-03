@@ -144,7 +144,7 @@ public sealed class TextRun {
     }
     /// <summary>Create a hyperlink run that points to a document bookmark.</summary>
     /// <param name="text">Link text.</param>
-    /// <param name="bookmarkName">Named destination created with <see cref="PdfDoc.Bookmark(string)"/>.</param>
+    /// <param name="bookmarkName">Named destination created with <see cref="PdfDocument.Bookmark(string)"/>.</param>
     /// <param name="color">Optional link color.</param>
     /// <param name="underline">Whether to underline the link text.</param>
     /// <param name="contents">Optional link annotation contents.</param>

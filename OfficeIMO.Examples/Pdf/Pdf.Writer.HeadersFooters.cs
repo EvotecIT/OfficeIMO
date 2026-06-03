@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Pdf {
                 ShowPageNumbers = true
             };
 
-            PdfDoc.Create(options)
+            PdfDocument.Create(options)
                 .Meta(title: "OfficeIMO.Pdf Headers and Footers", author: "OfficeIMO")
                 .H1("Header and Footer Baseline", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("Page one protects header placement, footer placement, and page number rendering on the first page."))

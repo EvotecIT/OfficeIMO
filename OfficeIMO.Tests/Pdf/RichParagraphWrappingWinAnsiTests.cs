@@ -1,0 +1,85 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf {
+    public partial class RichParagraphWrappingTests {
+        [Fact]
+        public void WinAnsiEncoding_EncodesSupportedWindows1252CharactersWithoutFallback() {
+            var bytes = PdfWinAnsiEncoding.Encode("\u20AC\u2022\u201C\u201D\u0152\u0178");
+
+            Assert.Equal(new byte[] { 0x80, 0x95, 0x93, 0x94, 0x8C, 0x9F }, bytes);
+            Assert.True(PdfWinAnsiEncoding.CanEncode("Invoice \u20AC \u2022", out int unsupportedIndex));
+            Assert.Equal(-1, unsupportedIndex);
+        }
+
+        [Fact]
+        public void EstimateSimpleTextWidth_UsesWinAnsiPunctuationWidths() {
+            double width = InvokePrivateFontMethod<double>(
+                "EstimateSimpleTextWidth",
+                "\u201CWait\u201D\u2014ok\u2026",
+                PdfStandardFont.TimesRoman,
+                10.0);
+
+            Assert.Equal(58.32, width, 2);
+        }
+
+        [Fact]
+        public void EstimateSimpleTextWidth_UsesWinAnsiAccentedLetterWidths() {
+            double width = InvokePrivateFontMethod<double>(
+                "EstimateSimpleTextWidth",
+                "r\u00E9sum\u00E9",
+                PdfStandardFont.TimesRoman,
+                10.0);
+
+            Assert.Equal(28.88, width, 2);
+        }
+
+        [Fact]
+        public void WinAnsiEncoding_RejectsUnsupportedGeneratedTextWithClearDiagnostic() {
+            var exception = Assert.Throws<ArgumentException>(() =>
+                PdfDocument.Create()
+                    .Paragraph(p => p.Text("Snowman \u2603"))
+                    .ToBytes());
+
+            Assert.Contains("U+2603", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("PDF WinAnsiEncoding", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("embedded Unicode fonts", exception.Message, StringComparison.Ordinal);
+            Assert.False(PdfWinAnsiEncoding.CanEncode("Snowman \u2603", out int unsupportedIndex));
+            Assert.Equal(8, unsupportedIndex);
+        }
+
+        [Fact]
+        public void WinAnsiEncoding_RejectsControlCharactersWithLayoutDiagnostic() {
+            var exception = Assert.Throws<ArgumentException>(() => PdfWinAnsiEncoding.Encode("Alpha\tBeta"));
+
+            Assert.Contains("control character U+0009", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("layout", exception.Message, StringComparison.Ordinal);
+            Assert.False(PdfWinAnsiEncoding.CanEncode("Alpha\tBeta", out int unsupportedIndex));
+            Assert.Equal(5, unsupportedIndex);
+        }
+
+        [Fact]
+        public void TextRun_TabLeaderRequiresExplicitTabRun() {
+            var invalidLeaderException = Assert.Throws<ArgumentException>(() =>
+                new TextRun("Alpha", tabLeader: PdfTabLeaderStyle.Dots));
+
+            Assert.Contains("Tab leaders and alignment can only be applied to explicit tab runs.", invalidLeaderException.Message, StringComparison.Ordinal);
+
+            var invalidEnumException = Assert.Throws<ArgumentException>(() =>
+                TextRun.Tab((PdfTabLeaderStyle)99));
+
+            Assert.Contains("PDF tab leader style must be None, Dots, Hyphens, or Underscores.", invalidEnumException.Message, StringComparison.Ordinal);
+
+            var invalidAlignmentException = Assert.Throws<ArgumentException>(() =>
+                TextRun.Tab(alignment: (PdfTabAlignment)99));
+
+            Assert.Contains("PDF tab alignment must be Left, Center, Right, or DecimalSeparator.", invalidAlignmentException.Message, StringComparison.Ordinal);
+        }
+    }
+}

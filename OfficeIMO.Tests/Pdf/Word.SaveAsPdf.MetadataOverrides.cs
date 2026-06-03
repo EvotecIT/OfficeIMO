@@ -1,7 +1,7 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System.IO;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 document.SaveAsPdf(pdfPath, options);
             }
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 var info = pdf.Information;
                 Assert.Equal("Override Title", info.Title);
                 Assert.Equal("Override Author", info.Author);

@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using OfficeIMO.Pdf;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -17,7 +17,7 @@ public class PdfMetadataEditorTests {
             title: "Updated title",
             keywords: "updated,metadata");
 
-        using var pdf = PdfDocument.Open(new MemoryStream(edited));
+        using var pdf = PdfPigDocument.Open(new MemoryStream(edited));
         Assert.Equal(2, pdf.NumberOfPages);
 
         PdfDocumentInfo info = PdfInspector.Inspect(edited);
@@ -376,7 +376,7 @@ public class PdfMetadataEditorTests {
     }
 
     private static byte[] BuildTwoPagePdf() {
-        var doc = PdfDoc.Create()
+        var doc = PdfDocument.Create()
             .Meta(
                 title: "Original title",
                 author: "Original author",

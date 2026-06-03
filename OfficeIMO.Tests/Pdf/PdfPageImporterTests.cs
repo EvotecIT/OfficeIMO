@@ -460,7 +460,7 @@ public class PdfPageImporterTests {
     }
 
     private static byte[] BuildPdf(string title, params string[] pages) {
-        var doc = PdfDoc.Create()
+        var doc = PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
             .Paragraph(p => p.Text(pages[0]));
 

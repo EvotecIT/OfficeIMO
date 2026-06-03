@@ -39,8 +39,8 @@ public class PdfDrawingInteropTests {
     }
 
     [Fact]
-    public void PdfDoc_AcceptsOfficeColorThroughPdfColorConversion() {
-        var doc = PdfDoc.Create();
+    public void PdfDocument_AcceptsOfficeColorThroughPdfColorConversion() {
+        var doc = PdfDocument.Create();
         doc.Paragraph(p => p.Color(OfficeColor.CornflowerBlue).Text("Drawing color reuse"));
 
         byte[] bytes = doc.ToBytes();
@@ -50,14 +50,14 @@ public class PdfDrawingInteropTests {
     }
 
     [Fact]
-    public void PdfDoc_SnapshotsSharedShapeDescriptorAtAddTime() {
+    public void PdfDocument_SnapshotsSharedShapeDescriptorAtAddTime() {
         var shape = OfficeShape.Rectangle(90, 24);
         shape.FillColor = OfficeColor.WhiteSmoke;
         shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);
         shape.StrokeColor = OfficeColor.SteelBlue;
         shape.StrokeWidth = 1.5;
 
-        var doc = PdfDoc.Create(new PdfOptions {
+        var doc = PdfDocument.Create(new PdfOptions {
                 PageWidth = 220,
                 PageHeight = 160,
                 MarginLeft = 30,
@@ -153,7 +153,7 @@ public class PdfDrawingInteropTests {
         var shape = OfficeShape.Rectangle(40, 20);
         shape.FillColor = OfficeColor.WhiteSmoke;
 
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,
@@ -180,14 +180,14 @@ public class PdfDrawingInteropTests {
     }
 
     [Fact]
-    public void PdfDoc_SnapshotsSharedDrawingSceneAtAddTime() {
+    public void PdfDocument_SnapshotsSharedDrawingSceneAtAddTime() {
         var background = OfficeShape.Rectangle(120, 60);
         background.FillColor = OfficeColor.WhiteSmoke;
 
         var drawing = new OfficeDrawing(120, 60)
             .AddShape(background, 0, 0);
 
-        var doc = PdfDoc.Create(new PdfOptions {
+        var doc = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,
                 PageHeight = 180,
                 MarginLeft = 20,

@@ -14,7 +14,7 @@ public sealed class PdfPageBackgroundImage {
     /// <summary>Creates a page background image from supported JPEG or PNG bytes.</summary>
     public PdfPageBackgroundImage(byte[] data) {
         Guard.NotNullOrEmpty(data, nameof(data));
-        _info = PdfDoc.ValidateImageBytes(data);
+        _info = PdfDocument.ValidateImageBytes(data);
         _data = (byte[])data.Clone();
     }
 
@@ -22,7 +22,7 @@ public sealed class PdfPageBackgroundImage {
     public OfficeImageFit Fit {
         get => _fit;
         set {
-            PdfDoc.ValidateImageFit(value, nameof(Fit));
+            PdfDocument.ValidateImageFit(value, nameof(Fit));
             _fit = value;
         }
     }

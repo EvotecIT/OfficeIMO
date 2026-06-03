@@ -631,7 +631,7 @@ public sealed class MarkdownPdfVisualTheme {
     internal PdfCore.PdfColor LinkColorSnapshot => _linkColor ?? _tocLinkColor ?? Plain()._linkColor ?? Color(37, 99, 235);
     internal bool UnderlineLinksSnapshot => _underlineLinks ?? Plain()._underlineLinks ?? true;
 
-    internal void ApplyPageDecorations(PdfCore.PdfDoc pdf, PdfCore.PdfOptions options) {
+    internal void ApplyPageDecorations(PdfCore.PdfDocument pdf, PdfCore.PdfOptions options) {
         if (pdf == null) {
             throw new ArgumentNullException(nameof(pdf));
         }

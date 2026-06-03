@@ -25,7 +25,7 @@ public static partial class PdfComplianceAnalyzer {
         Add(requirements, "output-intent", "Catalog output intent",
             options.OutputIntent != null,
             "A catalog output intent with a parseable RGB, GRAY, or CMYK ICC profile is configured.",
-            "Set PdfOptions.OutputIntent or PdfDoc.OutputIntent(...) with ICC profile bytes that pass OfficeIMO's ICC header checks.");
+            "Set PdfOptions.OutputIntent or PdfDocument.OutputIntent(...) with ICC profile bytes that pass OfficeIMO's ICC header checks.");
 
         requirements.Add(BuildOutputIntentPolicyRequirement(options));
 

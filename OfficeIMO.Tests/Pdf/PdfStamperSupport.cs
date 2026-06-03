@@ -1,0 +1,207 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using OfficeIMO.Pdf;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public partial class PdfStamperTests {
+    private static byte[] BuildTwoPagePdf() {
+        var doc = PdfDocument.Create()
+            .Meta(title: "Stamp sample", author: "OfficeIMO");
+
+        doc.Compose(compose => {
+            compose.Page(page => {
+                page.Size(PageSizes.A4);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page body"))));
+            });
+
+            compose.Page(page => {
+                page.Size(PageSizes.A4);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page body"))));
+            });
+        });
+
+        return doc.ToBytes();
+    }
+
+    private static byte[] BuildIndirectContentsArrayPdf() {
+        string first = "BT /F1 12 Tf 20 80 Td (First) Tj ET";
+        string second = "BT /F1 12 Tf 20 60 Td (Second) Tj ET";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 8 0 R /Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Length {first.Length} >>",
+            "stream",
+            first,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {second.Length} >>",
+            "stream",
+            second,
+            "endstream",
+            "endobj",
+            "8 0 obj",
+            "[4 0 R 5 0 R]",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static string Normalize(string text) {
+        return text.Replace(" ", string.Empty);
+    }
+
+    private static int CountOccurrences(string text, string value) {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
+    }
+
+    private static MemoryStream CreatePrefixedStream(byte[] pdf) {
+        byte[] prefix = Encoding.ASCII.GetBytes("prefix");
+        var stream = new MemoryStream();
+        stream.Write(prefix, 0, prefix.Length);
+        stream.Write(pdf, 0, pdf.Length);
+        stream.Position = prefix.Length;
+        return stream;
+    }
+
+    private static MemoryStream CreateOutputStream(out int prefixLength) {
+        byte[] prefix = Encoding.ASCII.GetBytes("output-prefix");
+        var stream = new MemoryStream();
+        stream.Write(prefix, 0, prefix.Length);
+        prefixLength = prefix.Length;
+        return stream;
+    }
+
+    private static byte[] GetOutputPayload(MemoryStream output, int prefixLength) {
+        byte[] bytes = output.ToArray();
+        Assert.True(bytes.Length > prefixLength);
+        Assert.Equal("output-prefix", Encoding.ASCII.GetString(bytes, 0, prefixLength));
+
+        var payload = new byte[bytes.Length - prefixLength];
+        Array.Copy(bytes, prefixLength, payload, 0, payload.Length);
+        return payload;
+    }
+
+    private static string FindContentStreamContaining(byte[] pdf, string marker) {
+        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        foreach (var item in objects.Values) {
+            if (item.Value is PdfStream stream) {
+                string content = DecodeStream(stream.Data);
+                if (content.Contains(marker)) {
+                    return content;
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Content stream marker was not found: " + marker);
+    }
+
+    private static IReadOnlyList<string> GetPageContentStreams(byte[] pdf, int pageNumber) {
+        var document = PdfReadDocument.Load(pdf);
+        var (objects, _) = PdfSyntax.ParseObjects(pdf);
+        int pageObjectNumber = document.Pages[pageNumber - 1].ObjectNumber;
+        if (!objects.TryGetValue(pageObjectNumber, out var pageObject) || pageObject.Value is not PdfDictionary pageDictionary) {
+            throw new InvalidOperationException("Page object was not found.");
+        }
+
+        if (!pageDictionary.Items.TryGetValue("Contents", out var contents)) {
+            throw new InvalidOperationException("Page contents were not found.");
+        }
+
+        var streams = new List<string>();
+        AppendContentStreams(objects, contents, streams);
+        return streams;
+    }
+
+    private static void AppendContentStreams(Dictionary<int, PdfIndirectObject> objects, PdfObject contents, List<string> streams) {
+        if (contents is PdfReference reference) {
+            if (objects.TryGetValue(reference.ObjectNumber, out var indirect) && indirect.Value is PdfStream stream) {
+                streams.Add(DecodeStream(stream.Data));
+            }
+
+            return;
+        }
+
+        if (contents is PdfArray array) {
+            foreach (var item in array.Items) {
+                AppendContentStreams(objects, item, streams);
+            }
+        }
+    }
+
+    private static string DecodeStream(byte[] data) {
+        return Encoding.GetEncoding("ISO-8859-1").GetString(data);
+    }
+
+    private sealed class WriteOnlyStream : MemoryStream {
+        public override bool CanRead => false;
+    }
+
+    private sealed class ReadOnlyStream : MemoryStream {
+        public override bool CanWrite => false;
+    }
+
+    private static byte[] CreateMinimalRgbPng() {
+        return new byte[] {
+            137, 80, 78, 71, 13, 10, 26, 10,
+            0, 0, 0, 13,
+            73, 72, 68, 82,
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 2, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 12,
+            73, 68, 65, 84,
+            0x78, 0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            73, 69, 78, 68,
+            0, 0, 0, 0
+        };
+    }
+
+    private static byte[] CreateMinimalRgbaPng() {
+        return new byte[] {
+            137, 80, 78, 71, 13, 10, 26, 10,
+            0, 0, 0, 13,
+            73, 72, 68, 82,
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 6, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 16,
+            73, 68, 65, 84,
+            0x78, 0x01, 0x01, 0x05, 0x00, 0xFA, 0xFF, 0x00,
+            0xFF, 0x00, 0x00, 0x80, 0x04, 0x81, 0x01, 0x80,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            73, 69, 78, 68,
+            0, 0, 0, 0
+        };
+    }
+}

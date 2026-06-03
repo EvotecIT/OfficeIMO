@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_StyleCheatsheet(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.StyleCheatsheet.pdf");
 
-            var doc = PdfDoc.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

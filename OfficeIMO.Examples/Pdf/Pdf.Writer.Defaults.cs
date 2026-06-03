@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Pdf {
                 new [] { "PowerShell wrapper", "PSWriteOffice", "Expose safe PDF operations" }
             };
 
-            PdfDoc.Create(options)
+            PdfDocument.Create(options)
                 .Meta(title: "OfficeIMO.Pdf Default Styles", author: "OfficeIMO")
                 .H1("Default Styles", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("This sample uses document-level defaults for text color, headers, footers, and the light table preset."))

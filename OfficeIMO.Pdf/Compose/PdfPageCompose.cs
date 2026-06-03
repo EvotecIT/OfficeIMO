@@ -4,10 +4,10 @@ namespace OfficeIMO.Pdf;
 /// Page-level configuration (size, margins, default styles) and content/footers.
 /// </summary>
 public class PdfPageCompose {
-    private readonly PdfDoc _doc;
+    private readonly PdfDocument _doc;
     private readonly PdfOptions _options;
     internal PdfOptions Options => _options;
-    internal PdfPageCompose(PdfDoc doc, PdfOptions options) { _doc = doc; _options = options; }
+    internal PdfPageCompose(PdfDocument doc, PdfOptions options) { _doc = doc; _options = options; }
 
     /// <summary>Sets page size using a predefined <see cref="PageSize"/>.</summary>
     public PdfPageCompose Size(PageSize size) {

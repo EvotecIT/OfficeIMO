@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    public static byte[] Write(PdfDoc doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
         PdfComplianceValidator.ValidateGenerationOptions(opts);
 
         // Layout blocks into pages and create per-page content streams.

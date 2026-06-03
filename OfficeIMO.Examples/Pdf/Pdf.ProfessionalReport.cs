@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Pdf {
             byte[] logoBytes = File.Exists(imagePath) ? File.ReadAllBytes(imagePath) : CreateFallbackLogo();
             byte[] alphaBadge = CreateTransparentBadgePng();
 
-            PdfDoc.Create(new PdfOptions {
+            PdfDocument.Create(new PdfOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     HeaderFont = PdfStandardFont.Helvetica,

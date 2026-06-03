@@ -923,8 +923,8 @@ internal static partial class PdfWriter {
                         } else if (it is ColImg ciimg) {
                             var ib2 = ciimg.Block;
                             PdfImageStyle imageStyle = ResolveImageStyle(ib2, currentOpts);
-                            PdfDoc.ValidateImageStyleForBox(imageStyle, ib2.Width, ib2.Height, nameof(imageStyle.ClipPath));
-                            PdfDoc.ValidateImageFitDimensions(ib2.Info, imageStyle.Fit, nameof(imageStyle.Fit));
+                            PdfDocument.ValidateImageStyleForBox(imageStyle, ib2.Width, ib2.Height, nameof(imageStyle.ClipPath));
+                            PdfDocument.ValidateImageFitDimensions(ib2.Info, imageStyle.Fit, nameof(imageStyle.Fit));
                             double spacingBefore = ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumed);
                             double needed = spacingBefore + ib2.Height + imageStyle.SpacingAfter;
                             EnsureFixedFlowBlockFits("Image", ib2.Width, needed, wCol);
@@ -953,7 +953,7 @@ internal static partial class PdfWriter {
                         } else if (it is ColShape cs) {
                             var shape = cs.Block;
                             PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape, currentOpts);
-                            PdfDoc.ValidateDrawingStyle(shapeStyle, "Shape");
+                            PdfDocument.ValidateDrawingStyle(shapeStyle, "Shape");
                             double spacingBefore = ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, consumed);
                             double needed = spacingBefore + shape.Shape.Height + shapeStyle.SpacingAfter;
                             EnsureFixedFlowBlockFits("Shape", shape.Shape.Width, needed, wCol);
@@ -980,7 +980,7 @@ internal static partial class PdfWriter {
                         } else if (it is ColDrawing cd) {
                             var drawing = cd.Block;
                             PdfDrawingStyle drawingStyle = ResolveDrawingStyle(drawing, currentOpts);
-                            PdfDoc.ValidateDrawingStyle(drawingStyle, "Drawing");
+                            PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
                             double spacingBefore = ResolveColumnSpacingBefore(drawingStyle.SpacingBefore, consumed);
                             double needed = spacingBefore + drawing.Drawing.Height + drawingStyle.SpacingAfter;
                             EnsureFixedFlowBlockFits("Drawing", drawing.Drawing.Width, needed, wCol);

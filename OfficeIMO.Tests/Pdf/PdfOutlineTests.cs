@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfOutlineTests {
     [Fact]
     public void CreateOutlineFromHeadings_WritesNestedBookmarksAndInspectorReadsThem() {
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 CreateOutlineFromHeadings = true,
                 DefaultFont = PdfStandardFont.Helvetica
             })
@@ -56,7 +56,7 @@ public class PdfOutlineTests {
 
     [Fact]
     public void CreateOutlineFromHeadings_DefaultsToOffForMinimalOutput() {
-        byte[] bytes = PdfDoc.Create(new PdfOptions {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica
             })
             .H1("Heading")
@@ -73,19 +73,19 @@ public class PdfOutlineTests {
     [Fact]
     public void Headings_RejectEmptyOrWhitespaceTitlesBeforeOutlineGeneration() {
         Assert.Throws<ArgumentNullException>(() =>
-            PdfDoc.Create().H1(null!));
+            PdfDocument.Create().H1(null!));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDoc.Create().H1(string.Empty));
+            PdfDocument.Create().H1(string.Empty));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDoc.Create().H2("   "));
+            PdfDocument.Create().H2("   "));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDoc.Create().H3("\t"));
+            PdfDocument.Create().H3("\t"));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDoc.Create()
+            PdfDocument.Create()
                 .Compose(compose =>
                     compose.Page(page =>
                         page.Content(content =>

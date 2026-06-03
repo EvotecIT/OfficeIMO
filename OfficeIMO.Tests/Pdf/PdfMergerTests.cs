@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using OfficeIMO.Pdf;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -21,7 +21,7 @@ public class PdfMergerTests {
 
         byte[] merged = PdfMerger.Merge(first, second);
 
-        using var pdf = PdfDocument.Open(new MemoryStream(merged));
+        using var pdf = PdfPigDocument.Open(new MemoryStream(merged));
         Assert.Equal(4, pdf.NumberOfPages);
 
         var read = PdfReadDocument.Load(merged);
@@ -44,7 +44,7 @@ public class PdfMergerTests {
 
     [Fact]
     public void Merge_PreservesImageStreams() {
-        byte[] withImage = PdfDoc.Create()
+        byte[] withImage = PdfDocument.Create()
             .Meta(title: "Image source", author: "OfficeIMO")
             .Image(CreateMinimalRgbPng(), 24, 24)
             .Paragraph(p => p.Text("Image source page"))
@@ -53,7 +53,7 @@ public class PdfMergerTests {
 
         byte[] merged = PdfMerger.Merge(withImage, textOnly);
 
-        using var pdf = PdfDocument.Open(new MemoryStream(merged));
+        using var pdf = PdfPigDocument.Open(new MemoryStream(merged));
         Assert.Equal(2, pdf.NumberOfPages);
 
         string pdfText = Encoding.ASCII.GetString(merged);
@@ -296,7 +296,7 @@ public class PdfMergerTests {
     }
 
     private static byte[] BuildPdf(string title, string firstPageText, params (string Text, PageSize Size)[] extraPages) {
-        var doc = PdfDoc.Create()
+        var doc = PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
             .Paragraph(p => p.Text(firstPageText));
 
