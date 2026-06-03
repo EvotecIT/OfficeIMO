@@ -1677,6 +1677,34 @@ public class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void FacturXReadinessRejectsGroupedCiiDecimalValues() {
+        var groupedRateOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxRateValue: "1,234.56"), "application/xml", PdfAssociatedFileRelationship.Data);
+        var groupedAmountOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(headerTradeTaxCalculatedAmountValue: "1,234.56"), "application/xml", PdfAssociatedFileRelationship.Data);
+
+        PdfComplianceRequirement groupedRate = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, groupedRateOptions),
+            "einvoice-xml-tax-category-rate",
+            PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement groupedAmount = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, groupedAmountOptions),
+            "einvoice-xml-tax-category-amount",
+            PdfComplianceRequirementStatus.Missing);
+
+        Assert.Contains("1,234.56", groupedRate.Diagnostic);
+        Assert.Contains("parseable decimal percentage", groupedRate.Diagnostic);
+        Assert.Contains("1,234.56", groupedAmount.Diagnostic);
+        Assert.Contains("parseable decimal amount", groupedAmount.Diagnostic);
+    }
+
+    [Fact]
     public void FacturXReadinessRequiresCiiTaxExemptionReasonForRequiredVatCategories() {
         var missingReasonOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")

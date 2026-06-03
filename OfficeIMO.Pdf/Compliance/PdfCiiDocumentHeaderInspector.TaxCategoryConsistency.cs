@@ -240,7 +240,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
     private static string NormalizeTaxRate(string value) {
         string trimmed = value.Trim();
-        if (decimal.TryParse(trimmed, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal rate)) {
+        if (TryParseCiiDecimal(trimmed, out decimal rate)) {
             return rate.ToString("0.#############################", System.Globalization.CultureInfo.InvariantCulture);
         }
 

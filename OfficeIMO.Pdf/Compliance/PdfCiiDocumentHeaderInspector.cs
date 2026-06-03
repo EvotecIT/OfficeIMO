@@ -759,7 +759,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
     private static bool TryReadAmount(System.Xml.XmlReader reader, string fieldName, ref string? parseDiagnostic, out decimal? amount) {
         string text = ReadElementText(reader);
-        if (decimal.TryParse(text, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal value)) {
+        if (TryParseCiiDecimal(text, out decimal value)) {
             amount = value;
             return true;
         }
@@ -770,5 +770,18 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
 
         return false;
+    }
+
+    private static bool TryParseCiiDecimal(string? text, out decimal value) {
+        string trimmed = text?.Trim() ?? string.Empty;
+        if (trimmed.Length == 0 || trimmed.Contains(',')) {
+            value = default;
+            return false;
+        }
+
+        const System.Globalization.NumberStyles Styles =
+            System.Globalization.NumberStyles.AllowLeadingSign |
+            System.Globalization.NumberStyles.AllowDecimalPoint;
+        return decimal.TryParse(trimmed, Styles, System.Globalization.CultureInfo.InvariantCulture, out value);
     }
 }

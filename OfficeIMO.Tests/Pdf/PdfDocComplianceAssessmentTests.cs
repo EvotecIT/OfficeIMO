@@ -486,6 +486,25 @@ public class PdfDocComplianceAssessmentTests {
         Assert.Contains("/ParentTreeNextKey 2", content, StringComparison.Ordinal);
         Assert.Contains("/Nums [0 [", content, StringComparison.Ordinal);
         Assert.Matches(@"/Nums \[0 \[[^\]]+\] 1 \d+ 0 R\]", content);
+        Assert.Matches(@"/Nums \[0 \[\d+ 0 R (?<link>\d+) 0 R \k<link> 0 R\] 1 \k<link> 0 R\]", content);
+    }
+
+    [Fact]
+    public void UntaggedParagraphLinksDoNotEmitDanglingMarkedContentReferences() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .Paragraph(paragraph => paragraph
+                .Text("Read the ")
+                .Link("project site", "https://officeimo.net/", contents: "Project site"))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Subtype /Link", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Link << /MCID", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/StructParent", content, StringComparison.Ordinal);
+        Assert.DoesNotContain("/StructTreeRoot", content, StringComparison.Ordinal);
     }
 
     [Fact]

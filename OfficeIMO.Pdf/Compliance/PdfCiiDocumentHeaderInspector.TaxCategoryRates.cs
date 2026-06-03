@@ -129,7 +129,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                 if (string.Equals(reader.LocalName, "RateApplicablePercent", StringComparison.Ordinal)) {
                     rawRate = ReadElementText(reader).Trim();
-                    if (!decimal.TryParse(rawRate, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out _) &&
+                    if (!TryParseCiiDecimal(rawRate, out _) &&
                         parseDiagnostic == null) {
                         parseDiagnostic = "Set factur-x.xml CategoryTradeTax RateApplicablePercent to a parseable decimal percentage. Found: " + rawRate + ".";
                     }
@@ -170,7 +170,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                 if (string.Equals(reader.LocalName, "RateApplicablePercent", StringComparison.Ordinal)) {
                     rawRate = ReadElementText(reader).Trim();
-                    if (decimal.TryParse(rawRate, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out decimal parsedRate)) {
+                    if (TryParseCiiDecimal(rawRate, out decimal parsedRate)) {
                         rate = parsedRate;
                     } else if (parseDiagnostic == null) {
                         parseDiagnostic = "Set factur-x.xml ApplicableTradeTax RateApplicablePercent to a parseable decimal percentage. Found: " + rawRate + ".";

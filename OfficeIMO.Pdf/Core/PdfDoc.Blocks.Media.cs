@@ -87,7 +87,15 @@ public sealed partial class PdfDoc {
     }
 
     /// <summary>Adds a supported image at the current flow position. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
-    public PdfDoc Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null) {
+    public PdfDoc Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
+        Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
+
+    /// <summary>Adds a supported meaningful image at the current flow position with alternate text.</summary>
+    public PdfDoc Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
+        Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
+
+    /// <summary>Adds a supported image at the current flow position. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
+    public PdfDoc Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
@@ -105,7 +113,6 @@ public sealed partial class PdfDoc {
         AddBlock(new ImageBlock(jpegBytes, width, height, imageInfo, imageStyle, linkUri, linkContents));
         return this;
     }
-
 
     internal static ShapeBlock CreateShapeBlock(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNull(shape, nameof(shape));

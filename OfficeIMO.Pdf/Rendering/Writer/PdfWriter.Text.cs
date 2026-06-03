@@ -676,7 +676,7 @@ internal static partial class PdfWriter {
                 bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
                 int? linkMarkedContentId = null;
                 int? linkStructElementIndex = null;
-                if (hasLinkTarget && structurePage != null) {
+                if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
                     linkMarkedContentId = structurePage.NextMarkedContentId++;
                     linkStructElementIndex = structurePage.StructElements.Count;
                     structurePage.StructElements.Add(new PageStructElement {

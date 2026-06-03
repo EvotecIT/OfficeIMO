@@ -600,9 +600,19 @@ internal static partial class PdfWriter {
                 ReplaceObject(objects, element.ObjectId, structElement);
             }
 
+            var pageMarkedContentElements = new List<(int MarkedContentId, int ObjectId)>();
+            foreach (PageStructElement element in page.StructElements.Where(element => element.MarkedContentId.HasValue)) {
+                pageMarkedContentElements.Add((element.MarkedContentId!.Value, element.ObjectId));
+                if (element.AdditionalMarkedContentIds != null) {
+                    for (int additionalIndex = 0; additionalIndex < element.AdditionalMarkedContentIds.Count; additionalIndex++) {
+                        pageMarkedContentElements.Add((element.AdditionalMarkedContentIds[additionalIndex], element.ObjectId));
+                    }
+                }
+            }
+
             var pageElementIds = new List<int>();
-            foreach (PageStructElement element in page.StructElements.Where(element => element.MarkedContentId.HasValue).OrderBy(element => element.MarkedContentId!.Value)) {
-                pageElementIds.Add(element.ObjectId);
+            foreach ((int MarkedContentId, int ObjectId) mapping in pageMarkedContentElements.OrderBy(mapping => mapping.MarkedContentId)) {
+                pageElementIds.Add(mapping.ObjectId);
             }
 
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {

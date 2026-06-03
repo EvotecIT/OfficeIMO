@@ -7,7 +7,17 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfHeaderFooterImage {
     /// <summary>Creates a header/footer image.</summary>
-    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
+    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)
+        : this(data, width, height, align, fit, alternativeText: null) {
+    }
+
+    /// <summary>Creates a meaningful header/footer image with alternate text.</summary>
+    public PdfHeaderFooterImage(byte[] data, double width, double height, string? alternativeText)
+        : this(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText) {
+    }
+
+    /// <summary>Creates a header/footer image.</summary>
+    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));

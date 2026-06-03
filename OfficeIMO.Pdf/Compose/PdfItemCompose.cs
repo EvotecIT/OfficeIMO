@@ -114,8 +114,27 @@ public class PdfItemCompose {
     /// <param name="style">Optional reusable image placement style.</param>
     /// <param name="linkUri">Optional absolute URI for an image link annotation.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
+    public PdfItemCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
+        Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
+
+    /// <summary>Adds a meaningful image from supported image bytes with alternate text.</summary>
+    public PdfItemCompose Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
+        Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
+
+    /// <summary>Adds an image from supported image bytes. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
+    /// <param name="jpegBytes">Supported image bytes.</param>
+    /// <param name="width">Target width in points.</param>
+    /// <param name="height">Target height in points.</param>
+    /// <param name="align">Image alignment inside content width.</param>
+    /// <param name="clipPath">Optional local clipping path applied before drawing the image.</param>
+    /// <param name="fit">Image fitting mode inside the target box.</param>
+    /// <param name="spacingBefore">Top spacing (pt), inherited from the current default image style when omitted.</param>
+    /// <param name="spacingAfter">Bottom spacing (pt), inherited from the current default image style when omitted.</param>
+    /// <param name="style">Optional reusable image placement style.</param>
+    /// <param name="linkUri">Optional absolute URI for an image link annotation.</param>
+    /// <param name="linkContents">Optional link annotation contents metadata.</param>
     /// <param name="alternativeText">Optional alternate text for meaningful generated images.</param>
-    public PdfItemCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null) {
+    public PdfItemCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
