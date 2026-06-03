@@ -16,6 +16,8 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasAgreement = false;
                 bool hasProductTradePrice = false;
                 bool hasPriceChargeAmount = false;
+                int lineItemNumber = 0;
+                var missingLinePricingFields = new List<string>();
 
                 while (reader.Read()) {
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
@@ -32,7 +34,15 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                     if (string.Equals(reader.LocalName, "IncludedSupplyChainTradeLineItem", StringComparison.Ordinal)) {
                         hasLineItem = true;
-                        ReadLinePricing(reader, ref hasAgreement, ref hasProductTradePrice, ref hasPriceChargeAmount);
+                        lineItemNumber++;
+                        bool lineHasAgreement = false;
+                        bool lineHasProductTradePrice = false;
+                        bool lineHasPriceChargeAmount = false;
+                        ReadLinePricing(reader, ref lineHasAgreement, ref lineHasProductTradePrice, ref lineHasPriceChargeAmount);
+                        hasAgreement = hasAgreement || lineHasAgreement;
+                        hasProductTradePrice = hasProductTradePrice || lineHasProductTradePrice;
+                        hasPriceChargeAmount = hasPriceChargeAmount || lineHasPriceChargeAmount;
+                        AddMissingLinePricingFields(lineItemNumber, lineHasAgreement, lineHasProductTradePrice, lineHasPriceChargeAmount, missingLinePricingFields);
                     }
                 }
 
@@ -41,7 +51,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     return false;
                 }
 
-                evidence = new PdfCiiLinePricingEvidence(hasLineItem, hasAgreement, hasProductTradePrice, hasPriceChargeAmount);
+                evidence = new PdfCiiLinePricingEvidence(hasLineItem, hasAgreement, hasProductTradePrice, hasPriceChargeAmount, missingLinePricingFields);
                 diagnostic = null;
                 return true;
             }
@@ -116,6 +126,26 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 string.Equals(reader.LocalName, "NetPriceProductTradePrice", StringComparison.Ordinal)) {
                 break;
             }
+        }
+    }
+
+    private static void AddMissingLinePricingFields(
+        int lineItemNumber,
+        bool hasAgreement,
+        bool hasProductTradePrice,
+        bool hasPriceChargeAmount,
+        List<string> missingFields) {
+        string prefix = "line " + lineItemNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " ";
+        if (!hasAgreement) {
+            missingFields.Add(prefix + "SpecifiedLineTradeAgreement");
+        }
+
+        if (!hasProductTradePrice) {
+            missingFields.Add(prefix + "NetPriceProductTradePrice");
+        }
+
+        if (!hasPriceChargeAmount) {
+            missingFields.Add(prefix + "NetPriceProductTradePrice ChargeAmount");
         }
     }
 }

@@ -472,6 +472,10 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("NetPriceProductTradePrice ChargeAmount");
             }
 
+            if (evidence.MissingLinePricingFields.Count > 0) {
+                missingFields.AddRange(evidence.MissingLinePricingFields);
+            }
+
             if (missingFields.Count > 0) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-line-pricing",
@@ -621,7 +625,9 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("ApplicableTradeTax TypeCode");
             }
 
-            if (!evidence.HasCategoryCode) {
+            if (evidence.MissingCategoryCodeBreakdowns.Count > 0) {
+                missingFields.Add("ApplicableTradeTax CategoryCode on " + string.Join(", ", evidence.MissingCategoryCodeBreakdowns.ToArray()));
+            } else if (!evidence.HasCategoryCode) {
                 missingFields.Add("ApplicableTradeTax CategoryCode");
             }
 
@@ -704,13 +710,21 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("SpecifiedTradeSettlementPaymentMeans TypeCode");
             }
 
+            if (evidence.MissingTypeCodePaymentMeans.Count > 0) {
+                missingFields.Add("SpecifiedTradeSettlementPaymentMeans TypeCode on " + string.Join(", ", evidence.MissingTypeCodePaymentMeans.ToArray()));
+            }
+
             bool requiresCreditorAccount = RequiresElectronicInvoiceCreditorAccount(evidence.TypeCodes);
             bool hasCreditorAccountData = evidence.HasCreditorFinancialAccount || evidence.HasCreditorAccountId;
-            if ((requiresCreditorAccount || hasCreditorAccountData) && !evidence.HasCreditorFinancialAccount) {
+            if (evidence.MissingCreditorAccountPaymentMeans.Count > 0) {
+                missingFields.Add("PayeePartyCreditorFinancialAccount on " + string.Join(", ", evidence.MissingCreditorAccountPaymentMeans.ToArray()));
+            } else if ((requiresCreditorAccount || hasCreditorAccountData) && !evidence.HasCreditorFinancialAccount) {
                 missingFields.Add("PayeePartyCreditorFinancialAccount");
             }
 
-            if ((requiresCreditorAccount || hasCreditorAccountData) && !evidence.HasCreditorAccountId) {
+            if (evidence.MissingCreditorAccountIdPaymentMeans.Count > 0) {
+                missingFields.Add("PayeePartyCreditorFinancialAccount IBANID or ProprietaryID on " + string.Join(", ", evidence.MissingCreditorAccountIdPaymentMeans.ToArray()));
+            } else if ((requiresCreditorAccount || hasCreditorAccountData) && !evidence.HasCreditorAccountId) {
                 missingFields.Add("PayeePartyCreditorFinancialAccount IBANID or ProprietaryID");
             }
 

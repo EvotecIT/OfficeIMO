@@ -10,6 +10,7 @@ internal sealed class PdfCiiLineTaxEvidence {
         bool hasRateApplicablePercent,
         bool hasRateRequirementCoverage,
         IReadOnlyList<string> typeCodes,
+        IReadOnlyList<string> missingLineTaxFields,
         IReadOnlyList<string> missingRateCategoryCodes,
         IReadOnlyList<string> forbiddenRateCategoryCodes) {
         HasIncludedSupplyChainTradeLineItem = hasIncludedSupplyChainTradeLineItem;
@@ -20,6 +21,7 @@ internal sealed class PdfCiiLineTaxEvidence {
         HasRateApplicablePercent = hasRateApplicablePercent;
         HasRateRequirementCoverage = hasRateRequirementCoverage;
         TypeCodes = typeCodes;
+        MissingLineTaxFields = missingLineTaxFields;
         MissingRateCategoryCodes = missingRateCategoryCodes;
         ForbiddenRateCategoryCodes = forbiddenRateCategoryCodes;
     }
@@ -39,6 +41,8 @@ internal sealed class PdfCiiLineTaxEvidence {
     internal bool HasRateRequirementCoverage { get; }
 
     internal IReadOnlyList<string> TypeCodes { get; }
+
+    internal IReadOnlyList<string> MissingLineTaxFields { get; }
 
     internal IReadOnlyList<string> MissingRateCategoryCodes { get; }
 

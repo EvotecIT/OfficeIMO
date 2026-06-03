@@ -20,8 +20,10 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasRateApplicablePercent = false;
                 bool hasRateRequirementCoverage = false;
                 var typeCodes = new List<string>();
+                var missingLineTaxFields = new List<string>();
                 var missingRateCategoryCodes = new List<string>();
                 var forbiddenRateCategoryCodes = new List<string>();
+                int lineItemNumber = 0;
 
                 while (reader.Read()) {
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
@@ -38,7 +40,21 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                     if (string.Equals(reader.LocalName, "IncludedSupplyChainTradeLineItem", StringComparison.Ordinal)) {
                         hasLineItem = true;
-                        ReadLineTax(reader, ref hasSettlement, ref hasTradeTax, ref hasTypeCode, ref hasCategoryCode, ref hasRateApplicablePercent, ref hasRateRequirementCoverage, typeCodes, missingRateCategoryCodes, forbiddenRateCategoryCodes);
+                        lineItemNumber++;
+                        bool lineHasSettlement = false;
+                        bool lineHasTradeTax = false;
+                        bool lineHasTypeCode = false;
+                        bool lineHasCategoryCode = false;
+                        bool lineHasRateApplicablePercent = false;
+                        bool lineHasRateRequirementCoverage = false;
+                        ReadLineTax(reader, ref lineHasSettlement, ref lineHasTradeTax, ref lineHasTypeCode, ref lineHasCategoryCode, ref lineHasRateApplicablePercent, ref lineHasRateRequirementCoverage, typeCodes, missingRateCategoryCodes, forbiddenRateCategoryCodes);
+                        hasSettlement = hasSettlement || lineHasSettlement;
+                        hasTradeTax = hasTradeTax || lineHasTradeTax;
+                        hasTypeCode = hasTypeCode || lineHasTypeCode;
+                        hasCategoryCode = hasCategoryCode || lineHasCategoryCode;
+                        hasRateApplicablePercent = hasRateApplicablePercent || lineHasRateApplicablePercent;
+                        hasRateRequirementCoverage = hasRateRequirementCoverage || lineHasRateRequirementCoverage;
+                        AddMissingLineTaxFields(lineItemNumber, lineHasSettlement, lineHasTradeTax, lineHasTypeCode, lineHasCategoryCode, missingLineTaxFields);
                     }
                 }
 
@@ -56,6 +72,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     hasRateApplicablePercent,
                     hasRateRequirementCoverage,
                     typeCodes,
+                    missingLineTaxFields,
                     missingRateCategoryCodes.Distinct(StringComparer.Ordinal).ToArray(),
                     forbiddenRateCategoryCodes.Distinct(StringComparer.Ordinal).ToArray());
                 diagnostic = null;
@@ -198,6 +215,31 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             missingRateCategoryCodes.Add(normalizedCategoryCode);
         } else {
             hasRateRequirementCoverage = true;
+        }
+    }
+
+    private static void AddMissingLineTaxFields(
+        int lineItemNumber,
+        bool hasSettlement,
+        bool hasTradeTax,
+        bool hasTypeCode,
+        bool hasCategoryCode,
+        List<string> missingFields) {
+        string prefix = "line " + lineItemNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " ";
+        if (!hasSettlement) {
+            missingFields.Add(prefix + "SpecifiedLineTradeSettlement");
+        }
+
+        if (!hasTradeTax) {
+            missingFields.Add(prefix + "ApplicableTradeTax");
+        }
+
+        if (!hasTypeCode) {
+            missingFields.Add(prefix + "ApplicableTradeTax TypeCode");
+        }
+
+        if (!hasCategoryCode) {
+            missingFields.Add(prefix + "ApplicableTradeTax CategoryCode");
         }
     }
 }

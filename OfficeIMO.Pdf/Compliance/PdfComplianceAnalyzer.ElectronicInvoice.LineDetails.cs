@@ -43,6 +43,10 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("ApplicableTradeTax RateApplicablePercent");
             }
 
+            if (evidence.MissingLineTaxFields.Count > 0) {
+                missingFields.AddRange(evidence.MissingLineTaxFields);
+            }
+
             if (missingFields.Count > 0) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-line-tax",

@@ -9,7 +9,8 @@ internal sealed class PdfCiiTaxBreakdownEvidence {
         bool hasBasisAmount,
         bool hasCalculatedAmount,
         IReadOnlyList<string> typeCodes,
-        IReadOnlyList<string> missingTypeCodeBreakdowns) {
+        IReadOnlyList<string> missingTypeCodeBreakdowns,
+        IReadOnlyList<string> missingCategoryCodeBreakdowns) {
         HasApplicableTradeTax = hasApplicableTradeTax;
         HasTypeCode = hasTypeCode;
         HasCategoryCode = hasCategoryCode;
@@ -18,6 +19,7 @@ internal sealed class PdfCiiTaxBreakdownEvidence {
         HasCalculatedAmount = hasCalculatedAmount;
         TypeCodes = typeCodes;
         MissingTypeCodeBreakdowns = missingTypeCodeBreakdowns;
+        MissingCategoryCodeBreakdowns = missingCategoryCodeBreakdowns;
     }
 
     internal bool HasApplicableTradeTax { get; }
@@ -35,4 +37,6 @@ internal sealed class PdfCiiTaxBreakdownEvidence {
     internal IReadOnlyList<string> TypeCodes { get; }
 
     internal IReadOnlyList<string> MissingTypeCodeBreakdowns { get; }
+
+    internal IReadOnlyList<string> MissingCategoryCodeBreakdowns { get; }
 }

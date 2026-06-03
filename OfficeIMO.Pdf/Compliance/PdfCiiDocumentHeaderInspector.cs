@@ -455,6 +455,10 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasCreditorAccount = false;
                 bool hasCreditorAccountId = false;
                 var typeCodes = new List<string>();
+                var missingTypeCodePaymentMeans = new List<string>();
+                var missingCreditorAccountPaymentMeans = new List<string>();
+                var missingCreditorAccountIdPaymentMeans = new List<string>();
+                int paymentMeansIndex = 0;
 
                 while (reader.Read()) {
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
@@ -471,7 +475,16 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                     if (string.Equals(reader.LocalName, "SpecifiedTradeSettlementPaymentMeans", StringComparison.Ordinal)) {
                         hasPaymentMeans = true;
-                        ReadPaymentMeans(reader, ref hasTypeCode, typeCodes, ref hasCreditorAccount, ref hasCreditorAccountId);
+                        paymentMeansIndex++;
+                        bool paymentMeansHasTypeCode = false;
+                        bool paymentMeansHasCreditorAccount = false;
+                        bool paymentMeansHasCreditorAccountId = false;
+                        string? paymentMeansTypeCode = null;
+                        ReadPaymentMeans(reader, ref paymentMeansHasTypeCode, typeCodes, ref paymentMeansHasCreditorAccount, ref paymentMeansHasCreditorAccountId, ref paymentMeansTypeCode);
+                        hasTypeCode = hasTypeCode || paymentMeansHasTypeCode;
+                        hasCreditorAccount = hasCreditorAccount || paymentMeansHasCreditorAccount;
+                        hasCreditorAccountId = hasCreditorAccountId || paymentMeansHasCreditorAccountId;
+                        AddMissingPaymentInstructionFields(paymentMeansIndex, paymentMeansHasTypeCode, paymentMeansTypeCode, paymentMeansHasCreditorAccount, paymentMeansHasCreditorAccountId, missingTypeCodePaymentMeans, missingCreditorAccountPaymentMeans, missingCreditorAccountIdPaymentMeans);
                     }
                 }
 
@@ -480,7 +493,15 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     return false;
                 }
 
-                evidence = new PdfCiiPaymentInstructionEvidence(hasPaymentMeans, hasTypeCode, hasCreditorAccount, hasCreditorAccountId, typeCodes.Distinct(StringComparer.Ordinal).ToArray());
+                evidence = new PdfCiiPaymentInstructionEvidence(
+                    hasPaymentMeans,
+                    hasTypeCode,
+                    hasCreditorAccount,
+                    hasCreditorAccountId,
+                    typeCodes.Distinct(StringComparer.Ordinal).ToArray(),
+                    missingTypeCodePaymentMeans,
+                    missingCreditorAccountPaymentMeans,
+                    missingCreditorAccountIdPaymentMeans);
                 diagnostic = null;
                 return true;
             }
@@ -716,7 +737,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
     }
 
-    private static void ReadPaymentMeans(System.Xml.XmlReader reader, ref bool hasTypeCode, List<string> typeCodes, ref bool hasCreditorAccount, ref bool hasCreditorAccountId) {
+    private static void ReadPaymentMeans(System.Xml.XmlReader reader, ref bool hasTypeCode, List<string> typeCodes, ref bool hasCreditorAccount, ref bool hasCreditorAccountId, ref string? paymentMeansTypeCode) {
         if (reader.IsEmptyElement) {
             return;
         }
@@ -728,6 +749,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     string typeCode = ReadElementText(reader);
                     if (!string.IsNullOrWhiteSpace(typeCode)) {
                         hasTypeCode = true;
+                        paymentMeansTypeCode = typeCode.Trim();
                         typeCodes.Add(typeCode.Trim());
                     }
 
@@ -747,6 +769,48 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 break;
             }
         }
+    }
+
+    private static void AddMissingPaymentInstructionFields(
+        int paymentMeansIndex,
+        bool hasTypeCode,
+        string? paymentMeansTypeCode,
+        bool hasCreditorAccount,
+        bool hasCreditorAccountId,
+        List<string> missingTypeCodePaymentMeans,
+        List<string> missingCreditorAccountPaymentMeans,
+        List<string> missingCreditorAccountIdPaymentMeans) {
+        string paymentMeansLabel = "SpecifiedTradeSettlementPaymentMeans #" + paymentMeansIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (!hasTypeCode) {
+            missingTypeCodePaymentMeans.Add(paymentMeansLabel);
+            return;
+        }
+
+        if (!PaymentMeansTypeCodeRequiresCreditorAccount(paymentMeansTypeCode)) {
+            return;
+        }
+
+        if (!hasCreditorAccount) {
+            missingCreditorAccountPaymentMeans.Add(paymentMeansLabel);
+        }
+
+        if (!hasCreditorAccountId) {
+            missingCreditorAccountIdPaymentMeans.Add(paymentMeansLabel);
+        }
+    }
+
+    private static bool PaymentMeansTypeCodeRequiresCreditorAccount(string? typeCode) {
+        if (string.IsNullOrWhiteSpace(typeCode)) {
+            return false;
+        }
+
+        string normalized = typeCode!.Trim();
+        return string.Equals(normalized, "30", StringComparison.Ordinal) ||
+               string.Equals(normalized, "31", StringComparison.Ordinal) ||
+               string.Equals(normalized, "42", StringComparison.Ordinal) ||
+               string.Equals(normalized, "45", StringComparison.Ordinal) ||
+               string.Equals(normalized, "58", StringComparison.Ordinal) ||
+               string.Equals(normalized, "59", StringComparison.Ordinal);
     }
 
     private static void ReadCreditorFinancialAccount(System.Xml.XmlReader reader, ref bool hasCreditorAccountId) {

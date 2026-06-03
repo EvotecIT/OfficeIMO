@@ -15,6 +15,8 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasPaymentMeans = false;
                 bool hasTypeCode = false;
                 var typeCodes = new List<string>();
+                var missingTypeCodePaymentMeans = new List<string>();
+                int paymentMeansIndex = 0;
 
                 while (reader.Read()) {
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
@@ -31,7 +33,12 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                     if (string.Equals(reader.LocalName, "SpecifiedTradeSettlementPaymentMeans", StringComparison.Ordinal)) {
                         hasPaymentMeans = true;
-                        ReadPaymentMeansTypeCodes(reader, ref hasTypeCode, typeCodes);
+                        paymentMeansIndex++;
+                        bool paymentMeansHasTypeCode = ReadPaymentMeansTypeCodes(reader, typeCodes);
+                        hasTypeCode = hasTypeCode || paymentMeansHasTypeCode;
+                        if (!paymentMeansHasTypeCode) {
+                            missingTypeCodePaymentMeans.Add("SpecifiedTradeSettlementPaymentMeans #" + paymentMeansIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        }
                     }
                 }
 
@@ -43,7 +50,8 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 evidence = new PdfCiiPaymentMeansCodeEvidence(
                     hasPaymentMeans,
                     hasTypeCode,
-                    typeCodes.Distinct(StringComparer.Ordinal).ToArray());
+                    typeCodes.Distinct(StringComparer.Ordinal).ToArray(),
+                    missingTypeCodePaymentMeans);
                 diagnostic = null;
                 return true;
             }
@@ -53,11 +61,12 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
     }
 
-    private static void ReadPaymentMeansTypeCodes(System.Xml.XmlReader reader, ref bool hasTypeCode, List<string> typeCodes) {
+    private static bool ReadPaymentMeansTypeCodes(System.Xml.XmlReader reader, List<string> typeCodes) {
         if (reader.IsEmptyElement) {
-            return;
+            return false;
         }
 
+        bool hasTypeCode = false;
         int depth = reader.Depth;
         while (reader.Read()) {
             if (reader.NodeType == System.Xml.XmlNodeType.Element &&
@@ -78,5 +87,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 break;
             }
         }
+
+        return hasTypeCode;
     }
 }

@@ -114,6 +114,10 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("SpecifiedTradeSettlementPaymentMeans TypeCode");
             }
 
+            if (evidence.MissingTypeCodePaymentMeans.Count > 0) {
+                missingFields.Add("SpecifiedTradeSettlementPaymentMeans TypeCode on " + string.Join(", ", evidence.MissingTypeCodePaymentMeans.ToArray()));
+            }
+
             if (missingFields.Count > 0) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-payment-means-code",

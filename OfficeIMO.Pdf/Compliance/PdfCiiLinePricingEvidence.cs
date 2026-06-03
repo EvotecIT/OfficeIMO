@@ -5,11 +5,13 @@ internal sealed class PdfCiiLinePricingEvidence {
         bool hasIncludedSupplyChainTradeLineItem,
         bool hasSpecifiedLineTradeAgreement,
         bool hasProductTradePrice,
-        bool hasPriceChargeAmount) {
+        bool hasPriceChargeAmount,
+        IReadOnlyList<string> missingLinePricingFields) {
         HasIncludedSupplyChainTradeLineItem = hasIncludedSupplyChainTradeLineItem;
         HasSpecifiedLineTradeAgreement = hasSpecifiedLineTradeAgreement;
         HasProductTradePrice = hasProductTradePrice;
         HasPriceChargeAmount = hasPriceChargeAmount;
+        MissingLinePricingFields = missingLinePricingFields;
     }
 
     internal bool HasIncludedSupplyChainTradeLineItem { get; }
@@ -19,4 +21,6 @@ internal sealed class PdfCiiLinePricingEvidence {
     internal bool HasProductTradePrice { get; }
 
     internal bool HasPriceChargeAmount { get; }
+
+    internal IReadOnlyList<string> MissingLinePricingFields { get; }
 }
