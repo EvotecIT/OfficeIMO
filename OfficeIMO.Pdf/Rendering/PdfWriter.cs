@@ -788,7 +788,7 @@ internal static partial class PdfWriter {
 
     private static void AppendTextWatermark(StringBuilder sb, PdfOptions options, PdfTextWatermark watermark, string fontAlias, string? graphicsStateName) {
         PdfStandardFont font = GetTextWatermarkFont(watermark);
-        double textWidth = EstimateSimpleTextWidth(watermark.Text, font, watermark.FontSize);
+        double textWidth = EstimateSimpleTextWidthForOptions(watermark.Text, font, watermark.FontSize, options);
         double angle = watermark.RotationAngle * System.Math.PI / 180D;
         double cos = System.Math.Cos(angle);
         double sin = System.Math.Sin(angle);

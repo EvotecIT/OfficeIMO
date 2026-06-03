@@ -148,7 +148,7 @@ internal static partial class PdfWriter {
                     var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
                     double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, colGapPx);
                     double innerWidth = Math.Max(1, cellWidth - GetTableCellPaddingLeft(style, ri, cell.Column) - GetTableCellPaddingRight(style, ri, cell.Column));
-                    TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading);
+                    TableCellTextLayout lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, rowSize, rowLeading, currentOpts);
                     rowLines[ri][cell.Column] = lines;
                     if (cell.RowSpan <= 1) {
                         maxLines = Math.Max(maxLines, lines.LineCount);
@@ -169,7 +169,7 @@ internal static partial class PdfWriter {
             double captionHeight = 0;
             if (captionText != null) {
                 var captionFontForWrap = ChooseNormal(currentOpts.DefaultFont);
-                captionLines = WrapSimpleText(captionText, tableWidth, captionFontForWrap, captionSize).ToList();
+                captionLines = WrapSimpleTextForOptions(captionText, tableWidth, captionFontForWrap, captionSize, currentOpts).ToList();
                 captionHeight = captionLines.Count * captionLeading;
                 double firstRowHeight = rowHeights.Length > 0 ? rowHeights[0] : 0;
                 if (captionHeight + style.CaptionSpacingAfter + firstRowHeight > maxContentHeight + 0.001) {
@@ -235,7 +235,7 @@ internal static partial class PdfWriter {
                 }
 
                 int? captionMarkedContentId = RegisterTextStructureElement("Caption", EnsureTableStructureElement());
-                WriteLinesInternal("F1", captionSize, captionLeading, xOrigin, tableWidth, y - GetAscender(captionFont, captionSize), captionLines, style.CaptionAlign, style.CaptionColor, structureType: "Caption", markedContentId: captionMarkedContentId);
+                WriteLinesInternal("F1", captionSize, captionLeading, xOrigin, tableWidth, y - GetAscenderForOptions(captionFont, captionSize, currentOpts), captionLines, style.CaptionAlign, style.CaptionColor, structureType: "Caption", markedContentId: captionMarkedContentId);
                 y -= captionHeight + style.CaptionSpacingAfter;
             }
 
@@ -337,7 +337,7 @@ internal static partial class PdfWriter {
                 if (currentOpts.Debug?.ShowTableBaselines == true) {
                     double x1 = xOrigin;
                     double x2 = xOrigin + tableWidth;
-                    double baselineYDbg = y - padTop - GetAscender(GetTableRowFont(currentOpts, rowUsesBold), rowSize);
+                    double baselineYDbg = y - padTop - GetAscenderForOptions(GetTableRowFont(currentOpts, rowUsesBold), rowSize, currentOpts);
                     pageDirty = true;
                     DrawHLine(sb, new PdfColor(0, 0.6, 0), 0.4, x1, x2, baselineYDbg);
                 }
@@ -382,7 +382,7 @@ internal static partial class PdfWriter {
                         else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
                     }
 
-                    double firstBaseline = y - cellPadTop - verticalOffset - GetAscender(cellFont, rowSize) + style.RowBaselineOffset;
+                    double firstBaseline = y - cellPadTop - verticalOffset - GetAscenderForOptions(cellFont, rowSize, currentOpts) + style.RowBaselineOffset;
 
                     pageDirty = true;
                     if (cell.Runs.Any(run => run.Bold || rowUsesBold)) { currentPage!.UsedBold = true; usedBold = true; }

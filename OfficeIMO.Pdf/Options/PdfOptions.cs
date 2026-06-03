@@ -73,6 +73,8 @@ public sealed partial class PdfOptions {
     private PdfPageBackgroundImage? _pageBackgroundImage;
     private System.Collections.Generic.List<PdfPageBackgroundShape>? _pageBackgroundShapes;
     private System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>? _embeddedFonts;
+    private System.Collections.Generic.Dictionary<PdfStandardFont, PdfTrueTypeFontProgram>? _embeddedFontPrograms;
+    private System.Collections.Generic.HashSet<PdfStandardFont>? _embeddedFontProgramFailures;
     private System.Collections.Generic.List<PdfEmbeddedFile>? _embeddedFiles;
 
 }

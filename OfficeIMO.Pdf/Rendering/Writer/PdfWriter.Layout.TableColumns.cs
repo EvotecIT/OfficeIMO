@@ -303,10 +303,10 @@ internal static partial class PdfWriter {
                     .Replace('\r', '\n')
                     .Split(TokenSplitChars, StringSplitOptions.RemoveEmptyEntries);
                 if (tokens.Length == 0) {
-                    tokenWidth = EstimateSimpleTextWidth(cell.Text, rowFont, rowSize);
+                    tokenWidth = EstimateSimpleTextWidthForOptions(cell.Text, rowFont, rowSize, options);
                 } else {
                     for (int tokenIndex = 0; tokenIndex < tokens.Length; tokenIndex++) {
-                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidth(tokens[tokenIndex], rowFont, rowSize));
+                        tokenWidth = Math.Max(tokenWidth, EstimateSimpleTextWidthForOptions(tokens[tokenIndex], rowFont, rowSize, options));
                     }
                 }
 

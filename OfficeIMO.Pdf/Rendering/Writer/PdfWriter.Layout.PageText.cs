@@ -16,7 +16,7 @@ internal static partial class PdfWriter {
             text = FormatPageText(opts.GetFooterFormatForPage(variantPage), page, pages, documentPages, opts.PageNumberStyle);
         }
         double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
-        double textWidth = EstimateSimpleTextWidth(text, footerFont, opts.FooterFontSize);
+        double textWidth = EstimateSimpleTextWidthForOptions(text, footerFont, opts.FooterFontSize, opts);
         double x = opts.MarginLeft;
         if (opts.FooterAlign == PdfAlign.Center) x = opts.MarginLeft + Math.Max(0, (width - textWidth) / 2);
         else if (opts.FooterAlign == PdfAlign.Right) x = opts.MarginLeft + Math.Max(0, width - textWidth);
@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
         }
 
         double width = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
-        double textWidth = EstimateSimpleTextWidth(text, headerFont, opts.HeaderFontSize);
+        double textWidth = EstimateSimpleTextWidthForOptions(text, headerFont, opts.HeaderFontSize, opts);
         double x = opts.MarginLeft;
         if (opts.HeaderAlign == PdfAlign.Center) x = opts.MarginLeft + Math.Max(0, (width - textWidth) / 2);
         else if (opts.HeaderAlign == PdfAlign.Right) x = opts.MarginLeft + Math.Max(0, width - textWidth);
@@ -115,19 +115,19 @@ internal static partial class PdfWriter {
 
         if (!string.IsNullOrEmpty(zones.Left)) {
             string text = FormatPageText(zones.Left!, page, pages, documentPages, opts.PageNumberStyle);
-            double textWidth = EstimateSimpleTextWidth(text, font, fontSize);
+            double textWidth = EstimateSimpleTextWidthForOptions(text, font, fontSize, opts);
             layouts.Add(("left", text, contentLeft, textWidth));
         }
 
         if (!string.IsNullOrEmpty(zones.Center)) {
             string text = FormatPageText(zones.Center!, page, pages, documentPages, opts.PageNumberStyle);
-            double textWidth = EstimateSimpleTextWidth(text, font, fontSize);
+            double textWidth = EstimateSimpleTextWidthForOptions(text, font, fontSize, opts);
             layouts.Add(("center", text, contentLeft + ((contentWidth - textWidth) / 2), textWidth));
         }
 
         if (!string.IsNullOrEmpty(zones.Right)) {
             string text = FormatPageText(zones.Right!, page, pages, documentPages, opts.PageNumberStyle);
-            double textWidth = EstimateSimpleTextWidth(text, font, fontSize);
+            double textWidth = EstimateSimpleTextWidthForOptions(text, font, fontSize, opts);
             layouts.Add(("right", text, contentLeft + contentWidth - textWidth, textWidth));
         }
 

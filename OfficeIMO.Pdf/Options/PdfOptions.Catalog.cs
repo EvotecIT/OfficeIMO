@@ -111,6 +111,8 @@ public sealed partial class PdfOptions {
     public PdfOptions EmbedStandardFont(PdfStandardFont font, byte[] data, string? fontName = null) {
         var embeddedFont = new PdfEmbeddedFont(font, data, fontName);
         (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
+        _embeddedFontPrograms?.Remove(font);
+        _embeddedFontProgramFailures?.Remove(font);
         return this;
     }
 
@@ -123,6 +125,8 @@ public sealed partial class PdfOptions {
     /// <summary>Removes all embedded standard-font mappings.</summary>
     public PdfOptions ClearEmbeddedStandardFonts() {
         _embeddedFonts?.Clear();
+        _embeddedFontPrograms?.Clear();
+        _embeddedFontProgramFailures?.Clear();
         return this;
     }
 
@@ -354,6 +358,35 @@ public sealed partial class PdfOptions {
 
         embeddedFont = null;
         return false;
+    }
+
+    internal bool TryGetEmbeddedStandardFontProgram(PdfStandardFont font, out PdfTrueTypeFontProgram? fontProgram) {
+        Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        if (_embeddedFontPrograms != null && _embeddedFontPrograms.TryGetValue(font, out PdfTrueTypeFontProgram? cachedProgram)) {
+            fontProgram = cachedProgram;
+            return true;
+        }
+
+        if (_embeddedFontProgramFailures != null && _embeddedFontProgramFailures.Contains(font)) {
+            fontProgram = null;
+            return false;
+        }
+
+        if (_embeddedFonts == null || !_embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont)) {
+            fontProgram = null;
+            return false;
+        }
+
+        try {
+            fontProgram = PdfTrueTypeFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
+        } catch (System.NotSupportedException) {
+            (_embeddedFontProgramFailures ??= new System.Collections.Generic.HashSet<PdfStandardFont>()).Add(font);
+            fontProgram = null;
+            return false;
+        }
+
+        (_embeddedFontPrograms ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfTrueTypeFontProgram>())[font] = fontProgram;
+        return true;
     }
 
     private static PdfElectronicInvoiceMetadata CreateFacturXInvoiceMetadata(string conformanceLevel, string version) {

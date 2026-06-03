@@ -133,6 +133,16 @@ internal static partial class PdfWriter {
         return width;
     }
 
+    private static double EstimateSimpleTextWidthForOptions(string? text, PdfStandardFont font, double fontSize, PdfOptions? options) {
+        if (options != null &&
+            options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            return fontProgram.MeasureWinAnsiTextWidth(text, fontSize);
+        }
+
+        return EstimateSimpleTextWidth(text, font, fontSize);
+    }
+
     internal static double EstimateSimpleTextWidth1000(string? text, PdfStandardFont font) =>
         EstimateSimpleTextWidth(text, font, 1000D);
 
@@ -605,12 +615,32 @@ internal static partial class PdfWriter {
         _ => ThrowUnsupportedStandardFontWidth(font)
     };
 
+    private static double GetDescenderForOptions(PdfStandardFont font, double fontSize, PdfOptions? options) {
+        if (options != null &&
+            options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            return fontProgram.GetDescender(fontSize);
+        }
+
+        return GetDescender(font, fontSize);
+    }
+
     private static double GetAscender(PdfStandardFont font, double fontSize) => font switch {
         PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique => fontSize * 0.72,
         PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold or PdfStandardFont.HelveticaOblique or PdfStandardFont.HelveticaBoldOblique => fontSize * 0.74,
         PdfStandardFont.TimesRoman or PdfStandardFont.TimesBold or PdfStandardFont.TimesItalic or PdfStandardFont.TimesBoldItalic => fontSize * 0.72,
         _ => ThrowUnsupportedStandardFontWidth(font)
     };
+
+    private static double GetAscenderForOptions(PdfStandardFont font, double fontSize, PdfOptions? options) {
+        if (options != null &&
+            options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            return fontProgram.GetAscender(fontSize);
+        }
+
+        return GetAscender(font, fontSize);
+    }
 
     private static PdfStandardFont ThrowUnsupportedStandardFont(PdfStandardFont font) {
         Guard.StandardFont(font, nameof(font), "PDF font must be one of the supported standard PDF fonts.");

@@ -73,11 +73,14 @@ internal static partial class PdfWriter {
         return lines;
     }
 
-    private static System.Collections.Generic.List<string> WrapSimpleText(string text, double widthPts, PdfStandardFont font, double fontSize) {
+    private static System.Collections.Generic.List<string> WrapSimpleText(string text, double widthPts, PdfStandardFont font, double fontSize) =>
+        WrapSimpleTextForOptions(text, widthPts, font, fontSize, options: null);
+
+    private static System.Collections.Generic.List<string> WrapSimpleTextForOptions(string text, double widthPts, PdfStandardFont font, double fontSize, PdfOptions? options) {
         var hardLines = (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n').Split(HardLineSplitChars, StringSplitOptions.None);
         var lines = new System.Collections.Generic.List<string>();
         double maxWidth = Math.Max(1D, widthPts);
-        double spaceWidth = EstimateSimpleTextWidth(" ", font, fontSize);
+        double spaceWidth = EstimateSimpleTextWidthForOptions(" ", font, fontSize, options);
 
         void FlushLine(StringBuilder current, ref double currentWidth) {
             if (current.Length > 0) {
@@ -91,7 +94,7 @@ internal static partial class PdfWriter {
             FlushLine(current, ref currentWidth);
             for (int i = 0; i < token.Length; i++) {
                 string character = token.Substring(i, 1);
-                double characterWidth = EstimateSimpleTextWidth(character, font, fontSize);
+                double characterWidth = EstimateSimpleTextWidthForOptions(character, font, fontSize, options);
                 if (current.Length > 0 && currentWidth + characterWidth > maxWidth) {
                     FlushLine(current, ref currentWidth);
                 }
@@ -121,7 +124,7 @@ internal static partial class PdfWriter {
                 }
 
                 if (token.Length > 0) {
-                    double tokenWidth = EstimateSimpleTextWidth(token, font, fontSize);
+                    double tokenWidth = EstimateSimpleTextWidthForOptions(token, font, fontSize, options);
                     if (tokenWidth > maxWidth) {
                         AppendLongToken(token, current, ref currentWidth);
                     } else {
@@ -241,8 +244,8 @@ internal static partial class PdfWriter {
             new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak);
     }
 
-    private static double MeasureRichText(string text, PdfStandardFont font, double fontSize) =>
-        EstimateSimpleTextWidth(text, font, fontSize);
+    private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfOptions? options = null) =>
+        EstimateSimpleTextWidthForOptions(text, font, fontSize, options);
 
     private static double EffectiveRichFontSize(double fontSize, PdfTextBaseline baseline) =>
         baseline == PdfTextBaseline.Normal ? fontSize : fontSize * 0.65;
@@ -253,20 +256,20 @@ internal static partial class PdfWriter {
         _ => 0
     };
 
-    private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline) =>
-        EstimateSimpleTextWidth(text, font, EffectiveRichFontSize(fontSize, baseline));
+    private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null) =>
+        EstimateSimpleTextWidthForOptions(text, font, EffectiveRichFontSize(fontSize, baseline), options);
 
-    private static double MeasureRichLineWidth(System.Collections.Generic.IReadOnlyList<RichSeg> line) {
+    private static double MeasureRichLineWidth(System.Collections.Generic.IReadOnlyList<RichSeg> line, PdfOptions? options = null) {
         double width = 0D;
         for (int index = 0; index < line.Count; index++) {
             RichSeg segment = line[index];
             if (segment.LeadingSpace) {
                 width += segment.LeadingAdvance > 0
                     ? segment.LeadingAdvance
-                    : MeasureRichText(" ", segment.Font, segment.FontSize, segment.Baseline);
+                    : MeasureRichText(" ", segment.Font, segment.FontSize, segment.Baseline, options);
             }
 
-            width += MeasureRichText(segment.Text, segment.Font, segment.FontSize, segment.Baseline);
+            width += MeasureRichText(segment.Text, segment.Font, segment.FontSize, segment.Baseline, options);
         }
 
         return width;
@@ -282,20 +285,20 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, nextStop - lineWidth);
     }
 
-    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline) {
+    private static double MeasureDecimalAnchorWidth(string text, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfOptions? options = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
         int decimalIndex = text.IndexOfAny(DecimalTabAnchorChars);
         if (decimalIndex < 0) {
-            return MeasureRichText(text, font, fontSize, baseline);
+            return MeasureRichText(text, font, fontSize, baseline, options);
         }
 
-        return MeasureRichText(text.Substring(0, decimalIndex), font, fontSize, baseline);
+        return MeasureRichText(text.Substring(0, decimalIndex), font, fontSize, baseline, options);
     }
 
-    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal) {
+    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null) {
         if (alignment == PdfTabAlignment.Left) {
             return CalculateDefaultTabAdvance(lineWidth, spaceWidth, tabStopWidth);
         }
@@ -309,7 +312,7 @@ internal static partial class PdfWriter {
         double anchorWidth = alignment switch {
             PdfTabAlignment.Center => followingTextWidth / 2D,
             PdfTabAlignment.Right => followingTextWidth,
-            PdfTabAlignment.DecimalSeparator => MeasureDecimalAnchorWidth(followingText, followingFont, fontSize, baseline),
+            PdfTabAlignment.DecimalSeparator => MeasureDecimalAnchorWidth(followingText, followingFont, fontSize, baseline, options),
             _ => followingTextWidth
         };
         double nextStop = (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;
@@ -323,7 +326,10 @@ internal static partial class PdfWriter {
         return Math.Max(spaceWidth, advance);
     }
 
-    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null, double tabStopWidth = DefaultParagraphTabStopWidth) {
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRuns(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts = null, double tabStopWidth = DefaultParagraphTabStopWidth) =>
+        WrapRichRunsCore(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, tabStopWidth, options: null);
+
+    private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options) {
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
@@ -373,7 +379,7 @@ internal static partial class PdfWriter {
             var runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
             var fontForRun = (bold && italic) ? ChooseBoldItalic(runBaseFont) : bold ? ChooseBold(runBaseFont) : italic ? ChooseItalic(runBaseFont) : runBaseFont;
             double runFontSize = run.FontSize ?? fontSize;
-            double spaceW = MeasureRichText(" ", fontForRun, runFontSize, baseline);
+            double spaceW = MeasureRichText(" ", fontForRun, runFontSize, baseline, options);
             int idx = 0;
             while (idx < text.Length) {
                 int nextWs = text.IndexOfAny(TokenSplitChars, idx);
@@ -384,7 +390,7 @@ internal static partial class PdfWriter {
                     hadNewline = text[nextWs] == '\n';
                     idx = nextWs + 1;
                 }
-                double tokenW = MeasureRichText(token, fontForRun, runFontSize, baseline);
+                double tokenW = MeasureRichText(token, fontForRun, runFontSize, baseline, options);
                 var lastLine = lines[lines.Count - 1];
                 double needed = lastLine.Count == 0 ? tokenW : pendingLeadingAdvance + tokenW;
                 double currentMaxWidth = CurrentMaxWidth();
@@ -402,7 +408,7 @@ internal static partial class PdfWriter {
                         double chunkW = 0;
                         currentMaxWidth = CurrentMaxWidth();
                         while (pos + take < token.Length) {
-                            double charW = MeasureRichText(token.Substring(pos + take, 1), fontForRun, runFontSize, baseline);
+                            double charW = MeasureRichText(token.Substring(pos + take, 1), fontForRun, runFontSize, baseline, options);
                             if (take > 0 && chunkW + charW > currentMaxWidth) {
                                 break;
                             }
@@ -416,7 +422,7 @@ internal static partial class PdfWriter {
 
                         if (take == 0) {
                             take = 1;
-                            chunkW = MeasureRichText(token.Substring(pos, 1), fontForRun, runFontSize, baseline);
+                            chunkW = MeasureRichText(token.Substring(pos, 1), fontForRun, runFontSize, baseline, options);
                         }
 
                         string chunk = token.Substring(pos, take);
@@ -436,7 +442,7 @@ internal static partial class PdfWriter {
                         pendingLeadingTabLeader = PdfTabLeaderStyle.None;
                     } else if (nextWs != -1) {
                         bool hadTab = text[nextWs] == '\t';
-                        pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth) : spaceW;
+                        pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth, options: options) : spaceW;
                         pendingLeadingIsExpandable = !hadTab;
                         pendingLeadingIsTab = hadTab;
                         pendingLeadingTabAlignment = hadTab ? tabAlignment : PdfTabAlignment.Left;
@@ -445,7 +451,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
                 if (token.Length > 0 && pendingLeadingIsTab) {
-                    pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline);
+                    pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options);
                 }
                 needed = lastLine.Count == 0
                     ? (pendingLeadingIsTab ? pendingLeadingAdvance + tokenW : tokenW)
@@ -477,7 +483,7 @@ internal static partial class PdfWriter {
                     pendingLeadingTabLeader = PdfTabLeaderStyle.None;
                 } else if (nextWs != -1) {
                     bool hadTab = text[nextWs] == '\t';
-                    pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth) : spaceW;
+                    pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth, options: options) : spaceW;
                     pendingLeadingIsExpandable = !hadTab;
                     pendingLeadingIsTab = hadTab;
                     pendingLeadingTabAlignment = hadTab ? tabAlignment : PdfTabAlignment.Left;
@@ -528,9 +534,9 @@ internal static partial class PdfWriter {
             double baseLineW = 0;
             int gapsCount = 0;
             foreach (var seg in segs) {
-                double w = MeasureRichText(seg.Text, seg.Font, seg.FontSize, seg.Baseline);
+                double w = MeasureRichText(seg.Text, seg.Font, seg.FontSize, seg.Baseline, opts);
                 if (seg.LeadingSpace) {
-                    w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, seg.FontSize, seg.Baseline);
+                    w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, seg.FontSize, seg.Baseline, opts);
                     if (seg.LeadingSpaceIsExpandable) {
                         gapsCount++;
                     }
@@ -551,17 +557,17 @@ internal static partial class PdfWriter {
             foreach (var s in segs) {
                 double leadingAdvance = 0D;
                 if (s.LeadingSpace) {
-                    double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.FontSize, s.Baseline);
+                    double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.FontSize, s.Baseline, opts);
                     leadingAdvance = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
                     xCursor += leadingAdvance;
                 }
 
-                double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline);
+                double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline, opts);
                 if (s.BackgroundColor.HasValue && wSeg > 0) {
                     double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                     double textRise = TextRiseForBaseline(s.FontSize, s.Baseline);
-                    double asc = GetAscender(s.Font, runFontSize);
-                    double desc = GetDescender(s.Font, runFontSize);
+                    double asc = GetAscenderForOptions(s.Font, runFontSize, opts);
+                    double desc = GetDescenderForOptions(s.Font, runFontSize, opts);
                     double padX = Math.Max(1.4D, runFontSize * 0.14D);
                     double padY = Math.Max(0.45D, runFontSize * 0.05D);
                     double baselineY = lineY + textRise;
@@ -605,9 +611,9 @@ internal static partial class PdfWriter {
             int gapsCount = 0;
             for (int si = 0; si < segCount; si++) {
                 var seg = segs[si];
-                double w = MeasureRichText(seg.Text, seg.Font, seg.FontSize, seg.Baseline);
+                double w = MeasureRichText(seg.Text, seg.Font, seg.FontSize, seg.Baseline, opts);
                 if (seg.LeadingSpace) {
-                    w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, seg.FontSize, seg.Baseline);
+                    w += seg.LeadingAdvance > 0 ? seg.LeadingAdvance : MeasureRichText(" ", seg.Font, seg.FontSize, seg.Baseline, opts);
                     if (seg.LeadingSpaceIsExpandable) {
                         gapsCount++;
                     }
@@ -643,11 +649,11 @@ internal static partial class PdfWriter {
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
                 content.FillColor(color ?? PdfColor.Black);
                 if (s.LeadingSpace) {
-                    double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.FontSize, s.Baseline);
+                    double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.FontSize, s.Baseline, opts);
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
 
                     if (s.LeadingTabLeader != PdfTabLeaderStyle.None) {
-                        string leader = BuildTabLeaderText(gap, s.Font, s.FontSize, s.Baseline, s.LeadingTabLeader);
+                        string leader = BuildTabLeaderText(gap, s.Font, s.FontSize, s.Baseline, s.LeadingTabLeader, opts);
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
@@ -666,7 +672,7 @@ internal static partial class PdfWriter {
                         xCursor += gap;
                     }
                 }
-                double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline);
+                double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline, opts);
                 bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
                 int? linkMarkedContentId = null;
                 int? linkStructElementIndex = null;
@@ -722,8 +728,8 @@ internal static partial class PdfWriter {
                 }
                 if (hasLinkTarget) {
                     var fontForMetrics = s.Font;
-                    double asc = GetAscender(fontForMetrics, runFontSize);
-                    double desc = GetDescender(fontForMetrics, runFontSize);
+                    double asc = GetAscenderForOptions(fontForMetrics, runFontSize, opts);
+                    double desc = GetDescenderForOptions(fontForMetrics, runFontSize, opts);
                     double x1 = lineXOrigin + segmentStartX;
                     double x2 = x1 + wSeg;
                     double y1 = baselineY - desc;
@@ -854,7 +860,7 @@ internal static partial class PdfWriter {
             .RestoreState();
     }
 
-    private static string BuildTabLeaderText(double gap, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfTabLeaderStyle leaderStyle) {
+    private static string BuildTabLeaderText(double gap, PdfStandardFont font, double fontSize, PdfTextBaseline baseline, PdfTabLeaderStyle leaderStyle, PdfOptions? options) {
         string leaderGlyph = leaderStyle switch {
             PdfTabLeaderStyle.Dots => ".",
             PdfTabLeaderStyle.Hyphens => "-",
@@ -866,7 +872,7 @@ internal static partial class PdfWriter {
             return string.Empty;
         }
 
-        double glyphWidth = MeasureRichText(leaderGlyph, font, fontSize, baseline);
+        double glyphWidth = MeasureRichText(leaderGlyph, font, fontSize, baseline, options);
         if (glyphWidth <= 0 || gap <= glyphWidth * 3D) {
             return string.Empty;
         }

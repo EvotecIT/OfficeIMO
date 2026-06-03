@@ -16,7 +16,7 @@ internal static partial class PdfWriter {
             var lineFont = fontRes == "F2" ? ChooseBold(ChooseNormal(currentOpts.DefaultFont)) : ChooseNormal(currentOpts.DefaultFont);
             double yStart2 = startY;
             if (applyBaselineTweak) {
-                yStart2 -= GetDescender(lineFont, fontSize) * 0.0;
+                yStart2 -= GetDescenderForOptions(lineFont, fontSize, currentOpts) * 0.0;
             }
             content.TextMatrix(x, yStart2);
             var effectiveColor = color ?? currentOpts.DefaultTextColor ?? PdfColor.Black;
@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
             for (int i = 0; i < lines.Count; i++) {
                 string line = lines[i];
                 double dx = 0;
-                double estWidth = EstimateSimpleTextWidth(line, lineFont, fontSize);
+                double estWidth = EstimateSimpleTextWidthForOptions(line, lineFont, fontSize, currentOpts);
                 if (align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
                 else if (align == PdfAlign.Right) dx = Math.Max(0, (widthUsed - estWidth));
                 if (Math.Abs(dx) > 0.0001) content.MoveText(dx, 0);
@@ -44,11 +44,11 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            double asc = GetAscender(font, fontSize);
-            double desc = GetDescender(font, fontSize);
+            double asc = GetAscenderForOptions(font, fontSize, currentOpts);
+            double desc = GetDescenderForOptions(font, fontSize, currentOpts);
             for (int i = 0; i < lines.Count; i++) {
                 string line = lines[i];
-                double lineWidth = EstimateSimpleTextWidth(line, font, fontSize);
+                double lineWidth = EstimateSimpleTextWidthForOptions(line, font, fontSize, currentOpts);
                 if (lineWidth <= 0.001D) {
                     continue;
                 }
@@ -101,8 +101,8 @@ internal static partial class PdfWriter {
             AddNamedDestinationName(name!, topY);
         }
 
-        private static double FirstTextBaselineFromTop(PdfStandardFont font, double fontSize, double topY) =>
-            topY - GetAscender(font, fontSize);
+        private double FirstTextBaselineFromTop(PdfStandardFont font, double fontSize, double topY) =>
+            topY - GetAscenderForOptions(font, fontSize, currentOpts);
 
         private void MarkRichFonts(System.Collections.Generic.IEnumerable<TextRun> runs) {
             foreach (TextRun run in runs) {

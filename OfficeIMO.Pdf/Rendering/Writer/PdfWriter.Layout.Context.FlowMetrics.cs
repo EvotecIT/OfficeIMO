@@ -157,7 +157,7 @@ internal static partial class PdfWriter {
             double leading = GetParagraphLeading(paragraphStyle, fontSize);
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             var textFrame = GetParagraphTextFrame(paragraphStyle, frameX, frameWidth);
-            var wrap = WrapRichRuns(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, GetParagraphTabStopWidth(paragraphStyle));
+            var wrap = WrapRichRunsCore(paragraph.Runs, textFrame.Width, fontSize, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, GetParagraphTabStopWidth(paragraphStyle), currentOpts);
             return wrap.LineHeights.Count == 0 ? spacingBefore : spacingBefore + wrap.LineHeights[0];
         }
 
@@ -208,7 +208,7 @@ internal static partial class PdfWriter {
                 double size = fontSize;
                 double leading = size * 1.4;
                 double textWidth = innerWidth - 2 * panelStyle.PaddingX;
-                var wrap = WrapRichRuns(panel.Runs, textWidth, size, ChooseNormal(currentOpts.DefaultFont), leading);
+                var wrap = WrapRichRunsCore(panel.Runs, textWidth, size, ChooseNormal(currentOpts.DefaultFont), leading, null, DefaultParagraphTabStopWidth, currentOpts);
                 double firstLineHeight = wrap.LineHeights.Count == 0 ? 0D : wrap.LineHeights[0];
                 return panelStyle.SpacingBefore + panelStyle.PaddingY + firstLineHeight + panelStyle.PaddingY;
             }
@@ -245,7 +245,7 @@ internal static partial class PdfWriter {
                     TableCellLayout cell = firstRowCells[cellIndex];
                     double cellWidth = GetTableCellWidth(columnLayout.Widths, cell.Column, cell.ColumnSpan, columnGap);
                     double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, 0, cell.Column) - GetTableCellPaddingRight(style, 0, cell.Column));
-                    var lines = WrapSimpleText(cell.Text, innerWidth, GetTableRowFont(currentOpts, rowUsesBold), rowSize);
+                    var lines = WrapSimpleTextForOptions(cell.Text, innerWidth, GetTableRowFont(currentOpts, rowUsesBold), rowSize, currentOpts);
                     maxLines = Math.Max(maxLines, lines.Count);
                 }
 
@@ -254,7 +254,7 @@ internal static partial class PdfWriter {
                 if (!string.IsNullOrWhiteSpace(style.Caption)) {
                     double captionSize = style.CaptionFontSize ?? fontSize;
                     double captionLeading = captionSize * 1.25D;
-                    var captionLines = WrapSimpleText(style.Caption!, tableWidth, ChooseNormal(currentOpts.DefaultFont), captionSize);
+                    var captionLines = WrapSimpleTextForOptions(style.Caption!, tableWidth, ChooseNormal(currentOpts.DefaultFont), captionSize, currentOpts);
                     captionHeight = captionLines.Count * captionLeading + style.CaptionSpacingAfter;
                 }
 

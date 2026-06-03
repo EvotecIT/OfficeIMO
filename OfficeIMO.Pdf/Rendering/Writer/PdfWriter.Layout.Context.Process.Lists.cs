@@ -12,19 +12,19 @@ internal static partial class PdfWriter {
             var baseFont = ChooseNormal(currentOpts.DefaultFont);
             const string bulletGlyph = "•";
             double bulletWidth = bl.RichItems.Count == 0
-                ? EstimateSimpleTextWidth(bulletGlyph, baseFont, size)
-                : bl.RichItems.Max(item => EstimateSimpleTextWidth(item.Marker ?? bulletGlyph, baseFont, size));
-            double spaceAdvance = EstimateSimpleTextWidth(" ", baseFont, size);
+                ? EstimateSimpleTextWidthForOptions(bulletGlyph, baseFont, size, currentOpts)
+                : bl.RichItems.Max(item => EstimateSimpleTextWidthForOptions(item.Marker ?? bulletGlyph, baseFont, size, currentOpts));
+            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", baseFont, size, currentOpts);
             double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
             double indent = bulletWidth + markerGap;
             double listLeftIndent = listStyle?.LeftIndent ?? 0D;
             double rawTextWidth = width - listLeftIndent - indent;
-            double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidth("WW", baseFont, size));
+            double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
             double alignmentWidth = Math.Max(0, rawTextWidth);
             double itemSpacing = GetListItemSpacing(listStyle, leading);
             var wrappedItems = new System.Collections.Generic.List<TableCellTextLayout>(bl.RichItems.Count);
             for (int itemIndex = 0; itemIndex < bl.RichItems.Count; itemIndex++) {
-                wrappedItems.Add(CreateListItemTextLayout(bl.RichItems[itemIndex], availableWidth, baseFont, size, leading));
+                wrappedItems.Add(CreateListItemTextLayout(bl.RichItems[itemIndex], availableWidth, baseFont, size, leading, currentOpts));
             }
 
             double listSpacingBefore = ResolveTopLevelSpacingBefore(listStyle?.SpacingBefore ?? 0D);
@@ -60,7 +60,7 @@ internal static partial class PdfWriter {
                 var item = bl.RichItems[itemIndex];
                 string marker = item.Marker ?? bulletGlyph;
                 var layout = wrappedItems[itemIndex];
-                double firstLineWidth = layout.Lines.Count > 0 ? MeasureRichLineWidth(layout.Lines[0]) : 0;
+                double firstLineWidth = layout.Lines.Count > 0 ? MeasureRichLineWidth(layout.Lines[0], currentOpts) : 0;
                 double firstLineDx = 0;
                 if (bl.Align == PdfAlign.Center) firstLineDx = Math.Max(0, (alignmentWidth - firstLineWidth) / 2);
                 else if (bl.Align == PdfAlign.Right) firstLineDx = Math.Max(0, alignmentWidth - firstLineWidth);
@@ -79,21 +79,21 @@ internal static partial class PdfWriter {
             int lastNumber = nl.StartNumber + Math.Max(0, nl.RichItems.Count - 1);
             string widestMarker = lastNumber.ToString(CultureInfo.InvariantCulture) + ".";
             double markerWidth = nl.RichItems.Count == 0
-                ? EstimateSimpleTextWidth(widestMarker, baseFont, size)
+                ? EstimateSimpleTextWidthForOptions(widestMarker, baseFont, size, currentOpts)
                 : nl.RichItems
                     .Select((item, itemIndex) => item.Marker ?? ((nl.StartNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + "."))
-                    .Max(marker => EstimateSimpleTextWidth(marker, baseFont, size));
-            double spaceAdvance = EstimateSimpleTextWidth(" ", baseFont, size);
+                    .Max(marker => EstimateSimpleTextWidthForOptions(marker, baseFont, size, currentOpts));
+            double spaceAdvance = EstimateSimpleTextWidthForOptions(" ", baseFont, size, currentOpts);
             double markerGap = GetListMarkerGap(listStyle, spaceAdvance);
             double indent = markerWidth + markerGap;
             double rawTextWidth = width - (listStyle?.LeftIndent ?? 0D) - indent;
-            double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidth("WW", baseFont, size));
+            double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidthForOptions("WW", baseFont, size, currentOpts));
             double alignmentWidth = Math.Max(0, rawTextWidth);
             double itemSpacing = GetListItemSpacing(listStyle, leading);
             double listLeftIndent = listStyle?.LeftIndent ?? 0D;
             var wrappedItems = new System.Collections.Generic.List<TableCellTextLayout>(nl.RichItems.Count);
             for (int itemIndex = 0; itemIndex < nl.RichItems.Count; itemIndex++) {
-                wrappedItems.Add(CreateListItemTextLayout(nl.RichItems[itemIndex], availableWidth, baseFont, size, leading));
+                wrappedItems.Add(CreateListItemTextLayout(nl.RichItems[itemIndex], availableWidth, baseFont, size, leading, currentOpts));
             }
 
             double listSpacingBefore = ResolveTopLevelSpacingBefore(listStyle?.SpacingBefore ?? 0D);
@@ -129,7 +129,7 @@ internal static partial class PdfWriter {
                 var item = nl.RichItems[itemIndex];
                 string marker = item.Marker ?? ((nl.StartNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + ".");
                 var layout = wrappedItems[itemIndex];
-                double firstLineWidth = layout.Lines.Count > 0 ? MeasureRichLineWidth(layout.Lines[0]) : 0;
+                double firstLineWidth = layout.Lines.Count > 0 ? MeasureRichLineWidth(layout.Lines[0], currentOpts) : 0;
                 double firstLineDx = 0;
                 if (nl.Align == PdfAlign.Center) firstLineDx = Math.Max(0, (alignmentWidth - firstLineWidth) / 2);
                 else if (nl.Align == PdfAlign.Right) firstLineDx = Math.Max(0, alignmentWidth - firstLineWidth);

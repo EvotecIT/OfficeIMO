@@ -80,13 +80,13 @@ internal static partial class PdfWriter {
             double size = currentOpts.DefaultFontSize;
             double leading = size * 1.4;
             var panelFont = ChooseNormal(currentOpts.DefaultFont);
-            double firstBaselineOffset = GetAscender(panelFont, size);
+            double firstBaselineOffset = GetAscenderForOptions(panelFont, size, currentOpts);
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             PanelStyle panelStyle = ResolvePanelStyle(ppb, currentOpts);
             double innerWidth = panelStyle.MaxWidth.HasValue ? Math.Min(contentWidth, panelStyle.MaxWidth.Value) : contentWidth;
             ValidatePanelStyle(panelStyle, innerWidth);
             double textWidthAvail = innerWidth - 2 * panelStyle.PaddingX;
-            var (lines, lineHeights) = WrapRichRuns(ppb.Runs, textWidthAvail, size, panelFont, leading);
+            var (lines, lineHeights) = WrapRichRunsCore(ppb.Runs, textWidthAvail, size, panelFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
             double panelWidth = innerWidth;
             double xLeft = currentOpts.MarginLeft;
             if (panelStyle.Align == PdfAlign.Center) xLeft = currentOpts.MarginLeft + Math.Max(0, (contentWidth - innerWidth) / 2);

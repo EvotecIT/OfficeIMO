@@ -12,7 +12,7 @@ internal static partial class PdfWriter {
             double spacingBefore = (y < yStart - 0.001 || headingStyle?.ApplySpacingBeforeAtTop == true) ? headingStyle?.SpacingBefore ?? 0D : 0D;
             double spacingAfter = GetHeadingSpacingAfter(headingStyle, leading);
             var headingFont = GetHeadingFont(currentOpts, headingStyle);
-            var lines = WrapSimpleText(hb.Text, width, headingFont, size);
+            var lines = WrapSimpleTextForOptions(hb.Text, width, headingFont, size, currentOpts);
             double needed = spacingBefore + lines.Count * leading + spacingAfter;
             bool keepWithNext = headingStyle?.KeepWithNext ?? true;
             if (keepWithNext && nextBlock != null) {
@@ -57,7 +57,7 @@ internal static partial class PdfWriter {
             double spacingBefore = GetParagraphSpacingBefore(paragraphStyle);
             double spacingAfter = GetParagraphSpacingAfter(paragraphStyle, leading);
             var textFrame = GetParagraphTextFrame(paragraphStyle, currentOpts.MarginLeft, width);
-            var (lines, lineHeights) = WrapRichRuns(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, GetParagraphTabStopWidth(paragraphStyle));
+            var (lines, lineHeights) = WrapRichRunsCore(rpb.Runs, textFrame.Width, size, ChooseNormal(currentOpts.DefaultFont), leading, textFrame.FirstLineWidth, GetParagraphTabStopWidth(paragraphStyle), currentOpts);
             if (paragraphStyle?.KeepWithNext == true && nextBlock != null && lines.Count > 0) {
                 double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, size);
                 double keepHeight = spacingBefore + lineHeights.Sum() + spacingAfter + nextHeight;

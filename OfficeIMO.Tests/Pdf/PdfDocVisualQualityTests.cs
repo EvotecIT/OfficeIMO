@@ -3829,6 +3829,61 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void EmbeddedStandardFonts_UseTrueTypeMetricsForParagraphWrapping() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        PdfTrueTypeFontProgram fontProgram;
+        try {
+            fontProgram = PdfTrueTypeFontProgram.Parse(fontData, "OfficeIMOMetricsFont");
+        } catch (NotSupportedException) {
+            return;
+        }
+
+        string text = "iiii iiii iiii iiii";
+        double embeddedProbeWidth = fontProgram.MeasureWinAnsiTextWidth("iiii iiii iiii", 10);
+        double standardProbeWidth = PdfWriter.EstimateSimpleTextWidth("iiii iiii iiii", PdfStandardFont.Courier, 10);
+        if (embeddedProbeWidth >= standardProbeWidth * 0.75D) {
+            return;
+        }
+
+        var standardOptions = new PdfOptions {
+            PageWidth = 92,
+            PageHeight = 180,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 25,
+            MarginBottom = 25,
+            DefaultFont = PdfStandardFont.Courier,
+            DefaultFontSize = 10
+        };
+        var embeddedOptions = standardOptions.Clone()
+            .EmbedStandardFont(PdfStandardFont.Courier, fontData, "OfficeIMOMetricsFont");
+
+        byte[] standardBytes = PdfDoc.Create(standardOptions)
+            .Paragraph(p => p.Text(text))
+            .ToBytes();
+        byte[] embeddedBytes = PdfDoc.Create(embeddedOptions)
+            .Paragraph(p => p.Text(text))
+            .ToBytes();
+
+        using var standardPdf = PdfDocument.Open(new MemoryStream(standardBytes));
+        using var embeddedPdf = PdfDocument.Open(new MemoryStream(embeddedBytes));
+        int standardLineCount = CountTextLines(standardPdf.GetPage(1));
+        int embeddedLineCount = CountTextLines(embeddedPdf.GetPage(1));
+        string embeddedRaw = Encoding.ASCII.GetString(embeddedBytes);
+
+        Assert.True(
+            embeddedLineCount < standardLineCount,
+            $"Expected embedded TrueType metrics to wrap fewer narrow-glyph lines than Courier metrics. Standard: {standardLineCount}; embedded: {embeddedLineCount}.");
+        Assert.Contains("/BaseFont /OfficeIMOMetricsFont", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /TrueType", embeddedRaw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Paragraph_JustifyExpandsWrappedLinesButNotFinalLine() {
         var options = new PdfOptions {
             PageWidth = 220,

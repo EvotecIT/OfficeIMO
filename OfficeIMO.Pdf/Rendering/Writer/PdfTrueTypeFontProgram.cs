@@ -28,6 +28,25 @@ internal sealed class PdfTrueTypeFontProgram {
     public int Flags { get; }
     public int StemV { get; }
 
+    public double MeasureWinAnsiTextWidth(string? text, double fontSize) {
+        if (string.IsNullOrEmpty(text)) {
+            return 0D;
+        }
+
+        double width = 0D;
+        for (int index = 0; index < text!.Length; index++) {
+            width += GetWinAnsiGlyphWidth1000(text[index]) * fontSize / 1000D;
+        }
+
+        return width;
+    }
+
+    public double GetAscender(double fontSize) =>
+        Ascent * fontSize / 1000D;
+
+    public double GetDescender(double fontSize) =>
+        Math.Abs(Descent) * fontSize / 1000D;
+
     public static PdfTrueTypeFontProgram Parse(byte[] data, string? fontNameOverride = null) {
         Guard.NotNull(data, nameof(data));
         if (data.Length < 12) {
@@ -102,17 +121,19 @@ internal sealed class PdfTrueTypeFontProgram {
     public int[] BuildWinAnsiWidths() {
         var widths = new int[224];
         for (int code = 32; code <= 255; code++) {
-            char character = PdfWinAnsiEncoding.Decode((byte)code);
-            if (!_cmap.TryGetValue(character, out int glyphId)) {
-                widths[code - 32] = 500;
-                continue;
-            }
-
-            ushort advance = glyphId >= 0 && glyphId < _advanceWidths.Length ? _advanceWidths[glyphId] : _advanceWidths[_advanceWidths.Length - 1];
-            widths[code - 32] = ScaleMetric(advance, UnitsPerEm);
+            widths[code - 32] = GetWinAnsiGlyphWidth1000(PdfWinAnsiEncoding.Decode((byte)code));
         }
 
         return widths;
+    }
+
+    private int GetWinAnsiGlyphWidth1000(char character) {
+        if (!_cmap.TryGetValue(character, out int glyphId)) {
+            return 500;
+        }
+
+        ushort advance = glyphId >= 0 && glyphId < _advanceWidths.Length ? _advanceWidths[glyphId] : _advanceWidths[_advanceWidths.Length - 1];
+        return ScaleMetric(advance, UnitsPerEm);
     }
 
     private static Dictionary<string, TableRecord> ReadTableDirectory(byte[] data) {

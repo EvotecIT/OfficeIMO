@@ -536,7 +536,7 @@ internal static partial class PdfWriter {
                                 var captionFont = ChooseNormal(currentOpts.DefaultFont);
                                 pageDirty = true;
                                 int? captionMarkedContentId = RegisterTextStructureElement("Caption", EnsureTableStructureElement());
-                                WriteLinesInternal("F1", captionSize, table.CaptionLeading, xTable, table.Width, yCol - GetAscender(captionFont, captionSize), table.CaptionLines, tableStyle.CaptionAlign, tableStyle.CaptionColor, structureType: "Caption", markedContentId: captionMarkedContentId);
+                                WriteLinesInternal("F1", captionSize, table.CaptionLeading, xTable, table.Width, yCol - GetAscenderForOptions(captionFont, captionSize, currentOpts), table.CaptionLines, tableStyle.CaptionAlign, tableStyle.CaptionColor, structureType: "Caption", markedContentId: captionMarkedContentId);
                                 yCol -= table.CaptionHeight;
                                 remain -= table.CaptionHeight;
                                 consumed += table.CaptionHeight;
@@ -656,7 +656,7 @@ internal static partial class PdfWriter {
                                         else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
                                     }
 
-                                    double firstBaseline = yCol - cellPadTop - verticalOffset - GetAscender(cellFont, rowSize) + tableStyle.RowBaselineOffset;
+                                    double firstBaseline = yCol - cellPadTop - verticalOffset - GetAscenderForOptions(cellFont, rowSize, currentOpts) + tableStyle.RowBaselineOffset;
 
                                     pageDirty = true;
                                     if (cell.Runs.Any(run => run.Bold || rowUsesBold)) { currentPage!.UsedBold = true; usedBold = true; }
