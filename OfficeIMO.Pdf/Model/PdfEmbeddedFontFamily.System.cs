@@ -37,7 +37,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
         Guard.NotNull(fontFiles, nameof(fontFiles));
         string normalizedFamily = NormalizeFamilyKey(familyName);
-        string[] acceptedPrefixes = BuildAcceptedPrefixes(normalizedFamily);
+        string[] acceptedFileNamePrefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
 
         SystemFontFaceCandidate? regularFace = null;
         SystemFontFaceCandidate? boldFace = null;
@@ -45,24 +45,27 @@ public sealed partial class PdfEmbeddedFontFamily {
         SystemFontFaceCandidate? boldItalicFace = null;
 
         foreach (string fontFile in fontFiles) {
-            if (!TryReadSystemFontFace(fontFile, acceptedPrefixes, out SystemFontFaceCandidate? candidate) ||
-                candidate == null) {
+            if (!TryReadSystemFontFaces(fontFile, normalizedFamily, acceptedFileNamePrefixes, out System.Collections.Generic.List<SystemFontFaceCandidate>? candidates) ||
+                candidates == null) {
                 continue;
             }
 
-            switch (candidate.Kind) {
-                case FontFaceKind.Regular:
-                    SelectBetterFace(ref regularFace, candidate);
-                    break;
-                case FontFaceKind.Bold:
-                    SelectBetterFace(ref boldFace, candidate);
-                    break;
-                case FontFaceKind.Italic:
-                    SelectBetterFace(ref italicFace, candidate);
-                    break;
-                case FontFaceKind.BoldItalic:
-                    SelectBetterFace(ref boldItalicFace, candidate);
-                    break;
+            for (int i = 0; i < candidates.Count; i++) {
+                SystemFontFaceCandidate candidate = candidates[i];
+                switch (candidate.Kind) {
+                    case FontFaceKind.Regular:
+                        SelectBetterFace(ref regularFace, candidate);
+                        break;
+                    case FontFaceKind.Bold:
+                        SelectBetterFace(ref boldFace, candidate);
+                        break;
+                    case FontFaceKind.Italic:
+                        SelectBetterFace(ref italicFace, candidate);
+                        break;
+                    case FontFaceKind.BoldItalic:
+                        SelectBetterFace(ref boldItalicFace, candidate);
+                        break;
+                }
             }
         }
 
@@ -80,17 +83,44 @@ public sealed partial class PdfEmbeddedFontFamily {
         return true;
     }
 
-    private static bool TryReadSystemFontFace(string path, string[] acceptedPrefixes, out SystemFontFaceCandidate? candidate) {
-        candidate = null;
+    private static bool TryReadSystemFontFaces(string path, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out System.Collections.Generic.List<SystemFontFaceCandidate>? candidates) {
+        candidates = null;
         if (string.IsNullOrWhiteSpace(path)) {
             return false;
         }
 
         try {
-            byte[] data = System.IO.File.ReadAllBytes(path);
+            byte[] fileData = System.IO.File.ReadAllBytes(path);
+            System.Collections.Generic.List<byte[]> fontPrograms = ExtractTrueTypeFontPrograms(fileData);
+            var found = new System.Collections.Generic.List<SystemFontFaceCandidate>();
+            for (int i = 0; i < fontPrograms.Count; i++) {
+                if (TryReadSystemFontFace(path, fontPrograms[i], normalizedMetadataFamily, acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) &&
+                    candidate != null) {
+                    found.Add(candidate);
+                }
+            }
+
+            candidates = found;
+            return found.Count > 0;
+        } catch (System.Exception exception) when (
+            exception is System.IO.IOException ||
+            exception is System.UnauthorizedAccessException ||
+            exception is System.NotSupportedException ||
+            exception is System.ArgumentException ||
+            exception is System.ArithmeticException ||
+            exception is System.FormatException ||
+            exception is System.IndexOutOfRangeException ||
+            exception is System.InvalidOperationException) {
+            return false;
+        }
+    }
+
+    private static bool TryReadSystemFontFace(string path, byte[] data, string normalizedMetadataFamily, string[] acceptedFileNamePrefixes, out SystemFontFaceCandidate? candidate) {
+        candidate = null;
+        try {
             _ = PdfTrueTypeFontProgram.Parse(data);
             if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata) && metadata != null) {
-                if (IsMetadataFamilyMatch(metadata, acceptedPrefixes)) {
+                if (IsMetadataFamilyMatch(metadata, normalizedMetadataFamily)) {
                     FontFaceKind kind = ClassifyMetadataFace(metadata, out int metadataScore);
                     candidate = new SystemFontFaceCandidate(path, kind, metadataScore, data);
                     return true;
@@ -100,7 +130,7 @@ public sealed partial class PdfEmbeddedFontFamily {
             }
 
             string fileName = System.IO.Path.GetFileNameWithoutExtension(path);
-            if (!TryClassifyFace(fileName, acceptedPrefixes, out FontFaceKind faceKind)) {
+            if (!TryClassifyFace(fileName, acceptedFileNamePrefixes, out FontFaceKind faceKind)) {
                 return false;
             }
 
@@ -164,22 +194,22 @@ public sealed partial class PdfEmbeddedFontFamily {
     private static int ScoreFileNameFace(FontFaceKind faceKind) =>
         faceKind == FontFaceKind.Regular ? 60 : 70;
 
-    private static bool IsMetadataFamilyMatch(TrueTypeNameMetadata metadata, string[] acceptedPrefixes) {
+    private static bool IsMetadataFamilyMatch(TrueTypeNameMetadata metadata, string normalizedMetadataFamily) {
         foreach (string? familyName in metadata.GetFamilyNames()) {
             if (string.IsNullOrWhiteSpace(familyName)) {
                 continue;
             }
 
-            string normalized = NormalizeFamilyKey(familyName!);
-            for (int i = 0; i < acceptedPrefixes.Length; i++) {
-                if (string.Equals(normalized, acceptedPrefixes[i], System.StringComparison.Ordinal)) {
-                    return true;
-                }
+            if (IsMetadataFamilyNameMatch(familyName!, normalizedMetadataFamily)) {
+                return true;
             }
         }
 
         return false;
     }
+
+    internal static bool IsMetadataFamilyNameMatch(string fontFamilyName, string requestedFamilyName) =>
+        string.Equals(NormalizeFamilyKey(fontFamilyName), NormalizeFamilyKey(requestedFamilyName), System.StringComparison.Ordinal);
 
     private static FontFaceKind ClassifyMetadataFace(TrueTypeNameMetadata metadata, out int score) {
         string primaryStyle = NormalizeFamilyKey(metadata.TypographicSubfamilyName ?? metadata.SubfamilyName ?? string.Empty);
@@ -188,10 +218,23 @@ public sealed partial class PdfEmbeddedFontFamily {
             (metadata.FullName ?? string.Empty));
 
         string style = primaryStyle.Length == 0 ? fallbackStyle : primaryStyle;
+        FontFaceKind kind = ClassifyMetadataStyle(style, primaryStyle, out score);
+        return kind;
+    }
+
+    private static FontFaceKind ClassifyMetadataStyle(string style, string primaryStyle, out int score) {
         bool bold = ContainsAny(style, "bold", "semibold", "demibold", "black", "heavy");
         bool italic = ContainsAny(style, "italic", "oblique");
         if (bold && italic) {
-            score = primaryStyle.Contains("bold") && (primaryStyle.Contains("italic") || primaryStyle.Contains("oblique")) ? 110 : 85;
+            if (string.Equals(primaryStyle, "bolditalic", System.StringComparison.Ordinal) ||
+                string.Equals(primaryStyle, "boldoblique", System.StringComparison.Ordinal)) {
+                score = 120;
+            } else if (primaryStyle.Contains("bold") && (primaryStyle.Contains("italic") || primaryStyle.Contains("oblique"))) {
+                score = primaryStyle.Contains("semibold") || primaryStyle.Contains("demibold") ? 100 : 105;
+            } else {
+                score = 85;
+            }
+
             return FontFaceKind.BoldItalic;
         }
 
@@ -218,6 +261,12 @@ public sealed partial class PdfEmbeddedFontFamily {
         return FontFaceKind.Regular;
     }
 
+    internal static int GetMetadataStyleScore(string styleName) {
+        string normalizedStyle = NormalizeFamilyKey(styleName);
+        _ = ClassifyMetadataStyle(normalizedStyle, normalizedStyle, out int score);
+        return score;
+    }
+
     private static bool ContainsAny(string value, params string[] needles) {
         for (int i = 0; i < needles.Length; i++) {
             if (value.Contains(needles[i])) {
@@ -228,7 +277,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         return false;
     }
 
-    private static string[] BuildAcceptedPrefixes(string normalizedFamily) {
+    private static string[] BuildAcceptedFileNamePrefixes(string normalizedFamily) {
         if (normalizedFamily == "timesnewroman") {
             return new[] { "timesnewroman", "times" };
         }
@@ -301,7 +350,7 @@ public sealed partial class PdfEmbeddedFontFamily {
             string current = directories.Pop();
             string[] files;
             try {
-                files = System.IO.Directory.GetFiles(current, "*.ttf");
+                files = GetTrueTypeFontFiles(current);
             } catch (System.Exception exception) when (
                 exception is System.IO.IOException ||
                 exception is System.UnauthorizedAccessException) {
@@ -325,6 +374,19 @@ public sealed partial class PdfEmbeddedFontFamily {
                 directories.Push(children[i]);
             }
         }
+    }
+
+    private static string[] GetTrueTypeFontFiles(string root) {
+        string[] trueTypeFiles = System.IO.Directory.GetFiles(root, "*.ttf");
+        string[] collectionFiles = System.IO.Directory.GetFiles(root, "*.ttc");
+        if (collectionFiles.Length == 0) {
+            return trueTypeFiles;
+        }
+
+        string[] files = new string[trueTypeFiles.Length + collectionFiles.Length];
+        System.Array.Copy(trueTypeFiles, 0, files, 0, trueTypeFiles.Length);
+        System.Array.Copy(collectionFiles, 0, files, trueTypeFiles.Length, collectionFiles.Length);
+        return files;
     }
 
     private static bool TryReadTrueTypeNameMetadata(byte[] data, out TrueTypeNameMetadata? metadata) {
@@ -528,4 +590,5 @@ public sealed partial class PdfEmbeddedFontFamily {
 
         public int Length { get; }
     }
+
 }

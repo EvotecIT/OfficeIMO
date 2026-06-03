@@ -120,6 +120,48 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFamily_MetadataMatchingDoesNotUseFileNameAliases() {
+        Assert.False(PdfEmbeddedFontFamily.IsMetadataFamilyNameMatch("Times", "Times New Roman"));
+        Assert.False(PdfEmbeddedFontFamily.IsMetadataFamilyNameMatch("Courier", "Courier New"));
+        Assert.True(PdfEmbeddedFontFamily.IsMetadataFamilyNameMatch("Times New Roman", "Times New Roman"));
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_MetadataStyleScoringPrefersExactBoldItalic() {
+        Assert.True(
+            PdfEmbeddedFontFamily.GetMetadataStyleScore("Bold Italic") >
+            PdfEmbeddedFontFamily.GetMetadataStyleScore("SemiBold Italic"));
+        Assert.True(
+            PdfEmbeddedFontFamily.GetMetadataStyleScore("Bold") >
+            PdfEmbeddedFontFamily.GetMetadataStyleScore("SemiBold"));
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesMatchesTrueTypeCollectionFace() {
+        if (!TryFindSingleInstalledRegularFontFace(out string familyName, out string fontPath)) {
+            return;
+        }
+
+        string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string collectionPath = Path.Combine(tempDir, "officeimo-system-face.ttc");
+            File.WriteAllBytes(collectionPath, CreateSingleFaceTrueTypeCollection(File.ReadAllBytes(fontPath)));
+
+            bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+                familyName,
+                new[] { collectionPath },
+                out PdfEmbeddedFontFamily? family);
+
+            Assert.True(found);
+            Assert.NotNull(family);
+            Assert.NotEmpty(family!.Regular);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsMalformedTrueTypeFiles() {
         string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
@@ -485,5 +527,47 @@ public class PdfFontFamilyTests {
         foreach (string file in files) {
             yield return file;
         }
+    }
+
+    private static byte[] CreateSingleFaceTrueTypeCollection(byte[] fontData) {
+        int fontOffset = 16;
+        int tableCount = ReadUInt16(fontData, 4);
+        int sourceDirectoryLength = 12 + tableCount * 16;
+        int collectionLength = fontOffset + fontData.Length;
+        byte[] collection = new byte[collectionLength];
+
+        collection[0] = (byte)'t';
+        collection[1] = (byte)'t';
+        collection[2] = (byte)'c';
+        collection[3] = (byte)'f';
+        WriteUInt32(collection, 4, 0x00010000);
+        WriteUInt32(collection, 8, 1);
+        WriteUInt32(collection, 12, (uint)fontOffset);
+        Array.Copy(fontData, 0, collection, fontOffset, fontData.Length);
+
+        for (int i = 0; i < tableCount; i++) {
+            int recordOffset = fontOffset + 12 + i * 16;
+            uint sourceOffset = ReadUInt32(fontData, 12 + i * 16 + 8);
+            WriteUInt32(collection, recordOffset + 8, (uint)(fontOffset + sourceOffset));
+        }
+
+        Assert.True(sourceDirectoryLength <= fontData.Length);
+        return collection;
+    }
+
+    private static ushort ReadUInt16(byte[] data, int offset) =>
+        (ushort)((data[offset] << 8) | data[offset + 1]);
+
+    private static uint ReadUInt32(byte[] data, int offset) =>
+        ((uint)data[offset] << 24) |
+        ((uint)data[offset + 1] << 16) |
+        ((uint)data[offset + 2] << 8) |
+        data[offset + 3];
+
+    private static void WriteUInt32(byte[] data, int offset, uint value) {
+        data[offset] = (byte)(value >> 24);
+        data[offset + 1] = (byte)(value >> 16);
+        data[offset + 2] = (byte)(value >> 8);
+        data[offset + 3] = (byte)value;
     }
 }
