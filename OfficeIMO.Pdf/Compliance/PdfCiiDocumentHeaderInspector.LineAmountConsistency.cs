@@ -74,6 +74,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         string? lineId = null;
         decimal? quantity = null;
         decimal? price = null;
+        decimal? priceBasisQuantity = null;
         decimal? lineTotal = null;
 
         int depth = reader.Depth;
@@ -90,7 +91,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 }
 
                 if (string.Equals(reader.LocalName, "SpecifiedLineTradeAgreement", StringComparison.Ordinal)) {
-                    ReadLineAgreementPrice(reader, ref price, ref hasPriceChargeAmount, ref parseDiagnostic);
+                    ReadLineAgreementPrice(reader, ref price, ref priceBasisQuantity, ref hasPriceChargeAmount, ref parseDiagnostic);
                     continue;
                 }
 
@@ -108,7 +109,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
 
         if (quantity.HasValue && price.HasValue && lineTotal.HasValue &&
-            System.Math.Abs(quantity.Value * price.Value - lineTotal.Value) > 0.01m) {
+            System.Math.Abs(quantity.Value * price.Value / (priceBasisQuantity ?? 1m) - lineTotal.Value) > 0.01m) {
             mismatchedLineIds.Add(string.IsNullOrWhiteSpace(lineId) ? "(unknown)" : lineId!);
         }
     }
@@ -165,7 +166,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
     }
 
-    private static void ReadLineAgreementPrice(System.Xml.XmlReader reader, ref decimal? price, ref bool hasPriceChargeAmount, ref string? parseDiagnostic) {
+    private static void ReadLineAgreementPrice(System.Xml.XmlReader reader, ref decimal? price, ref decimal? priceBasisQuantity, ref bool hasPriceChargeAmount, ref string? parseDiagnostic) {
         if (reader.IsEmptyElement) {
             return;
         }
@@ -175,7 +176,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             if (reader.NodeType == System.Xml.XmlNodeType.Element &&
                 (string.Equals(reader.LocalName, "GrossPriceProductTradePrice", StringComparison.Ordinal) ||
                  string.Equals(reader.LocalName, "NetPriceProductTradePrice", StringComparison.Ordinal))) {
-                ReadProductTradePriceAmount(reader, ref price, ref hasPriceChargeAmount, ref parseDiagnostic);
+                ReadProductTradePriceAmount(reader, ref price, ref priceBasisQuantity, ref hasPriceChargeAmount, ref parseDiagnostic);
                 continue;
             }
 
@@ -187,7 +188,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
     }
 
-    private static void ReadProductTradePriceAmount(System.Xml.XmlReader reader, ref decimal? price, ref bool hasPriceChargeAmount, ref string? parseDiagnostic) {
+    private static void ReadProductTradePriceAmount(System.Xml.XmlReader reader, ref decimal? price, ref decimal? priceBasisQuantity, ref bool hasPriceChargeAmount, ref string? parseDiagnostic) {
         if (reader.IsEmptyElement) {
             return;
         }
@@ -200,6 +201,18 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 if (TryReadAmount(reader, "ProductTradePrice ChargeAmount", ref parseDiagnostic, out decimal? amount)) {
                     price = amount;
                     hasPriceChargeAmount = true;
+                }
+
+                continue;
+            }
+
+            if (reader.NodeType == System.Xml.XmlNodeType.Element &&
+                reader.Depth == depth + 1 &&
+                string.Equals(reader.LocalName, "BasisQuantity", StringComparison.Ordinal)) {
+                if (TryReadAmount(reader, "ProductTradePrice BasisQuantity", ref parseDiagnostic, out decimal? amount) &&
+                    amount.HasValue &&
+                    amount.Value != 0m) {
+                    priceBasisQuantity = amount;
                 }
 
                 continue;

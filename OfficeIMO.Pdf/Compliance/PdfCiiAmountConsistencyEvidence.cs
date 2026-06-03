@@ -103,10 +103,14 @@ internal sealed class PdfCiiAmountConsistencyEvidence {
             return true;
         }
 
-        if (!total.HasValue || !componentSum.HasValue) {
-            return false;
+        if (total.HasValue && !componentSum.HasValue) {
+            return AreClose(total.Value, 0m);
         }
 
-        return AreClose(total.Value, decimal.Round(componentSum.Value, 2, MidpointRounding.AwayFromZero));
+        if (!total.HasValue && componentSum.HasValue) {
+            return AreClose(decimal.Round(componentSum.Value, 2, MidpointRounding.AwayFromZero), 0m);
+        }
+
+        return AreClose(total.GetValueOrDefault(), decimal.Round(componentSum.GetValueOrDefault(), 2, MidpointRounding.AwayFromZero));
     }
 }

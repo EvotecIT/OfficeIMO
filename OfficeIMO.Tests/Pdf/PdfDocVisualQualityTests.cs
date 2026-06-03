@@ -480,6 +480,8 @@ public class PdfDocVisualQualityTests {
         Assert.True(preflight.CanRewrite);
         Assert.Equal(3, clone.OutputIntent!.ColorComponents);
         Assert.Equal((byte)'a', clone.OutputIntent.IccProfile[36]);
+        Assert.NotNull(typeof(PdfOutputIntent).GetConstructor(new[] { typeof(byte[]) }));
+        Assert.NotNull(typeof(PdfOutputIntent).GetConstructor(new[] { typeof(byte[]), typeof(string) }));
     }
 
     [Fact]

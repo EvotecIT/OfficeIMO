@@ -12,7 +12,22 @@ public sealed class PdfOutputIntent {
     private PdfOutputIntentPolicy _policy;
 
     /// <summary>Creates an output intent backed by an ICC profile.</summary>
-    public PdfOutputIntent(byte[] iccProfile, string outputConditionIdentifier = "sRGB IEC61966-2.1", PdfOutputIntentPolicy policy = PdfOutputIntentPolicy.Unspecified) {
+    public PdfOutputIntent(byte[] iccProfile)
+        : this(iccProfile, "sRGB IEC61966-2.1", PdfOutputIntentPolicy.Unspecified) {
+    }
+
+    /// <summary>Creates an output intent backed by an ICC profile.</summary>
+    public PdfOutputIntent(byte[] iccProfile, string outputConditionIdentifier)
+        : this(iccProfile, outputConditionIdentifier, PdfOutputIntentPolicy.Unspecified) {
+    }
+
+    /// <summary>Creates an output intent backed by an ICC profile with a declared compliance-readiness policy.</summary>
+    public PdfOutputIntent(byte[] iccProfile, PdfOutputIntentPolicy policy)
+        : this(iccProfile, "sRGB IEC61966-2.1", policy) {
+    }
+
+    /// <summary>Creates an output intent backed by an ICC profile.</summary>
+    public PdfOutputIntent(byte[] iccProfile, string outputConditionIdentifier, PdfOutputIntentPolicy policy) {
         Guard.NotNullOrEmpty(iccProfile, nameof(iccProfile));
         Guard.NotNullOrWhiteSpace(outputConditionIdentifier, nameof(outputConditionIdentifier));
         Guard.OutputIntentPolicy(policy, nameof(policy));

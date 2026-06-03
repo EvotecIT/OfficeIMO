@@ -56,7 +56,7 @@ public static partial class PdfComplianceAnalyzer {
                     "einvoice-xml-line-amount-consistency",
                     "EN 16931 XML line amount consistency",
                     PdfComplianceRequirementStatus.Missing,
-                    "Fix factur-x.xml line totals before Mustang validation: BilledQuantity times ProductTradePrice ChargeAmount must match LineTotalAmount for line(s): " + string.Join(", ", evidence.MismatchedLineIds.ToArray()) + ".");
+                    "Fix factur-x.xml line totals before Mustang validation: BilledQuantity times ProductTradePrice ChargeAmount divided by BasisQuantity, when present, must match LineTotalAmount for line(s): " + string.Join(", ", evidence.MismatchedLineIds.ToArray()) + ".");
             }
 
             return new PdfComplianceRequirement(

@@ -161,7 +161,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             rate.HasValue &&
             calculatedAmount.HasValue) {
             decimal expectedAmount = decimal.Round(basisAmount.Value * rate.Value / 100m, 2, MidpointRounding.AwayFromZero);
-            if (System.Math.Abs(calculatedAmount.Value - expectedAmount) > 1.00m) {
+            if (System.Math.Abs(calculatedAmount.Value - expectedAmount) > 0.01m) {
                 mismatchedStandardRatedCategoryAmounts.Add(
                     categoryCode +
                     "/" +
