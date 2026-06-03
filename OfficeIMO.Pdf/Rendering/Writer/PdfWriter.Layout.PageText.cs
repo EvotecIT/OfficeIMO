@@ -32,7 +32,7 @@ internal static partial class PdfWriter {
 
         content
             .TextMatrix(x, y)
-            .ShowHexText(EncodeWinAnsiHex(text))
+            .ShowHexText(EncodeTextHex(text, footerFont, opts))
             .EndText();
         return sb.ToString();
     }
@@ -67,7 +67,7 @@ internal static partial class PdfWriter {
 
         content
             .TextMatrix(x, y)
-            .ShowHexText(EncodeWinAnsiHex(text))
+            .ShowHexText(EncodeTextHex(text, headerFont, opts))
             .EndText();
         return sb.ToString();
     }
@@ -94,7 +94,7 @@ internal static partial class PdfWriter {
         var sb = new StringBuilder();
         var zoneLayouts = BuildPageTextZoneLayouts(opts, zones, page, pages, documentPages, font, fontSize, isHeader);
         foreach (var zone in zoneLayouts) {
-            AppendPageText(sb, zone.Text, fontResource, fontSize, color, zone.X, y);
+            AppendPageText(sb, zone.Text, font, fontResource, fontSize, color, zone.X, y, opts);
         }
 
         return sb.ToString();
@@ -155,7 +155,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AppendPageText(StringBuilder sb, string text, string fontResource, double fontSize, PdfColor? color, double x, double y) {
+    private static void AppendPageText(StringBuilder sb, string text, PdfStandardFont font, string fontResource, double fontSize, PdfColor? color, double x, double y, PdfOptions opts) {
         var content = new ContentStreamBuilder(sb)
             .BeginText()
             .Font(fontResource, fontSize);
@@ -165,7 +165,7 @@ internal static partial class PdfWriter {
 
         content
             .TextMatrix(x, y)
-            .ShowHexText(EncodeWinAnsiHex(text))
+            .ShowHexText(EncodeTextHex(text, font, opts))
             .EndText();
     }
 

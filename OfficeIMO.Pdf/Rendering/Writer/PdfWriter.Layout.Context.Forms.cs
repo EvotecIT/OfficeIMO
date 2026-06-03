@@ -320,7 +320,7 @@ internal static partial class PdfWriter {
             for (int i = 0; i < block.Options.Count; i++) {
                 double optionTop = topY - i * (block.Size + block.Gap);
                 double baseline = optionTop - block.Size + labelBaselineOffset;
-                AppendPageText(sb, block.Options[i], fontResource, fontSize, block.Style.TextColor, labelX, baseline);
+                AppendPageText(sb, block.Options[i], font, fontResource, fontSize, block.Style.TextColor, labelX, baseline, currentOpts);
             }
         }
 

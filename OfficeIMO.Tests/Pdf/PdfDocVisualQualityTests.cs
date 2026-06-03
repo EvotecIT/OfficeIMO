@@ -861,14 +861,17 @@ public class PdfDocVisualQualityTests {
         string text = PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.True(bytes.Length < uncompressed.Length, $"Expected compressed embedded font PDF to be smaller. Compressed: {bytes.Length}, uncompressed: {uncompressed.Length}.");
-        Assert.Contains("/Subtype /TrueType", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOEmbeddedArial", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("/CIDToGIDMap /Identity", raw, StringComparison.Ordinal);
         Assert.Contains("/FontDescriptor", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
         Assert.Contains("/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
         Assert.Contains("/Filter /FlateDecode", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("/Filter /FlateDecode", rawUncompressed, StringComparison.Ordinal);
-        Assert.Contains("/FirstChar 32 /LastChar 255 /Widths [", raw, StringComparison.Ordinal);
+        Assert.Contains("/W [0 [", raw, StringComparison.Ordinal);
         Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
         Assert.Contains("Embedded font Cafe é and Euro", text, StringComparison.Ordinal);
         Assert.Contains("€", text, StringComparison.Ordinal);
@@ -899,7 +902,9 @@ public class PdfDocVisualQualityTests {
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfReadDocument.Load(bytes).ExtractText();
 
-        Assert.Contains("/Subtype /TrueType", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOPretty-Regular", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOPretty-Bold", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOPretty-Italic", raw, StringComparison.Ordinal);
@@ -3920,7 +3925,10 @@ public class PdfDocVisualQualityTests {
             embeddedLineCount < standardLineCount,
             $"Expected embedded TrueType metrics to wrap fewer narrow-glyph lines than Courier metrics. Standard: {standardLineCount}; embedded: {embeddedLineCount}.");
         Assert.Contains("/BaseFont /OfficeIMOMetricsFont", embeddedRaw, StringComparison.Ordinal);
-        Assert.Contains("/Subtype /TrueType", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType2", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/CIDToGIDMap /Identity", embeddedRaw, StringComparison.Ordinal);
     }
 
     [Fact]

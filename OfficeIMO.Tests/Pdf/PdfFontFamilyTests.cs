@@ -55,7 +55,10 @@ public class PdfFontFamilyTests {
         string raw = Encoding.ASCII.GetString(bytes);
         string text = PdfReadDocument.Load(bytes).ExtractText();
 
-        Assert.Contains("/Subtype /TrueType", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("/CIDToGIDMap /Identity", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOObjectFont-Regular", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOObjectFont-Bold", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOObjectFont-Italic", raw, StringComparison.Ordinal);
@@ -121,5 +124,37 @@ public class PdfFontFamilyTests {
         Assert.Contains("Times header", text, StringComparison.Ordinal);
         Assert.Contains("Styled body", text, StringComparison.Ordinal);
         Assert.Contains("Courier footer", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfDoc_UseFontFamilyWritesUnicodeGlyphsAndToUnicodeExtraction() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        const string polish = "Zażółć gęślą jaźń Łódź";
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .UseFontFamily("OfficeIMO Unicode Font", fontPath)
+            .Header(header => header.Text("Nagłówek Łódź"))
+            .Paragraph(paragraph => paragraph
+                .Text(polish + " ")
+                .Bold("Śląsk ")
+                .Italic("źrebak"))
+            .Footer(footer => footer.Text("Stopka Łódź {page}/{pages}"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("/CMapName /OfficeIMO-Identity-Glyph-UCS", raw, StringComparison.Ordinal);
+        Assert.Contains(polish, text, StringComparison.Ordinal);
+        Assert.Contains("Nagłówek Łódź", text, StringComparison.Ordinal);
+        Assert.Contains("Śląsk źrebak", text, StringComparison.Ordinal);
+        Assert.Contains("Stopka Łódź 1/1", text, StringComparison.Ordinal);
     }
 }

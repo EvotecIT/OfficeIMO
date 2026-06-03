@@ -841,12 +841,13 @@ internal static partial class PdfWriter {
 
     private static void WriteCell(StringBuilder sb, string fontRes, double fontSize, double x, double y, string text, PdfColor? color, PdfOptions opts) {
         var effective = color ?? opts.DefaultTextColor;
+        PdfStandardFont font = ResolveFontFromResourceName(fontRes, ChooseNormal(opts.DefaultFont));
         new ContentStreamBuilder(sb)
             .BeginText()
             .Font(fontRes, fontSize)
             .FillColor(effective ?? PdfColor.Black)
             .TextMatrix(x, y)
-            .ShowHexText(EncodeWinAnsiHex(text))
+            .ShowHexText(EncodeTextHex(text, font, opts))
             .EndText();
     }
 

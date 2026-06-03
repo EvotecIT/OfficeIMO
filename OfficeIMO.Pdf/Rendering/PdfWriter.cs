@@ -42,8 +42,9 @@ internal static partial class PdfWriter {
                             "<< /Length " + fontData.Length.ToString(CultureInfo.InvariantCulture) + " " + fontFileExtraEntries + " >>",
                             fontData);
                     int descriptorId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildTrueTypeFontDescriptorObject(fontProgram, fontFileId));
-                    int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap());
-                    id = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildEmbeddedTrueTypeFontObject(fontProgram, descriptorId, toUnicodeObjectId));
+                    int descendantFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildCidFontType2DescendantObject(fontProgram, descriptorId));
+                    int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildIdentityGlyphToUnicodeCMap(fontProgram));
+                    id = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
                 } else {
                     int toUnicodeObjectId = fontOptions.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())

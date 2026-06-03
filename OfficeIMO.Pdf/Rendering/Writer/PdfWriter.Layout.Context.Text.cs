@@ -13,7 +13,7 @@ internal static partial class PdfWriter {
                 .BeginText()
                 .Font(fontRes, fontSize)
                 .TextLeading(lineHeight);
-            var lineFont = fontRes == "F2" ? ChooseBold(ChooseNormal(currentOpts.DefaultFont)) : ChooseNormal(currentOpts.DefaultFont);
+            var lineFont = ResolveFontFromResourceName(fontRes, ChooseNormal(currentOpts.DefaultFont));
             double yStart2 = startY;
             if (applyBaselineTweak) {
                 yStart2 -= GetDescenderForOptions(lineFont, fontSize, currentOpts) * 0.0;
@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
                 if (align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
                 else if (align == PdfAlign.Right) dx = Math.Max(0, (widthUsed - estWidth));
                 if (Math.Abs(dx) > 0.0001) content.MoveText(dx, 0);
-                content.ShowHexText(EncodeWinAnsiHex(line));
+                content.ShowHexText(EncodeTextHex(line, lineFont, currentOpts));
                 if (Math.Abs(dx) > 0.0001) content.MoveText(-dx, 0);
                 if (i != lines.Count - 1) content.NextTextLine();
             }

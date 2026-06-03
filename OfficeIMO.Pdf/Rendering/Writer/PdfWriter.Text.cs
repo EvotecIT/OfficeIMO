@@ -17,6 +17,16 @@ internal static partial class PdfWriter {
         return sb.ToString();
     }
 
+    private static string EncodeTextHex(string text, PdfStandardFont font, PdfOptions? options) {
+        if (options != null &&
+            options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            return fontProgram.EncodeTextAsGlyphHex(text);
+        }
+
+        return EncodeWinAnsiHex(text);
+    }
+
     private static System.Collections.Generic.List<string> WrapMonospace(string text, double widthPts, double fontSize, double glyphWidthEm) {
         double glyphWidth = fontSize * glyphWidthEm;
         int maxChars = Math.Max(8, (int)Math.Floor(widthPts / glyphWidth));
@@ -683,18 +693,18 @@ internal static partial class PdfWriter {
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
-                                .ShowHexText(EncodeWinAnsiHex(leader));
+                                .ShowHexText(EncodeTextHex(leader, s.Font, opts));
                         }
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)
-                            .ShowHexText("20");
+                            .ShowHexText(EncodeTextHex(" ", s.Font, opts));
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else {
-                        content.ShowHexText("20");
+                        content.ShowHexText(EncodeTextHex(" ", s.Font, opts));
                         xCursor += gap;
                     }
                 }
@@ -731,7 +741,7 @@ internal static partial class PdfWriter {
 
                     content
                         .FillColor(color ?? PdfColor.Black)
-                        .ShowHexText(EncodeWinAnsiHex(s.Text))
+                        .ShowHexText(EncodeTextHex(s.Text, s.Font, opts))
                         .EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
@@ -741,7 +751,7 @@ internal static partial class PdfWriter {
                         .WordSpacing(wordSpacing);
                     currentTextRise = 0;
                 } else {
-                    content.ShowHexText(EncodeWinAnsiHex(s.Text));
+                    content.ShowHexText(EncodeTextHex(s.Text, s.Font, opts));
                 }
 
                 double baselineY = lineY + textRise;

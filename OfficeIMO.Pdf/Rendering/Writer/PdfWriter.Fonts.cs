@@ -106,6 +106,49 @@ internal static partial class PdfWriter {
         _ => ThrowUnsupportedStandardFontResource(font)
     };
 
+    private static PdfStandardFont ResolveFontFromResourceName(string resourceName, PdfStandardFont defaultNormalFont) {
+        string name = resourceName != null && resourceName.Length > 0 && resourceName[0] == '/'
+            ? resourceName.Substring(1)
+            : resourceName ?? string.Empty;
+
+        switch (name) {
+            case "F1":
+                return defaultNormalFont;
+            case "F2":
+                return ChooseBold(defaultNormalFont);
+            case "F3":
+                return ChooseItalic(defaultNormalFont);
+            case "F4":
+                return ChooseBoldItalic(defaultNormalFont);
+            case "F11":
+                return PdfStandardFont.Helvetica;
+            case "F12":
+                return PdfStandardFont.HelveticaBold;
+            case "F13":
+                return PdfStandardFont.HelveticaOblique;
+            case "F14":
+                return PdfStandardFont.HelveticaBoldOblique;
+            case "F15":
+                return PdfStandardFont.TimesRoman;
+            case "F16":
+                return PdfStandardFont.TimesBold;
+            case "F17":
+                return PdfStandardFont.TimesItalic;
+            case "F18":
+                return PdfStandardFont.TimesBoldItalic;
+            case "F19":
+                return PdfStandardFont.Courier;
+            case "F20":
+                return PdfStandardFont.CourierBold;
+            case "F21":
+                return PdfStandardFont.CourierOblique;
+            case "F22":
+                return PdfStandardFont.CourierBoldOblique;
+            default:
+                return defaultNormalFont;
+        }
+    }
+
     private static double GlyphWidthEmFor(PdfStandardFont font) => font switch {
         PdfStandardFont.Courier or PdfStandardFont.CourierBold or PdfStandardFont.CourierOblique or PdfStandardFont.CourierBoldOblique => 0.6,
         PdfStandardFont.Helvetica or PdfStandardFont.HelveticaBold or PdfStandardFont.HelveticaOblique or PdfStandardFont.HelveticaBoldOblique => 0.55,
@@ -137,7 +180,7 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return fontProgram.MeasureWinAnsiTextWidth(text, fontSize);
+            return fontProgram.MeasureTextWidth(text, fontSize);
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);
