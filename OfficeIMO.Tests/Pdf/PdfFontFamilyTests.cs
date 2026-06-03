@@ -33,6 +33,69 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFamily_TryFromSystemLoadsInstalledTrueTypeFamily() {
+        if (!TryFindInstalledSystemFontFamily(out PdfEmbeddedFontFamily? family)) {
+            return;
+        }
+
+        PdfOptions options = new PdfOptions().UseFontFamily(family);
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .UseFontFamily(family)
+            .Paragraph(paragraph => paragraph
+                .Text("System regular ")
+                .Bold("system bold ")
+                .Italic("system italic ")
+                .Text("system done"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.NotEmpty(family.Regular);
+        Assert.True(family.Bold != null || family.Italic != null || family.BoldItalic != null);
+        Assert.Contains(PdfStandardFont.Helvetica, options.EmbeddedFonts.Keys);
+        Assert.Contains(PdfStandardFont.HelveticaBold, options.EmbeddedFonts.Keys);
+        Assert.Contains(PdfStandardFont.HelveticaOblique, options.EmbeddedFonts.Keys);
+        Assert.Contains(PdfStandardFont.HelveticaBoldOblique, options.EmbeddedFonts.Keys);
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("System regular system bold system italic system done", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_FromSystemThrowsWhenFamilyIsMissing() {
+        Assert.Throws<FileNotFoundException>(() =>
+            PdfEmbeddedFontFamily.FromSystem("OfficeIMO Missing Font Family 404"));
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesMatchesRenamedTrueTypeMetadata() {
+        if (!TryFindSingleInstalledRegularFontFace(out string familyName, out string fontPath)) {
+            return;
+        }
+
+        string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string renamedPath = Path.Combine(tempDir, "officeimo-renamed-system-face.ttf");
+            File.Copy(fontPath, renamedPath);
+
+            bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+                familyName,
+                new[] { renamedPath },
+                out PdfEmbeddedFontFamily? family);
+
+            Assert.True(found);
+            Assert.NotNull(family);
+            Assert.NotEmpty(family!.Regular);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void PdfDoc_UseFontFamilyObjectReusesTrueTypeFamilyForGeneratedText() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
@@ -258,5 +321,112 @@ public class PdfFontFamilyTests {
         string[] parts = objectHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
         Assert.True(parts.Length >= 2, "Could not parse object header '" + objectHeader + "'.");
         return int.Parse(parts[0], CultureInfo.InvariantCulture);
+    }
+
+    private static bool TryFindInstalledSystemFontFamily(out PdfEmbeddedFontFamily? family) {
+        string[] candidates = {
+            "Arial",
+            "DejaVu Sans",
+            "Liberation Sans",
+            "Segoe UI"
+        };
+
+        foreach (string candidate in candidates) {
+            if (PdfEmbeddedFontFamily.TryFromSystem(candidate, out family) &&
+                family != null &&
+                (family.Bold != null || family.Italic != null || family.BoldItalic != null)) {
+                return true;
+            }
+        }
+
+        family = null;
+        return false;
+    }
+
+    private static bool TryFindSingleInstalledRegularFontFace(out string familyName, out string fontPath) {
+        string[] candidates = {
+            "Arial",
+            "DejaVu Sans",
+            "Liberation Sans",
+            "Segoe UI",
+            "Microsoft Sans Serif"
+        };
+
+        foreach (string path in EnumerateInstalledTrueTypeFonts()) {
+            foreach (string candidate in candidates) {
+                if (PdfEmbeddedFontFamily.TryFromSystemFontFiles(candidate, new[] { path }, out PdfEmbeddedFontFamily? family) &&
+                    family != null &&
+                    family.Bold == null &&
+                    family.Italic == null &&
+                    family.BoldItalic == null) {
+                    familyName = candidate;
+                    fontPath = path;
+                    return true;
+                }
+            }
+        }
+
+        familyName = string.Empty;
+        fontPath = string.Empty;
+        return false;
+    }
+
+    private static IEnumerable<string> EnumerateInstalledTrueTypeFonts() {
+        string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        if (!string.IsNullOrWhiteSpace(windows)) {
+            foreach (string font in EnumerateTrueTypeFonts(Path.Combine(windows, "Fonts"))) {
+                yield return font;
+            }
+        }
+
+        foreach (string font in EnumerateTrueTypeFonts("/usr/share/fonts")) {
+            yield return font;
+        }
+
+        foreach (string font in EnumerateTrueTypeFonts("/usr/local/share/fonts")) {
+            yield return font;
+        }
+
+        string userProfile = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(userProfile)) {
+            foreach (string font in EnumerateTrueTypeFonts(Path.Combine(userProfile, ".local", "share", "fonts"))) {
+                yield return font;
+            }
+
+            foreach (string font in EnumerateTrueTypeFonts(Path.Combine(userProfile, ".fonts"))) {
+                yield return font;
+            }
+
+            foreach (string font in EnumerateTrueTypeFonts(Path.Combine(userProfile, "Library", "Fonts"))) {
+                yield return font;
+            }
+        }
+
+        foreach (string font in EnumerateTrueTypeFonts("/Library/Fonts")) {
+            yield return font;
+        }
+
+        foreach (string font in EnumerateTrueTypeFonts("/System/Library/Fonts")) {
+            yield return font;
+        }
+    }
+
+    private static IEnumerable<string> EnumerateTrueTypeFonts(string root) {
+        if (string.IsNullOrWhiteSpace(root) || !Directory.Exists(root)) {
+            yield break;
+        }
+
+        string[] files;
+        try {
+            files = Directory.GetFiles(root, "*.ttf", SearchOption.AllDirectories);
+        } catch (IOException) {
+            yield break;
+        } catch (UnauthorizedAccessException) {
+            yield break;
+        }
+
+        foreach (string file in files) {
+            yield return file;
+        }
     }
 }

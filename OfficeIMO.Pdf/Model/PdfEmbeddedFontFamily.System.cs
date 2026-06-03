@@ -1,0 +1,519 @@
+namespace OfficeIMO.Pdf;
+
+public sealed partial class PdfEmbeddedFontFamily {
+    /// <summary>
+    /// Loads an installed TrueType font family from common operating-system font folders.
+    /// </summary>
+    /// <param name="familyName">Installed family name, for example <c>Arial</c>, <c>Segoe UI</c>, or <c>DejaVu Sans</c>.</param>
+    /// <param name="pdfFamilyName">Optional family name to expose in generated PDF font resource names.</param>
+    /// <returns>A reusable embedded font family backed by the discovered TrueType faces.</returns>
+    /// <exception cref="System.IO.FileNotFoundException">No embeddable TrueType regular face was found for <paramref name="familyName"/>.</exception>
+    public static PdfEmbeddedFontFamily FromSystem(string familyName, string? pdfFamilyName = null) {
+        if (TryFromSystem(familyName, out PdfEmbeddedFontFamily? fontFamily, pdfFamilyName)) {
+            return fontFamily!;
+        }
+
+        throw new System.IO.FileNotFoundException(
+            "Could not find an embeddable TrueType font family named '" + familyName + "' in common system font folders.",
+            familyName);
+    }
+
+    /// <summary>
+    /// Attempts to load an installed TrueType font family from common operating-system font folders.
+    /// </summary>
+    /// <param name="familyName">Installed family name, for example <c>Arial</c>, <c>Segoe UI</c>, or <c>DejaVu Sans</c>.</param>
+    /// <param name="fontFamily">When found, receives a reusable embedded font family backed by discovered TrueType faces.</param>
+    /// <param name="pdfFamilyName">Optional family name to expose in generated PDF font resource names.</param>
+    /// <returns><c>true</c> when an embeddable regular TrueType face was found; otherwise <c>false</c>.</returns>
+    public static bool TryFromSystem(string familyName, out PdfEmbeddedFontFamily? fontFamily, string? pdfFamilyName = null) {
+        return TryFromSystemFontFiles(familyName, EnumerateSystemTrueTypeFontFiles(), out fontFamily, pdfFamilyName);
+    }
+
+    internal static bool TryFromSystemFontFiles(
+        string familyName,
+        System.Collections.Generic.IEnumerable<string> fontFiles,
+        out PdfEmbeddedFontFamily? fontFamily,
+        string? pdfFamilyName = null) {
+        Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
+        Guard.NotNull(fontFiles, nameof(fontFiles));
+        string normalizedFamily = NormalizeFamilyKey(familyName);
+        string[] acceptedPrefixes = BuildAcceptedPrefixes(normalizedFamily);
+
+        SystemFontFaceCandidate? regularFace = null;
+        SystemFontFaceCandidate? boldFace = null;
+        SystemFontFaceCandidate? italicFace = null;
+        SystemFontFaceCandidate? boldItalicFace = null;
+
+        foreach (string fontFile in fontFiles) {
+            if (!TryReadSystemFontFace(fontFile, acceptedPrefixes, out SystemFontFaceCandidate? candidate) ||
+                candidate == null) {
+                continue;
+            }
+
+            switch (candidate.Kind) {
+                case FontFaceKind.Regular:
+                    SelectBetterFace(ref regularFace, candidate);
+                    break;
+                case FontFaceKind.Bold:
+                    SelectBetterFace(ref boldFace, candidate);
+                    break;
+                case FontFaceKind.Italic:
+                    SelectBetterFace(ref italicFace, candidate);
+                    break;
+                case FontFaceKind.BoldItalic:
+                    SelectBetterFace(ref boldItalicFace, candidate);
+                    break;
+            }
+        }
+
+        if (regularFace == null) {
+            fontFamily = null;
+            return false;
+        }
+
+        fontFamily = new PdfEmbeddedFontFamily(
+            string.IsNullOrWhiteSpace(pdfFamilyName) ? familyName : pdfFamilyName!,
+            regularFace.Data,
+            boldFace?.Data,
+            italicFace?.Data,
+            boldItalicFace?.Data);
+        return true;
+    }
+
+    private static bool TryReadSystemFontFace(string path, string[] acceptedPrefixes, out SystemFontFaceCandidate? candidate) {
+        candidate = null;
+        if (string.IsNullOrWhiteSpace(path)) {
+            return false;
+        }
+
+        try {
+            byte[] data = System.IO.File.ReadAllBytes(path);
+            _ = PdfTrueTypeFontProgram.Parse(data);
+            if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata) &&
+                metadata != null &&
+                IsMetadataFamilyMatch(metadata, acceptedPrefixes)) {
+                FontFaceKind kind = ClassifyMetadataFace(metadata, out int metadataScore);
+                candidate = new SystemFontFaceCandidate(path, kind, metadataScore, data);
+                return true;
+            }
+
+            string fileName = System.IO.Path.GetFileNameWithoutExtension(path);
+            if (!TryClassifyFace(fileName, acceptedPrefixes, out FontFaceKind faceKind)) {
+                return false;
+            }
+
+            candidate = new SystemFontFaceCandidate(path, faceKind, ScoreFileNameFace(faceKind), data);
+            return true;
+        } catch (System.Exception exception) when (
+            exception is System.IO.IOException ||
+            exception is System.UnauthorizedAccessException ||
+            exception is System.NotSupportedException) {
+            return false;
+        }
+    }
+
+    private static void SelectBetterFace(ref SystemFontFaceCandidate? current, SystemFontFaceCandidate candidate) {
+        if (current == null || candidate.Score > current.Score) {
+            current = candidate;
+        }
+    }
+
+    private static bool TryClassifyFace(string fileName, string[] acceptedPrefixes, out FontFaceKind faceKind) {
+        string normalizedName = NormalizeFamilyKey(fileName);
+        foreach (string prefix in acceptedPrefixes) {
+            if (!normalizedName.StartsWith(prefix, System.StringComparison.Ordinal)) {
+                continue;
+            }
+
+            string suffix = normalizedName.Substring(prefix.Length);
+            faceKind = ClassifySuffix(suffix);
+            return true;
+        }
+
+        faceKind = FontFaceKind.Regular;
+        return false;
+    }
+
+    private static FontFaceKind ClassifySuffix(string suffix) {
+        if (suffix.Length == 0 || suffix == "regular" || suffix == "r" || suffix == "mt") {
+            return FontFaceKind.Regular;
+        }
+
+        if (suffix.Contains("bolditalic") || suffix.Contains("boldoblique") || suffix == "bi" || suffix == "z") {
+            return FontFaceKind.BoldItalic;
+        }
+
+        if (suffix.Contains("italic") || suffix.Contains("oblique") || suffix == "i") {
+            return FontFaceKind.Italic;
+        }
+
+        if (suffix.Contains("bold") || suffix == "bd" || suffix == "b") {
+            return FontFaceKind.Bold;
+        }
+
+        return FontFaceKind.Regular;
+    }
+
+    private static int ScoreFileNameFace(FontFaceKind faceKind) =>
+        faceKind == FontFaceKind.Regular ? 60 : 70;
+
+    private static bool IsMetadataFamilyMatch(TrueTypeNameMetadata metadata, string[] acceptedPrefixes) {
+        foreach (string? familyName in metadata.GetFamilyNames()) {
+            if (string.IsNullOrWhiteSpace(familyName)) {
+                continue;
+            }
+
+            string normalized = NormalizeFamilyKey(familyName!);
+            for (int i = 0; i < acceptedPrefixes.Length; i++) {
+                if (string.Equals(normalized, acceptedPrefixes[i], System.StringComparison.Ordinal)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static FontFaceKind ClassifyMetadataFace(TrueTypeNameMetadata metadata, out int score) {
+        string primaryStyle = NormalizeFamilyKey(metadata.TypographicSubfamilyName ?? metadata.SubfamilyName ?? string.Empty);
+        string fallbackStyle = NormalizeFamilyKey(
+            (metadata.PostScriptName ?? string.Empty) + " " +
+            (metadata.FullName ?? string.Empty));
+
+        string style = primaryStyle.Length == 0 ? fallbackStyle : primaryStyle;
+        bool bold = ContainsAny(style, "bold", "semibold", "demibold", "black", "heavy");
+        bool italic = ContainsAny(style, "italic", "oblique");
+        if (bold && italic) {
+            score = primaryStyle.Contains("bold") && (primaryStyle.Contains("italic") || primaryStyle.Contains("oblique")) ? 110 : 85;
+            return FontFaceKind.BoldItalic;
+        }
+
+        if (italic) {
+            score = primaryStyle.Contains("italic") || primaryStyle.Contains("oblique") ? 105 : 80;
+            return FontFaceKind.Italic;
+        }
+
+        if (bold) {
+            score = string.Equals(primaryStyle, "bold", System.StringComparison.Ordinal) ? 105 : 80;
+            return FontFaceKind.Bold;
+        }
+
+        if (primaryStyle.Length == 0 ||
+            string.Equals(primaryStyle, "regular", System.StringComparison.Ordinal) ||
+            string.Equals(primaryStyle, "normal", System.StringComparison.Ordinal) ||
+            string.Equals(primaryStyle, "book", System.StringComparison.Ordinal) ||
+            string.Equals(primaryStyle, "roman", System.StringComparison.Ordinal)) {
+            score = 105;
+            return FontFaceKind.Regular;
+        }
+
+        score = 55;
+        return FontFaceKind.Regular;
+    }
+
+    private static bool ContainsAny(string value, params string[] needles) {
+        for (int i = 0; i < needles.Length; i++) {
+            if (value.Contains(needles[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string[] BuildAcceptedPrefixes(string normalizedFamily) {
+        if (normalizedFamily == "timesnewroman") {
+            return new[] { "timesnewroman", "times" };
+        }
+
+        if (normalizedFamily == "couriernew") {
+            return new[] { "couriernew", "cour" };
+        }
+
+        if (normalizedFamily == "segoeui") {
+            return new[] { "segoeui", "segui" };
+        }
+
+        return new[] { normalizedFamily };
+    }
+
+    private static string NormalizeFamilyKey(string value) {
+        var builder = new System.Text.StringBuilder(value.Length);
+        foreach (char character in value) {
+            if (char.IsLetterOrDigit(character)) {
+                builder.Append(char.ToLowerInvariant(character));
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static System.Collections.Generic.IEnumerable<string> EnumerateSystemTrueTypeFontFiles() {
+        var seenRoots = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (string root in GetSystemFontRoots()) {
+            if (root.Length == 0 || !seenRoots.Add(root) || !System.IO.Directory.Exists(root)) {
+                continue;
+            }
+
+            foreach (string file in EnumerateTrueTypeFontFiles(root)) {
+                yield return file;
+            }
+        }
+    }
+
+    private static System.Collections.Generic.IEnumerable<string> GetSystemFontRoots() {
+        string windows = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Windows);
+        if (!string.IsNullOrWhiteSpace(windows)) {
+            yield return System.IO.Path.Combine(windows, "Fonts");
+        }
+
+        yield return "/usr/share/fonts";
+        yield return "/usr/local/share/fonts";
+
+        string userProfile = System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+        if (!string.IsNullOrWhiteSpace(userProfile)) {
+            yield return System.IO.Path.Combine(userProfile, ".local", "share", "fonts");
+            yield return System.IO.Path.Combine(userProfile, ".fonts");
+            yield return System.IO.Path.Combine(userProfile, "Library", "Fonts");
+        }
+
+        yield return "/Library/Fonts";
+        yield return "/System/Library/Fonts";
+    }
+
+    private static System.Collections.Generic.IEnumerable<string> EnumerateTrueTypeFontFiles(string root) {
+        var directories = new System.Collections.Generic.Stack<string>();
+        directories.Push(root);
+
+        while (directories.Count > 0) {
+            string current = directories.Pop();
+            string[] files;
+            try {
+                files = System.IO.Directory.GetFiles(current, "*.ttf");
+            } catch (System.Exception exception) when (
+                exception is System.IO.IOException ||
+                exception is System.UnauthorizedAccessException) {
+                continue;
+            }
+
+            for (int i = 0; i < files.Length; i++) {
+                yield return files[i];
+            }
+
+            string[] children;
+            try {
+                children = System.IO.Directory.GetDirectories(current);
+            } catch (System.Exception exception) when (
+                exception is System.IO.IOException ||
+                exception is System.UnauthorizedAccessException) {
+                continue;
+            }
+
+            for (int i = 0; i < children.Length; i++) {
+                directories.Push(children[i]);
+            }
+        }
+    }
+
+    private static bool TryReadTrueTypeNameMetadata(byte[] data, out TrueTypeNameMetadata? metadata) {
+        metadata = null;
+        try {
+            if (data.Length < 12) {
+                return false;
+            }
+
+            var tables = ReadFontTableDirectory(data);
+            if (!tables.TryGetValue("name", out FontTableRecord nameTable)) {
+                return false;
+            }
+
+            var names = new System.Collections.Generic.Dictionary<int, TrueTypeNameValue>();
+            int offset = nameTable.Offset;
+            int count = ReadUInt16(data, offset + 2);
+            int stringOffset = offset + ReadUInt16(data, offset + 4);
+            for (int i = 0; i < count; i++) {
+                int record = offset + 6 + i * 12;
+                EnsureRange(data, record, 12);
+                int platformId = ReadUInt16(data, record);
+                int encodingId = ReadUInt16(data, record + 2);
+                int nameId = ReadUInt16(data, record + 6);
+                if (nameId != 1 && nameId != 2 && nameId != 4 && nameId != 6 && nameId != 16 && nameId != 17) {
+                    continue;
+                }
+
+                int length = ReadUInt16(data, record + 8);
+                int valueOffset = stringOffset + ReadUInt16(data, record + 10);
+                EnsureRange(data, valueOffset, length);
+                string? value = DecodeNameValue(data, valueOffset, length, platformId, encodingId);
+                if (string.IsNullOrWhiteSpace(value)) {
+                    continue;
+                }
+
+                int score = GetNameValueScore(platformId);
+                if (!names.TryGetValue(nameId, out TrueTypeNameValue? existing) || score > existing.Score) {
+                    names[nameId] = new TrueTypeNameValue(value!.Trim(), score);
+                }
+            }
+
+            metadata = new TrueTypeNameMetadata(
+                GetName(names, 1),
+                GetName(names, 2),
+                GetName(names, 4),
+                GetName(names, 6),
+                GetName(names, 16),
+                GetName(names, 17));
+            return true;
+        } catch (System.Exception exception) when (exception is System.NotSupportedException) {
+            return false;
+        }
+    }
+
+    private static System.Collections.Generic.Dictionary<string, FontTableRecord> ReadFontTableDirectory(byte[] data) {
+        int numTables = ReadUInt16(data, 4);
+        var tables = new System.Collections.Generic.Dictionary<string, FontTableRecord>(System.StringComparer.Ordinal);
+        int recordOffset = 12;
+        for (int index = 0; index < numTables; index++) {
+            int offset = recordOffset + index * 16;
+            EnsureRange(data, offset, 16);
+            string tag = System.Text.Encoding.ASCII.GetString(data, offset, 4);
+            uint tableOffset = ReadUInt32(data, offset + 8);
+            uint tableLength = ReadUInt32(data, offset + 12);
+            if (tableOffset > int.MaxValue || tableLength > int.MaxValue) {
+                throw new System.NotSupportedException("TrueType font table offsets are too large.");
+            }
+
+            EnsureRange(data, (int)tableOffset, (int)tableLength);
+            tables[tag] = new FontTableRecord((int)tableOffset, (int)tableLength);
+        }
+
+        return tables;
+    }
+
+    private static string? DecodeNameValue(byte[] data, int offset, int length, int platformId, int encodingId) {
+        if (platformId == 3 || platformId == 0) {
+            return length % 2 == 0
+                ? System.Text.Encoding.BigEndianUnicode.GetString(data, offset, length).TrimEnd('\0')
+                : null;
+        }
+
+        if (platformId == 1 && encodingId == 0) {
+            return System.Text.Encoding.ASCII.GetString(data, offset, length).TrimEnd('\0');
+        }
+
+        return null;
+    }
+
+    private static int GetNameValueScore(int platformId) {
+        if (platformId == 3) {
+            return 30;
+        }
+
+        if (platformId == 0) {
+            return 20;
+        }
+
+        return 10;
+    }
+
+    private static string? GetName(System.Collections.Generic.Dictionary<int, TrueTypeNameValue> names, int nameId) =>
+        names.TryGetValue(nameId, out TrueTypeNameValue? value) ? value.Value : null;
+
+    private static ushort ReadUInt16(byte[] data, int offset) {
+        EnsureRange(data, offset, 2);
+        return (ushort)((data[offset] << 8) | data[offset + 1]);
+    }
+
+    private static uint ReadUInt32(byte[] data, int offset) {
+        EnsureRange(data, offset, 4);
+        return ((uint)data[offset] << 24) |
+            ((uint)data[offset + 1] << 16) |
+            ((uint)data[offset + 2] << 8) |
+            data[offset + 3];
+    }
+
+    private static void EnsureRange(byte[] data, int offset, int length) {
+        if (offset < 0 || length < 0 || offset > data.Length - length) {
+            throw new System.NotSupportedException("TrueType font table data is truncated or invalid.");
+        }
+    }
+
+    private enum FontFaceKind {
+        Regular,
+        Bold,
+        Italic,
+        BoldItalic
+    }
+
+    private sealed class SystemFontFaceCandidate {
+        public SystemFontFaceCandidate(string path, FontFaceKind kind, int score, byte[] data) {
+            Path = path;
+            Kind = kind;
+            Score = score;
+            Data = data;
+        }
+
+        public string Path { get; }
+
+        public FontFaceKind Kind { get; }
+
+        public int Score { get; }
+
+        public byte[] Data { get; }
+    }
+
+    private sealed class TrueTypeNameMetadata {
+        public TrueTypeNameMetadata(
+            string? familyName,
+            string? subfamilyName,
+            string? fullName,
+            string? postScriptName,
+            string? typographicFamilyName,
+            string? typographicSubfamilyName) {
+            FamilyName = familyName;
+            SubfamilyName = subfamilyName;
+            FullName = fullName;
+            PostScriptName = postScriptName;
+            TypographicFamilyName = typographicFamilyName;
+            TypographicSubfamilyName = typographicSubfamilyName;
+        }
+
+        public string? FamilyName { get; }
+
+        public string? SubfamilyName { get; }
+
+        public string? FullName { get; }
+
+        public string? PostScriptName { get; }
+
+        public string? TypographicFamilyName { get; }
+
+        public string? TypographicSubfamilyName { get; }
+
+        public System.Collections.Generic.IEnumerable<string?> GetFamilyNames() {
+            yield return TypographicFamilyName;
+            yield return FamilyName;
+        }
+    }
+
+    private sealed class TrueTypeNameValue {
+        public TrueTypeNameValue(string value, int score) {
+            Value = value;
+            Score = score;
+        }
+
+        public string Value { get; }
+
+        public int Score { get; }
+    }
+
+    private readonly struct FontTableRecord {
+        public FontTableRecord(int offset, int length) {
+            Offset = offset;
+            Length = length;
+        }
+
+        public int Offset { get; }
+
+        public int Length { get; }
+    }
+}
