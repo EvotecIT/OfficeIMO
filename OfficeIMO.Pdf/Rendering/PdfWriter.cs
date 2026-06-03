@@ -24,6 +24,7 @@ internal static partial class PdfWriter {
 
         // Collect fonts used across pages
         var fontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfStandardFont, int>>();
+        int formHelveticaFontId = 0;
         int EnsureFont(PdfStandardFont font, PdfOptions fontOptions) {
             if (!fontObjectIds.TryGetValue(fontOptions, out Dictionary<PdfStandardFont, int>? optionFontObjectIds)) {
                 optionFontObjectIds = new Dictionary<PdfStandardFont, int>();
@@ -55,6 +56,14 @@ internal static partial class PdfWriter {
                 optionFontObjectIds[font] = id;
             }
             return id;
+        }
+
+        int EnsureFormHelveticaFont() {
+            if (formHelveticaFontId == 0) {
+                formHelveticaFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(PdfStandardFont.Helvetica));
+            }
+
+            return formHelveticaFontId;
         }
 
         // Create content streams and page objects
@@ -263,7 +272,6 @@ internal static partial class PdfWriter {
                 }
             }
             if (page.FormFields.Count > 0) {
-                int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica, pageOpts);
                 foreach (var field in page.FormFields) {
                     string formField;
                     double appearanceWidth = field.X2 - field.X1;
@@ -325,13 +333,13 @@ internal static partial class PdfWriter {
                         string appearanceValue = field.Values.Count > 1 ? string.Join(", ", field.Values) : field.Value;
                         string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, appearanceValue, field.FontSize, field.Style);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
-                        string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, helveticaFontId, appearanceBytes.Length);
+                        string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, EnsureFormHelveticaFont(), appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                         formField = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values.Count == 0 ? new[] { field.Value } : field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style, formWidgetStructureReference?.StructParentIndex);
                     } else {
                         string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize, field.Style);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
-                        string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, helveticaFontId, appearanceBytes.Length);
+                        string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, EnsureFormHelveticaFont(), appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                         formField = PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Value, field.FontSize, appearanceId, field.Style, formWidgetStructureReference?.StructParentIndex);
                     }
@@ -369,8 +377,7 @@ internal static partial class PdfWriter {
         int namedDestinationsId = BuildNamedDestinations(objects, layout.Pages, pageIds);
         int acroFormId = 0;
         if (formFieldIds.Count > 0) {
-            int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica, opts);
-            acroFormId = AddObject(objects, PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(formFieldIds, helveticaFontId));
+            acroFormId = AddObject(objects, PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(formFieldIds, EnsureFormHelveticaFont()));
         }
 
         int metadataId = 0;

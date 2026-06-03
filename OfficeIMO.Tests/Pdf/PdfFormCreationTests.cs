@@ -319,6 +319,31 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void GeneratedFields_KeepSimpleHelveticaAppearanceResourceWhenDocumentFontIsEmbedded() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .UseFontFamily("OfficeIMO Form Body Font", fontPath)
+            .Paragraph(paragraph => paragraph.Text("Embedded body font"))
+            .TextField("Styled.Name", value: "Ada")
+            .ChoiceField("Styled.Country", new[] { "Poland", "Germany" }, value: "Poland")
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/AcroForm", raw, StringComparison.Ordinal);
+        Assert.Contains("/DA (/Helv 10 Tf", raw, StringComparison.Ordinal);
+        Assert.Contains("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>", raw, StringComparison.Ordinal);
+        Assert.Matches(@"/DR << /Font << /Helv \d+ 0 R >> >>", raw);
+    }
+
+    [Fact]
     public void GeneratedFields_EmitAccessibleMetadata() {
         var style = new PdfFormFieldStyle {
             AlternateName = "Accessible field",

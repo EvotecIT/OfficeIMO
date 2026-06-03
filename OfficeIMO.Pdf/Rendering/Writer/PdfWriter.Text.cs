@@ -27,6 +27,18 @@ internal static partial class PdfWriter {
         return EncodeWinAnsiHex(text);
     }
 
+    private static int GetScalarUtf16Length(string text, int index) {
+        if (index < 0 || index >= text.Length) {
+            throw new ArgumentOutOfRangeException(nameof(index), "Text scalar index must be inside the string.");
+        }
+
+        return char.IsHighSurrogate(text[index]) &&
+            index + 1 < text.Length &&
+            char.IsLowSurrogate(text[index + 1])
+                ? 2
+                : 1;
+    }
+
     private static System.Collections.Generic.List<string> WrapMonospace(string text, double widthPts, double fontSize, double glyphWidthEm) {
         double glyphWidth = fontSize * glyphWidthEm;
         int maxChars = Math.Max(8, (int)Math.Floor(widthPts / glyphWidth));
@@ -103,14 +115,16 @@ internal static partial class PdfWriter {
         void AppendLongToken(string token, StringBuilder current, ref double currentWidth) {
             FlushLine(current, ref currentWidth);
             for (int i = 0; i < token.Length; i++) {
-                string character = token.Substring(i, 1);
-                double characterWidth = EstimateSimpleTextWidthForOptions(character, font, fontSize, options);
+                int scalarLength = GetScalarUtf16Length(token, i);
+                string scalar = token.Substring(i, scalarLength);
+                double characterWidth = EstimateSimpleTextWidthForOptions(scalar, font, fontSize, options);
                 if (current.Length > 0 && currentWidth + characterWidth > maxWidth) {
                     FlushLine(current, ref currentWidth);
                 }
 
-                current.Append(character);
+                current.Append(scalar);
                 currentWidth += characterWidth;
+                i += scalarLength - 1;
             }
         }
 
@@ -418,21 +432,23 @@ internal static partial class PdfWriter {
                         double chunkW = 0;
                         currentMaxWidth = CurrentMaxWidth();
                         while (pos + take < token.Length) {
-                            double charW = MeasureRichText(token.Substring(pos + take, 1), fontForRun, runFontSize, baseline, options);
+                            int scalarLength = GetScalarUtf16Length(token, pos + take);
+                            string scalar = token.Substring(pos + take, scalarLength);
+                            double charW = MeasureRichText(scalar, fontForRun, runFontSize, baseline, options);
                             if (take > 0 && chunkW + charW > currentMaxWidth) {
                                 break;
                             }
 
                             chunkW += charW;
-                            take++;
+                            take += scalarLength;
                             if (chunkW >= currentMaxWidth) {
                                 break;
                             }
                         }
 
                         if (take == 0) {
-                            take = 1;
-                            chunkW = MeasureRichText(token.Substring(pos, 1), fontForRun, runFontSize, baseline, options);
+                            take = GetScalarUtf16Length(token, pos);
+                            chunkW = MeasureRichText(token.Substring(pos, take), fontForRun, runFontSize, baseline, options);
                         }
 
                         string chunk = token.Substring(pos, take);
@@ -749,6 +765,10 @@ internal static partial class PdfWriter {
                         .TextLeading(defaultLeading)
                         .TextMatrix(lineXOrigin + xCursor + wSeg, lineY)
                         .WordSpacing(wordSpacing);
+                    if (Math.Abs(textRise) > 0.0001) {
+                        content.TextRise(0);
+                    }
+
                     currentTextRise = 0;
                 } else {
                     content.ShowHexText(EncodeTextHex(s.Text, s.Font, opts));

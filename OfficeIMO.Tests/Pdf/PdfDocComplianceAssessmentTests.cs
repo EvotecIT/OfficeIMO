@@ -601,6 +601,26 @@ public class PdfDocComplianceAssessmentTests {
     }
 
     [Fact]
+    public void TaggedLinkedBaselineShiftResetsTextRiseBeforeNormalText() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Paragraph(paragraph => paragraph
+                .Text("Value ")
+                .Superscript()
+                .Link("2", "https://officeimo.net/sup", underline: false)
+                .Superscript(false)
+                .Text(" normal"))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("0 Ts", content, StringComparison.Ordinal);
+        Assert.Matches(@"/Link << /MCID \d+ >> BDC[\s\S]+[1-9]\d*(?:\.\d+)? Ts[\s\S]+EMC[\s\S]+0 Ts", content);
+    }
+
+    [Fact]
     public void UntaggedParagraphLinksDoNotEmitDanglingMarkedContentReferences() {
         byte[] pdf = PdfDoc.Create(new PdfOptions {
                 CompressContentStreams = false

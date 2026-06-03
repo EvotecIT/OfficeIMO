@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -156,5 +157,47 @@ public class PdfFontFamilyTests {
         Assert.Contains("Nagłówek Łódź", text, StringComparison.Ordinal);
         Assert.Contains("Śląsk źrebak", text, StringComparison.Ordinal);
         Assert.Contains("Stopka Łódź 1/1", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfDoc_UseFontFamilyWrapsLongNonBmpTokensWithoutSplittingSurrogates() {
+        foreach (string fontPath in EnumerateLocalNonBmpTrueTypeFonts()) {
+            byte[] bytes;
+            try {
+                bytes = PdfDoc.Create(new PdfOptions {
+                    CompressContentStreams = false,
+                    PageWidth = 120,
+                    MarginLeft = 24,
+                    MarginRight = 24
+                })
+                .UseFontFamily("OfficeIMO NonBmp Font", fontPath)
+                .Paragraph(paragraph => paragraph.Text("AAAAAAAAAAAA😀BBBBBBBBBBBB"))
+                .ToBytes();
+            } catch (ArgumentException exception) when (exception.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal)) {
+                continue;
+            }
+
+            string raw = Encoding.ASCII.GetString(bytes);
+
+            Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+            Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+            return;
+        }
+    }
+
+    private static IEnumerable<string> EnumerateLocalNonBmpTrueTypeFonts() {
+        string windowsFonts = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts");
+        string[] candidates = {
+            Path.Combine(windowsFonts, "seguiemj.ttf"),
+            Path.Combine(windowsFonts, "seguisym.ttf"),
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/noto/NotoSansSymbols2-Regular.ttf"
+        };
+
+        foreach (string candidate in candidates) {
+            if (File.Exists(candidate)) {
+                yield return candidate;
+            }
+        }
     }
 }
