@@ -886,7 +886,7 @@ internal static partial class PdfWriter {
             .Font(fontAlias, watermark.FontSize)
             .FillColor(watermark.Color)
             .TextMatrix(cos, sin, -sin, cos, originX, originY)
-            .ShowHexText(EncodeWinAnsiHex(watermark.Text))
+            .ShowHexText(EncodeTextHex(watermark.Text, font, options))
             .EndText()
             .RestoreState();
     }

@@ -160,6 +160,28 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfDoc_UseFontFamilyEncodesTextWatermarkWithEmbeddedGlyphs() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .UseFontFamily("OfficeIMO Watermark Font", fontPath)
+            .Watermark("DRAFT", fontSize: 32, opacity: 0.25)
+            .Paragraph(paragraph => paragraph.Text("Watermark font proof"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<4452414654> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("/CMapName /OfficeIMO-Identity-Glyph-UCS", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfDoc_UseFontFamilyWrapsLongNonBmpTokensWithoutSplittingSurrogates() {
         foreach (string fontPath in EnumerateLocalNonBmpTrueTypeFonts()) {
             byte[] bytes;
