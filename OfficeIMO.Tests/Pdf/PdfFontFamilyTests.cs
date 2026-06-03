@@ -96,6 +96,63 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsReadableMetadataMismatchBeforeFilenameFallback() {
+        if (!TryFindSingleInstalledRegularFontFace(out _, out string fontPath)) {
+            return;
+        }
+
+        string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string renamedPath = Path.Combine(tempDir, "OfficeIMOFilenameTrap-Regular.ttf");
+            File.Copy(fontPath, renamedPath);
+
+            bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+                "OfficeIMO Filename Trap",
+                new[] { renamedPath },
+                out PdfEmbeddedFontFamily? family);
+
+            Assert.False(found);
+            Assert.Null(family);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_TryFromSystemFontFilesSkipsMalformedTrueTypeFiles() {
+        string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Fonts." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        try {
+            string malformedPath = Path.Combine(tempDir, "OfficeIMOMalformed-Regular.ttf");
+            File.WriteAllBytes(malformedPath, new byte[] { 0, 1, 0, 0, 0, 255, 255, 255 });
+
+            bool found = PdfEmbeddedFontFamily.TryFromSystemFontFiles(
+                "OfficeIMO Malformed",
+                new[] { malformedPath },
+                out PdfEmbeddedFontFamily? family);
+
+            Assert.False(found);
+            Assert.Null(family);
+        } finally {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PdfEmbeddedFontFamily_GetSystemFontRootsIncludesWindowsPerUserFonts() {
+        string localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        if (string.IsNullOrWhiteSpace(localAppData)) {
+            return;
+        }
+
+        string expected = Path.Combine(localAppData, "Microsoft", "Windows", "Fonts");
+        Assert.Contains(
+            PdfEmbeddedFontFamily.GetSystemFontRoots(),
+            root => string.Equals(root, expected, StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void PdfDoc_UseFontFamilyObjectReusesTrueTypeFamilyForGeneratedText() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

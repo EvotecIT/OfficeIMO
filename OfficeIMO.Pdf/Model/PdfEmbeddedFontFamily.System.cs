@@ -89,12 +89,14 @@ public sealed partial class PdfEmbeddedFontFamily {
         try {
             byte[] data = System.IO.File.ReadAllBytes(path);
             _ = PdfTrueTypeFontProgram.Parse(data);
-            if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata) &&
-                metadata != null &&
-                IsMetadataFamilyMatch(metadata, acceptedPrefixes)) {
-                FontFaceKind kind = ClassifyMetadataFace(metadata, out int metadataScore);
-                candidate = new SystemFontFaceCandidate(path, kind, metadataScore, data);
-                return true;
+            if (TryReadTrueTypeNameMetadata(data, out TrueTypeNameMetadata? metadata) && metadata != null) {
+                if (IsMetadataFamilyMatch(metadata, acceptedPrefixes)) {
+                    FontFaceKind kind = ClassifyMetadataFace(metadata, out int metadataScore);
+                    candidate = new SystemFontFaceCandidate(path, kind, metadataScore, data);
+                    return true;
+                }
+
+                return false;
             }
 
             string fileName = System.IO.Path.GetFileNameWithoutExtension(path);
@@ -107,7 +109,12 @@ public sealed partial class PdfEmbeddedFontFamily {
         } catch (System.Exception exception) when (
             exception is System.IO.IOException ||
             exception is System.UnauthorizedAccessException ||
-            exception is System.NotSupportedException) {
+            exception is System.NotSupportedException ||
+            exception is System.ArgumentException ||
+            exception is System.ArithmeticException ||
+            exception is System.FormatException ||
+            exception is System.IndexOutOfRangeException ||
+            exception is System.InvalidOperationException) {
             return false;
         }
     }
@@ -261,10 +268,15 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
     }
 
-    private static System.Collections.Generic.IEnumerable<string> GetSystemFontRoots() {
+    internal static System.Collections.Generic.IEnumerable<string> GetSystemFontRoots() {
         string windows = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Windows);
         if (!string.IsNullOrWhiteSpace(windows)) {
             yield return System.IO.Path.Combine(windows, "Fonts");
+        }
+
+        string localAppData = System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData);
+        if (!string.IsNullOrWhiteSpace(localAppData)) {
+            yield return System.IO.Path.Combine(localAppData, "Microsoft", "Windows", "Fonts");
         }
 
         yield return "/usr/share/fonts";
