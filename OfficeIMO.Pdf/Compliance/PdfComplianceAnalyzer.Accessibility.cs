@@ -9,10 +9,7 @@ public static partial class PdfComplianceAnalyzer {
             requirements.Add(BuildDisplayDocumentTitleRequirement(options));
         }
 
-        Add(requirements, "document-language", "Document language",
-            !string.IsNullOrWhiteSpace(options.Language),
-            "A catalog document language is configured.",
-            "Set PdfOptions.Language or PdfDoc.Language(...) for accessibility-oriented profiles.");
+        requirements.Add(BuildDocumentLanguageRequirement(options));
 
         Add(requirements, "tagged-catalog-markers", "Tagged PDF catalog markers",
             options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers,
@@ -117,11 +114,95 @@ public static partial class PdfComplianceAnalyzer {
                 "Set PdfOptions.Language or PdfDoc.Language(...) so generated /Document structure elements can emit /Lang metadata.");
         }
 
+        if (!IsValidPdfLanguageTag(options.Language)) {
+            return new PdfComplianceRequirement(
+                "generated-document-structure-language",
+                "Generated document structure language",
+                PdfComplianceRequirementStatus.Missing,
+                "Set PdfOptions.Language or PdfDoc.Language(...) to a valid language tag such as en-US before emitting generated /Document /Lang metadata.");
+        }
+
         return new PdfComplianceRequirement(
             "generated-document-structure-language",
             "Generated document structure language",
             PdfComplianceRequirementStatus.Satisfied,
             "Tagged output will emit /Lang metadata on generated /Document structure elements as PDF/UA/PDF/A-a groundwork.");
+    }
+
+    private static PdfComplianceRequirement BuildDocumentLanguageRequirement(PdfOptions options) {
+        if (string.IsNullOrWhiteSpace(options.Language)) {
+            return new PdfComplianceRequirement(
+                "document-language",
+                "Document language",
+                PdfComplianceRequirementStatus.Missing,
+                "Set PdfOptions.Language or PdfDoc.Language(...) for accessibility-oriented profiles.");
+        }
+
+        if (!IsValidPdfLanguageTag(options.Language)) {
+            return new PdfComplianceRequirement(
+                "document-language",
+                "Document language",
+                PdfComplianceRequirementStatus.Missing,
+                "Set PdfOptions.Language or PdfDoc.Language(...) to a valid language tag such as en-US before claiming accessibility-oriented profiles.");
+        }
+
+        return new PdfComplianceRequirement(
+            "document-language",
+            "Document language",
+            PdfComplianceRequirementStatus.Satisfied,
+            "A catalog document language is configured with valid language-tag syntax.");
+    }
+
+    private static bool IsValidPdfLanguageTag(string? language) {
+        if (string.IsNullOrWhiteSpace(language)) {
+            return false;
+        }
+
+        string value = language!.Trim();
+        string[] parts = value.Split('-');
+        if (parts.Length == 0 || !IsAsciiLetterSubtag(parts[0], 2, 3)) {
+            return false;
+        }
+
+        for (int i = 1; i < parts.Length; i++) {
+            if (!IsAsciiAlphaNumericSubtag(parts[i], 1, 8)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsAsciiLetterSubtag(string value, int minLength, int maxLength) {
+        if (value.Length < minLength || value.Length > maxLength) {
+            return false;
+        }
+
+        for (int i = 0; i < value.Length; i++) {
+            char character = value[i];
+            if (!((character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z'))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsAsciiAlphaNumericSubtag(string value, int minLength, int maxLength) {
+        if (value.Length < minLength || value.Length > maxLength) {
+            return false;
+        }
+
+        for (int i = 0; i < value.Length; i++) {
+            char character = value[i];
+            if (!((character >= 'A' && character <= 'Z') ||
+                  (character >= 'a' && character <= 'z') ||
+                  (character >= '0' && character <= '9'))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static void AddPdfUaIdentificationRequirement(List<PdfComplianceRequirement> requirements, PdfOptions options) {

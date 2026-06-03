@@ -540,6 +540,8 @@ public class PdfDocVisualQualityTests {
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), ""));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile()) { Info = "" });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), policy: (PdfOutputIntentPolicy)99));
+        Assert.NotNull(typeof(PdfOptions).GetMethod("SetOutputIntent", new[] { typeof(byte[]), typeof(string) }));
+        Assert.NotNull(typeof(PdfDoc).GetMethod("OutputIntent", new[] { typeof(byte[]), typeof(string) }));
     }
 
     [Fact]

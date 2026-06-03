@@ -548,9 +548,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         var mismatches = new List<string>();
         foreach (KeyValuePair<string, decimal> headerBasis in headerBasisAmountsByCategoryRate) {
             decimal lineNetAmount;
-            if (!lineNetAmountsByCategoryRate.TryGetValue(headerBasis.Key, out lineNetAmount)) {
-                continue;
-            }
+            lineNetAmountsByCategoryRate.TryGetValue(headerBasis.Key, out lineNetAmount);
 
             decimal allowanceAmount;
             allowanceAmountsByCategoryRate.TryGetValue(headerBasis.Key, out allowanceAmount);

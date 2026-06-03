@@ -297,8 +297,26 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Sets a generated catalog output intent from ICC profile bytes using the default sRGB output condition identifier.</summary>
+    public PdfDoc OutputIntent(byte[] iccProfile) {
+        _options.SetOutputIntent(iccProfile);
+        return this;
+    }
+
     /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
-    public PdfDoc OutputIntent(byte[] iccProfile, string outputConditionIdentifier = "sRGB IEC61966-2.1", PdfOutputIntentPolicy policy = PdfOutputIntentPolicy.Unspecified) {
+    public PdfDoc OutputIntent(byte[] iccProfile, string outputConditionIdentifier) {
+        _options.SetOutputIntent(iccProfile, outputConditionIdentifier);
+        return this;
+    }
+
+    /// <summary>Sets a generated catalog output intent from ICC profile bytes using the default sRGB output condition identifier.</summary>
+    public PdfDoc OutputIntent(byte[] iccProfile, PdfOutputIntentPolicy policy) {
+        _options.SetOutputIntent(iccProfile, policy);
+        return this;
+    }
+
+    /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
+    public PdfDoc OutputIntent(byte[] iccProfile, string outputConditionIdentifier, PdfOutputIntentPolicy policy) {
         _options.SetOutputIntent(iccProfile, outputConditionIdentifier, policy);
         return this;
     }

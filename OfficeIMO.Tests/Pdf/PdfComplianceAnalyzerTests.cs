@@ -2186,6 +2186,31 @@ public class PdfComplianceAnalyzerTests {
                     "5.00"),
                 "application/xml",
                 PdfAssociatedFileRelationship.Data);
+        var mismatchedChargeOnlyCategoryRateBasisOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile(
+                "factur-x.xml",
+                AddHeaderAllowanceCharge(
+                    AddHeaderTradeTax(
+                        CreateCiiXml(
+                            includeChargeTotalAmount: true,
+                            chargeTotalAmount: "5.00",
+                            taxBasisTotalAmount: "104.00",
+                            taxTotalAmount: "23.80",
+                            grandTotalAmount: "128.80"),
+                        "S",
+                        "20",
+                        "4.00",
+                        "0.80"),
+                    true,
+                    "S",
+                    "5.00",
+                    true,
+                    "20"),
+                "application/xml",
+                PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement mismatchedBasis = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, mismatchedBasisOptions),
@@ -2219,6 +2244,10 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, allowanceChargeAdjustedNotSubjectBasisOptions),
             "einvoice-xml-tax-total-consistency",
             PdfComplianceRequirementStatus.Satisfied);
+        PdfComplianceRequirement mismatchedChargeOnlyCategoryRateBasis = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, mismatchedChargeOnlyCategoryRateBasisOptions),
+            "einvoice-xml-tax-total-consistency",
+            PdfComplianceRequirementStatus.Missing);
 
         Assert.Contains("BasisAmount sum must match TaxBasisTotalAmount", mismatchedBasis.Diagnostic);
         Assert.Contains("CalculatedAmount sum must match TaxTotalAmount", mismatchedTax.Diagnostic);
@@ -2229,6 +2258,9 @@ public class PdfComplianceAnalyzerTests {
         Assert.Contains("category/rate adjusted taxable basis", validStandardAllowanceBasis.Diagnostic);
         Assert.Contains("category/rate adjusted taxable basis", validStandardChargeBasis.Diagnostic);
         Assert.Contains("category-O taxable basis", allowanceChargeAdjustedNotSubjectBasis.Diagnostic);
+        Assert.Contains("S/20 expected 5.00", mismatchedChargeOnlyCategoryRateBasis.Diagnostic);
+        Assert.Contains("line net 0.00", mismatchedChargeOnlyCategoryRateBasis.Diagnostic);
+        Assert.Contains("plus charges 5.00", mismatchedChargeOnlyCategoryRateBasis.Diagnostic);
     }
 
     [Fact]
@@ -2615,6 +2647,26 @@ public class PdfComplianceAnalyzerTests {
         AssertRequirement(report, "alternate-text", PdfComplianceRequirementStatus.Unsupported);
     }
 
+    [Theory]
+    [InlineData("English")]
+    [InlineData("en_US")]
+    public void PdfUaReadinessRejectsInvalidLanguageTags(string language) {
+        var options = new PdfOptions {
+            FileVersion = PdfFileVersion.Pdf17,
+            Language = language,
+            IncludeStandardFontToUnicodeMaps = true
+        }
+            .SetPdfUaIdentification()
+            .EnableTaggedPdfCatalogMarkers();
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.PdfUa1, options);
+
+        PdfComplianceRequirement documentLanguage = AssertRequirement(report, "document-language", PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement structureLanguage = AssertRequirement(report, "generated-document-structure-language", PdfComplianceRequirementStatus.Missing);
+        Assert.Contains("valid language tag", documentLanguage.Diagnostic);
+        Assert.Contains("valid language tag", structureLanguage.Diagnostic);
+    }
+
     [Fact]
     public void PdfUaReadinessRecognizesTaggedCatalogMarkersWithoutClaimingFullStructure() {
         var options = new PdfOptions {
@@ -2749,6 +2801,26 @@ public class PdfComplianceAnalyzerTests {
             "0.00",
             "0.00",
             string.Equals(categoryCode, "O", StringComparison.Ordinal) ? "Not subject to VAT" : null,
+            null,
+            "EUR");
+        return Encoding.UTF8.GetBytes(xml.Replace("</ram:ApplicableHeaderTradeSettlement>", tradeTax + "</ram:ApplicableHeaderTradeSettlement>"));
+    }
+
+    private static byte[] AddHeaderTradeTax(byte[] ciiXml, string categoryCode, string rateValue, string basisAmount, string calculatedAmount) {
+        string xml = Encoding.UTF8.GetString(ciiXml);
+        string tradeTax = CreateApplicableTradeTax(
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            categoryCode,
+            "VAT",
+            rateValue,
+            basisAmount,
+            calculatedAmount,
+            null,
             null,
             "EUR");
         return Encoding.UTF8.GetBytes(xml.Replace("</ram:ApplicableHeaderTradeSettlement>", tradeTax + "</ram:ApplicableHeaderTradeSettlement>"));
