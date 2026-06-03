@@ -871,6 +871,42 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void UseFontFamily_EmbedsNamedTrueTypeFamilyForGeneratedText() {
+        string? fontPath = FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                CompressEmbeddedFonts = true,
+                CompressContentStreams = false
+            })
+            .UseFontFamily("OfficeIMO Pretty", fontData)
+            .Header(header => header.Text("Pretty header"))
+            .Paragraph(paragraph => paragraph
+                .Text("Pretty regular ")
+                .Bold("pretty bold ")
+                .Italic()
+                .Text("pretty italic"))
+            .Footer(footer => footer.Text("Pretty footer {page}/{pages}"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains("/Subtype /TrueType", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /OfficeIMOPretty-Regular", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /OfficeIMOPretty-Bold", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /OfficeIMOPretty-Italic", raw, StringComparison.Ordinal);
+        Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
+        Assert.Contains("/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
+        Assert.Contains("Pretty regular pretty bold pretty italic", text, StringComparison.Ordinal);
+        Assert.Contains("Pretty header", text, StringComparison.Ordinal);
+        Assert.Contains("Pretty footer 1/1", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PageBorder_RendersAsPageDecorationWithOpacityAndDashStyle() {
         byte[] bytes = PdfDoc.Create()
             .PageBorder(PdfColor.FromRgb(30, 64, 175), width: 2, inset: 30, opacity: 0.4, dashStyle: OfficeStrokeDashStyle.Dash)

@@ -429,6 +429,28 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Uses a caller-supplied TrueType font family as the generated document's default font family.</summary>
+    public PdfDoc UseFontFamily(
+        string familyName,
+        byte[] regular,
+        byte[]? bold = null,
+        byte[]? italic = null,
+        byte[]? boldItalic = null) {
+        _options.UseFontFamily(familyName, regular, bold, italic, boldItalic);
+        return this;
+    }
+
+    /// <summary>Uses caller-supplied TrueType font files as the generated document's default font family.</summary>
+    public PdfDoc UseFontFamily(
+        string familyName,
+        string regularPath,
+        string? boldPath = null,
+        string? italicPath = null,
+        string? boldItalicPath = null) {
+        _options.UseFontFamily(familyName, regularPath, boldPath, italicPath, boldItalicPath);
+        return this;
+    }
+
     /// <summary>Sets the document-wide default paragraph style used by paragraphs that do not provide an explicit style.</summary>
     public PdfDoc DefaultParagraphStyle(PdfParagraphStyle style) {
         Guard.NotNull(style, nameof(style));
