@@ -393,7 +393,7 @@ internal static partial class PdfWriter {
         return drawn;
     }
 
-    private static bool DrawTableCellIcons(StringBuilder sb, PdfTableStyle style, System.Collections.Generic.List<TableCellLayout> cells, int rowIndex, int columnCount, double xOrigin, double yTop, double rowBottom, double rowHeight, double[] columnWidths, double columnGap, double[] rowHeights, double rowGap, bool wholeRowSegment, int startLine, bool[] skipColumns) {
+    private static bool DrawTableCellIcons(StringBuilder sb, PdfTableStyle style, System.Collections.Generic.List<TableCellLayout> cells, int rowIndex, int columnCount, double xOrigin, double yTop, double rowBottom, double rowHeight, double[] columnWidths, double columnGap, double[] rowHeights, double rowGap, bool wholeRowSegment, int startLine, bool[] skipColumns, bool artifact) {
         if (style.CellIcons == null || style.CellIcons.Count == 0 || startLine != 0) {
             return false;
         }
@@ -440,7 +440,7 @@ internal static partial class PdfWriter {
 
                     iconX += icon.OffsetX;
                     iconY += icon.OffsetY;
-                    DrawTableCellIcon(sb, icon, iconX, iconY, iconSize);
+                    DrawTableCellIcon(sb, icon, iconX, iconY, iconSize, artifact);
                     drawn = true;
                 }
             }
@@ -451,7 +451,8 @@ internal static partial class PdfWriter {
         return drawn;
     }
 
-    private static void DrawTableCellIcon(StringBuilder sb, PdfCellIcon icon, double x, double y, double size) {
+    private static void DrawTableCellIcon(StringBuilder sb, PdfCellIcon icon, double x, double y, double size, bool artifact) {
+        AppendArtifactBegin(sb, artifact);
         var content = new ContentStreamBuilder(sb);
         content.FillColor(icon.Color);
         double midX = x + size / 2D;
@@ -484,6 +485,8 @@ internal static partial class PdfWriter {
             default:
                 throw new ArgumentOutOfRangeException(nameof(icon), icon.Kind, "PDF table cell icon kind is not supported.");
         }
+
+        AppendArtifactEnd(sb, artifact);
     }
 
     private static void DrawCheckBoxIcon(ContentStreamBuilder content, PdfColor color, double x, double y, double size, bool selected) {

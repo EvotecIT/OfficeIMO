@@ -71,6 +71,12 @@ internal static partial class PdfWriter {
             EnsurePage();
             PageImage pageImage = CreatePageImage(ib, imageStyle, xImg, y - ib.Height);
             currentPage!.Images.Add(pageImage);
+            if (!string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
+                int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!);
+                pageImage.MarkedContentId = markedContentId;
+                pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
+            }
+
             AddImageLinkAnnotation(ib, imageStyle, pageImage, xImg, y - ib.Height);
             pageDirty = true;
             y -= ib.Height + imageStyle.SpacingAfter;

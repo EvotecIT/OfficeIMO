@@ -421,6 +421,11 @@ public class PdfComplianceAnalyzerTests {
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml("urn:example:custom-profile"), "application/xml", PdfAssociatedFileRelationship.Data);
+        var substringContextOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml("not-en16931-test"), "application/xml", PdfAssociatedFileRelationship.Data);
         var xRechnungOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
@@ -435,6 +440,10 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, unknownContextOptions),
             "einvoice-xml-profile-context",
             PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement substring = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, substringContextOptions),
+            "einvoice-xml-profile-context",
+            PdfComplianceRequirementStatus.Missing);
         PdfComplianceRequirement xRechnung = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, xRechnungOptions),
             "einvoice-xml-profile-context",
@@ -443,6 +452,7 @@ public class PdfComplianceAnalyzerTests {
         Assert.Contains("GuidelineSpecifiedDocumentContextParameter", missing.Diagnostic);
         Assert.Contains("recognized", unknown.Diagnostic);
         Assert.Contains("custom-profile", unknown.Diagnostic);
+        Assert.Contains("not-en16931-test", substring.Diagnostic);
         Assert.Contains("recognized EN 16931", xRechnung.Diagnostic);
     }
 
@@ -739,10 +749,10 @@ public class PdfComplianceAnalyzerTests {
         PdfComplianceRequirement missingBuyerTax = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingBuyerTaxOptions),
             "einvoice-xml-party-tax-registration",
-            PdfComplianceRequirementStatus.Missing);
+            PdfComplianceRequirementStatus.Satisfied);
 
         Assert.Contains("SellerTradeParty SpecifiedTaxRegistration ID", missingSellerTax.Diagnostic);
-        Assert.Contains("BuyerTradeParty SpecifiedTaxRegistration ID", missingBuyerTax.Diagnostic);
+        Assert.Contains("category-specific", missingBuyerTax.Diagnostic);
     }
 
     [Fact]
@@ -1954,6 +1964,18 @@ public class PdfComplianceAnalyzerTests {
                 grandTotalAmount: "100.00",
                 headerTradeTaxCalculatedAmountValue: "0.00",
                 headerTradeTaxExemptionReasonValue: "Not subject to VAT"), "application/xml", PdfAssociatedFileRelationship.Data);
+        var headerOnlyNotSubjectWithVatIdentifierOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(
+                headerTradeTaxCategoryCodeValue: "O",
+                lineTradeTaxCategoryCodeValue: "S",
+                includeTradeTaxRate: false,
+                taxTotalAmount: "0.00",
+                grandTotalAmount: "100.00",
+                headerTradeTaxCalculatedAmountValue: "0.00",
+                headerTradeTaxExemptionReasonValue: "Not subject to VAT"), "application/xml", PdfAssociatedFileRelationship.Data);
         var notSubjectWithoutVatIdentifierOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")
             .SetSrgbOutputIntent()
@@ -1974,6 +1996,10 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, notSubjectWithVatIdentifierOptions),
             "einvoice-xml-tax-party-identifiers",
             PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement headerOnlyNotSubjectWithVatIdentifier = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, headerOnlyNotSubjectWithVatIdentifierOptions),
+            "einvoice-xml-tax-party-identifiers",
+            PdfComplianceRequirementStatus.Missing);
         PdfComplianceRequirement notSubjectWithoutVatIdentifier = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, notSubjectWithoutVatIdentifierOptions),
             "einvoice-xml-tax-party-identifiers",
@@ -1982,6 +2008,7 @@ public class PdfComplianceAnalyzerTests {
         Assert.Contains("Peppol category O", notSubjectWithVatIdentifier.Diagnostic);
         Assert.Contains("seller VAT identifier for categories O", notSubjectWithVatIdentifier.Diagnostic);
         Assert.Contains("buyer VAT identifier for categories O", notSubjectWithVatIdentifier.Diagnostic);
+        Assert.Contains("seller VAT identifier for categories O", headerOnlyNotSubjectWithVatIdentifier.Diagnostic);
         Assert.Contains("AE, E, G, K, and O", notSubjectWithoutVatIdentifier.Diagnostic);
     }
 

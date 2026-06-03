@@ -346,23 +346,19 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("SellerTradeParty SpecifiedTaxRegistration ID");
             }
 
-            if (!evidence.HasBuyerTaxRegistrationId) {
-                missingFields.Add("BuyerTradeParty SpecifiedTaxRegistration ID");
-            }
-
             if (missingFields.Count > 0) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-party-tax-registration",
                     "EN 16931 XML party tax registration",
                     PdfComplianceRequirementStatus.Missing,
-                    "Set factur-x.xml seller and buyer tax registration essentials before Mustang validation: " + string.Join(", ", missingFields.ToArray()) + ".");
+                    "Set factur-x.xml seller tax registration essentials before Mustang validation: " + string.Join(", ", missingFields.ToArray()) + ".");
             }
 
             return new PdfComplianceRequirement(
                 "einvoice-xml-party-tax-registration",
                 "EN 16931 XML party tax registration",
                 PdfComplianceRequirementStatus.Satisfied,
-                "The factur-x.xml CrossIndustryInvoice includes seller and buyer tax registration identifiers for e-invoice readiness.");
+                "The factur-x.xml CrossIndustryInvoice includes seller tax registration identifiers and leaves buyer tax registration to category-specific e-invoice readiness checks.");
         }
 
         string diagnostic = diagnostics.Count == 0

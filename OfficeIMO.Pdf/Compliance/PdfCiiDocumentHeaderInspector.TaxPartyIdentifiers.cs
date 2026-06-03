@@ -78,9 +78,12 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     }
                 }
 
-                string[] distinctLineCategoryCodes = lineTaxCategoryCodes.Distinct(StringComparer.Ordinal).ToArray();
-                for (int i = 0; i < distinctLineCategoryCodes.Length; i++) {
-                    string categoryCode = distinctLineCategoryCodes[i];
+                string[] distinctVatForbiddenCategoryCodes = taxCategoryCodes
+                    .Concat(lineTaxCategoryCodes)
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray();
+                for (int i = 0; i < distinctVatForbiddenCategoryCodes.Length; i++) {
+                    string categoryCode = distinctVatForbiddenCategoryCodes[i];
                     if (!ForbidsVatRegistrationIdentifier(categoryCode)) {
                         continue;
                     }

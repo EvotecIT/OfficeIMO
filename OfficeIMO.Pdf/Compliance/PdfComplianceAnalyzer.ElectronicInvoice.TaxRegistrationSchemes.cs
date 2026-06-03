@@ -25,9 +25,7 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("SellerTradeParty SpecifiedTaxRegistration ID schemeID");
             }
 
-            if (!evidence.HasBuyerTaxRegistrationId) {
-                missingFields.Add("BuyerTradeParty SpecifiedTaxRegistration ID");
-            } else if (!evidence.HasBuyerTaxRegistrationSchemeId) {
+            if (evidence.HasBuyerTaxRegistrationId && !evidence.HasBuyerTaxRegistrationSchemeId) {
                 missingFields.Add("BuyerTradeParty SpecifiedTaxRegistration ID schemeID");
             }
 
@@ -36,14 +34,14 @@ public static partial class PdfComplianceAnalyzer {
                     "einvoice-xml-party-tax-registration-scheme",
                     "EN 16931 XML party tax registration scheme",
                     PdfComplianceRequirementStatus.Missing,
-                    "Set factur-x.xml seller and buyer tax registration scheme metadata before Mustang validation: " + string.Join(", ", missingFields.ToArray()) + ".");
+                    "Set factur-x.xml tax registration scheme metadata before Mustang validation: " + string.Join(", ", missingFields.ToArray()) + ".");
             }
 
             return new PdfComplianceRequirement(
                 "einvoice-xml-party-tax-registration-scheme",
                 "EN 16931 XML party tax registration scheme",
                 PdfComplianceRequirementStatus.Satisfied,
-                "The factur-x.xml CrossIndustryInvoice seller and buyer tax registration identifiers include schemeID metadata for e-invoice readiness.");
+                "The factur-x.xml CrossIndustryInvoice tax registration identifiers include schemeID metadata where identifiers are present for e-invoice readiness.");
         }
 
         string diagnostic = diagnostics.Count == 0

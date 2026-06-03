@@ -328,8 +328,16 @@ internal static partial class PdfWriter {
                             pageDirty = true;
                             var listFont = ChooseNormal(currentOpts.DefaultFont);
                             double baselineY = FirstTextBaselineFromTop(listFont, listItem.Size, yCol);
-                            int? listElementIndex = EnsurePageStructureContainer("L", ref columnListStructureElementIndexes[ci], ref columnListStructurePages[ci]);
-                            int? listItemElementIndex = RegisterStructureContainer("LI", listElementIndex);
+                            int? listElementIndex = line == 0 || listItem.StructureElement == null
+                                ? EnsurePageStructureContainer("L", ref columnListStructureElementIndexes[ci], ref columnListStructurePages[ci])
+                                : null;
+                            int? listItemElementIndex = line == 0 || listItem.StructureElement == null
+                                ? RegisterStructureContainer("LI", listElementIndex)
+                                : null;
+                            if (listItemElementIndex.HasValue && currentPage != null) {
+                                listItem.StructureElement = currentPage.StructElements[listItemElementIndex.Value];
+                            }
+
                             if (line == 0) {
                                 if (!string.IsNullOrEmpty(listItem.BookmarkName)) {
                                     AddNamedDestinationName(listItem.BookmarkName!, yCol);
@@ -340,7 +348,9 @@ internal static partial class PdfWriter {
                                 WriteLinesInternal("F1", listItem.Size, leading, xCol + listItem.MarkerXOffset, listItem.MarkerWidth, baselineY, markerLines, listItem.MarkerAlign, listItem.Color, applyBaselineTweak: true, structureType: "Lbl", markedContentId: labelMarkedContentId);
                             }
 
-                            int? bodyMarkedContentId = RegisterTextStructureElement("LBody", listItemElementIndex);
+                            int? bodyMarkedContentId = line == 0 || listItem.StructureElement == null
+                                ? RegisterTextStructureElement("LBody", listItemElementIndex)
+                                : RegisterTextStructureElement("LBody", listItem.StructureElement);
                             WriteRichParagraph(sb, new RichParagraphBlock(listItem.Runs, listItem.TextAlign, listItem.Color), sliceLines, sliceHeights, currentOpts, baselineY, listItem.Size, leading, currentPage!.Annotations, xCol + listItem.TextXOffset, listItem.TextWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
                             MarkRichFonts(listItem.Runs);
                             yCol -= hsum;
@@ -629,7 +639,7 @@ internal static partial class PdfWriter {
                                 if (DrawTableCellDataBars(sb, tableStyle, cells, rowIndex, table.Columns, xTable, yCol, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips, emitGeneratedStructure)) {
                                     pageDirty = true;
                                 }
-                                if (DrawTableCellIcons(sb, tableStyle, cells, rowIndex, table.Columns, xTable, yCol, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips)) {
+                                if (DrawTableCellIcons(sb, tableStyle, cells, rowIndex, table.Columns, xTable, yCol, rowBottom, rowHeight, table.ColumnWidths, columnGap, table.RowHeights, columnTableRowGap, wholeRowSegment, startLine, rowFillSkips, emitGeneratedStructure)) {
                                     pageDirty = true;
                                 }
 
@@ -690,6 +700,7 @@ internal static partial class PdfWriter {
                                         AddTableCellNamedDestinationName(cell.NamedDestinationName, yCol);
                                     }
 
+                                    int? cellLinkStructElementIndex = null;
                                     if (visibleLineCount > 0) {
                                         var visibleLines = SliceTableCellLines(lines, sourceStartLine, visibleLineCount);
                                         visibleLines = StripRichLineLinksWhenCellLinked(visibleLines, linkUri, linkDestinationName);
@@ -698,8 +709,19 @@ internal static partial class PdfWriter {
                                         string structureType = renderAsHeader ? "TH" : "TD";
                                         int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
                                         int tableRowSpan = wholeRowSegment && cell.RowSpan > 1 ? cell.RowSpan : 1;
-                                        int? markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
-                                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: structureType, markedContentId: markedContentId, structurePage: currentPage);
+                                        bool cellHasLinkTarget = HasCellLinkTarget(linkUri, linkDestinationName);
+                                        int? markedContentId;
+                                        string markedStructureType = structureType;
+                                        if (cellHasLinkTarget && emitGeneratedStructure && currentPage != null) {
+                                            int? cellElementIndex = RegisterStructureContainer(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
+                                            markedStructureType = "Link";
+                                            markedContentId = RegisterTextStructureElement(markedStructureType, cellElementIndex);
+                                            cellLinkStructElementIndex = FindStructElementIndex(currentPage, markedContentId, markedStructureType);
+                                        } else {
+                                            markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
+                                        }
+
+                                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
                                     }
                                     if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                                         if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
@@ -711,7 +733,7 @@ internal static partial class PdfWriter {
                                     }
 
                                     if (HasCellLinkTarget(linkUri, linkDestinationName)) {
-                                        currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi + cellPadLeft, Y1 = cellBottom, X2 = xi + cellWidth - cellPadRight, Y2 = yCol, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text });
+                                        currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi + cellPadLeft, Y1 = cellBottom, X2 = xi + cellWidth - cellPadRight, Y2 = yCol, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text, StructElementIndex = cellLinkStructElementIndex });
                                     }
                                 }
 

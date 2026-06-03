@@ -102,11 +102,18 @@ public static partial class PdfComplianceAnalyzer {
 
     private static bool IsKnownElectronicInvoiceProfileContext(string contextId) {
         string normalized = contextId.Trim().ToUpperInvariant().Replace("_", "").Replace(" ", "");
-        return normalized.Contains("FACTUR-X") ||
-            normalized.Contains("ZUGFERD") ||
-            normalized.Contains("EN16931") ||
-            normalized.Contains("XRECHNUNG") ||
-            normalized.Contains("CEN.EU:EN16931");
+        return normalized == "URN:FACTUR-X.EU:1P0:MINIMUM" ||
+            normalized == "URN:FACTUR-X.EU:1P0:BASICWL" ||
+            normalized == "URN:FACTUR-X.EU:1P0:BASIC" ||
+            normalized == "URN:FACTUR-X.EU:1P0:EN16931" ||
+            normalized == "URN:FACTUR-X.EU:1P0:EXTENDED" ||
+            normalized == "URN:FACTUR-X.EU:1P0:XRECHNUNG" ||
+            normalized == "URN:FERD:CROSSINDUSTRYDOCUMENT:INVOICE:1P0:BASIC" ||
+            normalized == "URN:FERD:CROSSINDUSTRYDOCUMENT:INVOICE:1P0:COMFORT" ||
+            normalized == "URN:FERD:CROSSINDUSTRYDOCUMENT:INVOICE:1P0:EXTENDED" ||
+            normalized == "URN:CEN.EU:EN16931:2017" ||
+            normalized.StartsWith("URN:CEN.EU:EN16931:2017#COMPLIANT#URN:XOEV-DE:KOSIT:STANDARD:XRECHNUNG", StringComparison.Ordinal) ||
+            normalized.StartsWith("URN:CEN.EU:EN16931:2017#COMPLIANT#URN:XEINKAUF.DE:KOSIT:XRECHNUNG", StringComparison.Ordinal);
     }
 
     private static bool IsFacturXCiiAttachment(PdfEmbeddedFile file, List<string> diagnostics) {

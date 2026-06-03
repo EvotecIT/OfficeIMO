@@ -66,6 +66,7 @@ internal static partial class PdfWriter {
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
+            PageStructElement? listItemElement = null;
             spacingBefore = ResolveTopLevelSpacingBefore(spacingBefore);
             if (spacingBefore > 0) {
                 if (y - spacingBefore < currentOpts.MarginBottom) {
@@ -112,9 +113,13 @@ internal static partial class PdfWriter {
                 }
 
                 double baselineY = FirstTextBaselineFromTop(listFont, size, y);
-                int? listElementIndex = EnsurePageStructureContainer("L", ref listStructureElementIndex, ref listStructurePage);
-                int? listItemElementIndex = RegisterStructureContainer("LI", listElementIndex);
+                int? listElementIndex = firstSegment ? EnsurePageStructureContainer("L", ref listStructureElementIndex, ref listStructurePage) : null;
+                int? listItemElementIndex = firstSegment ? RegisterStructureContainer("LI", listElementIndex) : null;
                 if (firstSegment) {
+                    if (listItemElementIndex.HasValue && currentPage != null) {
+                        listItemElement = currentPage.StructElements[listItemElementIndex.Value];
+                    }
+
                     if (!string.IsNullOrEmpty(bookmarkName)) {
                         AddNamedDestinationName(bookmarkName!, y);
                     }
@@ -125,7 +130,9 @@ internal static partial class PdfWriter {
                 }
 
                 pageDirty = true;
-                int? bodyMarkedContentId = RegisterTextStructureElement("LBody", listItemElementIndex);
+                int? bodyMarkedContentId = firstSegment || listItemElement == null
+                    ? RegisterTextStructureElement("LBody", listItemElementIndex)
+                    : RegisterTextStructureElement("LBody", listItemElement);
                 WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, textX, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
                 MarkRichFonts(runs);
                 y -= heightSum;

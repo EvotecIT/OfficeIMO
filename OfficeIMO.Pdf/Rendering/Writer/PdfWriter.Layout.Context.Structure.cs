@@ -48,6 +48,20 @@ internal static partial class PdfWriter {
             return markedContentId;
         }
 
+        private int? RegisterTextStructureElement(string structureType, PageStructElement? parentElement) {
+            if (!emitGeneratedStructure || currentPage == null) {
+                return null;
+            }
+
+            int markedContentId = currentPage.NextMarkedContentId++;
+            currentPage.StructElements.Add(new PageStructElement {
+                MarkedContentId = markedContentId,
+                StructureType = structureType,
+                ParentElement = parentElement
+            });
+            return markedContentId;
+        }
+
         private int? RegisterFigureStructureElement(string alternativeText) {
             if (!emitGeneratedStructure || currentPage == null) {
                 return null;

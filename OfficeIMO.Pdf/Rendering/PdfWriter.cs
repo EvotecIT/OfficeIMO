@@ -500,7 +500,7 @@ internal static partial class PdfWriter {
 
     private static void AssignFigureMarkedContentIds(LayoutResult.Page page) {
         foreach (PageImage image in page.Images) {
-            if (image.IsBackgroundDecoration || string.IsNullOrWhiteSpace(image.AlternativeText)) {
+            if (image.IsBackgroundDecoration || string.IsNullOrWhiteSpace(image.AlternativeText) || image.MarkedContentId.HasValue || image.StructElementIndex.HasValue) {
                 continue;
             }
 
@@ -571,17 +571,22 @@ internal static partial class PdfWriter {
         var parentTreeEntries = new List<PdfStructTreeRootDictionaryBuilder.ParentTreeEntry>();
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             LayoutResult.Page page = pages[pageIndex];
+            for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
+                page.StructElements[elementIndex].ObjectId = ReserveObject(objects);
+            }
+        }
+
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            LayoutResult.Page page = pages[pageIndex];
             if (page.StructElements.Count == 0) {
                 continue;
             }
 
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
-                page.StructElements[elementIndex].ObjectId = ReserveObject(objects);
-            }
-
-            for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
-                int parentObjectId = element.ParentElementIndex.HasValue &&
+                int parentObjectId = element.ParentElement != null
+                    ? element.ParentElement.ObjectId
+                    : element.ParentElementIndex.HasValue &&
                     element.ParentElementIndex.Value >= 0 &&
                     element.ParentElementIndex.Value < page.StructElements.Count
                         ? page.StructElements[element.ParentElementIndex.Value].ObjectId
@@ -621,6 +626,15 @@ internal static partial class PdfWriter {
                         }
                     }
 
+                    for (int childPageIndex = 0; childPageIndex < pages.Count; childPageIndex++) {
+                        LayoutResult.Page childPage = pages[childPageIndex];
+                        for (int childIndex = 0; childIndex < childPage.StructElements.Count; childIndex++) {
+                            if (ReferenceEquals(childPage.StructElements[childIndex].ParentElement, element)) {
+                                elementChildIds.Add(childPage.StructElements[childIndex].ObjectId);
+                            }
+                        }
+                    }
+
                     structElement = PdfStructTreeRootDictionaryBuilder.BuildContainerStructElement(
                         parentObjectId,
                         pageIds[pageIndex],
@@ -651,7 +665,7 @@ internal static partial class PdfWriter {
 
             for (int elementIndex = 0; elementIndex < page.StructElements.Count; elementIndex++) {
                 PageStructElement element = page.StructElements[elementIndex];
-                if (!element.ParentElementIndex.HasValue) {
+                if (!element.ParentElementIndex.HasValue && element.ParentElement == null) {
                     documentChildElementIds.Add(element.ObjectId);
                 }
             }
