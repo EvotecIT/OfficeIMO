@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Represents a caller-supplied TrueType font family used by generated PDF text.
 /// </summary>
-public sealed class PdfEmbeddedFontFamily {
+public sealed partial class PdfEmbeddedFontFamily {
     private readonly byte[] _regular;
     private readonly byte[]? _bold;
     private readonly byte[]? _italic;
