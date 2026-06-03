@@ -51,7 +51,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds);
     }
 
-    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds) {
+    internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
         Guard.NotNull(childElementIds, nameof(childElementIds));
         var sb = new StringBuilder();
@@ -63,16 +63,21 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             .Append(PdfSyntaxEscaper.IndirectReference(pageId))
             .Append(" /K ");
         AppendReferenceArray(sb, childElementIds);
+        if (ShouldEmitTableAttributes(structureType, tableHeaderScope, tableColumnSpan, tableRowSpan)) {
+            AppendTableAttributes(sb, structureType, tableHeaderScope, tableColumnSpan, tableRowSpan);
+        }
+
         sb.Append(" >>\n");
         return sb.ToString();
     }
 
-    internal static string BuildAnnotationStructElement(int parentId, int pageId, int annotationObjectId, int? markedContentId = null, IReadOnlyList<int>? additionalMarkedContentIds = null, string structureType = "Link") {
+    internal static string BuildAnnotationStructElement(int parentId, int pageId, int annotationObjectId, int? markedContentId = null, IReadOnlyList<int>? additionalMarkedContentIds = null, IReadOnlyList<int>? additionalAnnotationObjectIds = null, string structureType = "Link", string? alternativeText = null) {
         if (annotationObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(annotationObjectId), annotationObjectId, "PDF annotation object id must be positive.");
         }
 
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
+        bool hasAdditionalAnnotationObjects = additionalAnnotationObjectIds != null && additionalAnnotationObjectIds.Count > 0;
         var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(PdfSyntaxEscaper.Name(structureType))
@@ -93,15 +98,46 @@ internal static class PdfStructTreeRootDictionaryBuilder {
 
             sb.Append(" << /Type /OBJR /Obj ")
                 .Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId))
-                .Append(" >>]");
+                .Append(" >>");
+            AppendAdditionalObjectReferences(sb, additionalAnnotationObjectIds);
+            sb.Append(']');
+        } else if (hasAdditionalAnnotationObjects) {
+            sb.Append('[')
+                .Append("<< /Type /OBJR /Obj ")
+                .Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId))
+                .Append(" >>");
+            AppendAdditionalObjectReferences(sb, additionalAnnotationObjectIds);
+            sb.Append(']');
         } else {
             sb.Append("<< /Type /OBJR /Obj ")
                 .Append(PdfSyntaxEscaper.IndirectReference(annotationObjectId))
                 .Append(" >>");
         }
 
+        if (!string.IsNullOrWhiteSpace(alternativeText)) {
+            sb.Append(" /Alt ")
+                .Append(PdfSyntaxEscaper.TextString(alternativeText!));
+        }
+
         sb.Append(" >>\n");
         return sb.ToString();
+    }
+
+    private static void AppendAdditionalObjectReferences(StringBuilder sb, IReadOnlyList<int>? additionalAnnotationObjectIds) {
+        if (additionalAnnotationObjectIds == null) {
+            return;
+        }
+
+        for (int i = 0; i < additionalAnnotationObjectIds.Count; i++) {
+            int objectId = additionalAnnotationObjectIds[i];
+            if (objectId <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(additionalAnnotationObjectIds), objectId, "PDF annotation object id must be positive.");
+            }
+
+            sb.Append(" << /Type /OBJR /Obj ")
+                .Append(PdfSyntaxEscaper.IndirectReference(objectId))
+                .Append(" >>");
+        }
     }
 
     private static void AppendMarkedContentReference(StringBuilder sb, int pageId, int markedContentId) {

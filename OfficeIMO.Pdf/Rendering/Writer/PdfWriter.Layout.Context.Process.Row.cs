@@ -949,8 +949,8 @@ internal static partial class PdfWriter {
                             if (needed > remain && consumed > 0) break;
                             if (needed > remain && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
-                            DrawShapeAt(shape, shapeStyle, xCol, wCol, yCol);
-                            AddShapeLinkAnnotation(shape, shapeStyle, xCol, wCol, yCol);
+                            int? structElementIndex = DrawShapeAt(shape, shapeStyle, xCol, wCol, yCol);
+                            AddShapeLinkAnnotation(shape, shapeStyle, xCol, wCol, yCol, structElementIndex);
                             yCol -= shape.Shape.Height + shapeStyle.SpacingAfter;
                             remain -= needed;
                             consumed += needed;
@@ -976,8 +976,8 @@ internal static partial class PdfWriter {
                             if (needed > remain && consumed > 0) break;
                             if (needed > remain && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
-                            DrawDrawingAt(drawing, drawingStyle, xCol, wCol, yCol);
-                            AddDrawingLinkAnnotation(drawing, drawingStyle, xCol, wCol, yCol);
+                            int? structElementIndex = DrawDrawingAt(drawing, drawingStyle, xCol, wCol, yCol);
+                            AddDrawingLinkAnnotation(drawing, drawingStyle, xCol, wCol, yCol, structElementIndex);
                             yCol -= drawing.Drawing.Height + drawingStyle.SpacingAfter;
                             remain -= needed;
                             consumed += needed;

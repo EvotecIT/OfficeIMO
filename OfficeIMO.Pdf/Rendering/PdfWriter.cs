@@ -242,12 +242,14 @@ internal static partial class PdfWriter {
                     int annId = AddObject(objects, annot);
                     a.ObjectId = annId;
                     if (markInfo && a.StructParentIndex.HasValue) {
+                        if (!a.StructElementIndex.HasValue && a.LinkedImage?.StructElementIndex.HasValue == true) {
+                            a.StructElementIndex = a.LinkedImage.StructElementIndex;
+                        }
+
                         if (a.StructElementIndex.HasValue &&
                             a.StructElementIndex.Value >= 0 &&
                             a.StructElementIndex.Value < page.StructElements.Count) {
-                            PageStructElement structElement = page.StructElements[a.StructElementIndex.Value];
-                            structElement.AnnotationObjectId = annId;
-                            structElement.AnnotationStructParentIndex = a.StructParentIndex;
+                            AttachAnnotationToStructElement(page.StructElements[a.StructElementIndex.Value], annId, a.StructParentIndex.Value);
                         } else {
                             page.StructElements.Add(new PageStructElement {
                                 StructureType = "Link",
@@ -496,13 +498,26 @@ internal static partial class PdfWriter {
             }
 
             int markedContentId = page.NextMarkedContentId++;
+            int structElementIndex = page.StructElements.Count;
             image.MarkedContentId = markedContentId;
+            image.StructElementIndex = structElementIndex;
             page.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = "Figure",
                 AlternativeText = image.AlternativeText!
             });
         }
+    }
+
+    private static void AttachAnnotationToStructElement(PageStructElement structElement, int annotationObjectId, int annotationStructParentIndex) {
+        if (!structElement.AnnotationObjectId.HasValue) {
+            structElement.AnnotationObjectId = annotationObjectId;
+            structElement.AnnotationStructParentIndex = annotationStructParentIndex;
+            return;
+        }
+
+        (structElement.AdditionalAnnotationObjectIds ??= new System.Collections.Generic.List<int>()).Add(annotationObjectId);
+        (structElement.AdditionalAnnotationStructParentIndexes ??= new System.Collections.Generic.List<int>()).Add(annotationStructParentIndex);
     }
 
     private static void AssignStructParentIndex(LayoutResult.Page page, ref int nextStructParentIndex) {
@@ -572,7 +587,9 @@ internal static partial class PdfWriter {
                         element.AnnotationObjectId.Value,
                         element.MarkedContentId,
                         element.AdditionalMarkedContentIds,
-                        element.StructureType);
+                        element.AdditionalAnnotationObjectIds,
+                        element.StructureType,
+                        element.AlternativeText);
                 } else if (element.MarkedContentId.HasValue) {
                     structElement = string.Equals(element.StructureType, "Figure", StringComparison.Ordinal)
                         ? PdfStructTreeRootDictionaryBuilder.BuildFigureStructElement(
@@ -601,7 +618,10 @@ internal static partial class PdfWriter {
                         parentObjectId,
                         pageIds[pageIndex],
                         element.StructureType,
-                        elementChildIds);
+                        elementChildIds,
+                        element.TableHeaderScope,
+                        element.TableColumnSpan,
+                        element.TableRowSpan);
                 }
 
                 ReplaceObject(objects, element.ObjectId, structElement);
@@ -635,6 +655,11 @@ internal static partial class PdfWriter {
 
             foreach (PageStructElement element in page.StructElements.Where(element => element.AnnotationObjectId.HasValue && element.AnnotationStructParentIndex.HasValue).OrderBy(element => element.AnnotationStructParentIndex!.Value)) {
                 parentTreeEntries.Add(PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(element.AnnotationStructParentIndex!.Value, element.ObjectId));
+                if (element.AdditionalAnnotationStructParentIndexes != null) {
+                    for (int additionalIndex = 0; additionalIndex < element.AdditionalAnnotationStructParentIndexes.Count; additionalIndex++) {
+                        parentTreeEntries.Add(PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(element.AdditionalAnnotationStructParentIndexes[additionalIndex], element.ObjectId));
+                    }
+                }
             }
         }
 

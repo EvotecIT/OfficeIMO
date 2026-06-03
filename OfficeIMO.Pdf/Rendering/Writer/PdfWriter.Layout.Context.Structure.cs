@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private int? RegisterStructureContainer(string structureType, int? parentElementIndex = null) {
+        private int? RegisterStructureContainer(string structureType, int? parentElementIndex = null, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
             if (!emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -10,7 +10,10 @@ internal static partial class PdfWriter {
             int elementIndex = currentPage.StructElements.Count;
             currentPage.StructElements.Add(new PageStructElement {
                 StructureType = structureType,
-                ParentElementIndex = parentElementIndex
+                ParentElementIndex = parentElementIndex,
+                TableHeaderScope = tableHeaderScope,
+                TableColumnSpan = tableColumnSpan,
+                TableRowSpan = tableRowSpan
             });
             return elementIndex;
         }

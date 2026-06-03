@@ -666,7 +666,7 @@ internal static partial class PdfWriter {
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
                 content.FillColor(color ?? PdfColor.Black);
                 bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
-                if (!hasLinkTarget) {
+                if (!hasLinkTarget || s.LeadingSpace) {
                     EnsureTextMarkedContentOpen(
                         sb,
                         ref content,

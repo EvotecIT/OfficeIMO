@@ -183,16 +183,19 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void DrawShapeAt(ShapeBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
+        private int? DrawShapeAt(ShapeBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
             double xShape = GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align);
-            bool markedContent = AppendDrawingMarkedContentBegin(style);
+            bool markedContent;
+            int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
             DrawShapeGeometryAt(block.Shape, xShape, topY - block.Shape.Height);
             AppendDrawingMarkedContentEnd(markedContent);
+            return structElementIndex;
         }
 
-        private void DrawDrawingAt(DrawingBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
+        private int? DrawDrawingAt(DrawingBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
             double xDrawing = GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align);
-            bool markedContent = AppendDrawingMarkedContentBegin(style);
+            bool markedContent;
+            int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
             for (int i = 0; i < block.Drawing.Shapes.Count; i++) {
                 var item = block.Drawing.Shapes[i];
                 double xShape = xDrawing + item.X;
@@ -201,22 +204,26 @@ internal static partial class PdfWriter {
             }
 
             AppendDrawingMarkedContentEnd(markedContent);
+            return structElementIndex;
         }
 
-        private bool AppendDrawingMarkedContentBegin(PdfDrawingStyle style) {
+        private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent) {
             EnsurePage();
             currentPage!.Drawings.Add(new PdfGeneratedDrawingAccessibilityEvidence(!string.IsNullOrWhiteSpace(style.AlternativeText), style.Decorative));
 
             if (style.Decorative) {
                 AppendArtifactBegin(sb, emitGeneratedStructure);
-                return emitGeneratedStructure;
+                markedContent = emitGeneratedStructure;
+                return null;
             }
 
             if (string.IsNullOrWhiteSpace(style.AlternativeText)) {
-                return false;
+                markedContent = false;
+                return null;
             }
 
             int? markedContentId = RegisterFigureStructureElement(style.AlternativeText!);
+            int? structElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
             sb.Append("/Figure << /Alt ")
                 .Append(PdfSyntaxEscaper.TextString(style.AlternativeText!));
             if (markedContentId.HasValue) {
@@ -225,7 +232,8 @@ internal static partial class PdfWriter {
             }
 
             sb.Append(" >> BDC\n");
-            return true;
+            markedContent = true;
+            return structElementIndex;
         }
 
         private void AppendDrawingMarkedContentEnd(bool markedContent) {
@@ -245,8 +253,8 @@ internal static partial class PdfWriter {
                 spacingBefore = 0D;
             }
             if (spacingBefore > 0) y -= spacingBefore;
-            DrawShapeAt(block, style, containerX, containerWidth, y);
-            AddShapeLinkAnnotation(block, style, containerX, containerWidth, y);
+            int? structElementIndex = DrawShapeAt(block, style, containerX, containerWidth, y);
+            AddShapeLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             y -= block.Shape.Height + style.SpacingAfter;
         }
 
@@ -261,8 +269,8 @@ internal static partial class PdfWriter {
                 spacingBefore = 0D;
             }
             if (spacingBefore > 0) y -= spacingBefore;
-            DrawDrawingAt(block, style, containerX, containerWidth, y);
-            AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y);
+            int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
+            AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
             y -= block.Drawing.Height + style.SpacingAfter;
         }
 
@@ -280,22 +288,22 @@ internal static partial class PdfWriter {
             return containerX;
         }
 
-        private void AddShapeLinkAnnotation(ShapeBlock shape, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
+        private void AddShapeLinkAnnotation(ShapeBlock shape, PdfDrawingStyle style, double containerX, double containerWidth, double topY, int? structElementIndex = null) {
             if (string.IsNullOrEmpty(shape.LinkUri)) {
                 return;
             }
 
             double x = GetAlignedObjectX(containerX, containerWidth, shape.Shape.Width, style.Align);
-            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x, Y1 = topY - shape.Shape.Height, X2 = x + shape.Shape.Width, Y2 = topY, Uri = shape.LinkUri!, Contents = shape.LinkContents });
+            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x, Y1 = topY - shape.Shape.Height, X2 = x + shape.Shape.Width, Y2 = topY, Uri = shape.LinkUri!, Contents = shape.LinkContents, StructElementIndex = structElementIndex });
         }
 
-        private void AddDrawingLinkAnnotation(DrawingBlock drawing, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
+        private void AddDrawingLinkAnnotation(DrawingBlock drawing, PdfDrawingStyle style, double containerX, double containerWidth, double topY, int? structElementIndex = null) {
             if (string.IsNullOrEmpty(drawing.LinkUri)) {
                 return;
             }
 
             double x = GetAlignedObjectX(containerX, containerWidth, drawing.Drawing.Width, style.Align);
-            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x, Y1 = topY - drawing.Drawing.Height, X2 = x + drawing.Drawing.Width, Y2 = topY, Uri = drawing.LinkUri!, Contents = drawing.LinkContents });
+            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x, Y1 = topY - drawing.Drawing.Height, X2 = x + drawing.Drawing.Width, Y2 = topY, Uri = drawing.LinkUri!, Contents = drawing.LinkContents, StructElementIndex = structElementIndex });
         }
 
     }

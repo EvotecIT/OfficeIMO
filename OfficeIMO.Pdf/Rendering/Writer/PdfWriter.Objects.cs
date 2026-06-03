@@ -119,6 +119,7 @@ internal static partial class PdfWriter {
         public string? Contents { get; set; }
         public int? StructParentIndex { get; set; }
         public int? StructElementIndex { get; set; }
+        public PageImage? LinkedImage { get; set; }
         public int ObjectId { get; set; }
     }
 
@@ -176,7 +177,9 @@ internal static partial class PdfWriter {
         public int TableRowSpan { get; set; } = 1;
         public int? ParentElementIndex { get; set; }
         public int? AnnotationObjectId { get; set; }
+        public System.Collections.Generic.List<int>? AdditionalAnnotationObjectIds { get; set; }
         public int? AnnotationStructParentIndex { get; set; }
+        public System.Collections.Generic.List<int>? AdditionalAnnotationStructParentIndexes { get; set; }
         public int ObjectId { get; set; }
     }
 
@@ -235,6 +238,7 @@ internal static partial class PdfWriter {
         public string? GraphicsStateName { get; set; }
         public string? AlternativeText { get; set; }
         public int? MarkedContentId { get; set; }
+        public int? StructElementIndex { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
     }

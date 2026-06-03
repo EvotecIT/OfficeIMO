@@ -81,7 +81,7 @@ internal static partial class PdfWriter {
                 y2 = targetBottomY + image.Height;
             }
 
-            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents });
+            currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });
         }
 
         private void AddNamedDestination(BookmarkBlock bookmark, double topY) {

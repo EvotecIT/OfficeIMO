@@ -511,16 +511,17 @@ public class PdfDocComplianceAssessmentTests {
         Assert.Contains("/StructParent 1", content, StringComparison.Ordinal);
         Assert.Contains("ET\nEMC\n/Link << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Link << /MCID 1 >> BDC", content, StringComparison.Ordinal);
-        Assert.Contains("/Link << /MCID 2 >> BDC", content, StringComparison.Ordinal);
+        Assert.Contains("/P << /MCID 2 >> BDC", content, StringComparison.Ordinal);
+        Assert.Contains("/Link << /MCID 3 >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /Document", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /Link", content, StringComparison.Ordinal);
         Assert.Contains("/K [<< /Type /MCR /Pg ", content, StringComparison.Ordinal);
         Assert.Contains("/MCID 1 >> << /Type /MCR /Pg ", content, StringComparison.Ordinal);
-        Assert.Contains("/MCID 2 >> << /Type /OBJR /Obj ", content, StringComparison.Ordinal);
+        Assert.Contains("/MCID 3 >> << /Type /OBJR /Obj ", content, StringComparison.Ordinal);
         Assert.Contains("/ParentTreeNextKey 2", content, StringComparison.Ordinal);
         Assert.Contains("/Nums [0 [", content, StringComparison.Ordinal);
         Assert.Matches(@"/Nums \[0 \[[^\]]+\] 1 \d+ 0 R\]", content);
-        Assert.Matches(@"/Nums \[0 \[\d+ 0 R (?<link>\d+) 0 R \k<link> 0 R\] 1 \k<link> 0 R\]", content);
+        Assert.Matches(@"/Nums \[0 \[\d+ 0 R (?<link>\d+) 0 R \d+ 0 R \k<link> 0 R\] 1 \k<link> 0 R\]", content);
     }
 
     [Fact]
@@ -541,6 +542,27 @@ public class PdfDocComplianceAssessmentTests {
         Assert.Matches(@"/Type /StructElem /S /H1 /P \d+ 0 R /Pg \d+ 0 R /K \[\d+ 0 R\]", content);
         Assert.Matches(@"/Type /StructElem /S /Link /P \d+ 0 R /Pg \d+ 0 R /K \[<< /Type /MCR /Pg \d+ 0 R /MCID 0 >> << /Type /OBJR /Obj \d+ 0 R >>\]", content);
         Assert.Contains("/Type /OBJR /Obj", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TaggedWrappedLinkedHeadingPreservesAllAnnotationStructureReferences() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 170,
+                MarginLeft = 24,
+                MarginRight = 24
+            })
+            .TaggedPdfCatalogMarkers()
+            .H1("Premium PDF fonts and compliance evidence", linkUri: "https://officeimo.net/", linkContents: "OfficeIMO PDF")
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.True(CountOccurrences(content, "/Subtype /Link") >= 2);
+        Assert.Contains("/Type /StructElem /S /H1", content, StringComparison.Ordinal);
+        Assert.Contains("/Type /StructElem /S /Link", content, StringComparison.Ordinal);
+        Assert.Matches(@"/Type /StructElem /S /Link /P \d+ 0 R /Pg \d+ 0 R /K \[<< /Type /MCR /Pg \d+ 0 R /MCID 0 >> << /Type /OBJR /Obj \d+ 0 R >> << /Type /OBJR /Obj \d+ 0 R >>", content);
+        Assert.Matches(@"/Nums \[0 \[(?<link>\d+) 0 R\] 1 \k<link> 0 R 2 \k<link> 0 R", content);
     }
 
     [Fact]
@@ -712,6 +734,32 @@ public class PdfDocComplianceAssessmentTests {
         Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
         Assert.Contains("/ParentTree", content, StringComparison.Ordinal);
         Assert.Contains("/Nums [0 [", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TaggedLinkedTableCellWrapsTextInLinkStructure() {
+        PdfTableStyle style = TableStyles.Minimal();
+        style.HeaderRowCount = 0;
+
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Table(new[] {
+                new[] { PdfTableCell.TextCell("Resource", linkUri: "https://officeimo.net/table", linkContents: "Linked table resource") }
+            }, style: style)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Subtype /Link", content, StringComparison.Ordinal);
+        Assert.Contains("/Link << /MCID", content, StringComparison.Ordinal);
+        Assert.Contains("/Type /StructElem /S /Table", content, StringComparison.Ordinal);
+        Assert.Contains("/Type /StructElem /S /TD", content, StringComparison.Ordinal);
+        Assert.Contains("/Type /StructElem /S /Link", content, StringComparison.Ordinal);
+        Assert.Matches(@"/Type /StructElem /S /TD /P \d+ 0 R /Pg \d+ 0 R /K \[\d+ 0 R\]", content);
+        Assert.Matches(@"/Type /StructElem /S /Link /P \d+ 0 R /Pg \d+ 0 R /K \[<< /Type /MCR /Pg \d+ 0 R /MCID \d+ >> << /Type /OBJR /Obj \d+ 0 R >>\]", content);
+        Assert.Matches(@"/Nums \[0 \[[^\]]+\] 1 (?<link>\d+) 0 R\]", content);
     }
 
     [Fact]
@@ -977,20 +1025,24 @@ public class PdfDocComplianceAssessmentTests {
             .TaggedPdfCatalogMarkers()
             .Shape(shape, style: new PdfDrawingStyle {
                 AlternativeText = "Risk status badge"
-            })
+            }, linkUri: "https://officeimo.net/shape", linkContents: "Risk shape")
             .Drawing(drawing, style: new PdfDrawingStyle {
                 AlternativeText = "Approval workflow diagram"
-            })
+            }, linkUri: "https://officeimo.net/drawing", linkContents: "Approval drawing")
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/MarkInfo << /Marked true >>", content, StringComparison.Ordinal);
         Assert.Contains("/StructParents 0", content, StringComparison.Ordinal);
+        Assert.Equal(2, CountOccurrences(content, "/Subtype /Link"));
         Assert.Contains("/Figure << /Alt <5269736B20737461747573206261646765> /MCID 0 >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/Figure << /Alt <417070726F76616C20776F726B666C6F77206469616772616D> /MCID 1 >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /Figure", content, StringComparison.Ordinal);
+        Assert.Matches(@"/Type /StructElem /S /Figure /P \d+ 0 R /Pg \d+ 0 R /K \[<< /Type /MCR /Pg \d+ 0 R /MCID 0 >> << /Type /OBJR /Obj \d+ 0 R >>\] /Alt", content);
+        Assert.Matches(@"/Type /StructElem /S /Figure /P \d+ 0 R /Pg \d+ 0 R /K \[<< /Type /MCR /Pg \d+ 0 R /MCID 1 >> << /Type /OBJR /Obj \d+ 0 R >>\] /Alt", content);
         Assert.Contains("/ParentTree", content, StringComparison.Ordinal);
+        Assert.Matches(@"/Nums \[0 \[(?<shape>\d+) 0 R (?<drawing>\d+) 0 R\] 1 \k<shape> 0 R 2 \k<drawing> 0 R\]", content);
     }
 
     [Fact]

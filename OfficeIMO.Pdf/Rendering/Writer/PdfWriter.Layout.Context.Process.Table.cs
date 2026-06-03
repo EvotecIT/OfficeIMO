@@ -402,6 +402,7 @@ internal static partial class PdfWriter {
                         AddTableCellNamedDestinationName(cell.NamedDestinationName, y);
                     }
 
+                    int? cellLinkStructElementIndex = null;
                     if (visibleLineCount > 0) {
                         var visibleLines = SliceTableCellLines(lines, sourceStartLine, visibleLineCount);
                         visibleLines = StripRichLineLinksWhenCellLinked(visibleLines, linkUri, linkDestinationName);
@@ -410,8 +411,19 @@ internal static partial class PdfWriter {
                         string structureType = renderAsHeader ? "TH" : "TD";
                         int tableColumnSpan = cell.ColumnSpan > 1 ? cell.ColumnSpan : 1;
                         int tableRowSpan = wholeRowSegment && cell.RowSpan > 1 ? cell.RowSpan : 1;
-                        int? markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
-                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: structureType, markedContentId: markedContentId, structurePage: currentPage);
+                        bool cellHasLinkTarget = HasCellLinkTarget(linkUri, linkDestinationName);
+                        int? markedContentId;
+                        string markedStructureType = structureType;
+                        if (cellHasLinkTarget && emitGeneratedStructure && currentPage != null) {
+                            int? cellElementIndex = RegisterStructureContainer(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
+                            markedStructureType = "Link";
+                            markedContentId = RegisterTextStructureElement(markedStructureType, cellElementIndex);
+                            cellLinkStructElementIndex = FindStructElementIndex(currentPage, markedContentId, markedStructureType);
+                        } else {
+                            markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
+                        }
+
+                        WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
                     }
                     if (!suppressCellObjects && (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) && sourceStartLine == 0) {
                         if (CanRenderTableCellCheckBoxInline(cell, lines, sourceStartLine, visibleLineCount)) {
@@ -427,7 +439,7 @@ internal static partial class PdfWriter {
                         double x2 = xi + cellWidth - cellPadRight;
                         double y1 = cellBottom;
                         double y2 = y;
-                        currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text });
+                        currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text, StructElementIndex = cellLinkStructElementIndex });
                     }
                 }
                 if (style?.BorderColor is not null && style.BorderWidth > 0) {
