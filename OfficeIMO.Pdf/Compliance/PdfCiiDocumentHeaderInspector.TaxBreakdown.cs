@@ -19,6 +19,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasBasisAmount = false;
                 bool hasCalculatedAmount = false;
                 var typeCodes = new List<string>();
+                var missingTypeCodeBreakdowns = new List<string>();
 
                 while (reader.Read()) {
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
@@ -34,7 +35,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     }
 
                     if (string.Equals(reader.LocalName, "ApplicableHeaderTradeSettlement", StringComparison.Ordinal)) {
-                        ReadHeaderTradeSettlementTaxBreakdown(reader, ref hasApplicableTradeTax, ref hasTypeCode, ref hasCategoryCode, ref hasRateApplicablePercent, ref hasBasisAmount, ref hasCalculatedAmount, typeCodes);
+                        ReadHeaderTradeSettlementTaxBreakdown(reader, ref hasApplicableTradeTax, ref hasTypeCode, ref hasCategoryCode, ref hasRateApplicablePercent, ref hasBasisAmount, ref hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns);
                     }
                 }
 
@@ -43,7 +44,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     return false;
                 }
 
-                evidence = new PdfCiiTaxBreakdownEvidence(hasApplicableTradeTax, hasTypeCode, hasCategoryCode, hasRateApplicablePercent, hasBasisAmount, hasCalculatedAmount, typeCodes);
+                evidence = new PdfCiiTaxBreakdownEvidence(hasApplicableTradeTax, hasTypeCode && missingTypeCodeBreakdowns.Count == 0, hasCategoryCode, hasRateApplicablePercent, hasBasisAmount, hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns);
                 diagnostic = null;
                 return true;
             }
@@ -61,17 +62,20 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         ref bool hasRateApplicablePercent,
         ref bool hasBasisAmount,
         ref bool hasCalculatedAmount,
-        List<string> typeCodes) {
+        List<string> typeCodes,
+        List<string> missingTypeCodeBreakdowns) {
         if (reader.IsEmptyElement) {
             return;
         }
 
         int depth = reader.Depth;
+        int breakdownIndex = 0;
         while (reader.Read()) {
             if (reader.NodeType == System.Xml.XmlNodeType.Element) {
                 if (string.Equals(reader.LocalName, "ApplicableTradeTax", StringComparison.Ordinal)) {
                     hasApplicableTradeTax = true;
-                    ReadTradeTax(reader, ref hasTypeCode, ref hasCategoryCode, ref hasRateApplicablePercent, ref hasBasisAmount, ref hasCalculatedAmount, typeCodes);
+                    breakdownIndex++;
+                    ReadTradeTax(reader, breakdownIndex, ref hasTypeCode, ref hasCategoryCode, ref hasRateApplicablePercent, ref hasBasisAmount, ref hasCalculatedAmount, typeCodes, missingTypeCodeBreakdowns);
                     continue;
                 }
             }
@@ -86,23 +90,28 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
     private static void ReadTradeTax(
         System.Xml.XmlReader reader,
+        int breakdownIndex,
         ref bool hasTypeCode,
         ref bool hasCategoryCode,
         ref bool hasRateApplicablePercent,
         ref bool hasBasisAmount,
         ref bool hasCalculatedAmount,
-        List<string> typeCodes) {
+        List<string> typeCodes,
+        List<string> missingTypeCodeBreakdowns) {
         if (reader.IsEmptyElement) {
+            missingTypeCodeBreakdowns.Add("ApplicableTradeTax #" + breakdownIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
             return;
         }
 
         int depth = reader.Depth;
+        bool tradeTaxHasTypeCode = false;
         while (reader.Read()) {
             if (reader.NodeType == System.Xml.XmlNodeType.Element) {
                 if (reader.Depth == depth + 1 && string.Equals(reader.LocalName, "TypeCode", StringComparison.Ordinal)) {
                     string typeCode = ReadElementText(reader);
                     if (!string.IsNullOrWhiteSpace(typeCode)) {
                         hasTypeCode = true;
+                        tradeTaxHasTypeCode = true;
                         typeCodes.Add(typeCode.Trim());
                     }
 
@@ -135,6 +144,10 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 string.Equals(reader.LocalName, "ApplicableTradeTax", StringComparison.Ordinal)) {
                 break;
             }
+        }
+
+        if (!tradeTaxHasTypeCode) {
+            missingTypeCodeBreakdowns.Add("ApplicableTradeTax #" + breakdownIndex.ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
     }
 }

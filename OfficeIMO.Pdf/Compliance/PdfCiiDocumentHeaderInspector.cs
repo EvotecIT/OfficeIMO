@@ -321,15 +321,6 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                         }
                     }
 
-                    if (string.Equals(reader.LocalName, "LineTotalAmount", StringComparison.Ordinal)) {
-                        if (TryReadAmount(reader, "LineTotalAmount", ref parseDiagnostic, out decimal? amount)) {
-                            lineTotalAmountSum += amount!.Value;
-                            hasLineTotalAmount = true;
-                        }
-
-                        continue;
-                    }
-
                     if (string.Equals(reader.LocalName, "ApplicableHeaderTradeSettlement", StringComparison.Ordinal)) {
                         ReadAmountConsistencyHeaderSettlement(
                             reader,
@@ -345,6 +336,15 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                             ref hasDocumentLevelAllowanceAmount,
                             ref documentLevelChargeAmountSum,
                             ref hasDocumentLevelChargeAmount,
+                            ref parseDiagnostic);
+                        continue;
+                    }
+
+                    if (string.Equals(reader.LocalName, "IncludedSupplyChainTradeLineItem", StringComparison.Ordinal)) {
+                        ReadAmountConsistencyLineItem(
+                            reader,
+                            ref lineTotalAmountSum,
+                            ref hasLineTotalAmount,
                             ref parseDiagnostic);
                         continue;
                     }

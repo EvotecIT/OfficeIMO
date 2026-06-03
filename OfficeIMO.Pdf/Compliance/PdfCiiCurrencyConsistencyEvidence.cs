@@ -26,5 +26,5 @@ internal sealed class PdfCiiCurrencyConsistencyEvidence {
 
     internal IReadOnlyList<string> MismatchedAmountCurrencyFields { get; }
 
-    internal bool AllAmountCurrenciesMatch => AmountFieldsWithoutCurrency.Count == 0 && MismatchedAmountCurrencyFields.Count == 0;
+    internal bool AllAmountCurrenciesMatch => MismatchedAmountCurrencyFields.Count == 0;
 }

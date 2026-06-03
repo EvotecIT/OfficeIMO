@@ -27,10 +27,6 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("currency-bearing monetary amounts");
             }
 
-            if (evidence.AmountFieldsWithoutCurrency.Count > 0) {
-                missingFields.Add("currencyID on " + string.Join(", ", evidence.AmountFieldsWithoutCurrency.ToArray()));
-            }
-
             if (missingFields.Count > 0) {
                 return new PdfComplianceRequirement(
                     "einvoice-xml-currency-consistency",
@@ -51,7 +47,7 @@ public static partial class PdfComplianceAnalyzer {
                 "einvoice-xml-currency-consistency",
                 "EN 16931 XML currency consistency",
                 PdfComplianceRequirementStatus.Satisfied,
-                "The factur-x.xml CrossIndustryInvoice monetary amount currencyID values match the invoice currency code for e-invoice readiness.");
+                "The factur-x.xml CrossIndustryInvoice monetary amount currencyID values, when present, match the invoice currency code for e-invoice readiness.");
         }
 
         string diagnostic = diagnostics.Count == 0

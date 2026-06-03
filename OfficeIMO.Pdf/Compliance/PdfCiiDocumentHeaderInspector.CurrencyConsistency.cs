@@ -80,7 +80,6 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             PdfCiiCurrencyAmountMarker marker = amountCurrencyMarkers[i];
             string? normalizedAmountCurrency = NormalizeCurrencyCode(marker.CurrencyId);
             if (normalizedAmountCurrency == null) {
-                missing.Add(marker.FieldName);
                 continue;
             }
 

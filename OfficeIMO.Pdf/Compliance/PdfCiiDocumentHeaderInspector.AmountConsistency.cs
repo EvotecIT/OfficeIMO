@@ -1,6 +1,35 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfCiiDocumentHeaderInspector {
+    private static void ReadAmountConsistencyLineItem(
+        System.Xml.XmlReader reader,
+        ref decimal lineTotalAmountSum,
+        ref bool hasLineTotalAmount,
+        ref string? parseDiagnostic) {
+        if (reader.IsEmptyElement) {
+            return;
+        }
+
+        int depth = reader.Depth;
+        while (reader.Read()) {
+            if (reader.NodeType == System.Xml.XmlNodeType.Element &&
+                string.Equals(reader.LocalName, "LineTotalAmount", StringComparison.Ordinal)) {
+                if (TryReadAmount(reader, "LineTotalAmount", ref parseDiagnostic, out decimal? amount)) {
+                    lineTotalAmountSum += amount!.Value;
+                    hasLineTotalAmount = true;
+                }
+
+                continue;
+            }
+
+            if (reader.NodeType == System.Xml.XmlNodeType.EndElement &&
+                reader.Depth == depth &&
+                string.Equals(reader.LocalName, "IncludedSupplyChainTradeLineItem", StringComparison.Ordinal)) {
+                break;
+            }
+        }
+    }
+
     private static void ReadAmountConsistencyHeaderSettlement(
         System.Xml.XmlReader reader,
         ref decimal? allowanceTotalAmount,

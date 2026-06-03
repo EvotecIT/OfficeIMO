@@ -615,7 +615,9 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("ApplicableTradeTax");
             }
 
-            if (!evidence.HasTypeCode) {
+            if (evidence.MissingTypeCodeBreakdowns.Count > 0) {
+                missingFields.Add("ApplicableTradeTax TypeCode on " + string.Join(", ", evidence.MissingTypeCodeBreakdowns.ToArray()));
+            } else if (!evidence.HasTypeCode) {
                 missingFields.Add("ApplicableTradeTax TypeCode");
             }
 

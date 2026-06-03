@@ -1126,15 +1126,14 @@ public class PdfComplianceAnalyzerTests {
         PdfComplianceRequirement missingAmountCurrency = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingAmountCurrencyOptions),
             "einvoice-xml-currency-consistency",
-            PdfComplianceRequirementStatus.Missing);
+            PdfComplianceRequirementStatus.Satisfied);
         PdfComplianceRequirement mismatchedAmountCurrency = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, mismatchedAmountCurrencyOptions),
             "einvoice-xml-currency-consistency",
             PdfComplianceRequirementStatus.Missing);
 
         Assert.Contains("InvoiceCurrencyCode", missingInvoiceCurrency.Diagnostic);
-        Assert.Contains("currencyID", missingAmountCurrency.Diagnostic);
-        Assert.Contains("LineTotalAmount", missingAmountCurrency.Diagnostic);
+        Assert.Contains("when present", missingAmountCurrency.Diagnostic);
         Assert.Contains("InvoiceCurrencyCode EUR", mismatchedAmountCurrency.Diagnostic);
         Assert.Contains("currencyID USD", mismatchedAmountCurrency.Diagnostic);
     }
@@ -1381,6 +1380,23 @@ public class PdfComplianceAnalyzerTests {
         Assert.Contains("VAT", invalidTaxType.Diagnostic);
         Assert.Contains("GST", invalidTaxType.Diagnostic);
         Assert.Contains("VAT trade tax type", validTaxType.Diagnostic);
+    }
+
+    [Fact]
+    public void FacturXReadinessRequiresTypeCodeOnEachCiiTaxBreakdown() {
+        var missingSecondTaxTypeOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", AddHeaderTradeTaxWithoutTypeCode(CreateCiiXml()), "application/xml", PdfAssociatedFileRelationship.Data);
+
+        PdfComplianceRequirement missingSecondTaxType = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingSecondTaxTypeOptions),
+            "einvoice-xml-tax-breakdown",
+            PdfComplianceRequirementStatus.Missing);
+
+        Assert.Contains("ApplicableTradeTax TypeCode", missingSecondTaxType.Diagnostic);
+        Assert.Contains("ApplicableTradeTax #2", missingSecondTaxType.Diagnostic);
     }
 
     [Fact]
@@ -2534,6 +2550,22 @@ public class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void FacturXReadinessExcludesHeaderLineTotalAmountFromLineSums() {
+        var headerLineTotalOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", AddHeaderLineTotalAmount(CreateCiiXml()), "application/xml", PdfAssociatedFileRelationship.Data);
+
+        PdfComplianceRequirement headerLineTotal = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, headerLineTotalOptions),
+            "einvoice-xml-amount-consistency",
+            PdfComplianceRequirementStatus.Satisfied);
+
+        Assert.Contains("line", headerLineTotal.Diagnostic);
+    }
+
+    [Fact]
     public void FacturXReadinessRequiresCiiAllowanceChargeReasons() {
         var missingAllowanceReasonOptions = new PdfOptions()
             .SetPdfAIdentification(3, "B")
@@ -2897,6 +2929,33 @@ public class PdfComplianceAnalyzerTests {
             null,
             "EUR");
         return Encoding.UTF8.GetBytes(xml.Replace("</ram:ApplicableHeaderTradeSettlement>", tradeTax + "</ram:ApplicableHeaderTradeSettlement>"));
+    }
+
+    private static byte[] AddHeaderTradeTaxWithoutTypeCode(byte[] ciiXml) {
+        string xml = Encoding.UTF8.GetString(ciiXml);
+        string tradeTax = CreateApplicableTradeTax(
+            true,
+            false,
+            true,
+            true,
+            true,
+            true,
+            "S",
+            "VAT",
+            "23",
+            "0.00",
+            "0.00",
+            null,
+            null,
+            "EUR");
+        return Encoding.UTF8.GetBytes(xml.Replace("</ram:ApplicableHeaderTradeSettlement>", tradeTax + "</ram:ApplicableHeaderTradeSettlement>"));
+    }
+
+    private static byte[] AddHeaderLineTotalAmount(byte[] ciiXml) {
+        string xml = Encoding.UTF8.GetString(ciiXml);
+        return Encoding.UTF8.GetBytes(xml.Replace(
+            "<ram:SpecifiedTradeSettlementHeaderMonetarySummation>",
+            "<ram:SpecifiedTradeSettlementHeaderMonetarySummation><ram:LineTotalAmount currencyID=\"EUR\">100.00</ram:LineTotalAmount>"));
     }
 
     private static byte[] AddHeaderAllowanceCharge(byte[] ciiXml, bool charge, string categoryCode, string actualAmount, bool includeRate = false, string rateValue = "0", bool includeReason = true) {
