@@ -164,4 +164,24 @@ public static partial class PdfComplianceAnalyzer {
 
         return false;
     }
+
+    private static bool RequiresElectronicInvoiceCreditorAccount(IReadOnlyList<string> typeCodes) {
+        if (typeCodes.Count == 0) {
+            return true;
+        }
+
+        for (int i = 0; i < typeCodes.Count; i++) {
+            string normalized = typeCodes[i].Trim();
+            if (string.Equals(normalized, "30", StringComparison.Ordinal) ||
+                string.Equals(normalized, "31", StringComparison.Ordinal) ||
+                string.Equals(normalized, "42", StringComparison.Ordinal) ||
+                string.Equals(normalized, "45", StringComparison.Ordinal) ||
+                string.Equals(normalized, "58", StringComparison.Ordinal) ||
+                string.Equals(normalized, "59", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

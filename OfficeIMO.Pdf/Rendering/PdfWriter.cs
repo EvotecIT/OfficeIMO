@@ -581,7 +581,8 @@ internal static partial class PdfWriter {
                             element.MarkedContentId.Value,
                             element.TableHeaderScope,
                             element.TableColumnSpan,
-                            element.TableRowSpan);
+                            element.TableRowSpan,
+                            element.AdditionalMarkedContentIds);
                 } else {
                     var elementChildIds = new List<int>();
                     for (int childIndex = 0; childIndex < page.StructElements.Count; childIndex++) {

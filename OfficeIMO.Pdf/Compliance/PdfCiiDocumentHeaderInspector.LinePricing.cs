@@ -82,8 +82,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         int depth = reader.Depth;
         while (reader.Read()) {
             if (reader.NodeType == System.Xml.XmlNodeType.Element) {
-                if (string.Equals(reader.LocalName, "GrossPriceProductTradePrice", StringComparison.Ordinal) ||
-                    string.Equals(reader.LocalName, "NetPriceProductTradePrice", StringComparison.Ordinal)) {
+                if (string.Equals(reader.LocalName, "NetPriceProductTradePrice", StringComparison.Ordinal)) {
                     hasProductTradePrice = true;
                     ReadProductTradePrice(reader, ref hasPriceChargeAmount);
                     continue;
@@ -114,8 +113,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
             if (reader.NodeType == System.Xml.XmlNodeType.EndElement &&
                 reader.Depth == depth &&
-                (string.Equals(reader.LocalName, "GrossPriceProductTradePrice", StringComparison.Ordinal) ||
-                 string.Equals(reader.LocalName, "NetPriceProductTradePrice", StringComparison.Ordinal))) {
+                string.Equals(reader.LocalName, "NetPriceProductTradePrice", StringComparison.Ordinal)) {
                 break;
             }
         }

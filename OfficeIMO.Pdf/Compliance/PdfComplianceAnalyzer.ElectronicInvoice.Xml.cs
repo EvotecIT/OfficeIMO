@@ -465,11 +465,11 @@ public static partial class PdfComplianceAnalyzer {
             }
 
             if (!evidence.HasProductTradePrice) {
-                missingFields.Add("GrossPriceProductTradePrice or NetPriceProductTradePrice");
+                missingFields.Add("NetPriceProductTradePrice");
             }
 
             if (!evidence.HasPriceChargeAmount) {
-                missingFields.Add("GrossPriceProductTradePrice or NetPriceProductTradePrice ChargeAmount");
+                missingFields.Add("NetPriceProductTradePrice ChargeAmount");
             }
 
             if (missingFields.Count > 0) {
@@ -702,11 +702,13 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("SpecifiedTradeSettlementPaymentMeans TypeCode");
             }
 
-            if (!evidence.HasCreditorFinancialAccount) {
+            bool requiresCreditorAccount = RequiresElectronicInvoiceCreditorAccount(evidence.TypeCodes);
+            bool hasCreditorAccountData = evidence.HasCreditorFinancialAccount || evidence.HasCreditorAccountId;
+            if ((requiresCreditorAccount || hasCreditorAccountData) && !evidence.HasCreditorFinancialAccount) {
                 missingFields.Add("PayeePartyCreditorFinancialAccount");
             }
 
-            if (!evidence.HasCreditorAccountId) {
+            if ((requiresCreditorAccount || hasCreditorAccountData) && !evidence.HasCreditorAccountId) {
                 missingFields.Add("PayeePartyCreditorFinancialAccount IBANID or ProprietaryID");
             }
 
@@ -722,7 +724,9 @@ public static partial class PdfComplianceAnalyzer {
                 "einvoice-xml-payment-instructions",
                 "EN 16931 XML payment instructions",
                 PdfComplianceRequirementStatus.Satisfied,
-                "The factur-x.xml CrossIndustryInvoice includes payment means type code and creditor account identifiers for e-invoice readiness.");
+                requiresCreditorAccount
+                    ? "The factur-x.xml CrossIndustryInvoice includes payment means type code and creditor account identifiers for e-invoice readiness."
+                    : "The factur-x.xml CrossIndustryInvoice includes a payment means type code that does not require creditor account identifiers for e-invoice readiness.");
         }
 
         string diagnostic = diagnostics.Count == 0

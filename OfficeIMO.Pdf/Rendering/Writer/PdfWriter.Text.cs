@@ -595,7 +595,9 @@ internal static partial class PdfWriter {
         }
 
         AppendMarkedContentBegin(sb, structureType, markedContentId);
-        var content = new ContentStreamBuilder(sb)
+        bool textMarkedContentOpen = markedContentId.HasValue;
+        int? textStructElementIndex = FindStructElementIndex(structurePage, markedContentId, structureType);
+        ContentStreamBuilder content = new ContentStreamBuilder(sb)
             .BeginText()
             .TextLeading(defaultLeading);
 
@@ -648,6 +650,25 @@ internal static partial class PdfWriter {
 
                 var color = s.Color ?? block.DefaultColor ?? opts.DefaultTextColor;
                 content.FillColor(color ?? PdfColor.Black);
+                bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
+                if (!hasLinkTarget) {
+                    EnsureTextMarkedContentOpen(
+                        sb,
+                        ref content,
+                        ref textMarkedContentOpen,
+                        structurePage,
+                        textStructElementIndex,
+                        structureType,
+                        defaultLeading,
+                        lineXOrigin + xCursor,
+                        lineY,
+                        wordSpacing,
+                        fontRes,
+                        runFontSize,
+                        textRise,
+                        color ?? PdfColor.Black);
+                }
+
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.FontSize, s.Baseline, opts);
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
@@ -673,7 +694,6 @@ internal static partial class PdfWriter {
                     }
                 }
                 double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline, opts);
-                bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
                 int? linkMarkedContentId = null;
                 int? linkStructElementIndex = null;
                 if (hasLinkTarget && opts.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers && structurePage != null) {
@@ -688,6 +708,11 @@ internal static partial class PdfWriter {
                 double segmentStartX = xCursor;
                 if (linkMarkedContentId.HasValue) {
                     content.EndText();
+                    if (textMarkedContentOpen) {
+                        AppendMarkedContentEnd(sb, markedContentId);
+                        textMarkedContentOpen = false;
+                    }
+
                     AppendMarkedContentBegin(sb, "Link", linkMarkedContentId);
                     content
                         .BeginText()
@@ -747,9 +772,12 @@ internal static partial class PdfWriter {
         content
             .WordSpacing(0)
             .EndText();
-        AppendMarkedContentEnd(sb, markedContentId);
+        if (textMarkedContentOpen) {
+            AppendMarkedContentEnd(sb, markedContentId);
+        }
 
         foreach (var ul in underlines) {
+            AppendArtifactBegin(sb, markedContentId.HasValue);
             new ContentStreamBuilder(sb)
                 .SaveState()
                 .StrokeColor(ul.Color)
@@ -758,8 +786,10 @@ internal static partial class PdfWriter {
                 .LineTo(ul.X2, ul.Y)
                 .StrokePath()
                 .RestoreState();
+            AppendArtifactEnd(sb, markedContentId.HasValue);
         }
         foreach (var st in strikes) {
+            AppendArtifactBegin(sb, markedContentId.HasValue);
             new ContentStreamBuilder(sb)
                 .SaveState()
                 .StrokeColor(st.Color)
@@ -768,7 +798,73 @@ internal static partial class PdfWriter {
                 .LineTo(st.X2, st.Y)
                 .StrokePath()
                 .RestoreState();
+            AppendArtifactEnd(sb, markedContentId.HasValue);
         }
+    }
+
+    private static int? FindStructElementIndex(LayoutResult.Page? structurePage, int? markedContentId, string? structureType) {
+        if (structurePage == null || !markedContentId.HasValue || string.IsNullOrWhiteSpace(structureType)) {
+            return null;
+        }
+
+        for (int i = 0; i < structurePage.StructElements.Count; i++) {
+            PageStructElement element = structurePage.StructElements[i];
+            if (element.MarkedContentId == markedContentId &&
+                string.Equals(element.StructureType, structureType, StringComparison.Ordinal)) {
+                return i;
+            }
+        }
+
+        return null;
+    }
+
+    private static void EnsureTextMarkedContentOpen(
+        StringBuilder sb,
+        ref ContentStreamBuilder content,
+        ref bool textMarkedContentOpen,
+        LayoutResult.Page? structurePage,
+        int? textStructElementIndex,
+        string? structureType,
+        double defaultLeading,
+        double x,
+        double y,
+        double wordSpacing,
+        string fontRes,
+        double fontSize,
+        double textRise,
+        PdfColor fillColor) {
+        if (textMarkedContentOpen ||
+            structurePage == null ||
+            !textStructElementIndex.HasValue ||
+            string.IsNullOrWhiteSpace(structureType)) {
+            return;
+        }
+
+        if (textStructElementIndex.Value < 0 || textStructElementIndex.Value >= structurePage.StructElements.Count) {
+            return;
+        }
+
+        content.EndText();
+        int markedContentId = structurePage.NextMarkedContentId++;
+        PageStructElement element = structurePage.StructElements[textStructElementIndex.Value];
+        if (element.AdditionalMarkedContentIds == null) {
+            element.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
+        }
+
+        element.AdditionalMarkedContentIds.Add(markedContentId);
+        AppendMarkedContentBegin(sb, structureType, markedContentId);
+        content = new ContentStreamBuilder(sb)
+            .BeginText()
+            .TextLeading(defaultLeading)
+            .TextMatrix(x, y)
+            .WordSpacing(wordSpacing)
+            .Font(fontRes, fontSize)
+            .FillColor(fillColor);
+        if (Math.Abs(textRise) > 0.0001) {
+            content.TextRise(textRise);
+        }
+
+        textMarkedContentOpen = true;
     }
 
     private static void AppendMarkedContentBegin(StringBuilder sb, string? structureType, int? markedContentId) {

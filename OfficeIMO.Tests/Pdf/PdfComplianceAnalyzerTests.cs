@@ -519,6 +519,16 @@ public class PdfComplianceAnalyzerTests {
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(issueDateTimeFormat: "203", issueDateTimeValue: "202606031430"), "application/xml", PdfAssociatedFileRelationship.Data);
+        var missingIssueFormatOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(issueDateTimeFormat: ""), "application/xml", PdfAssociatedFileRelationship.Data);
+        var unknownDueFormatOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(dueDateTimeFormat: "999"), "application/xml", PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement invalidIssueDate = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, invalidIssueDateOptions),
@@ -532,10 +542,20 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, validDateTimeOptions),
             "einvoice-xml-date-format",
             PdfComplianceRequirementStatus.Satisfied);
+        PdfComplianceRequirement missingIssueFormat = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingIssueFormatOptions),
+            "einvoice-xml-date-format",
+            PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement unknownDueFormat = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, unknownDueFormatOptions),
+            "einvoice-xml-date-format",
+            PdfComplianceRequirementStatus.Missing);
 
         Assert.Contains("ExchangedDocument IssueDateTime", invalidIssueDate.Diagnostic);
         Assert.Contains("SpecifiedTradePaymentTerms DueDateDateTime", invalidDueDate.Diagnostic);
         Assert.Contains("DateTimeString", invalidDueDate.Diagnostic);
+        Assert.Contains("ExchangedDocument IssueDateTime", missingIssueFormat.Diagnostic);
+        Assert.Contains("SpecifiedTradePaymentTerms DueDateDateTime", unknownDueFormat.Diagnostic);
         Assert.Contains("issue", validDateTime.Diagnostic);
     }
 
@@ -824,6 +844,11 @@ public class PdfComplianceAnalyzerTests {
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLinePriceChargeAmount: false), "application/xml", PdfAssociatedFileRelationship.Data);
+        var grossOnlyPriceOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateGrossLinePriceCiiXml(), "application/xml", PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement missingAgreement = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingAgreementOptions),
@@ -833,10 +858,15 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingPriceOptions),
             "einvoice-xml-line-pricing",
             PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement grossOnlyPrice = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, grossOnlyPriceOptions),
+            "einvoice-xml-line-pricing",
+            PdfComplianceRequirementStatus.Missing);
 
         Assert.Contains("SpecifiedLineTradeAgreement", missingAgreement.Diagnostic);
-        Assert.Contains("GrossPriceProductTradePrice or NetPriceProductTradePrice", missingAgreement.Diagnostic);
+        Assert.Contains("NetPriceProductTradePrice", missingAgreement.Diagnostic);
         Assert.Contains("ChargeAmount", missingPrice.Diagnostic);
+        Assert.Contains("NetPriceProductTradePrice", grossOnlyPrice.Diagnostic);
     }
 
     [Fact]
@@ -1133,6 +1163,11 @@ public class PdfComplianceAnalyzerTests {
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeCreditorAccountId: false), "application/xml", PdfAssociatedFileRelationship.Data);
+        var cashWithoutAccountOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(paymentMeansTypeCodeValue: "10", includeCreditorAccount: false), "application/xml", PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement missingPaymentMeans = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingPaymentMeansOptions),
@@ -1146,10 +1181,15 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingAccountOptions),
             "einvoice-xml-payment-instructions",
             PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement cashWithoutAccount = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, cashWithoutAccountOptions),
+            "einvoice-xml-payment-instructions",
+            PdfComplianceRequirementStatus.Satisfied);
 
         Assert.Contains("SpecifiedTradeSettlementPaymentMeans", missingPaymentMeans.Diagnostic);
         Assert.Contains("SpecifiedTradeSettlementPaymentMeans TypeCode", missingPaymentType.Diagnostic);
         Assert.Contains("PayeePartyCreditorFinancialAccount IBANID or ProprietaryID", missingAccount.Diagnostic);
+        Assert.Contains("does not require creditor account identifiers", cashWithoutAccount.Diagnostic);
     }
 
     [Fact]
@@ -1207,6 +1247,11 @@ public class PdfComplianceAnalyzerTests {
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeCreditorAccountId: false), "application/xml", PdfAssociatedFileRelationship.Data);
+        var cashWithoutAccountOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXml(paymentMeansTypeCodeValue: "10", includeCreditorAccount: false), "application/xml", PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement invalidIban = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, invalidIbanOptions),
@@ -1220,12 +1265,17 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingAccountOptions),
             "einvoice-xml-payment-account-format",
             PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement cashWithoutAccount = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, cashWithoutAccountOptions),
+            "einvoice-xml-payment-account-format",
+            PdfComplianceRequirementStatus.Satisfied);
 
         Assert.Contains("IBANID", invalidIban.Diagnostic);
         Assert.Contains("checksum", invalidIban.Diagnostic);
         Assert.Contains("PL61109010140000071219812875", invalidIban.Diagnostic);
         Assert.Contains("creditor account identifiers are present", proprietaryAccount.Diagnostic);
         Assert.Contains("PayeePartyCreditorFinancialAccount IBANID or ProprietaryID", missingAccount.Diagnostic);
+        Assert.Contains("does not require creditor account identifiers", cashWithoutAccount.Diagnostic);
     }
 
     [Fact]
@@ -2724,6 +2774,12 @@ public class PdfComplianceAnalyzerTests {
             "</ram:CategoryTradeTax>" +
             "</ram:SpecifiedTradeAllowanceCharge>";
         return Encoding.UTF8.GetBytes(xml.Replace("<ram:SpecifiedTradeSettlementHeaderMonetarySummation>", allowanceCharge + "<ram:SpecifiedTradeSettlementHeaderMonetarySummation>"));
+    }
+
+    private static byte[] CreateGrossLinePriceCiiXml() {
+        string xml = Encoding.UTF8.GetString(CreateCiiXml());
+        xml = xml.Replace("NetPriceProductTradePrice", "GrossPriceProductTradePrice");
+        return Encoding.UTF8.GetBytes(xml);
     }
 
     private static byte[] CreateCiiXml(

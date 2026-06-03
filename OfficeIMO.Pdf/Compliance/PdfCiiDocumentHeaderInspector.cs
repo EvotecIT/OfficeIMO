@@ -432,6 +432,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasTypeCode = false;
                 bool hasCreditorAccount = false;
                 bool hasCreditorAccountId = false;
+                var typeCodes = new List<string>();
 
                 while (reader.Read()) {
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
@@ -448,7 +449,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                     if (string.Equals(reader.LocalName, "SpecifiedTradeSettlementPaymentMeans", StringComparison.Ordinal)) {
                         hasPaymentMeans = true;
-                        ReadPaymentMeans(reader, ref hasTypeCode, ref hasCreditorAccount, ref hasCreditorAccountId);
+                        ReadPaymentMeans(reader, ref hasTypeCode, typeCodes, ref hasCreditorAccount, ref hasCreditorAccountId);
                     }
                 }
 
@@ -457,7 +458,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     return false;
                 }
 
-                evidence = new PdfCiiPaymentInstructionEvidence(hasPaymentMeans, hasTypeCode, hasCreditorAccount, hasCreditorAccountId);
+                evidence = new PdfCiiPaymentInstructionEvidence(hasPaymentMeans, hasTypeCode, hasCreditorAccount, hasCreditorAccountId, typeCodes.Distinct(StringComparer.Ordinal).ToArray());
                 diagnostic = null;
                 return true;
             }
@@ -670,7 +671,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
     }
 
-    private static void ReadPaymentMeans(System.Xml.XmlReader reader, ref bool hasTypeCode, ref bool hasCreditorAccount, ref bool hasCreditorAccountId) {
+    private static void ReadPaymentMeans(System.Xml.XmlReader reader, ref bool hasTypeCode, List<string> typeCodes, ref bool hasCreditorAccount, ref bool hasCreditorAccountId) {
         if (reader.IsEmptyElement) {
             return;
         }
@@ -679,7 +680,12 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         while (reader.Read()) {
             if (reader.NodeType == System.Xml.XmlNodeType.Element) {
                 if (reader.Depth == depth + 1 && string.Equals(reader.LocalName, "TypeCode", StringComparison.Ordinal)) {
-                    hasTypeCode = hasTypeCode || !string.IsNullOrWhiteSpace(ReadElementText(reader));
+                    string typeCode = ReadElementText(reader);
+                    if (!string.IsNullOrWhiteSpace(typeCode)) {
+                        hasTypeCode = true;
+                        typeCodes.Add(typeCode.Trim());
+                    }
+
                     continue;
                 }
 

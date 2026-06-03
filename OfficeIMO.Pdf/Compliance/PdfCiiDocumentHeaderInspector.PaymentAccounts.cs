@@ -17,6 +17,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 bool hasAccountId = false;
                 bool hasIbanId = false;
                 var invalidIbanIds = new List<string>();
+                var typeCodes = new List<string>();
 
                 while (reader.Read()) {
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
@@ -33,7 +34,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                     if (string.Equals(reader.LocalName, "SpecifiedTradeSettlementPaymentMeans", StringComparison.Ordinal)) {
                         hasPaymentMeans = true;
-                        ReadPaymentAccountMeans(reader, ref hasCreditorAccount, ref hasAccountId, ref hasIbanId, invalidIbanIds);
+                        ReadPaymentAccountMeans(reader, typeCodes, ref hasCreditorAccount, ref hasAccountId, ref hasIbanId, invalidIbanIds);
                     }
                 }
 
@@ -48,7 +49,8 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     hasAccountId,
                     hasIbanId,
                     invalidIbanIds.Count == 0,
-                    invalidIbanIds.Distinct(StringComparer.Ordinal).ToArray());
+                    invalidIbanIds.Distinct(StringComparer.Ordinal).ToArray(),
+                    typeCodes.Distinct(StringComparer.Ordinal).ToArray());
                 diagnostic = null;
                 return true;
             }
@@ -58,18 +60,28 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
     }
 
-    private static void ReadPaymentAccountMeans(System.Xml.XmlReader reader, ref bool hasCreditorAccount, ref bool hasAccountId, ref bool hasIbanId, List<string> invalidIbanIds) {
+    private static void ReadPaymentAccountMeans(System.Xml.XmlReader reader, List<string> typeCodes, ref bool hasCreditorAccount, ref bool hasAccountId, ref bool hasIbanId, List<string> invalidIbanIds) {
         if (reader.IsEmptyElement) {
             return;
         }
 
         int depth = reader.Depth;
         while (reader.Read()) {
-            if (reader.NodeType == System.Xml.XmlNodeType.Element &&
-                string.Equals(reader.LocalName, "PayeePartyCreditorFinancialAccount", StringComparison.Ordinal)) {
-                hasCreditorAccount = true;
-                ReadPaymentAccountValues(reader, ref hasAccountId, ref hasIbanId, invalidIbanIds);
-                continue;
+            if (reader.NodeType == System.Xml.XmlNodeType.Element) {
+                if (reader.Depth == depth + 1 && string.Equals(reader.LocalName, "TypeCode", StringComparison.Ordinal)) {
+                    string typeCode = ReadElementText(reader);
+                    if (!string.IsNullOrWhiteSpace(typeCode)) {
+                        typeCodes.Add(typeCode.Trim());
+                    }
+
+                    continue;
+                }
+
+                if (string.Equals(reader.LocalName, "PayeePartyCreditorFinancialAccount", StringComparison.Ordinal)) {
+                    hasCreditorAccount = true;
+                    ReadPaymentAccountValues(reader, ref hasAccountId, ref hasIbanId, invalidIbanIds);
+                    continue;
+                }
             }
 
             if (reader.NodeType == System.Xml.XmlNodeType.EndElement &&

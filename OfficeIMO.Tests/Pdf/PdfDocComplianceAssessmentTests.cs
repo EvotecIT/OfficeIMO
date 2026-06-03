@@ -476,6 +476,7 @@ public class PdfDocComplianceAssessmentTests {
 
         Assert.Contains("/Subtype /Link", content, StringComparison.Ordinal);
         Assert.Contains("/StructParent 1", content, StringComparison.Ordinal);
+        Assert.Contains("ET\nEMC\n/Link << /MCID", content, StringComparison.Ordinal);
         Assert.Contains("/Link << /MCID 1 >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/Link << /MCID 2 >> BDC", content, StringComparison.Ordinal);
         Assert.Contains("/Type /StructElem /S /Document", content, StringComparison.Ordinal);
@@ -487,6 +488,24 @@ public class PdfDocComplianceAssessmentTests {
         Assert.Contains("/Nums [0 [", content, StringComparison.Ordinal);
         Assert.Matches(@"/Nums \[0 \[[^\]]+\] 1 \d+ 0 R\]", content);
         Assert.Matches(@"/Nums \[0 \[\d+ 0 R (?<link>\d+) 0 R \k<link> 0 R\] 1 \k<link> 0 R\]", content);
+    }
+
+    [Fact]
+    public void TaggedRichTextDecorationsEmitArtifactMarkedContent() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Paragraph(paragraph => paragraph
+                .Underlined("Underlined")
+                .Text(" ")
+                .Strikethrough("Strike"))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/P << /MCID 0 >> BDC", content, StringComparison.Ordinal);
+        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
     }
 
     [Fact]

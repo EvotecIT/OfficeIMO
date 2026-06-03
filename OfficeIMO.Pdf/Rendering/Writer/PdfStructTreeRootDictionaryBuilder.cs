@@ -46,9 +46,9 @@ internal static class PdfStructTreeRootDictionaryBuilder {
         return BuildStructElement(parentId, pageId, "Figure", markedContentId, alternativeText);
     }
 
-    internal static string BuildTextStructElement(int parentId, int pageId, string structureType, int markedContentId, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
+    internal static string BuildTextStructElement(int parentId, int pageId, string structureType, int markedContentId, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null) {
         Guard.NotNullOrWhiteSpace(structureType, nameof(structureType));
-        return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan);
+        return BuildStructElement(parentId, pageId, structureType, markedContentId, null, tableHeaderScope, tableColumnSpan, tableRowSpan, additionalMarkedContentIds);
     }
 
     internal static string BuildContainerStructElement(int parentId, int pageId, string structureType, IReadOnlyList<int> childElementIds) {
@@ -116,7 +116,7 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             .Append(" >>");
     }
 
-    private static string BuildStructElement(int parentId, int pageId, string structureType, int markedContentId, string? alternativeText, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
+    private static string BuildStructElement(int parentId, int pageId, string structureType, int markedContentId, string? alternativeText, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1, IReadOnlyList<int>? additionalMarkedContentIds = null) {
         var sb = new StringBuilder();
         sb.Append("<< /Type /StructElem /S /")
             .Append(structureType)
@@ -124,11 +124,19 @@ internal static class PdfStructTreeRootDictionaryBuilder {
             .Append(PdfSyntaxEscaper.IndirectReference(parentId))
             .Append(" /Pg ")
             .Append(PdfSyntaxEscaper.IndirectReference(pageId))
-            .Append(" /K << /Type /MCR /Pg ")
-            .Append(PdfSyntaxEscaper.IndirectReference(pageId))
-            .Append(" /MCID ")
-            .Append(markedContentId.ToString(System.Globalization.CultureInfo.InvariantCulture))
-            .Append(" >>");
+            .Append(" /K ");
+        if (additionalMarkedContentIds != null && additionalMarkedContentIds.Count > 0) {
+            sb.Append('[');
+            AppendMarkedContentReference(sb, pageId, markedContentId);
+            for (int i = 0; i < additionalMarkedContentIds.Count; i++) {
+                sb.Append(' ');
+                AppendMarkedContentReference(sb, pageId, additionalMarkedContentIds[i]);
+            }
+
+            sb.Append(']');
+        } else {
+            AppendMarkedContentReference(sb, pageId, markedContentId);
+        }
 
         if (!string.IsNullOrWhiteSpace(alternativeText)) {
             sb.Append(" /Alt ")

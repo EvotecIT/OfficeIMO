@@ -7,13 +7,15 @@ internal sealed class PdfCiiPaymentAccountEvidence {
         bool hasAccountId,
         bool hasIbanId,
         bool allIbanIdsAreValid,
-        IReadOnlyList<string> invalidIbanIds) {
+        IReadOnlyList<string> invalidIbanIds,
+        IReadOnlyList<string> typeCodes) {
         HasSpecifiedTradeSettlementPaymentMeans = hasSpecifiedTradeSettlementPaymentMeans;
         HasCreditorFinancialAccount = hasCreditorFinancialAccount;
         HasAccountId = hasAccountId;
         HasIbanId = hasIbanId;
         AllIbanIdsAreValid = allIbanIdsAreValid;
         InvalidIbanIds = invalidIbanIds;
+        TypeCodes = typeCodes;
     }
 
     internal bool HasSpecifiedTradeSettlementPaymentMeans { get; }
@@ -27,4 +29,6 @@ internal sealed class PdfCiiPaymentAccountEvidence {
     internal bool AllIbanIdsAreValid { get; }
 
     internal IReadOnlyList<string> InvalidIbanIds { get; }
+
+    internal IReadOnlyList<string> TypeCodes { get; }
 }

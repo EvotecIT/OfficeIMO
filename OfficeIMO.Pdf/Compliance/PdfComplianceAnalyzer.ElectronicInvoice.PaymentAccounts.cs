@@ -23,11 +23,13 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("SpecifiedTradeSettlementPaymentMeans");
             }
 
-            if (!evidence.HasCreditorFinancialAccount) {
+            bool requiresCreditorAccount = RequiresElectronicInvoiceCreditorAccount(evidence.TypeCodes);
+            bool hasCreditorAccountData = evidence.HasCreditorFinancialAccount || evidence.HasAccountId;
+            if ((requiresCreditorAccount || hasCreditorAccountData) && !evidence.HasCreditorFinancialAccount) {
                 missingFields.Add("PayeePartyCreditorFinancialAccount");
             }
 
-            if (!evidence.HasAccountId) {
+            if ((requiresCreditorAccount || hasCreditorAccountData) && !evidence.HasAccountId) {
                 missingFields.Add("PayeePartyCreditorFinancialAccount IBANID or ProprietaryID");
             }
 
@@ -51,7 +53,9 @@ public static partial class PdfComplianceAnalyzer {
                 "einvoice-xml-payment-account-format",
                 "EN 16931 XML payment account format",
                 PdfComplianceRequirementStatus.Satisfied,
-                "The factur-x.xml CrossIndustryInvoice creditor account identifiers are present, and supplied IBAN values pass checksum validation for e-invoice readiness.");
+                requiresCreditorAccount
+                    ? "The factur-x.xml CrossIndustryInvoice creditor account identifiers are present, and supplied IBAN values pass checksum validation for e-invoice readiness."
+                    : "The factur-x.xml CrossIndustryInvoice payment means type code does not require creditor account identifiers, and supplied IBAN values pass checksum validation for e-invoice readiness.");
         }
 
         string diagnostic = diagnostics.Count == 0

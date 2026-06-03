@@ -108,8 +108,16 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
 
         string trimmedValue = value!.Trim();
-        string? trimmedFormat = string.IsNullOrWhiteSpace(format) ? null : format!.Trim();
+        if (string.IsNullOrWhiteSpace(format)) {
+            return false;
+        }
+
+        string trimmedFormat = format!.Trim();
         string[] exactFormats = GetCiiDateTimeFormats(trimmedFormat);
+        if (exactFormats.Length == 0) {
+            return false;
+        }
+
         return System.DateTime.TryParseExact(
             trimmedValue,
             exactFormats,
@@ -131,6 +139,6 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             return new[] { "yyyyMMddHHmmss" };
         }
 
-        return new[] { "yyyyMMdd", "yyyyMMddHHmm", "yyyyMMddHHmmss" };
+        return Array.Empty<string>();
     }
 }
