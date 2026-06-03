@@ -5,6 +5,8 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public class PdfFormFieldStyle {
     private double _borderWidth = 1D;
+    private string? _alternateName;
+    private string? _mappingName;
 
     /// <summary>Background fill color. Set to null for transparent field appearance streams.</summary>
     public PdfColor? BackgroundColor { get; set; } = PdfColor.White;
@@ -30,6 +32,24 @@ public class PdfFormFieldStyle {
         }
     }
 
+    /// <summary>Alternate field name emitted as AcroForm /TU metadata for accessibility-oriented field descriptions.</summary>
+    public string? AlternateName {
+        get => _alternateName;
+        set {
+            ValidateOptionalText(value, nameof(AlternateName));
+            _alternateName = value;
+        }
+    }
+
+    /// <summary>Mapping name emitted as AcroForm /TM metadata for export and assistive-processing workflows.</summary>
+    public string? MappingName {
+        get => _mappingName;
+        set {
+            ValidateOptionalText(value, nameof(MappingName));
+            _mappingName = value;
+        }
+    }
+
     /// <summary>Creates a copy of this form field style.</summary>
     public PdfFormFieldStyle Clone() {
         return new PdfFormFieldStyle {
@@ -37,7 +57,15 @@ public class PdfFormFieldStyle {
             BorderColor = BorderColor,
             BorderWidth = BorderWidth,
             TextColor = TextColor,
-            MarkColor = MarkColor
+            MarkColor = MarkColor,
+            AlternateName = AlternateName,
+            MappingName = MappingName
         };
+    }
+
+    private static void ValidateOptionalText(string? value, string paramName) {
+        if (value != null && string.IsNullOrWhiteSpace(value)) {
+            throw new ArgumentException("PDF form field metadata must be null or non-empty text.", paramName);
+        }
     }
 }

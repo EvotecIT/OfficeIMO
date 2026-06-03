@@ -141,5 +141,6 @@ public class PdfElementCompose {
     /// <param name="style">Optional reusable image placement style.</param>
     /// <param name="linkUri">Optional absolute URI for an image link annotation.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
-    public PdfElementCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents); return this; }
+    /// <param name="alternativeText">Optional alternate text for meaningful generated images.</param>
+    public PdfElementCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null) { _doc.Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText); return this; }
 }

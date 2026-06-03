@@ -7,12 +7,15 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfHeaderFooterImage {
     /// <summary>Creates a header/footer image.</summary>
-    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) {
+    public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch, string? alternativeText = null) {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer image");
         PdfDoc.ValidateImageFit(fit, nameof(fit));
+        if (alternativeText != null) {
+            Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
+        }
 
         OfficeImageInfo imageInfo = PdfDoc.ValidateImageBytes(data);
         PdfDoc.ValidateImageFitDimensions(imageInfo, fit, nameof(fit));
@@ -23,6 +26,7 @@ public sealed class PdfHeaderFooterImage {
         Align = align;
         Fit = fit;
         Info = imageInfo;
+        AlternativeText = alternativeText;
     }
 
     /// <summary>Image payload.</summary>
@@ -43,10 +47,14 @@ public sealed class PdfHeaderFooterImage {
     /// <summary>Validated image metadata.</summary>
     public OfficeImageInfo Info { get; }
 
-    internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(Data, Width, Height, Align, Fit);
+    /// <summary>Optional alternate text for meaningful header/footer images.</summary>
+    public string? AlternativeText { get; }
+
+    internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(Data, Width, Height, Align, Fit, AlternativeText);
 
     internal ImageBlock ToImageBlock() => new ImageBlock(Data, Width, Height, Info, new PdfImageStyle {
         Align = Align,
-        Fit = Fit
+        Fit = Fit,
+        AlternativeText = AlternativeText
     });
 }

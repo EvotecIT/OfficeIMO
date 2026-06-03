@@ -483,26 +483,61 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void OutputIntent_CanUseBuiltInSrgbProfileAndRemainRewriteSafe() {
+        var options = new PdfOptions().SetSrgbOutputIntent();
+        byte[] mutableProfileCopy = PdfIccProfiles.SrgbIec6196621;
+        mutableProfileCopy[36] = 0;
+
+        byte[] bytes = PdfDoc.Create(options)
+            .Paragraph(p => p.Text("Built-in sRGB output intent body."))
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfOutputIntent outputIntent = options.OutputIntent!;
+
+        Assert.Contains("/OutputIntents [", raw, StringComparison.Ordinal);
+        Assert.Contains("/Type /OutputIntent /S /GTS_PDFA1", raw, StringComparison.Ordinal);
+        Assert.Contains("/DestOutputProfile", raw, StringComparison.Ordinal);
+        Assert.Contains("/N 3", raw, StringComparison.Ordinal);
+        Assert.Contains("/Length 3052", raw, StringComparison.Ordinal);
+        Assert.Contains("<735247422049454336313936362D322E31>", raw, StringComparison.Ordinal);
+        Assert.True(info.HasOutputIntents);
+        Assert.True(preflight.Probe.HasOutputIntents);
+        Assert.True(preflight.CanRewrite);
+        Assert.Equal(PdfOutputIntentPolicy.SrgbIec6196621, outputIntent.Policy);
+        Assert.Equal(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, outputIntent.OutputConditionIdentifier);
+        Assert.Equal(3, outputIntent.ColorComponents);
+        Assert.Equal((byte)'a', outputIntent.IccProfile[36]);
+        Assert.Equal((byte)'a', PdfIccProfiles.SrgbIec6196621[36]);
+    }
+
+    [Fact]
     public void OutputIntent_ValidatesIccProfileAndSnapshotsState() {
         byte[] grayProfile = CreateMinimalIccProfile("GRAY");
         byte[] cmykProfile = CreateMinimalIccProfile("CMYK");
         byte[] badSignature = CreateMinimalIccProfile();
         badSignature[36] = (byte)'x';
         byte[] badColorSpace = CreateMinimalIccProfile("LAB ");
+        byte[] badDeclaredSize = CreateMinimalIccProfile();
+        badDeclaredSize[3] = 131;
 
         var gray = new PdfOutputIntent(grayProfile, "Gray profile");
         var cmyk = new PdfOutputIntent(cmykProfile, "CMYK profile");
-        var options = new PdfOptions().SetOutputIntent(grayProfile, "Snapshot profile");
+        var options = new PdfOptions().SetSrgbOutputIntent();
         grayProfile[36] = 0;
 
         Assert.Equal(1, gray.ColorComponents);
         Assert.Equal(4, cmyk.ColorComponents);
         Assert.Equal((byte)'a', options.OutputIntent!.IccProfile[36]);
+        Assert.Equal(PdfOutputIntentPolicy.SrgbIec6196621, options.OutputIntent.Policy);
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(Array.Empty<byte>()));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(badSignature));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(badColorSpace));
+        Assert.Throws<ArgumentException>(() => new PdfOutputIntent(badDeclaredSize));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), ""));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile()) { Info = "" });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), policy: (PdfOutputIntentPolicy)99));
     }
 
     [Fact]
@@ -643,6 +678,8 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("/AFRelationship /Source", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /application#2Fxml", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /text#2Fplain", raw, StringComparison.Ordinal);
+        Assert.Contains("/Params << /Size 55 /CheckSum <83F5425DBE5CB56CCCFFC5F749EDCAD4> >>", raw, StringComparison.Ordinal);
+        Assert.Contains("/Params << /Size 24 /CheckSum <C321A4BD26D4D3AF6F40C2FC4EDDF6AE> >>", raw, StringComparison.Ordinal);
         Assert.Contains("CrossIndustryInvoice", raw, StringComparison.Ordinal);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -691,8 +728,29 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void FileVersion_CanEmitPdf17HeaderAndCloneOptions() {
+        var options = new PdfOptions {
+            FileVersion = PdfFileVersion.Pdf17
+        };
+        PdfOptions clone = options.Clone();
+
+        byte[] bytes = PdfDoc.Create()
+            .FileVersion(PdfFileVersion.Pdf17)
+            .Paragraph(p => p.Text("PDF 1.7 header proof."))
+            .ToBytes();
+
+        Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
+        Assert.StartsWith("%PDF-1.7", Encoding.ASCII.GetString(bytes));
+        Assert.Equal("1.7", PdfInspector.Inspect(bytes).HeaderVersion);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions {
+            FileVersion = (PdfFileVersion)99
+        });
+    }
+
+    [Fact]
     public void ComplianceProfile_ValidatesAndClonesOptions() {
         var options = new PdfOptions {
+            FileVersion = PdfFileVersion.Pdf17,
             ComplianceProfile = PdfComplianceProfile.PdfA3U,
             IncludeXmpMetadata = true,
             IncludeStandardFontToUnicodeMaps = true
@@ -704,6 +762,7 @@ public class PdfDocVisualQualityTests {
                 ComplianceProfile = (PdfComplianceProfile)999
             });
 
+        Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
         Assert.Equal(PdfComplianceProfile.PdfA3U, clone.ComplianceProfile);
         Assert.True(clone.IncludeXmpMetadata);
         Assert.True(clone.IncludeStandardFontToUnicodeMaps);
@@ -733,6 +792,21 @@ public class PdfDocVisualQualityTests {
         Assert.Contains(requirement, exception.Message, StringComparison.Ordinal);
         Assert.Contains(validator, exception.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(PdfComplianceProfile.None), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ComplianceProfile_PdfAAccessibilityMessageDoesNotRequirePdfUaSpecificMetadata() {
+        var exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDoc.Create()
+                .Compliance(PdfComplianceProfile.PdfA3A)
+                .Paragraph(p => p.Text("Body"))
+                .ToBytes());
+
+        Assert.Contains("PDF/A-3a", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("tagged PDF structure tree", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("PDF/UA identification XMP", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("document title metadata", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("DisplayDocTitle", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

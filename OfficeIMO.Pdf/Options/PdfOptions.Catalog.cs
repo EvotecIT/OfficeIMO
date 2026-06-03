@@ -19,6 +19,14 @@ public sealed partial class PdfOptions {
             _pageLabelPrefix = value;
         }
     }
+    /// <summary>PDF file header version emitted for generated documents.</summary>
+    public PdfFileVersion FileVersion {
+        get => _fileVersion;
+        set {
+            Guard.FileVersion(value, nameof(FileVersion));
+            _fileVersion = value;
+        }
+    }
     /// <summary>Requested generated-PDF compliance profile. Non-None profiles are validated strictly and fail until their required primitives are implemented.</summary>
     public PdfComplianceProfile ComplianceProfile {
         get => _complianceProfile;
@@ -27,12 +35,38 @@ public sealed partial class PdfOptions {
             _complianceProfile = value;
         }
     }
+    /// <summary>Optional PDF/A XMP identification metadata. This does not by itself certify PDF/A conformance.</summary>
+    public PdfAIdentification? PdfAIdentification {
+        get => _pdfAIdentification?.Clone();
+        set => _pdfAIdentification = value?.Clone();
+    }
+    internal PdfAIdentification? PdfAIdentificationSnapshot => _pdfAIdentification?.Clone();
+    /// <summary>Optional PDF/UA XMP identification metadata. This does not by itself certify PDF/UA conformance.</summary>
+    public PdfUaIdentification? PdfUaIdentification {
+        get => _pdfUaIdentification?.Clone();
+        set => _pdfUaIdentification = value?.Clone();
+    }
+    internal PdfUaIdentification? PdfUaIdentificationSnapshot => _pdfUaIdentification?.Clone();
+    /// <summary>Optional Factur-X/ZUGFeRD XMP extension metadata. This does not by itself certify e-invoice conformance.</summary>
+    public PdfElectronicInvoiceMetadata? ElectronicInvoiceMetadata {
+        get => _electronicInvoiceMetadata?.Clone();
+        set => _electronicInvoiceMetadata = value?.Clone();
+    }
+    internal PdfElectronicInvoiceMetadata? ElectronicInvoiceMetadataSnapshot => _electronicInvoiceMetadata?.Clone();
     /// <summary>Optional generated catalog output intent backed by an ICC profile.</summary>
     public PdfOutputIntent? OutputIntent {
         get => _outputIntent?.Clone();
         set => _outputIntent = value?.Clone();
     }
     internal PdfOutputIntent? OutputIntentSnapshot => _outputIntent?.Clone();
+    /// <summary>Controls catalog-level tagged-PDF groundwork emitted for accessibility-oriented profiles.</summary>
+    public PdfTaggedStructureMode TaggedStructureMode {
+        get => _taggedStructureMode;
+        set {
+            Guard.TaggedStructureMode(value, nameof(TaggedStructureMode));
+            _taggedStructureMode = value;
+        }
+    }
     /// <summary>Optional document language for the generated catalog /Lang entry, for example "en-US".</summary>
     public string? Language {
         get => _language;
@@ -98,6 +132,57 @@ public sealed partial class PdfOptions {
         return this;
     }
 
+    /// <summary>Sets the PDF file header version emitted for generated documents.</summary>
+    public PdfOptions SetFileVersion(PdfFileVersion version) {
+        FileVersion = version;
+        return this;
+    }
+
+    /// <summary>Sets PDF/A XMP identification metadata and enables XMP metadata emission.</summary>
+    public PdfOptions SetPdfAIdentification(PdfAIdentification? identification) {
+        PdfAIdentification = identification;
+        if (identification != null) {
+            IncludeXmpMetadata = true;
+        }
+
+        return this;
+    }
+
+    /// <summary>Sets PDF/A XMP identification metadata and enables XMP metadata emission.</summary>
+    public PdfOptions SetPdfAIdentification(int part, string conformance) {
+        return SetPdfAIdentification(new PdfAIdentification(part, conformance));
+    }
+
+    /// <summary>Sets PDF/UA XMP identification metadata and enables XMP metadata emission.</summary>
+    public PdfOptions SetPdfUaIdentification(PdfUaIdentification? identification) {
+        PdfUaIdentification = identification;
+        if (identification != null) {
+            IncludeXmpMetadata = true;
+        }
+
+        return this;
+    }
+
+    /// <summary>Sets PDF/UA XMP identification metadata and enables XMP metadata emission.</summary>
+    public PdfOptions SetPdfUaIdentification(int part = 1) {
+        return SetPdfUaIdentification(new PdfUaIdentification(part));
+    }
+
+    /// <summary>Sets Factur-X/ZUGFeRD XMP extension metadata and enables XMP metadata emission.</summary>
+    public PdfOptions SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata? metadata) {
+        ElectronicInvoiceMetadata = metadata;
+        if (metadata != null) {
+            IncludeXmpMetadata = true;
+        }
+
+        return this;
+    }
+
+    /// <summary>Sets Factur-X/ZUGFeRD XMP extension metadata and enables XMP metadata emission.</summary>
+    public PdfOptions SetElectronicInvoiceMetadata(string conformanceLevel, string version = "1.0") {
+        return SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX(conformanceLevel, version));
+    }
+
     /// <summary>Sets a generated catalog output intent backed by an ICC profile.</summary>
     public PdfOptions SetOutputIntent(PdfOutputIntent? outputIntent) {
         OutputIntent = outputIntent;
@@ -105,8 +190,26 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
-    public PdfOptions SetOutputIntent(byte[] iccProfile, string outputConditionIdentifier = "sRGB IEC61966-2.1") {
-        OutputIntent = new PdfOutputIntent(iccProfile, outputConditionIdentifier);
+    public PdfOptions SetOutputIntent(byte[] iccProfile, string outputConditionIdentifier = "sRGB IEC61966-2.1", PdfOutputIntentPolicy policy = PdfOutputIntentPolicy.Unspecified) {
+        OutputIntent = new PdfOutputIntent(iccProfile, outputConditionIdentifier, policy);
+        return this;
+    }
+
+    /// <summary>Sets the generated catalog output intent to OfficeIMO's built-in sRGB IEC61966-2.1 ICC profile.</summary>
+    public PdfOptions SetSrgbOutputIntent() {
+        OutputIntent = PdfOutputIntent.CreateSrgbIec6196621();
+        return this;
+    }
+
+    /// <summary>Sets the generated tagged-PDF groundwork mode.</summary>
+    public PdfOptions SetTaggedStructureMode(PdfTaggedStructureMode mode) {
+        TaggedStructureMode = mode;
+        return this;
+    }
+
+    /// <summary>Emits catalog-level tagged-PDF markers without claiming full tagged-content generation.</summary>
+    public PdfOptions EnableTaggedPdfCatalogMarkers() {
+        TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers;
         return this;
     }
 
@@ -138,6 +241,43 @@ public sealed partial class PdfOptions {
         return this;
     }
 
+    /// <summary>
+    /// Configures common PDF/UA-1 groundwork without enabling formal compliance profile generation.
+    /// </summary>
+    public PdfOptions ConfigurePdfUaGroundwork(string language = "en-US") {
+        Language = language;
+        FileVersion = PdfFileVersion.Pdf17;
+        IncludeStandardFontToUnicodeMaps = true;
+        SetPdfUaIdentification();
+        EnableTaggedPdfCatalogMarkers();
+
+        var preferences = _viewerPreferences?.Clone() ?? new PdfViewerPreferencesOptions();
+        preferences.DisplayDocTitle = true;
+        _viewerPreferences = preferences;
+        return this;
+    }
+
+    /// <summary>
+    /// Configures common PDF/A-2 or PDF/A-3 groundwork without enabling formal compliance profile generation.
+    /// </summary>
+    public PdfOptions ConfigurePdfAGroundwork(PdfComplianceProfile profile, string language = "en-US") {
+        PdfAIdentification identification = CreatePdfAIdentification(profile);
+        FileVersion = PdfFileVersion.Pdf17;
+        SetPdfAIdentification(identification);
+        SetSrgbOutputIntent();
+
+        if (RequiresPdfAUnicodeGroundwork(profile)) {
+            IncludeStandardFontToUnicodeMaps = true;
+        }
+
+        if (RequiresPdfAAccessibilityGroundwork(profile)) {
+            Language = language;
+            EnableTaggedPdfCatalogMarkers();
+        }
+
+        return this;
+    }
+
     /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
     public PdfOptions AddEmbeddedFile(PdfEmbeddedFile file) {
         Guard.NotNull(file, nameof(file));
@@ -163,6 +303,43 @@ public sealed partial class PdfOptions {
         return AddEmbeddedFile(new PdfEmbeddedFile(fileName, data, mimeType, relationship, description));
     }
 
+    /// <summary>
+    /// Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML payload and matching XMP extension metadata.
+    /// </summary>
+    public PdfOptions AddFacturXInvoiceXml(
+        byte[] ciiXml,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        PdfElectronicInvoiceMetadata metadata = CreateFacturXInvoiceMetadata(conformanceLevel, version);
+        PdfEmbeddedFile attachment = CreateFacturXInvoiceAttachment(ciiXml, relationship, description);
+        AddEmbeddedFile(attachment);
+        return SetElectronicInvoiceMetadata(metadata);
+    }
+
+    /// <summary>
+    /// Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork without enabling formal compliance profile generation.
+    /// </summary>
+    public PdfOptions ConfigureFacturXGroundwork(
+        byte[] ciiXml,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        PdfAIdentification pdfAIdentification = new PdfAIdentification(3, "B");
+        PdfOutputIntent outputIntent = PdfOutputIntent.CreateSrgbIec6196621();
+        PdfElectronicInvoiceMetadata metadata = CreateFacturXInvoiceMetadata(conformanceLevel, version);
+        PdfEmbeddedFile attachment = CreateFacturXInvoiceAttachment(ciiXml, relationship, description);
+
+        AddEmbeddedFile(attachment);
+        FileVersion = PdfFileVersion.Pdf17;
+        IncludeStandardFontToUnicodeMaps = true;
+        SetPdfAIdentification(pdfAIdentification);
+        SetOutputIntent(outputIntent);
+        return SetElectronicInvoiceMetadata(metadata);
+    }
+
     /// <summary>Removes all embedded files associated with the generated PDF catalog.</summary>
     public PdfOptions ClearEmbeddedFiles() {
         _embeddedFiles?.Clear();
@@ -177,5 +354,57 @@ public sealed partial class PdfOptions {
 
         embeddedFont = null;
         return false;
+    }
+
+    private static PdfElectronicInvoiceMetadata CreateFacturXInvoiceMetadata(string conformanceLevel, string version) {
+        return PdfElectronicInvoiceMetadata.FacturX(conformanceLevel, version);
+    }
+
+    private static PdfAIdentification CreatePdfAIdentification(PdfComplianceProfile profile) {
+        switch (profile) {
+            case PdfComplianceProfile.PdfA2B:
+                return new PdfAIdentification(2, "B");
+            case PdfComplianceProfile.PdfA2U:
+                return new PdfAIdentification(2, "U");
+            case PdfComplianceProfile.PdfA2A:
+                return new PdfAIdentification(2, "A");
+            case PdfComplianceProfile.PdfA3B:
+                return new PdfAIdentification(3, "B");
+            case PdfComplianceProfile.PdfA3U:
+                return new PdfAIdentification(3, "U");
+            case PdfComplianceProfile.PdfA3A:
+                return new PdfAIdentification(3, "A");
+            default:
+                throw new System.ArgumentException("PDF/A groundwork requires a PDF/A-2 or PDF/A-3 compliance profile.", nameof(profile));
+        }
+    }
+
+    private static bool RequiresPdfAUnicodeGroundwork(PdfComplianceProfile profile) {
+        return profile == PdfComplianceProfile.PdfA2U ||
+            profile == PdfComplianceProfile.PdfA2A ||
+            profile == PdfComplianceProfile.PdfA3U ||
+            profile == PdfComplianceProfile.PdfA3A;
+    }
+
+    private static bool RequiresPdfAAccessibilityGroundwork(PdfComplianceProfile profile) {
+        return profile == PdfComplianceProfile.PdfA2A ||
+            profile == PdfComplianceProfile.PdfA3A;
+    }
+
+    private static PdfEmbeddedFile CreateFacturXInvoiceAttachment(
+        byte[] ciiXml,
+        PdfAssociatedFileRelationship relationship,
+        string? description) {
+        Guard.NotNullOrEmpty(ciiXml, nameof(ciiXml));
+        ValidateFacturXInvoiceRelationship(relationship);
+        return new PdfEmbeddedFile("factur-x.xml", ciiXml, "application/xml", relationship, description);
+    }
+
+    private static void ValidateFacturXInvoiceRelationship(PdfAssociatedFileRelationship relationship) {
+        if (relationship != PdfAssociatedFileRelationship.Alternative &&
+            relationship != PdfAssociatedFileRelationship.Data &&
+            relationship != PdfAssociatedFileRelationship.Source) {
+            throw new System.ArgumentException("Factur-X/ZUGFeRD invoice XML must use Alternative, Data, or Source associated-file relationship.", nameof(relationship));
+        }
     }
 }

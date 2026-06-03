@@ -54,6 +54,8 @@ internal static partial class PdfWriter {
                 }
             }
 
+            int? listStructureElementIndex = null;
+            LayoutResult.Page? listStructurePage = null;
             for (int itemIndex = 0; itemIndex < bl.RichItems.Count; itemIndex++) {
                 var item = bl.RichItems[itemIndex];
                 string marker = item.Marker ?? bulletGlyph;
@@ -65,7 +67,7 @@ internal static partial class PdfWriter {
 
                 double spacingBefore = itemIndex == 0 ? listSpacingBefore : 0D;
                 double spacingAfter = itemIndex == bl.RichItems.Count - 1 ? listSpacingAfter : itemSpacing;
-                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, currentOpts.MarginLeft + listLeftIndent + firstLineDx, bulletWidth, PdfAlign.Left, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, bl.Align, bl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName);
+                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, currentOpts.MarginLeft + listLeftIndent + firstLineDx, bulletWidth, PdfAlign.Left, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, bl.Align, bl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
             }
         }
 
@@ -121,6 +123,8 @@ internal static partial class PdfWriter {
                 }
             }
 
+            int? listStructureElementIndex = null;
+            LayoutResult.Page? listStructurePage = null;
             for (int itemIndex = 0; itemIndex < nl.RichItems.Count; itemIndex++) {
                 var item = nl.RichItems[itemIndex];
                 string marker = item.Marker ?? ((nl.StartNumber + itemIndex).ToString(CultureInfo.InvariantCulture) + ".");
@@ -132,7 +136,7 @@ internal static partial class PdfWriter {
 
                 double spacingBefore = itemIndex == 0 ? listSpacingBefore : 0D;
                 double spacingAfter = itemIndex == nl.RichItems.Count - 1 ? listSpacingAfter : itemSpacing;
-                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, currentOpts.MarginLeft + listLeftIndent + firstLineDx, markerWidth, PdfAlign.Right, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, nl.Align, nl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName);
+                RenderListItem(item.Runs, layout.Lines, layout.LineHeights, marker, currentOpts.MarginLeft + listLeftIndent + firstLineDx, markerWidth, PdfAlign.Right, currentOpts.MarginLeft + listLeftIndent + indent, alignmentWidth, nl.Align, nl.Color ?? listStyle?.Color, size, leading, spacingBefore, spacingAfter, item.BookmarkName, ref listStructureElementIndex, ref listStructurePage);
             }
         }
 

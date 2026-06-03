@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 internal static class PdfComplianceValidator {
     private static readonly string[] PdfABaseRequirements = {
         "profile-required output-intent validation and approved ICC profile policy",
-        "profile-specific XMP identification metadata",
+        "automatic profile-specific XMP identification and extension metadata policy",
         "embedded-font coverage for every generated glyph",
         "profile-aware PDF version and catalog validation",
         "veraPDF validation fixtures in the build lane"
@@ -18,6 +18,13 @@ internal static class PdfComplianceValidator {
         "tagged PDF structure tree",
         "role map and reading order",
         "alternate text for meaningful images and drawings"
+    };
+
+    private static readonly string[] PdfUaRequirements = {
+        "PDF 1.7 file header and catalog version policy",
+        "PDF/UA identification XMP",
+        "document title metadata",
+        "catalog ViewerPreferences DisplayDocTitle true"
     };
 
     private static readonly string[] ElectronicInvoiceRequirements = {
@@ -40,7 +47,7 @@ internal static class PdfComplianceValidator {
     }
 
     private static string BuildUnsupportedProfileMessage(PdfComplianceProfile profile) {
-        return "PDF compliance profile " + GetDisplayName(profile) + " was requested, but OfficeIMO.Pdf cannot yet generate certified " + GetProfileFamily(profile) + " output. Missing generated-profile support: " + string.Join("; ", GetRequirements(profile)) + ". Use " + nameof(PdfComplianceProfile) + "." + nameof(PdfComplianceProfile.None) + " until the profile is implemented, or use the existing XMP metadata, ToUnicode, and embedded-font options only as compliance groundwork without claiming formal conformance.";
+        return "PDF compliance profile " + GetDisplayName(profile) + " was requested, but OfficeIMO.Pdf cannot yet generate certified " + GetProfileFamily(profile) + " output. Missing generated-profile support: " + string.Join("; ", GetRequirements(profile)) + ". Use " + nameof(PdfComplianceProfile) + "." + nameof(PdfComplianceProfile.None) + " until the profile is implemented, or use the existing file-version, XMP metadata, built-in sRGB output intent, ToUnicode, embedded-font, and e-invoice metadata/attachment options only as compliance groundwork without claiming formal conformance.";
     }
 
     private static IEnumerable<string> GetRequirements(PdfComplianceProfile profile) {
@@ -56,6 +63,12 @@ internal static class PdfComplianceValidator {
 
         if (RequiresAccessibility(profile)) {
             foreach (string requirement in AccessibilityRequirements) {
+                yield return requirement;
+            }
+        }
+
+        if (profile == PdfComplianceProfile.PdfUa1) {
+            foreach (string requirement in PdfUaRequirements) {
                 yield return requirement;
             }
         }

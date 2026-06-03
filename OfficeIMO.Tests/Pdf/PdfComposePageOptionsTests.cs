@@ -649,6 +649,73 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void PageDictionaryBuilder_EmitsTaggedStructureTabOrder() {
+            string page = PdfPageDictionaryBuilder.BuildGeneratedPageDictionary(
+                2,
+                612,
+                792,
+                10,
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<(string Name, int Id)>(),
+                Array.Empty<int>(),
+                structParents: 0,
+                useStructureTabOrder: true);
+
+            Assert.Equal(
+                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << >> /Contents 10 0 R /StructParents 0 /Tabs /S >>\n",
+                page);
+        }
+
+        [Fact]
+        public void StructTreeRootDictionaryBuilder_EmitsParentTreeNextKey() {
+            var parentTreeEntries = new[] {
+                PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForMarkedContentPage(0, new[] { 6 }),
+                PdfStructTreeRootDictionaryBuilder.ParentTreeEntry.ForObjectReference(1, 7)
+            };
+
+            string parentTree = PdfStructTreeRootDictionaryBuilder.BuildParentTree(parentTreeEntries);
+            string document = PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(3, new[] { 6, 7 });
+            string root = PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { 6, 7 }, parentTreeId: 8, parentTreeNextKey: 2);
+
+            Assert.Equal("<< /Nums [0 [6 0 R] 1 7 0 R] >>\n", parentTree);
+            Assert.Equal("<< /Type /StructElem /S /Document /P 3 0 R /K [6 0 R 7 0 R] >>\n", document);
+            Assert.Equal(
+                "<< /Type /StructElem /S /Document /P 3 0 R /K [6 0 R 7 0 R] /Lang <656E2D5553> >>\n",
+                PdfStructTreeRootDictionaryBuilder.BuildDocumentStructElement(3, new[] { 6, 7 }, "en-US"));
+            Assert.Equal(
+                "<< /Type /StructElem /S /Link /P 3 0 R /Pg 4 0 R /K [<< /Type /MCR /Pg 4 0 R /MCID 5 >> << /Type /OBJR /Obj 9 0 R >>] >>\n",
+                PdfStructTreeRootDictionaryBuilder.BuildAnnotationStructElement(3, 4, 9, 5));
+            Assert.Equal(
+                "<< /Type /StructElem /S /Link /P 3 0 R /Pg 4 0 R /K [<< /Type /MCR /Pg 4 0 R /MCID 5 >> << /Type /MCR /Pg 4 0 R /MCID 6 >> << /Type /OBJR /Obj 9 0 R >>] >>\n",
+                PdfStructTreeRootDictionaryBuilder.BuildAnnotationStructElement(3, 4, 9, 5, new[] { 6 }));
+            Assert.Equal("<< /Type /StructTreeRoot /K [6 0 R 7 0 R] /ParentTree 8 0 R /ParentTreeNextKey 2 /RoleMap << >> >>\n", root);
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                PdfStructTreeRootDictionaryBuilder.BuildStructTreeRootDictionary(new[] { 6 }, parentTreeId: 8, parentTreeNextKey: -1));
+        }
+
+        [Fact]
+        public void EmbeddedFileDictionaryBuilder_EmitsDeterministicStreamParameters() {
+            var file = new PdfEmbeddedFile(
+                "invoice.xml",
+                new byte[] { 1, 2, 3 },
+                "application/xml",
+                PdfAssociatedFileRelationship.Data,
+                "Invoice XML");
+
+            string dictionary = PdfEmbeddedFileDictionaryBuilder.BuildEmbeddedFileStreamDictionary(file, new byte[] { 1, 2, 3 });
+
+            Assert.Equal(
+                "<< /Type /EmbeddedFile /Subtype /application#2Fxml /Length 3 /Params << /Size 3 /CheckSum <5289DF737DF57326FCDD22597AFB1FAC> >> >>",
+                dictionary);
+            Assert.Throws<ArgumentNullException>(() =>
+                PdfEmbeddedFileDictionaryBuilder.BuildEmbeddedFileStreamDictionary(file, null!));
+            Assert.Throws<ArgumentException>(() =>
+                PdfEmbeddedFileDictionaryBuilder.BuildEmbeddedFileStreamDictionary(file, Array.Empty<byte>()));
+        }
+
+        [Fact]
         public void AnnotationDictionaryBuilder_EmitsUriLinkAnnotationsWithEscapedUri() {
             Assert.Equal(
                 "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [10 20.5 110 44.25] /A << /S /URI /URI (https://evotec.xyz/docs\\(pdf\\)) >> >>\n",
@@ -659,8 +726,32 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20.5, 110, 44.25, "Intro(A)", "Jump metadata"));
 
             Assert.Equal(
+                "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Contents (Jump metadata) /Rect [10 20.5 110 44.25] /A << /S /URI /URI (https://evotec.xyz/docs) >> /StructParent 7 >>\n",
+                PdfAnnotationDictionaryBuilder.BuildUriLinkAnnotation(10, 20.5, 110, 44.25, "https://evotec.xyz/docs", "Jump metadata", 7));
+
+            Assert.Equal(
+                "<< /Type /Annot /Subtype /Link /Border [0 0 0] /Rect [10 20.5 110 44.25] /A << /S /GoTo /D (Intro) >> /StructParent 8 >>\n",
+                PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20.5, 110, 44.25, "Intro", structParentIndex: 8));
+
+            Assert.Equal(
                 "<< /Type /Annot /Subtype /Widget /FT /Tx /T <506572736F6E2E4E616D65> /V <416461> /DV <416461> /Rect [10 20.5 110 44.25] /F 4 /DA (/Helv 10 Tf 0 0 0 rg) /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N 12 0 R >> >>\n",
                 PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Person.Name", "Ada", 10, 12));
+            Assert.Contains(
+                "/TU <506572736F6E206E616D65> /TM <706572736F6E2E6E616D65>",
+                PdfAnnotationDictionaryBuilder.BuildTextFieldWidgetAnnotation(
+                    10,
+                    20.5,
+                    110,
+                    44.25,
+                    "Person.Name",
+                    "Ada",
+                    10,
+                    12,
+                    new PdfFormFieldStyle {
+                        AlternateName = "Person name",
+                        MappingName = "person.name"
+                    }),
+                StringComparison.Ordinal);
 
             Assert.Equal(
                 "<< /Type /Annot /Subtype /Widget /FT /Btn /T <4163636570745465726D73> /V /Yes /DV /Yes /Rect [10 20.5 26 36.5] /F 4 /AS /Yes /MK << /BC [0.75 0.75 0.75] /BG [1 1 1] >> /AP << /N << /Off 12 0 R /Yes 13 0 R >> >> >>\n",

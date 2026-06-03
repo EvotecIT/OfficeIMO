@@ -52,7 +52,8 @@ internal static partial class PdfWriter {
             ClipPath = clipPath,
             ClipX = targetX,
             ClipY = targetBottomY,
-            ClipHeight = block.Height
+            ClipHeight = block.Height,
+            AlternativeText = block.AlternativeText
         };
     }
 

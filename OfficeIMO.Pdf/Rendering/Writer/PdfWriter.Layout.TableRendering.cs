@@ -268,14 +268,14 @@ internal static partial class PdfWriter {
         return skipColumns;
     }
 
-    private static void DrawTableHorizontalLine(StringBuilder sb, PdfColor color, double width, double xOrigin, double[] columnWidths, double columnGap, double y, bool[] skipColumns) {
+    private static void DrawTableHorizontalLine(StringBuilder sb, PdfColor color, double width, double xOrigin, double[] columnWidths, double columnGap, double y, bool[] skipColumns, bool artifact = false) {
         if (columnWidths.Length == 0) {
             return;
         }
 
         double tableWidth = GetTableCellWidth(columnWidths, 0, columnWidths.Length, columnGap);
         if (!HasSkippedColumns(skipColumns, columnWidths.Length)) {
-            DrawHLine(sb, color, width, xOrigin, xOrigin + tableWidth, y);
+            DrawHLine(sb, color, width, xOrigin, xOrigin + tableWidth, y, artifact);
             return;
         }
 
@@ -293,7 +293,7 @@ internal static partial class PdfWriter {
             bool skip = column < skipColumns.Length && skipColumns[column];
             if (skip) {
                 if (segmentStart >= 0) {
-                    DrawHLine(sb, color, width, columnLefts[segmentStart], columnRights[column - 1], y);
+                    DrawHLine(sb, color, width, columnLefts[segmentStart], columnRights[column - 1], y, artifact);
                     segmentStart = -1;
                 }
 
@@ -306,18 +306,18 @@ internal static partial class PdfWriter {
         }
 
         if (segmentStart >= 0) {
-            DrawHLine(sb, color, width, columnLefts[segmentStart], columnRights[columnWidths.Length - 1], y);
+            DrawHLine(sb, color, width, columnLefts[segmentStart], columnRights[columnWidths.Length - 1], y, artifact);
         }
     }
 
-    private static void DrawTableRowFill(StringBuilder sb, PdfColor color, double xOrigin, double[] columnWidths, double columnGap, double y, double height, bool[] skipColumns) {
+    private static void DrawTableRowFill(StringBuilder sb, PdfColor color, double xOrigin, double[] columnWidths, double columnGap, double y, double height, bool[] skipColumns, bool artifact = false) {
         if (columnWidths.Length == 0) {
             return;
         }
 
         double tableWidth = GetTableCellWidth(columnWidths, 0, columnWidths.Length, columnGap);
         if (!HasSkippedColumns(skipColumns, columnWidths.Length)) {
-            DrawRowFill(sb, color, xOrigin, y, tableWidth, height);
+            DrawRowFill(sb, color, xOrigin, y, tableWidth, height, artifact);
             return;
         }
 
@@ -335,7 +335,7 @@ internal static partial class PdfWriter {
             bool skip = column < skipColumns.Length && skipColumns[column];
             if (skip) {
                 if (segmentStart >= 0) {
-                    DrawRowFill(sb, color, columnLefts[segmentStart], y, columnRights[column - 1] - columnLefts[segmentStart], height);
+                    DrawRowFill(sb, color, columnLefts[segmentStart], y, columnRights[column - 1] - columnLefts[segmentStart], height, artifact);
                     segmentStart = -1;
                 }
 
@@ -348,7 +348,7 @@ internal static partial class PdfWriter {
         }
 
         if (segmentStart >= 0) {
-            DrawRowFill(sb, color, columnLefts[segmentStart], y, columnRights[columnWidths.Length - 1] - columnLefts[segmentStart], height);
+            DrawRowFill(sb, color, columnLefts[segmentStart], y, columnRights[columnWidths.Length - 1] - columnLefts[segmentStart], height, artifact);
         }
     }
 

@@ -490,7 +490,7 @@ internal static partial class PdfWriter {
         return (lines, heights);
     }
 
-    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null) {
+    private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;
         double widthUsed = widthOverride ?? widthContent;
         var underlines = new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color)>();
@@ -588,6 +588,7 @@ internal static partial class PdfWriter {
                 .RestoreState();
         }
 
+        AppendMarkedContentBegin(sb, structureType, markedContentId);
         var content = new ContentStreamBuilder(sb)
             .BeginText()
             .TextLeading(defaultLeading);
@@ -665,9 +666,48 @@ internal static partial class PdfWriter {
                         xCursor += gap;
                     }
                 }
-                double segmentStartX = xCursor;
-                content.ShowHexText(EncodeWinAnsiHex(s.Text));
                 double wSeg = MeasureRichText(s.Text, s.Font, s.FontSize, s.Baseline);
+                bool hasLinkTarget = !string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName);
+                int? linkMarkedContentId = null;
+                int? linkStructElementIndex = null;
+                if (hasLinkTarget && structurePage != null) {
+                    linkMarkedContentId = structurePage.NextMarkedContentId++;
+                    linkStructElementIndex = structurePage.StructElements.Count;
+                    structurePage.StructElements.Add(new PageStructElement {
+                        MarkedContentId = linkMarkedContentId,
+                        StructureType = "Link"
+                    });
+                }
+
+                double segmentStartX = xCursor;
+                if (linkMarkedContentId.HasValue) {
+                    content.EndText();
+                    AppendMarkedContentBegin(sb, "Link", linkMarkedContentId);
+                    content
+                        .BeginText()
+                        .TextLeading(defaultLeading)
+                        .TextMatrix(lineXOrigin + xCursor, lineY)
+                        .WordSpacing(wordSpacing)
+                        .Font(fontRes, runFontSize);
+                    if (Math.Abs(textRise) > 0.0001) {
+                        content.TextRise(textRise);
+                    }
+
+                    content
+                        .FillColor(color ?? PdfColor.Black)
+                        .ShowHexText(EncodeWinAnsiHex(s.Text))
+                        .EndText();
+                    AppendMarkedContentEnd(sb, linkMarkedContentId);
+                    content
+                        .BeginText()
+                        .TextLeading(defaultLeading)
+                        .TextMatrix(lineXOrigin + xCursor + wSeg, lineY)
+                        .WordSpacing(wordSpacing);
+                    currentTextRise = 0;
+                } else {
+                    content.ShowHexText(EncodeWinAnsiHex(s.Text));
+                }
+
                 double baselineY = lineY + textRise;
 
                 if (s.Underline) {
@@ -680,7 +720,7 @@ internal static partial class PdfWriter {
                     double yLine = baselineY + runFontSize * 0.32;
                     strikes.Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, stColor));
                 }
-                if (!string.IsNullOrEmpty(s.Uri) || !string.IsNullOrEmpty(s.DestinationName)) {
+                if (hasLinkTarget) {
                     var fontForMetrics = s.Font;
                     double asc = GetAscender(fontForMetrics, runFontSize);
                     double desc = GetDescender(fontForMetrics, runFontSize);
@@ -688,7 +728,7 @@ internal static partial class PdfWriter {
                     double x2 = x1 + wSeg;
                     double y1 = baselineY - desc;
                     double y2 = baselineY + asc;
-                    AddRichTextLinkAnnotation(annots, x1, y1, x2, y2, s.Uri, s.DestinationName, s.Contents);
+                    AddRichTextLinkAnnotation(annots, structurePage, x1, y1, x2, y2, s.Uri, s.DestinationName, s.Contents, linkStructElementIndex);
                 }
                 xCursor += wSeg;
             }
@@ -701,6 +741,7 @@ internal static partial class PdfWriter {
         content
             .WordSpacing(0)
             .EndText();
+        AppendMarkedContentEnd(sb, markedContentId);
 
         foreach (var ul in underlines) {
             new ContentStreamBuilder(sb)
@@ -724,7 +765,25 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AddRichTextLinkAnnotation(System.Collections.Generic.List<LinkAnnotation> annots, double x1, double y1, double x2, double y2, string? uri, string? destinationName, string? contents) {
+    private static void AppendMarkedContentBegin(StringBuilder sb, string? structureType, int? markedContentId) {
+        if (!markedContentId.HasValue || string.IsNullOrWhiteSpace(structureType)) {
+            return;
+        }
+
+        sb.Append('/')
+            .Append(structureType)
+            .Append(" << /MCID ")
+            .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture))
+            .Append(" >> BDC\n");
+    }
+
+    private static void AppendMarkedContentEnd(StringBuilder sb, int? markedContentId) {
+        if (markedContentId.HasValue) {
+            sb.Append("EMC\n");
+        }
+    }
+
+    private static void AddRichTextLinkAnnotation(System.Collections.Generic.List<LinkAnnotation> annots, LayoutResult.Page? structurePage, double x1, double y1, double x2, double y2, string? uri, string? destinationName, string? contents, int? structElementIndex) {
         if (annots.Count > 0) {
             LinkAnnotation previous = annots[annots.Count - 1];
             double gap = x1 - previous.X2;
@@ -736,6 +795,13 @@ internal static partial class PdfWriter {
                 Math.Abs(previous.Y1 - y1) <= 0.5D &&
                 Math.Abs(previous.Y2 - y2) <= 0.5D;
             if (sameTarget && sameLine && gap >= -0.25D && gap <= 18D) {
+                if (structElementIndex.HasValue && previous.StructElementIndex.HasValue && structurePage != null) {
+                    MergeLinkStructureElements(structurePage, previous.StructElementIndex.Value, structElementIndex.Value);
+                } else if (structElementIndex.HasValue || previous.StructElementIndex.HasValue) {
+                    annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents, StructElementIndex = structElementIndex });
+                    return;
+                }
+
                 annots[annots.Count - 1] = new LinkAnnotation {
                     X1 = previous.X1,
                     Y1 = Math.Min(previous.Y1, y1),
@@ -743,23 +809,46 @@ internal static partial class PdfWriter {
                     Y2 = Math.Max(previous.Y2, y2),
                     Uri = uri,
                     DestinationName = destinationName,
-                    Contents = contents
+                    Contents = contents,
+                    StructElementIndex = previous.StructElementIndex
                 };
                 return;
             }
         }
 
-        annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents });
+        annots.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = uri, DestinationName = destinationName, Contents = contents, StructElementIndex = structElementIndex });
     }
 
-    private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null) {
+    private static void MergeLinkStructureElements(LayoutResult.Page structurePage, int targetStructElementIndex, int mergedStructElementIndex) {
+        if (targetStructElementIndex < 0 || targetStructElementIndex >= structurePage.StructElements.Count ||
+            mergedStructElementIndex < 0 || mergedStructElementIndex >= structurePage.StructElements.Count ||
+            targetStructElementIndex == mergedStructElementIndex) {
+            return;
+        }
+
+        PageStructElement target = structurePage.StructElements[targetStructElementIndex];
+        PageStructElement merged = structurePage.StructElements[mergedStructElementIndex];
+        if (merged.MarkedContentId.HasValue) {
+            if (target.AdditionalMarkedContentIds == null) {
+                target.AdditionalMarkedContentIds = new System.Collections.Generic.List<int>();
+            }
+
+            target.AdditionalMarkedContentIds.Add(merged.MarkedContentId.Value);
+        }
+
+        if (mergedStructElementIndex == structurePage.StructElements.Count - 1) {
+            structurePage.StructElements.RemoveAt(mergedStructElementIndex);
+        }
+    }
+
+    private static void WriteClippedRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double clipX, double clipY, double clipWidth, double clipHeight, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null) {
         new ContentStreamBuilder(sb)
             .SaveState()
             .Rectangle(clipX, clipY, clipWidth, clipHeight)
             .ClipPath()
             .EndPath();
 
-        WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride);
+        WriteRichParagraph(sb, block, lines, lineHeights, opts, startY, fontSize, defaultLeading, annots, xOverride, widthOverride, firstLineXOverride, firstLineWidthOverride, structureType, markedContentId, structurePage);
 
         new ContentStreamBuilder(sb)
             .RestoreState();

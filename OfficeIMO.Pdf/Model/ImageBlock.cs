@@ -13,6 +13,7 @@ internal sealed class ImageBlock : IPdfBlock {
     public PdfAlign Align => (Style ?? new PdfImageStyle()).Align;
     public OfficeClipPath? ClipPath => Style?.ClipPath;
     public OfficeImageFit Fit => (Style ?? new PdfImageStyle()).Fit;
+    public string? AlternativeText => Style?.AlternativeText;
 
     public ImageBlock(byte[] data, double width, double height, OfficeImageInfo info, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNullOrEmpty(data, nameof(data));

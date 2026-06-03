@@ -116,6 +116,32 @@ internal static class Guard {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FileVersion(PdfFileVersion value, string paramName) {
+        if (value != PdfFileVersion.Pdf14 &&
+            value != PdfFileVersion.Pdf15 &&
+            value != PdfFileVersion.Pdf16 &&
+            value != PdfFileVersion.Pdf17) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF file version must be Pdf14, Pdf15, Pdf16, or Pdf17.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void OutputIntentPolicy(PdfOutputIntentPolicy value, string paramName) {
+        if (value != PdfOutputIntentPolicy.Unspecified &&
+            value != PdfOutputIntentPolicy.SrgbIec6196621) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF output-intent policy must be Unspecified or SrgbIec6196621.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void TaggedStructureMode(PdfTaggedStructureMode value, string paramName) {
+        if (value != PdfTaggedStructureMode.None &&
+            value != PdfTaggedStructureMode.CatalogMarkers) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF tagged-structure mode must be None or CatalogMarkers.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void AssociatedFileRelationship(PdfAssociatedFileRelationship value, string paramName) {
         if (value != PdfAssociatedFileRelationship.Unspecified &&
             value != PdfAssociatedFileRelationship.Source &&

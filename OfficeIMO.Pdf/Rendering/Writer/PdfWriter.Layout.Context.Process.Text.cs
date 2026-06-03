@@ -40,7 +40,9 @@ internal static partial class PdfWriter {
             double firstBaseline = FirstTextBaselineFromTop(headingFont, size, y);
             AddHeadingLinkAnnotations(hb, lines, headingFont, size, leading, currentOpts.MarginLeft, width, firstBaseline);
             string headingFontResource = GetHeadingFontResource(headingStyle);
-            WriteLines(headingFontResource, size, leading, currentOpts.MarginLeft, firstBaseline, lines, hb.Align, hb.Color ?? headingStyle?.Color, applyBaselineTweak: false);
+            string structureType = "H" + hb.Level.ToString(CultureInfo.InvariantCulture);
+            int? markedContentId = RegisterTextStructureElement(structureType);
+            WriteLines(headingFontResource, size, leading, currentOpts.MarginLeft, firstBaseline, lines, hb.Align, hb.Color ?? headingStyle?.Color, applyBaselineTweak: false, structureType: structureType, markedContentId: markedContentId);
             if (GetHeadingBold(headingStyle)) {
                 currentPage!.UsedBold = true;
                 usedBold = true;
@@ -139,7 +141,8 @@ internal static partial class PdfWriter {
                 bool sliceStartsAtFirstLine = lineIndex == 0;
                 pageDirty = true;
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
-                WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null);
+                int? markedContentId = RegisterTextStructureElement("P");
+                WriteRichParagraph(sb, rpb, sliceLines, sliceHeights, currentOpts, FirstTextBaselineFromTop(paragraphFont, size, y), size, leading, currentPage!.Annotations, textFrame.X, textFrame.Width, sliceStartsAtFirstLine ? textFrame.FirstLineX : null, sliceStartsAtFirstLine ? textFrame.FirstLineWidth : null, "P", markedContentId, currentPage);
                 y -= heightSum;
                 lineIndex += take;
                 firstSegment = false;

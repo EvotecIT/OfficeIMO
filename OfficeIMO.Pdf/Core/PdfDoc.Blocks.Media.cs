@@ -87,12 +87,12 @@ public sealed partial class PdfDoc {
     }
 
     /// <summary>Adds a supported image at the current flow position. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
-    public PdfDoc Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    public PdfDoc Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
-        PdfImageStyle? imageStyle = CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style);
+        PdfImageStyle? imageStyle = CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
         if (imageStyle != null) {
             ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }
@@ -219,8 +219,8 @@ public sealed partial class PdfDoc {
         return ruleStyle;
     }
 
-    internal static PdfImageStyle? CreateImageStyle(PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style) {
-        if (!align.HasValue && clipPath == null && !fit.HasValue && !spacingBefore.HasValue && !spacingAfter.HasValue && style == null) {
+    internal static PdfImageStyle? CreateImageStyle(PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? alternativeText = null) {
+        if (!align.HasValue && clipPath == null && !fit.HasValue && !spacingBefore.HasValue && !spacingAfter.HasValue && style == null && alternativeText == null) {
             return null;
         }
 
@@ -244,6 +244,10 @@ public sealed partial class PdfDoc {
 
         if (spacingAfter.HasValue) {
             imageStyle.SpacingAfter = spacingAfter.Value;
+        }
+
+        if (alternativeText != null) {
+            imageStyle.AlternativeText = alternativeText;
         }
 
         return imageStyle;

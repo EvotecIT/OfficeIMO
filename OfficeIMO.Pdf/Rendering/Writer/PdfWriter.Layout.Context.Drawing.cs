@@ -185,16 +185,52 @@ internal static partial class PdfWriter {
 
         private void DrawShapeAt(ShapeBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
             double xShape = GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align);
+            bool markedContent = AppendDrawingMarkedContentBegin(style);
             DrawShapeGeometryAt(block.Shape, xShape, topY - block.Shape.Height);
+            AppendDrawingMarkedContentEnd(markedContent);
         }
 
         private void DrawDrawingAt(DrawingBlock block, PdfDrawingStyle style, double containerX, double containerWidth, double topY) {
             double xDrawing = GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align);
+            bool markedContent = AppendDrawingMarkedContentBegin(style);
             for (int i = 0; i < block.Drawing.Shapes.Count; i++) {
                 var item = block.Drawing.Shapes[i];
                 double xShape = xDrawing + item.X;
                 double bottomY = topY - item.Y - item.Shape.Height;
                 DrawShapeGeometryAt(item.Shape, xShape, bottomY);
+            }
+
+            AppendDrawingMarkedContentEnd(markedContent);
+        }
+
+        private bool AppendDrawingMarkedContentBegin(PdfDrawingStyle style) {
+            EnsurePage();
+            currentPage!.Drawings.Add(new PdfGeneratedDrawingAccessibilityEvidence(!string.IsNullOrWhiteSpace(style.AlternativeText), style.Decorative));
+
+            if (style.Decorative) {
+                AppendArtifactBegin(sb, emitGeneratedStructure);
+                return emitGeneratedStructure;
+            }
+
+            if (string.IsNullOrWhiteSpace(style.AlternativeText)) {
+                return false;
+            }
+
+            int? markedContentId = RegisterFigureStructureElement(style.AlternativeText!);
+            sb.Append("/Figure << /Alt ")
+                .Append(PdfSyntaxEscaper.TextString(style.AlternativeText!));
+            if (markedContentId.HasValue) {
+                sb.Append(" /MCID ")
+                    .Append(markedContentId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+
+            sb.Append(" >> BDC\n");
+            return true;
+        }
+
+        private void AppendDrawingMarkedContentEnd(bool markedContent) {
+            if (markedContent) {
+                sb.Append("EMC\n");
             }
         }
 

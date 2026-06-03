@@ -62,7 +62,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void RenderListItem(System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, string marker, double markerX, double markerWidth, PdfAlign markerAlign, double textX, double textWidth, PdfAlign textAlign, PdfColor? color, double size, double leading, double spacingBefore, double spacingAfter, string? bookmarkName) {
+        private void RenderListItem(System.Collections.Generic.IReadOnlyList<TextRun> runs, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, string marker, double markerX, double markerWidth, PdfAlign markerAlign, double textX, double textWidth, PdfAlign textAlign, PdfColor? color, double size, double leading, double spacingBefore, double spacingAfter, string? bookmarkName, ref int? listStructureElementIndex, ref LayoutResult.Page? listStructurePage) {
             int lineIndex = 0;
             bool firstSegment = true;
             var listFont = ChooseNormal(currentOpts.DefaultFont);
@@ -112,17 +112,21 @@ internal static partial class PdfWriter {
                 }
 
                 double baselineY = FirstTextBaselineFromTop(listFont, size, y);
+                int? listElementIndex = EnsurePageStructureContainer("L", ref listStructureElementIndex, ref listStructurePage);
+                int? listItemElementIndex = RegisterStructureContainer("LI", listElementIndex);
                 if (firstSegment) {
                     if (!string.IsNullOrEmpty(bookmarkName)) {
                         AddNamedDestinationName(bookmarkName!, y);
                     }
 
                     var markerLines = new System.Collections.Generic.List<string>(1) { marker };
-                    WriteLinesInternal("F1", size, leading, markerX, markerWidth, baselineY, markerLines, markerAlign, color, applyBaselineTweak: true);
+                    int? labelMarkedContentId = RegisterTextStructureElement("Lbl", listItemElementIndex);
+                    WriteLinesInternal("F1", size, leading, markerX, markerWidth, baselineY, markerLines, markerAlign, color, applyBaselineTweak: true, structureType: "Lbl", markedContentId: labelMarkedContentId);
                 }
 
                 pageDirty = true;
-                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, textX, textWidth);
+                int? bodyMarkedContentId = RegisterTextStructureElement("LBody", listItemElementIndex);
+                WriteRichParagraph(sb, new RichParagraphBlock(runs, textAlign, color), segmentLines, segmentHeights, currentOpts, baselineY, size, leading, currentPage!.Annotations, textX, textWidth, structureType: "LBody", markedContentId: bodyMarkedContentId, structurePage: currentPage);
                 MarkRichFonts(runs);
                 y -= heightSum;
                 lineIndex += take;
@@ -354,7 +358,7 @@ internal static partial class PdfWriter {
             }
             if (spacingBefore > 0) y -= spacingBefore;
             double yLine = y - ruleStyle.Thickness * 0.5;
-            DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness, containerX, containerX + containerWidth, yLine);
+            DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness, containerX, containerX + containerWidth, yLine, emitGeneratedStructure);
             pageDirty = true;
             y -= ruleStyle.Thickness + ruleStyle.SpacingAfter;
         }

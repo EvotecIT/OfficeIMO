@@ -12,7 +12,9 @@ internal static class PdfPageDictionaryBuilder {
         IReadOnlyList<(string Name, int Id)> xObjects,
         IReadOnlyList<(string Name, int Id)> graphicsStates,
         IReadOnlyList<(string Name, int Id)> shadings,
-        IReadOnlyList<int> annotationIds) {
+        IReadOnlyList<int> annotationIds,
+        int? structParents = null,
+        bool useStructureTabOrder = false) {
         ValidatePositiveFinite(pageWidth, nameof(pageWidth));
         ValidatePositiveFinite(pageHeight, nameof(pageHeight));
 
@@ -34,6 +36,14 @@ internal static class PdfPageDictionaryBuilder {
             .Append(PdfSyntaxEscaper.IndirectReference(contentId));
 
         AppendAnnotations(sb, annotationIds);
+        if (structParents.HasValue) {
+            sb.Append(" /StructParents ")
+                .Append(structParents.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (useStructureTabOrder) {
+            sb.Append(" /Tabs /S");
+        }
 
         sb.Append(" >>\n");
         return sb.ToString();

@@ -10,6 +10,7 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.Stack<PdfOptions> optionsStack = new System.Collections.Generic.Stack<PdfOptions>();
         private readonly System.Collections.Generic.Stack<int> pageGroupStack = new System.Collections.Generic.Stack<int>();
         private readonly System.Collections.Generic.HashSet<string> emittedTableCellNamedDestinations = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
+        private readonly bool emitGeneratedStructure;
         private PdfOptions currentOpts;
         private int currentPageGroupId;
         private int nextPageGroupId = 1;
@@ -24,6 +25,7 @@ internal static partial class PdfWriter {
 
         public LayoutContext(PdfOptions options) {
             currentOpts = options;
+            emitGeneratedStructure = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
             optionsStack.Push(options);
             pageGroupStack.Push(0);
         }

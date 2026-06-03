@@ -46,7 +46,7 @@ internal static class PdfSyntaxEscaper {
         return HexString(bytes);
     }
 
-    private static string HexString(byte[] bytes) {
+    internal static string HexString(byte[] bytes) {
         var sb = new StringBuilder(bytes.Length * 2 + 2);
         sb.Append('<');
         for (int i = 0; i < bytes.Length; i++) {

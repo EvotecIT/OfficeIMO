@@ -98,7 +98,11 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PageShading> Shadings { get; } = new();
             public System.Collections.Generic.List<PageBookmark> Bookmarks { get; } = new();
             public System.Collections.Generic.List<PageNamedDestination> NamedDestinations { get; } = new();
+            public System.Collections.Generic.List<PageStructElement> StructElements { get; } = new();
+            public System.Collections.Generic.List<PdfGeneratedDrawingAccessibilityEvidence> Drawings { get; } = new();
             public System.Collections.Generic.HashSet<PdfStandardFont> UsedFonts { get; } = new();
+            public int? StructParentIndex { get; set; }
+            public int NextMarkedContentId { get; set; }
             public bool UsedBold { get; set; }
             public bool UsedItalic { get; set; }
             public bool UsedBoldItalic { get; set; }
@@ -113,6 +117,9 @@ internal static partial class PdfWriter {
         public string? Uri { get; set; }
         public string? DestinationName { get; set; }
         public string? Contents { get; set; }
+        public int? StructParentIndex { get; set; }
+        public int? StructElementIndex { get; set; }
+        public int ObjectId { get; set; }
     }
 
     private sealed class FormFieldAnnotation {
@@ -135,6 +142,12 @@ internal static partial class PdfWriter {
         public bool AllowsMultipleSelection { get; set; }
     }
 
+    private sealed class FormWidgetStructureReference {
+        public int StructParentIndex { get; set; }
+        public int StructElementIndex { get; set; }
+        public int ObjectId { get; set; }
+    }
+
     private enum FormFieldAnnotationKind {
         Text,
         CheckBox,
@@ -151,6 +164,20 @@ internal static partial class PdfWriter {
     private sealed class PageNamedDestination {
         public string Name { get; set; } = string.Empty;
         public double Y { get; set; }
+    }
+
+    private sealed class PageStructElement {
+        public int? MarkedContentId { get; set; }
+        public System.Collections.Generic.List<int>? AdditionalMarkedContentIds { get; set; }
+        public string StructureType { get; set; } = "P";
+        public string AlternativeText { get; set; } = string.Empty;
+        public string TableHeaderScope { get; set; } = string.Empty;
+        public int TableColumnSpan { get; set; } = 1;
+        public int TableRowSpan { get; set; } = 1;
+        public int? ParentElementIndex { get; set; }
+        public int? AnnotationObjectId { get; set; }
+        public int? AnnotationStructParentIndex { get; set; }
+        public int ObjectId { get; set; }
     }
 
     private sealed class PageNumberInfo {
@@ -206,6 +233,8 @@ internal static partial class PdfWriter {
         public double Opacity { get; set; } = 1D;
         public double RotationAngle { get; set; }
         public string? GraphicsStateName { get; set; }
+        public string? AlternativeText { get; set; }
+        public int? MarkedContentId { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
     }

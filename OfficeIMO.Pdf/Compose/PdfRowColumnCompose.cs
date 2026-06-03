@@ -200,12 +200,12 @@ public class PdfRowColumnCompose {
         return this;
     }
     /// <summary>Adds a supported image in the column. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
-    public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
-        PdfImageStyle? imageStyle = PdfDoc.CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style);
+        PdfImageStyle? imageStyle = PdfDoc.CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
         if (imageStyle != null) {
             PdfDoc.ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }

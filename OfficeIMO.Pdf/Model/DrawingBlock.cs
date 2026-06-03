@@ -10,6 +10,8 @@ internal sealed class DrawingBlock : IPdfBlock {
     public PdfAlign Align => (Style ?? new PdfDrawingStyle()).Align;
     public double SpacingBefore => (Style ?? new PdfDrawingStyle()).SpacingBefore;
     public double SpacingAfter => (Style ?? new PdfDrawingStyle()).SpacingAfter;
+    public string? AlternativeText => Style?.AlternativeText;
+    public bool Decorative => Style?.Decorative == true;
 
     public DrawingBlock(OfficeDrawing drawing, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNull(drawing, nameof(drawing));

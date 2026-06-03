@@ -58,8 +58,13 @@ public sealed partial class PdfOptions {
     private PdfImageStyle? _defaultImageStyle;
     private PdfDrawingStyle? _defaultDrawingStyle;
     private PdfRowStyle? _defaultRowStyle;
+    private PdfFileVersion _fileVersion = PdfFileVersion.Pdf14;
     private PdfComplianceProfile _complianceProfile;
+    private PdfAIdentification? _pdfAIdentification;
+    private PdfUaIdentification? _pdfUaIdentification;
+    private PdfElectronicInvoiceMetadata? _electronicInvoiceMetadata;
     private PdfOutputIntent? _outputIntent;
+    private PdfTaggedStructureMode _taggedStructureMode;
     private string? _language;
     private PdfViewerPreferencesOptions? _viewerPreferences;
     private PdfTextWatermark? _textWatermark;

@@ -10,6 +10,7 @@ internal static partial class PdfWriter {
         var colItems = new System.Collections.Generic.List<System.Collections.Generic.List<ColItem>>(ncols);
         for (int i = 0; i < ncols; i++) {
             var items = new System.Collections.Generic.List<ColItem>();
+            int nextListGroupId = 1;
             foreach (var cb in rb.Columns[i].Blocks) {
                 if (cb is HeadingBlock hb2) {
                     PdfHeadingStyle? headingStyle = ResolveHeadingStyle(hb2, currentOpts);
@@ -53,6 +54,7 @@ internal static partial class PdfWriter {
                     double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidth("WW", baseFont, size));
                     double alignmentWidth = Math.Max(0, rawTextWidth);
                     double itemSpacing = GetListItemSpacing(listStyle, leading);
+                    int listGroupId = nextListGroupId++;
                     var listItems = new System.Collections.Generic.List<ColListItem>(bl2.RichItems.Count);
                     for (int itemIndex = 0; itemIndex < bl2.RichItems.Count; itemIndex++) {
                         var item = bl2.RichItems[itemIndex];
@@ -64,7 +66,7 @@ internal static partial class PdfWriter {
                         else if (bl2.Align == PdfAlign.Right) firstLineDx = Math.Max(0, alignmentWidth - firstLineWidth);
                         double spacingBefore = itemIndex == 0 ? listStyle?.SpacingBefore ?? 0D : 0D;
                         double spacingAfter = itemIndex == bl2.RichItems.Count - 1 ? listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing : itemSpacing;
-                        listItems.Add(new ColListItem { Runs = item.Runs, Lines = layout.Lines, Heights = layout.LineHeights, Marker = marker, MarkerXOffset = listLeftIndent + firstLineDx, MarkerWidth = bulletWidth, MarkerAlign = PdfAlign.Left, TextXOffset = listLeftIndent + indent, TextWidth = alignmentWidth, TextAlign = bl2.Align, Color = bl2.Color ?? listStyle?.Color, Leading = leading, Size = size, SpacingBefore = spacingBefore, SpacingAfter = spacingAfter, BookmarkName = item.BookmarkName });
+                        listItems.Add(new ColListItem { Runs = item.Runs, Lines = layout.Lines, Heights = layout.LineHeights, Marker = marker, MarkerXOffset = listLeftIndent + firstLineDx, MarkerWidth = bulletWidth, MarkerAlign = PdfAlign.Left, TextXOffset = listLeftIndent + indent, TextWidth = alignmentWidth, TextAlign = bl2.Align, Color = bl2.Color ?? listStyle?.Color, Leading = leading, Size = size, SpacingBefore = spacingBefore, SpacingAfter = spacingAfter, BookmarkName = item.BookmarkName, ListGroupId = listGroupId });
                     }
 
                     if ((listStyle?.KeepTogether == true || listStyle?.KeepWithNext == true) && listItems.Count > 0) {
@@ -112,6 +114,7 @@ internal static partial class PdfWriter {
                     double availableWidth = Math.Max(rawTextWidth, EstimateSimpleTextWidth("WW", baseFont, size));
                     double alignmentWidth = Math.Max(0, rawTextWidth);
                     double itemSpacing = GetListItemSpacing(listStyle, leading);
+                    int listGroupId = nextListGroupId++;
                     var listItems = new System.Collections.Generic.List<ColListItem>(nl2.RichItems.Count);
                     for (int itemIndex = 0; itemIndex < nl2.RichItems.Count; itemIndex++) {
                         var item = nl2.RichItems[itemIndex];
@@ -123,7 +126,7 @@ internal static partial class PdfWriter {
                         else if (nl2.Align == PdfAlign.Right) firstLineDx = Math.Max(0, alignmentWidth - firstLineWidth);
                         double spacingBefore = itemIndex == 0 ? listStyle?.SpacingBefore ?? 0D : 0D;
                         double spacingAfter = itemIndex == nl2.RichItems.Count - 1 ? listStyle?.GetSpacingAfter(itemSpacing) ?? itemSpacing : itemSpacing;
-                        listItems.Add(new ColListItem { Runs = item.Runs, Lines = layout.Lines, Heights = layout.LineHeights, Marker = marker, MarkerXOffset = listLeftIndent + firstLineDx, MarkerWidth = markerWidth, MarkerAlign = PdfAlign.Right, TextXOffset = listLeftIndent + indent, TextWidth = alignmentWidth, TextAlign = nl2.Align, Color = nl2.Color ?? listStyle?.Color, Leading = leading, Size = size, SpacingBefore = spacingBefore, SpacingAfter = spacingAfter, BookmarkName = item.BookmarkName });
+                        listItems.Add(new ColListItem { Runs = item.Runs, Lines = layout.Lines, Heights = layout.LineHeights, Marker = marker, MarkerXOffset = listLeftIndent + firstLineDx, MarkerWidth = markerWidth, MarkerAlign = PdfAlign.Right, TextXOffset = listLeftIndent + indent, TextWidth = alignmentWidth, TextAlign = nl2.Align, Color = nl2.Color ?? listStyle?.Color, Leading = leading, Size = size, SpacingBefore = spacingBefore, SpacingAfter = spacingAfter, BookmarkName = item.BookmarkName, ListGroupId = listGroupId });
                     }
 
                     if ((listStyle?.KeepTogether == true || listStyle?.KeepWithNext == true) && listItems.Count > 0) {
