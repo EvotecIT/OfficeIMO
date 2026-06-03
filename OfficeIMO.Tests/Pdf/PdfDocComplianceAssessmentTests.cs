@@ -36,6 +36,23 @@ public class PdfDocComplianceAssessmentTests {
     }
 
     [Fact]
+    public void AssessComplianceUsesPageScopedEmbeddedFontFamilyCoverage() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        PdfDoc document = CreatePdfA3GroundworkDocument()
+            .Page(page => page
+                .UseFontFamily("Scoped Audit Font", fontPath)
+                .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Page-scoped embedded font coverage.")))));
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
+
+        AssertRequirement(report, "embedded-font-coverage", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
     public void AssessComplianceUsesConfiguredProfileWhenNoProfileIsSupplied() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

@@ -19,18 +19,19 @@ public static partial class PdfComplianceAnalyzer {
     /// Analyzes the supplied options against a requested formal compliance profile, including generated standard-font usage evidence when available.
     /// </summary>
     public static PdfComplianceReadinessReport Assess(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts) {
-        return AssessCore(profile, options, generatedStandardFonts, documentTitle: null, hasDocumentMetadataEvidence: false, generatedImages: null, generatedDrawings: null, generatedForms: null);
+        return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages: null, documentTitle: null, hasDocumentMetadataEvidence: false, generatedImages: null, generatedDrawings: null, generatedForms: null);
     }
 
-    internal static PdfComplianceReadinessReport AssessDocument(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, string? documentTitle, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms) {
-        return AssessCore(profile, options, generatedStandardFonts, documentTitle, hasDocumentMetadataEvidence: true, generatedImages: generatedImages, generatedDrawings: generatedDrawings, generatedForms: generatedForms);
+    internal static PdfComplianceReadinessReport AssessDocument(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms) {
+        return AssessCore(profile, options, generatedStandardFonts, generatedFontUsages, documentTitle, hasDocumentMetadataEvidence: true, generatedImages: generatedImages, generatedDrawings: generatedDrawings, generatedForms: generatedForms);
     }
 
-    private static PdfComplianceReadinessReport AssessCore(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, string? documentTitle, bool hasDocumentMetadataEvidence, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms) {
+    private static PdfComplianceReadinessReport AssessCore(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont>? generatedStandardFonts, IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages, string? documentTitle, bool hasDocumentMetadataEvidence, IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages, IEnumerable<PdfGeneratedDrawingAccessibilityEvidence>? generatedDrawings, IEnumerable<PdfGeneratedFormAccessibilityEvidence>? generatedForms) {
         Guard.ComplianceProfile(profile, nameof(profile));
         Guard.NotNull(options, nameof(options));
 
         PdfStandardFont[]? generatedFontSnapshot = SnapshotGeneratedStandardFonts(generatedStandardFonts);
+        PdfGeneratedFontComplianceEvidence[]? generatedFontUsageSnapshot = SnapshotGeneratedFontUsages(generatedFontUsages);
         PdfGeneratedImageAccessibilityEvidence[]? generatedImageSnapshot = SnapshotGeneratedImages(generatedImages);
         PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawingSnapshot = SnapshotGeneratedDrawings(generatedDrawings);
         PdfGeneratedFormAccessibilityEvidence[]? generatedFormSnapshot = SnapshotGeneratedForms(generatedForms);
@@ -44,7 +45,7 @@ public static partial class PdfComplianceAnalyzer {
         }
 
         if (IsPdfA(profile) || IsElectronicInvoice(profile)) {
-            AddPdfARequirements(requirements, profile, options, generatedFontSnapshot);
+            AddPdfARequirements(requirements, profile, options, generatedFontSnapshot, generatedFontUsageSnapshot);
         }
 
         if (RequiresUnicodeMapping(profile) || IsElectronicInvoice(profile)) {
@@ -96,6 +97,14 @@ public static partial class PdfComplianceAnalyzer {
         return fonts
             .OrderBy(font => (int)font)
             .ToArray();
+    }
+
+    private static PdfGeneratedFontComplianceEvidence[]? SnapshotGeneratedFontUsages(IEnumerable<PdfGeneratedFontComplianceEvidence>? generatedFontUsages) {
+        if (generatedFontUsages == null) {
+            return null;
+        }
+
+        return generatedFontUsages.ToArray();
     }
 
     private static PdfGeneratedImageAccessibilityEvidence[]? SnapshotGeneratedImages(IEnumerable<PdfGeneratedImageAccessibilityEvidence>? generatedImages) {

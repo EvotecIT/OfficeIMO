@@ -2,7 +2,7 @@ namespace OfficeIMO.Pdf;
 
 public static partial class PdfComplianceAnalyzer {
 
-    private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, PdfStandardFont[]? generatedStandardFonts) {
+    private static void AddPdfARequirements(List<PdfComplianceRequirement> requirements, PdfComplianceProfile profile, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
         PdfAIdentification? identification = options.PdfAIdentification;
         (int Part, string? Conformance) target = GetPdfAIdentificationTarget(profile);
 
@@ -29,7 +29,7 @@ public static partial class PdfComplianceAnalyzer {
 
         requirements.Add(BuildOutputIntentPolicyRequirement(options));
 
-        AddEmbeddedFontCoverageRequirement(requirements, options, generatedStandardFonts);
+        AddEmbeddedFontCoverageRequirement(requirements, options, generatedStandardFonts, generatedFontUsages);
 
         requirements.Add(new PdfComplianceRequirement(
             "verapdf-validation",
@@ -87,7 +87,7 @@ public static partial class PdfComplianceAnalyzer {
             "Use a supported PDF output-intent policy.");
     }
 
-    private static void AddEmbeddedFontCoverageRequirement(List<PdfComplianceRequirement> requirements, PdfOptions options, PdfStandardFont[]? generatedStandardFonts) {
+    private static void AddEmbeddedFontCoverageRequirement(List<PdfComplianceRequirement> requirements, PdfOptions options, PdfStandardFont[]? generatedStandardFonts, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
         if (generatedStandardFonts == null) {
             requirements.Add(new PdfComplianceRequirement(
                 "embedded-font-coverage",
@@ -106,18 +106,33 @@ public static partial class PdfComplianceAnalyzer {
             return;
         }
 
-        IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> embeddedFonts = options.EmbeddedFonts;
         var missingFonts = new List<PdfStandardFont>();
         var invalidFonts = new List<string>();
-        for (int i = 0; i < generatedStandardFonts.Length; i++) {
-            PdfStandardFont font = generatedStandardFonts[i];
-            if (!embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont)) {
-                missingFonts.Add(font);
-                continue;
-            }
+        if (generatedFontUsages != null && generatedFontUsages.Length > 0) {
+            for (int i = 0; i < generatedFontUsages.Length; i++) {
+                PdfGeneratedFontComplianceEvidence usage = generatedFontUsages[i];
+                IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> scopedEmbeddedFonts = usage.Options.EmbeddedFonts;
+                if (!scopedEmbeddedFonts.TryGetValue(usage.Font, out PdfEmbeddedFont? embeddedFont)) {
+                    AddMissingFont(missingFonts, usage.Font);
+                    continue;
+                }
 
-            if (!TryParseEmbeddedFont(embeddedFont, out string? invalidReason)) {
-                invalidFonts.Add(font.ToBaseFontName() + " (" + invalidReason + ")");
+                if (!TryParseEmbeddedFont(embeddedFont, out string? invalidReason)) {
+                    AddInvalidFont(invalidFonts, usage.Font, invalidReason);
+                }
+            }
+        } else {
+            IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> embeddedFonts = options.EmbeddedFonts;
+            for (int i = 0; i < generatedStandardFonts.Length; i++) {
+                PdfStandardFont font = generatedStandardFonts[i];
+                if (!embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont)) {
+                    AddMissingFont(missingFonts, font);
+                    continue;
+                }
+
+                if (!TryParseEmbeddedFont(embeddedFont, out string? invalidReason)) {
+                    AddInvalidFont(invalidFonts, font, invalidReason);
+                }
             }
         }
 
@@ -144,6 +159,19 @@ public static partial class PdfComplianceAnalyzer {
             "Embedded font coverage",
             PdfComplianceRequirementStatus.Missing,
             char.ToUpperInvariant(diagnostics[0][0]) + diagnostics[0].Substring(1) + (diagnostics.Count > 1 ? "; " + string.Join("; ", diagnostics.Skip(1).ToArray()) : string.Empty) + "."));
+    }
+
+    private static void AddMissingFont(List<PdfStandardFont> missingFonts, PdfStandardFont font) {
+        if (!missingFonts.Contains(font)) {
+            missingFonts.Add(font);
+        }
+    }
+
+    private static void AddInvalidFont(List<string> invalidFonts, PdfStandardFont font, string? invalidReason) {
+        string diagnostic = font.ToBaseFontName() + " (" + invalidReason + ")";
+        if (!invalidFonts.Contains(diagnostic)) {
+            invalidFonts.Add(diagnostic);
+        }
     }
 
     private static bool TryParseEmbeddedFont(PdfEmbeddedFont embeddedFont, out string? invalidReason) {

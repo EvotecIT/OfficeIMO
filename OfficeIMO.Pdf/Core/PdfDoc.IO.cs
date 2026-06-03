@@ -12,7 +12,7 @@ public sealed partial class PdfDoc {
     /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
     public PdfComplianceReadinessReport AssessCompliance(PdfComplianceProfile profile) {
         PdfGeneratedDocumentComplianceEvidence evidence = PdfWriter.CollectGeneratedComplianceEvidence(_blocks, _options);
-        return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence.StandardFonts, _title, evidence.Images, evidence.Drawings, evidence.Forms);
+        return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence.StandardFonts, evidence.FontUsages, _title, evidence.Images, evidence.Drawings, evidence.Forms);
     }
 
     /// <summary>

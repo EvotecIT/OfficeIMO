@@ -11,6 +11,7 @@ internal static partial class PdfWriter {
 
         LayoutResult layout = LayoutBlocks(blocks, options);
         var fonts = new System.Collections.Generic.HashSet<PdfStandardFont>();
+        var fontUsages = new System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence>();
         var images = new System.Collections.Generic.List<PdfGeneratedImageAccessibilityEvidence>();
         var drawings = new System.Collections.Generic.List<PdfGeneratedDrawingAccessibilityEvidence>();
         var forms = new System.Collections.Generic.List<PdfGeneratedFormAccessibilityEvidence>();
@@ -22,38 +23,52 @@ internal static partial class PdfWriter {
             PdfStandardFont normalFont = ChooseNormal(pageOptions.DefaultFont);
 
             fonts.Add(normalFont);
+            AddGeneratedFontUsage(fontUsages, normalFont, pageOptions);
             if (page.UsedBold) {
-                fonts.Add(ChooseBold(normalFont));
+                PdfStandardFont boldFont = ChooseBold(normalFont);
+                fonts.Add(boldFont);
+                AddGeneratedFontUsage(fontUsages, boldFont, pageOptions);
             }
 
             if (page.UsedItalic) {
-                fonts.Add(ChooseItalic(normalFont));
+                PdfStandardFont italicFont = ChooseItalic(normalFont);
+                fonts.Add(italicFont);
+                AddGeneratedFontUsage(fontUsages, italicFont, pageOptions);
             }
 
             if (page.UsedBoldItalic) {
-                fonts.Add(ChooseBoldItalic(normalFont));
+                PdfStandardFont boldItalicFont = ChooseBoldItalic(normalFont);
+                fonts.Add(boldItalicFont);
+                AddGeneratedFontUsage(fontUsages, boldItalicFont, pageOptions);
             }
 
             foreach (PdfStandardFont usedFont in page.UsedFonts) {
                 fonts.Add(usedFont);
+                AddGeneratedFontUsage(fontUsages, usedFont, pageOptions);
             }
 
             PdfTextWatermark? textWatermark = pageOptions.TextWatermarkSnapshot;
             if (textWatermark != null && textWatermark.Opacity > 0D) {
-                fonts.Add(GetTextWatermarkFont(textWatermark));
+                PdfStandardFont watermarkFont = GetTextWatermarkFont(textWatermark);
+                fonts.Add(watermarkFont);
+                AddGeneratedFontUsage(fontUsages, watermarkFont, pageOptions);
             }
 
             int variantPageNumber = pageNumberInfos[pageIndex].VariantPageNumber;
             if (pageOptions.HasHeaderTextContentForPage(variantPageNumber)) {
                 fonts.Add(pageOptions.HeaderFont);
+                AddGeneratedFontUsage(fontUsages, pageOptions.HeaderFont, pageOptions);
             }
 
             if (pageOptions.HasFooterTextContentForPage(variantPageNumber)) {
                 fonts.Add(pageOptions.FooterFont);
+                AddGeneratedFontUsage(fontUsages, pageOptions.FooterFont, pageOptions);
             }
 
             if (page.FormFields.Count > 0) {
                 fonts.Add(PdfStandardFont.Helvetica);
+                AddGeneratedFontUsage(fontUsages, PdfStandardFont.Helvetica, pageOptions);
+                AddGeneratedFontUsage(fontUsages, PdfStandardFont.Helvetica, options);
                 foreach (FormFieldAnnotation formField in page.FormFields) {
                     forms.Add(new PdfGeneratedFormAccessibilityEvidence(
                         formField.Name,
@@ -90,7 +105,18 @@ internal static partial class PdfWriter {
         PdfStandardFont[] fontSnapshot = fonts
             .OrderBy(font => (int)font)
             .ToArray();
-        return new PdfGeneratedDocumentComplianceEvidence(fontSnapshot, images.ToArray(), drawings.ToArray(), forms.ToArray());
+        return new PdfGeneratedDocumentComplianceEvidence(fontSnapshot, fontUsages.ToArray(), images.ToArray(), drawings.ToArray(), forms.ToArray());
+    }
+
+    private static void AddGeneratedFontUsage(System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence> usages, PdfStandardFont font, PdfOptions options) {
+        for (int i = 0; i < usages.Count; i++) {
+            PdfGeneratedFontComplianceEvidence usage = usages[i];
+            if (usage.Font == font && object.ReferenceEquals(usage.Options, options)) {
+                return;
+            }
+        }
+
+        usages.Add(new PdfGeneratedFontComplianceEvidence(font, options));
     }
 
     private static int GetFormFieldWidgetCount(FormFieldAnnotation formField) {
