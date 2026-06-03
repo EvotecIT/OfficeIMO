@@ -813,6 +813,11 @@ public class PdfComplianceAnalyzerTests {
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(includeLineBilledQuantityUnitCode: false), "application/xml", PdfAssociatedFileRelationship.Data);
+        var secondLineMissingProductOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateTwoLineCiiXmlWithSecondLineMissingProductName(), "application/xml", PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement missingLine = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingLineOptions),
@@ -830,6 +835,10 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, missingUnitCodeOptions),
             "einvoice-xml-line-item",
             PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement secondLineMissingProduct = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, secondLineMissingProductOptions),
+            "einvoice-xml-line-item",
+            PdfComplianceRequirementStatus.Missing);
 
         Assert.Contains("IncludedSupplyChainTradeLineItem", missingLine.Diagnostic);
         Assert.Contains("AssociatedDocumentLineDocument LineID", missingLine.Diagnostic);
@@ -840,6 +849,7 @@ public class PdfComplianceAnalyzerTests {
         Assert.Contains("SpecifiedTradeProduct Name", missingProduct.Diagnostic);
         Assert.Contains("SpecifiedTradeSettlementLineMonetarySummation LineTotalAmount", missingTotal.Diagnostic);
         Assert.Contains("SpecifiedLineTradeDelivery BilledQuantity unitCode", missingUnitCode.Diagnostic);
+        Assert.Contains("line 2 SpecifiedTradeProduct Name", secondLineMissingProduct.Diagnostic);
     }
 
     [Fact]
@@ -923,6 +933,11 @@ public class PdfComplianceAnalyzerTests {
             .SetSrgbOutputIntent()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .AddEmbeddedFile("factur-x.xml", CreateCiiXml(lineTotalAmount: "5.00", linePriceChargeAmountValue: "250.00", linePriceBasisQuantityValue: "100", lineBilledQuantityValue: "2.00"), "application/xml", PdfAssociatedFileRelationship.Data);
+        var allowanceLineAmountOptions = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile("factur-x.xml", CreateCiiXmlWithLineAllowance(), "application/xml", PdfAssociatedFileRelationship.Data);
 
         PdfComplianceRequirement mismatchedLineAmount = AssertRequirement(
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, mismatchedLineAmountOptions),
@@ -936,11 +951,16 @@ public class PdfComplianceAnalyzerTests {
             PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, basisQuantityLineAmountOptions),
             "einvoice-xml-line-amount-consistency",
             PdfComplianceRequirementStatus.Satisfied);
+        PdfComplianceRequirement allowanceLineAmount = AssertRequirement(
+            PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, allowanceLineAmountOptions),
+            "einvoice-xml-line-amount-consistency",
+            PdfComplianceRequirementStatus.Satisfied);
 
         Assert.Contains("BilledQuantity times ProductTradePrice ChargeAmount divided by BasisQuantity", mismatchedLineAmount.Diagnostic);
         Assert.Contains("1", mismatchedLineAmount.Diagnostic);
         Assert.Contains("line quantity, price, and line total amount", normalizedLineAmount.Diagnostic);
         Assert.Contains("line quantity, price, and line total amount", basisQuantityLineAmount.Diagnostic);
+        Assert.Contains("line quantity, price, and line total amount", allowanceLineAmount.Diagnostic);
     }
 
     [Fact]
@@ -3319,6 +3339,71 @@ public class PdfComplianceAnalyzerTests {
                description +
                dueDate +
                "</ram:SpecifiedTradePaymentTerms>";
+    }
+
+    private static byte[] CreateTwoLineCiiXmlWithSecondLineMissingProductName() {
+        string firstLine = CreateIncludedSupplyChainTradeLineItem(
+            includeLineItem: true,
+            includeLineItemProductName: true,
+            includeLineTradeAgreement: true,
+            includeLinePriceChargeAmount: true,
+            includeLineTradeTax: true,
+            includeLineTradeTaxTypeCode: true,
+            includeLineTradeTaxCategoryCode: true,
+            includeLineTradeTaxRate: true,
+            includeLineTotalAmount: true,
+            includeLineBilledQuantityUnitCode: true,
+            lineTotalAmountValue: "100.00",
+            linePriceChargeAmountValue: "100.00",
+            linePriceBasisQuantityValue: null,
+            lineBilledQuantityValue: "1",
+            lineBilledQuantityUnitCodeValue: "C62",
+            lineTradeTaxTypeCodeValue: "VAT",
+            lineTradeTaxCategoryCodeValue: "S",
+            lineTradeTaxRateValue: "23",
+            amountCurrencyId: "EUR");
+        string secondLine = CreateIncludedSupplyChainTradeLineItem(
+            includeLineItem: true,
+            includeLineItemProductName: false,
+            includeLineTradeAgreement: true,
+            includeLinePriceChargeAmount: true,
+            includeLineTradeTax: true,
+            includeLineTradeTaxTypeCode: true,
+            includeLineTradeTaxCategoryCode: true,
+            includeLineTradeTaxRate: true,
+            includeLineTotalAmount: true,
+            includeLineBilledQuantityUnitCode: true,
+            lineTotalAmountValue: "100.00",
+            linePriceChargeAmountValue: "100.00",
+            linePriceBasisQuantityValue: null,
+            lineBilledQuantityValue: "1",
+            lineBilledQuantityUnitCodeValue: "C62",
+            lineTradeTaxTypeCodeValue: "VAT",
+            lineTradeTaxCategoryCodeValue: "S",
+            lineTradeTaxRateValue: "23",
+            amountCurrencyId: "EUR")
+            .Replace("<ram:LineID>1</ram:LineID>", "<ram:LineID>2</ram:LineID>");
+        string xml = Encoding.UTF8.GetString(CreateCiiXml())
+            .Replace(firstLine, firstLine + secondLine);
+        return Encoding.UTF8.GetBytes(xml);
+    }
+
+    private static byte[] CreateCiiXmlWithLineAllowance() {
+        string xml = Encoding.UTF8.GetString(CreateCiiXml(
+            lineTotalAmount: "95.00",
+            linePriceChargeAmountValue: "10.00",
+            lineBilledQuantityValue: "10",
+            taxBasisTotalAmount: "95.00",
+            taxTotalAmount: "21.85",
+            grandTotalAmount: "116.85",
+            headerTradeTaxBasisAmountValue: "95.00",
+            headerTradeTaxCalculatedAmountValue: "21.85"));
+        string allowance =
+            "<ram:SpecifiedTradeAllowanceCharge>" +
+            "<ram:ChargeIndicator><udt:Indicator>false</udt:Indicator></ram:ChargeIndicator>" +
+            "<ram:ActualAmount currencyID=\"EUR\">5.00</ram:ActualAmount>" +
+            "</ram:SpecifiedTradeAllowanceCharge>";
+        return Encoding.UTF8.GetBytes(xml.Replace("<ram:SpecifiedTradeSettlementLineMonetarySummation>", allowance + "<ram:SpecifiedTradeSettlementLineMonetarySummation>"));
     }
 
     private static string CreateApplicableTradeTax(

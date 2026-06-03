@@ -279,24 +279,28 @@ public static partial class PdfComplianceAnalyzer {
                 missingFields.Add("IncludedSupplyChainTradeLineItem");
             }
 
-            if (!evidence.HasLineId) {
-                missingFields.Add("AssociatedDocumentLineDocument LineID");
-            }
+            if (evidence.MissingLineItemFields.Count > 0) {
+                missingFields.AddRange(evidence.MissingLineItemFields);
+            } else {
+                if (!evidence.HasLineId) {
+                    missingFields.Add("AssociatedDocumentLineDocument LineID");
+                }
 
-            if (!evidence.HasProductName) {
-                missingFields.Add("SpecifiedTradeProduct Name");
-            }
+                if (!evidence.HasProductName) {
+                    missingFields.Add("SpecifiedTradeProduct Name");
+                }
 
-            if (!evidence.HasBilledQuantity) {
-                missingFields.Add("SpecifiedLineTradeDelivery BilledQuantity");
-            }
+                if (!evidence.HasBilledQuantity) {
+                    missingFields.Add("SpecifiedLineTradeDelivery BilledQuantity");
+                }
 
-            if (!evidence.HasBilledQuantityUnitCode) {
-                missingFields.Add("SpecifiedLineTradeDelivery BilledQuantity unitCode");
-            }
+                if (!evidence.HasBilledQuantityUnitCode) {
+                    missingFields.Add("SpecifiedLineTradeDelivery BilledQuantity unitCode");
+                }
 
-            if (!evidence.HasLineTotalAmount) {
-                missingFields.Add("SpecifiedTradeSettlementLineMonetarySummation LineTotalAmount");
+                if (!evidence.HasLineTotalAmount) {
+                    missingFields.Add("SpecifiedTradeSettlementLineMonetarySummation LineTotalAmount");
+                }
             }
 
             if (missingFields.Count > 0) {

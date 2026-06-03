@@ -273,7 +273,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            void DrawTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false) {
+            void DrawTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false, PageStructElement? existingRowStructureElement = null) {
                 bool renderAsFooter = rowIndex >= footerStartRowIndex;
                 bool rowUsesBold = rowBold[rowIndex];
                 double rowSize = rowSizes[rowIndex];
@@ -346,7 +346,14 @@ internal static partial class PdfWriter {
                 double rowWidth = tableWidth;
                 double hRect = rowHeight;
                 var textColor = renderAsHeader ? style!.HeaderTextColor : renderAsFooter ? style!.FooterTextColor : style!.TextColor;
-                int? rowStructureElementIndex = RegisterStructureContainer("TR", EnsureTableStructureElement());
+                int? rowStructureElementIndex = null;
+                PageStructElement? rowStructureElement = existingRowStructureElement;
+                if (rowStructureElement == null) {
+                    rowStructureElementIndex = RegisterStructureContainer("TR", EnsureTableStructureElement());
+                    if (rowStructureElementIndex.HasValue) {
+                        rowStructureElement = currentPage!.StructElements[rowStructureElementIndex.Value];
+                    }
+                }
                 for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                     TableCellLayout cell = cells[cellIndex];
                     int c = cell.Column;
@@ -415,12 +422,21 @@ internal static partial class PdfWriter {
                         int? markedContentId;
                         string markedStructureType = structureType;
                         if (cellHasLinkTarget && emitGeneratedStructure && currentPage != null) {
-                            int? cellElementIndex = RegisterStructureContainer(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
+                            PageStructElement? cellElement = rowStructureElement == null
+                                ? null
+                                : RegisterStructureContainer(structureType, rowStructureElement, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
+                            int? cellElementIndex = cellElement == null
+                                ? RegisterStructureContainer(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan)
+                                : null;
                             markedStructureType = "Link";
-                            markedContentId = RegisterTextStructureElement(markedStructureType, cellElementIndex);
+                            markedContentId = cellElement == null
+                                ? RegisterTextStructureElement(markedStructureType, cellElementIndex)
+                                : RegisterTextStructureElement(markedStructureType, cellElement);
                             cellLinkStructElementIndex = FindStructElementIndex(currentPage, markedContentId, markedStructureType);
                         } else {
-                            markedContentId = RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
+                            markedContentId = rowStructureElement == null
+                                ? RegisterTextStructureElement(structureType, rowStructureElementIndex, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan)
+                                : RegisterTextStructureElement(structureType, rowStructureElement, renderAsHeader ? "Column" : string.Empty, tableColumnSpan, tableRowSpan);
                         }
 
                         WriteClippedRichParagraph(sb, paragraph, visibleLines, visibleHeights, currentOpts, firstBaseline, rowSize, rowLeading, currentPage!.Annotations, xi - TableCellClipBleed, cellBottom - TableCellClipBleed, cellWidth + (TableCellClipBleed * 2D), cellHeight + (TableCellClipBleed * 2D), xi + cellPadLeft, innerW, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
@@ -522,6 +538,7 @@ internal static partial class PdfWriter {
             void DrawSplitTableRow(int rowIndex, bool renderAsHeader) {
                 int startLine = 0;
                 int totalLines = rowLineCounts[rowIndex];
+                PageStructElement? rowStructureElement = null;
                 while (startLine < totalLines) {
                     double available = y - currentOpts.MarginBottom;
                     double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
@@ -534,7 +551,10 @@ internal static partial class PdfWriter {
 
                     int maxLinesThisPage = Math.Max(1, (int)Math.Floor((available - rowPadTop - rowPadBottom) / rowLeadings[rowIndex]));
                     int take = Math.Min(totalLines - startLine, maxLinesThisPage);
-                    DrawTableRowSegment(rowIndex, renderAsHeader && startLine == 0, startLine, take);
+                    DrawTableRowSegment(rowIndex, renderAsHeader && startLine == 0, startLine, take, existingRowStructureElement: rowStructureElement);
+                    if (rowStructureElement == null && emitGeneratedStructure && currentPage != null) {
+                        rowStructureElement = currentPage.StructElements.LastOrDefault(element => element.StructureType == "TR");
+                    }
                     startLine += take;
 
                     if (startLine < totalLines) {

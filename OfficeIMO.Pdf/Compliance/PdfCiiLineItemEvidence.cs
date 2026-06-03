@@ -7,13 +7,15 @@ internal sealed class PdfCiiLineItemEvidence {
         bool hasProductName,
         bool hasBilledQuantity,
         bool hasBilledQuantityUnitCode,
-        bool hasLineTotalAmount) {
+        bool hasLineTotalAmount,
+        System.Collections.Generic.IReadOnlyList<string>? missingLineItemFields = null) {
         HasIncludedSupplyChainTradeLineItem = hasIncludedSupplyChainTradeLineItem;
         HasLineId = hasLineId;
         HasProductName = hasProductName;
         HasBilledQuantity = hasBilledQuantity;
         HasBilledQuantityUnitCode = hasBilledQuantityUnitCode;
         HasLineTotalAmount = hasLineTotalAmount;
+        MissingLineItemFields = missingLineItemFields ?? System.Array.Empty<string>();
     }
 
     internal bool HasIncludedSupplyChainTradeLineItem { get; }
@@ -27,4 +29,6 @@ internal sealed class PdfCiiLineItemEvidence {
     internal bool HasBilledQuantityUnitCode { get; }
 
     internal bool HasLineTotalAmount { get; }
+
+    internal System.Collections.Generic.IReadOnlyList<string> MissingLineItemFields { get; }
 }

@@ -803,6 +803,36 @@ public class PdfDocComplianceAssessmentTests {
     }
 
     [Fact]
+    public void TaggedSplitTableRowKeepsContinuationCellsUnderOneTableRow() {
+        PdfTableStyle style = TableStyles.Minimal();
+        style.HeaderRowCount = 0;
+        string longCell = string.Join(" ", Enumerable.Repeat("Continuation table row keeps one logical row", 22));
+
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 170,
+                PageHeight = 150,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24,
+                DefaultFontSize = 10
+            })
+            .TaggedPdfCatalogMarkers()
+            .Table(new[] {
+                new[] { longCell }
+            }, style: style)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Equal(1, CountOccurrences(content, "/Type /StructElem /S /TR"));
+        Assert.True(CountOccurrences(content, "/Type /StructElem /S /TD") >= 2);
+        Assert.Contains("/StructParents 0", content, StringComparison.Ordinal);
+        Assert.Contains("/StructParents 1", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TaggedLinkedTableCellWrapsTextInLinkStructure() {
         PdfTableStyle style = TableStyles.Minimal();
         style.HeaderRowCount = 0;

@@ -114,11 +114,13 @@ internal static partial class PdfCiiDocumentHeaderInspector {
             })) {
                 bool sawRoot = false;
                 bool hasLineItem = false;
-                bool hasLineId = false;
-                bool hasProductName = false;
-                bool hasBilledQuantity = false;
-                bool hasBilledQuantityUnitCode = false;
-                bool hasLineTotalAmount = false;
+                bool hasLineId = true;
+                bool hasProductName = true;
+                bool hasBilledQuantity = true;
+                bool hasBilledQuantityUnitCode = true;
+                bool hasLineTotalAmount = true;
+                int lineItemNumber = 0;
+                var missingLineItemFields = new List<string>();
 
                 while (reader.Read()) {
                     if (reader.NodeType != System.Xml.XmlNodeType.Element) {
@@ -135,7 +137,19 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                     if (string.Equals(reader.LocalName, "IncludedSupplyChainTradeLineItem", StringComparison.Ordinal)) {
                         hasLineItem = true;
-                        ReadLineItem(reader, ref hasLineId, ref hasProductName, ref hasBilledQuantity, ref hasBilledQuantityUnitCode, ref hasLineTotalAmount);
+                        lineItemNumber++;
+                        bool lineHasLineId = false;
+                        bool lineHasProductName = false;
+                        bool lineHasBilledQuantity = false;
+                        bool lineHasBilledQuantityUnitCode = false;
+                        bool lineHasLineTotalAmount = false;
+                        ReadLineItem(reader, ref lineHasLineId, ref lineHasProductName, ref lineHasBilledQuantity, ref lineHasBilledQuantityUnitCode, ref lineHasLineTotalAmount);
+                        hasLineId = hasLineId && lineHasLineId;
+                        hasProductName = hasProductName && lineHasProductName;
+                        hasBilledQuantity = hasBilledQuantity && lineHasBilledQuantity;
+                        hasBilledQuantityUnitCode = hasBilledQuantityUnitCode && lineHasBilledQuantityUnitCode;
+                        hasLineTotalAmount = hasLineTotalAmount && lineHasLineTotalAmount;
+                        AddMissingLineItemFields(missingLineItemFields, lineItemNumber, lineHasLineId, lineHasProductName, lineHasBilledQuantity, lineHasBilledQuantityUnitCode, lineHasLineTotalAmount);
                     }
                 }
 
@@ -144,7 +158,15 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                     return false;
                 }
 
-                evidence = new PdfCiiLineItemEvidence(hasLineItem, hasLineId, hasProductName, hasBilledQuantity, hasBilledQuantityUnitCode, hasLineTotalAmount);
+                if (!hasLineItem) {
+                    hasLineId = false;
+                    hasProductName = false;
+                    hasBilledQuantity = false;
+                    hasBilledQuantityUnitCode = false;
+                    hasLineTotalAmount = false;
+                }
+
+                evidence = new PdfCiiLineItemEvidence(hasLineItem, hasLineId, hasProductName, hasBilledQuantity, hasBilledQuantityUnitCode, hasLineTotalAmount, missingLineItemFields.ToArray());
                 diagnostic = null;
                 return true;
             }
@@ -619,6 +641,29 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 string.Equals(reader.LocalName, "IncludedSupplyChainTradeLineItem", StringComparison.Ordinal)) {
                 break;
             }
+        }
+    }
+
+    private static void AddMissingLineItemFields(List<string> missingFields, int lineItemNumber, bool hasLineId, bool hasProductName, bool hasBilledQuantity, bool hasBilledQuantityUnitCode, bool hasLineTotalAmount) {
+        string prefix = "line " + lineItemNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " ";
+        if (!hasLineId) {
+            missingFields.Add(prefix + "AssociatedDocumentLineDocument LineID");
+        }
+
+        if (!hasProductName) {
+            missingFields.Add(prefix + "SpecifiedTradeProduct Name");
+        }
+
+        if (!hasBilledQuantity) {
+            missingFields.Add(prefix + "SpecifiedLineTradeDelivery BilledQuantity");
+        }
+
+        if (!hasBilledQuantityUnitCode) {
+            missingFields.Add(prefix + "SpecifiedLineTradeDelivery BilledQuantity unitCode");
+        }
+
+        if (!hasLineTotalAmount) {
+            missingFields.Add(prefix + "SpecifiedTradeSettlementLineMonetarySummation LineTotalAmount");
         }
     }
 

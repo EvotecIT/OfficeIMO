@@ -76,6 +76,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         decimal? price = null;
         decimal? priceBasisQuantity = null;
         decimal? lineTotal = null;
+        decimal lineAdjustments = 0m;
 
         int depth = reader.Depth;
         while (reader.Read()) {
@@ -96,7 +97,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 }
 
                 if (string.Equals(reader.LocalName, "SpecifiedLineTradeSettlement", StringComparison.Ordinal)) {
-                    ReadLineSettlementAmount(reader, ref lineTotal, ref hasLineTotalAmount, ref parseDiagnostic);
+                    ReadLineSettlementAmount(reader, ref lineTotal, ref lineAdjustments, ref hasLineTotalAmount, ref parseDiagnostic);
                     continue;
                 }
             }
@@ -109,7 +110,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
 
         if (quantity.HasValue && price.HasValue && lineTotal.HasValue &&
-            System.Math.Abs(quantity.Value * price.Value / (priceBasisQuantity ?? 1m) - lineTotal.Value) > 0.01m) {
+            System.Math.Abs(quantity.Value * price.Value / (priceBasisQuantity ?? 1m) + lineAdjustments - lineTotal.Value) > 0.01m) {
             mismatchedLineIds.Add(string.IsNullOrWhiteSpace(lineId) ? "(unknown)" : lineId!);
         }
     }
@@ -227,7 +228,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
         }
     }
 
-    private static void ReadLineSettlementAmount(System.Xml.XmlReader reader, ref decimal? lineTotal, ref bool hasLineTotalAmount, ref string? parseDiagnostic) {
+    private static void ReadLineSettlementAmount(System.Xml.XmlReader reader, ref decimal? lineTotal, ref decimal lineAdjustments, ref bool hasLineTotalAmount, ref string? parseDiagnostic) {
         if (reader.IsEmptyElement) {
             return;
         }
@@ -244,11 +245,79 @@ internal static partial class PdfCiiDocumentHeaderInspector {
                 continue;
             }
 
+            if (reader.NodeType == System.Xml.XmlNodeType.Element &&
+                string.Equals(reader.LocalName, "SpecifiedTradeAllowanceCharge", StringComparison.Ordinal)) {
+                lineAdjustments += ReadLineAllowanceChargeAmount(reader, ref parseDiagnostic);
+                continue;
+            }
+
             if (reader.NodeType == System.Xml.XmlNodeType.EndElement &&
                 reader.Depth == depth &&
                 string.Equals(reader.LocalName, "SpecifiedLineTradeSettlement", StringComparison.Ordinal)) {
                 break;
             }
         }
+    }
+
+    private static decimal ReadLineAllowanceChargeAmount(System.Xml.XmlReader reader, ref string? parseDiagnostic) {
+        if (reader.IsEmptyElement) {
+            return 0m;
+        }
+
+        bool isCharge = false;
+        decimal? amount = null;
+        int depth = reader.Depth;
+        while (reader.Read()) {
+            if (reader.NodeType == System.Xml.XmlNodeType.Element) {
+                if (string.Equals(reader.LocalName, "ChargeIndicator", StringComparison.Ordinal)) {
+                    isCharge = ReadChargeIndicator(reader);
+                    continue;
+                }
+
+                if (string.Equals(reader.LocalName, "ActualAmount", StringComparison.Ordinal)) {
+                    if (TryReadAmount(reader, "SpecifiedTradeAllowanceCharge ActualAmount", ref parseDiagnostic, out decimal? parsedAmount)) {
+                        amount = parsedAmount;
+                    }
+
+                    continue;
+                }
+            }
+
+            if (reader.NodeType == System.Xml.XmlNodeType.EndElement &&
+                reader.Depth == depth &&
+                string.Equals(reader.LocalName, "SpecifiedTradeAllowanceCharge", StringComparison.Ordinal)) {
+                break;
+            }
+        }
+
+        if (!amount.HasValue) {
+            return 0m;
+        }
+
+        return isCharge ? amount.Value : -amount.Value;
+    }
+
+    private static bool ReadChargeIndicator(System.Xml.XmlReader reader) {
+        if (reader.IsEmptyElement) {
+            return false;
+        }
+
+        int depth = reader.Depth;
+        while (reader.Read()) {
+            if (reader.NodeType == System.Xml.XmlNodeType.Element &&
+                string.Equals(reader.LocalName, "Indicator", StringComparison.Ordinal)) {
+                string value = ReadElementText(reader).Trim();
+                return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(value, "1", StringComparison.Ordinal);
+            }
+
+            if (reader.NodeType == System.Xml.XmlNodeType.EndElement &&
+                reader.Depth == depth &&
+                string.Equals(reader.LocalName, "ChargeIndicator", StringComparison.Ordinal)) {
+                break;
+            }
+        }
+
+        return false;
     }
 }

@@ -60,11 +60,26 @@ internal static partial class PdfWriter {
 
         int EnsureFormHelveticaFont() {
             if (formHelveticaFontId == 0) {
-                formHelveticaFontId = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(PdfStandardFont.Helvetica));
+                formHelveticaFontId = ShouldUseEmbeddedFormHelveticaFont()
+                    ? EnsureFont(PdfStandardFont.Helvetica, opts)
+                    : AddObject(objects, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(PdfStandardFont.Helvetica));
             }
 
             return formHelveticaFontId;
         }
+
+        bool ShouldUseEmbeddedFormHelveticaFont() =>
+            opts.TryGetEmbeddedStandardFontProgram(PdfStandardFont.Helvetica, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null;
+
+        string BuildFormTextAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style) =>
+            PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(
+                width,
+                height,
+                value,
+                fontSize,
+                style,
+                ShouldUseEmbeddedFormHelveticaFont() ? EncodeTextHex(value, PdfStandardFont.Helvetica, opts) : null);
 
         // Create content streams and page objects
         int totalPages = layout.Pages.Count;
@@ -331,13 +346,13 @@ internal static partial class PdfWriter {
                         formField = PdfAnnotationDictionaryBuilder.BuildCheckBoxWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.IsChecked, field.CheckedValueName, offAppearanceId, checkedAppearanceId, field.Style, formWidgetStructureReference?.StructParentIndex);
                     } else if (field.Kind == FormFieldAnnotationKind.Choice) {
                         string appearanceValue = field.Values.Count > 1 ? string.Join(", ", field.Values) : field.Value;
-                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, appearanceValue, field.FontSize, field.Style);
+                        string appearanceContent = BuildFormTextAppearanceContent(appearanceWidth, appearanceHeight, appearanceValue, field.FontSize, field.Style);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, EnsureFormHelveticaFont(), appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                         formField = PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(field.X1, field.Y1, field.X2, field.Y2, field.Name, field.Options, field.Values.Count == 0 ? new[] { field.Value } : field.Values, field.FontSize, appearanceId, field.IsComboBox, field.AllowsMultipleSelection, field.Style, formWidgetStructureReference?.StructParentIndex);
                     } else {
-                        string appearanceContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize, field.Style);
+                        string appearanceContent = BuildFormTextAppearanceContent(appearanceWidth, appearanceHeight, field.Value, field.FontSize, field.Style);
                         byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
                         string appearanceDictionary = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceStreamDictionary(appearanceWidth, appearanceHeight, EnsureFormHelveticaFont(), appearanceBytes.Length);
                         int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);

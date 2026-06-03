@@ -18,6 +18,22 @@ internal static partial class PdfWriter {
             return elementIndex;
         }
 
+        private PageStructElement? RegisterStructureContainer(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
+            if (!emitGeneratedStructure || currentPage == null) {
+                return null;
+            }
+
+            var element = new PageStructElement {
+                StructureType = structureType,
+                ParentElement = parentElement,
+                TableHeaderScope = tableHeaderScope,
+                TableColumnSpan = tableColumnSpan,
+                TableRowSpan = tableRowSpan
+            };
+            currentPage.StructElements.Add(element);
+            return element;
+        }
+
         private int? EnsurePageStructureContainer(string structureType, ref int? structureElementIndex, ref LayoutResult.Page? structurePage, int? parentElementIndex = null) {
             if (!emitGeneratedStructure || currentPage == null) {
                 return null;
@@ -48,7 +64,7 @@ internal static partial class PdfWriter {
             return markedContentId;
         }
 
-        private int? RegisterTextStructureElement(string structureType, PageStructElement? parentElement) {
+        private int? RegisterTextStructureElement(string structureType, PageStructElement? parentElement, string tableHeaderScope = "", int tableColumnSpan = 1, int tableRowSpan = 1) {
             if (!emitGeneratedStructure || currentPage == null) {
                 return null;
             }
@@ -57,7 +73,10 @@ internal static partial class PdfWriter {
             currentPage.StructElements.Add(new PageStructElement {
                 MarkedContentId = markedContentId,
                 StructureType = structureType,
-                ParentElement = parentElement
+                ParentElement = parentElement,
+                TableHeaderScope = tableHeaderScope,
+                TableColumnSpan = tableColumnSpan,
+                TableRowSpan = tableRowSpan
             });
             return markedContentId;
         }

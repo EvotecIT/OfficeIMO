@@ -319,7 +319,7 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
-    public void GeneratedFields_KeepSimpleHelveticaAppearanceResourceWhenDocumentFontIsEmbedded() {
+    public void GeneratedFields_UseEmbeddedHelveticaAppearanceResourceWhenDocumentFontIsEmbedded() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
             return;
@@ -339,7 +339,8 @@ public class PdfFormCreationTests {
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/AcroForm", raw, StringComparison.Ordinal);
         Assert.Contains("/DA (/Helv 10 Tf", raw, StringComparison.Ordinal);
-        Assert.Contains("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<416461> Tj", raw, StringComparison.Ordinal);
         Assert.Matches(@"/DR << /Font << /Helv \d+ 0 R >> >>", raw);
     }
 
