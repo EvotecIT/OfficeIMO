@@ -215,6 +215,22 @@ public class PdfDocComplianceAssessmentTests {
     }
 
     [Fact]
+    public void AssessComplianceUsesDefaultImageStyleAlternativeTextReadiness() {
+        byte[] png = CreateMinimalRgbPng();
+        PdfDoc document = PdfDoc.Create(CreatePdfUaGroundworkOptions())
+            .Meta(title: "Accessible title")
+            .DefaultImageStyle(new PdfImageStyle {
+                AlternativeText = "Default product badge"
+            })
+            .Image(png, 24, 24);
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
+
+        AssertRequirement(report, "generated-image-alternate-text", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "alternate-text", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
     public void AssessComplianceReportsHeaderFooterImageAlternativeTextReadiness() {
         byte[] png = CreateMinimalRgbPng();
         PdfDoc missingDocument = PdfDoc.Create(CreatePdfUaGroundworkOptions())
@@ -523,6 +539,23 @@ public class PdfDocComplianceAssessmentTests {
 
         Assert.Contains("/P << /MCID 0 >> BDC", content, StringComparison.Ordinal);
         Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
+    }
+
+    [Fact]
+    public void TaggedRichTextBackgroundFillsEmitArtifactMarkedContent() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Paragraph(paragraph => paragraph
+                .BackgroundColor(PdfColor.FromRgb(255, 255, 0))
+                .Text("Highlighted text"))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/P << /MCID 0 >> BDC", content, StringComparison.Ordinal);
+        Assert.Contains("/Artifact BMC", content, StringComparison.Ordinal);
     }
 
     [Fact]

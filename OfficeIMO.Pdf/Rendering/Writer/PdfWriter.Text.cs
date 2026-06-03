@@ -585,13 +585,18 @@ internal static partial class PdfWriter {
             backgroundYOffset += li < lineHeights.Count ? lineHeights[li] : defaultLeading;
         }
 
-        foreach (var bg in backgrounds) {
-            new ContentStreamBuilder(sb)
-                .SaveState()
-                .FillColor(bg.Color)
-                .Rectangle(bg.X, bg.Y, bg.Width, bg.Height)
-                .FillPath()
-                .RestoreState();
+        if (backgrounds.Count > 0) {
+            AppendArtifactBegin(sb, markedContentId.HasValue);
+            foreach (var bg in backgrounds) {
+                new ContentStreamBuilder(sb)
+                    .SaveState()
+                    .FillColor(bg.Color)
+                    .Rectangle(bg.X, bg.Y, bg.Width, bg.Height)
+                    .FillPath()
+                    .RestoreState();
+            }
+
+            AppendArtifactEnd(sb, markedContentId.HasValue);
         }
 
         AppendMarkedContentBegin(sb, structureType, markedContentId);
