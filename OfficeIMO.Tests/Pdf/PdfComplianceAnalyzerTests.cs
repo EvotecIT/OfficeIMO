@@ -174,6 +174,25 @@ public class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void PdfA3UReadinessAcceptsEmbeddedType0FontUnicodeCoverage() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        PdfDoc document = PdfDoc.Create(new PdfOptions()
+                .SetPdfAIdentification(3, "U")
+                .SetSrgbOutputIntent())
+            .UseFontFamily("Unicode readiness font", fontPath)
+            .Paragraph(paragraph => paragraph.Text("Embedded Type0 ToUnicode coverage."));
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3U);
+
+        AssertRequirement(report, "embedded-font-coverage", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "standard-font-to-unicode", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
     public void PdfA3AReadinessKeepsPdfUaSpecificChecksOutOfPdfAAccessibility() {
         var options = new PdfOptions {
                 FileVersion = PdfFileVersion.Pdf17,
@@ -607,6 +626,23 @@ public class PdfComplianceAnalyzerTests {
         Assert.Contains("SpecifiedTradeSettlementHeaderMonetarySummation", emptyTransaction.Diagnostic);
         Assert.Contains("SellerTradeParty", missingSeller.Diagnostic);
         Assert.Contains("GrandTotalAmount or DuePayableAmount", missingAmount.Diagnostic);
+    }
+
+    [Fact]
+    public void FacturXReadinessPreservesGrandTotalWhenDuePayableAmountIsBlank() {
+        var options = new PdfOptions()
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent()
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .AddEmbeddedFile(
+                "factur-x.xml",
+                CreateCiiXml(includeDuePayableAmount: true, duePayableAmount: string.Empty),
+                "application/xml",
+                PdfAssociatedFileRelationship.Data);
+
+        PdfComplianceReadinessReport report = PdfComplianceAnalyzer.Assess(PdfComplianceProfile.FacturX, options);
+
+        AssertRequirement(report, "einvoice-xml-trade-transaction", PdfComplianceRequirementStatus.Satisfied);
     }
 
     [Fact]

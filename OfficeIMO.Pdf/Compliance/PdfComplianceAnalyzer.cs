@@ -49,7 +49,7 @@ public static partial class PdfComplianceAnalyzer {
         }
 
         if (RequiresUnicodeMapping(profile) || IsElectronicInvoice(profile)) {
-            AddUnicodeRequirements(requirements, options);
+            AddUnicodeRequirements(requirements, options, generatedFontUsageSnapshot);
         }
 
         if (RequiresAccessibility(profile)) {
@@ -70,17 +70,44 @@ public static partial class PdfComplianceAnalyzer {
             "Set PdfOptions.FileVersion or PdfDoc.FileVersion(...) to PdfFileVersion.Pdf17 for PDF/A-2, PDF/A-3, PDF/UA-1, and e-invoice profile groundwork.");
     }
 
-    private static void AddUnicodeRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options) {
+    private static void AddUnicodeRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
+        bool hasEmbeddedUnicodeCoverage = HasEmbeddedGeneratedFontUnicodeCoverage(generatedFontUsages);
         Add(requirements, "standard-font-to-unicode", "Standard-font ToUnicode maps",
-            options.IncludeStandardFontToUnicodeMaps,
+            options.IncludeStandardFontToUnicodeMaps || hasEmbeddedUnicodeCoverage,
             "Generated standard-font resources will include WinAnsi ToUnicode CMaps.",
-            "Enable PdfOptions.IncludeStandardFontToUnicodeMaps.");
+            hasEmbeddedUnicodeCoverage
+                ? "Generated text uses embedded TrueType Type0 fonts with Identity-H ToUnicode CMaps."
+                : "Enable PdfOptions.IncludeStandardFontToUnicodeMaps for non-embedded Type1 standard-font resources, or embed every generated font slot.");
 
         requirements.Add(new PdfComplianceRequirement(
             "full-unicode-mapping",
             "Full generated text Unicode mapping",
             PdfComplianceRequirementStatus.Unsupported,
             "OfficeIMO.Pdf does not yet prove Unicode mapping coverage for every generated text run, font fallback path, and future non-WinAnsi text path."));
+    }
+
+    private static bool HasEmbeddedGeneratedFontUnicodeCoverage(PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {
+        if (generatedFontUsages == null) {
+            return false;
+        }
+
+        if (generatedFontUsages.Length == 0) {
+            return true;
+        }
+
+        for (int i = 0; i < generatedFontUsages.Length; i++) {
+            PdfGeneratedFontComplianceEvidence usage = generatedFontUsages[i];
+            IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> embeddedFonts = usage.Options.EmbeddedFonts;
+            if (!embeddedFonts.TryGetValue(usage.Font, out PdfEmbeddedFont? embeddedFont)) {
+                return false;
+            }
+
+            if (!TryParseEmbeddedFont(embeddedFont, out _)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static PdfStandardFont[]? SnapshotGeneratedStandardFonts(IEnumerable<PdfStandardFont>? generatedStandardFonts) {

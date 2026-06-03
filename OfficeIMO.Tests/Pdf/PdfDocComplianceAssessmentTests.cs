@@ -245,9 +245,9 @@ public class PdfDocComplianceAssessmentTests {
     }
 
     [Fact]
-    public void AssessComplianceReportsHeaderFooterImageAlternativeTextReadiness() {
+    public void AssessComplianceTreatsUncaptionedHeaderFooterImagesAsDecorativeArtifacts() {
         byte[] png = CreateMinimalRgbPng();
-        PdfDoc missingDocument = PdfDoc.Create(CreatePdfUaGroundworkOptions())
+        PdfDoc decorativeDocument = PdfDoc.Create(CreatePdfUaGroundworkOptions())
             .TaggedPdfCatalogMarkers()
             .Meta(title: "Accessible title")
             .Header(header => header.Image(png, 20, 10))
@@ -259,11 +259,11 @@ public class PdfDocComplianceAssessmentTests {
             .Footer(footer => footer.Image(png, 20, 10, alternativeText: "Security footer mark"))
             .Paragraph(paragraph => paragraph.Text("Header and footer image alt text."));
 
-        PdfComplianceReadinessReport missingReport = missingDocument.AssessCompliance(PdfComplianceProfile.PdfUa1);
+        PdfComplianceReadinessReport decorativeReport = decorativeDocument.AssessCompliance(PdfComplianceProfile.PdfUa1);
         PdfComplianceReadinessReport satisfiedReport = satisfiedDocument.AssessCompliance(PdfComplianceProfile.PdfUa1);
 
-        PdfComplianceRequirement missing = AssertRequirement(missingReport, "generated-image-alternate-text", PdfComplianceRequirementStatus.Missing);
-        Assert.Contains("header/footer", missing.Diagnostic, StringComparison.Ordinal);
+        AssertRequirement(decorativeReport, "generated-image-alternate-text", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(decorativeReport, "decorative-image-artifacts", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(satisfiedReport, "generated-text-structure-references", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(satisfiedReport, "generated-list-structure-references", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(satisfiedReport, "generated-list-structure-containers", PdfComplianceRequirementStatus.Satisfied);
@@ -1092,6 +1092,23 @@ public class PdfDocComplianceAssessmentTests {
             .BackgroundImage(CreateMinimalRgbPng(), OfficeIMO.Drawing.OfficeImageFit.Stretch, opacity: 0.2)
             .ImageWatermark(CreateMinimalRgbPng(), 80, 40, opacity: 0.2)
             .Paragraph(paragraph => paragraph.Text("Decorative image artifact marked content."))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(pdf);
+
+        Assert.True(CountOccurrences(content, "/Artifact BMC") >= 2);
+        Assert.DoesNotContain("/Figure << /Alt", content, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TaggedHeaderFooterImagesWithoutAlternativeTextEmitArtifactMarkedContent() {
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TaggedPdfCatalogMarkers()
+            .Header(header => header.Image(CreateMinimalRgbPng(), 24, 12))
+            .Footer(footer => footer.Image(CreateMinimalRgbPng(), 24, 12))
+            .Paragraph(paragraph => paragraph.Text("Header and footer decorative images."))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(pdf);

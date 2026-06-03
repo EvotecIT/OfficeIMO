@@ -612,7 +612,7 @@ internal static partial class PdfCiiDocumentHeaderInspector {
 
                 if (string.Equals(reader.LocalName, "GrandTotalAmount", StringComparison.Ordinal) ||
                     string.Equals(reader.LocalName, "DuePayableAmount", StringComparison.Ordinal)) {
-                    hasAmount = !string.IsNullOrWhiteSpace(ReadElementText(reader));
+                    hasAmount = hasAmount || !string.IsNullOrWhiteSpace(ReadElementText(reader));
                     continue;
                 }
             }

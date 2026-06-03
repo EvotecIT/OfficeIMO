@@ -84,11 +84,13 @@ internal static partial class PdfWriter {
             drawings.AddRange(page.Drawings);
 
             foreach (PdfHeaderFooterImage image in pageOptions.GetHeaderImagesForPage(variantPageNumber)) {
-                images.Add(new PdfGeneratedImageAccessibilityEvidence(!string.IsNullOrWhiteSpace(image.AlternativeText), isDecorativeArtifact: false));
+                bool hasAlternativeText = !string.IsNullOrWhiteSpace(image.AlternativeText);
+                images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText, isDecorativeArtifact: !hasAlternativeText));
             }
 
             foreach (PdfHeaderFooterImage image in pageOptions.GetFooterImagesForPage(variantPageNumber)) {
-                images.Add(new PdfGeneratedImageAccessibilityEvidence(!string.IsNullOrWhiteSpace(image.AlternativeText), isDecorativeArtifact: false));
+                bool hasAlternativeText = !string.IsNullOrWhiteSpace(image.AlternativeText);
+                images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText, isDecorativeArtifact: !hasAlternativeText));
             }
 
             PdfPageBackgroundImage? pageBackgroundImage = pageOptions.PageBackgroundImageSnapshot;
