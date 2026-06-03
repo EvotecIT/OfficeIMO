@@ -31,6 +31,10 @@ public sealed partial class PdfDoc {
         if (style.SpacingAfter < 0 || double.IsNaN(style.SpacingAfter) || double.IsInfinity(style.SpacingAfter)) {
             throw new System.ArgumentException(objectName + " spacing after must be a non-negative finite value.", nameof(style));
         }
+
+        if (style.Decorative && !string.IsNullOrWhiteSpace(style.AlternativeText)) {
+            throw new System.ArgumentException(objectName + " style cannot be both decorative and alternate-text bearing.", nameof(style));
+        }
     }
 
     internal static void ValidateImageFit(OfficeImageFit fit, string paramName) {

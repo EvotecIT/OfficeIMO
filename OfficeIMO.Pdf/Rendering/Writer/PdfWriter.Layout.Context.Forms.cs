@@ -304,7 +304,7 @@ internal static partial class PdfWriter {
         private double GetRadioButtonGroupWidth(RadioButtonGroupBlock block) {
             PdfStandardFont font = ChooseNormal(currentOpts.DefaultFont);
             double fontSize = GetRadioButtonGroupLabelFontSize(block);
-            double labelWidth = block.Options.Max(option => EstimateSimpleTextWidth(option, font, fontSize));
+            double labelWidth = block.Options.Max(option => EstimateSimpleTextWidthForOptions(option, font, fontSize, currentOpts));
             return block.Size + GetRadioButtonGroupLabelGap(block) + labelWidth;
         }
 
@@ -313,14 +313,14 @@ internal static partial class PdfWriter {
             string fontResource = GetStandardFontResourceName(font, font);
             double fontSize = GetRadioButtonGroupLabelFontSize(block);
             double labelX = x + block.Size + GetRadioButtonGroupLabelGap(block);
-            double ascender = GetAscender(font, fontSize);
-            double descender = GetDescender(font, fontSize);
+            double ascender = GetAscenderForOptions(font, fontSize, currentOpts);
+            double descender = GetDescenderForOptions(font, fontSize, currentOpts);
             double labelBaselineOffset = (block.Size - ascender - descender) / 2D + descender;
 
             for (int i = 0; i < block.Options.Count; i++) {
                 double optionTop = topY - i * (block.Size + block.Gap);
                 double baseline = optionTop - block.Size + labelBaselineOffset;
-                AppendPageText(sb, block.Options[i], fontResource, fontSize, block.Style.TextColor, labelX, baseline);
+                AppendPageText(sb, block.Options[i], font, fontResource, fontSize, block.Style.TextColor, labelX, baseline, currentOpts);
             }
         }
 

@@ -71,6 +71,12 @@ internal static partial class PdfWriter {
             EnsurePage();
             PageImage pageImage = CreatePageImage(ib, imageStyle, xImg, y - ib.Height);
             currentPage!.Images.Add(pageImage);
+            if (!string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
+                int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!);
+                pageImage.MarkedContentId = markedContentId;
+                pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
+            }
+
             AddImageLinkAnnotation(ib, imageStyle, pageImage, xImg, y - ib.Height);
             pageDirty = true;
             y -= ib.Height + imageStyle.SpacingAfter;
@@ -80,13 +86,13 @@ internal static partial class PdfWriter {
             double size = currentOpts.DefaultFontSize;
             double leading = size * 1.4;
             var panelFont = ChooseNormal(currentOpts.DefaultFont);
-            double firstBaselineOffset = GetAscender(panelFont, size);
+            double firstBaselineOffset = GetAscenderForOptions(panelFont, size, currentOpts);
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             PanelStyle panelStyle = ResolvePanelStyle(ppb, currentOpts);
             double innerWidth = panelStyle.MaxWidth.HasValue ? Math.Min(contentWidth, panelStyle.MaxWidth.Value) : contentWidth;
             ValidatePanelStyle(panelStyle, innerWidth);
             double textWidthAvail = innerWidth - 2 * panelStyle.PaddingX;
-            var (lines, lineHeights) = WrapRichRuns(ppb.Runs, textWidthAvail, size, panelFont, leading);
+            var (lines, lineHeights) = WrapRichRunsCore(ppb.Runs, textWidthAvail, size, panelFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
             double panelWidth = innerWidth;
             double xLeft = currentOpts.MarginLeft;
             if (panelStyle.Align == PdfAlign.Center) xLeft = currentOpts.MarginLeft + Math.Max(0, (contentWidth - innerWidth) / 2);
@@ -124,10 +130,11 @@ internal static partial class PdfWriter {
                 double panelTop = y;
                 double panelBottom = y - panelHeight;
                 if (panelBottom < currentOpts.MarginBottom) { NewPage(); panelTop = y; panelBottom = y - panelHeight; }
-                if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom); }
-                if (DrawPanelBorder(sb, panelStyle, xLeft, panelBottom, panelWidth, panelTop - panelBottom)) { pageDirty = true; }
+                if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom, emitGeneratedStructure); }
+                if (DrawPanelBorder(sb, panelStyle, xLeft, panelBottom, panelWidth, panelTop - panelBottom, emitGeneratedStructure)) { pageDirty = true; }
                 pageDirty = true;
-                WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), lines, lineHeights, currentOpts, panelTop - panelStyle.PaddingY - firstBaselineOffset, size, leading, currentPage!.Annotations, xLeft + panelStyle.PaddingX, textWidthAvail);
+                int? panelMarkedContentId = RegisterTextStructureElement("P");
+                WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), lines, lineHeights, currentOpts, panelTop - panelStyle.PaddingY - firstBaselineOffset, size, leading, currentPage!.Annotations, xLeft + panelStyle.PaddingX, textWidthAvail, structureType: "P", markedContentId: panelMarkedContentId, structurePage: currentPage);
                 MarkRichFonts(ppb.Runs);
                 y = panelBottom;
                 if (panelStyle.SpacingAfter > 0) {
@@ -157,13 +164,14 @@ internal static partial class PdfWriter {
                     double usedBottomPad = panelStyle.PaddingY;
                     if (!lastSeg && topPad + hsum + usedBottomPad > avail) usedBottomPad = Math.Max(0, avail - (topPad + hsum));
                     double panelBottom = y - (topPad + hsum + usedBottomPad);
-                    if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom); }
-                    if (DrawPanelBorder(sb, panelStyle, xLeft, panelBottom, panelWidth, panelTop - panelBottom)) { pageDirty = true; }
+                    if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom, emitGeneratedStructure); }
+                    if (DrawPanelBorder(sb, panelStyle, xLeft, panelBottom, panelWidth, panelTop - panelBottom, emitGeneratedStructure)) { pageDirty = true; }
                     var sliceLines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>();
                     var sliceHeights = new System.Collections.Generic.List<double>();
                     for (int k = 0; k < take; k++) { sliceLines.Add(lines[li + k]); sliceHeights.Add(lineHeights[li + k]); }
                     pageDirty = true;
-                    WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), sliceLines, sliceHeights, currentOpts, panelTop - topPad - firstBaselineOffset, size, leading, currentPage!.Annotations, xLeft + panelStyle.PaddingX, textWidthAvail);
+                    int? panelMarkedContentId = RegisterTextStructureElement("P");
+                    WriteRichParagraph(sb, new RichParagraphBlock(ppb.Runs, ppb.Align, ppb.DefaultColor), sliceLines, sliceHeights, currentOpts, panelTop - topPad - firstBaselineOffset, size, leading, currentPage!.Annotations, xLeft + panelStyle.PaddingX, textWidthAvail, structureType: "P", markedContentId: panelMarkedContentId, structurePage: currentPage);
                     MarkRichFonts(ppb.Runs);
                     y = panelBottom; li += take; firstSeg = false;
                     if (li < lines.Count) {

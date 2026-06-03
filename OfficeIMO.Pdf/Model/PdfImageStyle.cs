@@ -11,6 +11,7 @@ public sealed class PdfImageStyle {
     private OfficeClipPath? _clipPath;
     private double _spacingBefore;
     private double _spacingAfter;
+    private string? _alternativeText;
 
     /// <summary>Image alignment within the current content frame.</summary>
     public PdfAlign Align {
@@ -57,6 +58,18 @@ public sealed class PdfImageStyle {
     /// <summary>Moves the image to the next page with the first visible part of the following block when they fit together.</summary>
     public bool KeepWithNext { get; set; }
 
+    /// <summary>Optional alternate text for meaningful generated images.</summary>
+    public string? AlternativeText {
+        get => _alternativeText;
+        set {
+            if (value != null) {
+                Guard.NotNullOrWhiteSpace(value, nameof(AlternativeText));
+            }
+
+            _alternativeText = value;
+        }
+    }
+
     /// <summary>Creates a copy of this image style.</summary>
     public PdfImageStyle Clone() {
         return new PdfImageStyle {
@@ -65,7 +78,8 @@ public sealed class PdfImageStyle {
             ClipPath = _clipPath,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
-            KeepWithNext = KeepWithNext
+            KeepWithNext = KeepWithNext,
+            AlternativeText = AlternativeText
         };
     }
 

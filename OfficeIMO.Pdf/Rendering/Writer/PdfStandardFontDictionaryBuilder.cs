@@ -4,6 +4,8 @@ internal static class PdfStandardFontDictionaryBuilder {
     private const string FontType = "Font";
     private const string Type1Subtype = "Type1";
     private const string TrueTypeSubtype = "TrueType";
+    private const string Type0Subtype = "Type0";
+    private const string CidFontType2Subtype = "CIDFontType2";
     private const string WinAnsiEncoding = "WinAnsiEncoding";
 
     internal static string BuildStandardType1FontObject(PdfStandardFont font, int toUnicodeObjectId = 0) {
@@ -66,6 +68,51 @@ internal static class PdfStandardFontDictionaryBuilder {
         }
 
         sb.Append(" >>\n");
+        return sb.ToString();
+    }
+
+    internal static string BuildEmbeddedType0FontObject(PdfTrueTypeFontProgram font, int descendantFontObjectId, int toUnicodeObjectId) {
+        Guard.NotNull(font, nameof(font));
+        if (descendantFontObjectId <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(descendantFontObjectId), "PDF descendant font object number must be positive.");
+        }
+
+        if (toUnicodeObjectId <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(toUnicodeObjectId), "PDF Type0 embedded fonts require a ToUnicode object number.");
+        }
+
+        return "<< /Type /" + PdfSyntaxEscaper.Name(FontType) +
+            " /Subtype /" + PdfSyntaxEscaper.Name(Type0Subtype) +
+            " /BaseFont /" + PdfSyntaxEscaper.Name(font.FontName) +
+            " /Encoding /Identity-H" +
+            " /DescendantFonts [ " + PdfSyntaxEscaper.IndirectReference(descendantFontObjectId) + " ]" +
+            " /ToUnicode " + PdfSyntaxEscaper.IndirectReference(toUnicodeObjectId) +
+            " >>\n";
+    }
+
+    internal static string BuildCidFontType2DescendantObject(PdfTrueTypeFontProgram font, int descriptorObjectId) {
+        Guard.NotNull(font, nameof(font));
+        if (descriptorObjectId <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(descriptorObjectId), "PDF font descriptor object number must be positive.");
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("<< /Type /").Append(PdfSyntaxEscaper.Name(FontType))
+            .Append(" /Subtype /").Append(PdfSyntaxEscaper.Name(CidFontType2Subtype))
+            .Append(" /BaseFont /").Append(PdfSyntaxEscaper.Name(font.FontName))
+            .Append(" /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >>")
+            .Append(" /FontDescriptor ").Append(PdfSyntaxEscaper.IndirectReference(descriptorObjectId))
+            .Append(" /DW 500 /W [0 [");
+
+        for (int glyphId = 0; glyphId < font.GlyphCount; glyphId++) {
+            if (glyphId > 0) {
+                sb.Append(' ');
+            }
+
+            sb.Append(font.GetGlyphWidth1000(glyphId).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        sb.Append("]] /CIDToGIDMap /Identity >>\n");
         return sb.ToString();
     }
 

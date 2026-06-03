@@ -3,9 +3,11 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfFileAssembler {
-    internal static byte[] Assemble(IReadOnlyList<byte[]> objects, int catalogId, int infoId) {
+    internal static byte[] Assemble(IReadOnlyList<byte[]> objects, int catalogId, int infoId, PdfFileVersion fileVersion = PdfFileVersion.Pdf14) {
+        Guard.FileVersion(fileVersion, nameof(fileVersion));
+
         using var ms = new MemoryStream();
-        byte[] header = PdfEncoding.Latin1GetBytes("%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n");
+        byte[] header = PdfEncoding.Latin1GetBytes("%PDF-" + GetHeaderVersion(fileVersion) + "\n%\u00e2\u00e3\u00cf\u00d3\n");
         ms.Write(header, 0, header.Length);
 
         var offsets = new List<long> { 0L };
@@ -32,5 +34,21 @@ internal static class PdfFileAssembler {
         writer.Flush();
 
         return ms.ToArray();
+    }
+
+    internal static string GetHeaderVersion(PdfFileVersion fileVersion) {
+        switch (fileVersion) {
+            case PdfFileVersion.Pdf14:
+                return "1.4";
+            case PdfFileVersion.Pdf15:
+                return "1.5";
+            case PdfFileVersion.Pdf16:
+                return "1.6";
+            case PdfFileVersion.Pdf17:
+                return "1.7";
+            default:
+                Guard.FileVersion(fileVersion, nameof(fileVersion));
+                return "1.4";
+        }
     }
 }

@@ -480,6 +480,38 @@ public class PdfDocVisualQualityTests {
         Assert.True(preflight.CanRewrite);
         Assert.Equal(3, clone.OutputIntent!.ColorComponents);
         Assert.Equal((byte)'a', clone.OutputIntent.IccProfile[36]);
+        Assert.NotNull(typeof(PdfOutputIntent).GetConstructor(new[] { typeof(byte[]) }));
+        Assert.NotNull(typeof(PdfOutputIntent).GetConstructor(new[] { typeof(byte[]), typeof(string) }));
+    }
+
+    [Fact]
+    public void OutputIntent_CanUseBuiltInSrgbProfileAndRemainRewriteSafe() {
+        var options = new PdfOptions().SetSrgbOutputIntent();
+        byte[] mutableProfileCopy = PdfIccProfiles.SrgbIec6196621;
+        mutableProfileCopy[36] = 0;
+
+        byte[] bytes = PdfDoc.Create(options)
+            .Paragraph(p => p.Text("Built-in sRGB output intent body."))
+            .ToBytes();
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfOutputIntent outputIntent = options.OutputIntent!;
+
+        Assert.Contains("/OutputIntents [", raw, StringComparison.Ordinal);
+        Assert.Contains("/Type /OutputIntent /S /GTS_PDFA1", raw, StringComparison.Ordinal);
+        Assert.Contains("/DestOutputProfile", raw, StringComparison.Ordinal);
+        Assert.Contains("/N 3", raw, StringComparison.Ordinal);
+        Assert.Contains("/Length 3052", raw, StringComparison.Ordinal);
+        Assert.Contains("<735247422049454336313936362D322E31>", raw, StringComparison.Ordinal);
+        Assert.True(info.HasOutputIntents);
+        Assert.True(preflight.Probe.HasOutputIntents);
+        Assert.True(preflight.CanRewrite);
+        Assert.Equal(PdfOutputIntentPolicy.SrgbIec6196621, outputIntent.Policy);
+        Assert.Equal(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, outputIntent.OutputConditionIdentifier);
+        Assert.Equal(3, outputIntent.ColorComponents);
+        Assert.Equal((byte)'a', outputIntent.IccProfile[36]);
+        Assert.Equal((byte)'a', PdfIccProfiles.SrgbIec6196621[36]);
     }
 
     [Fact]
@@ -489,20 +521,27 @@ public class PdfDocVisualQualityTests {
         byte[] badSignature = CreateMinimalIccProfile();
         badSignature[36] = (byte)'x';
         byte[] badColorSpace = CreateMinimalIccProfile("LAB ");
+        byte[] badDeclaredSize = CreateMinimalIccProfile();
+        badDeclaredSize[3] = 131;
 
         var gray = new PdfOutputIntent(grayProfile, "Gray profile");
         var cmyk = new PdfOutputIntent(cmykProfile, "CMYK profile");
-        var options = new PdfOptions().SetOutputIntent(grayProfile, "Snapshot profile");
+        var options = new PdfOptions().SetSrgbOutputIntent();
         grayProfile[36] = 0;
 
         Assert.Equal(1, gray.ColorComponents);
         Assert.Equal(4, cmyk.ColorComponents);
         Assert.Equal((byte)'a', options.OutputIntent!.IccProfile[36]);
+        Assert.Equal(PdfOutputIntentPolicy.SrgbIec6196621, options.OutputIntent.Policy);
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(Array.Empty<byte>()));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(badSignature));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(badColorSpace));
+        Assert.Throws<ArgumentException>(() => new PdfOutputIntent(badDeclaredSize));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), ""));
         Assert.Throws<ArgumentException>(() => new PdfOutputIntent(CreateMinimalIccProfile()) { Info = "" });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOutputIntent(CreateMinimalIccProfile(), policy: (PdfOutputIntentPolicy)99));
+        Assert.NotNull(typeof(PdfOptions).GetMethod("SetOutputIntent", new[] { typeof(byte[]), typeof(string) }));
+        Assert.NotNull(typeof(PdfDoc).GetMethod("OutputIntent", new[] { typeof(byte[]), typeof(string) }));
     }
 
     [Fact]
@@ -643,6 +682,8 @@ public class PdfDocVisualQualityTests {
         Assert.Contains("/AFRelationship /Source", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /application#2Fxml", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /text#2Fplain", raw, StringComparison.Ordinal);
+        Assert.Contains("/Params << /Size 55 /CheckSum <83F5425DBE5CB56CCCFFC5F749EDCAD4> >>", raw, StringComparison.Ordinal);
+        Assert.Contains("/Params << /Size 24 /CheckSum <C321A4BD26D4D3AF6F40C2FC4EDDF6AE> >>", raw, StringComparison.Ordinal);
         Assert.Contains("CrossIndustryInvoice", raw, StringComparison.Ordinal);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -691,8 +732,29 @@ public class PdfDocVisualQualityTests {
     }
 
     [Fact]
+    public void FileVersion_CanEmitPdf17HeaderAndCloneOptions() {
+        var options = new PdfOptions {
+            FileVersion = PdfFileVersion.Pdf17
+        };
+        PdfOptions clone = options.Clone();
+
+        byte[] bytes = PdfDoc.Create()
+            .FileVersion(PdfFileVersion.Pdf17)
+            .Paragraph(p => p.Text("PDF 1.7 header proof."))
+            .ToBytes();
+
+        Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
+        Assert.StartsWith("%PDF-1.7", Encoding.ASCII.GetString(bytes));
+        Assert.Equal("1.7", PdfInspector.Inspect(bytes).HeaderVersion);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions {
+            FileVersion = (PdfFileVersion)99
+        });
+    }
+
+    [Fact]
     public void ComplianceProfile_ValidatesAndClonesOptions() {
         var options = new PdfOptions {
+            FileVersion = PdfFileVersion.Pdf17,
             ComplianceProfile = PdfComplianceProfile.PdfA3U,
             IncludeXmpMetadata = true,
             IncludeStandardFontToUnicodeMaps = true
@@ -704,6 +766,7 @@ public class PdfDocVisualQualityTests {
                 ComplianceProfile = (PdfComplianceProfile)999
             });
 
+        Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
         Assert.Equal(PdfComplianceProfile.PdfA3U, clone.ComplianceProfile);
         Assert.True(clone.IncludeXmpMetadata);
         Assert.True(clone.IncludeStandardFontToUnicodeMaps);
@@ -733,6 +796,21 @@ public class PdfDocVisualQualityTests {
         Assert.Contains(requirement, exception.Message, StringComparison.Ordinal);
         Assert.Contains(validator, exception.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(PdfComplianceProfile.None), exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ComplianceProfile_PdfAAccessibilityMessageDoesNotRequirePdfUaSpecificMetadata() {
+        var exception = Assert.Throws<NotSupportedException>(() =>
+            PdfDoc.Create()
+                .Compliance(PdfComplianceProfile.PdfA3A)
+                .Paragraph(p => p.Text("Body"))
+                .ToBytes());
+
+        Assert.Contains("PDF/A-3a", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("tagged PDF structure tree", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("PDF/UA identification XMP", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("document title metadata", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("DisplayDocTitle", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -783,17 +861,58 @@ public class PdfDocVisualQualityTests {
         string text = PdfReadDocument.Load(bytes).ExtractText();
 
         Assert.True(bytes.Length < uncompressed.Length, $"Expected compressed embedded font PDF to be smaller. Compressed: {bytes.Length}, uncompressed: {uncompressed.Length}.");
-        Assert.Contains("/Subtype /TrueType", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOEmbeddedArial", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("/CIDToGIDMap /Identity", raw, StringComparison.Ordinal);
         Assert.Contains("/FontDescriptor", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
         Assert.Contains("/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
         Assert.Contains("/Filter /FlateDecode", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("/Filter /FlateDecode", rawUncompressed, StringComparison.Ordinal);
-        Assert.Contains("/FirstChar 32 /LastChar 255 /Widths [", raw, StringComparison.Ordinal);
+        Assert.Contains("/W [0 [", raw, StringComparison.Ordinal);
         Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
         Assert.Contains("Embedded font Cafe é and Euro", text, StringComparison.Ordinal);
         Assert.Contains("€", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UseFontFamily_EmbedsNamedTrueTypeFamilyForGeneratedText() {
+        string? fontPath = FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                CompressEmbeddedFonts = true,
+                CompressContentStreams = false
+            })
+            .UseFontFamily("OfficeIMO Pretty", fontData)
+            .Header(header => header.Text("Pretty header"))
+            .Paragraph(paragraph => paragraph
+                .Text("Pretty regular ")
+                .Bold("pretty bold ")
+                .Italic()
+                .Text("pretty italic"))
+            .Footer(footer => footer.Text("Pretty footer {page}/{pages}"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType2", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /OfficeIMOPretty-Regular", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /OfficeIMOPretty-Bold", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /OfficeIMOPretty-Italic", raw, StringComparison.Ordinal);
+        Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
+        Assert.Contains("/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
+        Assert.Contains("Pretty regular pretty bold pretty italic", text, StringComparison.Ordinal);
+        Assert.Contains("Pretty header", text, StringComparison.Ordinal);
+        Assert.Contains("Pretty footer 1/1", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -3752,6 +3871,64 @@ public class PdfDocVisualQualityTests {
 
         Assert.Equal(1, CountTextLines(narrowPdf.GetPage(1)));
         Assert.True(CountTextLines(widePdf.GetPage(1)) >= 2, "Expected wide Helvetica glyphs to wrap instead of overrunning the text frame.");
+    }
+
+    [Fact]
+    public void EmbeddedStandardFonts_UseTrueTypeMetricsForParagraphWrapping() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        PdfTrueTypeFontProgram fontProgram;
+        try {
+            fontProgram = PdfTrueTypeFontProgram.Parse(fontData, "OfficeIMOMetricsFont");
+        } catch (NotSupportedException) {
+            return;
+        }
+
+        string text = "iiii iiii iiii iiii";
+        double embeddedProbeWidth = fontProgram.MeasureWinAnsiTextWidth("iiii iiii iiii", 10);
+        double standardProbeWidth = PdfWriter.EstimateSimpleTextWidth("iiii iiii iiii", PdfStandardFont.Courier, 10);
+        if (embeddedProbeWidth >= standardProbeWidth * 0.75D) {
+            return;
+        }
+
+        var standardOptions = new PdfOptions {
+            PageWidth = 92,
+            PageHeight = 180,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 25,
+            MarginBottom = 25,
+            DefaultFont = PdfStandardFont.Courier,
+            DefaultFontSize = 10
+        };
+        var embeddedOptions = standardOptions.Clone()
+            .EmbedStandardFont(PdfStandardFont.Courier, fontData, "OfficeIMOMetricsFont");
+
+        byte[] standardBytes = PdfDoc.Create(standardOptions)
+            .Paragraph(p => p.Text(text))
+            .ToBytes();
+        byte[] embeddedBytes = PdfDoc.Create(embeddedOptions)
+            .Paragraph(p => p.Text(text))
+            .ToBytes();
+
+        using var standardPdf = PdfDocument.Open(new MemoryStream(standardBytes));
+        using var embeddedPdf = PdfDocument.Open(new MemoryStream(embeddedBytes));
+        int standardLineCount = CountTextLines(standardPdf.GetPage(1));
+        int embeddedLineCount = CountTextLines(embeddedPdf.GetPage(1));
+        string embeddedRaw = Encoding.ASCII.GetString(embeddedBytes);
+
+        Assert.True(
+            embeddedLineCount < standardLineCount,
+            $"Expected embedded TrueType metrics to wrap fewer narrow-glyph lines than Courier metrics. Standard: {standardLineCount}; embedded: {embeddedLineCount}.");
+        Assert.Contains("/BaseFont /OfficeIMOMetricsFont", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType2", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", embeddedRaw, StringComparison.Ordinal);
+        Assert.Contains("/CIDToGIDMap /Identity", embeddedRaw, StringComparison.Ordinal);
     }
 
     [Fact]

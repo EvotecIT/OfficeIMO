@@ -378,8 +378,8 @@ internal static partial class PdfWriter {
         return height;
     }
 
-    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading) {
-        var wrap = WrapRichRuns(cell.Runs, innerWidth, fontSize, baseFont, leading);
+    private static TableCellTextLayout CreateTableCellTextLayout(TableCellLayout cell, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
+        var wrap = WrapRichRunsCore(cell.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
         }
@@ -391,8 +391,8 @@ internal static partial class PdfWriter {
         return new TableCellTextLayout(wrap.Lines, wrap.LineHeights);
     }
 
-    private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading) {
-        var wrap = WrapRichRuns(item.Runs, innerWidth, fontSize, baseFont, leading);
+    private static TableCellTextLayout CreateListItemTextLayout(PdfListItem item, double innerWidth, PdfStandardFont baseFont, double fontSize, double leading, PdfOptions? options) {
+        var wrap = WrapRichRunsCore(item.Runs, innerWidth, fontSize, baseFont, leading, null, DefaultParagraphTabStopWidth, options);
         if (wrap.Lines.Count == 0) {
             wrap.Lines.Add(new System.Collections.Generic.List<RichSeg>());
         }

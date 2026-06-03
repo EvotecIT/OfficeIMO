@@ -52,7 +52,8 @@ internal static partial class PdfWriter {
             ClipPath = clipPath,
             ClipX = targetX,
             ClipY = targetBottomY,
-            ClipHeight = block.Height
+            ClipHeight = block.Height,
+            AlternativeText = style.AlternativeText
         };
     }
 
@@ -88,7 +89,9 @@ internal static partial class PdfWriter {
         }
 
         ImageBlock block = image.ToImageBlock();
-        page.Images.Add(CreatePageImage(block, block.Style ?? new PdfImageStyle(), x, y));
+        PageImage pageImage = CreatePageImage(block, block.Style ?? new PdfImageStyle(), x, y);
+        pageImage.IsBackgroundDecoration = string.IsNullOrWhiteSpace(pageImage.AlternativeText);
+        page.Images.Add(pageImage);
     }
 
     private static string BuildHeaderFooterShapes(LayoutResult.Page page, PdfOptions options, int variantPageNumber) {

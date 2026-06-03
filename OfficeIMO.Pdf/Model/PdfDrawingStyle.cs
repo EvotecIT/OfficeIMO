@@ -7,6 +7,7 @@ public sealed class PdfDrawingStyle {
     private PdfAlign _align = PdfAlign.Left;
     private double _spacingBefore;
     private double _spacingAfter;
+    private string? _alternativeText;
 
     /// <summary>Object alignment within the current content frame.</summary>
     public PdfAlign Align {
@@ -38,13 +39,30 @@ public sealed class PdfDrawingStyle {
     /// <summary>Moves the drawing object to the next page with the first visible part of the following block when they fit together.</summary>
     public bool KeepWithNext { get; set; }
 
+    /// <summary>Optional alternate text for meaningful generated shapes and drawing scenes.</summary>
+    public string? AlternativeText {
+        get => _alternativeText;
+        set {
+            if (value != null) {
+                Guard.NotNullOrWhiteSpace(value, nameof(AlternativeText));
+            }
+
+            _alternativeText = value;
+        }
+    }
+
+    /// <summary>Marks the generated shape or drawing scene as decorative artifact content when tagged-PDF markers are enabled.</summary>
+    public bool Decorative { get; set; }
+
     /// <summary>Creates a copy of this drawing placement style.</summary>
     public PdfDrawingStyle Clone() {
         return new PdfDrawingStyle {
             Align = Align,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
-            KeepWithNext = KeepWithNext
+            KeepWithNext = KeepWithNext,
+            AlternativeText = AlternativeText,
+            Decorative = Decorative
         };
     }
 

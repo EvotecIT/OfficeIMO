@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfAnnotationDictionaryBuilder {
-    internal static string BuildUriLinkAnnotation(double x1, double y1, double x2, double y2, string uri, string? contents = null) {
+    internal static string BuildUriLinkAnnotation(double x1, double y1, double x2, double y2, string uri, string? contents = null, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.AbsoluteUri(uri, nameof(uri));
 
@@ -14,10 +14,12 @@ internal static class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /A << /S /URI /URI " +
             PdfSyntaxEscaper.LiteralString(uri) +
-            " >> >>\n";
+            " >>" +
+            BuildStructParentEntry(structParentIndex) +
+            " >>\n";
     }
 
-    internal static string BuildGoToNamedDestinationLinkAnnotation(double x1, double y1, double x2, double y2, string destinationName, string? contents = null) {
+    internal static string BuildGoToNamedDestinationLinkAnnotation(double x1, double y1, double x2, double y2, string destinationName, string? contents = null, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(destinationName, nameof(destinationName));
 
@@ -28,10 +30,12 @@ internal static class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /A << /S /GoTo /D " +
             PdfSyntaxEscaper.LiteralString(destinationName) +
-            " >> >>\n";
+            " >>" +
+            BuildStructParentEntry(structParentIndex) +
+            " >>\n";
     }
 
-    internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId, PdfFormFieldStyle? style = null) {
+    internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(value, nameof(value));
@@ -42,6 +46,7 @@ internal static class PdfAnnotationDictionaryBuilder {
 
         return "<< /Type /Annot /Subtype /Widget /FT /Tx /T " +
             PdfSyntaxEscaper.TextString(name) +
+            BuildFormFieldMetadataEntries(style) +
             " /V " +
             PdfSyntaxEscaper.WinAnsiHexString(value) +
             " /DV " +
@@ -56,10 +61,12 @@ internal static class PdfAnnotationDictionaryBuilder {
             BuildMkEntry(style) +
             " /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
-            " >> >>\n";
+            " >>" +
+            BuildStructParentEntry(structParentIndex) +
+            " >>\n";
     }
 
-    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId, PdfFormFieldStyle? style = null) {
+    internal static string BuildCheckBoxWidgetAnnotation(double x1, double y1, double x2, double y2, string name, bool isChecked, string checkedValueName, int offAppearanceId, int checkedAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNullOrWhiteSpace(checkedValueName, nameof(checkedValueName));
@@ -72,6 +79,7 @@ internal static class PdfAnnotationDictionaryBuilder {
         string selectedName = isChecked ? checkedValueName : "Off";
         return "<< /Type /Annot /Subtype /Widget /FT /Btn /T " +
             PdfSyntaxEscaper.TextString(name) +
+            BuildFormFieldMetadataEntries(style) +
             " /V /" +
             PdfSyntaxEscaper.Name(selectedName) +
             " /DV /" +
@@ -90,13 +98,15 @@ internal static class PdfAnnotationDictionaryBuilder {
             PdfSyntaxEscaper.Name(checkedValueName) +
             " " +
             PdfSyntaxEscaper.IndirectReference(checkedAppearanceId) +
-            " >> >> >>\n";
+            " >> >>" +
+            BuildStructParentEntry(structParentIndex) +
+            " >>\n";
     }
 
     internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, string value, double fontSize, int normalAppearanceId, bool isComboBox, PdfFormFieldStyle? style = null) =>
         BuildChoiceFieldWidgetAnnotation(x1, y1, x2, y2, name, options, new[] { value }, fontSize, normalAppearanceId, isComboBox, allowsMultipleSelection: false, style);
 
-    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null) {
+    internal static string BuildChoiceFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, IReadOnlyList<string> options, IReadOnlyList<string> values, double fontSize, int normalAppearanceId, bool isComboBox, bool allowsMultipleSelection, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
@@ -151,6 +161,7 @@ internal static class PdfAnnotationDictionaryBuilder {
         int flags = (isComboBox ? 131072 : 0) | (allowsMultipleSelection ? 2097152 : 0);
         return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
             PdfSyntaxEscaper.TextString(name) +
+            BuildFormFieldMetadataEntries(style) +
             " /V " +
             BuildChoiceValue(values, allowsMultipleSelection) +
             " /DV " +
@@ -169,10 +180,12 @@ internal static class PdfAnnotationDictionaryBuilder {
             BuildMkEntry(style) +
             " /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
-            " >> >>\n";
+            " >>" +
+            BuildStructParentEntry(structParentIndex) +
+            " >>\n";
     }
 
-    internal static string BuildRadioButtonFieldDictionary(string name, IReadOnlyList<string> options, string value, IReadOnlyList<int> widgetObjectIds) {
+    internal static string BuildRadioButtonFieldDictionary(string name, IReadOnlyList<string> options, string value, IReadOnlyList<int> widgetObjectIds, PdfFormFieldStyle? style = null) {
         Guard.NotNullOrWhiteSpace(name, nameof(name));
         Guard.NotNull(options, nameof(options));
         Guard.NotNullOrWhiteSpace(value, nameof(value));
@@ -185,6 +198,7 @@ internal static class PdfAnnotationDictionaryBuilder {
         var sb = new StringBuilder();
         sb.Append("<< /FT /Btn /T ")
             .Append(PdfSyntaxEscaper.TextString(name))
+            .Append(BuildFormFieldMetadataEntries(style))
             .Append(" /Ff 49152 /V /")
             .Append(PdfSyntaxEscaper.Name(value))
             .Append(" /DV /")
@@ -199,7 +213,7 @@ internal static class PdfAnnotationDictionaryBuilder {
         return sb.ToString();
     }
 
-    internal static string BuildRadioButtonWidgetAnnotation(double x1, double y1, double x2, double y2, int parentObjectId, string option, string value, int offAppearanceId, int selectedAppearanceId, PdfFormFieldStyle? style = null) {
+    internal static string BuildRadioButtonWidgetAnnotation(double x1, double y1, double x2, double y2, int parentObjectId, string option, string value, int offAppearanceId, int selectedAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         if (parentObjectId <= 0) {
             throw new ArgumentOutOfRangeException(nameof(parentObjectId), parentObjectId, "PDF radio button parent object id must be positive.");
@@ -229,7 +243,9 @@ internal static class PdfAnnotationDictionaryBuilder {
             PdfSyntaxEscaper.Name(option) +
             " " +
             PdfSyntaxEscaper.IndirectReference(selectedAppearanceId) +
-            " >> >> >>\n";
+            " >> >>" +
+            BuildStructParentEntry(structParentIndex) +
+            " >>\n";
     }
 
     private static string BuildChoiceValue(IReadOnlyList<string> values, bool forceArray) {
@@ -255,6 +271,37 @@ internal static class PdfAnnotationDictionaryBuilder {
         string.IsNullOrWhiteSpace(contents)
             ? string.Empty
             : " /Contents " + PdfSyntaxEscaper.LiteralString(contents!);
+
+    private static string BuildFormFieldMetadataEntries(PdfFormFieldStyle? style) {
+        if (style == null) {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        if (!string.IsNullOrWhiteSpace(style.AlternateName)) {
+            sb.Append(" /TU ")
+                .Append(PdfSyntaxEscaper.TextString(style.AlternateName!));
+        }
+
+        if (!string.IsNullOrWhiteSpace(style.MappingName)) {
+            sb.Append(" /TM ")
+                .Append(PdfSyntaxEscaper.TextString(style.MappingName!));
+        }
+
+        return sb.ToString();
+    }
+
+    private static string BuildStructParentEntry(int? structParentIndex) {
+        if (!structParentIndex.HasValue) {
+            return string.Empty;
+        }
+
+        if (structParentIndex.Value < 0) {
+            throw new ArgumentOutOfRangeException(nameof(structParentIndex), structParentIndex.Value, "PDF annotation StructParent index must be non-negative.");
+        }
+
+        return " /StructParent " + structParentIndex.Value.ToString(CultureInfo.InvariantCulture);
+    }
 
     private static string BuildMkEntry(PdfFormFieldStyle? style) {
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();

@@ -54,7 +54,7 @@ internal static class PdfAcroFormDictionaryBuilder {
             " >>";
     }
 
-    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null) {
+    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(value, nameof(value));
@@ -80,7 +80,8 @@ internal static class PdfAcroFormDictionaryBuilder {
                 Format(inset) + " " + Format(inset) + " " + Format(Math.Max(0D, width - inset * 2D)) + " " + Format(Math.Max(0D, height - inset * 2D)) + " re S\n";
         }
 
-        content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(clippedValue) + " Tj ET\n";
+        string textHex = encodedTextHex == null || clippedValue.Length == 0 ? PdfSyntaxEscaper.WinAnsiHexString(clippedValue) : "<" + encodedTextHex + ">";
+        content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textHex + " Tj ET\n";
         return content + "Q\n";
     }
 

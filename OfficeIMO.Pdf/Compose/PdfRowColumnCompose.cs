@@ -200,12 +200,20 @@ public class PdfRowColumnCompose {
         return this;
     }
     /// <summary>Adds a supported image in the column. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
-    public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
+    public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
+        Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
+
+    /// <summary>Adds a supported meaningful image in the column with alternate text.</summary>
+    public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
+        Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
+
+    /// <summary>Adds a supported image in the column. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
+    public PdfRowColumnCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
-        PdfImageStyle? imageStyle = PdfDoc.CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style);
+        PdfImageStyle? imageStyle = PdfDoc.CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
         if (imageStyle != null) {
             PdfDoc.ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
         }

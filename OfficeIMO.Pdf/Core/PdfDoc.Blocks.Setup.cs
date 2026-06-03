@@ -249,15 +249,93 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Sets the generated PDF file header version.</summary>
+    public PdfDoc FileVersion(PdfFileVersion version) {
+        _options.SetFileVersion(version);
+        return this;
+    }
+
+    /// <summary>Sets PDF/A XMP identification metadata. This does not by itself certify PDF/A conformance.</summary>
+    public PdfDoc PdfAIdentification(PdfAIdentification? identification) {
+        _options.SetPdfAIdentification(identification);
+        return this;
+    }
+
+    /// <summary>Sets PDF/A XMP identification metadata. This does not by itself certify PDF/A conformance.</summary>
+    public PdfDoc PdfAIdentification(int part, string conformance) {
+        _options.SetPdfAIdentification(part, conformance);
+        return this;
+    }
+
+    /// <summary>Sets PDF/UA XMP identification metadata. This does not by itself certify PDF/UA conformance.</summary>
+    public PdfDoc PdfUaIdentification(PdfUaIdentification? identification) {
+        _options.SetPdfUaIdentification(identification);
+        return this;
+    }
+
+    /// <summary>Sets PDF/UA XMP identification metadata. This does not by itself certify PDF/UA conformance.</summary>
+    public PdfDoc PdfUaIdentification(int part = 1) {
+        _options.SetPdfUaIdentification(part);
+        return this;
+    }
+
+    /// <summary>Sets Factur-X/ZUGFeRD XMP extension metadata. This does not by itself certify e-invoice conformance.</summary>
+    public PdfDoc ElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata? metadata) {
+        _options.SetElectronicInvoiceMetadata(metadata);
+        return this;
+    }
+
+    /// <summary>Sets Factur-X/ZUGFeRD XMP extension metadata. This does not by itself certify e-invoice conformance.</summary>
+    public PdfDoc ElectronicInvoiceMetadata(string conformanceLevel, string version = "1.0") {
+        _options.SetElectronicInvoiceMetadata(conformanceLevel, version);
+        return this;
+    }
+
     /// <summary>Sets or clears the generated catalog output intent.</summary>
     public PdfDoc OutputIntent(PdfOutputIntent? outputIntent) {
         _options.SetOutputIntent(outputIntent);
         return this;
     }
 
+    /// <summary>Sets a generated catalog output intent from ICC profile bytes using the default sRGB output condition identifier.</summary>
+    public PdfDoc OutputIntent(byte[] iccProfile) {
+        _options.SetOutputIntent(iccProfile);
+        return this;
+    }
+
     /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
-    public PdfDoc OutputIntent(byte[] iccProfile, string outputConditionIdentifier = "sRGB IEC61966-2.1") {
+    public PdfDoc OutputIntent(byte[] iccProfile, string outputConditionIdentifier) {
         _options.SetOutputIntent(iccProfile, outputConditionIdentifier);
+        return this;
+    }
+
+    /// <summary>Sets a generated catalog output intent from ICC profile bytes using the default sRGB output condition identifier.</summary>
+    public PdfDoc OutputIntent(byte[] iccProfile, PdfOutputIntentPolicy policy) {
+        _options.SetOutputIntent(iccProfile, policy);
+        return this;
+    }
+
+    /// <summary>Sets a generated catalog output intent from ICC profile bytes.</summary>
+    public PdfDoc OutputIntent(byte[] iccProfile, string outputConditionIdentifier, PdfOutputIntentPolicy policy) {
+        _options.SetOutputIntent(iccProfile, outputConditionIdentifier, policy);
+        return this;
+    }
+
+    /// <summary>Sets the generated catalog output intent to OfficeIMO's built-in sRGB IEC61966-2.1 ICC profile.</summary>
+    public PdfDoc SrgbOutputIntent() {
+        _options.SetSrgbOutputIntent();
+        return this;
+    }
+
+    /// <summary>Sets the generated tagged-PDF groundwork mode.</summary>
+    public PdfDoc TaggedStructure(PdfTaggedStructureMode mode) {
+        _options.SetTaggedStructureMode(mode);
+        return this;
+    }
+
+    /// <summary>Emits catalog-level tagged-PDF markers without claiming full tagged-content generation.</summary>
+    public PdfDoc TaggedPdfCatalogMarkers() {
+        _options.EnableTaggedPdfCatalogMarkers();
         return this;
     }
 
@@ -291,6 +369,18 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Configures common PDF/UA-1 groundwork without enabling formal compliance profile generation.</summary>
+    public PdfDoc ConfigurePdfUaGroundwork(string language = "en-US") {
+        _options.ConfigurePdfUaGroundwork(language);
+        return this;
+    }
+
+    /// <summary>Configures common PDF/A-2 or PDF/A-3 groundwork without enabling formal compliance profile generation.</summary>
+    public PdfDoc ConfigurePdfAGroundwork(PdfComplianceProfile profile, string language = "en-US") {
+        _options.ConfigurePdfAGroundwork(profile, language);
+        return this;
+    }
+
     /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
     public PdfDoc AttachFile(PdfEmbeddedFile file) {
         _options.AddEmbeddedFile(file);
@@ -305,6 +395,28 @@ public sealed partial class PdfDoc {
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Unspecified,
         string? description = null) {
         _options.AddEmbeddedFile(fileName, data, mimeType, relationship, description);
+        return this;
+    }
+
+    /// <summary>Adds the canonical Factur-X/ZUGFeRD CrossIndustryInvoice XML payload and matching XMP extension metadata.</summary>
+    public PdfDoc AttachFacturXInvoiceXml(
+        byte[] ciiXml,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        _options.AddFacturXInvoiceXml(ciiXml, conformanceLevel, version, relationship, description);
+        return this;
+    }
+
+    /// <summary>Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork without enabling formal compliance profile generation.</summary>
+    public PdfDoc ConfigureFacturXGroundwork(
+        byte[] ciiXml,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        _options.ConfigureFacturXGroundwork(ciiXml, conformanceLevel, version, relationship, description);
         return this;
     }
 
@@ -332,6 +444,34 @@ public sealed partial class PdfDoc {
     /// <summary>Embeds a TrueType font file from disk for a generated standard-font slot in this document.</summary>
     public PdfDoc EmbedStandardFont(PdfStandardFont font, string path, string? fontName = null) {
         _options.EmbedStandardFont(font, path, fontName);
+        return this;
+    }
+
+    /// <summary>Uses a caller-supplied TrueType font family as the generated document's default font family.</summary>
+    public PdfDoc UseFontFamily(
+        string familyName,
+        byte[] regular,
+        byte[]? bold = null,
+        byte[]? italic = null,
+        byte[]? boldItalic = null) {
+        _options.UseFontFamily(familyName, regular, bold, italic, boldItalic);
+        return this;
+    }
+
+    /// <summary>Uses a reusable caller-supplied TrueType font family as the generated document's default font family.</summary>
+    public PdfDoc UseFontFamily(PdfEmbeddedFontFamily fontFamily) {
+        _options.UseFontFamily(fontFamily);
+        return this;
+    }
+
+    /// <summary>Uses caller-supplied TrueType font files as the generated document's default font family.</summary>
+    public PdfDoc UseFontFamily(
+        string familyName,
+        string regularPath,
+        string? boldPath = null,
+        string? italicPath = null,
+        string? boldItalicPath = null) {
+        _options.UseFontFamily(familyName, regularPath, boldPath, italicPath, boldItalicPath);
         return this;
     }
 

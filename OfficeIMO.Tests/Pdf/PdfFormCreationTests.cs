@@ -319,6 +319,61 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void GeneratedFields_UseEmbeddedHelveticaAppearanceResourceWhenDocumentFontIsEmbedded() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        byte[] pdf = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .UseFontFamily("OfficeIMO Form Body Font", fontPath)
+            .Paragraph(paragraph => paragraph.Text("Embedded body font"))
+            .TextField("Styled.Name", value: "Ada")
+            .ChoiceField("Styled.Country", new[] { "Poland", "Germany" }, value: "Poland")
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
+        Assert.Contains("/AcroForm", raw, StringComparison.Ordinal);
+        Assert.Contains("/DA (/Helv 10 Tf", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<416461> Tj", raw, StringComparison.Ordinal);
+        Assert.Matches(@"/DR << /Font << /Helv \d+ 0 R >> >>", raw);
+    }
+
+    [Fact]
+    public void GeneratedFields_EmitAccessibleMetadata() {
+        var style = new PdfFormFieldStyle {
+            AlternateName = "Accessible field",
+            MappingName = "accessible.field"
+        };
+
+        byte[] pdf = PdfDoc.Create()
+            .TextField("Accessible.Name", value: "Ada", style: style)
+            .CheckBox("Accessible.Accept", isChecked: true, style: style)
+            .ChoiceField("Accessible.Country", new[] { "Poland", "Germany" }, value: "Poland", style: style)
+            .RadioButtonGroup("Accessible.Contact", new[] { "Email", "Phone" }, value: "Phone", style: style)
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+
+        Assert.Equal(4, CountOccurrences(raw, "/TU <41636365737369626C65206669656C64>"));
+        Assert.Equal(4, CountOccurrences(raw, "/TM <61636365737369626C652E6669656C64>"));
+        Assert.All(info.FormFields, field => Assert.Equal("Accessible field", field.AlternateName));
+        Assert.All(info.FormFields, field => Assert.Equal("accessible.field", field.MappingName));
+
+        PdfFormFieldStyle clone = style.Clone();
+        style.AlternateName = "Changed";
+        style.MappingName = "changed";
+        Assert.Equal("Accessible field", clone.AlternateName);
+        Assert.Equal("accessible.field", clone.MappingName);
+    }
+
+    [Fact]
     public void ChoiceField_CreatesInspectableAcroFormField() {
         byte[] pdf = PdfDoc.Create()
             .Paragraph(p => p.Text("Generated choice:"))
@@ -559,6 +614,8 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
         Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = -1 });
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { AlternateName = " " });
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { MappingName = " " });
 
         Assert.Throws<ArgumentException>(() => PdfDoc.Create()
             .TextField("Email")
@@ -580,5 +637,16 @@ public class PdfFormCreationTests {
         }
 
         throw new InvalidOperationException("Could not find text line '" + expectedText + "' in rendered PDF.");
+    }
+
+    private static int CountOccurrences(string text, string value) {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
     }
 }

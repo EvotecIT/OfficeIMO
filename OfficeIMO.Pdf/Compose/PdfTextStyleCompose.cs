@@ -14,5 +14,33 @@ public class PdfTextStyleCompose {
         _opts.DefaultFont = font;
         return this;
     }
+
+    /// <summary>Uses a caller-supplied TrueType font family for the default generated text style.</summary>
+    public PdfTextStyleCompose FontFamily(PdfEmbeddedFontFamily fontFamily) {
+        _opts.UseDefaultTextFontFamily(fontFamily);
+        return this;
+    }
+
+    /// <summary>Uses caller-supplied TrueType font files for the default generated text style.</summary>
+    public PdfTextStyleCompose FontFamily(
+        string familyName,
+        byte[] regular,
+        byte[]? bold = null,
+        byte[]? italic = null,
+        byte[]? boldItalic = null) {
+        _opts.UseDefaultTextFontFamily(new PdfEmbeddedFontFamily(familyName, regular, bold, italic, boldItalic));
+        return this;
+    }
+
+    /// <summary>Uses caller-supplied TrueType font files for the default generated text style.</summary>
+    public PdfTextStyleCompose FontFamily(
+        string familyName,
+        string regularPath,
+        string? boldPath = null,
+        string? italicPath = null,
+        string? boldItalicPath = null) {
+        _opts.UseDefaultTextFontFamily(PdfEmbeddedFontFamily.FromFiles(familyName, regularPath, boldPath, italicPath, boldItalicPath));
+        return this;
+    }
 }
 

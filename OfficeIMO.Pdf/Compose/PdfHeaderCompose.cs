@@ -41,20 +41,44 @@ public class PdfHeaderCompose {
     }
 
     /// <summary>Adds an image to the running header.</summary>
-    public PdfHeaderCompose Image(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) {
-        _opts.AddHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit));
+    public PdfHeaderCompose Image(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
+        Image(data, width, height, align, fit, alternativeText: null);
+
+    /// <summary>Adds a meaningful image to the running header with alternate text.</summary>
+    public PdfHeaderCompose Image(byte[] data, double width, double height, string? alternativeText) =>
+        Image(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
+
+    /// <summary>Adds an image to the running header.</summary>
+    public PdfHeaderCompose Image(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
+        _opts.AddHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }
 
     /// <summary>Adds an image to the page-1-only header.</summary>
-    public PdfHeaderCompose FirstPageImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) {
-        _opts.AddFirstPageHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit));
+    public PdfHeaderCompose FirstPageImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
+        FirstPageImage(data, width, height, align, fit, alternativeText: null);
+
+    /// <summary>Adds a meaningful image to the page-1-only header with alternate text.</summary>
+    public PdfHeaderCompose FirstPageImage(byte[] data, double width, double height, string? alternativeText) =>
+        FirstPageImage(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
+
+    /// <summary>Adds an image to the page-1-only header.</summary>
+    public PdfHeaderCompose FirstPageImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
+        _opts.AddFirstPageHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }
 
     /// <summary>Adds an image to the even-page-only header.</summary>
-    public PdfHeaderCompose EvenPagesImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) {
-        _opts.AddEvenPageHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit));
+    public PdfHeaderCompose EvenPagesImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch) =>
+        EvenPagesImage(data, width, height, align, fit, alternativeText: null);
+
+    /// <summary>Adds a meaningful image to the even-page-only header with alternate text.</summary>
+    public PdfHeaderCompose EvenPagesImage(byte[] data, double width, double height, string? alternativeText) =>
+        EvenPagesImage(data, width, height, PdfAlign.Left, OfficeImageFit.Stretch, alternativeText);
+
+    /// <summary>Adds an image to the even-page-only header.</summary>
+    public PdfHeaderCompose EvenPagesImage(byte[] data, double width, double height, PdfAlign align, OfficeImageFit fit, string? alternativeText) {
+        _opts.AddEvenPageHeaderImageForCompose(new PdfHeaderFooterImage(data, width, height, align, fit, alternativeText));
         return this;
     }
 

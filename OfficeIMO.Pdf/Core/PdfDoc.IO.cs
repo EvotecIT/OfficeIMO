@@ -2,6 +2,20 @@ namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDoc {
     /// <summary>
+    /// Analyzes this generated document against its configured compliance profile using the same layout path as PDF output.
+    /// </summary>
+    public PdfComplianceReadinessReport AssessCompliance() => AssessCompliance(_options.ComplianceProfile);
+
+    /// <summary>
+    /// Analyzes this generated document against a formal compliance profile using generated font-usage evidence from layout.
+    /// </summary>
+    /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
+    public PdfComplianceReadinessReport AssessCompliance(PdfComplianceProfile profile) {
+        PdfGeneratedDocumentComplianceEvidence evidence = PdfWriter.CollectGeneratedComplianceEvidence(_blocks, _options);
+        return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence.StandardFonts, evidence.FontUsages, _title, evidence.Images, evidence.Drawings, evidence.Forms);
+    }
+
+    /// <summary>
     /// Renders the document into a PDF byte array in memory.
     /// </summary>
     public byte[] ToBytes() => PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords);

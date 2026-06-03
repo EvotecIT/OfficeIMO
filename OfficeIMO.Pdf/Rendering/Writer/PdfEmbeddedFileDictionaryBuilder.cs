@@ -1,13 +1,13 @@
 using System.Globalization;
+using System.Security.Cryptography;
 
 namespace OfficeIMO.Pdf;
 
 internal static class PdfEmbeddedFileDictionaryBuilder {
-    internal static string BuildEmbeddedFileStreamDictionary(PdfEmbeddedFile file, int length) {
+    internal static string BuildEmbeddedFileStreamDictionary(PdfEmbeddedFile file, byte[] data) {
         Guard.NotNull(file, nameof(file));
-        if (length < 0) {
-            throw new ArgumentOutOfRangeException(nameof(length), "PDF embedded file stream length cannot be negative.");
-        }
+        Guard.NotNullOrEmpty(data, nameof(data));
+        int length = data.Length;
 
         var sb = new StringBuilder();
         sb.Append("<< /Type /EmbeddedFile");
@@ -18,6 +18,11 @@ internal static class PdfEmbeddedFileDictionaryBuilder {
 
         sb.Append(" /Length ")
             .Append(length.ToString(CultureInfo.InvariantCulture))
+            .Append(" /Params << /Size ")
+            .Append(length.ToString(CultureInfo.InvariantCulture))
+            .Append(" /CheckSum ")
+            .Append(PdfSyntaxEscaper.HexString(ComputePdfEmbeddedFileChecksum(data)))
+            .Append(" >>")
             .Append(" >>");
         return sb.ToString();
     }
@@ -53,14 +58,21 @@ internal static class PdfEmbeddedFileDictionaryBuilder {
         }
 
         var fileNames = new HashSet<string>(StringComparer.Ordinal);
-        var sb = new StringBuilder();
-        sb.Append("<< /Names [");
+        var sortedFiles = new List<(string FileName, int FileSpecId)>(files.Count);
         foreach ((string fileName, int fileSpecId) in files) {
             Guard.NotNullOrWhiteSpace(fileName, nameof(files));
             if (!fileNames.Add(fileName)) {
                 throw new ArgumentException("PDF embedded files name tree names must be unique.", nameof(files));
             }
 
+            sortedFiles.Add((fileName, fileSpecId));
+        }
+
+        sortedFiles.Sort((left, right) => StringComparer.Ordinal.Compare(left.FileName, right.FileName));
+
+        var sb = new StringBuilder();
+        sb.Append("<< /Names [");
+        foreach ((string fileName, int fileSpecId) in sortedFiles) {
             sb.Append(PdfSyntaxEscaper.TextString(fileName))
                 .Append(' ')
                 .Append(PdfSyntaxEscaper.IndirectReference(fileSpecId))
@@ -85,4 +97,12 @@ internal static class PdfEmbeddedFileDictionaryBuilder {
             _ => "Unspecified"
         };
     }
+
+    #pragma warning disable CA5351, CA1850 // PDF embedded-file /CheckSum is a deterministic file-identification checksum, not a security boundary; use Create for net472.
+    private static byte[] ComputePdfEmbeddedFileChecksum(byte[] data) {
+        using (MD5 md5 = MD5.Create()) {
+            return md5.ComputeHash(data);
+        }
+    }
+    #pragma warning restore CA5351, CA1850
 }

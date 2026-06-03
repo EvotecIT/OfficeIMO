@@ -12,7 +12,9 @@ internal static class PdfCatalogDictionaryBuilder {
         int embeddedFilesNameTreeId = 0,
         IReadOnlyList<int>? associatedFileIds = null,
         int pageLabelsId = 0,
-        int viewerPreferencesId = 0) {
+        int viewerPreferencesId = 0,
+        int structTreeRootId = 0,
+        bool markInfo = false) {
         var sb = new StringBuilder();
         AppendCatalogStart(sb, pagesId);
 
@@ -46,6 +48,10 @@ internal static class PdfCatalogDictionaryBuilder {
 
         if (viewerPreferencesId < 0) {
             throw new ArgumentOutOfRangeException(nameof(viewerPreferencesId), "PDF viewer-preferences object number cannot be negative.");
+        }
+
+        if (structTreeRootId < 0) {
+            throw new ArgumentOutOfRangeException(nameof(structTreeRootId), "PDF structure-tree root object number cannot be negative.");
         }
 
         if (associatedFileIds != null) {
@@ -83,6 +89,14 @@ internal static class PdfCatalogDictionaryBuilder {
 
         if (viewerPreferencesId > 0) {
             AppendReferenceEntry(sb, "ViewerPreferences", viewerPreferencesId);
+        }
+
+        if (markInfo) {
+            AppendMarkInfoEntry(sb);
+        }
+
+        if (structTreeRootId > 0) {
+            AppendReferenceEntry(sb, "StructTreeRoot", structTreeRootId);
         }
 
         if (metadataId > 0) {
@@ -168,5 +182,9 @@ internal static class PdfCatalogDictionaryBuilder {
         }
 
         sb.Append(']');
+    }
+
+    private static void AppendMarkInfoEntry(StringBuilder sb) {
+        sb.Append(" /MarkInfo << /Marked true >>");
     }
 }

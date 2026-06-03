@@ -144,7 +144,7 @@ internal static partial class PdfWriter {
             y2 = targetBottomY + image.Height;
         }
 
-        page.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents });
+        page.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });
     }
 
     private static System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> SliceTableCellLines(TableCellTextLayout layout, int startLine, int lineCount) {
@@ -268,14 +268,14 @@ internal static partial class PdfWriter {
         return skipColumns;
     }
 
-    private static void DrawTableHorizontalLine(StringBuilder sb, PdfColor color, double width, double xOrigin, double[] columnWidths, double columnGap, double y, bool[] skipColumns) {
+    private static void DrawTableHorizontalLine(StringBuilder sb, PdfColor color, double width, double xOrigin, double[] columnWidths, double columnGap, double y, bool[] skipColumns, bool artifact = false) {
         if (columnWidths.Length == 0) {
             return;
         }
 
         double tableWidth = GetTableCellWidth(columnWidths, 0, columnWidths.Length, columnGap);
         if (!HasSkippedColumns(skipColumns, columnWidths.Length)) {
-            DrawHLine(sb, color, width, xOrigin, xOrigin + tableWidth, y);
+            DrawHLine(sb, color, width, xOrigin, xOrigin + tableWidth, y, artifact);
             return;
         }
 
@@ -293,7 +293,7 @@ internal static partial class PdfWriter {
             bool skip = column < skipColumns.Length && skipColumns[column];
             if (skip) {
                 if (segmentStart >= 0) {
-                    DrawHLine(sb, color, width, columnLefts[segmentStart], columnRights[column - 1], y);
+                    DrawHLine(sb, color, width, columnLefts[segmentStart], columnRights[column - 1], y, artifact);
                     segmentStart = -1;
                 }
 
@@ -306,18 +306,18 @@ internal static partial class PdfWriter {
         }
 
         if (segmentStart >= 0) {
-            DrawHLine(sb, color, width, columnLefts[segmentStart], columnRights[columnWidths.Length - 1], y);
+            DrawHLine(sb, color, width, columnLefts[segmentStart], columnRights[columnWidths.Length - 1], y, artifact);
         }
     }
 
-    private static void DrawTableRowFill(StringBuilder sb, PdfColor color, double xOrigin, double[] columnWidths, double columnGap, double y, double height, bool[] skipColumns) {
+    private static void DrawTableRowFill(StringBuilder sb, PdfColor color, double xOrigin, double[] columnWidths, double columnGap, double y, double height, bool[] skipColumns, bool artifact = false) {
         if (columnWidths.Length == 0) {
             return;
         }
 
         double tableWidth = GetTableCellWidth(columnWidths, 0, columnWidths.Length, columnGap);
         if (!HasSkippedColumns(skipColumns, columnWidths.Length)) {
-            DrawRowFill(sb, color, xOrigin, y, tableWidth, height);
+            DrawRowFill(sb, color, xOrigin, y, tableWidth, height, artifact);
             return;
         }
 
@@ -335,7 +335,7 @@ internal static partial class PdfWriter {
             bool skip = column < skipColumns.Length && skipColumns[column];
             if (skip) {
                 if (segmentStart >= 0) {
-                    DrawRowFill(sb, color, columnLefts[segmentStart], y, columnRights[column - 1] - columnLefts[segmentStart], height);
+                    DrawRowFill(sb, color, columnLefts[segmentStart], y, columnRights[column - 1] - columnLefts[segmentStart], height, artifact);
                     segmentStart = -1;
                 }
 
@@ -348,11 +348,11 @@ internal static partial class PdfWriter {
         }
 
         if (segmentStart >= 0) {
-            DrawRowFill(sb, color, columnLefts[segmentStart], y, columnRights[columnWidths.Length - 1] - columnLefts[segmentStart], height);
+            DrawRowFill(sb, color, columnLefts[segmentStart], y, columnRights[columnWidths.Length - 1] - columnLefts[segmentStart], height, artifact);
         }
     }
 
-    private static bool DrawTableCellDataBars(StringBuilder sb, PdfTableStyle style, System.Collections.Generic.List<TableCellLayout> cells, int rowIndex, int columnCount, double xOrigin, double yTop, double rowBottom, double rowHeight, double[] columnWidths, double columnGap, double[] rowHeights, double rowGap, bool wholeRowSegment, int startLine, bool[] skipColumns) {
+    private static bool DrawTableCellDataBars(StringBuilder sb, PdfTableStyle style, System.Collections.Generic.List<TableCellLayout> cells, int rowIndex, int columnCount, double xOrigin, double yTop, double rowBottom, double rowHeight, double[] columnWidths, double columnGap, double[] rowHeights, double rowGap, bool wholeRowSegment, int startLine, bool[] skipColumns, bool artifact = false) {
         if (style.CellDataBars == null || style.CellDataBars.Count == 0 || startLine != 0) {
             return false;
         }
@@ -382,7 +382,7 @@ internal static partial class PdfWriter {
                 double barWidth = contentWidth * dataBar.Ratio;
                 double barHeight = System.Math.Max(0D, cellHeight - padTop - padBottom);
                 if (barWidth > 0.001D && barHeight > 0.001D) {
-                    DrawRowFill(sb, dataBar.Color, barX, cellBottom + padBottom, barWidth, barHeight);
+                    DrawRowFill(sb, dataBar.Color, barX, cellBottom + padBottom, barWidth, barHeight, artifact);
                     drawn = true;
                 }
             }
@@ -393,7 +393,7 @@ internal static partial class PdfWriter {
         return drawn;
     }
 
-    private static bool DrawTableCellIcons(StringBuilder sb, PdfTableStyle style, System.Collections.Generic.List<TableCellLayout> cells, int rowIndex, int columnCount, double xOrigin, double yTop, double rowBottom, double rowHeight, double[] columnWidths, double columnGap, double[] rowHeights, double rowGap, bool wholeRowSegment, int startLine, bool[] skipColumns) {
+    private static bool DrawTableCellIcons(StringBuilder sb, PdfTableStyle style, System.Collections.Generic.List<TableCellLayout> cells, int rowIndex, int columnCount, double xOrigin, double yTop, double rowBottom, double rowHeight, double[] columnWidths, double columnGap, double[] rowHeights, double rowGap, bool wholeRowSegment, int startLine, bool[] skipColumns, bool artifact) {
         if (style.CellIcons == null || style.CellIcons.Count == 0 || startLine != 0) {
             return false;
         }
@@ -440,7 +440,7 @@ internal static partial class PdfWriter {
 
                     iconX += icon.OffsetX;
                     iconY += icon.OffsetY;
-                    DrawTableCellIcon(sb, icon, iconX, iconY, iconSize);
+                    DrawTableCellIcon(sb, icon, iconX, iconY, iconSize, artifact);
                     drawn = true;
                 }
             }
@@ -451,7 +451,8 @@ internal static partial class PdfWriter {
         return drawn;
     }
 
-    private static void DrawTableCellIcon(StringBuilder sb, PdfCellIcon icon, double x, double y, double size) {
+    private static void DrawTableCellIcon(StringBuilder sb, PdfCellIcon icon, double x, double y, double size, bool artifact) {
+        AppendArtifactBegin(sb, artifact);
         var content = new ContentStreamBuilder(sb);
         content.FillColor(icon.Color);
         double midX = x + size / 2D;
@@ -484,6 +485,8 @@ internal static partial class PdfWriter {
             default:
                 throw new ArgumentOutOfRangeException(nameof(icon), icon.Kind, "PDF table cell icon kind is not supported.");
         }
+
+        AppendArtifactEnd(sb, artifact);
     }
 
     private static void DrawCheckBoxIcon(ContentStreamBuilder content, PdfColor color, double x, double y, double size, bool selected) {

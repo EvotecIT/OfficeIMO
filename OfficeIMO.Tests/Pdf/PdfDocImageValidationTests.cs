@@ -10,6 +10,83 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfDocImageValidationTests {
     [Fact]
+    public void ImageApis_PreservePreAlternativeTextClrSignatures() {
+        Assert.NotNull(typeof(PdfDoc).GetMethod(nameof(PdfDoc.Image), new[] {
+            typeof(byte[]),
+            typeof(double),
+            typeof(double),
+            typeof(PdfAlign?),
+            typeof(OfficeClipPath),
+            typeof(OfficeImageFit?),
+            typeof(double?),
+            typeof(double?),
+            typeof(PdfImageStyle),
+            typeof(string),
+            typeof(string)
+        }));
+        Assert.NotNull(typeof(PdfItemCompose).GetMethod(nameof(PdfItemCompose.Image), new[] {
+            typeof(byte[]),
+            typeof(double),
+            typeof(double),
+            typeof(PdfAlign?),
+            typeof(OfficeClipPath),
+            typeof(OfficeImageFit?),
+            typeof(double?),
+            typeof(double?),
+            typeof(PdfImageStyle),
+            typeof(string),
+            typeof(string)
+        }));
+        Assert.NotNull(typeof(PdfElementCompose).GetMethod(nameof(PdfElementCompose.Image), new[] {
+            typeof(byte[]),
+            typeof(double),
+            typeof(double),
+            typeof(PdfAlign?),
+            typeof(OfficeClipPath),
+            typeof(OfficeImageFit?),
+            typeof(double?),
+            typeof(double?),
+            typeof(PdfImageStyle),
+            typeof(string),
+            typeof(string)
+        }));
+        Assert.NotNull(typeof(PdfRowColumnCompose).GetMethod(nameof(PdfRowColumnCompose.Image), new[] {
+            typeof(byte[]),
+            typeof(double),
+            typeof(double),
+            typeof(PdfAlign?),
+            typeof(OfficeClipPath),
+            typeof(OfficeImageFit?),
+            typeof(double?),
+            typeof(double?),
+            typeof(PdfImageStyle),
+            typeof(string),
+            typeof(string)
+        }));
+        Assert.NotNull(typeof(PdfHeaderCompose).GetMethod(nameof(PdfHeaderCompose.Image), new[] {
+            typeof(byte[]),
+            typeof(double),
+            typeof(double),
+            typeof(PdfAlign),
+            typeof(OfficeImageFit)
+        }));
+        Assert.NotNull(typeof(PdfFooterCompose).GetMethod(nameof(PdfFooterCompose.Image), new[] {
+            typeof(byte[]),
+            typeof(double),
+            typeof(double),
+            typeof(PdfAlign),
+            typeof(OfficeImageFit)
+        }));
+        Assert.NotNull(typeof(PdfHeaderFooterImage).GetConstructor(new[] {
+            typeof(byte[]),
+            typeof(double),
+            typeof(double),
+            typeof(PdfAlign),
+            typeof(OfficeImageFit)
+        }));
+    }
+
+    [Fact]
     public void Image_WithNullBytes_ThrowsArgumentNullException() {
         var doc = PdfDoc.Create();
 
