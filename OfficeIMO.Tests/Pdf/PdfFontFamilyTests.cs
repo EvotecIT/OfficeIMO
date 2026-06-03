@@ -99,6 +99,29 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void ComposePage_UseFontFamilyScopesFamilyToTextFieldAppearance() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var family = PdfEmbeddedFontFamily.FromFiles("OfficeIMO Page Form Font", fontPath);
+        byte[] bytes = PdfDoc.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .Page(page => page
+                .UseFontFamily(family)
+                .Content(content => content.Item(item => item.TextField("Scoped.Name", value: "Lodz"))))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        int embeddedFontObjectId = FindObjectIdBefore(raw, "/Subtype /Type0");
+
+        Assert.Contains("/BaseFont /OfficeIMOPageFormFont-Regular", raw, StringComparison.Ordinal);
+        Assert.Contains("/Resources << /Font << /Helv " + embeddedFontObjectId.ToString(CultureInfo.InvariantCulture) + " 0 R >>", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DefaultTextStyle_FontFamilyDoesNotRewriteExistingHeaderOrFooterFonts() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
@@ -221,5 +244,19 @@ public class PdfFontFamilyTests {
                 yield return candidate;
             }
         }
+    }
+
+    private static int FindObjectIdBefore(string raw, string marker) {
+        int markerIndex = raw.IndexOf(marker, StringComparison.Ordinal);
+        Assert.True(markerIndex >= 0, "Could not find marker '" + marker + "'.");
+
+        int objectSuffixIndex = raw.LastIndexOf(" obj", markerIndex, StringComparison.Ordinal);
+        Assert.True(objectSuffixIndex >= 0, "Could not find object header before marker '" + marker + "'.");
+
+        int lineStart = raw.LastIndexOf('\n', objectSuffixIndex);
+        string objectHeader = raw.Substring(lineStart + 1, objectSuffixIndex - lineStart - 1);
+        string[] parts = objectHeader.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        Assert.True(parts.Length >= 2, "Could not parse object header '" + objectHeader + "'.");
+        return int.Parse(parts[0], CultureInfo.InvariantCulture);
     }
 }
