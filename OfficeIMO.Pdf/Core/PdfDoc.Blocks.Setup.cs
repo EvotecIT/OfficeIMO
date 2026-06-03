@@ -458,6 +458,12 @@ public sealed partial class PdfDoc {
         return this;
     }
 
+    /// <summary>Uses a reusable caller-supplied TrueType font family as the generated document's default font family.</summary>
+    public PdfDoc UseFontFamily(PdfEmbeddedFontFamily fontFamily) {
+        _options.UseFontFamily(fontFamily);
+        return this;
+    }
+
     /// <summary>Uses caller-supplied TrueType font files as the generated document's default font family.</summary>
     public PdfDoc UseFontFamily(
         string familyName,

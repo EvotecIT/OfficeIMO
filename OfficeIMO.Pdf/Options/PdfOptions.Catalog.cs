@@ -137,15 +137,14 @@ public sealed partial class PdfOptions {
         byte[]? bold = null,
         byte[]? italic = null,
         byte[]? boldItalic = null) {
-        Guard.NotNullOrWhiteSpace(familyName, nameof(familyName));
-        Guard.NotNullOrEmpty(regular, nameof(regular));
+        return UseFontFamily(new PdfEmbeddedFontFamily(familyName, regular, bold, italic, boldItalic));
+    }
 
-        string normalizedFamilyName = familyName.Trim();
-        EmbedStandardFont(PdfStandardFont.Helvetica, regular, BuildFontFamilyFaceName(normalizedFamilyName, "Regular"));
-        EmbedStandardFont(PdfStandardFont.HelveticaBold, bold ?? regular, BuildFontFamilyFaceName(normalizedFamilyName, "Bold"));
-        EmbedStandardFont(PdfStandardFont.HelveticaOblique, italic ?? regular, BuildFontFamilyFaceName(normalizedFamilyName, "Italic"));
-        EmbedStandardFont(PdfStandardFont.HelveticaBoldOblique, boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(normalizedFamilyName, "BoldItalic"));
-        DefaultFont = PdfStandardFont.Helvetica;
+    /// <summary>
+    /// Uses a reusable caller-supplied TrueType font family as the generated document's default font family.
+    /// </summary>
+    public PdfOptions UseFontFamily(PdfEmbeddedFontFamily fontFamily) {
+        UseDefaultTextFontFamily(fontFamily);
         HeaderFont = PdfStandardFont.Helvetica;
         FooterFont = PdfStandardFont.Helvetica;
         return this;
@@ -160,13 +159,7 @@ public sealed partial class PdfOptions {
         string? boldPath = null,
         string? italicPath = null,
         string? boldItalicPath = null) {
-        Guard.NotNullOrWhiteSpace(regularPath, nameof(regularPath));
-        return UseFontFamily(
-            familyName,
-            System.IO.File.ReadAllBytes(regularPath),
-            string.IsNullOrWhiteSpace(boldPath) ? null : System.IO.File.ReadAllBytes(boldPath!),
-            string.IsNullOrWhiteSpace(italicPath) ? null : System.IO.File.ReadAllBytes(italicPath!),
-            string.IsNullOrWhiteSpace(boldItalicPath) ? null : System.IO.File.ReadAllBytes(boldItalicPath!));
+        return UseFontFamily(PdfEmbeddedFontFamily.FromFiles(familyName, regularPath, boldPath, italicPath, boldItalicPath));
     }
 
     /// <summary>Removes all embedded standard-font mappings.</summary>
@@ -174,6 +167,18 @@ public sealed partial class PdfOptions {
         _embeddedFonts?.Clear();
         _embeddedFontPrograms?.Clear();
         _embeddedFontProgramFailures?.Clear();
+        return this;
+    }
+
+    internal PdfOptions UseDefaultTextFontFamily(PdfEmbeddedFontFamily fontFamily) {
+        Guard.NotNull(fontFamily, nameof(fontFamily));
+        PdfEmbeddedFontFamily snapshot = fontFamily.Clone();
+
+        EmbedStandardFont(PdfStandardFont.Helvetica, snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Regular"));
+        EmbedStandardFont(PdfStandardFont.HelveticaBold, snapshot.BoldSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Bold"));
+        EmbedStandardFont(PdfStandardFont.HelveticaOblique, snapshot.ItalicSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Italic"));
+        EmbedStandardFont(PdfStandardFont.HelveticaBoldOblique, snapshot.BoldItalicSnapshot ?? snapshot.BoldSnapshot ?? snapshot.ItalicSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "BoldItalic"));
+        DefaultFont = PdfStandardFont.Helvetica;
         return this;
     }
 

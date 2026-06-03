@@ -177,6 +177,12 @@ public class PdfPageCompose {
 
     /// <summary>Applies reusable page-scoped default styles.</summary>
     public PdfPageCompose Theme(PdfTheme theme) { Guard.NotNull(theme, nameof(theme)); theme.Clone().ApplyTo(Options); return this; }
+    /// <summary>Uses a caller-supplied TrueType font family for this composed page or section.</summary>
+    public PdfPageCompose UseFontFamily(PdfEmbeddedFontFamily fontFamily) { Options.UseFontFamily(fontFamily); return this; }
+    /// <summary>Uses caller-supplied TrueType font files for this composed page or section.</summary>
+    public PdfPageCompose UseFontFamily(string familyName, byte[] regular, byte[]? bold = null, byte[]? italic = null, byte[]? boldItalic = null) { Options.UseFontFamily(familyName, regular, bold, italic, boldItalic); return this; }
+    /// <summary>Uses caller-supplied TrueType font files for this composed page or section.</summary>
+    public PdfPageCompose UseFontFamily(string familyName, string regularPath, string? boldPath = null, string? italicPath = null, string? boldItalicPath = null) { Options.UseFontFamily(familyName, regularPath, boldPath, italicPath, boldItalicPath); return this; }
     /// <summary>Configures default text style for the page.</summary>
     public PdfPageCompose DefaultTextStyle(System.Action<PdfTextStyleCompose> style) { Guard.NotNull(style, nameof(style)); var s = new PdfTextStyleCompose(Options); style(s); return this; }
     /// <summary>Configures default text style for the page from a reusable text style object.</summary>

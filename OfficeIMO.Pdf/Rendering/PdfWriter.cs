@@ -23,14 +23,19 @@ internal static partial class PdfWriter {
         var formFieldIds = new List<int>();
 
         // Collect fonts used across pages
-        var fontObjectIds = new Dictionary<PdfStandardFont, int>();
-        int EnsureFont(PdfStandardFont font) {
-            if (!fontObjectIds.TryGetValue(font, out int id)) {
-                if (opts.TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embeddedFont) && embeddedFont != null) {
+        var fontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfStandardFont, int>>();
+        int EnsureFont(PdfStandardFont font, PdfOptions fontOptions) {
+            if (!fontObjectIds.TryGetValue(fontOptions, out Dictionary<PdfStandardFont, int>? optionFontObjectIds)) {
+                optionFontObjectIds = new Dictionary<PdfStandardFont, int>();
+                fontObjectIds[fontOptions] = optionFontObjectIds;
+            }
+
+            if (!optionFontObjectIds.TryGetValue(font, out int id)) {
+                if (fontOptions.TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embeddedFont) && embeddedFont != null) {
                     PdfTrueTypeFontProgram fontProgram = PdfTrueTypeFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
                     byte[] fontData = embeddedFont.DataSnapshot;
                     string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
-                    int fontFileId = opts.CompressEmbeddedFonts
+                    int fontFileId = fontOptions.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)
                         : AddStreamObject(
                             objects,
@@ -40,13 +45,13 @@ internal static partial class PdfWriter {
                     int toUnicodeObjectId = AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap());
                     id = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildEmbeddedTrueTypeFontObject(fontProgram, descriptorId, toUnicodeObjectId));
                 } else {
-                    int toUnicodeObjectId = opts.IncludeStandardFontToUnicodeMaps
+                    int toUnicodeObjectId = fontOptions.IncludeStandardFontToUnicodeMaps
                         ? AddStreamObject(objects, PdfToUnicodeCMapBuilder.BuildWinAnsiToUnicodeCMap())
                         : 0;
                     id = AddObject(objects, PdfStandardFontDictionaryBuilder.BuildStandardType1FontObject(font, toUnicodeObjectId));
                 }
 
-                fontObjectIds[font] = id;
+                optionFontObjectIds[font] = id;
             }
             return id;
         }
@@ -77,7 +82,7 @@ internal static partial class PdfWriter {
                 }
 
                 pageFontResources[font] = alias;
-                EnsureFont(font);
+                EnsureFont(font, pageOpts);
                 return alias;
             }
 
@@ -134,7 +139,7 @@ internal static partial class PdfWriter {
 
             var fontResources = new List<(string Name, int Id)>();
             foreach (var kvp in pageFontResources.OrderBy(kvp => kvp.Value, StringComparer.Ordinal)) {
-                fontResources.Add((kvp.Value, EnsureFont(kvp.Key)));
+                fontResources.Add((kvp.Value, EnsureFont(kvp.Key, pageOpts)));
             }
 
             var graphicsStates = new List<(string Name, int Id)>();
@@ -255,7 +260,7 @@ internal static partial class PdfWriter {
                 }
             }
             if (page.FormFields.Count > 0) {
-                int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica);
+                int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica, pageOpts);
                 foreach (var field in page.FormFields) {
                     string formField;
                     double appearanceWidth = field.X2 - field.X1;
@@ -361,7 +366,7 @@ internal static partial class PdfWriter {
         int namedDestinationsId = BuildNamedDestinations(objects, layout.Pages, pageIds);
         int acroFormId = 0;
         if (formFieldIds.Count > 0) {
-            int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica);
+            int helveticaFontId = EnsureFont(PdfStandardFont.Helvetica, opts);
             acroFormId = AddObject(objects, PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(formFieldIds, helveticaFontId));
         }
 
