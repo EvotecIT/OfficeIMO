@@ -459,6 +459,25 @@ public sealed partial class PdfOptions {
         return true;
     }
 
+    internal bool TryGetEmbeddedStandardFontProgramForGeneration(PdfStandardFont font, out PdfEmbeddedFont? embeddedFont, out PdfTrueTypeFontProgram? fontProgram) {
+        Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        embeddedFont = null;
+        if (_embeddedFonts == null || !_embeddedFonts.TryGetValue(font, out embeddedFont)) {
+            fontProgram = null;
+            return false;
+        }
+
+        if (_embeddedFontPrograms != null && _embeddedFontPrograms.TryGetValue(font, out PdfTrueTypeFontProgram? cachedProgram)) {
+            fontProgram = cachedProgram;
+            return true;
+        }
+
+        fontProgram = PdfTrueTypeFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
+        (_embeddedFontPrograms ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfTrueTypeFontProgram>())[font] = fontProgram;
+        _embeddedFontProgramFailures?.Remove(font);
+        return true;
+    }
+
     private static PdfElectronicInvoiceMetadata CreateFacturXInvoiceMetadata(string conformanceLevel, string version) {
         return PdfElectronicInvoiceMetadata.FacturX(conformanceLevel, version);
     }

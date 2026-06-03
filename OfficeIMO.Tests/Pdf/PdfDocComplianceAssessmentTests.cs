@@ -86,6 +86,19 @@ public class PdfDocComplianceAssessmentTests {
     }
 
     [Fact]
+    public void InvalidEmbeddedMappingStillFailsGenerationAfterComplianceAssessment() {
+        PdfDoc document = CreatePdfA3GroundworkDocument()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, new byte[] { 1 }, "HelveticaAudit")
+            .Paragraph(paragraph => paragraph.Text("Invalid embedded font mapping."));
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfA3B);
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.ToBytes());
+
+        AssertRequirement(report, "embedded-font-coverage", PdfComplianceRequirementStatus.Missing);
+        Assert.Contains("TrueType font", exception.Message);
+    }
+
+    [Fact]
     public void AssessComplianceUsesDocumentMetadataForPdfUaTitleReadiness() {
         PdfDoc document = PdfDoc.Create(CreatePdfUaGroundworkOptions())
             .Meta(title: "Accessible title")

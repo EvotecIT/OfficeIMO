@@ -32,8 +32,9 @@ internal static partial class PdfWriter {
             }
 
             if (!optionFontObjectIds.TryGetValue(font, out int id)) {
-                if (fontOptions.TryGetEmbeddedStandardFont(font, out PdfEmbeddedFont? embeddedFont) && embeddedFont != null) {
-                    PdfTrueTypeFontProgram fontProgram = PdfTrueTypeFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
+                if (fontOptions.TryGetEmbeddedStandardFontProgramForGeneration(font, out PdfEmbeddedFont? embeddedFont, out PdfTrueTypeFontProgram? fontProgram) &&
+                    embeddedFont != null &&
+                    fontProgram != null) {
                     byte[] fontData = embeddedFont.DataSnapshot;
                     string fontFileExtraEntries = "/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
                     int fontFileId = fontOptions.CompressEmbeddedFonts
