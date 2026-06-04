@@ -21,16 +21,17 @@ namespace OfficeIMO.Visio {
         private void SaveInternalCore(string filePath) {
             bool includeTheme = Theme != null;
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
+            bool includeComments = pagesToSave.Any(page => page.Comments.Count > 0);
             PrepareTextFontFaceNames(pagesToSave);
             int pageCount = pagesToSave.Count;
             List<string> pagePartNames = new();
             int masterCount;
 
             using (Package package = Package.Open(filePath, FileMode.Create)) {
-                masterCount = WritePackage(package, includeTheme, pagesToSave, pageCount, pagePartNames);
+                masterCount = WritePackage(package, includeTheme, includeComments, pagesToSave, pageCount, pagePartNames);
             }
 
-            FixContentTypes(filePath, masterCount, includeTheme, pagePartNames);
+            FixContentTypes(filePath, masterCount, includeTheme, includeComments, pagePartNames);
         }
 
         /// <summary>
@@ -40,6 +41,7 @@ namespace OfficeIMO.Visio {
         private void SaveInternalCore(Stream destination) {
             bool includeTheme = Theme != null;
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
+            bool includeComments = pagesToSave.Any(page => page.Comments.Count > 0);
             PrepareTextFontFaceNames(pagesToSave);
             int pageCount = pagesToSave.Count;
             List<string> pagePartNames = new();
@@ -47,10 +49,10 @@ namespace OfficeIMO.Visio {
 
             using var packageStream = new MemoryStream();
             using (Package package = Package.Open(packageStream, FileMode.Create, FileAccess.ReadWrite)) {
-                masterCount = WritePackage(package, includeTheme, pagesToSave, pageCount, pagePartNames);
+                masterCount = WritePackage(package, includeTheme, includeComments, pagesToSave, pageCount, pagePartNames);
             }
 
-            FixContentTypes(packageStream, masterCount, includeTheme, pagePartNames);
+            FixContentTypes(packageStream, masterCount, includeTheme, includeComments, pagePartNames);
 
             if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);
@@ -67,6 +69,7 @@ namespace OfficeIMO.Visio {
         private int WritePackage(
             Package package,
             bool includeTheme,
+            bool includeComments,
             List<VisioPage> pagesToSave,
             int pageCount,
             List<string> pagePartNames) {
@@ -99,11 +102,19 @@ namespace OfficeIMO.Visio {
                 PackagePart windowsPart = package.CreatePart(windowsUri, WindowsContentType);
                 documentPart.CreateRelationship(new Uri("windows.xml", UriKind.Relative), TargetMode.Internal, WindowsRelationshipType, "rId2");
 
+                int nextDocumentRelationshipId = 3;
                 PackagePart? themePart = null;
                 if (includeTheme) {
                     Uri themeUri = new("/visio/theme/theme1.xml", UriKind.Relative);
                     themePart = package.CreatePart(themeUri, ThemeContentType);
-                    documentPart.CreateRelationship(new Uri("theme/theme1.xml", UriKind.Relative), TargetMode.Internal, ThemeRelationshipType, "rId3");
+                    documentPart.CreateRelationship(new Uri("theme/theme1.xml", UriKind.Relative), TargetMode.Internal, ThemeRelationshipType, $"rId{nextDocumentRelationshipId++}");
+                }
+
+                PackagePart? commentsPart = null;
+                if (includeComments) {
+                    Uri commentsUri = new("/visio/comments.xml", UriKind.Relative);
+                    commentsPart = package.CreatePart(commentsUri, CommentsContentType);
+                    documentPart.CreateRelationship(new Uri("comments.xml", UriKind.Relative), TargetMode.Internal, CommentsRelationshipType, $"rId{nextDocumentRelationshipId++}");
                 }
 
                 List<(VisioPage Page, PackagePart Part, PackageRelationship Relationship)> pageParts = new();
@@ -225,7 +236,7 @@ namespace OfficeIMO.Visio {
                 if (masters.Count > 0) {
                     Uri mastersUri = new("/visio/masters/masters.xml", UriKind.Relative);
                     mastersPart = package.CreatePart(mastersUri, "application/vnd.ms-visio.masters+xml");
-                    documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, MastersRelationshipType, "rId4");
+                    documentPart.CreateRelationship(new Uri("masters/masters.xml", UriKind.Relative), TargetMode.Internal, MastersRelationshipType, $"rId{nextDocumentRelationshipId++}");
 
                     for (int i = 0; i < masters.Count; i++) {
                         PackageMasterEntry entry = masters[i];
@@ -363,6 +374,10 @@ namespace OfficeIMO.Visio {
                         writer.WriteEndElement();
                         writer.WriteEndDocument();
                     }
+                }
+
+                if (commentsPart != null) {
+                    WriteCommentsPart(commentsPart, pagesToSave, effectivePageMasters);
                 }
 
                 using (XmlWriter writer = XmlWriter.Create(pagesPart.GetStream(FileMode.Create, FileAccess.Write), settings)) {

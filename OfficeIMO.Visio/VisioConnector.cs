@@ -52,6 +52,8 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public string Id { get; internal set; }
 
+        internal string? PersistedId { get; set; }
+
         /// <summary>
         /// Shape from which the connector starts.
         /// </summary>

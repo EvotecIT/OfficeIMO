@@ -295,7 +295,7 @@ namespace OfficeIMO.Visio {
         /// Gets whether this shape is marked as a background surface such as a region, zone, lane, or band.
         /// </summary>
         public bool IsBackgroundSurface =>
-            string.Equals(GetUserCellValue(VisioSemanticUserCells.Kind), VisioSemanticUserCells.BackgroundSurfaceKind, StringComparison.OrdinalIgnoreCase);
+            IsBackgroundSurfaceKind(GetUserCellValue(VisioSemanticUserCells.Kind));
 
         /// <summary>
         /// Gets whether this shape is marked as a generated diagram adornment such as a title, legend item, or zone caption.
@@ -712,6 +712,13 @@ namespace OfficeIMO.Visio {
             double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
             double top = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
             return (left, bottom, right, top);
+        }
+
+        private static bool IsBackgroundSurfaceKind(string? kind) {
+            return string.Equals(kind, VisioSemanticUserCells.BackgroundSurfaceKind, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(kind, VisioSemanticUserCells.SwimlaneLaneHeaderKind, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(kind, VisioSemanticUserCells.SwimlaneLaneKind, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(kind, VisioSemanticUserCells.SwimlanePhaseKind, StringComparison.OrdinalIgnoreCase);
         }
 
         private sealed class ChildShapeCollection : IList<VisioShape> {

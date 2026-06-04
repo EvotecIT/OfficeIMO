@@ -1,13 +1,19 @@
 # OfficeIMO.Visio Assessment
 
-Date: 2026-05-28
-Branch/worktree: `codex/visio-external-stencil-packs` at `C:\Support\GitHub\OfficeIMO-visio-external-stencil-packs`
+Date: 2026-06-04
+Branch/worktree: `codex/visio-premium-next-20260604` at `C:\Support\GitHub\OfficeIMO-visio-premium-next-20260604`
 
 ## Current Status Update
 
-The Visio work has moved from assessment into a real product slice. PR #1865 is green and merge-ready at the time of this update: CodeQL, cross-platform builds, Windows, Ubuntu, macOS, AOT/trim analyzers, dependency submission, Codecov project, and Codecov patch checks all passed, and all review threads are resolved.
+The Visio work has moved well beyond the first external-stencil slice. The current `origin/master` baseline includes merged graph/stencil work, native SVG/PNG preview export, premium gallery baselines, inspection snapshots, stencil profiles, data graphics, and broader diagram builders. Focused validation on this worktree passed:
 
-The branch adds the first serious external-stencil and graph layer:
+```powershell
+dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~Visio"
+```
+
+Result: `731/731` Visio-filtered tests passed.
+
+The current product slice includes:
 
 - Package-backed stencil catalogs for installed Visio and external `.vssx` / `.vstx` / `.vsdx` sources.
 - External multi-file stencil-pack discovery and examples, including repository-style packs such as Microsoft Integration/Azure stencil collections.
@@ -15,6 +21,19 @@ The branch adds the first serious external-stencil and graph layer:
 - Catalog selection helpers such as `FindBest`, `TryFindBest`, and graph builder overloads that let callers choose stencil nodes by catalog query instead of manually plucking masters.
 - Robust gallery and showcase handling for duplicate generated IDs, connector ID reservation, metric-page sizing, optional pack probing, and stencil caption page fitting.
 - Better visual behavior for package-backed stencil nodes: imported master artwork stays clean and captions are rendered as separate Visio text boxes when needed.
+- Dependency-free native SVG and PNG preview export for OfficeIMO-authored diagrams, backed by premium visual baselines and structural/stencil profile snapshots.
+- Shape Data data graphics that render badge/bar adornments as real local geometry, now with data-bar range validation to prevent invalid generated output.
+- Typed fluent page targeting and selection editing for loaded diagrams, so create-or-edit workflows can use `ExistingPage(...)`, `PageOrAdd(...)`, and bulk shape/connector selection helpers instead of dropping to lower-level loops.
+- Advanced fluent loaded-diagram selections for contained/intersecting geometry, connected components, shortest paths, User cells, hyperlinks, protection, connector layers, connector hyperlinks, and connector neighborhoods.
+- Fluent replace-master and stencil-standardization helpers for loaded pages, backed by the existing page/selection replacement engine.
+- Typed stencil migration maps for loaded documents, pages, and page-backed selections, so callers can standardize whole shape families by current stencil id, master name, shape `NameU`, or typed predicate in one first-match-wins pass.
+- Catalog-query migration helpers and a basic-flowchart migration preset, so loaded basic/generated flowchart shapes can be upgraded to first-party or package-backed semantic stencils with less boilerplate.
+- Non-mutating migration planning through `PlanStencilMigration(...)`, with stable `ToText()` reports plus `SaveText(...)`, `LoadText(...)`, and `FromText(...)` plan artifacts for reviewing loaded-diagram standardization before applying changes across process boundaries.
+- Reviewed migration plans can be applied through `ApplyStencilMigration(plan, map)`, which validates page identity, shape identity, original text/master/stencil metadata, the matching rule, and replacement stencil before it mutates the loaded diagram.
+- Network/infrastructure, architecture, org-chart, timeline, sequence, swimlane/process-map, cloud infrastructure, security/identity, Kubernetes/container, data/platform, and collaboration/business-process migration presets that use conservative label/name cues to upgrade common unstenciled legacy diagrams to semantic catalog stencils while skipping shapes already carrying OfficeIMO stencil metadata.
+- Typed native container metadata/style editing for load-edit-save workflows, including `VisioContainerInfo`, option snapshots from loaded containers, native User-cell updates for margin/resize/lock/no-highlight/no-ribbon/style ids, reusable `VisioShapeStyle` application, fluent ID-based configuration, and metric-page refit that converts stored inch-based margins back to page units before resizing.
+- Typed swimlane maintenance for load-edit-save workflows: generated swimlane diagrams now persist lane/phase/activity placement User cells, loaded pages can discover swimlane lanes/phases/activities, move activities between lane/phase cells, restack cells, and reroute affected connectors through page extensions or fluent loaded-page verbs.
+- Fluent loaded-page relayout helpers now expose deterministic shape-id, connected-component, and Visio-native container-member relayout workflows over the typed selection engine, and the selection engine rejects non-finite spacing before it can generate invalid coordinates.
 
 That changes the roadmap. The next bottleneck is no longer "can we load external stencils?" It is now "can we make generated diagrams look consistently premium and make real stencil packs easy to use at scale?"
 
@@ -35,8 +54,8 @@ The strongest path is not to replace the existing model. Keep the current VSDX p
 - `OfficeIMO.Visio` targets `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
 - It references `OfficeIMO.Drawing`.
 - It references `System.IO.Packaging` and `Microsoft.Bcl.AsyncInterfaces` for `net472`.
-- The package metadata declares MIT, but `OfficeIMO.Visio/LICENSE.MD` says no license is granted. This must be resolved before positioning Visio as a real public library.
-- README still describes the package as early/minimal, which undersells what is already implemented.
+- The package metadata declares MIT and `OfficeIMO.Visio/LICENSE.MD` now matches the repository MIT license story.
+- README now describes the broader Visio surface instead of calling the package early/minimal, but website and product docs still need an API-accuracy pass before public positioning.
 
 ### Authoring API
 
@@ -55,16 +74,16 @@ Implemented today:
 - One-call page/document polish helpers that can resize connector labels, resolve connector label collisions, optionally resize shapes to text, and fit pages to content.
 - Groups and nested shapes, reparenting, ungrouping, child hierarchy preservation.
 - Masters: built-in generated masters, document registry, `.vsdx`-based structural learning for supported names, master-backed page instances.
-- Fluent API for document/page/shape/connector basics.
+- Fluent API for document/page/shape/connector basics, including loaded-page targeting, typed selection edits, duplicate-shape workflows with semantic copy IDs, topology-aware updates, connector-neighborhood updates, replace-master workflows, reusable stencil migration maps, catalog-query migration rules, domain migration presets, and non-mutating migration reports.
 - Reusable authoring style themes: `VisioShapeStyle`, `VisioConnectorStyle`, text-aware styles, and `VisioStyleTheme` with Modern, Office, Fluent, Technical, Minimal, Dark, and Print presets. Flowchart/block/architecture builders and selection/fluent APIs can consume the same style theme.
 
 Current weakness:
 
-- The fluent API is friendly but still coordinate-driven for shape placement.
+- The fluent API is friendly and can now target loaded pages, bulk-edit typed selections, edit by geometry/path/component/connectors, standardize masters, run typed stencil migration maps, use catalog-query/domain preset migration helpers, plan/report/persist migrations, and replay approved migration plans with drift validation, but it is still coordinate-driven for new shape placement.
 - Styling still exposes some Visio-index details for line/fill patterns, but reusable style objects and presets now give high-level code a safer default path.
 - There is now a first-pass diagram DSL for flowcharts, block diagrams, dependency diagrams, architecture diagrams, network diagrams, swimlane process maps, org charts, and date-scaled timelines. The remaining gap is breadth and depth: richer branch layout, joins, advanced lane assignment, richer org chart variants, rack/server diagrams, BPMN-ish process detail, and automatic obstacle-aware routing.
 - There is now first-pass deterministic connector routing, label placement, label cleanup, visual quality analysis, and a CI-friendly `EnsureVisualQuality(...)` quality gate for explicit/manual routes, but no full diagram-level routing engine with global obstacle avoidance, line crossing minimization, or multi-pass label optimization.
-- There are no style presets that produce diagrams as visually attractive as the examples in the request.
+- Premium enterprise, technical, cloud, process, print-safe, and dark-safe presets exist and are used in the gallery. The remaining issue is art direction and breadth: more scenarios need to reach the same reviewed bar before the package can claim market-leading output quality.
 
 ### Editing And Round-Trip Fidelity
 
@@ -76,16 +95,16 @@ Implemented today:
 
 Current weakness:
 
-- Initial query/selection/layout helpers now cover recursive shapes, id/name/master/data/text/layer/hyperlink/User-cell/typed-Shape-Data lookups, page layers, first-pass native containers, semantic callouts/annotations, connector neighbors, bounds, fit-to-content, center content, align/distribute, resize-to-text, connector routing/labels, and bulk style/data/layer/hyperlink/User-cell/Shape-Data/geometry edits. The remaining gap is advanced diagram-level editing: richer containers, intersections, replace master, duplicate selection/page, advanced resize-to-content, and relayout selection.
-- Advanced Visio concepts are only partly first-class: page layers, reusable background pages, page print/setup/lock settings, page-level placement/routing/line-jump direction/layout-grid/spacing settings, shape/connector-level placement/routing/route-appearance/line-jump/reroute/permeability/splitting overrides, shape/connector hyperlinks, generic User cells, typed Shape Data rows, first-pass native containers, semantic callouts/annotations, and shape/connector protection now round-trip as typed objects, but comments, data graphics, legends, formulas beyond targeted cells, and many ShapeSheet sections beyond preservation still need typed APIs.
+- Initial query/selection/layout helpers now cover recursive shapes, id/name/master/data/text/layer/hyperlink/User-cell/typed-Shape-Data lookups, page layers, first-pass native containers, typed container metadata/style updates, native comments, semantic callouts/annotations, connector neighbors, bounds, fit-to-content, center content, align/distribute, resize-to-text, connector routing/labels, same-page selection duplication with semantic copy IDs, swimlane lane/phase/activity discovery and activity move/restack workflows, deterministic shape/container-member relayout, and bulk style/data/layer/hyperlink/User-cell/Shape-Data/geometry edits. The fluent layer now exposes loaded-page targeting, common typed shape/connector selection edits, id-based geometry/path/component selectors, connector-neighborhood edits, duplicate shape/selection workflows, native container add/remove/refit/relayout/configure/style workflows, native page/shape comment add/update/resolve/reopen/remove workflows, swimlane move/relayout workflows, replace-master workflows, reusable stencil migration maps, catalog-query migration helpers, basic-flowchart/network-infrastructure/architecture/org-chart/timeline/sequence/swimlane/cloud/security/Kubernetes/data/collaboration migration presets, dry-run migration reports, persisted migration-plan artifacts, and validated approved-plan application for load-edit-save workflows. The remaining gap is advanced diagram-level editing: deeper swimlane metadata/auto-assignment, richer comment threading/author workflows, richer nested/container behavior, advanced resize-to-content, and broader diagram-level relayout/polish workflows.
+- Advanced Visio concepts are only partly first-class: page layers, reusable background pages, page print/setup/lock settings, page-level placement/routing/line-jump direction/layout-grid/spacing settings, shape/connector-level placement/routing/route-appearance/line-jump/reroute/permeability/splitting overrides, shape/connector hyperlinks, generic User cells, typed Shape Data rows, first-pass native containers, native comments, semantic callouts/annotations, and shape/connector protection now round-trip as typed objects, but data graphics, legends, formulas beyond targeted cells, and many ShapeSheet sections beyond preservation still need typed APIs.
 - Load fidelity is strong for preservation but not yet a complete typed object model.
 
 ### Validation And Tests
 
 Evidence gathered in this assessment:
 
-- Visio-related test declarations: 179 facts/theories by file scan.
-- Latest focused Visio test run passed `248/248`:
+- Visio-related test declarations: 712 facts/theories by file scan.
+- Latest focused Visio test run passed `731/731`:
 
 ```powershell
 dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~Visio"
@@ -258,9 +277,11 @@ Needed:
   - resize to text (initial deterministic text measurement support added)
   - deterministic connector route cleanup (initial explicit waypoint/orthogonal routing and label placement support added)
   - relayout selection (initial deterministic grid/horizontal/vertical selection relayout with internal connector rerouting added)
-  - duplicate page/selection (initial full-page duplication, optional copied background-page dependency, and same-page selection duplication with internal connector remapping added)
+  - duplicate page/selection (initial full-page duplication, optional copied background-page dependency, same-page selection duplication with internal connector remapping, typed duplication options, and fluent semantic copy IDs added)
   - semantic callouts/annotations with leader connectors (initial support added)
-- First-class layers, hyperlinks, User cells, typed Shape Data, first-pass containers, and semantic callouts/annotations are now started; continue with richer containers, swimlanes, comments, and data graphics.
+  - native container membership editing (initial add/remove/refit APIs and fluent ID-based loaded-page workflows added)
+  - native comments (typed page/shape comments with `/visio/comments.xml` save/load plus update/resolve/reopen/remove and fluent loaded-page workflows added)
+- First-class layers, hyperlinks, User cells, typed Shape Data, first-pass containers, native comments, and semantic callouts/annotations are now started; continue with richer container metadata/styles, swimlanes, richer comment threading/author workflows, and data graphics.
 - Typed shape data with labels, prompts, types, and formats is now started; continue with richer formulas, data linking, and schema-level helpers.
 - Safe unsupported-content policy: preserve by default, expose raw XML escape hatches when needed.
 
@@ -320,7 +341,7 @@ The key is that the builder owns layout, continuation markers, connectors, text 
 
 ### P0: Make The Foundation Product-Ready
 
-- Resolve Visio license conflict.
+- Keep the Visio license story clean: package metadata and local license text now match MIT, and future changes should not reintroduce conflicting local license wording.
 - Decide strict dependency-free policy:
   - practical: keep `System.IO.Packaging`;
   - strict: replace with internal OPC writer/reader over `ZipArchive`.
@@ -349,7 +370,7 @@ The key is that the builder owns layout, continuation markers, connectors, text 
 ### P3: Editing And Import Parity
 
 - Add query/selection APIs.
-- Continue layer/hyperlink/container depth and add swimlane/callout/comment support.
+- Continue layer/hyperlink/container/comment depth and add richer swimlane/callout support.
 - Continue typed shape-data depth with schema-level helpers, formulas, and data-linking metadata.
 - Add replace-master and relayout-selection operations.
 - Expand round-trip tests using Visio-authored files.

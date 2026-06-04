@@ -64,6 +64,7 @@ namespace OfficeIMO.Visio {
         private readonly List<VisioShape> _shapes = new();
         private readonly List<VisioConnector> _connectors = new();
         private readonly List<VisioLayer> _layers = new();
+        private readonly List<VisioComment> _comments = new();
         private readonly IList<VisioShape> _shapeCollection;
         private readonly IList<VisioConnector> _connectorCollection;
         private double _width = 8.26771653543307; // A4 width in inches
@@ -544,6 +545,11 @@ namespace OfficeIMO.Visio {
         /// Layers defined on this page.
         /// </summary>
         public IList<VisioLayer> Layers => _layers;
+
+        /// <summary>
+        /// Native Visio comments attached to this page.
+        /// </summary>
+        public IList<VisioComment> Comments => _comments;
 
     }
 }

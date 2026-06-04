@@ -35,6 +35,219 @@ vsd.AsFluent()
 vsd.Save();
 ```
 
+## Quick sample (editing an existing diagram)
+
+```csharp
+using System;
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Fluent;
+using OfficeIMO.Visio.Stencils;
+using Color = OfficeIMO.Drawing.OfficeColor;
+
+VisioDocument.Load("operations.vsdx")
+    .AsFluent()
+    .ExistingPage("Operations", page => page
+        .ShapesWithData("Owner", "Ops", selection => selection
+            .Fill(Color.LightBlue)
+            .ShapeData("Reviewed", "Yes", "Reviewed", VisioShapeDataType.Boolean))
+        .ShapesContainingText("Legacy", selection => selection
+            .Text(shape => shape.Text!.Replace("Legacy", "Production", StringComparison.Ordinal)))
+        .Rect("monitoring", 7, 4, 1.4, 0.8, "Monitoring")
+        .Connect("api", "monitoring", VisioSide.Right, VisioSide.Left, connector => connector
+            .RightAngle()
+            .ArrowEnd(EndArrow.Triangle)
+            .Label("metrics"))
+        .Connectors(selection => selection.LineColor(Color.DarkBlue)))
+    .End()
+    .Save("operations.updated.vsdx");
+```
+
+For create-or-edit workflows, use `PageOrAdd(...)` to configure an existing
+page when it is present or create it with the same fluent page API when it is
+missing. The fluent selection helpers reuse the typed selection model, so bulk
+style, Shape Data, layer, hyperlink, and geometry edits stay AOT-friendly and
+do not require dynamic dispatch or reflection.
+
+Loaded-page fluent editing also supports higher-level diagram queries by shape
+id: contained/intersecting geometry, connected components, shortest paths, and
+incoming/outgoing/attached connector selections. That keeps common
+load-edit-save workflows readable even when the update is based on topology or
+layout rather than a single known shape id.
+
+Native container membership can be maintained the same way. OfficeIMO updates
+the typed member/owner graph and writes fresh Visio `DEPENDSON(...)`
+relationships on save, so loaded containers can be refit without hand-editing
+ShapeSheet formulas:
+
+```csharp
+VisioDocument.Load("workflow.vsdx")
+    .AsFluent()
+    .ExistingPage("Workflow", page => page
+        .Rect("cache", 6, 4, 1.3, 0.7, "Cache")
+        .AddToContainer("runtime-tier", new[] { "cache" }, options => {
+            options.Margin = 0.35;
+            options.HeadingHeight = 0.3;
+        })
+        .RemoveFromContainer("runtime-tier", new[] { "legacy-db" })
+        .RelayoutContainerMembers("runtime-tier", layout => {
+            layout.Columns = 1;
+            layout.VerticalSpacing = 0.25;
+        })
+        .ConfigureContainer("runtime-tier", options => {
+            options.Margin = 0.4;
+            options.HeadingHeight = 0.3;
+            options.NoRibbon = true;
+            options.ShapeStyle = VisioStyleTheme.Technical().Container;
+        }, refit: true)
+        .RefitContainer("runtime-tier"))
+    .End()
+    .Save("workflow.updated.vsdx");
+```
+
+`ContainerInfo(...)` returns a typed snapshot of native container membership,
+margin, heading height, auto-resize/lock flags, Visio style identifiers, and
+current visual style. `ConfigureContainer(...)`, `ApplyContainerOptions(...)`,
+and `StyleContainer(...)` update loaded containers by id and write the native
+container User cells back into the VSDX package. OfficeIMO stores heading height
+as an OfficeIMO User cell alongside Visio's native margin cell, so metric-page
+containers can be refit after load without shrinking margins through unit
+conversion drift.
+
+Native Visio comments are also available as typed page state. OfficeIMO writes
+the real `/visio/comments.xml` part, so comments survive normal Visio editing
+instead of being modeled as decorative shapes:
+
+```csharp
+VisioDocument.Load("workflow.vsdx")
+    .AsFluent()
+    .ExistingPage("Workflow", page => page
+        .CommentShape("review", "Confirm approval owner", "Operations", "OP")
+        .UpdateComment(1, "Approval owner confirmed", DateTimeOffset.UtcNow)
+        .ResolveComment(1, DateTimeOffset.UtcNow)
+        .Comment("Reviewed before release", "Operations", "OP"))
+    .End()
+    .Save("workflow.commented.vsdx");
+```
+
+Existing shapes can be standardized to generated or package-backed stencils
+from the same fluent loaded-page chain. Replacement preserves placement, text,
+style, layers, Shape Data, User cells, hyperlinks, and connector endpoints:
+
+```csharp
+VisioDocument.Load("workflow.vsdx")
+    .AsFluent()
+    .ExistingPage("Workflow", page => page
+        .ReplaceMaster("review", VisioStencils.Flowchart.Get("decision"), resizeToMaster: true)
+        .ReplaceMastersByMaster("Process", VisioStencils.Flowchart.Get("preparation"), resizeToMaster: true))
+    .End()
+    .Save("workflow.standardized.vsdx");
+```
+
+For larger cleanup passes, a typed migration map lets you standardize whole
+families of loaded shapes by current stencil id, master name, shape `NameU`, or
+a strongly typed predicate. Rules are evaluated in order, so specific exceptions
+can sit above broader migrations. Replacement stencils can be supplied directly
+or resolved from a first-party or package-backed catalog by query:
+
+```csharp
+VisioStencilMigrationMap migration = VisioStencilMigrationMap.Create(map => map
+    .MapStencilId("flow.process", VisioStencils.Infrastructure, new[] { "host", "server" }, resizeToStencil: true)
+    .MapMaster("Data", VisioStencils.DataPlatform, "relational", resizeToStencil: true)
+    .MapNameU("LegacyServer", VisioStencils.Network, "server", resizeToStencil: true));
+
+VisioDocument.Load("legacy-workflow.vsdx")
+    .AsFluent()
+    .ExistingPage("Workflow", page => page.ApplyStencilMigration(migration))
+    .End()
+    .Save("workflow.migrated.vsdx");
+```
+
+When you need an approval step before changing a large diagram, plan the same
+map first. Planning is non-mutating and produces a stable text report for PRs,
+CI logs, or operator review. Save the report as an artifact when approval
+happens in another process, then load the approved plan and apply it with the
+map when you want OfficeIMO to verify that pages, shapes, match rules, and
+replacement stencils still match the report before mutating the loaded diagram:
+
+```csharp
+VisioDocument legacy = VisioDocument.Load("legacy-workflow.vsdx");
+VisioStencilMigrationPlan plan = legacy.PlanStencilMigration(migration);
+Console.WriteLine(plan.ToText());
+plan.SaveText("legacy-workflow.migration-plan.txt");
+
+if (plan.HasChanges) {
+    VisioStencilMigrationPlan approved =
+        VisioStencilMigrationPlan.LoadText("legacy-workflow.migration-plan.txt");
+    legacy.ApplyStencilMigration(approved, migration);
+    legacy.Save("legacy-workflow.migrated.vsdx");
+}
+```
+
+For common cleanup of unstenciled/basic flowchart-like diagrams, use the
+conservative preset. It upgrades shapes such as Rectangle, Diamond,
+Parallelogram, Hexagon, and Ellipse to semantically matching catalog stencils,
+while leaving shapes that already carry OfficeIMO stencil metadata alone:
+
+```csharp
+VisioDocument legacyFlow = VisioDocument.Load("legacy-flow.vsdx");
+VisioStencilMigrationResult result = legacyFlow.ApplyStencilMigration(
+    VisioStencilMigrationPresets.BasicFlowchart(VisioStencils.Flowchart));
+legacyFlow.Save("legacy-flow.stenciled.vsdx");
+Console.WriteLine($"Migrated {result.Count} shapes.");
+```
+
+The same preset model covers labeled network/infrastructure, architecture,
+swimlane/process-map, cloud infrastructure, security/identity,
+Kubernetes/container, data/platform, collaboration/business-process, org-chart,
+timeline, and sequence cleanup. These presets read common shape text/name cues
+such as server, database, firewall, switch, gateway, queue, region, storage,
+lane, phase, serverless function, identity provider, conditional access,
+container image, data lake, event stream, approval, business application,
+executive, milestone, release, participant, activation, and fragment, resolve
+the best matching stencil in the chosen catalog, and still skip shapes already
+tagged with OfficeIMO stencil metadata:
+
+```csharp
+VisioDocument network = VisioDocument.Load("legacy-network.vsdx");
+VisioStencilMigrationPlan networkPlan = network.PlanStencilMigration(
+    VisioStencilMigrationPresets.NetworkInfrastructure(VisioStencils.Network));
+Console.WriteLine(networkPlan.ToText());
+
+network.ApplyStencilMigration(
+    networkPlan,
+    VisioStencilMigrationPresets.NetworkInfrastructure(VisioStencils.Network));
+network.Save("legacy-network.stenciled.vsdx");
+
+VisioDocument architecture = VisioDocument.Load("legacy-architecture.vsdx");
+architecture.ApplyStencilMigration(
+    VisioStencilMigrationPresets.ArchitectureInfrastructure(VisioStencils.Architecture));
+architecture.Save("legacy-architecture.stenciled.vsdx");
+
+VisioDocument roadmap = VisioDocument.Load("legacy-roadmap.vsdx");
+roadmap.ApplyStencilMigration(
+    VisioStencilMigrationPresets.Timeline(VisioStencils.Timeline));
+roadmap.Save("legacy-roadmap.stenciled.vsdx");
+
+VisioDocument cloud = VisioDocument.Load("legacy-cloud.vsdx");
+cloud.ApplyStencilMigration(
+    VisioStencilMigrationPresets.CloudInfrastructure(VisioStencils.Cloud));
+cloud.Save("legacy-cloud.stenciled.vsdx");
+
+VisioDocument security = VisioDocument.Load("legacy-security.vsdx");
+security.ApplyStencilMigration(
+    VisioStencilMigrationPresets.SecurityIdentity(VisioStencils.SecurityIdentity));
+security.Save("legacy-security.stenciled.vsdx");
+
+VisioDocument platform = VisioDocument.Load("legacy-platform.vsdx");
+platform.ApplyStencilMigration(
+    VisioStencilMigrationPresets.ContainersKubernetes(VisioStencils.ContainersKubernetes));
+platform.ApplyStencilMigration(
+    VisioStencilMigrationPresets.DataPlatform(VisioStencils.DataPlatform));
+platform.ApplyStencilMigration(
+    VisioStencilMigrationPresets.CollaborationBusiness(VisioStencils.CollaborationBusiness));
+platform.Save("legacy-platform.stenciled.vsdx");
+```
+
 ## Quick sample (diagram builder)
 
 ```csharp
@@ -412,6 +625,24 @@ activities, labeled flows, dashed exception paths, deterministic routing, and
 automatic stacking when more than one activity lands in the same lane/phase
 cell. It supports coordinate or side-placed semantic callouts for risk and
 exception notes, and does not require Visio templates at runtime.
+
+Loaded swimlane diagrams can be maintained with typed lane/phase/activity
+discovery and fluent moves:
+
+```csharp
+using OfficeIMO.Visio;
+using OfficeIMO.Visio.Fluent;
+
+VisioDocument.Load("swimlane.vsdx")
+    .AsFluent()
+    .ExistingPage("Order Fulfillment", page => page
+        .MoveSwimlaneActivity("pick", "sales", "review", options => {
+            options.ActivityGap = 0.18;
+            options.AvoidShapes = false;
+        }))
+    .End()
+    .Save("swimlane-updated.vsdx");
+```
 
 ## Quick sample (org chart builder)
 
@@ -982,7 +1213,12 @@ review.Data["Owner"] = "Ops";
 page.SelectWithData("Owner", "Ops")
     .Fill(Color.LightBlue)
     .Stroke(Color.DodgerBlue, 0.02)
-    .Duplicate(1.5, -0.75);
+    .Duplicate(new VisioShapeDuplicationOptions {
+        OffsetX = 1.5,
+        OffsetY = -0.75,
+        IdSuffix = "-copy",
+        ConnectorIdSuffix = "-copy"
+    });
 
 page.SelectOutgoingConnectors(review)
     .LineColor(Color.DodgerBlue)
@@ -1003,7 +1239,23 @@ doc.Save();
 Selection duplication remaps copied shape identifiers and duplicates only the
 connectors whose endpoints are both inside the copied selection. Shape styling,
 layers, hyperlinks, User cells, typed Shape Data, protection, layout hints, and
-connector routing metadata move with the copy.
+connector routing metadata move with the copy. `VisioShapeDuplicationOptions`
+lets callers control offsets, connector copying, semantic ID suffixes, and
+advanced shape/connector ID factories without adding serializer or reflection
+dependencies.
+
+Fluent page editing exposes the same copy workflow with friendly default
+`-copy` identifiers, so duplicated shapes remain addressable in the same chain:
+
+```csharp
+document.AsFluent()
+    .ExistingPage("Operations", page => page
+        .DuplicateShapes(new[] { "api", "database" }, copies => copies
+            .ShapeData("Copied", "Yes"))
+        .Shape("api-copy", shape => shape.Text("API copy"))
+        .Connect("api-copy", "database-copy", VisioSide.Right, VisioSide.Left,
+            connector => connector.Label("copied route")));
+```
 
 The same query surface supports editing loaded diagrams by geometry and graph
 structure: `ShapesIntersecting(...)`, `ShapesContainedIn(...)`,
@@ -1411,6 +1663,18 @@ page.SelectWithData("Owner", "Ops")
 page.SelectByMaster("Decision")
     .Align(VisioHorizontalAlignment.Center);
 
+doc.AsFluent()
+    .ExistingPage("Workflow", p => p
+        .RelayoutShapesAsGrid(new[] { "review", "approve", "archive" }, layout => {
+            layout.Columns = 3;
+            layout.HorizontalSpacing = 0.4;
+            layout.RouteInternalConnectors = true;
+        })
+        .RelayoutContainerMembers("runtime-tier", layout => {
+            layout.Columns = 1;
+            layout.VerticalSpacing = 0.25;
+        }));
+
 page.SelectConnectedConnectors(page.FindShapeById("approved")!)
     .ApplyTextStyle(new VisioTextStyle { FontFamily = "Calibri", Size = 9 })
     .ResizeLabelsToText(maximumWidth: 1.6);
@@ -1437,6 +1701,11 @@ doc.Save();
 `RelayoutAsGrid`, `RelayoutAsHorizontalStack`, and `RelayoutAsVerticalStack`
 are deterministic and can reroute connectors whose endpoints are both inside a
 page-backed selection.
+The fluent page wrapper exposes the same engine for loaded diagrams through
+`RelayoutShapesAsGrid`, `RelayoutShapesAsHorizontalStack`,
+`RelayoutShapesAsVerticalStack`, `RelayoutConnectedComponentAsGrid`, and
+`RelayoutContainerMembers`, so common edit workflows can stay ID-based while
+still using typed selections under the hood.
 `PolishDiagram` can also move crowded top-level shapes apart before it resolves
 connector routes, connector labels, and page fitting, which is useful when a
 generated diagram has reasonable structure but still needs a final visual cleanup
@@ -1483,17 +1752,18 @@ if (result.IsAvailable && !result.IsValid) {
 
 See `OfficeIMO.Examples/Visio/*` for more.
 
-## Feature Scope (early)
+## Feature Scope
 
 - 📄 Pages: ✅ add/remove pages
-- 🧱 Shapes: ✅ basic shapes from masters (rectangle, etc.), ✅ set text
-- 🔗 Connectors: ✅ basic connectors between shapes
+- 🧱 Shapes: ✅ built-in and semantic shapes, master-backed stencil placements, groups, text, Shape Data, User cells, hyperlinks, protection, and local geometry preservation
+- 🔗 Connectors: ✅ dynamic, straight, right-angle, curved, side glue, explicit waypoints, arrows, labels, routing metadata, label placement, and page-level cleanup helpers
 - 🧭 Diagram builders: ✅ flowchart builder with vertical and two-column continuation layouts plus branch routing, ✅ generic graph builder with cycles, disconnected components, layered/grid/radial layouts, zones, package-backed stencil nodes, data-driven inventory/identity/Kubernetes/application dependency gallery graphs, and generated legends, ✅ block diagram builder with grid regions and data/control flows, ✅ architecture builder with infrastructure components, regions, and routed data/control/dependency flows, ✅ network builder with zones, devices, links, legends, record imports, Shape Data, and hyperlinks, ✅ sequence builder with participants, lifelines, message types, self-calls, activations, guarded/nested fragments, notes, and data-driven incident/runbook record imports, ✅ swimlane builder with lanes, phases, activities, handoffs, and exception paths, ✅ org chart builder with hierarchy, assistants, team bands, vacancies, and external roles, ✅ timeline builder with date-scaled milestones and span lanes
 - 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, infrastructure, cloud, security/identity, containers/Kubernetes, data/platform, collaboration/business process, sequence, swimlane, org-chart, and timeline shapes; ✅ external package catalogs with learned dimensions, preview metadata, source package provenance, and native connection points
 - 🎨 Style themes: ✅ reusable shape/connector/text styles and Modern/Office/Fluent/Technical/Minimal/Dark/Print authoring presets
-- 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content
+- 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, typed stencil migration maps, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content
+- 🖼️ Export/proof: ✅ dependency-free native SVG and PNG preview exports for OfficeIMO-authored pages; ✅ premium gallery baselines with PNG/SVG, inspection, and stencil-profile proof
 - 🧩 VSDX learning fixtures: ✅ inspect supported masters without treating sample files as runtime templates
-- 🧪 Validation: ✅ package/in-memory validators, ✅ optional Microsoft Visio desktop open, save-copy, and SVG/PNG/PDF export checks via late-bound COM
+- 🧪 Validation: ✅ package/in-memory validators, visual quality analyzer, premium baseline lane, and optional Microsoft Visio desktop open, save-copy, and SVG/PNG/PDF export checks via late-bound COM
 
 ## Authoring units
 
@@ -1518,18 +1788,19 @@ page.AddRectangle(1.5, 1.0, 2.0, 1.0, "Rect", VisioMeasurementUnit.Inches);
 You no longer need to add side connection points manually. The connector API
 ensures side glue automatically when you specify `VisioSide.Left/Right/Top/Bottom`.
 The old ensure method has been internalized.
-- 🎨 Themes: ⚠️ minimal/default theme usage
-
-This package is intentionally minimal at this stage and will expand over time.
 
 ## At a glance
 
 - Create/Load/Save .vsdx (OPC packaging)
-- Add simple pages, shapes, and connectors
+- Build simple diagrams or data-driven premium diagrams without requiring Visio
 - Fluent builder: `Page(...)`, `Rect(...)`, `Square(...)`, `Ellipse(...)`, `Circle(...)`, `Diamond(...)`, `Triangle(...)`, `Connect(...)`
+- Semantic builders for flowcharts, block diagrams, architecture, networks, topology, swimlanes, org charts, timelines, sequences, dependencies, and graphs
+- Built-in and package-backed stencil catalogs with searchable metadata and typed migration maps for loaded diagrams
+- Native SVG/PNG previews plus optional Microsoft Visio desktop validation/export proof
 
-## Why OfficeIMO.Visio (early)
+## Why OfficeIMO.Visio
 
-- Minimal, no‑frills VSDX generation and reading using OPC + LINQ to XML
-- Practical starting point for simple diagrams (pages, basic shapes, connectors)
-- Designed to evolve as core scenarios are validated
+- Server-safe VSDX generation and reading using OPC + LINQ to XML
+- Diagram-first authoring APIs for real process, network, architecture, timeline, sequence, and graph scenarios
+- Dependency-light core with optional Visio desktop proof only when you ask for it
+- First-party stencils, premium styles, visual quality checks, and native SVG/PNG preview output for reviewable generated diagrams

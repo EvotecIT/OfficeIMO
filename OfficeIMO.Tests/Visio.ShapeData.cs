@@ -303,6 +303,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DataGraphicsRejectInvalidDataBarRangesBeforeGeneratingGeometry() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("Invalid Data Graphic", 8.5, 6);
+            VisioShape target = page.AddRectangle(2, 4, 1.5, 0.75, "Service");
+            target.SetShapeData("Slo", "80", "SLO", VisioShapeDataType.Number);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                page.AddDataGraphics(target, VisioDataGraphic.Create().Bar("Slo", minimumValue: 100, maximumValue: 100)));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                page.AddDataGraphics(target, VisioDataGraphic.Create().Bar("Slo", minimumValue: double.NaN, maximumValue: 100)));
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                page.AddDataGraphics(target, VisioDataGraphic.Create().Bar("Slo", minimumValue: 0, maximumValue: double.PositiveInfinity)));
+
+            Assert.Single(page.Shapes);
+        }
+
+        [Fact]
         public void PremiumGalleryPromotesDataGraphicsIntoExecutiveScenario() {
             string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Premium-DataGraphics-" + Guid.NewGuid().ToString("N"));
             try {

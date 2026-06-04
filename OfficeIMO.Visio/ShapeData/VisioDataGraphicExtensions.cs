@@ -173,6 +173,27 @@ namespace OfficeIMO.Visio {
                 if (double.IsNaN(item.Height) || double.IsInfinity(item.Height) || item.Height <= 0D) {
                     throw new ArgumentOutOfRangeException(nameof(item.Height), "Data graphic item height must be a finite positive number.");
                 }
+
+                if (item.Kind == VisioDataGraphicItemKind.DataBar) {
+                    ValidateDataBarRange(item);
+                }
+            }
+        }
+
+        private static void ValidateDataBarRange(VisioDataGraphicItem item) {
+            double minimum = item.MinimumValue ?? 0D;
+            double maximum = item.MaximumValue ?? 100D;
+
+            if (double.IsNaN(minimum) || double.IsInfinity(minimum)) {
+                throw new ArgumentOutOfRangeException(nameof(item.MinimumValue), "Data graphic bar minimum must be a finite number.");
+            }
+
+            if (double.IsNaN(maximum) || double.IsInfinity(maximum)) {
+                throw new ArgumentOutOfRangeException(nameof(item.MaximumValue), "Data graphic bar maximum must be a finite number.");
+            }
+
+            if (maximum <= minimum) {
+                throw new ArgumentOutOfRangeException(nameof(item.MaximumValue), "Data graphic bar maximum must be greater than the minimum.");
             }
         }
 

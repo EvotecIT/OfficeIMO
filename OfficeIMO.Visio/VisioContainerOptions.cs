@@ -26,6 +26,26 @@ namespace OfficeIMO.Visio {
         public bool Locked { get; set; }
 
         /// <summary>
+        /// Whether Visio should suppress selection highlighting for this container.
+        /// </summary>
+        public bool NoHighlight { get; set; }
+
+        /// <summary>
+        /// Whether Visio should suppress container ribbon UI for this container.
+        /// </summary>
+        public bool NoRibbon { get; set; }
+
+        /// <summary>
+        /// Native Visio container style identifier written to the container metadata.
+        /// </summary>
+        public int ContainerStyle { get; set; } = 1;
+
+        /// <summary>
+        /// Native Visio container heading style identifier written to the container metadata.
+        /// </summary>
+        public int HeadingStyle { get; set; } = 1;
+
+        /// <summary>
         /// Fill color used for the generated container background.
         /// </summary>
         public Color FillColor { get; set; } = Color.FromRgb(218, 242, 252);
@@ -39,5 +59,16 @@ namespace OfficeIMO.Visio {
         /// Border weight in inches.
         /// </summary>
         public double LineWeight { get; set; } = 0.014D;
+
+        /// <summary>
+        /// Optional reusable visual style to apply to the container shape.
+        /// When set, this overrides <see cref="FillColor"/>, <see cref="LineColor"/>, and related line/fill settings.
+        /// </summary>
+        public VisioShapeStyle? ShapeStyle { get; set; }
+
+        /// <summary>
+        /// Optional reusable text style to apply to the container heading.
+        /// </summary>
+        public VisioTextStyle? TextStyle { get; set; }
     }
 }

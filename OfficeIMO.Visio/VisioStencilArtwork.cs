@@ -52,7 +52,7 @@ namespace OfficeIMO.Visio {
         private static bool ShouldSkip(VisioShape shape) {
             string? kind = shape.GetUserCellValue(VisioSemanticUserCells.Kind);
             return string.Equals(kind, VisioSemanticUserCells.SequenceFragmentKind, StringComparison.OrdinalIgnoreCase) ||
-                   string.Equals(kind, VisioSemanticUserCells.BackgroundSurfaceKind, StringComparison.OrdinalIgnoreCase) ||
+                   shape.IsBackgroundSurface ||
                    string.Equals(kind, VisioSemanticUserCells.DiagramAdornmentKind, StringComparison.OrdinalIgnoreCase);
         }
 

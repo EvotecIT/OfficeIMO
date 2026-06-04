@@ -101,6 +101,8 @@ namespace OfficeIMO.Visio {
         private const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
         private const string ThemeRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/theme";
         private const string ThemeContentType = "application/vnd.ms-visio.theme+xml";
+        private const string CommentsRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/comments";
+        private const string CommentsContentType = "application/vnd.ms-visio.comments+xml";
         private const string WindowsRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/windows";
         private const string WindowsContentType = "application/vnd.ms-visio.windows+xml";
         private const string PagesRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/pages";

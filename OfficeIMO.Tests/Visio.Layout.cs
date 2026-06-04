@@ -220,6 +220,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SelectionRelayoutRejectsNonFiniteSpacing() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("InvalidSpacing");
+            VisioShape one = page.AddRectangle(2, 3, 1, 0.5, "One");
+            VisioShape two = page.AddRectangle(4, 3, 1, 0.5, "Two");
+            VisioShapeSelection selection = new(new[] { one, two }, page);
+
+            ArgumentOutOfRangeException horizontal = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                selection.RelayoutAsGrid(new VisioSelectionLayoutOptions {
+                    HorizontalSpacing = double.NaN
+                }));
+            ArgumentOutOfRangeException vertical = Assert.Throws<ArgumentOutOfRangeException>(() =>
+                selection.RelayoutAsGrid(new VisioSelectionLayoutOptions {
+                    VerticalSpacing = double.PositiveInfinity
+                }));
+
+            Assert.Contains("finite non-negative", horizontal.Message);
+            Assert.Contains("finite non-negative", vertical.Message);
+        }
+
+        [Fact]
         public void ResizeToTextUsesDeterministicDrawingMeasurement() {
             VisioShape shortShape = new("short", 2, 2, 0.2, 0.2, string.Empty);
             shortShape.ResizeToText(minimumWidth: 0.75, minimumHeight: 0.4);

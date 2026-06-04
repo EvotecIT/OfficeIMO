@@ -238,12 +238,12 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentOutOfRangeException(nameof(options.Columns), "Column count cannot be negative.");
             }
 
-            if (options.HorizontalSpacing < 0) {
-                throw new ArgumentOutOfRangeException(nameof(options.HorizontalSpacing), "Spacing cannot be negative.");
+            if (!IsFiniteNonNegativeSelectionLayoutValue(options.HorizontalSpacing)) {
+                throw new ArgumentOutOfRangeException(nameof(options.HorizontalSpacing), "Spacing must be a finite non-negative number.");
             }
 
-            if (options.VerticalSpacing < 0) {
-                throw new ArgumentOutOfRangeException(nameof(options.VerticalSpacing), "Spacing cannot be negative.");
+            if (!IsFiniteNonNegativeSelectionLayoutValue(options.VerticalSpacing)) {
+                throw new ArgumentOutOfRangeException(nameof(options.VerticalSpacing), "Spacing must be a finite non-negative number.");
             }
 
             if (!Enum.IsDefined(typeof(VisioSelectionLayoutOrder), options.Order)) {
@@ -286,6 +286,10 @@ namespace OfficeIMO.Visio {
             }
 
             return Math.Max(1, (int)Math.Ceiling(Math.Sqrt(count)));
+        }
+
+        private static bool IsFiniteNonNegativeSelectionLayoutValue(double value) {
+            return !double.IsNaN(value) && !double.IsInfinity(value) && value >= 0D;
         }
 
         private static double SumBefore(IReadOnlyList<double> values, int exclusiveEnd) {

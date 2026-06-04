@@ -68,6 +68,7 @@ namespace OfficeIMO.Visio {
 
             IdAllocator ids = new(clone, sourcePage);
             Dictionary<VisioShape, VisioShape> shapeMap = new();
+            Dictionary<VisioConnector, VisioConnector> connectorMap = new();
             Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap = new();
 
             foreach (VisioShape shape in sourcePage.Shapes) {
@@ -85,7 +86,10 @@ namespace OfficeIMO.Visio {
 
                 VisioConnector connectorClone = CloneConnector(connector, ids, clonedFrom, clonedTo, 0D, 0D, connectionPointMap);
                 clone.Connectors.Add(connectorClone);
+                connectorMap[connector] = connectorClone;
             }
+
+            CopyComments(sourcePage, clone, shapeMap, connectorMap);
 
             if (sourcePage.IsBackground) {
                 clone.IsBackground = true;
@@ -101,6 +105,86 @@ namespace OfficeIMO.Visio {
             }
 
             return clone;
+        }
+
+        private static void CopyComments(
+            VisioPage sourcePage,
+            VisioPage clone,
+            IReadOnlyDictionary<VisioShape, VisioShape> shapeMap,
+            IReadOnlyDictionary<VisioConnector, VisioConnector> connectorMap) {
+            Dictionary<string, string> targetMap = new(StringComparer.Ordinal);
+            foreach (KeyValuePair<VisioShape, VisioShape> pair in shapeMap) {
+                targetMap[pair.Key.Id] = pair.Value.Id;
+            }
+
+            foreach (KeyValuePair<VisioConnector, VisioConnector> pair in connectorMap) {
+                targetMap[pair.Key.Id] = pair.Value.Id;
+            }
+
+            foreach (VisioComment comment in sourcePage.Comments) {
+                VisioComment copy = CloneComment(comment);
+                if (!string.IsNullOrWhiteSpace(comment.ShapeId) &&
+                    targetMap.TryGetValue(comment.ShapeId!, out string? clonedTargetId)) {
+                    copy.ShapeId = clonedTargetId;
+                }
+
+                clone.Comments.Add(copy);
+            }
+        }
+
+        private static VisioComment CloneComment(VisioComment comment) {
+            return new VisioComment(comment.Text) {
+                Id = comment.Id,
+                AuthorName = comment.AuthorName,
+                AuthorInitials = comment.AuthorInitials,
+                AuthorResolutionId = comment.AuthorResolutionId,
+                ShapeId = comment.ShapeId,
+                CreatedAt = comment.CreatedAt,
+                EditedAt = comment.EditedAt,
+                Done = comment.Done,
+                AutoCommentType = comment.AutoCommentType
+            };
+        }
+
+        private static void CopyTargetedComments(
+            VisioPage page,
+            IReadOnlyDictionary<VisioShape, VisioShape> shapeMap,
+            IReadOnlyDictionary<VisioConnector, VisioConnector> connectorMap) {
+            Dictionary<string, string> targetMap = new(StringComparer.Ordinal);
+            foreach (KeyValuePair<VisioShape, VisioShape> pair in shapeMap) {
+                targetMap[pair.Key.Id] = pair.Value.Id;
+            }
+
+            foreach (KeyValuePair<VisioConnector, VisioConnector> pair in connectorMap) {
+                targetMap[pair.Key.Id] = pair.Value.Id;
+            }
+
+            if (targetMap.Count == 0) {
+                return;
+            }
+
+            HashSet<int> usedCommentIds = new(page.Comments.Select(comment => comment.Id));
+            foreach (VisioComment comment in page.Comments.ToList()) {
+                if (string.IsNullOrWhiteSpace(comment.ShapeId) ||
+                    !targetMap.TryGetValue(comment.ShapeId!, out string? clonedTargetId)) {
+                    continue;
+                }
+
+                VisioComment copy = CloneComment(comment);
+                copy.Id = AllocateNextCommentId(usedCommentIds);
+                copy.ShapeId = clonedTargetId;
+                page.Comments.Add(copy);
+            }
+        }
+
+        private static int AllocateNextCommentId(HashSet<int> usedCommentIds) {
+            int nextId = 1;
+            while (usedCommentIds.Contains(nextId)) {
+                nextId++;
+            }
+
+            usedCommentIds.Add(nextId);
+            return nextId;
         }
 
         /// <summary>
@@ -141,6 +225,21 @@ namespace OfficeIMO.Visio {
         /// <param name="includeInternalConnectors">Whether connectors between duplicated shapes should also be copied.</param>
         /// <returns>A selection containing the duplicated root shapes.</returns>
         public static VisioShapeSelection DuplicateShapes(this VisioPage page, IEnumerable<VisioShape> shapes, double offsetX = DefaultDuplicateOffsetX, double offsetY = DefaultDuplicateOffsetY, bool includeInternalConnectors = true) {
+            return DuplicateShapes(page, shapes, new VisioShapeDuplicationOptions {
+                OffsetX = offsetX,
+                OffsetY = offsetY,
+                IncludeInternalConnectors = includeInternalConnectors
+            });
+        }
+
+        /// <summary>
+        /// Duplicates shapes on the same page and optionally copies connectors whose endpoints are both duplicated.
+        /// </summary>
+        /// <param name="page">Page that owns the shapes.</param>
+        /// <param name="shapes">Shapes to duplicate. Nested children are copied with their selected ancestor.</param>
+        /// <param name="options">Optional duplication settings.</param>
+        /// <returns>A selection containing the duplicated root shapes.</returns>
+        public static VisioShapeSelection DuplicateShapes(this VisioPage page, IEnumerable<VisioShape> shapes, VisioShapeDuplicationOptions? options) {
             if (page == null) {
                 throw new ArgumentNullException(nameof(page));
             }
@@ -148,6 +247,10 @@ namespace OfficeIMO.Visio {
             if (shapes == null) {
                 throw new ArgumentNullException(nameof(shapes));
             }
+
+            VisioShapeDuplicationOptions effectiveOptions = options ?? new VisioShapeDuplicationOptions();
+            EnsureFiniteOffset(effectiveOptions.OffsetX, nameof(effectiveOptions.OffsetX));
+            EnsureFiniteOffset(effectiveOptions.OffsetY, nameof(effectiveOptions.OffsetY));
 
             List<VisioShape> selectedShapes = shapes.Distinct().ToList();
             if (selectedShapes.Count == 0) {
@@ -168,28 +271,32 @@ namespace OfficeIMO.Visio {
 
             IdAllocator ids = new(page);
             Dictionary<VisioShape, VisioShape> shapeMap = new();
+            Dictionary<VisioConnector, VisioConnector> connectorMap = new();
             Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap = new();
             List<VisioShape> duplicatedRoots = new();
 
             foreach (VisioShape root in rootShapes) {
-                VisioShape clone = CloneShape(root, ids, offsetX, offsetY, applyOffset: true, shapeMap, connectionPointMap);
+                VisioShape clone = CloneShape(root, ids, effectiveOptions.OffsetX, effectiveOptions.OffsetY, applyOffset: true, shapeMap, connectionPointMap, effectiveOptions);
                 page.Shapes.Add(clone);
                 duplicatedRoots.Add(clone);
             }
 
             RemapContainerMembership(shapeMap);
 
-            if (includeInternalConnectors) {
+            if (effectiveOptions.IncludeInternalConnectors) {
                 foreach (VisioConnector connector in page.Connectors.ToList()) {
                     if (!shapeMap.TryGetValue(connector.From, out VisioShape? clonedFrom) ||
                         !shapeMap.TryGetValue(connector.To, out VisioShape? clonedTo)) {
                         continue;
                     }
 
-                    VisioConnector clonedConnector = CloneConnector(connector, ids, clonedFrom, clonedTo, offsetX, offsetY, connectionPointMap);
+                    VisioConnector clonedConnector = CloneConnector(connector, ids, clonedFrom, clonedTo, effectiveOptions.OffsetX, effectiveOptions.OffsetY, connectionPointMap, effectiveOptions);
                     page.Connectors.Add(clonedConnector);
+                    connectorMap[connector] = clonedConnector;
                 }
             }
+
+            CopyTargetedComments(page, shapeMap, connectorMap);
 
             return new VisioShapeSelection(duplicatedRoots, page);
         }
@@ -203,6 +310,20 @@ namespace OfficeIMO.Visio {
         /// <param name="includeInternalConnectors">Whether connectors between duplicated shapes should also be copied.</param>
         /// <returns>A selection containing the duplicated root shapes.</returns>
         public static VisioShapeSelection Duplicate(this VisioShapeSelection selection, double offsetX = DefaultDuplicateOffsetX, double offsetY = DefaultDuplicateOffsetY, bool includeInternalConnectors = true) {
+            return Duplicate(selection, new VisioShapeDuplicationOptions {
+                OffsetX = offsetX,
+                OffsetY = offsetY,
+                IncludeInternalConnectors = includeInternalConnectors
+            });
+        }
+
+        /// <summary>
+        /// Duplicates a page-backed selection on the same page.
+        /// </summary>
+        /// <param name="selection">Selection to duplicate.</param>
+        /// <param name="options">Optional duplication settings.</param>
+        /// <returns>A selection containing the duplicated root shapes.</returns>
+        public static VisioShapeSelection Duplicate(this VisioShapeSelection selection, VisioShapeDuplicationOptions? options) {
             if (selection == null) {
                 throw new ArgumentNullException(nameof(selection));
             }
@@ -211,7 +332,7 @@ namespace OfficeIMO.Visio {
                 throw new InvalidOperationException("This selection is not associated with a page. Use page.DuplicateShapes(selection, ...) instead.");
             }
 
-            return selection.OwnerPage.DuplicateShapes(selection, offsetX, offsetY, includeInternalConnectors);
+            return selection.OwnerPage.DuplicateShapes(selection, options);
         }
 
         private static bool HasSelectedAncestor(VisioShape shape, HashSet<VisioShape> selected) {
@@ -234,8 +355,9 @@ namespace OfficeIMO.Visio {
             double offsetY,
             bool applyOffset,
             Dictionary<VisioShape, VisioShape> shapeMap,
-            Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap) {
-            VisioShape clone = new(ids.Next(), source.PinX + (applyOffset ? offsetX : 0D), source.PinY + (applyOffset ? offsetY : 0D), source.Width, source.Height, source.Text ?? string.Empty) {
+            Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap,
+            VisioShapeDuplicationOptions? options = null) {
+            VisioShape clone = new(ResolveShapeCloneId(source, ids, options), source.PinX + (applyOffset ? offsetX : 0D), source.PinY + (applyOffset ? offsetY : 0D), source.Width, source.Height, source.Text ?? string.Empty) {
                 Name = source.Name,
                 NameU = source.NameU,
                 Type = source.Type,
@@ -284,7 +406,7 @@ namespace OfficeIMO.Visio {
             shapeMap[source] = clone;
 
             foreach (VisioShape child in source.Children) {
-                clone.Children.Add(CloneShape(child, ids, offsetX, offsetY, applyOffset: false, shapeMap, connectionPointMap));
+                clone.Children.Add(CloneShape(child, ids, offsetX, offsetY, applyOffset: false, shapeMap, connectionPointMap, options));
             }
 
             return clone;
@@ -297,8 +419,9 @@ namespace OfficeIMO.Visio {
             VisioShape clonedTo,
             double offsetX,
             double offsetY,
-            Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap) {
-            VisioConnector clone = new(ids.Next(), clonedFrom, clonedTo) {
+            Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap,
+            VisioShapeDuplicationOptions? options = null) {
+            VisioConnector clone = new(ResolveConnectorCloneId(source, ids, options), clonedFrom, clonedTo) {
                 Kind = source.Kind,
                 BeginArrow = source.BeginArrow,
                 EndArrow = source.EndArrow,
@@ -346,6 +469,36 @@ namespace OfficeIMO.Visio {
             CopyElements(source.PreservedDataRows, clone.PreservedDataRows);
             CopyConnectorPreservation(source, clone);
             return clone;
+        }
+
+        private static string ResolveShapeCloneId(VisioShape source, IdAllocator ids, VisioShapeDuplicationOptions? options) {
+            string? preferred = options?.ShapeIdFactory?.Invoke(source);
+            string? suffix = options?.IdSuffix;
+            if (string.IsNullOrWhiteSpace(preferred) &&
+                !string.IsNullOrEmpty(suffix) &&
+                !string.IsNullOrWhiteSpace(source.Id)) {
+                preferred = source.Id + suffix;
+            }
+
+            return ids.Next(preferred);
+        }
+
+        private static string ResolveConnectorCloneId(VisioConnector source, IdAllocator ids, VisioShapeDuplicationOptions? options) {
+            string? preferred = options?.ConnectorIdFactory?.Invoke(source);
+            string? suffix = options?.ConnectorIdSuffix ?? options?.IdSuffix;
+            if (string.IsNullOrWhiteSpace(preferred) &&
+                !string.IsNullOrEmpty(suffix) &&
+                !string.IsNullOrWhiteSpace(source.Id)) {
+                preferred = source.Id + suffix;
+            }
+
+            return ids.Next(preferred);
+        }
+
+        private static void EnsureFiniteOffset(double value, string parameterName) {
+            if (double.IsNaN(value) || double.IsInfinity(value)) {
+                throw new ArgumentOutOfRangeException(parameterName, "Offset must be a finite number.");
+            }
         }
 
         private static VisioConnectorLabelPlacement? CloneLabelPlacement(VisioConnectorLabelPlacement? source, double offsetX, double offsetY) {
@@ -639,6 +792,7 @@ namespace OfficeIMO.Visio {
 
         private sealed class IdAllocator {
             private readonly HashSet<int> _usedIds = new();
+            private readonly HashSet<string> _usedTextIds = new(StringComparer.OrdinalIgnoreCase);
 
             public IdAllocator(VisioPage page, VisioPage? sourcePage = null) {
                 foreach (VisioShape shape in page.AllShapes()) {
@@ -660,20 +814,43 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            public string Next() {
+            public string Next(string? preferredId = null) {
+                if (!string.IsNullOrWhiteSpace(preferredId)) {
+                    return ReservePreferred(preferredId!.Trim());
+                }
+
                 int id = 1;
-                while (_usedIds.Contains(id)) {
+                while (_usedIds.Contains(id) || _usedTextIds.Contains(id.ToString(CultureInfo.InvariantCulture))) {
                     id++;
                 }
 
-                _usedIds.Add(id);
-                return id.ToString(CultureInfo.InvariantCulture);
+                string value = id.ToString(CultureInfo.InvariantCulture);
+                Reserve(value);
+                return value;
             }
 
             private void Reserve(string? id) {
-                if (int.TryParse(id, out int numericId) && numericId > 0) {
+                if (string.IsNullOrWhiteSpace(id)) {
+                    return;
+                }
+
+                string resolvedId = id!;
+                _usedTextIds.Add(resolvedId);
+                if (int.TryParse(resolvedId, out int numericId) && numericId > 0) {
                     _usedIds.Add(numericId);
                 }
+            }
+
+            private string ReservePreferred(string preferredId) {
+                string candidate = preferredId;
+                int suffix = 2;
+                while (_usedTextIds.Contains(candidate)) {
+                    candidate = preferredId + "-" + suffix.ToString(CultureInfo.InvariantCulture);
+                    suffix++;
+                }
+
+                Reserve(candidate);
+                return candidate;
             }
         }
     }
