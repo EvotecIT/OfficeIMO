@@ -2,8 +2,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Top-level container for page content (columns, rows, items).</summary>
 public class PdfContentCompose {
-    private readonly PdfDoc _doc;
-    internal PdfContentCompose(PdfDoc doc) { _doc = doc; }
+    private readonly PdfDocument _doc;
+    internal PdfContentCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Sets extra bottom padding (reserved for future).</summary>
     public PdfContentCompose PaddingBottom(double points) { /* reserved for future */ return this; }
     /// <summary>Adds one or more flow items directly to the page content.</summary>

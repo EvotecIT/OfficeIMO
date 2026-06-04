@@ -66,7 +66,7 @@ public class PdfComplianceGateTests {
     [InlineData(PdfComplianceProfile.Zugferd, "Mustang validation fixtures in the build lane")]
     public void FormalProfiles_StillFailClosedUntilValidatorBackedGenerationExists(PdfComplianceProfile profile, string expectedRequirement) {
         var exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDoc.Create()
+            PdfDocument.Create()
                 .Compliance(profile)
                 .Meta(title: "Compliance profile guard")
                 .Paragraph(p => p.Text("Profile output must fail closed until validator evidence exists."))
@@ -77,7 +77,7 @@ public class PdfComplianceGateTests {
     }
 
     private static byte[] CreatePdfA3GroundworkFixture() {
-        return PdfDoc.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
@@ -166,7 +166,7 @@ public class PdfComplianceGateTests {
             "</rsm:SupplyChainTradeTransaction>" +
             "</rsm:CrossIndustryInvoice>");
 
-        return PdfDoc.Create(new PdfOptions {
+        return PdfDocument.Create(new PdfOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })

@@ -13,7 +13,7 @@ public sealed class PdfHeaderFooterShape {
         Guard.NotNull(shape, nameof(shape));
         Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer shape");
 
-        _block = PdfDoc.CreateShapeBlock(shape, align, 0D, 0D);
+        _block = PdfDocument.CreateShapeBlock(shape, align, 0D, 0D);
     }
 
     /// <summary>Shape width in PDF points.</summary>

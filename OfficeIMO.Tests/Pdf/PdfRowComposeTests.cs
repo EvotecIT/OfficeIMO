@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests.Pdf {
     public class PdfRowComposeTests {
         [Fact]
         public void RowRejectsEmptyComposition() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             var exception = Assert.Throws<InvalidOperationException>(() =>
                 doc.Compose(compose =>
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ColumnRejectsNonPositiveWidth() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 doc.Compose(compose =>
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(double.PositiveInfinity)]
         [InlineData(double.NegativeInfinity)]
         public void ColumnRejectsNonFiniteWidth(double widthPercent) {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
                 doc.Compose(compose =>
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ColumnRejectsWidthOverOneHundred() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 doc.Compose(compose =>
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ColumnRejectsWhenTotalWouldExceedOneHundred() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             Assert.Throws<InvalidOperationException>(() =>
                 doc.Compose(compose =>
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void ColumnsAreNormalizedWhenTotalLessThanOneHundred() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             doc.Compose(compose =>
                 compose.Page(page =>
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowGap_IsStoredOnModel() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             doc.Compose(compose =>
                 compose.Page(page =>
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowStyle_IsStoredOnModelAndSnapshotsInput() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
             var style = new PdfRowStyle {
                 Gap = 18,
                 SpacingBefore = 7,
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowUsesBuiltInWordLikeGapUnlessExplicitlyOptedOut() {
-            var defaultDoc = PdfDoc.Create();
+            var defaultDoc = PdfDocument.Create();
             defaultDoc.Compose(compose =>
                 compose.Page(page =>
                     page.Content(content =>
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.Equal(PdfRowStyle.DefaultGap, defaultRow.Gap);
 
-            var optOutDoc = PdfDoc.Create();
+            var optOutDoc = PdfDocument.Create();
             optOutDoc.Compose(compose =>
                 compose.Page(page =>
                     page.Content(content =>
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests.Pdf {
         [InlineData(double.PositiveInfinity)]
         [InlineData(double.NegativeInfinity)]
         public void RowGap_RejectsInvalidValues(double gap) {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             var exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
                 doc.Compose(compose =>
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Throws<ArgumentException>(() => new PdfRowStyle { ColumnSeparatorWidth = -1 });
 
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDoc.Create().Compose(compose =>
+                PdfDocument.Create().Compose(compose =>
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row => row.Style(null!))))));
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowColumnSeparator_RendersBetweenColumns() {
-            byte[] bytes = PdfDoc.Create(new PdfOptions {
+            byte[] bytes = PdfDocument.Create(new PdfOptions {
                     PageWidth = 360,
                     PageHeight = 180,
                     MarginLeft = 30,
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowGap_RejectsWhenGapsExceedContentWidthDuringRender() {
-            var doc = PdfDoc.Create(new PdfOptions {
+            var doc = PdfDocument.Create(new PdfOptions {
                 PageWidth = 120,
                 PageHeight = 160,
                 MarginLeft = 20,
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowModel_ExposesReadOnlyColumnAndBlockCollections() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             doc.Compose(compose =>
                 compose.Page(page =>
@@ -301,7 +301,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowColumn_ItemProvidesWordLikeFlowGroups() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             doc.Compose(compose =>
                 compose.Page(page =>
@@ -328,13 +328,13 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void RowColumn_RejectsNullFlowDelegates() {
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDoc.Create().Compose(compose =>
+                PdfDocument.Create().Compose(compose =>
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row => row.Column(100, column => column.Item(null!)))))));
 
             Assert.Throws<ArgumentNullException>(() =>
-                PdfDoc.Create().Compose(compose =>
+                PdfDocument.Create().Compose(compose =>
                     compose.Page(page =>
                         page.Content(content =>
                             content.Row(row => row.Column(100, column => column.Paragraph(null!)))))));
@@ -342,7 +342,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowColumn_CanComposeBulletAndNumberedLists() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
             var style = new PdfListStyle {
                 FontSize = 12,
                 LeftIndent = 10,
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowColumn_CanComposePanelParagraph() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             doc.Compose(compose =>
                 compose.Page(page =>
@@ -401,7 +401,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowColumn_CanComposePanelFromCommonFlowBlocks() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
 
             doc.Compose(compose =>
                 compose.Page(page =>
@@ -424,7 +424,7 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void RowColumn_CanComposeTable() {
-            var doc = PdfDoc.Create();
+            var doc = PdfDocument.Create();
             var style = TableStyles.Light();
 
             doc.Compose(compose =>

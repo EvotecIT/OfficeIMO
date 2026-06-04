@@ -67,7 +67,7 @@ public static partial class PdfComplianceAnalyzer {
         Add(requirements, "pdf-file-version", "PDF 1.7 file header",
             options.FileVersion == PdfFileVersion.Pdf17,
             "Generated output is configured for a PDF 1.7 file header.",
-            "Set PdfOptions.FileVersion or PdfDoc.FileVersion(...) to PdfFileVersion.Pdf17 for PDF/A-2, PDF/A-3, PDF/UA-1, and e-invoice profile groundwork.");
+            "Set PdfOptions.FileVersion or PdfDocument.FileVersion(...) to PdfFileVersion.Pdf17 for PDF/A-2, PDF/A-3, PDF/UA-1, and e-invoice profile groundwork.");
     }
 
     private static void AddUnicodeRequirements(List<PdfComplianceRequirement> requirements, PdfOptions options, PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {

@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderQuoteBlock(PdfCore.PdfDoc pdf, QuoteBlock quote, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
         if (quote.Children.Count > 0) {
             bool canRenderChildrenInsidePanel = CanRenderBlocksInsidePanel(quote.Children);
             if (canRenderChildrenInsidePanel) {

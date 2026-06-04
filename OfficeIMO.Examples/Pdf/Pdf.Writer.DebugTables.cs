@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Pdf {
                 CellPaddingY = 13.5
             };
 
-            PdfDoc.Create(opts)
+            PdfDocument.Create(opts)
                 .H1("Table Debug — Offset -1.0", PdfAlign.Left)
                 .Table(rows, PdfAlign.Left, new PdfTableStyle {
                     HeaderFill = styleBase.HeaderFill,

@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
 
         private void RenderShapeFlowBlock(ShapeBlock sbk, IPdfBlock? nextBlock) {
             PdfDrawingStyle shapeStyle = ResolveDrawingStyle(sbk, currentOpts);
-            PdfDoc.ValidateDrawingStyle(shapeStyle, "Shape");
+            PdfDocument.ValidateDrawingStyle(shapeStyle, "Shape");
             if (shapeStyle.KeepWithNext && nextBlock != null) {
                 double needed = shapeStyle.SpacingBefore + sbk.Shape.Height + shapeStyle.SpacingAfter;
                 double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
@@ -31,7 +31,7 @@ internal static partial class PdfWriter {
 
         private void RenderDrawingFlowBlock(DrawingBlock dbk, IPdfBlock? nextBlock) {
             PdfDrawingStyle drawingStyle = ResolveDrawingStyle(dbk, currentOpts);
-            PdfDoc.ValidateDrawingStyle(drawingStyle, "Drawing");
+            PdfDocument.ValidateDrawingStyle(drawingStyle, "Drawing");
             if (drawingStyle.KeepWithNext && nextBlock != null) {
                 double needed = drawingStyle.SpacingBefore + dbk.Drawing.Height + drawingStyle.SpacingAfter;
                 double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
@@ -45,8 +45,8 @@ internal static partial class PdfWriter {
             double xImg = currentOpts.MarginLeft;
             double contentWidth = currentOpts.PageWidth - currentOpts.MarginLeft - currentOpts.MarginRight;
             PdfImageStyle imageStyle = ResolveImageStyle(ib, currentOpts);
-            PdfDoc.ValidateImageStyleForBox(imageStyle, ib.Width, ib.Height, nameof(imageStyle.ClipPath));
-            PdfDoc.ValidateImageFitDimensions(ib.Info, imageStyle.Fit, nameof(imageStyle.Fit));
+            PdfDocument.ValidateImageStyleForBox(imageStyle, ib.Width, ib.Height, nameof(imageStyle.ClipPath));
+            PdfDocument.ValidateImageFitDimensions(ib.Info, imageStyle.Fit, nameof(imageStyle.Fit));
             double imageSpacingBefore = ResolveTopLevelSpacingBefore(imageStyle.SpacingBefore);
             double needed = imageSpacingBefore + ib.Height + imageStyle.SpacingAfter;
             if (imageStyle.Align == PdfAlign.Center) xImg = currentOpts.MarginLeft + Math.Max(0, (contentWidth - ib.Width) / 2);

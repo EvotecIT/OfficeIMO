@@ -16,7 +16,7 @@ public sealed class PdfImageWatermark {
     /// <summary>Creates an image watermark from supported JPEG or PNG bytes.</summary>
     public PdfImageWatermark(byte[] data, double width, double height) {
         Guard.NotNullOrEmpty(data, nameof(data));
-        _info = PdfDoc.ValidateImageBytes(data);
+        _info = PdfDocument.ValidateImageBytes(data);
         _data = (byte[])data.Clone();
         Width = width;
         Height = height;

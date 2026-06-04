@@ -81,7 +81,7 @@ public sealed class MarkdownPdfPageDecoration {
         _kind = _kind
     };
 
-    internal void Apply(PdfCore.PdfDoc pdf, PdfCore.PdfOptions options) {
+    internal void Apply(PdfCore.PdfDocument pdf, PdfCore.PdfOptions options) {
         if (pdf == null) {
             throw new ArgumentNullException(nameof(pdf));
         }

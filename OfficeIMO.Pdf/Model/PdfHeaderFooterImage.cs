@@ -22,13 +22,13 @@ public sealed class PdfHeaderFooterImage {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.LeftCenterRightAlign(align, nameof(align), "PDF header/footer image");
-        PdfDoc.ValidateImageFit(fit, nameof(fit));
+        PdfDocument.ValidateImageFit(fit, nameof(fit));
         if (alternativeText != null) {
             Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
         }
 
-        OfficeImageInfo imageInfo = PdfDoc.ValidateImageBytes(data);
-        PdfDoc.ValidateImageFitDimensions(imageInfo, fit, nameof(fit));
+        OfficeImageInfo imageInfo = PdfDocument.ValidateImageBytes(data);
+        PdfDocument.ValidateImageFitDimensions(imageInfo, fit, nameof(fit));
 
         Data = (byte[])data.Clone();
         Width = width;

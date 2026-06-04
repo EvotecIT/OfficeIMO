@@ -1,0 +1,148 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using Xunit;
+using PdfCore = OfficeIMO.Pdf;
+
+namespace OfficeIMO.Tests;
+
+public partial class Word {
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_First_And_Even_HeaderFooter_Variants() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVariants.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVariants.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            document.DifferentFirstPage = true;
+            document.DifferentOddAndEvenPages = true;
+
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Footer");
+            RequireSectionHeader(document, 0, HeaderFooterValues.First).AddParagraph("Native First Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.First).AddParagraph("Native First Footer");
+            RequireSectionHeader(document, 0, HeaderFooterValues.Even).AddParagraph("Native Even Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Even).AddParagraph("Native Even Footer");
+
+            for (int i = 0; i < 240; i++) {
+                document.AddParagraph($"Native variant paragraph {i}");
+            }
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            Assert.True(pdf.NumberOfPages >= 3);
+            string firstPageText = pdf.GetPage(1).Text;
+            string secondPageText = pdf.GetPage(2).Text;
+            string thirdPageText = pdf.GetPage(3).Text;
+
+            Assert.Contains("Native First Header", firstPageText);
+            Assert.Contains("Native First Footer", firstPageText);
+            Assert.Contains("Native Even Header", secondPageText);
+            Assert.Contains("Native Even Footer", secondPageText);
+            Assert.Contains("Native Odd Header", thirdPageText);
+            Assert.Contains("Native Odd Footer", thirdPageText);
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Ignores_First_And_Even_HeaderFooter_Parts_When_Section_Flags_Are_Off() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeStaleHeaderFooterVariants.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStaleHeaderFooterVariants.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            document.DifferentFirstPage = true;
+            document.DifferentOddAndEvenPages = true;
+
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Default Footer");
+            RequireSectionHeader(document, 0, HeaderFooterValues.First).AddParagraph("Native Stale First Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.First).AddParagraph("Native Stale First Footer");
+            RequireSectionHeader(document, 0, HeaderFooterValues.Even).AddParagraph("Native Stale Even Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Even).AddParagraph("Native Stale Even Footer");
+
+            for (int i = 0; i < 240; i++) {
+                document.AddParagraph($"Native stale variant paragraph {i}");
+            }
+
+            document.Save();
+        }
+
+        using (WordprocessingDocument package = WordprocessingDocument.Open(docPath, true)) {
+            Settings? settings = package.MainDocumentPart!.DocumentSettingsPart!.Settings;
+            settings?.RemoveAllChildren<EvenAndOddHeaders>();
+            foreach (TitlePage titlePage in package.MainDocumentPart.Document.Body!.Descendants<TitlePage>().ToList()) {
+                titlePage.Remove();
+            }
+
+            package.Save();
+        }
+
+        using (WordDocument document = WordDocument.Load(docPath)) {
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            Assert.True(pdf.NumberOfPages >= 2);
+            string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
+            Assert.Contains("Native Default Header", pdf.GetPage(1).Text);
+            Assert.Contains("Native Default Footer", pdf.GetPage(1).Text);
+            Assert.Contains("Native Default Header", pdf.GetPage(2).Text);
+            Assert.Contains("Native Default Footer", pdf.GetPage(2).Text);
+            Assert.DoesNotContain("Native Stale First Header", allText);
+            Assert.DoesNotContain("Native Stale First Footer", allText);
+            Assert.DoesNotContain("Native Stale Even Header", allText);
+            Assert.DoesNotContain("Native Stale Even Footer", allText);
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Blank_First_And_Even_HeaderFooter_Variants() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBlankHeaderFooterVariants.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            document.DifferentFirstPage = true;
+            document.DifferentOddAndEvenPages = true;
+
+            RequireSectionHeader(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Header");
+            RequireSectionFooter(document, 0, HeaderFooterValues.Default).AddParagraph("Native Odd Footer");
+
+            for (int i = 0; i < 240; i++) {
+                document.AddParagraph("Native blank variant body");
+            }
+
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            Assert.True(pdf.NumberOfPages >= 3);
+            string firstPageText = pdf.GetPage(1).Text;
+            string secondPageText = pdf.GetPage(2).Text;
+            string thirdPageText = pdf.GetPage(3).Text;
+
+            Assert.DoesNotContain("Native Odd Header", firstPageText);
+            Assert.DoesNotContain("Native Odd Footer", firstPageText);
+            Assert.DoesNotContain("Native Odd Header", secondPageText);
+            Assert.DoesNotContain("Native Odd Footer", secondPageText);
+            Assert.Contains("Native Odd Header", thirdPageText);
+            Assert.Contains("Native Odd Footer", thirdPageText);
+        }
+    }
+}

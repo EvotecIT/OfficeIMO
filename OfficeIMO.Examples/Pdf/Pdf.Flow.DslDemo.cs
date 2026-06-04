@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Pdf {
                 FooterFontSize = 8
             };
 
-            var doc = PdfDoc.Create(options).Compose(document => {
+            var doc = PdfDocument.Create(options).Compose(document => {
                 document.Page(page => {
                     page.Size(PageSizes.A5);
                     page.Margin(36, 42, 36, 42);

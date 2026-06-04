@@ -110,7 +110,7 @@ internal static partial class PdfWriter {
     private static void AddHeaderFooterShape(StringBuilder sb, LayoutResult.Page page, PdfOptions options, PdfHeaderFooterShape headerFooterShape, bool isHeader) {
         ShapeBlock block = headerFooterShape.ToShapeBlock();
         PdfDrawingStyle style = block.Style ?? new PdfDrawingStyle();
-        PdfDoc.ValidateDrawingStyle(style, isHeader ? "Header shape" : "Footer shape");
+        PdfDocument.ValidateDrawingStyle(style, isHeader ? "Header shape" : "Footer shape");
 
         double contentLeft = options.MarginLeft;
         double contentWidth = options.PageWidth - options.MarginLeft - options.MarginRight;

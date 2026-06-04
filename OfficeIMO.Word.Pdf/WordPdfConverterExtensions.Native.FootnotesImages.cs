@@ -234,7 +234,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (info.Format == OfficeImageFormat.Png &&
-                PdfCore.PdfDoc.TryValidateImageBytes(bytes, out _, out unsupportedReason)) {
+                PdfCore.PdfDocument.TryValidateImageBytes(bytes, out _, out unsupportedReason)) {
                 return true;
             }
 

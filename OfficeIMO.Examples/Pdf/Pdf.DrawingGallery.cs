@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_DrawingGallery(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.DrawingGallery.pdf");
 
-            PdfDoc.Create(new PdfOptions {
+            PdfDocument.Create(new PdfOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

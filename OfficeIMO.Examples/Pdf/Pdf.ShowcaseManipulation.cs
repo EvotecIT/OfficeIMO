@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Pdf {
             string stampedPath = Path.Combine(folderPath, "Pdf.Showcase.Manipulation.Stamped.pdf");
             string extractedTextPath = Path.Combine(folderPath, "Pdf.Showcase.Manipulation.ExtractedText.txt");
 
-            PdfDoc.Create(StandardOptions("OfficeIMO.Pdf manipulation source A"))
+            PdfDocument.Create(StandardOptions("OfficeIMO.Pdf manipulation source A"))
                 .Meta(title: "OfficeIMO.Pdf Manipulation Source A", author: "OfficeIMO")
                 .H1("Source A", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
                 .Paragraph(p => p.Text("This page is created first, then merged with Source B using the first-party PdfMerger helper."))
@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Pdf {
                     })
                 .Save(sourceAPath);
 
-            PdfDoc.Create(StandardOptions("OfficeIMO.Pdf manipulation source B"))
+            PdfDocument.Create(StandardOptions("OfficeIMO.Pdf manipulation source B"))
                 .Meta(title: "OfficeIMO.Pdf Manipulation Source B", author: "OfficeIMO")
                 .H1("Source B", PdfAlign.Left, PdfColor.FromRgb(15, 23, 42))
                 .Paragraph(p => p.Text("A second input document is merged into the final pack, then a stamp is applied to the combined output."))

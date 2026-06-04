@@ -11,7 +11,7 @@ public class PdfAIdentificationMetadataTests {
         var options = new PdfOptions()
             .SetPdfAIdentification(3, "b");
 
-        byte[] bytes = PdfDoc.Create(options)
+        byte[] bytes = PdfDocument.Create(options)
             .PdfAIdentification(3, "B")
             .Meta(title: "PDF/A identification primitive", author: "OfficeIMO")
             .Paragraph(p => p.Text("PDF/A identification metadata is groundwork, not certification."))
@@ -37,7 +37,7 @@ public class PdfAIdentificationMetadataTests {
             PdfAIdentification = new PdfAIdentification(2, "U")
         };
 
-        byte[] bytes = PdfDoc.Create(options)
+        byte[] bytes = PdfDocument.Create(options)
             .Paragraph(p => p.Text("PDF/A identification property proof."))
             .ToBytes();
 
@@ -66,7 +66,7 @@ public class PdfAIdentificationMetadataTests {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "pl-PL");
 
-        byte[] bytes = PdfDoc.Create()
+        byte[] bytes = PdfDocument.Create()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "en-GB")
             .Meta(title: "PDF/A groundwork bundle", author: "OfficeIMO")
             .Paragraph(p => p.Text("PDF/A groundwork bundle keeps formal profile generation disabled."))
@@ -105,7 +105,7 @@ public class PdfAIdentificationMetadataTests {
         var options = new PdfOptions()
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"));
 
-        byte[] bytes = PdfDoc.Create(options)
+        byte[] bytes = PdfDocument.Create(options)
             .ElectronicInvoiceMetadata("BASIC")
             .Meta(title: "E-invoice XMP primitive", author: "OfficeIMO")
             .Paragraph(p => p.Text("E-invoice metadata is groundwork, not certification."))
@@ -134,7 +134,7 @@ public class PdfAIdentificationMetadataTests {
         var options = new PdfOptions()
             .AddFacturXInvoiceXml(invoiceXml, "BASIC", relationship: PdfAssociatedFileRelationship.Alternative);
 
-        byte[] bytes = PdfDoc.Create()
+        byte[] bytes = PdfDocument.Create()
             .AttachFacturXInvoiceXml(invoiceXml, "EN 16931", relationship: PdfAssociatedFileRelationship.Data)
             .Meta(title: "E-invoice attachment primitive", author: "OfficeIMO")
             .Paragraph(p => p.Text("Factur-X/ZUGFeRD attachment metadata is groundwork, not certification."))
@@ -170,7 +170,7 @@ public class PdfAIdentificationMetadataTests {
         var options = new PdfOptions()
             .ConfigureFacturXGroundwork(invoiceXml, "EXTENDED");
 
-        byte[] bytes = PdfDoc.Create()
+        byte[] bytes = PdfDocument.Create()
             .ConfigureFacturXGroundwork(invoiceXml, "EN 16931")
             .Meta(title: "E-invoice groundwork bundle", author: "OfficeIMO")
             .Paragraph(p => p.Text("Factur-X/ZUGFeRD groundwork bundle keeps formal profile generation disabled."))
@@ -205,7 +205,7 @@ public class PdfAIdentificationMetadataTests {
         var options = new PdfOptions()
             .SetPdfUaIdentification(PdfUaIdentification.PdfUa1());
 
-        byte[] bytes = PdfDoc.Create(options)
+        byte[] bytes = PdfDocument.Create(options)
             .PdfUaIdentification()
             .Meta(title: "PDF/UA identification primitive", author: "OfficeIMO")
             .Paragraph(p => p.Text("PDF/UA identification metadata is groundwork, not certification."))
@@ -231,7 +231,7 @@ public class PdfAIdentificationMetadataTests {
             }
         }.ConfigurePdfUaGroundwork("pl-PL");
 
-        byte[] bytes = PdfDoc.Create()
+        byte[] bytes = PdfDocument.Create()
             .ConfigurePdfUaGroundwork("en-GB")
             .Meta(title: "PDF/UA groundwork bundle", author: "OfficeIMO")
             .Paragraph(p => p.Text("PDF/UA groundwork bundle keeps formal profile generation disabled."))
@@ -279,7 +279,7 @@ public class PdfAIdentificationMetadataTests {
         var options = new PdfOptions()
             .EnableTaggedPdfCatalogMarkers();
 
-        byte[] bytes = PdfDoc.Create(options)
+        byte[] bytes = PdfDocument.Create(options)
             .TaggedStructure(PdfTaggedStructureMode.CatalogMarkers)
             .Meta(title: "Tagged PDF marker primitive", author: "OfficeIMO")
             .Paragraph(p => p.Text("Tagged catalog markers are groundwork, not certification."))
@@ -333,7 +333,7 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void FormalComplianceProfilesStillFailClosedWhenPdfAIdentificationIsPresent() {
         var exception = Assert.Throws<NotSupportedException>(() =>
-            PdfDoc.Create(new PdfOptions()
+            PdfDocument.Create(new PdfOptions()
                     .SetPdfAIdentification(3, "B")
                     .RequireCompliance(PdfComplianceProfile.PdfA3B))
                 .Paragraph(p => p.Text("Identification alone is not PDF/A-3b support."))

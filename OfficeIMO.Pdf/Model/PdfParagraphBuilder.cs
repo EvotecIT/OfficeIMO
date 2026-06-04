@@ -86,7 +86,7 @@ public sealed class PdfParagraphBuilder {
     public PdfParagraphBuilder Link(string text, string uri, PdfColor? color = null, bool underline = true, string? contents = null) { _runs.Add(TextRun.Link(text, uri, color ?? _currentColor, underline, contents, _currentBaseline, _currentFontSize, _currentBackgroundColor, _currentFont)); return this; }
     /// <summary>Adds a hyperlink text run that points to a document bookmark.</summary>
     /// <param name="text">Link text.</param>
-    /// <param name="bookmarkName">Named destination created with <see cref="PdfDoc.Bookmark(string)"/>.</param>
+    /// <param name="bookmarkName">Named destination created with <see cref="PdfDocument.Bookmark(string)"/>.</param>
     /// <param name="color">Optional link color.</param>
     /// <param name="underline">Whether to underline the link text (default true).</param>
     /// <param name="contents">Optional link annotation contents; defaults to the link text when omitted.</param>

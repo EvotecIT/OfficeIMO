@@ -4,8 +4,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Builder for individual flow items (headings, paragraphs, tables, images).</summary>
 public class PdfItemCompose {
-    private readonly PdfDoc _doc;
-    internal PdfItemCompose(PdfDoc doc) { _doc = doc; }
+    private readonly PdfDocument _doc;
+    internal PdfItemCompose(PdfDocument doc) { _doc = doc; }
     /// <summary>Starts a new page.</summary>
     public PdfItemCompose PageBreak() { _doc.PageBreak(); return this; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>

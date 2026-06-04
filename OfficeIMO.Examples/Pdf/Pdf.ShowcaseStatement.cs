@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_ShowcaseStatement(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.Showcase.Statement.pdf");
 
-            PdfDoc.Create(new PdfOptions {
+            PdfDocument.Create(new PdfOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10.5,
                     DefaultTextColor = PdfColor.FromRgb(24, 31, 42),

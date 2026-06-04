@@ -4,7 +4,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (var pdf = PdfDocument.Open(pdfPath)) {
+            using (var pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
                 Assert.Contains("Footnote here1", allText);
                 Assert.Equal(1, pdf.NumberOfPages);
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (var pdf = PdfDocument.Open(pdfPath)) {
+            using (var pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
                 Assert.Contains("Native footnote here1", allText);
                 Assert.Contains("1 Native footnote text", Regex.Replace(allText, @"\s+", " "));
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (var pdf = PdfDocument.Open(pdfPath)) {
+            using (var pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
                 string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("Native footnote here1", allText);
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            using (var pdf = PdfDocument.Open(pdfPath)) {
+            using (var pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(p => p.Text));
                 string normalizedText = Regex.Replace(allText, @"\s+", " ");
                 Assert.Contains("First section note1", allText);

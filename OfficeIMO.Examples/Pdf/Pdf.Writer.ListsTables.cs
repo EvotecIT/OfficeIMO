@@ -45,7 +45,7 @@ namespace OfficeIMO.Examples.Pdf {
                 AutoFitColumns = false
             };
 
-            PdfDoc.Create(new PdfOptions {
+            PdfDocument.Create(new PdfOptions {
                     DefaultFont = PdfStandardFont.Helvetica,
                     DefaultFontSize = 10,
                     DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

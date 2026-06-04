@@ -3,7 +3,7 @@ using OfficeIMO.Word.Pdf;
 using System.IO;
 using System.Linq;
 using System.Text;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
                 Assert.Contains("Before native shapes", allText);
                 Assert.Contains("After native shapes", allText);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
                 Assert.Contains("Before native DrawingML shapes", allText);
                 Assert.Contains("After native DrawingML shapes", allText);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
                 Assert.Contains("Before remaining native DrawingML shapes", allText);
                 Assert.Contains("After remaining native DrawingML shapes", allText);
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 string allText = string.Concat(pdf.GetPages().Select(page => page.Text));
                 Assert.Contains("Before native text box", allText);
                 Assert.Contains("Native text box body", allText);

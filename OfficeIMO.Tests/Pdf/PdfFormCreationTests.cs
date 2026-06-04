@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text;
 using OfficeIMO.Pdf;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfFormCreationTests {
     [Fact]
     public void TextField_CreatesInspectableAcroFormField() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .Meta(title: "Generated form")
             .Paragraph(p => p.Text("Generated field:"))
             .TextField("Person.Name", width: 180, height: 24, value: "Ada Lovelace", spacingAfter: 12)
@@ -39,7 +39,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void TextField_CanBeFilledAndFlattened() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .TextField("Person.Name", width: 180, height: 24, value: "Original")
             .ToBytes();
 
@@ -57,7 +57,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void CheckBox_CreatesInspectableAcroFormField() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Generated checkbox:"))
             .CheckBox("AcceptTerms", isChecked: true, size: 16, spacingAfter: 12)
             .ToBytes();
@@ -89,7 +89,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void TableCellCheckBox_CreatesInspectableAcroFormFieldInsideCell() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .Table(new[] {
                 new[] {
                     PdfTableCell.WithCheckBoxes(
@@ -118,7 +118,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void TableCellCheckBox_RendersInlineWithSingleLineText() {
-        byte[] pdf = PdfDoc.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageSize = new PageSize(300, 180),
                 Margins = PageMargins.Uniform(24)
             })
@@ -133,7 +133,7 @@ public class PdfFormCreationTests {
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf);
         PdfFormWidget widget = Assert.Single(Assert.Single(info.FormFields).Widgets);
-        using var pdfDocument = PdfDocument.Open(new MemoryStream(pdf));
+        using var pdfDocument = PdfPigDocument.Open(new MemoryStream(pdf));
         var line = FindLine(pdfDocument.GetPage(1), "Table approval");
         double lineEndX = line.Max(letter => letter.EndBaseLine.X);
         double baselineY = line[0].StartBaseLine.Y;
@@ -146,7 +146,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void TableCellFormFields_CreateInspectableTextAndChoiceFieldsInsideCell() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .Table(new[] {
                 new[] {
                     PdfTableCell.WithFormFields(
@@ -181,7 +181,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void CheckBox_CanBeFilledAndFlattened() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .CheckBox("AcceptTerms")
             .ToBytes();
 
@@ -206,7 +206,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void RadioButtonGroup_CreatesInspectableAcroFormField() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Generated radio buttons:"))
             .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Cash", size: 16, gap: 5, spacingAfter: 12)
             .ToBytes();
@@ -220,7 +220,7 @@ public class PdfFormCreationTests {
         Assert.Contains("/Ff 49152", raw);
         Assert.Contains("/Kids [", raw);
         Assert.Contains("/V /Cash", raw);
-        using var pdfDocument = PdfDocument.Open(new MemoryStream(pdf));
+        using var pdfDocument = PdfPigDocument.Open(new MemoryStream(pdf));
         string pageText = pdfDocument.GetPage(1).Text;
         Assert.Contains("Card", pageText);
         Assert.Contains("Cash", pageText);
@@ -245,7 +245,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void RadioButtonGroup_CanBeFilledAndFlattened() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Card")
             .ToBytes();
 
@@ -271,7 +271,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void RadioButtonGroup_RejectsUnknownFillValue() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .RadioButtonGroup("Payment.Method", new[] { "Card", "Cash", "Wire" }, value: "Card")
             .ToBytes();
 
@@ -292,7 +292,7 @@ public class PdfFormCreationTests {
             MarkColor = PdfColor.FromRgb(22, 101, 52)
         };
 
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .TextField("Styled.Name", value: "Ada", style: style)
             .CheckBox("Styled.Accept", isChecked: true, style: style)
             .ChoiceField("Styled.Country", new[] { "Poland", "Germany" }, value: "Poland", style: style)
@@ -325,7 +325,7 @@ public class PdfFormCreationTests {
             return;
         }
 
-        byte[] pdf = PdfDoc.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .UseFontFamily("OfficeIMO Form Body Font", fontPath)
@@ -351,7 +351,7 @@ public class PdfFormCreationTests {
             MappingName = "accessible.field"
         };
 
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .TextField("Accessible.Name", value: "Ada", style: style)
             .CheckBox("Accessible.Accept", isChecked: true, style: style)
             .ChoiceField("Accessible.Country", new[] { "Poland", "Germany" }, value: "Poland", style: style)
@@ -375,7 +375,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void ChoiceField_CreatesInspectableAcroFormField() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Generated choice:"))
             .ChoiceField("Country", new[] { "Poland", "Germany", "United States" }, value: "Germany", width: 180, height: 24, spacingAfter: 12)
             .ToBytes();
@@ -407,7 +407,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void ChoiceField_CanBeFilledAndFlattened() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .ChoiceField("Country", new[] { "Poland", "Germany", "United States" }, value: "Poland")
             .ToBytes();
 
@@ -434,7 +434,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void MultiSelectChoiceField_CreatesInspectableAcroFormField() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .Paragraph(p => p.Text("Generated multi-select choice:"))
             .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Poland", "United States" }, width: 190, height: 72)
             .ToBytes();
@@ -464,7 +464,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void MultiSelectChoiceField_CanBeFilledAndFlattened() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Poland" })
             .ToBytes();
 
@@ -500,7 +500,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void MultiSelectChoiceField_WithSingleSelectedValueStoresArrayValue() {
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany" }, values: new[] { "Poland" })
             .ToBytes();
 
@@ -514,7 +514,7 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void ComposeRowsAndItems_CanPlaceGeneratedFormFields() {
-        byte[] pdf = PdfDoc.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
                 PageHeight = 320,
                 MarginLeft = 36,
@@ -579,45 +579,45 @@ public class PdfFormCreationTests {
 
     [Fact]
     public void GeneratedFields_ValidateFlowGeometry() {
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().TextField(" "));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().TextField("Name", width: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().TextField("Name", height: -1));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().TextField("Name", align: PdfAlign.Justify));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().CheckBox(" "));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().CheckBox("AcceptTerms", size: 0));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().CheckBox("AcceptTerms", align: PdfAlign.Justify));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().CheckBox("AcceptTerms", checkedValueName: " "));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().CheckBox("AcceptTerms", checkedValueName: "Off"));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().ChoiceField(" ", new[] { "One" }));
-        Assert.Throws<ArgumentNullException>(() => PdfDoc.Create().ChoiceField("Country", null!));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().ChoiceField("Country", Array.Empty<string>()));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One", "One" }));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One", " " }));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One" }, value: "Two"));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One" }, width: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One" }, height: -1));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().ChoiceField("Country", new[] { "One" }, align: PdfAlign.Justify));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", Array.Empty<string>()));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: Array.Empty<string>()));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "Two" }));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "One", "One" }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().MultiSelectChoiceField("Countries", new[] { "One" }, height: 0));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup(" ", new[] { "One" }));
-        Assert.Throws<ArgumentNullException>(() => PdfDoc.Create().RadioButtonGroup("Group", null!));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup("Group", Array.Empty<string>()));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One", "One" }));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One", " " }));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One", "Off" }));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One" }, value: "Two"));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "Y\u2713" }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One" }, size: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField(" "));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", width: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().TextField("Name", height: -1));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().TextField("Name", align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox(" "));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().CheckBox("AcceptTerms", size: 0));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", checkedValueName: " "));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().CheckBox("AcceptTerms", checkedValueName: "Off"));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField(" ", new[] { "One" }));
+        Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().ChoiceField("Country", null!));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One", "One" }));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One", " " }));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, value: "Two"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, width: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, height: -1));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().ChoiceField("Country", new[] { "One" }, align: PdfAlign.Justify));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "Two" }));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", new[] { "One" }, values: new[] { "One", "One" }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().MultiSelectChoiceField("Countries", new[] { "One" }, height: 0));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup(" ", new[] { "One" }));
+        Assert.Throws<ArgumentNullException>(() => PdfDocument.Create().RadioButtonGroup("Group", null!));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", Array.Empty<string>()));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One", "One" }));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One", " " }));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One", "Off" }));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, value: "Two"));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "Y\u2713" }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, size: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = -1 });
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { AlternateName = " " });
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { MappingName = " " });
 
-        Assert.Throws<ArgumentException>(() => PdfDoc.Create()
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create()
             .TextField("Email")
             .CheckBox("Email")
             .ToBytes());

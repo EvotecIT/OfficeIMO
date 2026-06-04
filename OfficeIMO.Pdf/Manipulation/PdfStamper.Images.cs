@@ -67,7 +67,7 @@ public static partial class PdfStamper {
 
         var effectiveOptions = options ?? new PdfImageStampOptions();
         ValidateImageOptions(effectiveOptions);
-        var imageInfo = PdfDoc.ValidateImageBytes(imageBytes);
+        var imageInfo = PdfDocument.ValidateImageBytes(imageBytes);
 
         if (!PdfWriter.TryBuildImageStream(
                 imageBytes,

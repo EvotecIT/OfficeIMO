@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using System.IO;
-using UglyToad.PdfPig;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 Assert.Equal(2, pdf.NumberOfPages);
                 Assert.Contains("Before native page break", pdf.GetPage(1).Text);
                 Assert.Contains("After native page break", pdf.GetPage(2).Text);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 Assert.Equal(2, pdf.NumberOfPages);
 
                 string page1Text = NormalizeNativePageNumberText(pdf.GetPage(1).Text);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            using PdfDocument pdf = PdfDocument.Open(pdfPath);
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
             Assert.Equal(4, pdf.NumberOfPages);
             string page3Text = NormalizeNativePageNumberText(pdf.GetPage(3).Text);
             string page4Text = NormalizeNativePageNumberText(pdf.GetPage(4).Text);
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            using PdfDocument pdf = PdfDocument.Open(pdfPath);
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
             Assert.Equal(4, pdf.NumberOfPages);
             string page1Text = NormalizeNativePageNumberText(pdf.GetPage(1).Text);
             string page3Text = NormalizeNativePageNumberText(pdf.GetPage(3).Text);
@@ -192,7 +192,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 Assert.Equal(2, pdf.NumberOfPages);
 
                 string page1Text = NormalizeNativePageNumberText(pdf.GetPage(1).Text);
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(File.Exists(pdfPath));
-            using (PdfDocument pdf = PdfDocument.Open(pdfPath)) {
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
                 Assert.Equal(2, pdf.NumberOfPages);
 
                 string page1Text = NormalizeNativePageNumberText(pdf.GetPage(1).Text);

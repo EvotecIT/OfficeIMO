@@ -13,7 +13,7 @@ public class PdfAttachmentExtractorTests {
         byte[] invoiceXml = Encoding.UTF8.GetBytes("<invoice>42</invoice>");
         byte[] sourceBytes = Encoding.UTF8.GetBytes("Source payload");
 
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .AttachFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML")
             .AttachFile("source.txt", sourceBytes, "text/plain", PdfAssociatedFileRelationship.Source)
             .Paragraph(p => p.Text("Attachment readback proof."))
@@ -49,7 +49,7 @@ public class PdfAttachmentExtractorTests {
 
     [Fact]
     public void GeneratedEmbeddedFileNameTreeSortsAttachmentNames() {
-        byte[] pdf = PdfDoc.Create(new PdfOptions {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
                 CompressContentStreams = false
             })
             .AttachFile("z.xml", Encoding.UTF8.GetBytes("<z />"), "application/xml", PdfAssociatedFileRelationship.Data)
@@ -95,7 +95,7 @@ public class PdfAttachmentExtractorTests {
     [Fact]
     public void ExtractAttachments_SupportsPathStreamAndDirectoryOutputs() {
         byte[] payload = Encoding.UTF8.GetBytes("directory payload");
-        byte[] pdf = PdfDoc.Create()
+        byte[] pdf = PdfDocument.Create()
             .AttachFile("payload.txt", payload, "text/plain", PdfAssociatedFileRelationship.Supplement)
             .Paragraph(p => p.Text("Directory extraction proof."))
             .ToBytes();

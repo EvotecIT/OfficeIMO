@@ -1,0 +1,139 @@
+using System;
+using System.IO;
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public partial class PdfReadStreamTests {
+    [Fact]
+    public void PdfReadDocument_Load_ReadsFromCurrentStreamPosition() {
+        byte[] pdf = BuildPdf();
+        using var stream = BuildPrefixedStream(pdf);
+        stream.Position = 5;
+
+        PdfReadDocument document = PdfReadDocument.Load(stream);
+
+        Assert.Single(document.Pages);
+        Assert.Equal("Stream read", document.Metadata.Title);
+        Assert.Contains("Stream readable text", document.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfTextExtractor_ExtractAllText_ReadsFromCurrentStreamPosition() {
+        byte[] pdf = BuildPdf();
+        using var stream = BuildPrefixedStream(pdf);
+        stream.Position = 5;
+
+        string text = PdfTextExtractor.ExtractAllText(stream);
+
+        Assert.Contains("Stream readable text", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfTextExtractor_GetMetadata_ReadsFromPathAndStream() {
+        byte[] pdf = BuildPdf();
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-read-stream-" + Guid.NewGuid().ToString("N") + ".pdf");
+
+        try {
+            File.WriteAllBytes(path, pdf);
+            using var stream = BuildPrefixedStream(pdf);
+            stream.Position = 5;
+
+            var fromPath = PdfTextExtractor.GetMetadata(path);
+            var fromStream = PdfTextExtractor.GetMetadata(stream);
+
+            Assert.Equal("Stream read", fromPath.Title);
+            Assert.Equal("OfficeIMO", fromPath.Author);
+            Assert.Equal(fromPath.Title, fromStream.Title);
+            Assert.Equal(fromPath.Author, fromStream.Author);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void ReadStreamApis_RejectNullAndUnreadableStreams() {
+        Assert.Throws<ArgumentNullException>(() => PdfReadDocument.Load((Stream)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractAllText((Stream)null!));
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.GetMetadata((Stream)null!));
+
+        using var unreadable = new WriteOnlyStream();
+
+        Assert.Throws<ArgumentException>(() => PdfReadDocument.Load(unreadable));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText(unreadable));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.GetMetadata(unreadable));
+    }
+
+    [Fact]
+    public void ReadPathApis_RejectNullAndWhitespacePaths() {
+        Assert.Throws<ArgumentNullException>(() => PdfReadDocument.Load((string)null!));
+        Assert.Throws<ArgumentException>(() => PdfReadDocument.Load(" "));
+
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractAllText((string)null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractAllText(" "));
+
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.ExtractTextByPage((string)null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.ExtractTextByPage(" "));
+
+        Assert.Throws<ArgumentNullException>(() => PdfTextExtractor.GetMetadata((string)null!));
+        Assert.Throws<ArgumentException>(() => PdfTextExtractor.GetMetadata(" "));
+
+        Assert.Throws<ArgumentNullException>(() => PdfImageExtractor.ExtractImages((string)null!));
+        Assert.Throws<ArgumentException>(() => PdfImageExtractor.ExtractImages(" "));
+    }
+
+    [Fact]
+    public void ReadApis_RejectEncryptedPdfsWithClearUnsupportedDiagnostic() {
+        byte[] encrypted = BuildEncryptedPdfMarker();
+
+        AssertEncrypted(() => PdfReadDocument.Load(encrypted));
+        AssertEncrypted(() => PdfTextExtractor.ExtractAllText(encrypted));
+        AssertEncrypted(() => PdfTextExtractor.GetMetadata(encrypted));
+        AssertEncrypted(() => PdfImageExtractor.ExtractImages(encrypted));
+        AssertEncrypted(() => PdfPageExtractor.ExtractPages(encrypted, 1));
+
+        static void AssertEncrypted(Action action) {
+            var exception = Assert.Throws<NotSupportedException>(action);
+            Assert.Contains("Encrypted PDF files are not supported by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void RewriteApis_RejectSignedPdfsWithClearUnsupportedDiagnostic() {
+        byte[] signed = BuildSignedPdfMarker();
+
+        AssertSigned(() => PdfPageExtractor.ExtractPages(signed, 1));
+        AssertSigned(() => PdfPageExtractor.SplitPages(signed));
+        AssertSigned(() => PdfPageEditor.DeletePages(signed, 1));
+        AssertSigned(() => PdfMetadataEditor.UpdateMetadata(signed, title: "Updated"));
+        AssertSigned(() => PdfMerger.Merge(signed));
+        AssertSigned(() => PdfStamper.StampText(signed, "STAMP"));
+
+        static void AssertSigned(Action action) {
+            var exception = Assert.Throws<NotSupportedException>(action);
+            Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void RewriteApis_RejectFormPdfsWithClearUnsupportedDiagnostic() {
+        byte[] form = BuildFormPdfMarker();
+
+        AssertForm(() => PdfPageExtractor.ExtractPages(form, 1));
+        AssertForm(() => PdfPageExtractor.SplitPages(form));
+        AssertForm(() => PdfPageEditor.DeletePages(form, 1));
+        AssertForm(() => PdfMetadataEditor.UpdateMetadata(form, title: "Updated"));
+        AssertForm(() => PdfMerger.Merge(form));
+        AssertForm(() => PdfStamper.StampText(form, "STAMP"));
+
+        static void AssertForm(Action action) {
+            var exception = Assert.Throws<NotSupportedException>(action);
+            Assert.Contains("PDF form fields are not supported for rewriting by OfficeIMO.Pdf yet.", exception.Message, StringComparison.Ordinal);
+        }
+    }
+
+
+}

@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Pdf {
                 ShowPageNumbers = true
             };
 
-            var doc = PdfDoc.Create(options)
+            var doc = PdfDocument.Create(options)
                 .Meta(title: "OfficeIMO.Pdf Styled Runs", author: "OfficeIMO")
                 .H1("Styled Runs", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
                 .Paragraph(p => p.Text("A compact visual sample for inline font style, color, underline, strike-through, and stateful run toggles."))

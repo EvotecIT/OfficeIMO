@@ -9,14 +9,14 @@ namespace OfficeIMO.Excel.Pdf {
         /// <summary>
         /// Converts an Excel workbook to a first-party OfficeIMO PDF document model.
         /// </summary>
-        public static PdfCore.PdfDoc ToPdfDocument(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
+        public static PdfCore.PdfDocument ToPdfDocument(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
             if (document == null) {
                 throw new ArgumentNullException(nameof(document));
             }
 
             options ??= new ExcelPdfSaveOptions();
             options.Warnings.Clear();
-            var pdf = PdfCore.PdfDoc.Create(CreatePdfOptions(options));
+            var pdf = PdfCore.PdfDocument.Create(CreatePdfOptions(options));
             using ExcelDocumentReader reader = document.CreateReader();
             IReadOnlyList<string> sheetNames = GetSheetNames(reader, options);
             bool hasExplicitSheetSelection = HasExplicitSheetSelection(options);
@@ -87,10 +87,32 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         /// <summary>
+        /// Attempts to save an Excel workbook as a PDF file and returns output diagnostics instead of throwing.
+        /// </summary>
+        public static PdfCore.PdfSaveResult TrySaveAsPdf(this ExcelDocument document, string path, ExcelPdfSaveOptions? options = null) {
+            try {
+                return document.ToPdfDocument(options).TrySave(path);
+            } catch (Exception ex) {
+                return PdfCore.PdfSaveResult.FromFailure(path, ex);
+            }
+        }
+
+        /// <summary>
         /// Writes an Excel workbook as PDF to a stream.
         /// </summary>
         public static void SaveAsPdf(this ExcelDocument document, Stream stream, ExcelPdfSaveOptions? options = null) {
             document.ToPdfDocument(options).Save(stream);
+        }
+
+        /// <summary>
+        /// Attempts to write an Excel workbook as PDF to a stream and returns output diagnostics instead of throwing.
+        /// </summary>
+        public static PdfCore.PdfSaveResult TrySaveAsPdf(this ExcelDocument document, Stream stream, ExcelPdfSaveOptions? options = null) {
+            try {
+                return document.ToPdfDocument(options).TrySave(stream);
+            } catch (Exception ex) {
+                return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
+            }
         }
 
     }
