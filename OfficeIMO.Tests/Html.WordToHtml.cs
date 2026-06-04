@@ -390,6 +390,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_DefaultCss_RoundTripUnderStrictCss() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Normal paragraph");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true });
+            var options = new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            };
+
+            using var roundTrip = html.LoadFromHtml(options);
+
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Normal paragraph", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void Test_WordToHtml_BulletType() {
             using var doc = WordDocument.Create();
             var list = doc.AddList(WordListStyle.Bulleted);

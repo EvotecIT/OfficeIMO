@@ -1,6 +1,8 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
+using System.Text;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -39,6 +41,7 @@ namespace OfficeIMO.Word.Html {
 
             WordList list = ordered ? CreateOrderedList() : CreateBulletedList();
             ApplyListStyle(list, ordered, listStyleType, typeAttr);
+            ApplyListIndentMetadata(list, element);
 
             if (ordered) {
                 int? startValue = null;
@@ -67,6 +70,7 @@ namespace OfficeIMO.Word.Html {
                         } else {
                             list = CreateOrderedList(allowContinue: false);
                             ApplyListStyle(list, ordered, listStyleType, typeAttr);
+                            ApplyListIndentMetadata(list, element);
                             list.SetStartNumberingValue(liValue);
                             listStack.Pop();
                             listStack.Push(list);
@@ -163,6 +167,7 @@ namespace OfficeIMO.Word.Html {
             if (token.Length >= 2 && ((token[0] == '\'' && token[token.Length - 1] == '\'') || (token[0] == '"' && token[token.Length - 1] == '"'))) {
                 token = token.Substring(1, token.Length - 2);
             }
+            token = DecodeCssStringToken(token);
             if (token.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
@@ -200,6 +205,63 @@ namespace OfficeIMO.Word.Html {
                 "em-dash" => "em-dash",
                 _ => null,
             };
+        }
+
+        private static string DecodeCssStringToken(string token) {
+            if (token.IndexOf('\\') < 0) {
+                return token;
+            }
+
+            var decoded = new StringBuilder(token.Length);
+            for (int i = 0; i < token.Length; i++) {
+                if (token[i] != '\\' || i + 1 >= token.Length) {
+                    decoded.Append(token[i]);
+                    continue;
+                }
+
+                var start = i + 1;
+                var end = start;
+                while (end < token.Length && end - start < 6 && Uri.IsHexDigit(token[end])) {
+                    end++;
+                }
+
+                if (end > start && int.TryParse(token.Substring(start, end - start), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var codePoint)) {
+                    decoded.Append(char.ConvertFromUtf32(codePoint));
+                    i = end - 1;
+                    if (i + 1 < token.Length && char.IsWhiteSpace(token[i + 1])) {
+                        i++;
+                    }
+                    continue;
+                }
+
+                decoded.Append(token[start]);
+                i = start;
+            }
+
+            return decoded.ToString();
+        }
+
+        private static void ApplyListIndentMetadata(WordList list, IElement element) {
+            if (list.Numbering.Levels.Count == 0) {
+                return;
+            }
+
+            var level = list.Numbering.Levels[0];
+            if (TryGetTwipsAttribute(element, "data-left-indent-twips", out var leftIndentTwips)) {
+                level.IndentationLeft = leftIndentTwips;
+            }
+
+            if (TryGetTwipsAttribute(element, "data-hanging-indent-twips", out var hangingIndentTwips)) {
+                level.IndentationHanging = hangingIndentTwips;
+            }
+        }
+
+        private static bool TryGetTwipsAttribute(IElement element, string name, out int value) {
+            value = 0;
+            var raw = element.GetAttribute(name);
+            return !string.IsNullOrWhiteSpace(raw)
+                && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out value)
+                && value >= 0;
         }
 
         private static void ApplyListStyle(WordList list, bool ordered, string? listStyleType, string? typeAttr) {

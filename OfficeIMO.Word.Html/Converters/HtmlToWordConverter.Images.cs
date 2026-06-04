@@ -440,7 +440,8 @@ namespace OfficeIMO.Word.Html {
             using var response = _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).GetAwaiter().GetResult();
             response.EnsureSuccessStatusCode();
             EnsureImageContentTypeAllowed(response.Content.Headers.ContentType?.MediaType, options);
-            var bytes = ReadContentWithLimit(response.Content, options.MaxImageBytes, token);
+            var readLimit = GetRemoteImageReadLimit(options);
+            var bytes = ReadContentWithLimit(response.Content, readLimit.Limit, readLimit.LimitedByTotalBudget, token);
             ReserveImageBytes(bytes.LongLength, options);
             return bytes;
         }
@@ -451,8 +452,30 @@ namespace OfficeIMO.Word.Html {
             return Encoding.UTF8.GetString(bytes);
         }
 
-        private static byte[] ReadContentWithLimit(HttpContent content, long? maxBytes, CancellationToken cancellationToken) {
+        private (long? Limit, bool LimitedByTotalBudget) GetRemoteImageReadLimit(HtmlToWordOptions options) {
+            long? limit = options.MaxImageBytes;
+            var limitedByTotalBudget = false;
+            if (options.MaxTotalImageBytes.HasValue) {
+                var remaining = options.MaxTotalImageBytes.Value - _imageBytesUsed;
+                if (remaining <= 0) {
+                    throw new HtmlResourceTotalLimitException($"Image resource budget is exhausted; limit is {options.MaxTotalImageBytes.Value} bytes.");
+                }
+
+                if (!limit.HasValue || remaining < limit.Value) {
+                    limit = remaining;
+                    limitedByTotalBudget = true;
+                }
+            }
+
+            return (limit, limitedByTotalBudget);
+        }
+
+        private static byte[] ReadContentWithLimit(HttpContent content, long? maxBytes, bool totalBudgetLimit, CancellationToken cancellationToken) {
             if (maxBytes.HasValue && content.Headers.ContentLength.HasValue && content.Headers.ContentLength.Value > maxBytes.Value) {
+                if (totalBudgetLimit) {
+                    throw new HtmlResourceTotalLimitException($"Resource length {content.Headers.ContentLength.Value} bytes exceeds remaining total image budget {maxBytes.Value} bytes.");
+                }
+
                 throw new HtmlResourceLimitException($"Resource length {content.Headers.ContentLength.Value} bytes exceeds limit {maxBytes.Value} bytes.");
             }
 
@@ -469,6 +492,10 @@ namespace OfficeIMO.Word.Html {
 
                 total += read;
                 if (maxBytes.HasValue && total > maxBytes.Value) {
+                    if (totalBudgetLimit) {
+                        throw new HtmlResourceTotalLimitException($"Resource length exceeded remaining total image budget {maxBytes.Value} bytes.");
+                    }
+
                     throw new HtmlResourceLimitException($"Resource length exceeded limit {maxBytes.Value} bytes.");
                 }
 

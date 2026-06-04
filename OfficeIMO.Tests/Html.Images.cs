@@ -210,6 +210,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_RemoteImageOverRemainingTotalMaxBytes_SkipsBeforeReadingBody() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ThrowIfReadContent(128)
+                };
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+                return Task.FromResult(response);
+            }));
+            string html = $"<img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" /><img src=\"https://example.test/too-large.png\" alt=\"Too large\" />";
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxTotalImageBytes = 80
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic =>
+                diagnostic.Code == "ImageResourceBudgetExceeded" &&
+                string.Equals(diagnostic.Source, "https://example.test/too-large.png", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageLoadFailed");
+        }
+
+        [Fact]
         public void HtmlToWord_DataImageOverMaxBytes_SkipsBeforeDecodeWithDiagnostic() {
             var data = Convert.ToBase64String(new byte[16]);
             string html = $"<img src=\"data:image/png;base64,{data}\" alt=\"Too large data\" />";
@@ -590,6 +615,23 @@ namespace OfficeIMO.Tests {
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
                 return _handler(request);
+            }
+        }
+
+        private sealed class ThrowIfReadContent : HttpContent {
+            private readonly long _length;
+
+            internal ThrowIfReadContent(long length) {
+                _length = length;
+            }
+
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) {
+                throw new InvalidOperationException("Content body should not be read when headers exceed the remaining image byte budget.");
+            }
+
+            protected override bool TryComputeLength(out long length) {
+                length = _length;
+                return true;
             }
         }
     }

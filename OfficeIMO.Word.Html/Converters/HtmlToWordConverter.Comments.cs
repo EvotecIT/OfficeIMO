@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using System.Globalization;
 using System.Threading;
 
 namespace OfficeIMO.Word.Html {
@@ -7,6 +8,7 @@ namespace OfficeIMO.Word.Html {
             public string Text { get; init; } = string.Empty;
             public string Author { get; init; } = string.Empty;
             public string Initials { get; init; } = string.Empty;
+            public DateTime? Date { get; init; }
             public List<HtmlCommentInfo> Replies { get; } = new();
         }
 
@@ -35,7 +37,8 @@ namespace OfficeIMO.Word.Html {
             var comment = new HtmlCommentInfo {
                 Text = textParagraph?.TextContent?.Trim() ?? item.TextContent?.Trim() ?? string.Empty,
                 Author = item.GetAttribute("data-author") ?? string.Empty,
-                Initials = item.GetAttribute("data-initials") ?? string.Empty
+                Initials = item.GetAttribute("data-initials") ?? string.Empty,
+                Date = TryParseCommentDate(item.GetAttribute("data-date"))
             };
 
             var repliesList = item.Children.FirstOrDefault(element =>
@@ -49,6 +52,18 @@ namespace OfficeIMO.Word.Html {
             }
 
             return comment;
+        }
+
+        private static DateTime? TryParseCommentDate(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            if (DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var date)) {
+                return date;
+            }
+
+            return null;
         }
 
         private bool TryProcessCommentAnchor(
@@ -69,8 +84,15 @@ namespace OfficeIMO.Word.Html {
             currentParagraph.AddComment(comment.Author, comment.Initials, comment.Text);
             var created = currentParagraph._document.Comments.LastOrDefault();
             if (created != null) {
+                if (comment.Date.HasValue) {
+                    created.DateTime = comment.Date.Value;
+                }
+
                 foreach (var reply in comment.Replies) {
-                    created.AddReply(reply.Author, reply.Initials, reply.Text);
+                    var createdReply = created.AddReply(reply.Author, reply.Initials, reply.Text);
+                    if (reply.Date.HasValue) {
+                        createdReply.DateTime = reply.Date.Value;
+                    }
                 }
             }
 

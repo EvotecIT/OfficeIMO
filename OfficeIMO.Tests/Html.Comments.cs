@@ -62,5 +62,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal("AR", reply.Initials);
             Assert.Equal("Reply note", reply.Text);
         }
+
+        [Fact]
+        public void WordToHtml_Comments_RoundTripPreservesDates() {
+            var commentDate = new DateTime(2026, 6, 4, 12, 34, 56, DateTimeKind.Utc);
+            var replyDate = new DateTime(2026, 6, 4, 13, 15, 0, DateTimeKind.Utc);
+            using var doc = WordDocument.Create();
+            var paragraph = doc.AddParagraph("Commented paragraph");
+            paragraph.AddComment("Jane Doe", "JD", "Review note");
+            var comment = Assert.Single(doc.Comments);
+            comment.DateTime = commentDate;
+            var reply = comment.AddReply("Alex Roe", "AR", "Reply note");
+            reply.DateTime = replyDate;
+
+            string html = doc.ToHtml(new WordToHtmlOptions { ExportComments = true });
+
+            using var roundTrip = html.LoadFromHtml();
+
+            var rootComment = Assert.Single(roundTrip.Comments, comment => string.IsNullOrEmpty(comment.ParentParaId));
+            var rootReply = Assert.Single(rootComment.Replies);
+            Assert.Equal(commentDate, rootComment.DateTime);
+            Assert.Equal(replyDate, rootReply.DateTime);
+        }
     }
 }

@@ -86,6 +86,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ListStyleType_DecodesExportedDashMarkerEscapes() {
+            string html = "<ul style=\"list-style-type:'\\2013'\"><li>One</li></ul><ul style=\"list-style-type:'\\2014'\"><li>Two</li></ul>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var listItems = doc.Paragraphs
+                .Where(p => p.IsListItem)
+                .GroupBy(p => p._paragraph)
+                .Select(group => group.First())
+                .ToList();
+            Assert.Equal(2, listItems.Count);
+            var first = DocumentTraversal.GetListInfo(listItems[0]);
+            var second = DocumentTraversal.GetListInfo(listItems[1]);
+            Assert.True(first.HasValue);
+            Assert.True(second.HasValue);
+            Assert.Equal("\u2013", first.Value.LevelText);
+            Assert.Equal("\u2014", second.Value.LevelText);
+        }
+
+        [Fact]
+        public void HtmlToWord_ListDefinitions_ApplyExportedIndentMetadata() {
+            string html = "<ol data-left-indent-twips=\"1440\" data-hanging-indent-twips=\"360\" style=\"list-style-type:decimal\"><li>One</li></ol>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var first = doc.Paragraphs.First(p => p.IsListItem);
+            var info = DocumentTraversal.GetListInfo(first);
+            Assert.True(info.HasValue);
+            Assert.Equal(1440, info.Value.LeftIndentTwips);
+            Assert.Equal(360, info.Value.HangingIndentTwips);
+        }
+
+        [Fact]
         public void HtmlToWord_MarkdownTaskList_CheckboxInputsBecomeWordControls() {
             string html = "<ul class=\"contains-task-list\"><li class=\"task-list-item\"><input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled checked>Done</li><li class=\"task-list-item\"><input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled /> Open</li></ul>";
 

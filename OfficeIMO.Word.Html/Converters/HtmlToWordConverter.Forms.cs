@@ -50,8 +50,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private void ProcessSelect(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
-            var optionsList = element.Children
-                .Where(child => string.Equals(child.TagName, "option", StringComparison.OrdinalIgnoreCase))
+            var optionsList = element.QuerySelectorAll("option")
                 .Select(option => new {
                     Text = GetOptionText(option),
                     Selected = option.HasAttribute("selected")
@@ -154,8 +153,7 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            options = dataList.Children
-                .Where(child => string.Equals(child.TagName, "option", StringComparison.OrdinalIgnoreCase))
+            options = dataList.QuerySelectorAll("option")
                 .Select(GetOptionText)
                 .ToList();
 

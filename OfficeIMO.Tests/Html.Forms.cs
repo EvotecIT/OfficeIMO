@@ -44,6 +44,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_Select_ImportsOptGroupOptions() {
+            const string html = "<p>Region <select data-tag=\"region\"><optgroup label=\"Europe\"><option>Poland</option><option selected>Germany</option></optgroup><option>Global</option></select></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(new[] { "Poland", "Germany", "Global" }, dropDown.Items.ToArray());
+            Assert.Equal("Germany", dropDown.SelectedValue);
+            Assert.Equal("region", dropDown.Tag);
+        }
+
+        [Fact]
         public void HtmlToWord_TextInputWithDatalist_BecomesComboBox() {
             const string html = "<p>Contact <input type=\"text\" list=\"word-combo-1\" data-tag=\"contact-method\" aria-label=\"Contact method\" value=\"Phone\"><datalist id=\"word-combo-1\"><option value=\"Email\"></option><option value=\"Phone\"></option></datalist></p>";
 
