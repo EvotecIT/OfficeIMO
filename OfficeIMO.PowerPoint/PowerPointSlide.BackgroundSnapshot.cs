@@ -38,7 +38,8 @@ namespace OfficeIMO.PowerPoint {
 
             A.GradientFill? gradientFill = properties.GetFirstChild<A.GradientFill>();
             if (gradientFill != null) {
-                return GetBackgroundGradient(gradientFill);
+                A.ColorScheme? colorScheme = GetThemePart(ownerPart ?? _slidePart)?.Theme?.ThemeElements?.ColorScheme;
+                return GetBackgroundGradient(gradientFill, colorScheme, placeholderColor: null);
             }
 
             return PowerPointSlideBackground.Unsupported("The slide background fill type is not currently supported by OfficeIMO exporters.");
@@ -321,7 +322,7 @@ namespace OfficeIMO.PowerPoint {
             return Math.Min(0.999999D, Math.Max(0D, value.Value / 100000D));
         }
 
-        private static PowerPointSlideBackground GetBackgroundGradient(A.GradientFill gradientFill) {
+        private static PowerPointSlideBackground GetBackgroundGradient(A.GradientFill gradientFill, A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor) {
             A.GradientStop[] stops = gradientFill.GetFirstChild<A.GradientStopList>()?
                 .Elements<A.GradientStop>()
                 .OrderBy(stop => stop.Position?.Value ?? 0)
@@ -331,14 +332,33 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient has fewer than two stops.");
             }
 
-            string? startColor = stops[0].GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
-            string? endColor = stops[stops.Length - 1].GetFirstChild<A.RgbColorModelHex>()?.Val?.Value;
+            string? startColor = ResolveGradientStopColor(stops[0], colorScheme, placeholderColor);
+            string? endColor = ResolveGradientStopColor(stops[stops.Length - 1], colorScheme, placeholderColor);
             if (string.IsNullOrWhiteSpace(startColor) || string.IsNullOrWhiteSpace(endColor)) {
-                return PowerPointSlideBackground.Unsupported("The slide background gradient uses non-RGB theme or scheme colors that are not yet resolved.");
+                return PowerPointSlideBackground.Unsupported("The slide background gradient uses colors that could not be resolved.");
             }
 
             double angleDegrees = (gradientFill.GetFirstChild<A.LinearGradientFill>()?.Angle?.Value ?? 0) / 60000D;
             return PowerPointSlideBackground.LinearGradient(startColor!, endColor!, angleDegrees);
+        }
+
+        private static string? ResolveGradientStopColor(A.GradientStop stop, A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor) {
+            A.RgbColorModelHex? rgbColor = stop.GetFirstChild<A.RgbColorModelHex>();
+            string? rgbValue = rgbColor?.Val?.Value;
+            if (!string.IsNullOrWhiteSpace(rgbValue)) {
+                return ApplyColorTransforms(rgbValue, rgbColor);
+            }
+
+            A.SchemeColor? schemeColor = stop.GetFirstChild<A.SchemeColor>();
+            string? scheme = GetSchemeColorValue(schemeColor);
+            if (IsPlaceholderSchemeColor(scheme)) {
+                string? placeholderScheme = GetSchemeColorValue(placeholderColor);
+                string? placeholderResolvedColor = ResolveSchemeColor(colorScheme, placeholderScheme);
+                placeholderResolvedColor = ApplyColorTransforms(placeholderResolvedColor, placeholderColor);
+                return ApplyColorTransforms(placeholderResolvedColor, schemeColor);
+            }
+
+            return ApplyColorTransforms(ResolveSchemeColor(colorScheme, scheme), schemeColor);
         }
     }
 }

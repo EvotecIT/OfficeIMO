@@ -16,12 +16,24 @@ namespace OfficeIMO.PowerPoint {
 
             SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
             SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
+            List<PowerPointShape> layoutShapes = CreateInheritedShapes(layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree, layoutPart);
+            IReadOnlyList<PowerPointShape> slideShapes = Shapes;
 
             if (ShowsMasterShapes(layoutPart?.SlideLayout?.CommonSlideData)) {
-                AddInheritedShapes(masterPart?.SlideMaster?.CommonSlideData?.ShapeTree, masterPart, shapes);
+                foreach (PowerPointShape masterShape in CreateInheritedShapes(masterPart?.SlideMaster?.CommonSlideData?.ShapeTree, masterPart)) {
+                    if (!IsPlaceholderOverridden(masterShape, layoutShapes) &&
+                        !IsPlaceholderOverridden(masterShape, slideShapes)) {
+                        shapes.Add(masterShape);
+                    }
+                }
             }
 
-            AddInheritedShapes(layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree, layoutPart, shapes);
+            foreach (PowerPointShape layoutShape in layoutShapes) {
+                if (!IsPlaceholderOverridden(layoutShape, slideShapes)) {
+                    shapes.Add(layoutShape);
+                }
+            }
+
             return shapes;
         }
 
@@ -43,9 +55,10 @@ namespace OfficeIMO.PowerPoint {
                 value?.Equals("true", System.StringComparison.OrdinalIgnoreCase) == true;
         }
 
-        private void AddInheritedShapes(ShapeTree? tree, OpenXmlPartContainer? ownerPart, List<PowerPointShape> shapes) {
+        private List<PowerPointShape> CreateInheritedShapes(ShapeTree? tree, OpenXmlPartContainer? ownerPart) {
+            var shapes = new List<PowerPointShape>();
             if (tree == null || ownerPart == null) {
-                return;
+                return shapes;
             }
 
             foreach (OpenXmlElement element in tree.ChildElements) {
@@ -54,6 +67,40 @@ namespace OfficeIMO.PowerPoint {
                     shapes.Add(shape.AttachTo(this));
                 }
             }
+
+            return shapes;
+        }
+
+        private static bool IsPlaceholderOverridden(PowerPointShape inheritedShape, IReadOnlyList<PowerPointShape> overridingShapes) {
+            if (!TryGetPlaceholderSignature(inheritedShape, out PlaceholderValues? inheritedType, out uint? inheritedIndex)) {
+                return false;
+            }
+
+            foreach (PowerPointShape overridingShape in overridingShapes) {
+                if (TryGetPlaceholderSignature(overridingShape, out PlaceholderValues? overridingType, out uint? overridingIndex) &&
+                    PlaceholderSignaturesMatch(inheritedType, inheritedIndex, overridingType, overridingIndex)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetPlaceholderSignature(PowerPointShape shape, out PlaceholderValues? type, out uint? index) {
+            type = shape.ShapePlaceholderType;
+            index = shape.ShapePlaceholderIndex;
+            return type.HasValue || index.HasValue;
+        }
+
+        private static bool PlaceholderSignaturesMatch(PlaceholderValues? inheritedType, uint? inheritedIndex, PlaceholderValues? overridingType, uint? overridingIndex) {
+            if (inheritedIndex.HasValue && overridingIndex.HasValue) {
+                return inheritedIndex.Value == overridingIndex.Value &&
+                    (!inheritedType.HasValue || !overridingType.HasValue || inheritedType.Value == overridingType.Value);
+            }
+
+            return inheritedType.HasValue &&
+                overridingType.HasValue &&
+                inheritedType.Value == overridingType.Value;
         }
     }
 }

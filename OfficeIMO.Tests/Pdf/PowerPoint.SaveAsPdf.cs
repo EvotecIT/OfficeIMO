@@ -191,6 +191,34 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesThemeGradientBackgroundStops() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeColor(PowerPointThemeColor.Accent1, "123456");
+        presentation.SetThemeColor(PowerPointThemeColor.Accent2, "654321");
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundProperties(
+                new GradientFill(
+                    new GradientStopList(
+                        new GradientStop(new SchemeColor { Val = SchemeColorValues.Accent1 }) { Position = 0 },
+                        new GradientStop(
+                            new SchemeColor(
+                                new LuminanceModulation { Val = 50000 }) { Val = SchemeColorValues.Accent2 }) { Position = 100000 }),
+                    new LinearGradientFill { Angle = 5400000 })));
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/SH1 sh", raw, StringComparison.Ordinal);
+        Assert.Contains("/Shading", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_RendersImageSlideBackground() {
         string imagePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".png");
         try {
@@ -364,6 +392,41 @@ public class PowerPointSaveAsPdfTests {
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("16 130 50 10 re", raw, StringComparison.Ordinal);
         Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_SkipsOverriddenInheritedPlaceholders() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        ShapeTree layoutTree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        layoutTree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 701U, Name = "Layout Title" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+                new ApplicationNonVisualDrawingProperties(
+                    new PlaceholderShape { Type = PlaceholderValues.Title, Index = 0U })),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(20), Y = PowerPointUnits.FromPoints(20) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(160), Cy = PowerPointUnits.FromPoints(34) })),
+            new DocumentFormat.OpenXml.Presentation.TextBody(
+                new BodyProperties(),
+                new ListStyle(),
+                new Paragraph(new Run(new DocumentFormat.OpenXml.Drawing.Text("Layout Prompt"))))));
+        layoutPart.SlideLayout.Save();
+        PowerPointTextBox title = slide.AddTextBoxPoints("Actual Title", 20, 20, 160, 34);
+        title.PlaceholderType = PlaceholderValues.Title;
+        title.PlaceholderIndex = 0U;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual Title", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Layout Prompt", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -667,6 +730,33 @@ public class PowerPointSaveAsPdfTests {
         string text = string.Join("", page.Letters.Select(letter => letter.Value));
         Assert.Contains("* Item", text, StringComparison.Ordinal);
         Assert.True(FindWordStartX(page, "Heading") > FindWordStartX(page, "Item") + 20D, "Expected centered heading text to start to the right of the left-aligned bullet item.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTextBoxLineBreaks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints(string.Empty, 30, 32, 160, 96);
+        textBox.FillTransparency = 100;
+        textBox.OutlineColor = null;
+        textBox.FontSize = 12;
+        textBox.SetParagraphs(new[] { string.Empty });
+        DocumentFormat.OpenXml.Drawing.Paragraph paragraph = textBox.Paragraphs[0].Paragraph;
+        paragraph.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.Run>();
+        paragraph.Append(
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("First")),
+            new DocumentFormat.OpenXml.Drawing.Break(),
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Second")));
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        double firstY = FindWordStartY(page, "First");
+        double secondY = FindWordStartY(page, "Second");
+
+        Assert.True(firstY > secondY, "Expected an explicit PowerPoint text box line break to render the following run on a lower line.");
     }
 
     [Fact]

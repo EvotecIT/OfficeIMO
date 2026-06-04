@@ -503,13 +503,40 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         IReadOnlyList<PptCore.PowerPointTextRun> paragraphRuns = paragraph.Runs;
-        if (paragraphRuns.Count == 0) {
+        if (paragraphRuns.Count == 0 && !paragraph.Paragraph.ChildElements.Any(child => child is A.Break or A.Field)) {
             runs.Add(new PdfCore.TextRun(paragraph.Text));
             return runs;
         }
 
-        foreach (PptCore.PowerPointTextRun run in paragraphRuns) {
-            runs.Add(CreateTextRun(run, textBox, slideNumber, options));
+        int runIndex = 0;
+        bool hasInlineContent = false;
+        foreach (OpenXmlElement child in paragraph.Paragraph.ChildElements) {
+            switch (child) {
+                case A.Run:
+                    if (runIndex < paragraphRuns.Count) {
+                        runs.Add(CreateTextRun(paragraphRuns[runIndex], textBox, slideNumber, options));
+                        hasInlineContent = true;
+                    }
+
+                    runIndex++;
+                    break;
+                case A.Break:
+                    runs.Add(PdfCore.TextRun.LineBreak());
+                    hasInlineContent = true;
+                    break;
+                case A.Field field:
+                    string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
+                    if (!string.IsNullOrEmpty(fieldText)) {
+                        runs.Add(PdfCore.TextRun.Normal(fieldText, ParsePdfColor(textBox.Color), textBox.FontSize, font: MapFont(textBox.FontName)));
+                        hasInlineContent = true;
+                    }
+
+                    break;
+            }
+        }
+
+        if (!hasInlineContent) {
+            runs.Add(new PdfCore.TextRun(paragraph.Text));
         }
 
         return runs;
