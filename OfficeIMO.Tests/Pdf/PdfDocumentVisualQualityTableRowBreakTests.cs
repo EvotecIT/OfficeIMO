@@ -56,6 +56,47 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void Table_SplitRowsUseMeasuredRichLineHeights() {
+        var options = new PdfOptions {
+            PageWidth = 360,
+            PageHeight = 180,
+            MarginLeft = 30,
+            MarginRight = 30,
+            MarginTop = 30,
+            MarginBottom = 30,
+            DefaultFont = PdfStandardFont.Helvetica,
+            DefaultFontSize = 9
+        };
+        var style = TableStyles.Minimal();
+        style.ColumnWidthPoints = new List<double?> { 70, null };
+
+        var richRuns = new[] {
+            TextRun.Normal(string.Join(" ", Enumerable.Range(1, 30).Select(i => "large" + i.ToString("00", CultureInfo.InvariantCulture))), fontSize: 22)
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Table(new[] {
+                new[] { PdfTableCell.TextCell("Type"), PdfTableCell.TextCell("Description") },
+                new[] { PdfTableCell.TextCell("Finding"), PdfTableCell.RichTextCell(richRuns) }
+            }, style: style)
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.True(pdf.NumberOfPages > 1, "Expected the rich table row to split across pages.");
+
+        for (int pageNumber = 1; pageNumber <= pdf.NumberOfPages; pageNumber++) {
+            var page = pdf.GetPage(pageNumber);
+            double bottomMost = page.Letters
+                .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+                .Min(letter => letter.StartBaseLine.Y);
+            Assert.True(bottomMost >= options.MarginBottom - 2, $"Expected split rich table row text to stay above the bottom margin on page {pageNumber}.");
+        }
+
+        Assert.Contains("large01", pdf.GetPage(1).Text);
+        Assert.Contains("large30", pdf.GetPage(pdf.NumberOfPages).Text);
+    }
+
+    [Fact]
     public void RowColumnTable_SplitsSingleTallRowsAcrossPages() {
         var options = new PdfOptions {
             PageWidth = 360,

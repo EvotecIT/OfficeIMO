@@ -1,0 +1,1427 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Drawing;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Presentation;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
+using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.Pdf;
+using PdfCore = OfficeIMO.Pdf;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public class PowerPointSaveAsPdfTests {
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_MapsSlideSizeTextShapeAndPictureToCanvasPdf() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 180);
+        PowerPointSlide slide = presentation.Slides[0];
+
+        PowerPointAutoShape panel = slide.AddRectanglePoints(20, 24, 120, 48);
+        panel.FillColor = "EAF4FF";
+        panel.OutlineColor = "1E5A96";
+        panel.OutlineWidthPoints = 1.5D;
+
+        PowerPointTextBox textBox = slide.AddTextBoxPoints("Premium Slide", 32, 36, 150, 36);
+        textBox.FillColor = "FFFFFF";
+        textBox.OutlineColor = "94A3B8";
+        textBox.FontSize = 14;
+        textBox.Color = "123456";
+        textBox.Rotation = 0D;
+
+        slide.AddPicture(new MemoryStream(CreateMinimalRgbPng()), OfficeIMO.PowerPoint.ImagePartType.Png, PowerPointUnits.FromPoints(210), PowerPointUnits.FromPoints(42), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(30));
+
+        byte[] bytes = presentation.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+
+        Assert.Equal(1, info.PageCount);
+        PdfCore.PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal(320D, page.Width);
+        Assert.Equal(180D, page.Height);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Premium Slide", text, StringComparison.Ordinal);
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 108 120 48 re", raw, StringComparison.Ordinal);
+        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTextRunHyperlinks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints(string.Empty, 24, 32, 150, 38);
+        textBox.SetParagraphs(new[] { string.Empty });
+        PowerPointTextRun run = textBox.Paragraphs[0].AddRun("OfficeIMO");
+        run.SetHyperlink("https://officeimo.net/");
+
+        byte[] bytes = presentation.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+
+        Assert.Equal(new[] { "https://officeimo.net/" }, info.LinkUris);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_MapsTextBoxVerticalAlignmentToSharedCanvasTextBox() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(360, 200);
+        PowerPointSlide slide = presentation.Slides[0];
+
+        PowerPointTextBox top = slide.AddTextBoxPoints("TopPpt", 20, 30, 90, 90);
+        top.TextVerticalAlignment = TextAnchoringTypeValues.Top;
+        top.FontSize = 10;
+        top.FillColor = "FFFFFF";
+        top.FillTransparency = 100;
+
+        PowerPointTextBox middle = slide.AddTextBoxPoints("MiddlePpt", 130, 30, 90, 90);
+        middle.TextVerticalAlignment = TextAnchoringTypeValues.Center;
+        middle.FontSize = 10;
+        middle.FillColor = "FFFFFF";
+        middle.FillTransparency = 100;
+
+        PowerPointTextBox bottom = slide.AddTextBoxPoints("BottomPpt", 240, 30, 90, 90);
+        bottom.TextVerticalAlignment = TextAnchoringTypeValues.Bottom;
+        bottom.FontSize = 10;
+        bottom.FillColor = "FFFFFF";
+        bottom.FillTransparency = 100;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        double topY = FindWordStartY(page, "TopPpt");
+        double middleY = FindWordStartY(page, "MiddlePpt");
+        double bottomY = FindWordStartY(page, "BottomPpt");
+
+        Assert.True(topY > middleY + 30D, $"Expected PowerPoint center-anchored text to render lower than top-anchored text. Top: {topY:0.##}, middle: {middleY:0.##}.");
+        Assert.True(middleY > bottomY + 30D, $"Expected PowerPoint bottom-anchored text to render lower than center-anchored text. Middle: {middleY:0.##}, bottom: {bottomY:0.##}.");
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_WarnsForUnsupportedShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.Slides[0].AddShape(ShapeTypeValues.Triangle, PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(20), PowerPointUnits.FromPoints(50), PowerPointUnits.FromPoints(40));
+        var options = new PowerPointPdfSaveOptions();
+
+        presentation.ToPdfDocument(options).ToBytes();
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
+        Assert.Equal(1, warning.SlideNumber);
+        Assert.Equal("unsupported-auto-shape", warning.Code);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ClipsPartiallyOffSlideShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointAutoShape shape = presentation.Slides[0].AddRectanglePoints(-12, 20, 48, 30);
+        shape.FillColor = "1E5A96";
+        shape.OutlineColor = "1E5A96";
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0 110 36 30 re W", raw, StringComparison.Ordinal);
+        Assert.Contains("-12 110 48 30 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_DegradesTinyTextBoxMarginsInsteadOfThrowing() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(160, 100);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints("Tiny", 20, 20, 6, 6);
+        textBox.FillTransparency = 100;
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
+        Assert.Equal("text-box-padding", warning.Code);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersSolidSlideBackground() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.Slides[0].BackgroundColor = "112233";
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0 240 160 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersGradientSlideBackground() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.Slides[0].SetBackgroundGradient("112233", "445566", 45D);
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/SH1 sh", raw, StringComparison.Ordinal);
+        Assert.Contains("/Shading", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesThemeGradientBackgroundStops() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeColor(PowerPointThemeColor.Accent1, "123456");
+        presentation.SetThemeColor(PowerPointThemeColor.Accent2, "654321");
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundProperties(
+                new GradientFill(
+                    new GradientStopList(
+                        new GradientStop(new SchemeColor { Val = SchemeColorValues.Accent1 }) { Position = 0 },
+                        new GradientStop(
+                            new SchemeColor(
+                                new LuminanceModulation { Val = 50000 }) { Val = SchemeColorValues.Accent2 }) { Position = 100000 }),
+                    new LinearGradientFill { Angle = 5400000 })));
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/SH1 sh", raw, StringComparison.Ordinal);
+        Assert.Contains("/Shading", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersImageSlideBackground() {
+        string imagePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".png");
+        try {
+            File.WriteAllBytes(imagePath, CreateMinimalRgbPng());
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(240, 160);
+            presentation.Slides[0].SetBackgroundImage(imagePath);
+            var options = new PowerPointPdfSaveOptions();
+
+            byte[] bytes = presentation.SaveAsPdf(options);
+
+            Assert.Empty(options.Warnings);
+            string raw = Encoding.ASCII.GetString(bytes);
+            Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
+            Assert.Contains("240 0 0 160 0 0 cm", raw, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(imagePath)) {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesInheritedLayoutBackground() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        layoutPart.SlideLayout.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+        layoutPart.SlideLayout.CommonSlideData.Background = new Background(
+            new BackgroundProperties(
+                new SolidFill(new RgbColorModelHex { Val = "112233" })));
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesThemeBackgroundStyleReference() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeColor(PowerPointThemeColor.Light1, "123456");
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundStyleReference(
+                new SchemeColor { Val = SchemeColorValues.Background1 }) { Index = 1001U });
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.071 0.204 0.337 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesDirectSchemeColorBackground() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeColor(PowerPointThemeColor.Light2, "654321");
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundProperties(
+                new SolidFill(new SchemeColor { Val = SchemeColorValues.Background2 })));
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.396 0.263 0.129 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesDirectSchemeColorBackgroundTransforms() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeColor(PowerPointThemeColor.Light2, "654321");
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundProperties(
+                new SolidFill(
+                    new SchemeColor(
+                        new LuminanceModulation { Val = 50000 }) { Val = SchemeColorValues.Background2 })));
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.196 0.133 0.063 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesDirectRgbBackgroundTransforms() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundProperties(
+                new SolidFill(
+                    new RgbColorModelHex(
+                        new LuminanceModulation { Val = 50000 }) { Val = "654321" })));
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.196 0.133 0.063 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_SkipsHiddenSlidesByDefault() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide visibleSlide = presentation.AddSlide();
+        PowerPointAutoShape visible = visibleSlide.AddRectanglePoints(20, 24, 50, 20);
+        visible.FillColor = "00AA00";
+        PowerPointSlide hidden = presentation.AddSlide();
+        hidden.Hidden = true;
+        PowerPointAutoShape hiddenShape = hidden.AddRectanglePoints(120, 24, 50, 20);
+        hiddenShape.FillColor = "FF0000";
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 116 50 20 re", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("120 116 50 20 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 700U, Name = "Layout Rule" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+                new ApplicationNonVisualDrawingProperties()),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(16), Y = PowerPointUnits.FromPoints(20) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(50), Cy = PowerPointUnits.FromPoints(10) }),
+                new PresetGeometry(new AdjustValueList()) { Preset = ShapeTypeValues.Rectangle },
+                new SolidFill(new RgbColorModelHex { Val = "00AA00" }))));
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("16 130 50 10 re", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_SkipsOverriddenInheritedPlaceholders() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        ShapeTree layoutTree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        layoutTree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 701U, Name = "Layout Title" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+                new ApplicationNonVisualDrawingProperties(
+                    new PlaceholderShape { Type = PlaceholderValues.Title, Index = 0U })),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(20), Y = PowerPointUnits.FromPoints(20) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(160), Cy = PowerPointUnits.FromPoints(34) })),
+            new DocumentFormat.OpenXml.Presentation.TextBody(
+                new BodyProperties(),
+                new ListStyle(),
+                new Paragraph(new Run(new DocumentFormat.OpenXml.Drawing.Text("Layout Prompt"))))));
+        layoutPart.SlideLayout.Save();
+        PowerPointTextBox title = slide.AddTextBoxPoints("Actual Title", 20, 20, 160, 34);
+        title.PlaceholderType = PlaceholderValues.Title;
+        title.PlaceholderIndex = 0U;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual Title", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Layout Prompt", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersGroupedSlideShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
+        first.FillColor = "FF0000";
+        PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
+        second.FillColor = "00AA00";
+        slide.GroupShapes(new PowerPointShape[] { first, second });
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 120 30 20 re", raw, StringComparison.Ordinal);
+        Assert.Contains("60 120 30 20 re", raw, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesGroupTransformToChildShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
+        first.FillColor = "FF0000";
+        PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
+        second.FillColor = "00AA00";
+        slide.GroupShapes(new PowerPointShape[] { first, second });
+        DocumentFormat.OpenXml.Presentation.GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.GroupShape>()
+            .Single();
+        TransformGroup transform = group.GroupShapeProperties!.TransformGroup!;
+        transform.Extents!.Cx = PowerPointUnits.FromPoints(140);
+        transform.Extents.Cy = PowerPointUnits.FromPoints(40);
+        transform.ChildExtents!.Cx = PowerPointUnits.FromPoints(70);
+        transform.ChildExtents.Cy = PowerPointUnits.FromPoints(20);
+        slide.SlidePart.Slide.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 100 60 40 re", raw, StringComparison.Ordinal);
+        Assert.Contains("100 100 60 40 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesInheritedLayoutTextBoxHyperlinks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        HyperlinkRelationship rel = layoutPart.AddHyperlinkRelationship(new Uri("https://officeimo.net/layout"), true);
+        ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 701U, Name = "Layout Link" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(new ShapeLocks { NoGrouping = true }),
+                new ApplicationNonVisualDrawingProperties()),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(24), Y = PowerPointUnits.FromPoints(32) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(150), Cy = PowerPointUnits.FromPoints(36) }),
+                new PresetGeometry(new AdjustValueList()) { Preset = ShapeTypeValues.Rectangle }),
+            new DocumentFormat.OpenXml.Presentation.TextBody(
+                new BodyProperties(),
+                new ListStyle(),
+                new Paragraph(
+                    new Run(
+                        new RunProperties(new HyperlinkOnClick { Id = rel.Id }),
+                        new DocumentFormat.OpenXml.Drawing.Text("Layout Link"))))));
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+
+        Assert.Equal(new[] { "https://officeimo.net/layout" }, info.LinkUris);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersTextBearingAutoShapeGeometry() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointTextBox textBox = slide.AddTextBoxPoints("Rounded Label", 30, 40, 100, 36);
+        textBox.FillColor = "FDE68A";
+        textBox.OutlineColor = "92400E";
+        textBox.FontSize = 12;
+        var shape = (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element;
+        shape.ShapeProperties!.GetFirstChild<PresetGeometry>()!.Preset = ShapeTypeValues.RoundRectangle;
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("Rounded Label", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains(" c", raw, StringComparison.Ordinal);
+        Assert.Contains("0.992 0.902 0.541 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_HonorsDisabledInheritedLayoutShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.SetAttribute(new OpenXmlAttribute("showMasterSp", string.Empty, "0"));
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 701U, Name = "Hidden Layout Rule" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+                new ApplicationNonVisualDrawingProperties()),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(16), Y = PowerPointUnits.FromPoints(20) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(50), Cy = PowerPointUnits.FromPoints(10) }),
+                new PresetGeometry(new AdjustValueList()) { Preset = ShapeTypeValues.Rectangle },
+                new SolidFill(new RgbColorModelHex { Val = "00AA00" }))));
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.DoesNotContain("16 130 50 10 re", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesSlidePlaceholderBoundsFromLayout() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SetLayout(SlideLayoutValues.Text);
+        slide.AddTextBoxPoints("Layout Bound Title", 12, 12, 120, 30);
+        DocumentFormat.OpenXml.Presentation.Shape placeholderShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.Shape>()
+            .Last(shape => shape.TextBody?.InnerText.Contains("Layout Bound Title", StringComparison.Ordinal) == true);
+        placeholderShape.NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties ??= new ApplicationNonVisualDrawingProperties();
+        placeholderShape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties.PlaceholderShape =
+            new PlaceholderShape { Type = PlaceholderValues.Title };
+        placeholderShape.ShapeProperties!.Transform2D?.Remove();
+
+        var options = new PowerPointPdfSaveOptions();
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("Layout Bound Title", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesFlippedPictures() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointPicture picture = presentation.Slides[0].AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(60),
+            PowerPointUnits.FromPoints(30));
+        picture.HorizontalFlip = true;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("-60 0 0 30 100 80 cm", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesPictureHyperlinks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(30),
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(30));
+        HyperlinkRelationship rel = slide.SlidePart.AddHyperlinkRelationship(new Uri("https://officeimo.net/picture"), true);
+        DocumentFormat.OpenXml.Presentation.Picture picture = slide.SlidePart.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>().Single();
+        picture.NonVisualPictureProperties!.NonVisualDrawingProperties!.Append(new HyperlinkOnClick { Id = rel.Id });
+        slide.SlidePart.Slide.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+
+        PdfCore.PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+        Assert.Equal("https://officeimo.net/picture", link.Uri);
+        Assert.Equal(30D, link.X1, 1);
+        Assert.Equal(90D, link.Y1, 1);
+        Assert.Equal(80D, link.X2, 1);
+        Assert.Equal(120D, link.Y2, 1);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersPictureWithAltTextWithoutHyperlink() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointPicture picture = presentation.Slides[0].AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(30),
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(30));
+        picture.AltText = "Logo alt";
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
+        Assert.Contains("/Figure << /Alt <4C6F676F20616C74> >> BDC", raw, StringComparison.Ordinal);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(bytes).LinkAnnotations);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesPictureCrop() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointPicture picture = presentation.Slides[0].AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(60),
+            PowerPointUnits.FromPoints(30));
+        picture.Crop(leftPercent: 50D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("120 0 0 30 -20 80 cm", raw, StringComparison.Ordinal);
+        Assert.Contains("0.5 0 0.5 1 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RotatesPictureCropWithImageFrame() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointPicture picture = presentation.Slides[0].AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(60),
+            PowerPointUnits.FromPoints(30));
+        picture.Crop(leftPercent: 25D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
+        picture.Rotation = 90D;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        int imageTransform = raw.IndexOf("0 80 -30 0 75 55 cm", StringComparison.Ordinal);
+        int localClip = raw.IndexOf("0.25 0 0.75 1 re", StringComparison.Ordinal);
+
+        Assert.True(imageTransform >= 0, "Expected the cropped picture to render through the rotated image transform.");
+        Assert.True(localClip > imageTransform, "Expected the source crop clip to be applied inside the rotated image frame.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesParagraphAlignmentAndListMarkers() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints(string.Empty, 30, 36, 170, 70);
+        textBox.FillTransparency = 100;
+        textBox.OutlineColor = null;
+        textBox.FontSize = 10;
+        textBox.SetParagraphs(new[] { "Heading", "Item" });
+        textBox.Paragraphs[0].Alignment = TextAlignmentTypeValues.Center;
+        textBox.Paragraphs[1].Alignment = TextAlignmentTypeValues.Left;
+        textBox.Paragraphs[1].SetBullet('*');
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        string text = string.Join("", page.Letters.Select(letter => letter.Value));
+        Assert.Contains("* Item", text, StringComparison.Ordinal);
+        Assert.True(FindWordStartX(page, "Heading") > FindWordStartX(page, "Item") + 20D, "Expected centered heading text to start to the right of the left-aligned bullet item.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTextBoxLineBreaks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints(string.Empty, 30, 32, 160, 96);
+        textBox.FillTransparency = 100;
+        textBox.OutlineColor = null;
+        textBox.FontSize = 12;
+        textBox.SetParagraphs(new[] { string.Empty });
+        DocumentFormat.OpenXml.Drawing.Paragraph paragraph = textBox.Paragraphs[0].Paragraph;
+        paragraph.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.Run>();
+        paragraph.Append(
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("First")),
+            new DocumentFormat.OpenXml.Drawing.Break(),
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Second")));
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        double firstY = FindWordStartY(page, "First");
+        double secondY = FindWordStartY(page, "Second");
+
+        Assert.True(firstY > secondY, "Expected an explicit PowerPoint text box line break to render the following run on a lower line.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTextBoxFillTransparency() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints("Transparent", 20, 30, 120, 40);
+        textBox.FillColor = "112233";
+        textBox.FillTransparency = 50;
+        textBox.OutlineColor = null;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/ca 0.5", raw, StringComparison.Ordinal);
+        Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesAsymmetricTextBoxMargins() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints("Asymmetric", 30, 40, 140, 50);
+        textBox.FillTransparency = 100;
+        textBox.OutlineColor = null;
+        textBox.FontSize = 10;
+        textBox.SetTextMarginsPoints(left: 20D, top: 6D, right: 4D, bottom: 2D);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("50 92 116 42 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersTablesThroughSharedPdfCanvasTable() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(2, 2, 30, 34, 150, 70);
+        table.FirstRow = true;
+        table.BandedRows = false;
+        table.SetColumnWidthsPoints(90, 60);
+        table.SetRowHeightsPoints(28, 42);
+
+        PowerPointTableCell header = table.GetCell(0, 0);
+        header.Text = "Metric";
+        header.FillColor = "D9EAF7";
+        header.Bold = true;
+
+        PowerPointTableCell headerScore = table.GetCell(0, 1);
+        headerScore.Text = "Score";
+        headerScore.FillColor = "D9EAF7";
+        headerScore.HorizontalAlignment = TextAlignmentTypeValues.Center;
+
+        PowerPointTableCell body = table.GetCell(1, 0);
+        body.Text = "Quality";
+        body.PaddingLeftPoints = 8D;
+        body.BorderColor = "1E5A96";
+
+        PowerPointTableCell score = table.GetCell(1, 1);
+        score.Text = "99";
+        score.FillColor = "EAF4FF";
+        score.HorizontalAlignment = TextAlignmentTypeValues.Center;
+        score.VerticalAlignment = TextAnchoringTypeValues.Center;
+
+        var options = new PowerPointPdfSaveOptions();
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("30 76 150 70 re", raw, StringComparison.Ordinal);
+        Assert.Contains("120 146 m", raw, StringComparison.Ordinal);
+        Assert.Contains("120 76 l", raw, StringComparison.Ordinal);
+        Assert.Contains("30 118 m", raw, StringComparison.Ordinal);
+        Assert.Contains("180 118 l", raw, StringComparison.Ordinal);
+        Assert.Contains("120 76 60 42 re", raw, StringComparison.Ordinal);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Metric", text, StringComparison.Ordinal);
+        Assert.Contains("Quality", text, StringComparison.Ordinal);
+        Assert.Contains("99", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTableCellLineBreaks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 28, 150, 96);
+        table.SetRowHeightsPoints(96);
+
+        PowerPointTableCell cell = table.GetCell(0, 0);
+        cell.FontSize = 12;
+        cell.Text = "First";
+        DocumentFormat.OpenXml.Drawing.TextBody textBody = cell.Cell.TextBody!;
+        textBody.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.Paragraph>();
+        textBody.Append(new DocumentFormat.OpenXml.Drawing.Paragraph(
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("First")),
+            new DocumentFormat.OpenXml.Drawing.Break(),
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Second"))));
+        textBody.Append(new DocumentFormat.OpenXml.Drawing.Paragraph(
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Third"))));
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        double firstY = FindWordStartY(page, "First");
+        double secondY = FindWordStartY(page, "Second");
+        double thirdY = FindWordStartY(page, "Third");
+
+        Assert.True(firstY > secondY, "Expected an explicit PowerPoint table cell line break to render the following run on a lower line.");
+        Assert.True(secondY > thirdY, "Expected a second PowerPoint table cell paragraph to render on a lower line.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTableRotation() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 34, 150, 70);
+        table.Rotation = 90D;
+        table.GetCell(0, 0).Text = "Rotated";
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        int transform = raw.IndexOf("0 1 -1 0 216 6 cm", StringComparison.Ordinal);
+        int tableRect = raw.IndexOf("30 76 150 70 re", StringComparison.Ordinal);
+
+        Assert.True(transform >= 0, "Expected PowerPoint table rotation to flow into the shared PDF canvas table.");
+        Assert.True(tableRect > transform, "Expected rotated table geometry to render after the rotation matrix.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersChartsThroughSharedVectorRenderer() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2", "Q3", "Q4" },
+            new[] {
+                new PowerPointChartSeries("Sales", new[] { 12D, 18D, 24D, 30D }),
+                new PowerPointChartSeries("Target", new[] { 15D, 20D, 22D, 28D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        chart.SetTitle("Revenue Mix");
+        var options = new PowerPointPdfSaveOptions {
+            ChartLayout = new OfficeChartLayout(preventLabelOverlap: false)
+        };
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("40 36 240 172 re", raw, StringComparison.Ordinal);
+        Assert.Contains("0.122 0.306 0.475 rg", raw, StringComparison.Ordinal);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Revenue Mix", text, StringComparison.Ordinal);
+        Assert.Contains("Sales", text, StringComparison.Ordinal);
+        Assert.Contains("Target", text, StringComparison.Ordinal);
+        Assert.Contains("Q1", text, StringComparison.Ordinal);
+        Assert.Contains("Q4", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutChartsFromLayoutPart() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        PowerPointSlide slide = presentation.Slides[0];
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new PowerPointChartSeries("Sales", new[] { 12D, 18D, 24D })
+            });
+        PowerPointChart chart = slide.AddChartPoints(data, 40, 32, 240, 172);
+        chart.SetTitle("Layout Revenue");
+        ChartPart chartPart = GetChartPart(chart);
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        DocumentFormat.OpenXml.Presentation.GraphicFrame slideFrame = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.GraphicFrame>()
+            .Single(frame => frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null);
+        DocumentFormat.OpenXml.Presentation.GraphicFrame layoutFrame =
+            (DocumentFormat.OpenXml.Presentation.GraphicFrame)slideFrame.CloneNode(true);
+        layoutPart.AddPart(chartPart, "rIdLayoutChart");
+        layoutFrame.Graphic!.GraphicData!.GetFirstChild<C.ChartReference>()!.Id = "rIdLayoutChart";
+        layoutPart.SlideLayout.CommonSlideData!.ShapeTree!.Append(layoutFrame);
+        chart.Remove();
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Layout Revenue", text, StringComparison.Ordinal);
+        Assert.Contains("Sales", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesHorizontalStackedBarChartKind() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "North", "South" },
+            new[] {
+                new PowerPointChartSeries("Won", new[] { 10D, 12D }),
+                new PowerPointChartSeries("Open", new[] { 4D, 6D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        SetBarChartShape(chart, C.BarDirectionValues.Bar, C.BarGroupingValues.Stacked);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.StackedBar, snapshot.ChartKind);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Won", text, StringComparison.Ordinal);
+        Assert.Contains("Open", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesStackedLineChartKind() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 12D, 16D }),
+                new PowerPointChartSeries("Target", new[] { 3D, 4D, 5D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddLineChartPoints(data, 40, 32, 240, 172);
+        SetLineChartGrouping(chart, C.GroupingValues.PercentStacked);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.StackedLine100, snapshot.ChartKind);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Target", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersAreaChartSnapshots() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 12D, 16D }),
+                new PowerPointChartSeries("Target", new[] { 3D, 4D, 5D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddLineChartPoints(data, 40, 32, 240, 172);
+        ConvertLineChartToAreaChart(chart, C.GroupingValues.Stacked);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.StackedArea, snapshot.ChartKind);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Target", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersRadarChartSnapshots() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Speed", "Quality", "Reach" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 12D, 16D }),
+                new PowerPointChartSeries("Target", new[] { 8D, 11D, 14D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddLineChartPoints(data, 40, 32, 240, 172);
+        ConvertLineChartToRadarChart(chart);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.Radar, snapshot.ChartKind);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Target", text, StringComparison.Ordinal);
+        Assert.Contains("Speed", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_WarnsForComboChartsInsteadOfDroppingSeries() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2" },
+            new[] {
+                new PowerPointChartSeries("Bars", new[] { 10D, 12D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        ChartPart chartPart = GetChartPart(chart);
+        C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+        plotArea.AppendChild(new C.LineChart());
+        chartPart.ChartSpace.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        presentation.ToPdfDocument(options).ToBytes();
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
+        Assert.Equal("unsupported-chart", warning.Code);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersZeroThicknessLineAutoShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddShapePoints(ShapeTypeValues.Line, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
+        slide.AddShapePoints(ShapeTypeValues.Line, 140, 30, 0, 80).Stroke("C00000", 1.5D);
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 120 m", raw, StringComparison.Ordinal);
+        Assert.Contains("120 120 l", raw, StringComparison.Ordinal);
+        Assert.Contains("140 130 m", raw, StringComparison.Ordinal);
+        Assert.Contains("140 50 l", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesFlippedLineAutoShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointAutoShape line = presentation.Slides[0].AddShapePoints(ShapeTypeValues.Line, 20, 40, 80, 40);
+        line.HorizontalFlip = true;
+        line.Stroke("1E5A96", 1.5D);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("100 120 m", raw, StringComparison.Ordinal);
+        Assert.Contains("20 80 l", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesScatterSeriesXValues() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointScatterChartData(new[] {
+            new PowerPointScatterChartSeries("Actual", new[] { 1D, 2D, 3D }, new[] { 10D, 12D, 14D }),
+            new PowerPointScatterChartSeries("Forecast", new[] { 1.5D, 2.5D }, new[] { 11D, 13D })
+        });
+        PowerPointChart chart = presentation.Slides[0].AddScatterChartPoints(data, 40, 32, 240, 172);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        PowerPointChartSeries forecast = Assert.Single(snapshot.Data.Series, series => series.Name == "Forecast");
+        Assert.Equal(new[] { 1.5D, 2.5D }, forecast.XValues);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Forecast", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_UsesFirstRenderableScatterSeriesForCategories() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointScatterChartData(new[] {
+            new PowerPointScatterChartSeries("EmptyX", new[] { 1D, 2D, 3D }, new[] { 10D, 12D, 14D }),
+            new PowerPointScatterChartSeries("Forecast", new[] { 1.5D, 2.5D }, new[] { 11D, 13D })
+        });
+        PowerPointChart chart = presentation.Slides[0].AddScatterChartPoints(data, 40, 32, 240, 172);
+        RemoveFirstScatterSeriesXValues(chart);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+
+        Assert.Equal(new[] { "1.5", "2.5" }, snapshot.Data.Categories);
+        PowerPointChartSeries forecast = Assert.Single(snapshot.Data.Series, series => series.Name == "Forecast");
+        Assert.Equal(new[] { 1.5D, 2.5D }, forecast.XValues);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesSparseCachedChartPointIndices() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Jan", "Feb", "Mar" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 20D, 30D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        MakeFirstBarSeriesCacheSparse(chart);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+
+        Assert.Equal(new[] { "Jan", string.Empty, "Mar" }, snapshot.Data.Categories);
+        PowerPointChartSeries actual = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(new[] { 10D, 0D, 30D }, actual.Values);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ReadsCategoriesFromFirstRenderableCategorySeries() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Jan", "Feb", "Mar" },
+            new[] {
+                new PowerPointChartSeries("Empty", new[] { 0D, 0D, 0D }),
+                new PowerPointChartSeries("Actual", new[] { 10D, 20D, 30D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        MakeFirstBarSeriesCacheEmpty(chart);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+
+        Assert.Equal(new[] { "Jan", "Feb", "Mar" }, snapshot.Data.Categories);
+        PowerPointChartSeries actual = Assert.Single(snapshot.Data.Series, series => series.Name == "Actual");
+        Assert.Equal(new[] { 10D, 20D, 30D }, actual.Values);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesSharedChartStyleAndLayoutOptions() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(360, 240);
+        var data = new PowerPointChartData(
+            new[] { "M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 12D, 18D, 24D, 30D, 34D, 38D, 41D, 43D }),
+                new PowerPointChartSeries("Target", new[] { 15D, 20D, 22D, 28D, 31D, 36D, 39D, 44D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 38, 30, 270, 176);
+        chart.SetTitle("Styled Slide Chart");
+        var options = new PowerPointPdfSaveOptions {
+            ChartStyle = new OfficeChartStyle(
+                palette: new[] {
+                    OfficeColor.FromRgb(18, 52, 86),
+                    OfficeColor.FromRgb(120, 40, 160)
+                },
+                backgroundColor: OfficeColor.FromRgb(242, 248, 255),
+                titleColor: OfficeColor.FromRgb(200, 10, 10)),
+            ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 2)
+        };
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.071 0.204 0.337 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0.471 0.157 0.627 rg", raw, StringComparison.Ordinal);
+        Assert.Contains("0.949 0.973 1 rg", raw, StringComparison.Ordinal);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Styled Slide Chart", text, StringComparison.Ordinal);
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Target", text, StringComparison.Ordinal);
+        Assert.Contains("M01", text, StringComparison.Ordinal);
+        Assert.Contains("M05", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("M02", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_WarnsWhenSharedChartQualityPreflightFindsIssues() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 220);
+        var data = new PowerPointChartData(
+            new[] { "M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M10", "M11", "M12" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 12D, 18D, 24D, 30D, 34D, 38D, 41D, 43D, 44D, 45D, 46D, 47D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 32, 28, 240, 150);
+        chart.SetTitle("Dense Slide Chart");
+        var options = new PowerPointPdfSaveOptions {
+            ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 12, preventLabelOverlap: false)
+        };
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "chart-quality");
+        Assert.Equal(1, warning.SlideNumber);
+        Assert.Contains("Dense Slide Chart", warning.Message, StringComparison.Ordinal);
+        Assert.Contains("TextOverlap", warning.Message, StringComparison.Ordinal);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("Dense Slide Chart", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    private static byte[] CreateMinimalRgbPng() {
+        return new byte[] {
+            137, 80, 78, 71, 13, 10, 26, 10,
+            0, 0, 0, 13,
+            73, 72, 68, 82,
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 2, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, 0, 12,
+            73, 68, 65, 84,
+            0x78, 0x9C, 0x63, 0xF8, 0xCF, 0xC0, 0x00, 0x00, 0x03, 0x01, 0x01, 0x00,
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            73, 69, 78, 68,
+            0, 0, 0, 0
+        };
+    }
+
+    private static void SetBarChartShape(PowerPointChart chart, C.BarDirectionValues direction, C.BarGroupingValues grouping) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.BarChart barChart = chartPart.ChartSpace!.Descendants<C.BarChart>().Single();
+        barChart.GetFirstChild<C.BarDirection>()!.Val = direction;
+        barChart.GetFirstChild<C.BarGrouping>()!.Val = grouping;
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void SetLineChartGrouping(PowerPointChart chart, C.GroupingValues grouping) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.LineChart lineChart = chartPart.ChartSpace!.Descendants<C.LineChart>().Single();
+        C.Grouping chartGrouping = lineChart.GetFirstChild<C.Grouping>() ?? lineChart.PrependChild(new C.Grouping());
+        chartGrouping.Val = grouping;
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void ConvertLineChartToAreaChart(PowerPointChart chart, C.GroupingValues grouping) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+        C.LineChart lineChart = plotArea.Elements<C.LineChart>().Single();
+        var areaChart = new C.AreaChart(new C.Grouping { Val = grouping });
+        foreach (C.LineChartSeries lineSeries in lineChart.Elements<C.LineChartSeries>()) {
+            var areaSeries = new C.AreaChartSeries();
+            foreach (OpenXmlElement child in lineSeries.ChildElements) {
+                areaSeries.Append(child.CloneNode(true));
+            }
+
+            areaChart.Append(areaSeries);
+        }
+
+        foreach (C.AxisId axisId in lineChart.Elements<C.AxisId>()) {
+            areaChart.Append((C.AxisId)axisId.CloneNode(true));
+        }
+
+        lineChart.InsertAfterSelf(areaChart);
+        lineChart.Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void ConvertLineChartToRadarChart(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+        C.LineChart lineChart = plotArea.Elements<C.LineChart>().Single();
+        var radarChart = new C.RadarChart(new C.RadarStyle { Val = C.RadarStyleValues.Standard });
+        foreach (C.LineChartSeries lineSeries in lineChart.Elements<C.LineChartSeries>()) {
+            var radarSeries = new C.RadarChartSeries();
+            foreach (OpenXmlElement child in lineSeries.ChildElements) {
+                radarSeries.Append(child.CloneNode(true));
+            }
+
+            radarChart.Append(radarSeries);
+        }
+
+        foreach (C.AxisId axisId in lineChart.Elements<C.AxisId>()) {
+            radarChart.Append((C.AxisId)axisId.CloneNode(true));
+        }
+
+        lineChart.InsertAfterSelf(radarChart);
+        lineChart.Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void MakeFirstBarSeriesCacheSparse(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.BarChartSeries series = chartPart.ChartSpace!.Descendants<C.BarChartSeries>().Single();
+        C.StringCache categoryCache = series.GetFirstChild<C.CategoryAxisData>()!.Descendants<C.StringCache>().Single();
+        C.NumberingCache valueCache = series.GetFirstChild<C.Values>()!.Descendants<C.NumberingCache>().Single();
+        categoryCache.Elements<C.StringPoint>().Single(point => point.Index?.Value == 1U).Remove();
+        valueCache.Elements<C.NumericPoint>().Single(point => point.Index?.Value == 1U).Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void MakeFirstBarSeriesCacheEmpty(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.BarChartSeries series = chartPart.ChartSpace!.Descendants<C.BarChartSeries>().First();
+        foreach (C.StringPoint point in series.GetFirstChild<C.CategoryAxisData>()!.Descendants<C.StringPoint>().ToList()) {
+            point.Remove();
+        }
+
+        foreach (C.NumericPoint point in series.GetFirstChild<C.Values>()!.Descendants<C.NumericPoint>().ToList()) {
+            point.Remove();
+        }
+
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void RemoveFirstScatterSeriesXValues(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.ScatterChartSeries series = chartPart.ChartSpace!.Descendants<C.ScatterChartSeries>().First();
+        series.GetFirstChild<C.XValues>()?.Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static ChartPart GetChartPart(PowerPointChart chart) {
+        MethodInfo method = typeof(PowerPointChart).GetMethod("GetChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        return (ChartPart)method.Invoke(chart, Array.Empty<object>())!;
+    }
+
+    private static double FindWordStartY(UglyToad.PdfPig.Content.Page page, string word) {
+        var lines = page.Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1));
+
+        foreach (var line in lines) {
+            var ordered = line.OrderBy(letter => letter.StartBaseLine.X).ToList();
+            string text = string.Concat(ordered.Select(letter => letter.Value));
+            int index = text.IndexOf(word, StringComparison.Ordinal);
+            if (index >= 0) {
+                return ordered[index].StartBaseLine.Y;
+            }
+        }
+
+        throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
+    }
+
+    private static double FindWordStartX(UglyToad.PdfPig.Content.Page page, string word) {
+        var lines = page.Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1));
+
+        foreach (var line in lines) {
+            var ordered = line.OrderBy(letter => letter.StartBaseLine.X).ToList();
+            string text = string.Concat(ordered.Select(letter => letter.Value));
+            int index = text.IndexOf(word, StringComparison.Ordinal);
+            if (index >= 0) {
+                return ordered[index].StartBaseLine.X;
+            }
+        }
+
+        throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
+    }
+}

@@ -9,6 +9,7 @@ public sealed class PdfImageStyle {
     private PdfAlign _align = PdfAlign.Left;
     private OfficeImageFit _fit = OfficeImageFit.Stretch;
     private OfficeClipPath? _clipPath;
+    private PdfImageSourceCrop? _sourceCrop;
     private double _spacingBefore;
     private double _spacingAfter;
     private string? _alternativeText;
@@ -37,6 +38,12 @@ public sealed class PdfImageStyle {
         set => _clipPath = value?.Clone();
     }
 
+    /// <summary>Optional source crop applied before fitting the image into the target box.</summary>
+    public PdfImageSourceCrop? SourceCrop {
+        get => _sourceCrop?.Clone();
+        set => _sourceCrop = value?.Clone();
+    }
+
     /// <summary>Vertical space before the image in the surrounding document flow, in points.</summary>
     public double SpacingBefore {
         get => _spacingBefore;
@@ -58,6 +65,9 @@ public sealed class PdfImageStyle {
     /// <summary>Moves the image to the next page with the first visible part of the following block when they fit together.</summary>
     public bool KeepWithNext { get; set; }
 
+    /// <summary>When true, oversized flow images are proportionally reduced to fit the current page or column frame.</summary>
+    public bool ScaleDownToFit { get; set; }
+
     /// <summary>Optional alternate text for meaningful generated images.</summary>
     public string? AlternativeText {
         get => _alternativeText;
@@ -76,9 +86,11 @@ public sealed class PdfImageStyle {
             Align = Align,
             Fit = Fit,
             ClipPath = _clipPath,
+            SourceCrop = _sourceCrop,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             KeepWithNext = KeepWithNext,
+            ScaleDownToFit = ScaleDownToFit,
             AlternativeText = AlternativeText
         };
     }

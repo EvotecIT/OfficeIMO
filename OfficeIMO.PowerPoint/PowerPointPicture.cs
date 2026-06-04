@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -9,13 +10,21 @@ namespace OfficeIMO.PowerPoint {
     ///     Represents an image placed on a slide.
     /// </summary>
     public partial class PowerPointPicture : PowerPointShape {
-        private readonly SlidePart _slidePart;
+        private readonly SlidePart? _slidePart;
+        private readonly OpenXmlPartContainer _ownerPart;
 
-        internal PowerPointPicture(Picture picture, SlidePart slidePart) : base(picture) {
-            _slidePart = slidePart;
+        internal PowerPointPicture(Picture picture, SlidePart slidePart) : this(picture, slidePart, slidePart) {
         }
 
-        internal SlidePart SlidePart => _slidePart;
+        internal PowerPointPicture(Picture picture, OpenXmlPartContainer ownerPart) : this(picture, null, ownerPart) {
+        }
+
+        private PowerPointPicture(Picture picture, SlidePart? slidePart, OpenXmlPartContainer ownerPart) : base(picture) {
+            _slidePart = slidePart;
+            _ownerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
+        }
+
+        internal SlidePart SlidePart => _slidePart ?? throw new InvalidOperationException("This picture is not owned by a slide part.");
 
         private Picture Picture => (Picture)Element;
 
@@ -29,10 +38,23 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string? MimeType => ContentType;
 
+        internal Uri? ClickHyperlink {
+            get {
+                string? relId = Picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Id;
+                if (string.IsNullOrWhiteSpace(relId)) {
+                    return null;
+                }
+
+                HyperlinkRelationship? rel = _ownerPart.HyperlinkRelationships
+                    .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.Ordinal));
+                return rel?.Uri;
+            }
+        }
+
         private ImagePart? GetImagePart() {
             Picture picture = (Picture)Element;
             string? relationshipId = picture.BlipFill?.Blip?.Embed?.Value;
-            return relationshipId != null ? _slidePart.GetPartById(relationshipId) as ImagePart : null;
+            return relationshipId != null ? _ownerPart.GetPartById(relationshipId) as ImagePart : null;
         }
 
         /// <summary>
@@ -46,6 +68,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PartTypeInfo partTypeInfo = type.ToPartTypeInfo();
+            SlidePart slidePart = SlidePart;
 
             Picture picture = (Picture)Element;
             A.Blip blip = picture.BlipFill?.Blip ?? throw new InvalidOperationException("Picture has no image");
@@ -53,28 +76,28 @@ namespace OfficeIMO.PowerPoint {
 
             string imageExtension = PowerPointPartFactory.GetImageExtension(type);
             string imagePartUri = PowerPointPartFactory.GetIndexedPartUri(
-                _slidePart.OpenXmlPackage,
+                slidePart.OpenXmlPackage,
                 "ppt/media",
                 "image",
                 imageExtension,
                 allowBaseWithoutIndex: false);
             ImagePart imagePart = PowerPointPartFactory.CreatePart<ImagePart>(
-                _slidePart,
+                slidePart,
                 partTypeInfo.ContentType,
                 imagePartUri);
             if (newImage.CanSeek) {
                 newImage.Position = 0;
             }
             imagePart.FeedData(newImage);
-            string relId = _slidePart.GetIdOfPart(imagePart);
+            string relId = slidePart.GetIdOfPart(imagePart);
             blip.Embed = relId;
 
             if (previousRelationshipId != null &&
                 !IsRelationshipReferenced(previousRelationshipId, blip)) {
                 try {
-                    OpenXmlPart? oldPart = _slidePart.GetPartById(previousRelationshipId);
+                    OpenXmlPart? oldPart = slidePart.GetPartById(previousRelationshipId);
                     if (oldPart != null) {
-                        _slidePart.DeletePart(oldPart);
+                        slidePart.DeletePart(oldPart);
                     }
                 } catch (ArgumentOutOfRangeException) {
                     // The previous relationship may already be absent on damaged input.
@@ -125,6 +148,19 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void ResetCrop() {
             SetSourceRectangle(null, null, null, null);
+        }
+
+        internal PowerPointPictureCrop GetCrop() {
+            A.SourceRectangle? rect = Picture.BlipFill?.SourceRectangle;
+            if (rect == null) {
+                return PowerPointPictureCrop.None;
+            }
+
+            return new PowerPointPictureCrop(
+                ToCropFraction(rect.Left?.Value),
+                ToCropFraction(rect.Top?.Value),
+                ToCropFraction(rect.Right?.Value),
+                ToCropFraction(rect.Bottom?.Value));
         }
 
         /// <summary>
@@ -215,6 +251,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static int ToCropValue(double percent) {
             return (int)Math.Round(percent * 1000);
+        }
+
+        private static double ToCropFraction(int? value) {
+            if (!value.HasValue) {
+                return 0D;
+            }
+
+            return Math.Min(0.999999D, Math.Max(0D, value.Value / 100000D));
         }
 
         private static bool IsZero(double value) {

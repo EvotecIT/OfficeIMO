@@ -227,11 +227,11 @@ internal static partial class PdfWriter {
                 string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!);
                 contentStr += WrapArtifactContent(headerContent, markInfo);
             }
-            contentStr += page.Content;
+            contentStr += ReplaceInlineImageDrawTokens(page.Content, page.Images);
             if (page.Images.Count > 0) {
                 var sbImgs = new StringBuilder();
                 foreach (var img in page.Images) {
-                    if (img.IsBackgroundDecoration) {
+                    if (img.IsBackgroundDecoration || !string.IsNullOrEmpty(img.InlineDrawToken)) {
                         continue;
                     }
 
@@ -469,6 +469,25 @@ internal static partial class PdfWriter {
         infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords));
 
         return PdfFileAssembler.Assemble(objects, catalogId, infoId, opts.FileVersion);
+    }
+
+    private static string ReplaceInlineImageDrawTokens(string content, IReadOnlyList<PageImage> images) {
+        if (string.IsNullOrEmpty(content) || images.Count == 0) {
+            return content;
+        }
+
+        string result = content;
+        foreach (PageImage image in images) {
+            if (string.IsNullOrEmpty(image.InlineDrawToken)) {
+                continue;
+            }
+
+            var imageDraw = new StringBuilder();
+            AppendPageImageDraw(imageDraw, image);
+            result = result.Replace(image.InlineDrawToken!, imageDraw.ToString());
+        }
+
+        return result;
     }
 
     private static string BuildPageBackground(LayoutResult.Page page, PdfOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts) {
@@ -844,6 +863,19 @@ internal static partial class PdfWriter {
         double centerY = img.Y + img.H / 2D;
         double e = centerX - (a + c) / 2D;
         double f = centerY - (b + d) / 2D;
+        if (img.HorizontalFlip) {
+            e += a;
+            f += b;
+            a = -a;
+            b = -b;
+        }
+
+        if (img.VerticalFlip) {
+            e += c;
+            f += d;
+            c = -c;
+            d = -d;
+        }
 
         var content = new ContentStreamBuilder(sb)
             .SaveState();
@@ -852,8 +884,16 @@ internal static partial class PdfWriter {
         }
 
         content
-            .TransformMatrix(a, b, c, d, e, f)
-            .XObject(img.Name)
+            .TransformMatrix(a, b, c, d, e, f);
+        if (img.SourceCrop?.HasCrop == true) {
+            double clipWidth = 1D - img.SourceCrop.Left - img.SourceCrop.Right;
+            double clipHeight = 1D - img.SourceCrop.Top - img.SourceCrop.Bottom;
+            content.Rectangle(img.SourceCrop.Left, img.SourceCrop.Bottom, clipWidth, clipHeight)
+                .ClipPath()
+                .EndPath();
+        }
+
+        content.XObject(img.Name)
             .RestoreState();
 
         if (hasAlternativeText || img.IsBackgroundDecoration) {

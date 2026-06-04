@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using System.Globalization;
@@ -73,6 +74,113 @@ public partial class Excel {
 
         using PdfPigDocument disabledPdf = PdfPigDocument.Open(new MemoryStream(disabledBytes));
         Assert.DoesNotContain("Revenue Chart", disabledPdf.GetPage(1).Text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Applies_Shared_Chart_Style_Options() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfStyledCharts.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Category");
+            sheet.Cell(1, 2, "Actual");
+            sheet.Cell(1, 3, "Target");
+            sheet.Cell(2, 1, "Jan");
+            sheet.Cell(2, 2, 12);
+            sheet.Cell(2, 3, 10);
+            sheet.Cell(3, 1, "Feb");
+            sheet.Cell(3, 2, 18);
+            sheet.Cell(3, 3, 16);
+            sheet.Cell(4, 1, "Mar");
+            sheet.Cell(4, 2, 24);
+            sheet.Cell(4, 3, 20);
+            sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Styled Excel Chart");
+
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(480, 360),
+                Margins = PdfCore.PageMargins.Uniform(24),
+                ChartStyle = new OfficeChartStyle(
+                    palette: new[] {
+                        OfficeColor.FromRgb(18, 52, 86),
+                        OfficeColor.FromRgb(120, 40, 160)
+                    },
+                    backgroundColor: OfficeColor.FromRgb(242, 248, 255),
+                    titleColor: OfficeColor.FromRgb(200, 10, 10))
+            });
+        }
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.071 0.204 0.337 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.471 0.157 0.627 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.949 0.973 1 rg", rawPdf, StringComparison.Ordinal);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Styled Excel Chart", text);
+        Assert.Contains("Actual", text);
+        Assert.Contains("Target", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Warns_When_Shared_Chart_Quality_Preflight_Finds_Issues() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfChartQualityWarnings.xlsx");
+
+        byte[] bytes;
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 1,
+            PageSize = new PdfCore.PageSize(480, 360),
+            Margins = PdfCore.PageMargins.Uniform(24),
+            ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 12, preventLabelOverlap: false)
+        };
+
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Month");
+            sheet.Cell(1, 2, "Actual");
+            for (int row = 2; row <= 13; row++) {
+                sheet.Cell(row, 1, "M" + (row - 1).ToString("00", CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2, row * 3);
+            }
+
+            sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: ExcelChartType.Line, title: "Dense Month Chart");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        ExcelPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Feature == "chart-quality");
+        Assert.Equal("Charts", warning.SheetName);
+        Assert.Contains("Dense Month Chart", warning.Message);
+        Assert.Contains("TextOverlap", warning.Message);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("Dense Month Chart", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Rejects_Empty_Chart_Snapshots_Before_Shared_Rendering() {
+        var data = new ExcelChartData(Array.Empty<string>(), new[] {
+            new ExcelChartSeries("Empty", Array.Empty<double>())
+        });
+        var snapshot = new ExcelChartSnapshot(
+            "EmptyChart",
+            "Empty Chart",
+            ExcelChartType.Line,
+            data,
+            rowIndex: 1,
+            columnIndex: 1,
+            widthPixels: 320,
+            heightPixels: 180);
+
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod("HasRenderableChartData", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        Assert.False((bool)method.Invoke(null, new object[] { snapshot })!);
     }
 
     [Fact]
@@ -211,12 +319,12 @@ public partial class Excel {
         Assert.Contains("Profit Trend", text);
         Assert.Contains("Profit", text);
 
-        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { new List<ExcelChartSeries> { new ExcelChartSeries("Profit", new[] { -10D, 0D, 10D }, ExcelChartType.Line) } })!;
-        double min = (double)range.GetType().GetField("Item1")!.GetValue(range)!;
-        double max = (double)range.GetType().GetField("Item2")!.GetValue(range)!;
+        MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeChartSeries> { new OfficeChartSeries("Profit", new[] { -10D, 0D, 10D }) } })!;
+        double min = (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
+        double max = (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
 
-        MethodInfo plotYMethod = typeof(ExcelPdfConverterExtensions)
+        MethodInfo plotYMethod = typeof(OfficeChartDrawingRenderer)
             .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
             .Single(method => method.Name == "ToPlotY" && method.GetParameters().Length == 5);
         double negativeY = (double)plotYMethod.Invoke(null, new object[] { -10D, min, max, 0D, 100D })!;
@@ -226,6 +334,111 @@ public partial class Excel {
         Assert.Equal(-10D, min);
         Assert.Equal(10D, max);
         Assert.True(negativeY > zeroY && zeroY > positiveY, "Expected negative, zero, and positive line chart values to map to separate vertical positions.");
+    }
+
+    [Fact]
+    public void SharedChartRenderer_UsesDisplayedAxisRangeForPositiveLineCharts() {
+        var snapshot = new OfficeChartSnapshot(
+            "PositiveLine",
+            null,
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Low", "High" },
+                new[] { new OfficeChartSeries("Value", new[] { 10D, 20D }) }),
+            360D,
+            220D);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        OfficeDrawingShape firstMarker = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && Math.Abs(shape.Shape.Width - 4D) < 0.01D)
+            .OrderBy(shape => shape.X)
+            .First();
+
+        Assert.InRange(firstMarker.Y, 90D, 110D);
+    }
+
+    [Fact]
+    public void SharedChartRenderer_UsesDisplayedAxisRangeForPositiveAreaCharts() {
+        var snapshot = new OfficeChartSnapshot(
+            "PositiveArea",
+            null,
+            OfficeChartKind.Area,
+            new OfficeChartData(
+                new[] { "Low", "High" },
+                new[] { new OfficeChartSeries("Value", new[] { 10D, 20D }) }),
+            360D,
+            220D);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Polygon && shape.Y >= 0D && shape.Y < drawing.Height);
+    }
+
+    [Fact]
+    public void SharedChartRenderer_RendersDoughnutRingForEachSeries() {
+        var snapshot = new OfficeChartSnapshot(
+            "MultiDoughnut",
+            null,
+            OfficeChartKind.Doughnut,
+            new OfficeChartData(
+                new[] { "A", "B", "C" },
+                new[] {
+                    new OfficeChartSeries("Outer", new[] { 3D, 2D, 1D }),
+                    new OfficeChartSeries("Inner", new[] { 1D, 2D, 3D })
+                }),
+            360D,
+            220D);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        int slices = drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon);
+
+        Assert.Equal(6, slices);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_WarnsAndSkipsMixedSeriesChartTypes() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMixedSeriesChart.xlsx");
+
+        byte[] bytes;
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 1,
+            PageSize = new PdfCore.PageSize(480, 360),
+            Margins = PdfCore.PageMargins.Uniform(24)
+        };
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            var data = new ExcelChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
+                });
+
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        ExcelPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Feature == "WorksheetChart");
+        Assert.Contains("mixed per-series chart types", warning.Message, StringComparison.Ordinal);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.DoesNotContain("Sales vs Trend", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Maps_Stacked_Line_Charts_To_Shared_Stacked_Line_Renderer() {
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod("TryMapChartKind", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        object?[] stackedArgs = { ExcelChartType.LineStacked, null };
+        object?[] percentArgs = { ExcelChartType.LineStacked100, null };
+
+        Assert.True((bool)method.Invoke(null, stackedArgs)!);
+        Assert.True((bool)method.Invoke(null, percentArgs)!);
+        Assert.Equal(OfficeChartKind.LineStacked, stackedArgs[1]);
+        Assert.Equal(OfficeChartKind.LineStacked100, percentArgs[1]);
     }
 
     [Fact]
@@ -260,10 +473,10 @@ public partial class Excel {
         Assert.Contains("Delta Area", text);
         Assert.Contains("Delta", text);
 
-        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { new List<ExcelChartSeries> { new ExcelChartSeries("Delta", new[] { -6D, 0D, 9D }, ExcelChartType.Area) } })!;
-        Assert.Equal(-6D, (double)range.GetType().GetField("Item1")!.GetValue(range)!);
-        Assert.Equal(9D, (double)range.GetType().GetField("Item2")!.GetValue(range)!);
+        MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeChartSeries> { new OfficeChartSeries("Delta", new[] { -6D, 0D, 9D }) } })!;
+        Assert.Equal(-6D, (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!);
+        Assert.Equal(9D, (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!);
     }
 
     [Fact]
@@ -358,12 +571,12 @@ public partial class Excel {
             new ExcelChartSeries("Delta", new[] { -10D, -2D, 0D, 10D }, ExcelChartType.Radar)
         };
 
-        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetRadarValueRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { series })!;
-        double min = (double)range.GetType().GetField("Item1")!.GetValue(range)!;
-        double max = (double)range.GetType().GetField("Item2")!.GetValue(range)!;
+        MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetRadarValueRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { series.Select(item => new OfficeChartSeries(item.Name, item.Values)).ToList() })!;
+        double min = (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
+        double max = (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
 
-        MethodInfo ratioMethod = typeof(ExcelPdfConverterExtensions).GetMethod("ToRadarRadiusRatio", BindingFlags.NonPublic | BindingFlags.Static)!;
+        MethodInfo ratioMethod = typeof(OfficeChartDrawingRenderer).GetMethod("ToRadarRadiusRatio", BindingFlags.NonPublic | BindingFlags.Static)!;
         double negativeRatio = (double)ratioMethod.Invoke(null, new object[] { -2D, min, max })!;
         double zeroRatio = (double)ratioMethod.Invoke(null, new object[] { 0D, min, max })!;
         double positiveRatio = (double)ratioMethod.Invoke(null, new object[] { 10D, min, max })!;

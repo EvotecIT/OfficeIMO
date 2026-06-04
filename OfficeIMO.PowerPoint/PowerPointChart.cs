@@ -13,10 +13,14 @@ namespace OfficeIMO.PowerPoint {
         ///     Represents a chart on a slide.
         /// </summary>
         public partial class PowerPointChart : PowerPointShape {
-        private readonly SlidePart _slidePart;
+        private readonly OpenXmlPartContainer _ownerPart;
 
         internal PowerPointChart(GraphicFrame frame, SlidePart slidePart) : base(frame) {
-            _slidePart = slidePart ?? throw new ArgumentNullException(nameof(slidePart));
+            _ownerPart = slidePart ?? throw new ArgumentNullException(nameof(slidePart));
+        }
+
+        internal PowerPointChart(GraphicFrame frame, OpenXmlPartContainer ownerPart) : base(frame) {
+            _ownerPart = ownerPart ?? throw new ArgumentNullException(nameof(ownerPart));
         }
 
         private GraphicFrame Frame => (GraphicFrame)Element;
@@ -259,7 +263,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             string relId = relationshipId.Value ?? throw new InvalidOperationException("Chart relationship id is empty.");
-            return (ChartPart)_slidePart.GetPartById(relId);
+            return (ChartPart)_ownerPart.GetPartById(relId);
         }
 
         private void Save() {

@@ -22,6 +22,7 @@ internal static partial class PdfWriter {
         private bool usedBold;
         private bool usedItalic;
         private bool usedBoldItalic;
+        private int _canvasClipDepth;
 
         public LayoutContext(PdfOptions options) {
             currentOpts = options;

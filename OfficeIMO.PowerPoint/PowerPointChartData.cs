@@ -45,7 +45,7 @@ namespace OfficeIMO.PowerPoint {
 
             int expected = Categories.Count;
             foreach (PowerPointChartSeries item in Series) {
-                if (item.Values.Count != expected) {
+                if (item.XValues == null && item.Values.Count != expected) {
                     throw new System.ArgumentException(
                         "Each series must have the same number of values as there are categories.",
                         nameof(series));
@@ -94,7 +94,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Initializes a new chart series with a name and values.
         /// </summary>
-        public PowerPointChartSeries(string name, IEnumerable<double> values) {
+        public PowerPointChartSeries(string name, IEnumerable<double> values) : this(name, values, null) {
+        }
+
+        /// <summary>
+        /// Initializes a new chart series with optional numeric X-axis values for scatter charts.
+        /// </summary>
+        public PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues) {
             if (name == null) {
                 throw new System.ArgumentNullException(nameof(name));
             }
@@ -105,6 +111,12 @@ namespace OfficeIMO.PowerPoint {
 
             Name = name;
             Values = values.ToList();
+            if (xValues != null) {
+                XValues = xValues.ToList();
+                if (XValues.Count != Values.Count) {
+                    throw new ArgumentException("Series X-axis values must match the number of series values.", nameof(xValues));
+                }
+            }
         }
 
         /// <summary>
@@ -116,6 +128,11 @@ namespace OfficeIMO.PowerPoint {
         /// Series values aligned with chart categories.
         /// </summary>
         public IReadOnlyList<double> Values { get; }
+
+        /// <summary>
+        /// Optional numeric X-axis values for this series.
+        /// </summary>
+        public IReadOnlyList<double>? XValues { get; }
     }
 
     /// <summary>

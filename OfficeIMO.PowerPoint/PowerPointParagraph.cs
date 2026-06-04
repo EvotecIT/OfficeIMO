@@ -12,10 +12,12 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointParagraph {
         private readonly SlidePart? _slidePart;
+        private readonly OpenXmlPartContainer? _ownerPart;
 
-        internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null) {
+        internal PowerPointParagraph(A.Paragraph paragraph, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Paragraph = paragraph;
             _slidePart = slidePart;
+            _ownerPart = ownerPart ?? slidePart;
         }
 
         internal A.Paragraph Paragraph { get; }
@@ -42,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointParagraph AddText(string text, Action<PowerPointTextRun>? configure = null) {
             A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart);
+            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
             configure?.Invoke(wrapper);
             return this;
         }
@@ -53,7 +55,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph AddFormattedText(string text, bool bold = false, bool italic = false,
             A.TextUnderlineValues? underline = null) {
             A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart);
+            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
             if (bold) {
                 wrapper.Bold = true;
             }
@@ -102,14 +104,14 @@ namespace OfficeIMO.PowerPoint {
         /// Runs within the paragraph.
         /// </summary>
         public IReadOnlyList<PowerPointTextRun> Runs =>
-            Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart)).ToList();
+            Paragraph.Elements<A.Run>().Select(r => new PowerPointTextRun(r, _slidePart, _ownerPart)).ToList();
 
         /// <summary>
         /// Adds a run to the paragraph.
         /// </summary>
         public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
             A.Run run = InsertRun(text);
-            var wrapper = new PowerPointTextRun(run, _slidePart);
+            var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
             configure?.Invoke(wrapper);
             return wrapper;
         }
@@ -151,6 +153,21 @@ namespace OfficeIMO.PowerPoint {
             Level = level;
             return this;
         }
+
+        /// <summary>
+        /// Gets the character bullet assigned to this paragraph, when present.
+        /// </summary>
+        public string? BulletCharacter => Paragraph.ParagraphProperties?.GetFirstChild<A.CharacterBullet>()?.Char?.Value;
+
+        /// <summary>
+        /// Gets whether the paragraph uses PowerPoint auto-numbering.
+        /// </summary>
+        public bool IsNumbered => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>() != null;
+
+        /// <summary>
+        /// Gets the explicit PowerPoint numbering start value, when present.
+        /// </summary>
+        public int? NumberingStartAt => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.StartAt?.Value;
 
         /// <summary>
         /// Gets or sets paragraph indentation in points.

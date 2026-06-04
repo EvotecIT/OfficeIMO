@@ -1,0 +1,122 @@
+using System;
+
+namespace OfficeIMO.Drawing;
+
+/// <summary>
+/// Reusable chart layout metadata shared by OfficeIMO chart renderers and format exporters.
+/// </summary>
+public sealed class OfficeChartLayout {
+    private static readonly OfficeChartLayout DefaultLayout = new OfficeChartLayout();
+
+    /// <summary>
+    /// Creates chart layout metadata.
+    /// </summary>
+    /// <param name="seriesLegendWidthRatio">Maximum chart-width ratio reserved for series legends.</param>
+    /// <param name="categoryLegendWidthRatio">Maximum chart-width ratio reserved for category legends such as pie slices.</param>
+    /// <param name="legendRowHeight">Legend row height.</param>
+    /// <param name="legendSwatchSize">Legend color swatch size.</param>
+    /// <param name="legendTextGap">Gap between a legend swatch and its label.</param>
+    /// <param name="legendFontSize">Legend label font size.</param>
+    /// <param name="axisLabelFontSize">Axis label font size.</param>
+    /// <param name="categoryAxisLabelWidth">Maximum category-axis label width.</param>
+    /// <param name="radarCategoryLabelWidth">Maximum radar category label width.</param>
+    /// <param name="maximumCategoryAxisLabels">Maximum number of category-axis labels to render on cartesian charts.</param>
+    /// <param name="maximumHorizontalCategoryAxisLabels">Maximum number of category-axis labels to render on horizontal bar charts.</param>
+    /// <param name="maximumRadarCategoryLabels">Maximum number of category labels to render on radar charts.</param>
+    /// <param name="preventLabelOverlap">Whether axis/category label stride should increase automatically to avoid obvious label overlap.</param>
+    public OfficeChartLayout(
+        double? seriesLegendWidthRatio = null,
+        double? categoryLegendWidthRatio = null,
+        double? legendRowHeight = null,
+        double? legendSwatchSize = null,
+        double? legendTextGap = null,
+        double? legendFontSize = null,
+        double? axisLabelFontSize = null,
+        double? categoryAxisLabelWidth = null,
+        double? radarCategoryLabelWidth = null,
+        int? maximumCategoryAxisLabels = null,
+        int? maximumHorizontalCategoryAxisLabels = null,
+        int? maximumRadarCategoryLabels = null,
+        bool preventLabelOverlap = true) {
+        SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
+        CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
+        LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
+        LegendSwatchSize = ValidatePositiveFinite(legendSwatchSize ?? 6D, nameof(legendSwatchSize));
+        LegendTextGap = ValidatePositiveFinite(legendTextGap ?? 4D, nameof(legendTextGap));
+        LegendFontSize = ValidatePositiveFinite(legendFontSize ?? 7.2D, nameof(legendFontSize));
+        AxisLabelFontSize = ValidatePositiveFinite(axisLabelFontSize ?? 6.8D, nameof(axisLabelFontSize));
+        CategoryAxisLabelWidth = ValidatePositiveFinite(categoryAxisLabelWidth ?? 54D, nameof(categoryAxisLabelWidth));
+        RadarCategoryLabelWidth = ValidatePositiveFinite(radarCategoryLabelWidth ?? 42D, nameof(radarCategoryLabelWidth));
+        MaximumCategoryAxisLabels = ValidatePositive(maximumCategoryAxisLabels ?? 6, nameof(maximumCategoryAxisLabels));
+        MaximumHorizontalCategoryAxisLabels = ValidatePositive(maximumHorizontalCategoryAxisLabels ?? 7, nameof(maximumHorizontalCategoryAxisLabels));
+        MaximumRadarCategoryLabels = ValidatePositive(maximumRadarCategoryLabels ?? 8, nameof(maximumRadarCategoryLabels));
+        PreventLabelOverlap = preventLabelOverlap;
+    }
+
+    /// <summary>Default premium OfficeIMO chart layout.</summary>
+    public static OfficeChartLayout Default => DefaultLayout;
+
+    /// <summary>Maximum chart-width ratio reserved for series legends.</summary>
+    public double SeriesLegendWidthRatio { get; }
+
+    /// <summary>Maximum chart-width ratio reserved for category legends such as pie slices.</summary>
+    public double CategoryLegendWidthRatio { get; }
+
+    /// <summary>Legend row height.</summary>
+    public double LegendRowHeight { get; }
+
+    /// <summary>Legend color swatch size.</summary>
+    public double LegendSwatchSize { get; }
+
+    /// <summary>Gap between a legend swatch and its label.</summary>
+    public double LegendTextGap { get; }
+
+    /// <summary>Legend label font size.</summary>
+    public double LegendFontSize { get; }
+
+    /// <summary>Axis label font size.</summary>
+    public double AxisLabelFontSize { get; }
+
+    /// <summary>Maximum category-axis label width.</summary>
+    public double CategoryAxisLabelWidth { get; }
+
+    /// <summary>Maximum radar category label width.</summary>
+    public double RadarCategoryLabelWidth { get; }
+
+    /// <summary>Maximum number of category-axis labels to render on cartesian charts.</summary>
+    public int MaximumCategoryAxisLabels { get; }
+
+    /// <summary>Maximum number of category-axis labels to render on horizontal bar charts.</summary>
+    public int MaximumHorizontalCategoryAxisLabels { get; }
+
+    /// <summary>Maximum number of category labels to render on radar charts.</summary>
+    public int MaximumRadarCategoryLabels { get; }
+
+    /// <summary>Whether axis/category label stride should increase automatically to avoid obvious label overlap.</summary>
+    public bool PreventLabelOverlap { get; }
+
+    private static double ValidateRatio(double value, string paramName) {
+        ValidatePositiveFinite(value, paramName);
+        if (value > 0.75D) {
+            throw new ArgumentOutOfRangeException(paramName, "Chart legend width ratios must be less than or equal to 0.75.");
+        }
+
+        return value;
+    }
+
+    private static double ValidatePositiveFinite(double value, string paramName) {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
+            throw new ArgumentOutOfRangeException(paramName, "Chart layout values must be finite positive numbers.");
+        }
+
+        return value;
+    }
+
+    private static int ValidatePositive(int value, string paramName) {
+        if (value <= 0) {
+            throw new ArgumentOutOfRangeException(paramName, "Chart layout counts must be positive.");
+        }
+
+        return value;
+    }
+}

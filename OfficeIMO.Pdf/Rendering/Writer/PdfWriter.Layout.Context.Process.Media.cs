@@ -48,10 +48,11 @@ internal static partial class PdfWriter {
             PdfDocument.ValidateImageStyleForBox(imageStyle, ib.Width, ib.Height, nameof(imageStyle.ClipPath));
             PdfDocument.ValidateImageFitDimensions(ib.Info, imageStyle.Fit, nameof(imageStyle.Fit));
             double imageSpacingBefore = ResolveTopLevelSpacingBefore(imageStyle.SpacingBefore);
-            double needed = imageSpacingBefore + ib.Height + imageStyle.SpacingAfter;
-            if (imageStyle.Align == PdfAlign.Center) xImg = currentOpts.MarginLeft + Math.Max(0, (contentWidth - ib.Width) / 2);
-            else if (imageStyle.Align == PdfAlign.Right) xImg = currentOpts.MarginLeft + Math.Max(0, contentWidth - ib.Width);
-            EnsureFixedFlowBlockFits("Image", ib.Width, needed, contentWidth);
+            var imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
+            double needed = imageSpacingBefore + imageBox.Height + imageStyle.SpacingAfter;
+            if (imageStyle.Align == PdfAlign.Center) xImg = currentOpts.MarginLeft + Math.Max(0, (contentWidth - imageBox.Width) / 2);
+            else if (imageStyle.Align == PdfAlign.Right) xImg = currentOpts.MarginLeft + Math.Max(0, contentWidth - imageBox.Width);
+            EnsureFixedFlowBlockFits("Image", imageBox.Width, needed, contentWidth);
             if (imageStyle.KeepWithNext && nextBlock != null) {
                 double nextHeight = MeasureNextBlockFirstVisualHeight(nextBlock, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
                 double keepHeight = needed + nextHeight;
@@ -59,7 +60,10 @@ internal static partial class PdfWriter {
                 if (nextHeight > 0.001 && keepHeight <= availableHeight + 0.001 && y < yStart - 0.001 && y - keepHeight < currentOpts.MarginBottom) {
                     NewPage();
                     imageSpacingBefore = 0D;
-                    needed = ib.Height + imageStyle.SpacingAfter;
+                    imageBox = ResolveImageFlowBox(ib, imageStyle, contentWidth, imageSpacingBefore, imageStyle.SpacingAfter);
+                    needed = imageBox.Height + imageStyle.SpacingAfter;
+                    if (imageStyle.Align == PdfAlign.Center) xImg = currentOpts.MarginLeft + Math.Max(0, (contentWidth - imageBox.Width) / 2);
+                    else if (imageStyle.Align == PdfAlign.Right) xImg = currentOpts.MarginLeft + Math.Max(0, contentWidth - imageBox.Width);
                 }
             }
 
@@ -69,7 +73,7 @@ internal static partial class PdfWriter {
             }
             if (imageSpacingBefore > 0) y -= imageSpacingBefore;
             EnsurePage();
-            PageImage pageImage = CreatePageImage(ib, imageStyle, xImg, y - ib.Height);
+            PageImage pageImage = CreatePageImage(ib, imageStyle, xImg, y - imageBox.Height, imageBox.Width, imageBox.Height);
             currentPage!.Images.Add(pageImage);
             if (!string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {
                 int? markedContentId = RegisterFigureStructureElement(pageImage.AlternativeText!);
@@ -77,9 +81,9 @@ internal static partial class PdfWriter {
                 pageImage.StructElementIndex = FindStructElementIndex(currentPage, markedContentId, "Figure");
             }
 
-            AddImageLinkAnnotation(ib, imageStyle, pageImage, xImg, y - ib.Height);
+            AddImageLinkAnnotation(ib, imageStyle, pageImage, xImg, y - imageBox.Height, imageBox.Width, imageBox.Height);
             pageDirty = true;
-            y -= ib.Height + imageStyle.SpacingAfter;
+            y -= imageBox.Height + imageStyle.SpacingAfter;
         }
 
         private void RenderPanelFlowBlock(PanelParagraphBlock ppb, IPdfBlock? nextBlock) {
@@ -148,21 +152,35 @@ internal static partial class PdfWriter {
                 int li = 0; bool firstSeg = true;
                 while (li < lines.Count) {
                     double avail = y - currentOpts.MarginBottom;
-                    if (avail < 0.5) { NewPage(); firstSeg = false; continue; }
                     double topPad = firstSeg ? panelStyle.PaddingY : 0;
                     double minLine = lineHeights[li];
-                    if (avail < topPad + minLine) { NewPage(); firstSeg = false; continue; }
+                    if (avail < topPad + minLine) {
+                        EnsurePanelSegmentCanFitLine(topPad, minLine);
+                        NewPage();
+                        continue;
+                    }
+
                     double roomForText = avail - topPad - panelStyle.PaddingY;
+                    if (roomForText < minLine) {
+                        roomForText = avail - topPad;
+                    }
+
                     int take = 0; double hsum = 0;
                     for (int k = li; k < lines.Count; k++) {
                         double h = lineHeights[k];
                         if (hsum + h > roomForText) break;
                         hsum += h; take++;
                     }
+
+                    if (take == 0) {
+                        EnsurePanelSegmentCanFitLine(topPad, minLine);
+                        NewPage();
+                        continue;
+                    }
+
                     bool lastSeg = (li + take) >= lines.Count;
                     double panelTop = y;
-                    double usedBottomPad = panelStyle.PaddingY;
-                    if (!lastSeg && topPad + hsum + usedBottomPad > avail) usedBottomPad = Math.Max(0, avail - (topPad + hsum));
+                    double usedBottomPad = lastSeg ? panelStyle.PaddingY : Math.Max(0, avail - (topPad + hsum));
                     double panelBottom = y - (topPad + hsum + usedBottomPad);
                     if (panelStyle.Background.HasValue) { pageDirty = true; DrawRowFill(sb, panelStyle.Background.Value, xLeft, panelBottom, panelWidth, panelTop - panelBottom, emitGeneratedStructure); }
                     if (DrawPanelBorder(sb, panelStyle, xLeft, panelBottom, panelWidth, panelTop - panelBottom, emitGeneratedStructure)) { pageDirty = true; }

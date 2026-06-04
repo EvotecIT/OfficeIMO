@@ -11,6 +11,8 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeDrawing {
     private readonly List<OfficeDrawingShape> _shapes = new List<OfficeDrawingShape>();
     private readonly ReadOnlyCollection<OfficeDrawingShape> _shapesView;
+    private readonly List<OfficeDrawingElement> _elements = new List<OfficeDrawingElement>();
+    private readonly ReadOnlyCollection<OfficeDrawingElement> _elementsView;
 
     /// <summary>Drawing width in the caller's layout unit.</summary>
     public double Width { get; }
@@ -21,6 +23,9 @@ public sealed class OfficeDrawing {
     /// <summary>Positioned shapes in paint order.</summary>
     public IReadOnlyList<OfficeDrawingShape> Shapes => _shapesView;
 
+    /// <summary>Positioned drawing elements in paint order.</summary>
+    public IReadOnlyList<OfficeDrawingElement> Elements => _elementsView;
+
     /// <summary>Creates a drawing canvas.</summary>
     public OfficeDrawing(double width, double height) {
         ValidatePositiveFinite(width, nameof(width));
@@ -29,6 +34,7 @@ public sealed class OfficeDrawing {
         Width = width;
         Height = height;
         _shapesView = new ReadOnlyCollection<OfficeDrawingShape>(_shapes);
+        _elementsView = new ReadOnlyCollection<OfficeDrawingElement>(_elements);
     }
 
     /// <summary>Adds a shape at a local top-left coordinate and returns this drawing.</summary>
@@ -39,14 +45,30 @@ public sealed class OfficeDrawing {
         }
 
         _shapes.Add(item);
+        _elements.Add(item);
         return this;
     }
 
-    /// <summary>Creates a detached copy of this drawing and all positioned shapes.</summary>
+    /// <summary>Adds text inside a local drawing rectangle and returns this drawing.</summary>
+    public OfficeDrawing AddText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null) {
+        var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight);
+        if (item.X + item.Width > Width || item.Y + item.Height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
+        }
+
+        _elements.Add(item);
+        return this;
+    }
+
+    /// <summary>Creates a detached copy of this drawing and all positioned elements.</summary>
     public OfficeDrawing Clone() {
         var clone = new OfficeDrawing(Width, Height);
-        for (int i = 0; i < _shapes.Count; i++) {
-            clone._shapes.Add(_shapes[i].Clone());
+        for (int i = 0; i < _elements.Count; i++) {
+            OfficeDrawingElement element = _elements[i].CloneElement();
+            clone._elements.Add(element);
+            if (element is OfficeDrawingShape shape) {
+                clone._shapes.Add(shape);
+            }
         }
 
         return clone;

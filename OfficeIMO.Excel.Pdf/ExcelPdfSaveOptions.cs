@@ -1,4 +1,5 @@
 using PdfCore = OfficeIMO.Pdf;
+using DrawingCore = OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel.Pdf {
     /// <summary>
@@ -88,6 +89,16 @@ namespace OfficeIMO.Excel.Pdf {
         /// When true, supported worksheet charts are exported as first-party PDF drawing snapshots. Defaults to true.
         /// </summary>
         public bool UseWorksheetCharts { get; set; } = true;
+
+        /// <summary>
+        /// Optional shared chart style applied to exported worksheet chart snapshots and generated chart legend tables.
+        /// </summary>
+        public DrawingCore.OfficeChartStyle? ChartStyle { get; set; }
+
+        /// <summary>
+        /// Optional shared chart layout applied to exported worksheet chart snapshots.
+        /// </summary>
+        public DrawingCore.OfficeChartLayout? ChartLayout { get; set; }
 
         /// <summary>
         /// When true, worksheet merged cells are exported as PDF table column and row spans. Defaults to true.

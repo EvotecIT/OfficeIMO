@@ -365,7 +365,7 @@ namespace OfficeIMO.Word.Pdf {
 
             double width = image.Width.HasValue ? image.Width.Value * 72D / 96D : 144D;
             double height = image.Height.HasValue ? image.Height.Value * 72D / 96D : 144D;
-            images.Add(new PdfCore.PdfTableCellImage(bytes, width, height));
+            images.Add(new PdfCore.PdfTableCellImage(bytes, width, height, CreateNativeImageStyle()));
         }
 
         private static void AddNativeParagraphContent(

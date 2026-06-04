@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// Represents an image rendered inside a table cell.
 /// </summary>
 public sealed class PdfTableCellImage {
-    /// <summary>Creates a supported table-cell image. JPEG and simple PNG images are supported.</summary>
+    /// <summary>Creates a supported table-cell image. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are supported.</summary>
     public PdfTableCellImage(byte[] data, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.Positive(width, nameof(width));

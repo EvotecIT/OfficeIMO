@@ -233,13 +233,17 @@ internal static partial class PdfWriter {
         public double ClipX { get; set; }
         public double ClipY { get; set; }
         public double ClipHeight { get; set; }
+        public PdfImageSourceCrop? SourceCrop { get; set; }
         public bool IsBackgroundDecoration { get; set; }
         public double Opacity { get; set; } = 1D;
         public double RotationAngle { get; set; }
+        public bool HorizontalFlip { get; set; }
+        public bool VerticalFlip { get; set; }
         public string? GraphicsStateName { get; set; }
         public string? AlternativeText { get; set; }
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
+        public string? InlineDrawToken { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
     }

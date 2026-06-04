@@ -204,4 +204,90 @@ public partial class PdfStamperTests {
             0, 0, 0, 0
         };
     }
+
+    private static byte[] CreateMinimalIndexedColorPng() {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 2,
+            0, 0, 0, 1,
+            8, 3, 0, 0, 0
+        });
+        WritePngChunk(ms, "PLTE", new byte[] {
+            0xE6, 0x39, 0x46,
+            0x2B, 0x7D, 0xD8
+        });
+        WritePngChunk(ms, "tRNS", new byte[] { 255, 64 });
+        WritePngChunk(ms, "IDAT", new byte[] {
+            0x78, 0x01,
+            0x01,
+            0x03, 0x00,
+            0xFC, 0xFF,
+            0x00, 0x00, 0x01,
+            0x00, 0x04, 0x00, 0x02
+        });
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static byte[] CreateMinimalRgbTransparencyPng() {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 2, 0, 0, 0
+        });
+        WritePngChunk(ms, "tRNS", new byte[] {
+            0, 255,
+            0, 0,
+            0, 0
+        });
+        WritePngChunk(ms, "IDAT", new byte[] {
+            0x78, 0x01,
+            0x01,
+            0x04, 0x00,
+            0xFB, 0xFF,
+            0x00, 0xFF, 0x00, 0x00,
+            0x03, 0x01, 0x01, 0x00
+        });
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static byte[] CreateMinimalPackedGrayscalePng() {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 2,
+            0, 0, 0, 1,
+            4, 0, 0, 0, 0
+        });
+        WritePngChunk(ms, "tRNS", new byte[] { 0, 1 });
+        WritePngChunk(ms, "IDAT", new byte[] {
+            0x78, 0x01,
+            0x01,
+            0x02, 0x00,
+            0xFD, 0xFF,
+            0x00, 0x01,
+            0x00, 0x03, 0x00, 0x02
+        });
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static void WritePngChunk(Stream stream, string type, byte[] data) {
+        stream.WriteByte((byte)((data.Length >> 24) & 0xFF));
+        stream.WriteByte((byte)((data.Length >> 16) & 0xFF));
+        stream.WriteByte((byte)((data.Length >> 8) & 0xFF));
+        stream.WriteByte((byte)(data.Length & 0xFF));
+        byte[] typeBytes = Encoding.ASCII.GetBytes(type);
+        stream.Write(typeBytes, 0, typeBytes.Length);
+        stream.Write(data, 0, data.Length);
+        byte[] crc = new byte[] { 0, 0, 0, 0 };
+        stream.Write(crc, 0, crc.Length);
+    }
 }

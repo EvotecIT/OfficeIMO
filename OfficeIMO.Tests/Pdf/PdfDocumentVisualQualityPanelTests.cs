@@ -222,6 +222,85 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void PanelParagraph_WithTightSplitPadding_RendersForwardProgressAcrossPages() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 180,
+                PageHeight = 110,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20,
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10
+            })
+            .PanelParagraph(p => p
+                .Text("FirstSegment")
+                .LineBreak()
+                .Text("SecondSegment"), new PanelStyle {
+                    PaddingY = 56,
+                    BorderWidth = 0,
+                    SpacingAfter = 0
+                })
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("FirstSegment", text, StringComparison.Ordinal);
+        Assert.Contains("SecondSegment", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PanelParagraph_RejectsVerticalPaddingThatCannotFitFirstLine() {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Create(new PdfOptions {
+                    PageWidth = 180,
+                    PageHeight = 100,
+                    MarginLeft = 20,
+                    MarginRight = 20,
+                    MarginTop = 20,
+                    MarginBottom = 20,
+                    DefaultFont = PdfStandardFont.Helvetica,
+                    DefaultFontSize = 10
+                })
+                .PanelParagraph(p => p.Text("CannotFit"), new PanelStyle {
+                    PaddingY = 70,
+                    BorderWidth = 0
+                })
+                .ToBytes());
+
+        Assert.Contains("Panel vertical padding and first line height exceed the available page content height.", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RowColumnPanelParagraph_RejectsVerticalPaddingThatCannotFitFirstLine() {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Create(new PdfOptions {
+                    PageWidth = 180,
+                    PageHeight = 100,
+                    MarginLeft = 20,
+                    MarginRight = 20,
+                    MarginTop = 20,
+                    MarginBottom = 20,
+                    DefaultFont = PdfStandardFont.Helvetica,
+                    DefaultFontSize = 10
+                })
+                .Compose(document =>
+                    document.Page(page =>
+                        page.Content(content =>
+                            content.Row(row =>
+                                row.Column(100, column => column
+                                    .PanelParagraph(p => p.Text("CannotFit"), new PanelStyle {
+                                        PaddingY = 70,
+                                        BorderWidth = 0
+                                    }))))))
+                .ToBytes());
+
+        Assert.Contains("Panel vertical padding and first line height exceed the available page content height.", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Panel_ComposesCommonFlowBlocksIntoStyledPanel() {
         byte[] pdf = PdfDocument.Create()
             .Panel(panel => panel

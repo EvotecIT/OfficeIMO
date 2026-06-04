@@ -17,7 +17,9 @@ OfficeIMO.Drawing is the shared first-party drawing layer for OfficeIMO packages
 - `OfficeGradientStop` and `OfficeLinearGradient`: reusable two-stop linear gradient fill descriptors in normalized local coordinates.
 - `OfficeShadow`: reusable shape shadow intent with color, opacity, and offset.
 - `OfficePoint`, `OfficeTransform`, `OfficePathCommand`, `OfficeShape`, `OfficeShapeKind`, `OfficeStrokeDashStyle`, `OfficeStrokeLineCap`, and `OfficeStrokeLineJoin`: dependency-free vector shape descriptors that format-specific packages can map into their own coordinate systems.
-- `OfficeDrawing` and `OfficeDrawingShape`: reusable drawing scenes made from positioned shared shapes.
+- `OfficeDrawing`, `OfficeDrawingShape`, `OfficeDrawingText`, and `OfficeDrawingElement`: reusable drawing scenes made from ordered positioned shared shapes and text.
+- `OfficeDrawingQualityAnalyzer`, `OfficeDrawingQualityOptions`, `OfficeDrawingQualityReport`, and `OfficeDrawingQualityIssue`: dependency-free drawing quality diagnostics for canvas bounds and text overlap checks.
+- `OfficeChartSnapshot`, `OfficeChartData`, `OfficeChartSeries`, `OfficeChartStyle`, `OfficeChartLayout`, `OfficeChartRenderingResult`, and `OfficeChartDrawingRenderer`: dependency-free chart snapshots, style/layout metadata, vector rendering, and quality-report results for shared PDF/Office export paths.
 
 ## Supported Image Metadata
 
@@ -156,7 +158,7 @@ var movedAndScaled = OfficeTransform.Translate(12, 4).Then(OfficeTransform.Scale
 badge.ClipPath = OfficeClipPath.RoundedRectangle(120, 36, 8);
 ```
 
-`OfficeDrawing` groups positioned shapes into a reusable local canvas. This is useful for logos, badges, simple diagrams, and future Office exporters that need to pass drawing intent into a format-specific renderer.
+`OfficeDrawing` groups positioned shapes and text into a reusable local canvas. This is useful for logos, badges, simple diagrams, chart snapshots, and future Office exporters that need to pass drawing intent into a format-specific renderer.
 
 ```csharp
 using OfficeIMO.Drawing;
@@ -176,7 +178,55 @@ marker.FillColor = OfficeColor.SteelBlue;
 var scene = new OfficeDrawing(120, 60)
     .AddShape(background, 0, 0)
     .AddShape(connector, 0, 0)
-    .AddShape(marker, 20, 15);
+    .AddShape(marker, 20, 15)
+    .AddText(
+        "Ready",
+        10,
+        42,
+        100,
+        12,
+        new OfficeFontInfo("Aptos", 9, OfficeFontStyle.Bold),
+        OfficeColor.SteelBlue,
+        OfficeTextAlignment.Center);
 ```
 
-PDF, Word, Excel, PowerPoint, and other packages can map these shared descriptors into their own drawing models while keeping serialization details inside the format-specific package.
+PDF, Word, Excel, PowerPoint, and other packages can map these shared descriptors into their own drawing models while keeping serialization details inside the format-specific package. `OfficeDrawing.Elements` preserves mixed shape/text paint order, while `OfficeDrawing.Shapes` remains available for existing shape-only consumers.
+
+`OfficeDrawingQualityAnalyzer` provides a lightweight shared preflight for drawing scenes before format-specific rendering. It reports element bounds overflow and text-box overlaps, which lets chart, diagram, slide, and report exporters catch obvious premium-output problems before they become unreadable PDFs or Office visuals.
+
+```csharp
+OfficeDrawingQualityReport report = OfficeDrawingQualityAnalyzer.Analyze(scene);
+if (report.HasIssues) {
+    foreach (OfficeDrawingQualityIssue issue in report.Issues) {
+        Console.WriteLine(issue);
+    }
+}
+```
+
+## Chart Snapshots
+
+`OfficeChartDrawingRenderer` turns reusable chart snapshots into `OfficeDrawing` scenes. Excel and PowerPoint PDF exporters can share the same column, bar, line, area, scatter, radar, pie, and doughnut chart geometry instead of copying source-specific renderers.
+
+```csharp
+using OfficeIMO.Drawing;
+
+var chart = new OfficeChartSnapshot(
+    "Revenue",
+    "Quarterly revenue",
+    OfficeChartKind.ColumnClustered,
+    new OfficeChartData(
+        new[] { "Q1", "Q2", "Q3" },
+        new[] {
+            new OfficeChartSeries("Sales", new[] { 12D, 18D, 24D })
+        }),
+    widthPoints: 320,
+    heightPoints: 180);
+
+OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(chart);
+```
+
+`OfficeChartStyle` carries reusable chart palette, background, border, axis, grid, text, title, and font-family metadata when a source exporter has theme information to preserve. `OfficeChartLayout` carries reusable legend width, legend row, swatch, label font, category/radar label-density metadata, and default-on category label overlap prevention so dense charts can avoid overlapping text without each exporter inventing separate spacing rules. Set `preventLabelOverlap: false` only when an exporter intentionally wants a strict source-like label count plus quality diagnostics.
+
+Use `OfficeChartDrawingRenderer.RenderWithQuality(...)` when an exporter wants both the rendered drawing and a shared `OfficeDrawingQualityReport` for warnings, diagnostics, or visual quality gates.
+
+Format-specific packages still own source parsing, theme resolution, pagination, and final serialization. The shared renderer owns the visual chart geometry, default or supplied palette, simple chart title text, extractable series/category legends, compact value/category axis labels, horizontal bar category labels, radar point labels, chart text styling, and shared dense-label/legend layout policy.

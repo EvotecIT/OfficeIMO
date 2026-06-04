@@ -151,6 +151,40 @@ _Figure 1. Embedded from a relative Markdown path._
     }
 
     [Fact]
+    public void Markdown_SaveAsPdf_ScalesOversizedLocalImagesIntoContentFrame() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.ScaleDown", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string imagePath = Path.Combine(directory, "pixel.png");
+            File.WriteAllBytes(imagePath, Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="));
+
+            var options = new MarkdownPdfSaveOptions {
+                ApplyWordLikeTheme = false,
+                BaseDirectory = directory,
+                PdfOptions = new PdfCore.PdfOptions {
+                    PageWidth = 220,
+                    PageHeight = 180,
+                    MarginLeft = 20,
+                    MarginRight = 20,
+                    MarginTop = 20,
+                    MarginBottom = 20
+                }
+            };
+            string markdown = "![Wide local image](pixel.png){width=360 height=180}";
+
+            byte[] pdf = markdown.SaveAsPdf(options);
+            string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
+
+            Assert.Empty(options.Warnings);
+            Assert.Contains("q\n180 0 0 90 20 70 cm\n/Im1 Do\nQ", rawPdf);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void Markdown_TrySaveAsPdf_ReturnsCoreSaveResult() {
         string markdown = "# Result Adapter\n\nPDF output should report bytes and diagnostics.";
         using var stream = new MemoryStream();

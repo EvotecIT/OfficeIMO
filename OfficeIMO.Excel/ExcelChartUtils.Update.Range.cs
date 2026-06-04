@@ -14,40 +14,7 @@ namespace OfficeIMO.Excel {
             var plotArea = chart?.GetFirstChild<PlotArea>();
             if (plotArea == null) return null;
 
-            IReadOnlyList<OpenXmlCompositeElement> seriesList;
-            if (plotArea.GetFirstChild<BarChart>() is BarChart bar) {
-                seriesList = bar.Elements<BarChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<Bar3DChart>() is Bar3DChart bar3D) {
-                seriesList = bar3D.Elements<BarChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<LineChart>() is LineChart line) {
-                seriesList = line.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<Line3DChart>() is Line3DChart line3D) {
-                seriesList = line3D.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<AreaChart>() is AreaChart area) {
-                seriesList = area.Elements<AreaChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<Area3DChart>() is Area3DChart area3D) {
-                seriesList = area3D.Elements<AreaChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<PieChart>() is PieChart pie) {
-                seriesList = pie.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<Pie3DChart>() is Pie3DChart pie3D) {
-                seriesList = pie3D.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<OfPieChart>() is OfPieChart ofPie) {
-                seriesList = ofPie.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<DoughnutChart>() is DoughnutChart doughnut) {
-                seriesList = doughnut.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<RadarChart>() is RadarChart radar) {
-                seriesList = radar.Elements<RadarChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<StockChart>() is StockChart stock) {
-                seriesList = stock.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<Surface3DChart>() is Surface3DChart surface3D) {
-                seriesList = surface3D.Elements<SurfaceChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<SurfaceChart>() is SurfaceChart surface) {
-                seriesList = surface.Elements<SurfaceChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else if (plotArea.GetFirstChild<ScatterChart>() is ScatterChart scatter) {
-                seriesList = scatter.Elements<ScatterChartSeries>().Cast<OpenXmlCompositeElement>().ToList();
-            } else {
-                return null;
-            }
+            IReadOnlyList<OpenXmlCompositeElement> seriesList = GetChartSeries(plotArea);
 
             if (seriesList.Count == 0) return null;
 
@@ -109,6 +76,63 @@ namespace OfficeIMO.Excel {
             return new ExcelChartDataRange(sheetName, startRow, startColumn, categoryCount, seriesList.Count, hasHeaderRow);
         }
 
+        private static IReadOnlyList<OpenXmlCompositeElement> GetChartSeries(PlotArea plotArea) {
+            var series = new List<OpenXmlCompositeElement>();
+            foreach (OpenXmlElement chartElement in plotArea.ChildElements) {
+                switch (chartElement) {
+                    case BarChart bar:
+                        series.AddRange(bar.Elements<BarChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case Bar3DChart bar3D:
+                        series.AddRange(bar3D.Elements<BarChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case LineChart line:
+                        series.AddRange(line.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case Line3DChart line3D:
+                        series.AddRange(line3D.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case AreaChart area:
+                        series.AddRange(area.Elements<AreaChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case Area3DChart area3D:
+                        series.AddRange(area3D.Elements<AreaChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case PieChart pie:
+                        series.AddRange(pie.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case Pie3DChart pie3D:
+                        series.AddRange(pie3D.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case OfPieChart ofPie:
+                        series.AddRange(ofPie.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case DoughnutChart doughnut:
+                        series.AddRange(doughnut.Elements<PieChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case RadarChart radar:
+                        series.AddRange(radar.Elements<RadarChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case StockChart stock:
+                        series.AddRange(stock.Elements<LineChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case Surface3DChart surface3D:
+                        series.AddRange(surface3D.Elements<SurfaceChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case SurfaceChart surface:
+                        series.AddRange(surface.Elements<SurfaceChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                    case ScatterChart scatter:
+                        series.AddRange(scatter.Elements<ScatterChartSeries>().Cast<OpenXmlCompositeElement>());
+                        break;
+                }
+            }
+
+            return series
+                .OrderBy(item => item.GetFirstChild<ChartIndex>()?.Val?.Value ?? uint.MaxValue)
+                .ToList();
+        }
+
         internal static ExcelChartData? TryReadChartData(ExcelSheet sheet, ExcelChartDataRange range) {
             try {
                 var categories = new List<string>(range.CategoryCount);
@@ -147,6 +171,96 @@ namespace OfficeIMO.Excel {
                 return new ExcelChartData(categories, series);
             } catch {
                 return null;
+            }
+        }
+
+        internal static ExcelChartData ApplyChartSeriesTypes(ChartPart chartPart, ExcelChartData data, ExcelChartType defaultType) {
+            var chart = chartPart.ChartSpace?.GetFirstChild<Chart>();
+            var plotArea = chart?.GetFirstChild<PlotArea>();
+            if (plotArea == null || data.Series.Count == 0) {
+                return data;
+            }
+
+            var seriesTypes = new Dictionary<int, ExcelChartType>();
+            int chartElementCount = 0;
+            foreach (OpenXmlElement chartElement in plotArea.ChildElements) {
+                if (!TryGetChartElementType(chartElement, out ExcelChartType chartType)) {
+                    continue;
+                }
+
+                chartElementCount++;
+                foreach (OpenXmlElement child in chartElement.ChildElements) {
+                    ChartIndex? index = (child as OpenXmlCompositeElement)?.GetFirstChild<ChartIndex>();
+                    if (index?.Val?.Value != null) {
+                        seriesTypes[(int)index.Val.Value] = chartType;
+                    }
+                }
+            }
+
+            if (chartElementCount <= 1 || seriesTypes.Count == 0) {
+                return data;
+            }
+
+            var series = new List<ExcelChartSeries>(data.Series.Count);
+            for (int i = 0; i < data.Series.Count; i++) {
+                ExcelChartSeries current = data.Series[i];
+                ExcelChartType? seriesType = current.ChartType;
+                if (seriesTypes.TryGetValue(i, out ExcelChartType chartType) && chartType != defaultType) {
+                    seriesType = chartType;
+                }
+
+                series.Add(new ExcelChartSeries(current.Name, current.Values, seriesType, current.AxisGroup));
+            }
+
+            return new ExcelChartData(data.Categories, series);
+        }
+
+        private static bool TryGetChartElementType(OpenXmlElement element, out ExcelChartType chartType) {
+            switch (element) {
+                case BarChart bar:
+                    BarDirectionValues direction = bar.GetFirstChild<BarDirection>()?.Val?.Value ?? BarDirectionValues.Column;
+                    BarGroupingValues barGrouping = bar.GetFirstChild<BarGrouping>()?.Val?.Value ?? BarGroupingValues.Clustered;
+                    if (direction == BarDirectionValues.Bar) {
+                        chartType = barGrouping == BarGroupingValues.PercentStacked
+                            ? ExcelChartType.BarStacked100
+                            : barGrouping == BarGroupingValues.Stacked ? ExcelChartType.BarStacked : ExcelChartType.BarClustered;
+                    } else {
+                        chartType = barGrouping == BarGroupingValues.PercentStacked
+                            ? ExcelChartType.ColumnStacked100
+                            : barGrouping == BarGroupingValues.Stacked ? ExcelChartType.ColumnStacked : ExcelChartType.ColumnClustered;
+                    }
+
+                    return true;
+                case LineChart line:
+                    GroupingValues lineGrouping = line.GetFirstChild<Grouping>()?.Val?.Value ?? GroupingValues.Standard;
+                    chartType = lineGrouping == GroupingValues.PercentStacked
+                        ? ExcelChartType.LineStacked100
+                        : lineGrouping == GroupingValues.Stacked ? ExcelChartType.LineStacked : ExcelChartType.Line;
+                    return true;
+                case AreaChart area:
+                    GroupingValues areaGrouping = area.GetFirstChild<Grouping>()?.Val?.Value ?? GroupingValues.Standard;
+                    chartType = areaGrouping == GroupingValues.PercentStacked
+                        ? ExcelChartType.AreaStacked100
+                        : areaGrouping == GroupingValues.Stacked ? ExcelChartType.AreaStacked : ExcelChartType.Area;
+                    return true;
+                case ScatterChart:
+                    chartType = ExcelChartType.Scatter;
+                    return true;
+                case RadarChart:
+                    chartType = ExcelChartType.Radar;
+                    return true;
+                case PieChart:
+                    chartType = ExcelChartType.Pie;
+                    return true;
+                case Pie3DChart:
+                    chartType = ExcelChartType.Pie3D;
+                    return true;
+                case DoughnutChart:
+                    chartType = ExcelChartType.Doughnut;
+                    return true;
+                default:
+                    chartType = default;
+                    return false;
             }
         }
     }

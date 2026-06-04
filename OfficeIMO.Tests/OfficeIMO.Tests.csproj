@@ -47,6 +47,7 @@
         <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Visio\\OfficeIMO.Visio.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.PowerPoint.Pdf\\OfficeIMO.PowerPoint.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Zip\\OfficeIMO.Zip.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Epub\\OfficeIMO.Epub.csproj" />

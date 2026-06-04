@@ -10,10 +10,12 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public class PowerPointTextRun {
         private readonly SlidePart? _slidePart;
+        private readonly OpenXmlPartContainer? _ownerPart;
 
-        internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null) {
+        internal PowerPointTextRun(A.Run run, SlidePart? slidePart = null, OpenXmlPartContainer? ownerPart = null) {
             Run = run;
             _slidePart = slidePart;
+            _ownerPart = ownerPart ?? slidePart;
         }
 
         internal A.Run Run { get; }
@@ -135,7 +137,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public Uri? Hyperlink {
             get {
-                if (_slidePart == null) {
+                if (_ownerPart == null) {
                     return null;
                 }
 
@@ -144,7 +146,7 @@ namespace OfficeIMO.PowerPoint {
                     return null;
                 }
 
-                HyperlinkRelationship? rel = _slidePart.HyperlinkRelationships
+                HyperlinkRelationship? rel = _ownerPart.HyperlinkRelationships
                     .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.Ordinal));
                 return rel?.Uri;
             }

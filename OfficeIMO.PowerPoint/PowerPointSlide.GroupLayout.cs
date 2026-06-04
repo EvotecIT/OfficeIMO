@@ -21,9 +21,9 @@ namespace OfficeIMO.PowerPoint {
                     continue;
                 }
 
-                PowerPointShape? shape = CreateShapeFromElement(child);
+                PowerPointShape? shape = CreateShapeFromElement(child, groupShape.OwnerPart ?? _slidePart);
                 if (shape != null) {
-                    children.Add(shape);
+                    children.Add(shape.AttachTo(this));
                 }
             }
 

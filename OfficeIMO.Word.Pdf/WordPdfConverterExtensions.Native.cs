@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.Pdf {
             public void CheckBox(string name, bool isChecked, double size, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName, PdfCore.PdfFormFieldStyle? style) => _pdf.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style);
             public void Shape(OfficeShape shape, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style) => _pdf.Table(rows, align, style);
-            public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _pdf.Image(bytes, width, height, align);
+            public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _pdf.Image(bytes, width, height, align, style: CreateNativeImageStyle());
         }
 
         private sealed class NativePdfColumnFlow : INativePdfFlow {
@@ -82,8 +82,12 @@ namespace OfficeIMO.Word.Pdf {
             public void CheckBox(string name, bool isChecked, double size, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName, PdfCore.PdfFormFieldStyle? style) => _column.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style);
             public void Shape(OfficeShape shape, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style) => _column.Table(rows, align, style);
-            public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _column.Image(bytes, width, height, align);
+            public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _column.Image(bytes, width, height, align, style: CreateNativeImageStyle());
         }
+
+        private static PdfCore.PdfImageStyle CreateNativeImageStyle() => new() {
+            ScaleDownToFit = true
+        };
 
         private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, PdfSaveOptions? options) {
             options?.Warnings.Clear();

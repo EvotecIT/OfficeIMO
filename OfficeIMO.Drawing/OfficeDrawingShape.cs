@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 /// Positioned shape inside an <see cref="OfficeDrawing"/> canvas.
 /// Coordinates use the drawing's local top-left coordinate space.
 /// </summary>
-public sealed class OfficeDrawingShape {
+public sealed class OfficeDrawingShape : OfficeDrawingElement {
     /// <summary>Shape horizontal position inside the drawing.</summary>
     public double X { get; }
 
@@ -34,6 +34,8 @@ public sealed class OfficeDrawingShape {
 
     /// <summary>Creates a detached copy of this positioned shape.</summary>
     public OfficeDrawingShape Clone() => new OfficeDrawingShape(Shape, X, Y);
+
+    internal override OfficeDrawingElement CloneElement() => Clone();
 
     private static void ValidateFiniteNonNegative(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value < 0) {

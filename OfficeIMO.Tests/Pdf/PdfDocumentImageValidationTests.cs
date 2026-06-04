@@ -169,6 +169,77 @@ public class PdfDocumentImageValidationTests {
     }
 
     [Fact]
+    public void TableCellImage_WithScaleDownToFit_ReducesOversizedImageIntoCellFrame() {
+        byte[] jpeg = CreateMinimalJpeg(400, 200);
+        var tableStyle = new PdfTableStyle {
+            HeaderRowCount = 0,
+            BorderColor = null,
+            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 80D }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 180,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20
+            })
+            .Table(new[] {
+                new[] {
+                    PdfTableCell.WithImages(
+                        (string?)null,
+                        new[] {
+                            new PdfTableCellImage(jpeg, 144, 72, new PdfImageStyle { ScaleDownToFit = true })
+                        })
+                }
+            }, style: tableStyle)
+            .ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("q\n72 0 0 36 24 122 cm\n/Im1 Do\nQ", pdfContent);
+    }
+
+    [Fact]
+    public void RowColumnTableCellImage_WithScaleDownToFit_ReducesOversizedImageIntoCellFrame() {
+        byte[] jpeg = CreateMinimalJpeg(400, 200);
+        var tableStyle = new PdfTableStyle {
+            HeaderRowCount = 0,
+            BorderColor = null,
+            ColumnWidthPoints = new System.Collections.Generic.List<double?> { 80D }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 180,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20
+            })
+            .Compose(compose =>
+                compose.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column =>
+                                column.Table(new[] {
+                                    new[] {
+                                        PdfTableCell.WithImages(
+                                            (string?)null,
+                                            new[] {
+                                                new PdfTableCellImage(jpeg, 144, 72, new PdfImageStyle { ScaleDownToFit = true })
+                                            })
+                                    }
+                                }, style: tableStyle))))))
+            .ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("q\n72 0 0 36 24 122 cm\n/Im1 Do\nQ", pdfContent);
+    }
+
+    [Fact]
     public void Options_SnapshotDefaultImageStyle() {
         var style = new PdfImageStyle {
             Align = PdfAlign.Center,
@@ -176,7 +247,8 @@ public class PdfDocumentImageValidationTests {
             ClipPath = OfficeClipPath.Rectangle(12, 10),
             SpacingBefore = 4,
             SpacingAfter = 9,
-            KeepWithNext = true
+            KeepWithNext = true,
+            ScaleDownToFit = true
         };
         var options = new PdfOptions {
             DefaultImageStyle = style
@@ -188,10 +260,12 @@ public class PdfDocumentImageValidationTests {
         style.SpacingBefore = 1;
         style.SpacingAfter = 2;
         style.KeepWithNext = false;
+        style.ScaleDownToFit = false;
 
         PdfImageStyle readback = options.DefaultImageStyle!;
         readback.Align = PdfAlign.Left;
         readback.ClipPath = OfficeClipPath.Rectangle(2, 2);
+        readback.ScaleDownToFit = false;
 
         PdfOptions clone = options.Clone();
 
@@ -201,9 +275,11 @@ public class PdfDocumentImageValidationTests {
         Assert.Equal(4, options.DefaultImageStyle.SpacingBefore);
         Assert.Equal(9, options.DefaultImageStyle.SpacingAfter);
         Assert.True(options.DefaultImageStyle.KeepWithNext);
+        Assert.True(options.DefaultImageStyle.ScaleDownToFit);
         Assert.Equal(PdfAlign.Center, clone.DefaultImageStyle!.Align);
         Assert.Equal(12, clone.DefaultImageStyle.ClipPath!.Width);
         Assert.True(clone.DefaultImageStyle.KeepWithNext);
+        Assert.True(clone.DefaultImageStyle.ScaleDownToFit);
     }
 
     [Fact]
@@ -213,7 +289,8 @@ public class PdfDocumentImageValidationTests {
             Fit = OfficeImageFit.Contain,
             SpacingBefore = 3,
             SpacingAfter = 8,
-            KeepWithNext = true
+            KeepWithNext = true,
+            ScaleDownToFit = true
         };
         var theme = new PdfTheme {
             ImageStyle = imageStyle
@@ -224,6 +301,7 @@ public class PdfDocumentImageValidationTests {
         imageStyle.Fit = OfficeImageFit.Cover;
         imageStyle.SpacingAfter = 1;
         imageStyle.KeepWithNext = false;
+        imageStyle.ScaleDownToFit = false;
 
         PdfOptions clone = options.Clone();
 
@@ -231,8 +309,10 @@ public class PdfDocumentImageValidationTests {
         Assert.Equal(OfficeImageFit.Contain, options.DefaultImageStyle.Fit);
         Assert.Equal(8, options.DefaultImageStyle.SpacingAfter);
         Assert.True(options.DefaultImageStyle.KeepWithNext);
+        Assert.True(options.DefaultImageStyle.ScaleDownToFit);
         Assert.Equal(PdfAlign.Center, clone.DefaultImageStyle!.Align);
         Assert.True(clone.DefaultImageStyle.KeepWithNext);
+        Assert.True(clone.DefaultImageStyle.ScaleDownToFit);
     }
 
     [Fact]
@@ -324,7 +404,8 @@ public class PdfDocumentImageValidationTests {
 
         var exception = Assert.Throws<NotSupportedException>(() => doc.Image(CreateMinimalGif(), 24, 24));
 
-        Assert.Contains("JPEG and non-interlaced 8-bit grayscale/grayscale-alpha/RGB/RGBA PNG", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("JPEG and grayscale/grayscale-alpha/indexed-color/RGB/RGBA PNG", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Adam7-interlaced PNGs", exception.Message, StringComparison.Ordinal);
         Assert.Contains(nameof(OfficeImageFormat.Gif), exception.Message, StringComparison.Ordinal);
     }
 
@@ -524,6 +605,27 @@ public class PdfDocumentImageValidationTests {
     }
 
     [Fact]
+    public void Image_WithScaleDownToFit_ReducesOversizedImageIntoContentFrame() {
+        byte[] jpeg = CreateMinimalJpeg(400, 200);
+        var options = new PdfOptions {
+            PageWidth = 220,
+            PageHeight = 180,
+            MarginLeft = 20,
+            MarginRight = 20,
+            MarginTop = 20,
+            MarginBottom = 20
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Image(jpeg, 360, 180, style: new PdfImageStyle { ScaleDownToFit = true })
+            .ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("q\n180 0 0 90 20 70 cm\n/Im1 Do\nQ", pdfContent);
+    }
+
+    [Fact]
     public void Image_WithSimpleRgbPng_WritesFlatePngPredictorImageObject() {
         byte[] png = CreateMinimalRgbPng();
 
@@ -550,6 +652,151 @@ public class PdfDocumentImageValidationTests {
         string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
         Assert.Contains("/Subtype /Image", pdfContent);
         Assert.Contains("/Width 1 /Height 1", pdfContent);
+        Assert.Contains("/Filter /FlateDecode", pdfContent);
+        Assert.Contains("/SMask", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
+        Assert.Contains("/Colors 3", pdfContent);
+        Assert.Contains("/Colors 1", pdfContent);
+        Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
+    [Fact]
+    public void Image_WithRgbPngTransparency_WritesSoftMaskImageObject() {
+        byte[] png = CreateMinimalRgbTransparencyPng();
+
+        byte[] bytes = PdfDocument.Create().Image(png, 24, 24).ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/Width 1 /Height 1", pdfContent);
+        Assert.Contains("/Filter /FlateDecode", pdfContent);
+        Assert.Contains("/SMask", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
+        Assert.Contains("/Colors 3", pdfContent);
+        Assert.Contains("/Colors 1", pdfContent);
+        Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
+    [Fact]
+    public void Image_WithGrayscalePngTransparency_WritesSoftMaskImageObject() {
+        byte[] png = CreateMinimalGrayscaleTransparencyPng();
+
+        byte[] bytes = PdfDocument.Create().Image(png, 24, 24).ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/Width 1 /Height 1", pdfContent);
+        Assert.Contains("/Filter /FlateDecode", pdfContent);
+        Assert.Contains("/SMask", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
+        Assert.Contains("/Colors 1", pdfContent);
+        Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(4)]
+    public void Image_WithPackedGrayscalePngBitDepth_WritesDeviceGrayImageObject(int bitDepth) {
+        byte[] png = CreateMinimalPackedGrayscalePng(bitDepth, includeTransparency: false);
+
+        byte[] bytes = PdfDocument.Create().Image(png, 24, 12).ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/Width 2 /Height 1", pdfContent);
+        Assert.Contains("/Filter /FlateDecode", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
+        Assert.Contains("/BitsPerComponent 8", pdfContent);
+        Assert.Contains("/Colors 1", pdfContent);
+        Assert.DoesNotContain("/SMask", pdfContent);
+        Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
+    [Fact]
+    public void Image_WithPackedGrayscalePngTransparency_WritesSoftMaskImageObject() {
+        byte[] png = CreateMinimalPackedGrayscalePng(4, includeTransparency: true);
+
+        byte[] bytes = PdfDocument.Create().Image(png, 24, 12).ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/Width 2 /Height 1", pdfContent);
+        Assert.Contains("/Filter /FlateDecode", pdfContent);
+        Assert.Contains("/SMask", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
+        Assert.Contains("/BitsPerComponent 8", pdfContent);
+        Assert.Contains("/Colors 1", pdfContent);
+        Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
+    [Fact]
+    public void Image_WithIndexedColorPng_WritesRgbImageObject() {
+        byte[] png = CreateMinimalIndexedColorPng(includeTransparency: false);
+
+        Assert.True(PdfDocument.TryValidateImageBytes(png, out OfficeImageInfo? imageInfo, out string? unsupportedReason));
+        Assert.Null(unsupportedReason);
+        Assert.NotNull(imageInfo);
+        Assert.Equal(OfficeImageFormat.Png, imageInfo!.Format);
+
+        byte[] bytes = PdfDocument.Create().Image(png, 24, 12).ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/Width 2 /Height 1", pdfContent);
+        Assert.Contains("/Filter /FlateDecode", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/Colors 3", pdfContent);
+        Assert.DoesNotContain("/SMask", pdfContent);
+        Assert.DoesNotContain("/Filter /DCTDecode", pdfContent);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(4)]
+    [InlineData(8)]
+    public void Image_WithIndexedColorPngBitDepth_WritesRgbImageObject(int bitDepth) {
+        byte[] png = CreateMinimalIndexedColorPng(includeTransparency: false, bitDepth: bitDepth);
+
+        byte[] bytes = PdfDocument.Create().Image(png, 24, 12).ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Width 2 /Height 1", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/Colors 3", pdfContent);
+        Assert.DoesNotContain("/SMask", pdfContent);
+    }
+
+    [Fact]
+    public void Image_WithIndexedColorPngTransparency_WritesSoftMaskImageObject() {
+        byte[] png = CreateMinimalIndexedColorPng(includeTransparency: true);
+
+        byte[] bytes = PdfDocument.Create().Image(png, 24, 12).ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/Width 2 /Height 1", pdfContent);
         Assert.Contains("/Filter /FlateDecode", pdfContent);
         Assert.Contains("/SMask", pdfContent);
         Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
@@ -696,6 +943,31 @@ public class PdfDocumentImageValidationTests {
     }
 
     [Fact]
+    public void RowColumnImage_WithScaleDownToFit_ReducesOversizedImageIntoColumnFrame() {
+        byte[] jpeg = CreateMinimalJpeg(400, 200);
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 180,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20
+            })
+            .Compose(compose =>
+                compose.Page(page =>
+                    page.Content(content =>
+                        content.Row(row =>
+                            row.Column(100, column =>
+                                column.Image(jpeg, 360, 180, style: new PdfImageStyle { ScaleDownToFit = true }))))))
+            .ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("q\n180 0 0 90 20 70 cm\n/Im1 Do\nQ", pdfContent);
+    }
+
+    [Fact]
     public void RowColumnImage_WithClipPath_WritesClippingPathAroundImageXObject() {
         byte[] png = CreateMinimalRgbPng();
 
@@ -769,6 +1041,148 @@ public class PdfDocumentImageValidationTests {
             73, 69, 78, 68,
             0, 0, 0, 0
         };
+    }
+
+    private static byte[] CreateMinimalRgbTransparencyPng() {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 2, 0, 0, 0
+        });
+        WritePngChunk(ms, "tRNS", new byte[] {
+            0, 255,
+            0, 0,
+            0, 0
+        });
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, 255, 0, 0 }));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static byte[] CreateMinimalGrayscaleTransparencyPng() {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 0, 0, 0, 0
+        });
+        WritePngChunk(ms, "tRNS", new byte[] { 0, 128 });
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, 128 }));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static byte[] CreateMinimalPackedGrayscalePng(int bitDepth, bool includeTransparency) {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 2,
+            0, 0, 0, 1,
+            (byte)bitDepth, 0, 0, 0, 0
+        });
+        if (includeTransparency) {
+            WritePngChunk(ms, "tRNS", new byte[] { 0, 1 });
+        }
+
+        WritePngChunk(ms, "IDAT", BuildPackedGrayscalePngIdat(bitDepth));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static byte[] BuildPackedGrayscalePngIdat(int bitDepth) {
+        byte packedPixels = bitDepth switch {
+            1 => 0x40,
+            2 => 0x10,
+            4 => 0x01,
+            _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+        };
+
+        return BuildStoredZlib(new byte[] { 0, packedPixels });
+    }
+
+    private static byte[] CreateMinimalIndexedColorPng(bool includeTransparency, int bitDepth = 8) {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 2,
+            0, 0, 0, 1,
+            (byte)bitDepth, 3, 0, 0, 0
+        });
+        WritePngChunk(ms, "PLTE", new byte[] {
+            0xE6, 0x39, 0x46,
+            0x2B, 0x7D, 0xD8
+        });
+        if (includeTransparency) {
+            WritePngChunk(ms, "tRNS", new byte[] { 255, 64 });
+        }
+
+        WritePngChunk(ms, "IDAT", BuildIndexedPngIdat(bitDepth));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static byte[] BuildIndexedPngIdat(int bitDepth) {
+        byte packedPixels = bitDepth switch {
+            1 => 0x40,
+            2 => 0x10,
+            4 => 0x01,
+            8 => 0x00,
+            _ => throw new ArgumentOutOfRangeException(nameof(bitDepth))
+        };
+        byte[] scanline = bitDepth == 8
+            ? new byte[] { 0, 0, 1 }
+            : new byte[] { 0, packedPixels };
+
+        return BuildStoredZlib(scanline);
+    }
+
+    private static byte[] BuildStoredZlib(byte[] scanline) {
+        using var ms = new MemoryStream();
+        ms.WriteByte(0x78);
+        ms.WriteByte(0x01);
+        ms.WriteByte(0x01);
+        ms.WriteByte((byte)(scanline.Length & 0xFF));
+        ms.WriteByte((byte)((scanline.Length >> 8) & 0xFF));
+        int nlen = scanline.Length ^ 0xFFFF;
+        ms.WriteByte((byte)(nlen & 0xFF));
+        ms.WriteByte((byte)((nlen >> 8) & 0xFF));
+        ms.Write(scanline, 0, scanline.Length);
+        uint adler = Adler32(scanline);
+        ms.WriteByte((byte)((adler >> 24) & 0xFF));
+        ms.WriteByte((byte)((adler >> 16) & 0xFF));
+        ms.WriteByte((byte)((adler >> 8) & 0xFF));
+        ms.WriteByte((byte)(adler & 0xFF));
+        return ms.ToArray();
+    }
+
+    private static uint Adler32(byte[] data) {
+        const uint mod = 65521;
+        uint a = 1;
+        uint b = 0;
+        for (int i = 0; i < data.Length; i++) {
+            a = (a + data[i]) % mod;
+            b = (b + a) % mod;
+        }
+
+        return (b << 16) | a;
+    }
+
+    private static void WritePngChunk(Stream stream, string type, byte[] data) {
+        stream.WriteByte((byte)((data.Length >> 24) & 0xFF));
+        stream.WriteByte((byte)((data.Length >> 16) & 0xFF));
+        stream.WriteByte((byte)((data.Length >> 8) & 0xFF));
+        stream.WriteByte((byte)(data.Length & 0xFF));
+        byte[] typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
+        stream.Write(typeBytes, 0, typeBytes.Length);
+        stream.Write(data, 0, data.Length);
+        stream.Write(new byte[] { 0, 0, 0, 0 }, 0, 4);
     }
 
     private static byte[] CreateMinimalGif() {
