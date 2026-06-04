@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
 using DocumentFormat.OpenXml.Packaging;
@@ -260,6 +261,35 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_HonorsDisabledInheritedLayoutShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.SetAttribute(new OpenXmlAttribute("showMasterSp", string.Empty, "0"));
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 701U, Name = "Hidden Layout Rule" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+                new ApplicationNonVisualDrawingProperties()),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(16), Y = PowerPointUnits.FromPoints(20) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(50), Cy = PowerPointUnits.FromPoints(10) }),
+                new PresetGeometry(new AdjustValueList()) { Preset = ShapeTypeValues.Rectangle },
+                new SolidFill(new RgbColorModelHex { Val = "00AA00" }))));
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.DoesNotContain("16 130 50 10 re", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesFlippedPictures() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -280,6 +310,27 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesPictureCrop() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointPicture picture = presentation.Slides[0].AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(60),
+            PowerPointUnits.FromPoints(30));
+        picture.Crop(leftPercent: 50D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("40 80 60 30 re", raw, StringComparison.Ordinal);
+        Assert.Contains("120 0 0 30 -20 80 cm", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesTextBoxFillTransparency() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -294,6 +345,23 @@ public class PowerPointSaveAsPdfTests {
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("/ca 0.5", raw, StringComparison.Ordinal);
         Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesAsymmetricTextBoxMargins() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints("Asymmetric", 30, 40, 140, 50);
+        textBox.FillTransparency = 100;
+        textBox.OutlineColor = null;
+        textBox.FontSize = 10;
+        textBox.SetTextMarginsPoints(left: 20D, top: 6D, right: 4D, bottom: 2D);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("50 92 116 42 re", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -509,6 +577,26 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesSparseCachedChartPointIndices() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Jan", "Feb", "Mar" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 20D, 30D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        MakeFirstBarSeriesCacheSparse(chart);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+
+        Assert.Equal(new[] { "Jan", string.Empty, "Mar" }, snapshot.Data.Categories);
+        PowerPointChartSeries actual = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(new[] { 10D, 0D, 30D }, actual.Values);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_AppliesSharedChartStyleAndLayoutOptions() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -597,8 +685,7 @@ public class PowerPointSaveAsPdfTests {
     }
 
     private static void SetBarChartShape(PowerPointChart chart, C.BarDirectionValues direction, C.BarGroupingValues grouping) {
-        MethodInfo method = typeof(PowerPointChart).GetMethod("GetChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var chartPart = (ChartPart)method.Invoke(chart, Array.Empty<object>())!;
+        ChartPart chartPart = GetChartPart(chart);
         C.BarChart barChart = chartPart.ChartSpace!.Descendants<C.BarChart>().Single();
         barChart.GetFirstChild<C.BarDirection>()!.Val = direction;
         barChart.GetFirstChild<C.BarGrouping>()!.Val = grouping;
@@ -606,12 +693,26 @@ public class PowerPointSaveAsPdfTests {
     }
 
     private static void SetLineChartGrouping(PowerPointChart chart, C.GroupingValues grouping) {
-        MethodInfo method = typeof(PowerPointChart).GetMethod("GetChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!;
-        var chartPart = (ChartPart)method.Invoke(chart, Array.Empty<object>())!;
+        ChartPart chartPart = GetChartPart(chart);
         C.LineChart lineChart = chartPart.ChartSpace!.Descendants<C.LineChart>().Single();
         C.Grouping chartGrouping = lineChart.GetFirstChild<C.Grouping>() ?? lineChart.PrependChild(new C.Grouping());
         chartGrouping.Val = grouping;
         chartPart.ChartSpace.Save();
+    }
+
+    private static void MakeFirstBarSeriesCacheSparse(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.BarChartSeries series = chartPart.ChartSpace!.Descendants<C.BarChartSeries>().Single();
+        C.StringCache categoryCache = series.GetFirstChild<C.CategoryAxisData>()!.Descendants<C.StringCache>().Single();
+        C.NumberingCache valueCache = series.GetFirstChild<C.Values>()!.Descendants<C.NumberingCache>().Single();
+        categoryCache.Elements<C.StringPoint>().Single(point => point.Index?.Value == 1U).Remove();
+        valueCache.Elements<C.NumericPoint>().Single(point => point.Index?.Value == 1U).Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static ChartPart GetChartPart(PowerPointChart chart) {
+        MethodInfo method = typeof(PowerPointChart).GetMethod("GetChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        return (ChartPart)method.Invoke(chart, Array.Empty<object>())!;
     }
 
     private static double FindWordStartY(UglyToad.PdfPig.Content.Page page, string word) {

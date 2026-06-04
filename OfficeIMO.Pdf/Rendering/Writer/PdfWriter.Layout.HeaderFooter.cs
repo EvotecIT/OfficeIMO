@@ -13,8 +13,17 @@ internal static partial class PdfWriter {
         double drawWidth = targetWidth;
         double drawHeight = targetHeight;
         OfficeClipPath? clipPath = ScaleClipPath(style.ClipPath, targetWidth / block.Width, targetHeight / block.Height);
+        PdfImageSourceCrop? sourceCrop = style.SourceCrop;
 
-        if (style.Fit != OfficeImageFit.Stretch) {
+        if (sourceCrop?.HasCrop == true) {
+            double visibleWidth = 1D - sourceCrop.Left - sourceCrop.Right;
+            double visibleHeight = 1D - sourceCrop.Top - sourceCrop.Bottom;
+            drawWidth = targetWidth / visibleWidth;
+            drawHeight = targetHeight / visibleHeight;
+            drawX = targetX - sourceCrop.Left * drawWidth;
+            drawY = targetBottomY - sourceCrop.Bottom * drawHeight;
+            clipPath ??= OfficeClipPath.Rectangle(targetWidth, targetHeight);
+        } else if (style.Fit != OfficeImageFit.Stretch) {
             double imageAspect = block.Info.Width / (double)block.Info.Height;
             double targetAspect = targetWidth / targetHeight;
 

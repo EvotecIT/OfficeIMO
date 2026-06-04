@@ -236,12 +236,22 @@ namespace OfficeIMO.PowerPoint {
 
             List<C.StringPoint> stringPoints = container.Descendants<C.StringPoint>().OrderBy(point => point.Index?.Value ?? 0U).ToList();
             if (stringPoints.Count > 0) {
-                return stringPoints.Select(point => point.NumericValue?.Text ?? string.Empty).ToList();
+                return CreateIndexedCache(
+                    container,
+                    stringPoints,
+                    point => point.Index?.Value,
+                    point => point.NumericValue?.Text ?? string.Empty,
+                    string.Empty);
             }
 
             List<C.NumericPoint> numericPoints = container.Descendants<C.NumericPoint>().OrderBy(point => point.Index?.Value ?? 0U).ToList();
             if (numericPoints.Count > 0) {
-                return numericPoints.Select(point => point.NumericValue?.Text ?? string.Empty).ToList();
+                return CreateIndexedCache(
+                    container,
+                    numericPoints,
+                    point => point.Index?.Value,
+                    point => point.NumericValue?.Text ?? string.Empty,
+                    string.Empty);
             }
 
             return Array.Empty<string>();
@@ -252,19 +262,73 @@ namespace OfficeIMO.PowerPoint {
                 return Array.Empty<double>();
             }
 
-            var values = new List<double>();
-            foreach (C.NumericPoint point in container.Descendants<C.NumericPoint>().OrderBy(point => point.Index?.Value ?? 0U)) {
+            List<C.NumericPoint> points = container.Descendants<C.NumericPoint>().OrderBy(point => point.Index?.Value ?? 0U).ToList();
+            if (points.Count == 0) {
+                return Array.Empty<double>();
+            }
+
+            return CreateIndexedCache(
+                container,
+                points,
+                point => point.Index?.Value,
+                point => {
                 string? text = point.NumericValue?.Text;
                 if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) &&
                     !double.IsNaN(value) &&
                     !double.IsInfinity(value)) {
-                    values.Add(value);
-                } else {
-                    values.Add(0D);
+                    return value;
+                }
+
+                return 0D;
+                },
+                0D);
+        }
+
+        private static IReadOnlyList<TValue> CreateIndexedCache<TPoint, TValue>(
+            OpenXmlElement container,
+            IReadOnlyList<TPoint> points,
+            Func<TPoint, uint?> getIndex,
+            Func<TPoint, TValue> getValue,
+            TValue defaultValue) {
+            int length = GetCachedPointLength(container, points, getIndex);
+            var values = Enumerable.Repeat(defaultValue, length).ToArray();
+            for (int i = 0; i < points.Count; i++) {
+                TPoint point = points[i];
+                uint? rawIndex = getIndex(point);
+                int index = rawIndex.HasValue && rawIndex.Value <= int.MaxValue
+                    ? (int)rawIndex.Value
+                    : i;
+                if (index >= 0 && index < values.Length) {
+                    values[index] = getValue(point);
                 }
             }
 
             return values;
+        }
+
+        private static int GetCachedPointLength<TPoint>(OpenXmlElement container, IReadOnlyList<TPoint> points, Func<TPoint, uint?> getIndex) {
+            uint? pointCount = container.Descendants<C.PointCount>().FirstOrDefault()?.Val?.Value;
+            uint maxIndex = 0U;
+            bool hasIndexedPoint = false;
+            for (int i = 0; i < points.Count; i++) {
+                uint? index = getIndex(points[i]);
+                if (!index.HasValue) {
+                    continue;
+                }
+
+                hasIndexedPoint = true;
+                if (index.Value > maxIndex) {
+                    maxIndex = index.Value;
+                }
+            }
+
+            uint indexedLength = hasIndexedPoint ? maxIndex + 1U : (uint)points.Count;
+            uint length = Math.Max(pointCount ?? 0U, indexedLength);
+            if (length > int.MaxValue) {
+                return points.Count;
+            }
+
+            return (int)length;
         }
 
         private static IReadOnlyList<string> CreateFallbackCategories(int count) {

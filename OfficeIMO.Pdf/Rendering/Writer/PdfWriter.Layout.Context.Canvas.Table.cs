@@ -41,7 +41,8 @@ internal static partial class PdfWriter {
                 double rowBottom = rowTop - rowHeights[rowIndex];
                 bool rowIsHeader = rowIndex < headerRowCount;
                 bool rowIsFooter = rowIndex >= footerStart;
-                DrawCanvasTableRowBackground(style, rowIndex, rowIsHeader, rowIsFooter, xOrigin, rowBottom, tableWidth, rowHeights[rowIndex]);
+                bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(table, rowIndex, columns);
+                DrawCanvasTableRowBackground(style, rowIndex, rowIsHeader, rowIsFooter, xOrigin, rowBottom, columnWidths, columnGap, rowFillSkips, rowHeights[rowIndex]);
 
                 var cells = GetTableCellLayouts(table, rowIndex, columns);
                 for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
@@ -162,14 +163,14 @@ internal static partial class PdfWriter {
             return heights;
         }
 
-        private void DrawCanvasTableRowBackground(PdfTableStyle style, int rowIndex, bool rowIsHeader, bool rowIsFooter, double x, double y, double width, double height) {
+        private void DrawCanvasTableRowBackground(PdfTableStyle style, int rowIndex, bool rowIsHeader, bool rowIsFooter, double x, double y, double[] columnWidths, double columnGap, bool[] skipColumns, double height) {
             PdfColor? fill = rowIsHeader
                 ? style.HeaderFill
                 : rowIsFooter
                     ? style.FooterFill
                     : ((rowIndex - style.HeaderRowCount) % 2 == 1 ? style.RowStripeFill : null);
             if (fill.HasValue) {
-                DrawRowFill(sb, fill.Value, x, y, width, height, true);
+                DrawTableRowFill(sb, fill.Value, x, columnWidths, columnGap, y, height, skipColumns, true);
             }
         }
 

@@ -74,7 +74,7 @@ internal static partial class PdfWriter {
             double y1 = pageImage.Y;
             double x2 = pageImage.X + pageImage.W;
             double y2 = pageImage.Y + pageImage.H;
-            if (style.Fit == OfficeImageFit.Cover || style.ClipPath != null) {
+            if (style.Fit == OfficeImageFit.Cover || style.ClipPath != null || style.SourceCrop?.HasCrop == true) {
                 x1 = targetX;
                 y1 = targetBottomY;
                 x2 = targetX + targetWidth;

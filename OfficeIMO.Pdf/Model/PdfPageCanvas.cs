@@ -186,7 +186,8 @@ public sealed class PdfPageCanvas {
     }
 
     private static void ValidateTextBoxInnerArea(double width, double height, PdfCanvasTextBoxStyle style, string paramName) {
-        if (style.PaddingX * 2D >= width || style.PaddingY * 2D >= height) {
+        if (style.EffectivePaddingLeft + style.EffectivePaddingRight >= width ||
+            style.EffectivePaddingTop + style.EffectivePaddingBottom >= height) {
             throw new ArgumentException("Canvas text box padding must leave a positive text area.", paramName);
         }
 

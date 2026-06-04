@@ -231,17 +231,41 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static bool TryFitTextBoxPadding(PdfCore.PdfCanvasTextBoxStyle style, double width, double height, out bool adjustedPadding) {
         const double minimumInnerSize = 0.5D;
-        double originalPaddingX = style.PaddingX;
-        double originalPaddingY = style.PaddingY;
+        double originalPaddingLeft = style.PaddingLeft ?? style.PaddingX;
+        double originalPaddingRight = style.PaddingRight ?? style.PaddingX;
+        double originalPaddingTop = style.PaddingTop ?? style.PaddingY;
+        double originalPaddingBottom = style.PaddingBottom ?? style.PaddingY;
         adjustedPadding = false;
         if (width <= minimumInnerSize || height <= minimumInnerSize) {
             return false;
         }
 
-        style.PaddingX = Math.Min(style.PaddingX, Math.Max(0D, (width - minimumInnerSize) / 2D));
-        style.PaddingY = Math.Min(style.PaddingY, Math.Max(0D, (height - minimumInnerSize) / 2D));
-        adjustedPadding = style.PaddingX != originalPaddingX || style.PaddingY != originalPaddingY;
-        return style.PaddingX * 2D < width && style.PaddingY * 2D < height;
+        FitPaddingPair(width, minimumInnerSize, originalPaddingLeft, originalPaddingRight, out double paddingLeft, out double paddingRight);
+        FitPaddingPair(height, minimumInnerSize, originalPaddingTop, originalPaddingBottom, out double paddingTop, out double paddingBottom);
+        style.PaddingLeft = paddingLeft;
+        style.PaddingRight = paddingRight;
+        style.PaddingTop = paddingTop;
+        style.PaddingBottom = paddingBottom;
+        adjustedPadding =
+            paddingLeft != originalPaddingLeft ||
+            paddingRight != originalPaddingRight ||
+            paddingTop != originalPaddingTop ||
+            paddingBottom != originalPaddingBottom;
+        return paddingLeft + paddingRight < width && paddingTop + paddingBottom < height;
+    }
+
+    private static void FitPaddingPair(double outerSize, double minimumInnerSize, double leading, double trailing, out double fittedLeading, out double fittedTrailing) {
+        double maximumPadding = Math.Max(0D, outerSize - minimumInnerSize);
+        double total = leading + trailing;
+        if (total <= maximumPadding || total <= 0D) {
+            fittedLeading = leading;
+            fittedTrailing = trailing;
+            return;
+        }
+
+        double scale = maximumPadding / total;
+        fittedLeading = leading * scale;
+        fittedTrailing = trailing * scale;
     }
 
     private static IReadOnlyList<PdfCore.TextRun> CreateTextRuns(PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
@@ -303,8 +327,10 @@ public static partial class PowerPointPdfConverterExtensions {
             BorderColor = outline,
             BorderWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D,
             BorderDashStyle = MapDash(textBox.OutlineDash),
-            PaddingX = Math.Max(textBox.TextMarginLeftPoints ?? 3.6D, textBox.TextMarginRightPoints ?? 3.6D),
-            PaddingY = Math.Max(textBox.TextMarginTopPoints ?? 3.6D, textBox.TextMarginBottomPoints ?? 3.6D),
+            PaddingLeft = textBox.TextMarginLeftPoints ?? 3.6D,
+            PaddingRight = textBox.TextMarginRightPoints ?? 3.6D,
+            PaddingTop = textBox.TextMarginTopPoints ?? 3.6D,
+            PaddingBottom = textBox.TextMarginBottomPoints ?? 3.6D,
             TextColor = ParsePdfColor(textBox.Color),
             FontSize = textBox.FontSize,
             Font = MapFont(textBox.FontName),
@@ -315,13 +341,19 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RenderPicture(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointPicture picture, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
         try {
+            PdfCore.PdfImageStyle style = new();
+            PptCore.PowerPointPictureCrop crop = picture.GetCrop();
+            if (crop.HasCrop) {
+                style.SourceCrop = new PdfCore.PdfImageSourceCrop(crop.Left, crop.Top, crop.Right, crop.Bottom);
+            }
+
             canvas.Image(
                 picture.GetImageBytes(),
                 x,
                 y,
                 width,
                 height,
-                style: new PdfCore.PdfImageStyle(),
+                style: style,
                 alternativeText: picture.AltText,
                 rotationAngle: picture.Rotation ?? 0D,
                 horizontalFlip: picture.HorizontalFlip == true,

@@ -167,6 +167,30 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasImage_WithSourceCrop_ClipsAndOffsetsImageInsideDeclaredFrame() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 40, 50, 60, 30, new PdfImageStyle {
+                SourceCrop = new PdfImageSourceCrop(left: 0.5D, top: 0D, right: 0D, bottom: 0D)
+            }, linkUri: "https://evotec.xyz/cropped"))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("40 80 60 30 re", content, StringComparison.Ordinal);
+        Assert.Contains("120 0 0 30 -20 80 cm", content, StringComparison.Ordinal);
+        Assert.Contains("/Im1 Do", content, StringComparison.Ordinal);
+        PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
+        AssertClose(40D, link.X1);
+        AssertClose(80D, link.Y1);
+        AssertClose(100D, link.X2);
+        AssertClose(110D, link.Y2);
+    }
+
+    [Fact]
     public void CanvasImage_WithRotation_RendersImageAroundDeclaredFrameCenter() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,
@@ -237,6 +261,29 @@ public class PdfDocumentCanvasTests {
 
         Assert.InRange(FindWordStartX(page, "Premium"), 61D, 91D);
         Assert.InRange(FindWordStartY(page, "Premium"), 120D, 135D);
+    }
+
+    [Fact]
+    public void CanvasTextBox_WithAsymmetricPadding_UsesIndividualEdges() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 260,
+                PageHeight = 180,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.TextBox("Asymmetric", 30, 40, 140, 50, new PdfCanvasTextBoxStyle {
+                Background = null,
+                BorderColor = null,
+                PaddingLeft = 20D,
+                PaddingRight = 4D,
+                PaddingTop = 6D,
+                PaddingBottom = 2D,
+                FontSize = 10D
+            }))
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("50 92 116 42 re", content, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -434,6 +481,31 @@ public class PdfDocumentCanvasTests {
         Assert.DoesNotContain("90 150 m", raw, StringComparison.Ordinal);
         Assert.Contains("90 120 m", raw, StringComparison.Ordinal);
         Assert.Contains("90 90 l", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasTable_RowSpanSkipsContinuationRowStripeFill() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { PdfTableCell.Merge("Span", rowSpan: 2), PdfTableCell.TextCell("Top") },
+                new[] { PdfTableCell.TextCell("Bottom") }
+            }, 30, 30, 120, 60, new PdfTableStyle {
+                HeaderRowCount = 0,
+                RowStripeFill = PdfColor.FromRgb(220, 235, 250),
+                ColumnWidthPoints = new System.Collections.Generic.List<double?> { 60D, 60D },
+                RowMinHeights = new System.Collections.Generic.List<double?> { 30D, 30D }
+            }))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+
+        Assert.DoesNotContain("30 90 120 30 re", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("30 90 60 30 re", raw, StringComparison.Ordinal);
+        Assert.Contains("90 90 60 30 re", raw, StringComparison.Ordinal);
     }
 
     [Fact]

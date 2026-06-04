@@ -10,6 +10,10 @@ public sealed class PdfCanvasTextBoxStyle {
     private double _borderWidth = 0.5D;
     private double _paddingX = 6D;
     private double _paddingY = 4D;
+    private double? _paddingLeft;
+    private double? _paddingRight;
+    private double? _paddingTop;
+    private double? _paddingBottom;
     private double _cornerRadius;
     private double? _fontSize;
     private double? _lineHeight;
@@ -77,6 +81,50 @@ public sealed class PdfCanvasTextBoxStyle {
         }
     }
 
+    /// <summary>Optional left padding override, in points. When null <see cref="PaddingX"/> is used.</summary>
+    public double? PaddingLeft {
+        get => _paddingLeft;
+        set {
+            ValidateOptionalNonNegativeFiniteValue(value, nameof(PaddingLeft), "Canvas text box left padding must be a non-negative finite value.");
+            _paddingLeft = value;
+        }
+    }
+
+    /// <summary>Optional right padding override, in points. When null <see cref="PaddingX"/> is used.</summary>
+    public double? PaddingRight {
+        get => _paddingRight;
+        set {
+            ValidateOptionalNonNegativeFiniteValue(value, nameof(PaddingRight), "Canvas text box right padding must be a non-negative finite value.");
+            _paddingRight = value;
+        }
+    }
+
+    /// <summary>Optional top padding override, in points. When null <see cref="PaddingY"/> is used.</summary>
+    public double? PaddingTop {
+        get => _paddingTop;
+        set {
+            ValidateOptionalNonNegativeFiniteValue(value, nameof(PaddingTop), "Canvas text box top padding must be a non-negative finite value.");
+            _paddingTop = value;
+        }
+    }
+
+    /// <summary>Optional bottom padding override, in points. When null <see cref="PaddingY"/> is used.</summary>
+    public double? PaddingBottom {
+        get => _paddingBottom;
+        set {
+            ValidateOptionalNonNegativeFiniteValue(value, nameof(PaddingBottom), "Canvas text box bottom padding must be a non-negative finite value.");
+            _paddingBottom = value;
+        }
+    }
+
+    internal double EffectivePaddingLeft => PaddingLeft ?? PaddingX;
+
+    internal double EffectivePaddingRight => PaddingRight ?? PaddingX;
+
+    internal double EffectivePaddingTop => PaddingTop ?? PaddingY;
+
+    internal double EffectivePaddingBottom => PaddingBottom ?? PaddingY;
+
     /// <summary>Default foreground color for text runs that do not specify a color.</summary>
     public PdfColor? TextColor { get; set; }
 
@@ -141,6 +189,10 @@ public sealed class PdfCanvasTextBoxStyle {
             CornerRadius = CornerRadius,
             PaddingX = PaddingX,
             PaddingY = PaddingY,
+            PaddingLeft = PaddingLeft,
+            PaddingRight = PaddingRight,
+            PaddingTop = PaddingTop,
+            PaddingBottom = PaddingBottom,
             TextColor = TextColor,
             Align = Align,
             VerticalAlign = VerticalAlign,
@@ -158,6 +210,12 @@ public sealed class PdfCanvasTextBoxStyle {
 
     private static void ValidateOptionalPositiveFiniteValue(double? value, string paramName, string message) {
         if (value.HasValue && (value.Value <= 0 || double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
+            throw new System.ArgumentException(message, paramName);
+        }
+    }
+
+    private static void ValidateOptionalNonNegativeFiniteValue(double? value, string paramName, string message) {
+        if (value.HasValue && (value.Value < 0 || double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
             throw new System.ArgumentException(message, paramName);
         }
     }

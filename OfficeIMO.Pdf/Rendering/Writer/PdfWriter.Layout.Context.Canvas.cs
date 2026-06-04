@@ -94,11 +94,15 @@ internal static partial class PdfWriter {
                 DrawShapeAt(block, drawingStyle, item.X, item.Width, topY);
             }
 
-            double textX = item.X + style.PaddingX;
-            double textWidth = item.Width - style.PaddingX * 2D;
-            double textHeight = item.Height - style.PaddingY * 2D;
-            double textTopY = topY - style.PaddingY;
-            double textBottomY = bottomY + style.PaddingY;
+            double paddingLeft = style.EffectivePaddingLeft;
+            double paddingRight = style.EffectivePaddingRight;
+            double paddingTop = style.EffectivePaddingTop;
+            double paddingBottom = style.EffectivePaddingBottom;
+            double textX = item.X + paddingLeft;
+            double textWidth = item.Width - paddingLeft - paddingRight;
+            double textHeight = item.Height - paddingTop - paddingBottom;
+            double textTopY = topY - paddingTop;
+            double textBottomY = bottomY + paddingBottom;
             double size = style.FontSize ?? currentOpts.DefaultFontSize;
             double leading = style.LineHeight ?? size * 1.2D;
             PdfStandardFont baseFont = ChooseNormal(style.Font ?? currentOpts.DefaultFont);

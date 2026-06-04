@@ -9,6 +9,7 @@ public sealed class PdfImageStyle {
     private PdfAlign _align = PdfAlign.Left;
     private OfficeImageFit _fit = OfficeImageFit.Stretch;
     private OfficeClipPath? _clipPath;
+    private PdfImageSourceCrop? _sourceCrop;
     private double _spacingBefore;
     private double _spacingAfter;
     private string? _alternativeText;
@@ -35,6 +36,12 @@ public sealed class PdfImageStyle {
     public OfficeClipPath? ClipPath {
         get => _clipPath?.Clone();
         set => _clipPath = value?.Clone();
+    }
+
+    /// <summary>Optional source crop applied before fitting the image into the target box.</summary>
+    public PdfImageSourceCrop? SourceCrop {
+        get => _sourceCrop?.Clone();
+        set => _sourceCrop = value?.Clone();
     }
 
     /// <summary>Vertical space before the image in the surrounding document flow, in points.</summary>
@@ -79,6 +86,7 @@ public sealed class PdfImageStyle {
             Align = Align,
             Fit = Fit,
             ClipPath = _clipPath,
+            SourceCrop = _sourceCrop,
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             KeepWithNext = KeepWithNext,

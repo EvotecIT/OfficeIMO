@@ -10,12 +10,37 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal IReadOnlyList<PowerPointShape> GetInheritedShapesForExport() {
             var shapes = new List<PowerPointShape>();
+            if (!ShowsMasterShapes(SlideRoot.CommonSlideData)) {
+                return shapes;
+            }
+
             SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
             SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
 
-            AddInheritedShapes(masterPart?.SlideMaster?.CommonSlideData?.ShapeTree, masterPart, shapes);
+            if (ShowsMasterShapes(layoutPart?.SlideLayout?.CommonSlideData)) {
+                AddInheritedShapes(masterPart?.SlideMaster?.CommonSlideData?.ShapeTree, masterPart, shapes);
+            }
+
             AddInheritedShapes(layoutPart?.SlideLayout?.CommonSlideData?.ShapeTree, layoutPart, shapes);
             return shapes;
+        }
+
+        private static bool ShowsMasterShapes(CommonSlideData? commonSlideData) {
+            if (commonSlideData == null) {
+                return true;
+            }
+
+            string? value = null;
+            foreach (OpenXmlAttribute attribute in commonSlideData.GetAttributes()) {
+                if (attribute.LocalName == "showMasterSp") {
+                    value = attribute.Value;
+                    break;
+                }
+            }
+
+            return string.IsNullOrWhiteSpace(value) ||
+                value == "1" ||
+                value?.Equals("true", System.StringComparison.OrdinalIgnoreCase) == true;
         }
 
         private void AddInheritedShapes(ShapeTree? tree, OpenXmlPartContainer? ownerPart, List<PowerPointShape> shapes) {

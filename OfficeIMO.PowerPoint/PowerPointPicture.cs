@@ -136,6 +136,19 @@ namespace OfficeIMO.PowerPoint {
             SetSourceRectangle(null, null, null, null);
         }
 
+        internal PowerPointPictureCrop GetCrop() {
+            A.SourceRectangle? rect = Picture.BlipFill?.SourceRectangle;
+            if (rect == null) {
+                return PowerPointPictureCrop.None;
+            }
+
+            return new PowerPointPictureCrop(
+                ToCropFraction(rect.Left?.Value),
+                ToCropFraction(rect.Top?.Value),
+                ToCropFraction(rect.Right?.Value),
+                ToCropFraction(rect.Bottom?.Value));
+        }
+
         /// <summary>
         ///     Fits the image into the current shape bounds, optionally cropping to fill.
         /// </summary>
@@ -224,6 +237,14 @@ namespace OfficeIMO.PowerPoint {
 
         private static int ToCropValue(double percent) {
             return (int)Math.Round(percent * 1000);
+        }
+
+        private static double ToCropFraction(int? value) {
+            if (!value.HasValue) {
+                return 0D;
+            }
+
+            return Math.Min(0.999999D, Math.Max(0D, value.Value / 100000D));
         }
 
         private static bool IsZero(double value) {
