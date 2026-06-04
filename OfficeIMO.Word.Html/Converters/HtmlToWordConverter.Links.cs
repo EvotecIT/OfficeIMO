@@ -21,18 +21,22 @@ namespace OfficeIMO.Word.Html {
             if (string.IsNullOrEmpty(id)) {
                 id = element.GetAttribute("name");
             }
+            if (string.IsNullOrEmpty(id)) {
+                id = element.GetAttribute("data-bookmark");
+            }
             if (!string.IsNullOrEmpty(id)) {
                 WordBookmark.AddBookmark(paragraph, id!);
             }
         }
 
-        private WordParagraph AddNoteReference(WordParagraph paragraph, string text, HtmlToWordOptions options) {
-            return options.NoteReferenceType == NoteReferenceType.Endnote
+        private WordParagraph AddNoteReference(WordParagraph paragraph, string text, HtmlToWordOptions options, NoteReferenceType? noteType = null) {
+            var resolvedNoteType = noteType ?? options.NoteReferenceType;
+            return resolvedNoteType == NoteReferenceType.Endnote
                 ? paragraph.AddEndNote(text)
                 : paragraph.AddFootNote(text);
         }
 
-        private void TryLinkNoteReference(WordParagraph noteReference, string text, HtmlToWordOptions options) {
+        private void TryLinkNoteReference(WordParagraph noteReference, string text, HtmlToWordOptions options, NoteReferenceType? noteType = null) {
             if (!options.LinkNoteUrls) {
                 return;
             }
@@ -40,7 +44,8 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            var noteParagraph = options.NoteReferenceType == NoteReferenceType.Endnote
+            var resolvedNoteType = noteType ?? options.NoteReferenceType;
+            var noteParagraph = resolvedNoteType == NoteReferenceType.Endnote
                 ? noteReference.EndNote?.Paragraphs?.FirstOrDefault()
                 : noteReference.FootNote?.Paragraphs?.FirstOrDefault();
             if (noteParagraph == null) {

@@ -110,6 +110,10 @@ namespace OfficeIMO.Word.Html {
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
             }
+            var quoted = ExtractQuotedListStyleToken(value);
+            if (quoted != null) {
+                return quoted;
+            }
             var tokens = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
             foreach (var raw in tokens) {
                 var token = NormalizeListStyleToken(raw);
@@ -117,6 +121,29 @@ namespace OfficeIMO.Word.Html {
                     return token;
                 }
             }
+            return null;
+        }
+
+        private static string? ExtractQuotedListStyleToken(string value) {
+            char quote = '\0';
+            int start = -1;
+            for (int i = 0; i < value.Length; i++) {
+                if (value[i] == '\'' || value[i] == '"') {
+                    quote = value[i];
+                    start = i + 1;
+                    break;
+                }
+            }
+            if (start < 0) {
+                return null;
+            }
+
+            for (int i = start; i < value.Length; i++) {
+                if (value[i] == quote) {
+                    return NormalizeListStyleToken(value.Substring(start, i - start));
+                }
+            }
+
             return null;
         }
 
@@ -128,7 +155,14 @@ namespace OfficeIMO.Word.Html {
             if (trimmed.Length == 0) {
                 return null;
             }
+            var importantIndex = trimmed.IndexOf("!important", StringComparison.OrdinalIgnoreCase);
+            if (importantIndex >= 0) {
+                trimmed = trimmed.Substring(0, importantIndex).Trim();
+            }
             var token = trimmed.TrimEnd(',');
+            if (token.Length >= 2 && ((token[0] == '\'' && token[token.Length - 1] == '\'') || (token[0] == '"' && token[token.Length - 1] == '"'))) {
+                token = token.Substring(1, token.Length - 2);
+            }
             if (token.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
@@ -146,6 +180,24 @@ namespace OfficeIMO.Word.Html {
                 "upper-latin" => "upper-alpha",
                 "lower-roman" => "lower-roman",
                 "upper-roman" => "upper-roman",
+                "lower-russian" => "lower-russian",
+                "upper-russian" => "upper-russian",
+                "hebrew" => "hebrew",
+                "hebrew-1" => "hebrew-1",
+                "hebrew-2" => "hebrew-2",
+                "arabic-alpha" => "arabic-alpha",
+                "arabic-abjad" => "arabic-abjad",
+                "hiragana" => "hiragana",
+                "hiragana-iroha" => "hiragana-iroha",
+                "katakana" => "katakana",
+                "katakana-iroha" => "katakana-iroha",
+                "dash" => "dash",
+                "hyphen" => "dash",
+                "-" => "dash",
+                "\u2013" => "en-dash",
+                "en-dash" => "en-dash",
+                "\u2014" => "em-dash",
+                "em-dash" => "em-dash",
                 _ => null,
             };
         }
@@ -181,6 +233,17 @@ namespace OfficeIMO.Word.Html {
                     "upper-alpha" => NumberFormatValues.UpperLetter,
                     "lower-roman" => NumberFormatValues.LowerRoman,
                     "upper-roman" => NumberFormatValues.UpperRoman,
+                    "lower-russian" => NumberFormatValues.RussianLower,
+                    "upper-russian" => NumberFormatValues.RussianUpper,
+                    "hebrew" => NumberFormatValues.Hebrew1,
+                    "hebrew-1" => NumberFormatValues.Hebrew1,
+                    "hebrew-2" => NumberFormatValues.Hebrew2,
+                    "arabic-alpha" => NumberFormatValues.ArabicAlpha,
+                    "arabic-abjad" => NumberFormatValues.ArabicAbjad,
+                    "hiragana" => NumberFormatValues.Aiueo,
+                    "hiragana-iroha" => NumberFormatValues.Iroha,
+                    "katakana" => NumberFormatValues.AiueoFullWidth,
+                    "katakana-iroha" => NumberFormatValues.IrohaFullWidth,
                     "none" => NumberFormatValues.None,
                     _ => NumberFormatValues.Decimal,
                 };
@@ -204,6 +267,15 @@ namespace OfficeIMO.Word.Html {
                     level._level.NumberingFormat = new NumberingFormat { Val = NumberFormatValues.None };
                     level.LevelText = string.Empty;
                     break;
+                case "dash":
+                    level.LevelText = "-";
+                    break;
+                case "en-dash":
+                    level.LevelText = "\u2013";
+                    break;
+                case "em-dash":
+                    level.LevelText = "\u2014";
+                    break;
                 // disc/default -> no change
             }
         }
@@ -214,6 +286,7 @@ namespace OfficeIMO.Word.Html {
             int level = listStack.Count - 1;
             var paragraph = list.AddItem("", level);
 
+            ApplyParagraphStyleFromCss(paragraph, element);
             ApplyClassStyle(element, paragraph, options);
             AddBookmarkIfPresent(element, paragraph);
             var bidi = GetBidiFromDir(element);
@@ -223,6 +296,7 @@ namespace OfficeIMO.Word.Html {
             foreach (var child in element.ChildNodes) {
                 ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter);
             }
+            ApplyPageBreakAfterFromCss(paragraph, element);
         }
 
         private static bool TryGetListItemValue(IHtmlListItemElement element, out int value) {

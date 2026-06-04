@@ -1,7 +1,8 @@
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
-using OfficeIMO.Word.Html;
+using OfficeIMO.Word.Html;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -49,6 +50,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ListStyleType_FromCssInternationalOrdered() {
+            string html = "<ol style=\"list-style-type: lower-russian !important\"><li>One</li><li>Two</li></ol>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var first = doc.Paragraphs.First(p => p.IsListItem);
+            var info = DocumentTraversal.GetListInfo(first);
+            Assert.True(info.HasValue);
+            Assert.Equal(NumberFormatValues.RussianLower, info.Value.NumberFormat);
+        }
+
+        [Fact]
         public void HtmlToWord_ListStyleType_FromCssUnordered() {
             string html = "<ul style=\"list-style-type: square\"><li>One</li></ul>";
 
@@ -58,6 +71,44 @@ namespace OfficeIMO.Tests {
             var info = DocumentTraversal.GetListInfo(first);
             Assert.True(info.HasValue);
             Assert.Equal("■", info.Value.LevelText);
+        }
+
+        [Fact]
+        public void HtmlToWord_ListStyleType_FromQuotedDashBullet() {
+            string html = "<ul style=\"list-style: '- ' outside\"><li>One</li></ul>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var first = doc.Paragraphs.First(p => p.IsListItem);
+            var info = DocumentTraversal.GetListInfo(first);
+            Assert.True(info.HasValue);
+            Assert.Equal("-", info.Value.LevelText);
+        }
+
+        [Fact]
+        public void HtmlToWord_MarkdownTaskList_CheckboxInputsBecomeWordControls() {
+            string html = "<ul class=\"contains-task-list\"><li class=\"task-list-item\"><input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled checked>Done</li><li class=\"task-list-item\"><input class=\"task-list-item-checkbox\" type=\"checkbox\" disabled /> Open</li></ul>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var listItems = doc.Paragraphs
+                .Where(p => p.IsListItem)
+                .GroupBy(p => p._paragraph)
+                .Select(g => g.OrderByDescending(p => p.Text.Length).First())
+                .ToList();
+            Assert.Equal(2, listItems.Count);
+            Assert.Contains(listItems, p => p.Text.Contains("Done"));
+            Assert.Contains(listItems, p => p.Text.Contains("Open"));
+
+            var checkboxes = doc._wordprocessingDocument!.MainDocumentPart!.Document.Body!
+                .Descendants<SdtRun>()
+                .Select(run => run.SdtProperties?.Elements<W14.SdtContentCheckBox>().FirstOrDefault())
+                .Where(checkBox => checkBox != null)
+                .ToList();
+
+            Assert.Equal(2, checkboxes.Count);
+            Assert.Equal(W14.OnOffValues.One, checkboxes[0]!.Elements<W14.Checked>().Single().Val!.Value);
+            Assert.Equal(W14.OnOffValues.Zero, checkboxes[1]!.Elements<W14.Checked>().Single().Val!.Value);
         }
 
         [Fact]

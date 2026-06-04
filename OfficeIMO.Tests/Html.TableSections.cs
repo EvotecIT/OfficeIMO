@@ -26,5 +26,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new List<int> { 675, 4325 }, table.ColumnWidth);
             Assert.Equal(TableWidthUnitValues.Pct, table.ColumnWidthType);
         }
+
+        [Fact]
+        public void HtmlToWord_TableSections_RowSpanReservesColumnsForFollowingRows() {
+            string html = "<table><tbody><tr><td rowspan=\"2\">A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></tbody></table>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+
+            Assert.Equal(2, table.Rows.Count);
+            Assert.Equal(3, table.Rows[0].Cells.Count);
+            Assert.Equal("A", table.Rows[0].Cells[0].Paragraphs[0]._paragraph.InnerText);
+            Assert.Equal("B", table.Rows[0].Cells[1].Paragraphs[0]._paragraph.InnerText);
+            Assert.Equal("C", table.Rows[1].Cells[1].Paragraphs[0]._paragraph.InnerText);
+            Assert.Equal("D", table.Rows[1].Cells[2].Paragraphs[0]._paragraph.InnerText);
+        }
     }
 }

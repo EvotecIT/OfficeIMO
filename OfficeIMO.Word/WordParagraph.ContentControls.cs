@@ -21,7 +21,10 @@ using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
 namespace OfficeIMO.Word {
     public partial class WordParagraph {
-        internal WordStructuredDocumentTag? StructuredDocumentTag {
+        /// <summary>
+        /// Gets the structured document tag contained in this paragraph, if present.
+        /// </summary>
+        public WordStructuredDocumentTag? StructuredDocumentTag {
             get {
                 if (_stdRun != null) {
                     return new WordStructuredDocumentTag(_document, _paragraph, _stdRun);

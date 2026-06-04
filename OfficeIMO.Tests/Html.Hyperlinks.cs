@@ -127,6 +127,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Html_Hyperlinks_DataBookmarkAttribute_AddsBookmark() {
+            string html = "<p data-bookmark='CustomAnchor'>Target</p><p><a href='#CustomAnchor'>Go</a></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            Assert.Contains(doc.Bookmarks, b => b.Name == "CustomAnchor");
+            var hyperlink = doc.ParagraphsHyperLinks[0].Hyperlink;
+            Assert.NotNull(hyperlink);
+            Assert.Equal("CustomAnchor", hyperlink!.Anchor);
+        }
+
+        [Fact]
         public void Html_Hyperlinks_NameAttribute_AddsBookmark() {
             string html = "<h1><a name=\"heading1\"></a>Heading</h1><p><a href=\"#heading1\">Go</a></p>";
 

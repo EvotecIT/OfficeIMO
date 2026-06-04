@@ -209,97 +209,43 @@ namespace OfficeIMO.Word {
         /// Specifies that the first row conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingFirstRow {
-            get {
-                if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.FirstRow?.Value;
-                }
-                return null;
-            }
-            set {
-                if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
-                    _tableProperties.TableLook.FirstRow = value;
-                }
-            }
+            get => GetTableLookFlag(TableLookFirstRow, tableLook => tableLook.FirstRow);
+            set => SetTableLookFlag(TableLookFirstRow, value);
         }
         /// <summary>
         /// Specifies that the last row conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingLastRow {
-            get {
-                if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.LastRow?.Value;
-                }
-                return null;
-            }
-            set {
-                if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
-                    _tableProperties.TableLook.LastRow = value;
-                }
-            }
+            get => GetTableLookFlag(TableLookLastRow, tableLook => tableLook.LastRow);
+            set => SetTableLookFlag(TableLookLastRow, value);
         }
         /// <summary>
         /// Specifies that the first column conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingFirstColumn {
-            get {
-                if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.FirstColumn?.Value;
-                }
-                return null;
-            }
-            set {
-                if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
-                    _tableProperties.TableLook.FirstColumn = value;
-                }
-            }
+            get => GetTableLookFlag(TableLookFirstColumn, tableLook => tableLook.FirstColumn);
+            set => SetTableLookFlag(TableLookFirstColumn, value);
         }
         /// <summary>
         /// Specifies that the last column conditional formatting shall be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingLastColumn {
-            get {
-                if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.LastColumn?.Value;
-                }
-                return null;
-            }
-            set {
-                if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
-                    _tableProperties.TableLook.LastColumn = value;
-                }
-            }
+            get => GetTableLookFlag(TableLookLastColumn, tableLook => tableLook.LastColumn);
+            set => SetTableLookFlag(TableLookLastColumn, value);
         }
         /// <summary>
         /// Specifies that the horizontal banding conditional formatting shall not be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingNoHorizontalBand {
-            get {
-                if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.NoHorizontalBand?.Value;
-                }
-                return null;
-            }
-            set {
-                if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
-                    _tableProperties.TableLook.NoHorizontalBand = value;
-                }
-            }
+            get => GetTableLookFlag(TableLookNoHorizontalBand, tableLook => tableLook.NoHorizontalBand);
+            set => SetTableLookFlag(TableLookNoHorizontalBand, value);
         }
         /// <summary>
         /// Specifies that the vertical banding conditional formatting shall not be applied to the table.
         /// </summary>
         public bool? ConditionalFormattingNoVerticalBand {
-            get {
-                if (_tableProperties != null && _tableProperties.TableLook != null) {
-                    return _tableProperties.TableLook.NoVerticalBand?.Value;
-                }
-                return null;
-            }
-            set {
-                if (_tableProperties != null && _tableProperties.TableLook != null && value != null) {
-                    _tableProperties.TableLook.NoVerticalBand = value;
-                }
-            }
+            get => GetTableLookFlag(TableLookNoVerticalBand, tableLook => tableLook.NoVerticalBand);
+            set => SetTableLookFlag(TableLookNoVerticalBand, value);
         }
 
         /// <summary>
@@ -406,7 +352,7 @@ namespace OfficeIMO.Word {
             TableProperties tableProperties1 = new TableProperties();
             TableStyle tableStyle1 = WordTableStyles.GetStyle(tableStyle);
             TableWidth tableWidth1 = new TableWidth() { Width = "0", Type = TableWidthUnitValues.Auto };
-            TableLook tableLook1 = new TableLook() { Val = "04A0", FirstRow = true, LastRow = false, FirstColumn = true, LastColumn = false, NoHorizontalBand = false, NoVerticalBand = true };
+            TableLook tableLook1 = CreateTableLook(firstRow: true, lastRow: false, firstColumn: true, lastColumn: false, noHorizontalBand: false, noVerticalBand: true);
 
             tableProperties1.Append(tableStyle1);
             tableProperties1.Append(tableWidth1);

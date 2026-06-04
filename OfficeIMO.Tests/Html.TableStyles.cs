@@ -58,5 +58,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(TableWidthUnitValues.Auto, table.WidthType);
             Assert.Equal(0, table.Width);
         }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_MarginAutoCentersTable() {
+            string html = "<table style=\"width:50%;margin:0 auto\"><tr><td>Cell</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+
+            Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
+        }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_AutoLeftMarginAlignsRight() {
+            string html = "<table style=\"margin-left:auto;margin-right:0\"><tr><td>Cell</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+
+            Assert.Equal(TableRowAlignmentValues.Right, table.Alignment);
+        }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_AlignAttributeSetsTableAlignment() {
+            string html = "<table align=\"center\"><tr><td>Cell</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+
+            Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
+        }
     }
 }

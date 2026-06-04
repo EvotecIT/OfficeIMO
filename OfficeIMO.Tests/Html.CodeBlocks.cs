@@ -1,5 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System.Text.RegularExpressions;
 using System.Linq;
 using Xunit;
@@ -25,6 +26,28 @@ namespace OfficeIMO.Tests {
             Assert.Contains("var x = 1;", roundTrip);
             Assert.Contains("var y = 2;", roundTrip);
             Assert.Single(Regex.Matches(roundTrip, "<pre>"));
+        }
+
+        [Fact]
+        public void HtmlToWord_InlineCode_StaysInParagraphAndRoundTripsAsCode() {
+            string html = "<p>Use <code>dotnet test</code> now.</p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var bodyParagraphs = doc._wordprocessingDocument!.MainDocumentPart!.Document!.Body!
+                .Elements<Paragraph>()
+                .Where(p => !string.IsNullOrEmpty(p.InnerText))
+                .ToArray();
+            Assert.Single(bodyParagraphs);
+            Assert.Equal("Use dotnet test now.", bodyParagraphs[0].InnerText);
+
+            var runs = bodyParagraphs[0].Elements<Run>().Where(r => !string.IsNullOrEmpty(r.InnerText)).ToArray();
+            Assert.Equal(new[] { "Use ", "dotnet test", " now." }, runs.Select(r => r.InnerText).ToArray());
+            Assert.Equal(FontResolver.Resolve("monospace"), runs[1].RunProperties!.RunFonts!.Ascii!.Value);
+            Assert.Equal("HtmlCode", runs[1].RunProperties!.RunStyle!.Val!.Value);
+
+            string roundTrip = doc.ToHtml();
+            Assert.Contains("<p>Use <code>dotnet test</code> now.</p>", roundTrip);
         }
 
         [Fact]

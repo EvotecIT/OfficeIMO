@@ -592,6 +592,36 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Gets or sets the language applied to the run.
+        /// </summary>
+        public string? Language {
+            get {
+                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                return runProperties?.Languages?.Val;
+            }
+            set {
+                RunProperties runProperties;
+                if (IsHyperLink) {
+                    var hyperlink = this.Hyperlink!;
+                    runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
+                } else {
+                    runProperties = VerifyRunProperties();
+                }
+
+                if (string.IsNullOrWhiteSpace(value)) {
+                    runProperties.Languages?.Remove();
+                } else {
+                    var language = value!.Trim();
+                    var languages = runProperties.Languages ?? new Languages();
+                    runProperties.Languages = languages;
+                    languages.Val = language;
+                    languages.EastAsia = language;
+                    languages.Bidi = language;
+                }
+            }
+        }
+
+        /// <summary>
         /// Gets or sets the character style applied to the run.
         /// </summary>
         public WordCharacterStyles? CharacterStyle {

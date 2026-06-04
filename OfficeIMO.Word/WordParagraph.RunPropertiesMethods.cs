@@ -118,6 +118,15 @@ namespace OfficeIMO.Word {
             return this;
         }
         /// <summary>
+        /// Sets the language for the text run.
+        /// </summary>
+        /// <param name="language">Language tag, such as <c>en-US</c> or <c>pl-PL</c>.</param>
+        /// <returns>The current paragraph instance.</returns>
+        public WordParagraph SetLanguage(string language) {
+            this.Language = language;
+            return this;
+        }
+        /// <summary>
         /// Sets the text color using a hexadecimal value.
         /// </summary>
         /// <param name="color">Color in hexadecimal format.</param>

@@ -22,18 +22,8 @@ namespace OfficeIMO.Word.Html {
                 ApplyCssToElement(caption);
             }
 
-            int cols = 0;
-            foreach (var row in GetAllRows(tableElem)) {
-                int count = 0;
-                foreach (var cellElem in row.Cells) {
-                    int span = 1;
-                    if (cellElem is IHtmlTableCellElement cellElement) {
-                        span = Math.Max(1, cellElement.ColumnSpan);
-                    }
-                    count += span;
-                }
-                cols = Math.Max(cols, count);
-            }
+            int cols = DetermineTableColumnCount(tableElem, rows);
+            ValidateTableLimit(options, rows, cols);
             WordParagraph? captionParagraph = null;
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Above) {
                 captionParagraph = cell != null ? cell.AddParagraph("", true)
@@ -189,6 +179,63 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
+        private static int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows) {
+            var occupied = new HashSet<long>();
+            int cols = 0;
+            int rowIndex = 0;
+
+            void HandleRows(IHtmlCollection<IHtmlTableRowElement> htmlRows) {
+                int groupRowCount = htmlRows.Length;
+                for (int localRowIndex = 0; localRowIndex < groupRowCount; localRowIndex++) {
+                    var htmlRow = htmlRows[localRowIndex];
+                    int columnIndex = 0;
+                    for (int cellIndex = 0; cellIndex < htmlRow.Cells.Length; cellIndex++) {
+                        while (occupied.Contains(GetTableGridKey(rowIndex, columnIndex))) {
+                            columnIndex++;
+                        }
+
+                        var htmlCell = htmlRow.Cells[cellIndex] as IHtmlTableCellElement;
+                        int rowSpan = htmlCell?.RowSpan ?? 1;
+                        int colSpan = Math.Max(1, htmlCell?.ColumnSpan ?? 1);
+                        if (rowSpan == 0) {
+                            rowSpan = groupRowCount - localRowIndex;
+                        }
+
+                        rowSpan = Math.Max(1, Math.Min(rowSpan, rows - rowIndex));
+                        cols = Math.Max(cols, columnIndex + colSpan);
+
+                        for (int rr = rowIndex; rr < rowIndex + rowSpan && rr < rows; rr++) {
+                            for (int cc = columnIndex; cc < columnIndex + colSpan; cc++) {
+                                occupied.Add(GetTableGridKey(rr, cc));
+                            }
+                        }
+
+                        columnIndex += colSpan;
+                    }
+
+                    rowIndex++;
+                }
+            }
+
+            if (tableElem.Head != null) {
+                HandleRows(tableElem.Head.Rows);
+            }
+
+            foreach (var body in tableElem.Bodies) {
+                HandleRows(body.Rows);
+            }
+
+            if (tableElem.Foot != null) {
+                HandleRows(tableElem.Foot.Rows);
+            }
+
+            return cols;
+        }
+
+        private static long GetTableGridKey(int row, int column) {
+            return ((long)row << 32) | (uint)column;
+        }
+
         private static void ApplyColumnGroup(WordTable wordTable, IHtmlTableElement tableElem, int cols) {
             var colElements = tableElem.QuerySelectorAll("col");
             if (colElements.Length == 0) {
@@ -273,11 +320,14 @@ namespace OfficeIMO.Word.Html {
         private static void ApplyTableStyles(WordTable wordTable, IHtmlTableElement tableElem) {
             var style = tableElem.GetAttribute("style");
             var borderAttr = tableElem.GetAttribute("border");
-            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(borderAttr)) {
+            var alignAttr = tableElem.GetAttribute("align");
+            if (string.IsNullOrWhiteSpace(style) && string.IsNullOrWhiteSpace(borderAttr) && string.IsNullOrWhiteSpace(alignAttr)) {
                 return;
             }
 
             string? background = null;
+            string? marginLeft = null;
+            string? marginRight = null;
             int? padTop = null, padRight = null, padBottom = null, padLeft = null;
             BorderValues? tableBorderStyle = null;
             UInt32Value? tableBorderSize = null;
@@ -312,6 +362,15 @@ namespace OfficeIMO.Word.Html {
                             if (value.Equals("separate", StringComparison.OrdinalIgnoreCase)) {
                                 collapse = false;
                             }
+                            break;
+                        case "margin":
+                            ApplyMarginShorthand(value, ref marginLeft, ref marginRight);
+                            break;
+                        case "margin-left":
+                            marginLeft = value;
+                            break;
+                        case "margin-right":
+                            marginRight = value;
                             break;
                         case "width":
                             if (value.Equals("auto", StringComparison.OrdinalIgnoreCase)) {
@@ -363,6 +422,11 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            var alignment = ResolveTableAlignment(alignAttr, marginLeft, marginRight);
+            if (alignment.HasValue) {
+                wordTable.Alignment = alignment.Value;
+            }
+
             if (!borderSpecified && !string.IsNullOrWhiteSpace(borderAttr)) {
                 if (TryParseBorderWidth(borderAttr + "px", out var bSize)) {
                     tableBorderStyle = BorderValues.Single;
@@ -403,6 +467,55 @@ namespace OfficeIMO.Word.Html {
                 if (padRight != null) styleDetails.MarginDefaultRightWidth = (short)padRight.Value;
             }
         }
+
+        private static void ApplyMarginShorthand(string value, ref string? marginLeft, ref string? marginRight) {
+            var parts = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 1) {
+                marginLeft = parts[0];
+                marginRight = parts[0];
+            } else if (parts.Length == 2) {
+                marginLeft = parts[1];
+                marginRight = parts[1];
+            } else if (parts.Length == 3) {
+                marginLeft = parts[1];
+                marginRight = parts[1];
+            } else if (parts.Length >= 4) {
+                marginRight = parts[1];
+                marginLeft = parts[3];
+            }
+        }
+
+        private static TableRowAlignmentValues? ResolveTableAlignment(string? alignAttr, string? marginLeft, string? marginRight) {
+            if (!string.IsNullOrWhiteSpace(alignAttr)) {
+                var attr = alignAttr!.Trim().ToLowerInvariant();
+                if (attr == "center" || attr == "middle") {
+                    return TableRowAlignmentValues.Center;
+                }
+                if (attr == "right") {
+                    return TableRowAlignmentValues.Right;
+                }
+                if (attr == "left") {
+                    return TableRowAlignmentValues.Left;
+                }
+            }
+
+            bool leftAuto = IsCssAuto(marginLeft);
+            bool rightAuto = IsCssAuto(marginRight);
+            if (leftAuto && rightAuto) {
+                return TableRowAlignmentValues.Center;
+            }
+            if (leftAuto) {
+                return TableRowAlignmentValues.Right;
+            }
+            if (rightAuto) {
+                return TableRowAlignmentValues.Left;
+            }
+
+            return null;
+        }
+
+        private static bool IsCssAuto(string? value) =>
+            string.Equals(value?.Trim(), "auto", StringComparison.OrdinalIgnoreCase);
 
         private static void ApplyRowStyles(WordTableRow row, IHtmlTableRowElement htmlRow) {
             var style = htmlRow.GetAttribute("style");

@@ -10,14 +10,44 @@ namespace OfficeIMO.Tests;
 public class ConversionOptionsTests {
     [Fact]
     public void HtmlToWordOptions_ExposeFontFamily() {
-        var options = new HtmlToWordOptions { FontFamily = "Calibri" };
+        var options = new HtmlToWordOptions {
+            FontFamily = "Calibri",
+            MaxImageBytes = 1024,
+            MaxTotalImageBytes = 4096,
+            MaxHtmlNodes = 1000,
+            MaxHtmlDepth = 64,
+            MaxCssBytes = 8192,
+            MaxTableCells = 10000,
+            EnableAccessibilityDiagnostics = true
+        };
         Assert.Equal("Calibri", options.FontFamily);
+        Assert.Equal(1024, options.MaxImageBytes);
+        Assert.Equal(4096, options.MaxTotalImageBytes);
+        Assert.Equal(1000, options.MaxHtmlNodes);
+        Assert.Equal(64, options.MaxHtmlDepth);
+        Assert.Equal(8192, options.MaxCssBytes);
+        Assert.Equal(10000, options.MaxTableCells);
+        Assert.True(options.ValidateImageContentTypes);
+        Assert.Contains("image/png", options.AllowedImageContentTypes);
+        Assert.Contains("https", options.AllowedImageUriSchemes);
+        Assert.Empty(options.AllowedImageHosts);
+        Assert.True(options.EnableAccessibilityDiagnostics);
     }
 
     [Fact]
     public void WordToMarkdownOptions_ExposeFontFamily() {
         var options = new WordToMarkdownOptions { FontFamily = "Arial" };
         Assert.Equal("Arial", options.FontFamily);
+    }
+
+    [Fact]
+    public void WordToHtmlOptions_ExposeSectionMetadataOption() {
+        var options = new WordToHtmlOptions {
+            IncludeCustomProperties = true,
+            IncludeSectionMetadata = true
+        };
+        Assert.True(options.IncludeCustomProperties);
+        Assert.True(options.IncludeSectionMetadata);
     }
 
     [Fact]
