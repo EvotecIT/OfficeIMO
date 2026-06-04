@@ -30,6 +30,8 @@ internal static partial class PdfWriter {
             int headerRowCount = style.HeaderRowCount;
             int footerStart = rows - style.FooterRowCount;
             int annotationStart = currentPage!.Annotations.Count;
+            int imageStart = currentPage.Images.Count;
+            int formFieldStart = currentPage.FormFields.Count;
             bool rotated = item.RotationAngle != 0D;
             if (rotated) {
                 BeginRotatedCanvasFrame(item.X, bottomY, item.Width, item.Height, item.RotationAngle);
@@ -65,6 +67,8 @@ internal static partial class PdfWriter {
             if (rotated) {
                 new ContentStreamBuilder(sb)
                     .RestoreState();
+                RotateCanvasPageImages(currentPage!.Images, imageStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
+                RotateCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
                 RotateCanvasLinkAnnotations(currentPage!.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
             }
         }

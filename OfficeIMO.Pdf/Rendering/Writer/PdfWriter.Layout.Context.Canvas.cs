@@ -314,6 +314,42 @@ internal static partial class PdfWriter {
             }
         }
 
+        private static void RotateCanvasPageImages(System.Collections.Generic.List<PageImage> images, int startIndex, double x, double bottomY, double width, double height, double rotationAngle) {
+            if (rotationAngle == 0D) {
+                return;
+            }
+
+            double angle = rotationAngle * Math.PI / 180D;
+            double cos = Math.Cos(angle);
+            double sin = Math.Sin(angle);
+            double centerX = x + width / 2D;
+            double centerY = bottomY + height / 2D;
+            for (int i = startIndex; i < images.Count; i++) {
+                PageImage image = images[i];
+                double imageCenterX = image.X + image.W / 2D;
+                double imageCenterY = image.Y + image.H / 2D;
+                RotateCanvasPoint(imageCenterX, imageCenterY, centerX, centerY, cos, sin, out double rotatedCenterX, out double rotatedCenterY);
+                image.X = rotatedCenterX - image.W / 2D;
+                image.Y = rotatedCenterY - image.H / 2D;
+                image.RotationAngle += rotationAngle;
+            }
+        }
+
+        private static void RotateCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double x, double bottomY, double width, double height, double rotationAngle) {
+            if (rotationAngle == 0D) {
+                return;
+            }
+
+            double angle = rotationAngle * Math.PI / 180D;
+            double cos = Math.Cos(angle);
+            double sin = Math.Sin(angle);
+            double centerX = x + width / 2D;
+            double centerY = bottomY + height / 2D;
+            for (int i = startIndex; i < formFields.Count; i++) {
+                RotateCanvasFormField(formFields[i], centerX, centerY, cos, sin);
+            }
+        }
+
         private static void RotateCanvasLinkAnnotation(LinkAnnotation annotation, double centerX, double centerY, double cos, double sin) {
             RotateCanvasPoint(annotation.X1, annotation.Y1, centerX, centerY, cos, sin, out double x1, out double y1);
             RotateCanvasPoint(annotation.X1, annotation.Y2, centerX, centerY, cos, sin, out double x2, out double y2);
@@ -324,6 +360,18 @@ internal static partial class PdfWriter {
             annotation.Y1 = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
             annotation.X2 = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
             annotation.Y2 = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
+        }
+
+        private static void RotateCanvasFormField(FormFieldAnnotation formField, double centerX, double centerY, double cos, double sin) {
+            RotateCanvasPoint(formField.X1, formField.Y1, centerX, centerY, cos, sin, out double x1, out double y1);
+            RotateCanvasPoint(formField.X1, formField.Y2, centerX, centerY, cos, sin, out double x2, out double y2);
+            RotateCanvasPoint(formField.X2, formField.Y1, centerX, centerY, cos, sin, out double x3, out double y3);
+            RotateCanvasPoint(formField.X2, formField.Y2, centerX, centerY, cos, sin, out double x4, out double y4);
+
+            formField.X1 = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
+            formField.Y1 = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
+            formField.X2 = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
+            formField.Y2 = Math.Max(Math.Max(y1, y2), Math.Max(y3, y4));
         }
 
         private static void RotateCanvasPoint(double x, double y, double centerX, double centerY, double cos, double sin, out double rotatedX, out double rotatedY) {

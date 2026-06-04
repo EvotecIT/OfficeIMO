@@ -85,6 +85,47 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersSinglePointLineChartMarker() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Single point",
+            "Line Marker",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Only" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 42D })
+                }),
+            widthPoints: 220D,
+            heightPoints: 140D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.Width == 4D &&
+            shape.Shape.Height == 4D);
+    }
+
+    [Fact]
+    public void FlowDrawing_SkipsNonFiniteScatterXCoordinates() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Scatter",
+            "Finite Points",
+            OfficeChartKind.Scatter,
+            new OfficeChartData(
+                new[] { "1", "2", "3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 3D, 4D, 5D }, new[] { 1D, double.NaN, 3D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D));
+
+        int markerCount = drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.Width == 5D &&
+            shape.Shape.Height == 5D);
+        Assert.Equal(2, markerCount);
+    }
+
+    [Fact]
     public void FlowDrawing_UsesSharedChartLayoutForDenseLabelsAndLegend() {
         string[] categories = Enumerable.Range(1, 12).Select(index => "M" + index.ToString("00", System.Globalization.CultureInfo.InvariantCulture)).ToArray();
         OfficeChartSeries[] series = Enumerable.Range(1, 6)

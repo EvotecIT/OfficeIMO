@@ -117,7 +117,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
-        if (categories.Count == 0 || series.Count == 0) {
+        if (categories.Count < 2 || series.Count == 0) {
             return;
         }
 
@@ -245,7 +245,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static void AddLineSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
-        if (categories.Count < 2 || series.Count == 0) {
+        if (categories.Count == 0 || series.Count == 0) {
             return;
         }
 
@@ -256,7 +256,7 @@ public static partial class OfficeChartDrawingRenderer {
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
                 : GetFiniteSeriesRange(series);
-        double step = plotWidth / (categories.Count - 1);
+        double step = categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D;
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
         for (int s = 0; s < series.Count; s++) {
@@ -319,7 +319,12 @@ public static partial class OfficeChartDrawingRenderer {
             var points = new List<OfficePoint>(pointCount);
             for (int i = 0; i < pointCount; i++) {
                 double yValue = GetSeriesValue(series[s], i);
-                double x = ToPlotX(xValues[i], xRange.Min, xRange.Max, plotLeft, plotWidth);
+                double xValue = xValues[i];
+                if (double.IsNaN(xValue) || double.IsInfinity(xValue)) {
+                    continue;
+                }
+
+                double x = ToPlotX(xValue, xRange.Min, xRange.Max, plotLeft, plotWidth);
                 double y = ToPlotY(yValue, yRange.Min, yRange.Max, plotTop, plotHeight);
                 points.Add(new OfficePoint(x, y));
             }

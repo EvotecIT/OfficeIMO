@@ -178,15 +178,8 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            IReadOnlyList<double> firstXValues = ReadCachedNumbers(seriesList[0].GetFirstChild<C.XValues>());
-            if (firstXValues.Count == 0) {
-                return null;
-            }
-
-            var categories = firstXValues
-                .Select(value => value.ToString(CultureInfo.InvariantCulture))
-                .ToList();
             var series = new List<PowerPointChartSeries>();
+            IReadOnlyList<double>? categoryXValues = null;
             for (int i = 0; i < seriesList.Count; i++) {
                 C.ScatterChartSeries seriesElement = seriesList[i];
                 IReadOnlyList<double> xValues = ReadCachedNumbers(seriesElement.GetFirstChild<C.XValues>());
@@ -201,6 +194,7 @@ namespace OfficeIMO.PowerPoint {
                     continue;
                 }
 
+                categoryXValues ??= xValues.Take(pointCount).ToList();
                 string name = ReadSeriesName(seriesElement);
                 if (string.IsNullOrWhiteSpace(name)) {
                     name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
@@ -209,6 +203,13 @@ namespace OfficeIMO.PowerPoint {
                 series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList()));
             }
 
+            if (series.Count == 0 || categoryXValues == null || categoryXValues.Count == 0) {
+                return null;
+            }
+
+            var categories = categoryXValues
+                .Select(value => value.ToString(CultureInfo.InvariantCulture))
+                .ToList();
             return series.Count == 0 ? null : new PowerPointChartData(categories, series);
         }
 

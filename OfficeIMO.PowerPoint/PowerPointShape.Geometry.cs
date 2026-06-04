@@ -116,6 +116,22 @@ namespace OfficeIMO.PowerPoint {
             set => Height = PowerPointUnits.FromPoints(value);
         }
 
+        internal bool TryGetBoundsPoints(out double left, out double top, out double width, out double height) {
+            left = 0D;
+            top = 0D;
+            width = 0D;
+            height = 0D;
+            if (!TryGetTransformValues(out long x, out long y, out long cx, out long cy)) {
+                return false;
+            }
+
+            left = PowerPointUnits.ToPoints(x);
+            top = PowerPointUnits.ToPoints(y);
+            width = PowerPointUnits.ToPoints(cx);
+            height = PowerPointUnits.ToPoints(cy);
+            return true;
+        }
+
         /// <summary>
         ///     Height of the shape in centimeters.
         /// </summary>
@@ -469,6 +485,34 @@ namespace OfficeIMO.PowerPoint {
                 default:
                     throw new NotSupportedException();
             }
+        }
+
+        private bool TryGetTransformValues(out long x, out long y, out long cx, out long cy) {
+            x = 0L;
+            y = 0L;
+            cx = 0L;
+            cy = 0L;
+            (A.Offset? offset, A.Extents? extents) = Element switch {
+                Shape s => (s.ShapeProperties?.Transform2D?.Offset, s.ShapeProperties?.Transform2D?.Extents),
+                Picture p => (p.ShapeProperties?.Transform2D?.Offset, p.ShapeProperties?.Transform2D?.Extents),
+                GraphicFrame g => (g.Transform?.Offset, g.Transform?.Extents),
+                GroupShape g => (g.GroupShapeProperties?.TransformGroup?.Offset, g.GroupShapeProperties?.TransformGroup?.Extents),
+                _ => (null, null)
+            };
+
+            long? offsetX = offset?.X?.Value;
+            long? offsetY = offset?.Y?.Value;
+            long? width = extents?.Cx?.Value;
+            long? height = extents?.Cy?.Value;
+            if (!offsetX.HasValue || !offsetY.HasValue || !width.HasValue || !height.HasValue) {
+                return false;
+            }
+
+            x = offsetX.Value;
+            y = offsetY.Value;
+            cx = width.Value;
+            cy = height.Value;
+            return true;
         }
 
         private static A.TransformGroup EnsureTransformGroup(GroupShape group) {

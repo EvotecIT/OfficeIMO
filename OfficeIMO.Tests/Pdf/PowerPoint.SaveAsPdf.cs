@@ -290,6 +290,29 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesSlidePlaceholderBoundsFromLayout() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SetLayout(SlideLayoutValues.Text);
+        slide.AddTextBoxPoints("Layout Bound Title", 12, 12, 120, 30);
+        DocumentFormat.OpenXml.Presentation.Shape placeholderShape = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.Shape>()
+            .Last(shape => shape.TextBody?.InnerText.Contains("Layout Bound Title", StringComparison.Ordinal) == true);
+        placeholderShape.NonVisualShapeProperties!.ApplicationNonVisualDrawingProperties ??= new ApplicationNonVisualDrawingProperties();
+        placeholderShape.NonVisualShapeProperties.ApplicationNonVisualDrawingProperties.PlaceholderShape =
+            new PlaceholderShape { Type = PlaceholderValues.Title };
+        placeholderShape.ShapeProperties!.Transform2D?.Remove();
+
+        var options = new PowerPointPdfSaveOptions();
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("Layout Bound Title", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesFlippedPictures() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -516,6 +539,40 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutChartsFromLayoutPart() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        PowerPointSlide slide = presentation.Slides[0];
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new PowerPointChartSeries("Sales", new[] { 12D, 18D, 24D })
+            });
+        PowerPointChart chart = slide.AddChartPoints(data, 40, 32, 240, 172);
+        chart.SetTitle("Layout Revenue");
+        ChartPart chartPart = GetChartPart(chart);
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        DocumentFormat.OpenXml.Presentation.GraphicFrame slideFrame = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.GraphicFrame>()
+            .Single(frame => frame.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null);
+        DocumentFormat.OpenXml.Presentation.GraphicFrame layoutFrame =
+            (DocumentFormat.OpenXml.Presentation.GraphicFrame)slideFrame.CloneNode(true);
+        layoutPart.AddPart(chartPart, "rIdLayoutChart");
+        layoutFrame.Graphic!.GraphicData!.GetFirstChild<C.ChartReference>()!.Id = "rIdLayoutChart";
+        layoutPart.SlideLayout.CommonSlideData!.ShapeTree!.Append(layoutFrame);
+        chart.Remove();
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Layout Revenue", text, StringComparison.Ordinal);
+        Assert.Contains("Sales", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesHorizontalStackedBarChartKind() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -645,6 +702,25 @@ public class PowerPointSaveAsPdfTests {
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("Actual", text, StringComparison.Ordinal);
         Assert.Contains("Forecast", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_UsesFirstRenderableScatterSeriesForCategories() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointScatterChartData(new[] {
+            new PowerPointScatterChartSeries("EmptyX", new[] { 1D, 2D, 3D }, new[] { 10D, 12D, 14D }),
+            new PowerPointScatterChartSeries("Forecast", new[] { 1.5D, 2.5D }, new[] { 11D, 13D })
+        });
+        PowerPointChart chart = presentation.Slides[0].AddScatterChartPoints(data, 40, 32, 240, 172);
+        RemoveFirstScatterSeriesXValues(chart);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+
+        Assert.Equal(new[] { "1.5", "2.5" }, snapshot.Data.Categories);
+        PowerPointChartSeries forecast = Assert.Single(snapshot.Data.Series, series => series.Name == "Forecast");
+        Assert.Equal(new[] { 1.5D, 2.5D }, forecast.XValues);
     }
 
     [Fact]
@@ -778,6 +854,13 @@ public class PowerPointSaveAsPdfTests {
         C.NumberingCache valueCache = series.GetFirstChild<C.Values>()!.Descendants<C.NumberingCache>().Single();
         categoryCache.Elements<C.StringPoint>().Single(point => point.Index?.Value == 1U).Remove();
         valueCache.Elements<C.NumericPoint>().Single(point => point.Index?.Value == 1U).Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void RemoveFirstScatterSeriesXValues(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.ScatterChartSeries series = chartPart.ChartSpace!.Descendants<C.ScatterChartSeries>().First();
+        series.GetFirstChild<C.XValues>()?.Remove();
         chartPart.ChartSpace.Save();
     }
 

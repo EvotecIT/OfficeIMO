@@ -464,6 +464,38 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasTable_WithRotation_RotatesRichCellImagesAndFormControls() {
+        var rows = new[] {
+            new[] {
+                PdfTableCell.WithImages(
+                    "Assets",
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 12, 12) },
+                    checkBoxes: new[] { new PdfTableCellCheckBox("Canvas.Rotated", isChecked: true, size: 10) },
+                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.RotatedOwner", "Ada", width: 44, height: 12, fontSize: 8) })
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Table(rows, 24, 24, 120, 86, new PdfTableStyle {
+                RowMinHeights = new System.Collections.Generic.List<double?> { 86D },
+                CellPaddingX = 6D,
+                CellPaddingY = 6D
+            }, rotationAngle: 90D))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0 12 -12 0", raw, StringComparison.Ordinal);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        Assert.Contains(info.FormFields, field => field.Name == "Canvas.Rotated" && field.IsCheckBox && field.Value == "Yes");
+        Assert.Contains(info.FormFields, field => field.Name == "Canvas.RotatedOwner" && field.IsTextField && field.Value == "Ada");
+    }
+
+    [Fact]
     public void CanvasTable_SkipsVerticalGridDividersInsideMergedCells() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,

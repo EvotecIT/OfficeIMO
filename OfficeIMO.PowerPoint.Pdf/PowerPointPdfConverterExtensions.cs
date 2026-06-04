@@ -712,10 +712,25 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static bool TryGetShapeBox(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, out double x, out double y, out double width, out double height) {
-        x = shape.LeftPoints;
-        y = shape.TopPoints;
-        width = shape.WidthPoints;
-        height = shape.HeightPoints;
+        if (!shape.TryGetBoundsPoints(out x, out y, out width, out height)) {
+            x = 0D;
+            y = 0D;
+            width = 0D;
+            height = 0D;
+        }
+
+        if ((width <= 0D || height <= 0D) &&
+            shape.OwnerSlide != null &&
+            shape.ShapePlaceholderType.HasValue) {
+            PptCore.PowerPointLayoutBox? layoutBounds = shape.OwnerSlide.GetLayoutPlaceholderBounds(shape.ShapePlaceholderType.Value, shape.ShapePlaceholderIndex);
+            if (layoutBounds.HasValue) {
+                x = layoutBounds.Value.LeftPoints;
+                y = layoutBounds.Value.TopPoints;
+                width = layoutBounds.Value.WidthPoints;
+                height = layoutBounds.Value.HeightPoints;
+            }
+        }
+
         bool isLineShape = shape is PptCore.PowerPointAutoShape autoShape && autoShape.ShapeType == ShapeTypeValues.Line;
         bool hasRenderableSize = isLineShape
             ? width >= 0D && height >= 0D && (width > 0D || height > 0D)
