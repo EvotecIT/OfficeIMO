@@ -163,7 +163,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (IsPercentStackedLineChart(snapshot.ChartKind) || IsPercentStackedAreaChart(snapshot.ChartKind) || IsPercentStackedBarOrColumnChart(snapshot.ChartKind)) {
-            return new ValueRange(0D, 1D);
+            return GetPercentStackedSeriesRange(snapshot.Data.Series, snapshot.Data.Categories.Count);
         }
 
         if (IsStackedLineChart(snapshot.ChartKind) || IsStackedAreaChart(snapshot.ChartKind) || IsStackedBarOrColumnChart(snapshot.ChartKind)) {

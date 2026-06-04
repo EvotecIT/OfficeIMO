@@ -76,7 +76,32 @@ namespace OfficeIMO.PowerPoint {
             using Stream source = imagePart.GetStream(FileMode.Open, FileAccess.Read);
             using var copy = new MemoryStream();
             source.CopyTo(copy);
-            return PowerPointSlideBackground.Image(copy.ToArray(), imagePart.ContentType);
+            PowerPointPictureCrop crop = ReadSourceCrop(blipFill.SourceRectangle);
+            if (blipFill.GetFirstChild<A.Tile>() != null) {
+                return PowerPointSlideBackground.Unsupported("The slide background image uses tiled placement, which is not currently supported by OfficeIMO exporters.");
+            }
+
+            return PowerPointSlideBackground.Image(copy.ToArray(), imagePart.ContentType, crop);
+        }
+
+        private static PowerPointPictureCrop ReadSourceCrop(A.SourceRectangle? rect) {
+            if (rect == null) {
+                return PowerPointPictureCrop.None;
+            }
+
+            return new PowerPointPictureCrop(
+                ToCropFraction(rect.Left?.Value),
+                ToCropFraction(rect.Top?.Value),
+                ToCropFraction(rect.Right?.Value),
+                ToCropFraction(rect.Bottom?.Value));
+        }
+
+        private static double ToCropFraction(int? value) {
+            if (!value.HasValue) {
+                return 0D;
+            }
+
+            return Math.Min(0.999999D, Math.Max(0D, value.Value / 100000D));
         }
 
         private static PowerPointSlideBackground GetBackgroundGradient(A.GradientFill gradientFill) {

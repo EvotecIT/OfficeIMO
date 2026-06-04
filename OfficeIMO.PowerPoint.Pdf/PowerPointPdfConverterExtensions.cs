@@ -171,13 +171,18 @@ public static partial class PowerPointPdfConverterExtensions {
         } else if (background.Kind == PptCore.PowerPointSlideBackgroundKind.Image && background.ImageBytes != null) {
             RenderFallbackBackground(canvas, pageWidth, pageHeight);
             try {
+                var imageStyle = new PdfCore.PdfImageStyle { Fit = OfficeImageFit.Stretch };
+                if (background.HasImageCrop) {
+                    imageStyle.SourceCrop = new PdfCore.PdfImageSourceCrop(background.ImageCropLeft, background.ImageCropTop, background.ImageCropRight, background.ImageCropBottom);
+                }
+
                 canvas.Image(
                     background.ImageBytes,
                     0,
                     0,
                     pageWidth,
                     pageHeight,
-                    style: new PdfCore.PdfImageStyle { Fit = OfficeImageFit.Stretch },
+                    style: imageStyle,
                     alternativeText: "PowerPoint slide background");
                 return;
             } catch (Exception ex) {
@@ -215,7 +220,6 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
-        IReadOnlyList<PdfCore.TextRun> runs = CreateTextRuns(textBox, slideNumber, options);
         PdfCore.PdfCanvasTextBoxStyle style = CreateTextBoxStyle(textBox);
         if (!TryFitTextBoxPadding(style, width, height, out bool adjustedPadding)) {
             AddWarning(options, slideNumber, "invalid-text-box-bounds", "Skipped a PowerPoint text box because its margins leave no renderable PDF text area.");
@@ -226,7 +230,118 @@ public static partial class PowerPointPdfConverterExtensions {
             AddWarning(options, slideNumber, "text-box-padding", "Reduced PowerPoint text box margins because the original margins left no renderable PDF text area.");
         }
 
+        if (ShouldRenderParagraphsIndividually(textBox) && (textBox.Rotation ?? 0D) == 0D) {
+            RenderParagraphTextBox(canvas, textBox, x, y, width, height, style, slideNumber, options);
+            return;
+        }
+
+        IReadOnlyList<PdfCore.TextRun> runs = CreateTextRuns(textBox, slideNumber, options);
         canvas.TextBox(runs, x, y, width, height, style, textBox.Rotation ?? 0D);
+    }
+
+    private static bool ShouldRenderParagraphsIndividually(PptCore.PowerPointTextBox textBox) {
+        IReadOnlyList<PptCore.PowerPointParagraph> paragraphs = textBox.Paragraphs;
+        if (paragraphs.Count <= 1) {
+            return HasListMarker(paragraphs.FirstOrDefault());
+        }
+
+        TextAlignmentTypeValues? firstAlignment = paragraphs[0].Alignment;
+        return paragraphs.Any(paragraph => paragraph.Alignment != firstAlignment || HasListMarker(paragraph));
+    }
+
+    private static bool HasListMarker(PptCore.PowerPointParagraph? paragraph) =>
+        paragraph != null && (!string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered);
+
+    private static void RenderParagraphTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, PdfCore.PdfCanvasTextBoxStyle style, int slideNumber, PowerPointPdfSaveOptions options) {
+        RenderTextBoxFrame(canvas, textBox, x, y, width, height);
+
+        double paddingLeft = style.PaddingLeft ?? style.PaddingX;
+        double paddingRight = style.PaddingRight ?? style.PaddingX;
+        double paddingTop = style.PaddingTop ?? style.PaddingY;
+        double paddingBottom = style.PaddingBottom ?? style.PaddingY;
+        double textX = x + paddingLeft;
+        double textY = y + paddingTop;
+        double textWidth = Math.Max(1D, width - paddingLeft - paddingRight);
+        double textHeight = Math.Max(1D, height - paddingTop - paddingBottom);
+        double fontSize = style.FontSize ?? 12D;
+        double lineHeight = style.LineHeight ?? fontSize * 1.2D;
+        var paragraphRuns = new List<IReadOnlyList<PdfCore.TextRun>>();
+        var paragraphHeights = new List<double>();
+        int numberIndex = 1;
+
+        foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
+            IReadOnlyList<PdfCore.TextRun> runs = CreateParagraphRuns(paragraph, textBox, slideNumber, options, ref numberIndex);
+            paragraphRuns.Add(runs);
+            paragraphHeights.Add(EstimateParagraphHeight(runs, textWidth, fontSize, lineHeight));
+        }
+
+        if (paragraphRuns.Count == 0) {
+            paragraphRuns.Add(new[] { PdfCore.TextRun.Normal(string.Empty) });
+            paragraphHeights.Add(lineHeight);
+        }
+
+        double totalHeight = paragraphHeights.Sum();
+        double offsetY = style.VerticalAlign switch {
+            PdfCore.PdfVerticalAlign.Middle => Math.Max(0D, textHeight - totalHeight) / 2D,
+            PdfCore.PdfVerticalAlign.Bottom => Math.Max(0D, textHeight - totalHeight),
+            _ => 0D
+        };
+
+        double cursorY = textY + offsetY;
+        for (int index = 0; index < paragraphRuns.Count && cursorY < textY + textHeight; index++) {
+            PptCore.PowerPointParagraph paragraph = textBox.Paragraphs.Count > index ? textBox.Paragraphs[index] : textBox.Paragraphs.Last();
+            double paragraphHeight = Math.Min(paragraphHeights[index], textY + textHeight - cursorY);
+            var paragraphStyle = CreateTransparentParagraphStyle(style, paragraph);
+            canvas.TextBox(paragraphRuns[index], textX, cursorY, textWidth, Math.Max(1D, paragraphHeight), paragraphStyle);
+            cursorY += paragraphHeight;
+        }
+    }
+
+    private static void RenderTextBoxFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
+        OfficeColor? fill = textBox.FillTransparency == 100 ? null : ParseOfficeColor(textBox.FillColor);
+        OfficeColor? outline = ParseOfficeColor(textBox.OutlineColor);
+        if (!fill.HasValue && !outline.HasValue) {
+            return;
+        }
+
+        OfficeShape frame = OfficeShape.Rectangle(width, height);
+        frame.FillColor = fill;
+        if (textBox.FillTransparency.HasValue && textBox.FillTransparency.Value > 0 && textBox.FillTransparency.Value < 100) {
+            frame.FillOpacity = 1D - textBox.FillTransparency.Value / 100D;
+        }
+
+        frame.StrokeColor = outline;
+        frame.StrokeWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D;
+        frame.StrokeDashStyle = MapDash(textBox.OutlineDash);
+        canvas.Shape(frame, x, y, rotationAngle: textBox.Rotation ?? 0D);
+    }
+
+    private static PdfCore.PdfCanvasTextBoxStyle CreateTransparentParagraphStyle(PdfCore.PdfCanvasTextBoxStyle style, PptCore.PowerPointParagraph paragraph) {
+        PdfCore.PdfCanvasTextBoxStyle paragraphStyle = style.Clone();
+        paragraphStyle.Background = null;
+        paragraphStyle.BorderColor = null;
+        paragraphStyle.BorderWidth = 0D;
+        paragraphStyle.PaddingX = 0D;
+        paragraphStyle.PaddingY = 0D;
+        paragraphStyle.PaddingLeft = 0D;
+        paragraphStyle.PaddingRight = 0D;
+        paragraphStyle.PaddingTop = 0D;
+        paragraphStyle.PaddingBottom = 0D;
+        paragraphStyle.Align = MapAlign(paragraph.Alignment);
+        paragraphStyle.VerticalAlign = PdfCore.PdfVerticalAlign.Top;
+        return paragraphStyle;
+    }
+
+    private static double EstimateParagraphHeight(IReadOnlyList<PdfCore.TextRun> runs, double width, double fontSize, double lineHeight) {
+        int lineCount = 0;
+        double averageCharacterWidth = Math.Max(1D, fontSize * 0.52D);
+        int charactersPerLine = Math.Max(1, (int)Math.Floor(width / averageCharacterWidth));
+        string text = string.Concat(runs.Select(run => run.Text));
+        foreach (string line in text.Split('\n')) {
+            lineCount += Math.Max(1, (int)Math.Ceiling(line.Length / (double)charactersPerLine));
+        }
+
+        return Math.Max(lineHeight, lineCount * lineHeight);
     }
 
     private static bool TryFitTextBoxPadding(PdfCore.PdfCanvasTextBoxStyle style, double width, double height, out bool adjustedPadding) {
@@ -271,20 +386,13 @@ public static partial class PowerPointPdfConverterExtensions {
     private static IReadOnlyList<PdfCore.TextRun> CreateTextRuns(PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {
         var runs = new List<PdfCore.TextRun>();
         IReadOnlyList<PptCore.PowerPointParagraph> paragraphs = textBox.Paragraphs;
+        int numberIndex = 1;
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             if (paragraphIndex > 0) {
                 runs.Add(PdfCore.TextRun.LineBreak());
             }
 
-            IReadOnlyList<PptCore.PowerPointTextRun> paragraphRuns = paragraphs[paragraphIndex].Runs;
-            if (paragraphRuns.Count == 0) {
-                runs.Add(new PdfCore.TextRun(paragraphs[paragraphIndex].Text));
-                continue;
-            }
-
-            foreach (PptCore.PowerPointTextRun run in paragraphRuns) {
-                runs.Add(CreateTextRun(run, textBox, slideNumber, options));
-            }
+            runs.AddRange(CreateParagraphRuns(paragraphs[paragraphIndex], textBox, slideNumber, options, ref numberIndex));
         }
 
         if (runs.Count == 0) {
@@ -292,6 +400,43 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         return runs;
+    }
+
+    private static IReadOnlyList<PdfCore.TextRun> CreateParagraphRuns(PptCore.PowerPointParagraph paragraph, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options, ref int numberIndex) {
+        var runs = new List<PdfCore.TextRun>();
+        string prefix = CreateListPrefix(paragraph, ref numberIndex);
+        if (!string.IsNullOrEmpty(prefix)) {
+            runs.Add(PdfCore.TextRun.Normal(prefix, ParsePdfColor(textBox.Color), textBox.FontSize, font: MapFont(textBox.FontName)));
+        }
+
+        IReadOnlyList<PptCore.PowerPointTextRun> paragraphRuns = paragraph.Runs;
+        if (paragraphRuns.Count == 0) {
+            runs.Add(new PdfCore.TextRun(paragraph.Text));
+            return runs;
+        }
+
+        foreach (PptCore.PowerPointTextRun run in paragraphRuns) {
+            runs.Add(CreateTextRun(run, textBox, slideNumber, options));
+        }
+
+        return runs;
+    }
+
+    private static string CreateListPrefix(PptCore.PowerPointParagraph paragraph, ref int numberIndex) {
+        string indent = paragraph.Level.HasValue && paragraph.Level.Value > 0
+            ? new string(' ', Math.Min(18, paragraph.Level.Value * 2))
+            : string.Empty;
+        if (!string.IsNullOrEmpty(paragraph.BulletCharacter)) {
+            return indent + paragraph.BulletCharacter + " ";
+        }
+
+        if (paragraph.IsNumbered) {
+            int number = paragraph.NumberingStartAt ?? numberIndex;
+            numberIndex = number + 1;
+            return indent + number.ToString(System.Globalization.CultureInfo.InvariantCulture) + ". ";
+        }
+
+        return string.Empty;
     }
 
     private static PdfCore.TextRun CreateTextRun(PptCore.PowerPointTextRun run, PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {

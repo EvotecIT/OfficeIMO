@@ -233,6 +233,7 @@ internal static partial class PdfWriter {
         public double ClipX { get; set; }
         public double ClipY { get; set; }
         public double ClipHeight { get; set; }
+        public PdfImageSourceCrop? SourceCrop { get; set; }
         public bool IsBackgroundDecoration { get; set; }
         public double Opacity { get; set; } = 1D;
         public double RotationAngle { get; set; }

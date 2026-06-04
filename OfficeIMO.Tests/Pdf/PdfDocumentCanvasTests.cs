@@ -180,8 +180,8 @@ public class PdfDocumentCanvasTests {
 
         string content = Encoding.ASCII.GetString(bytes);
 
-        Assert.Contains("40 80 60 30 re", content, StringComparison.Ordinal);
         Assert.Contains("120 0 0 30 -20 80 cm", content, StringComparison.Ordinal);
+        Assert.Contains("0.5 0 0.5 1 re", content, StringComparison.Ordinal);
         Assert.Contains("/Im1 Do", content, StringComparison.Ordinal);
         PdfLinkAnnotation link = Assert.Single(PdfInspector.Inspect(bytes).LinkAnnotations);
         AssertClose(40D, link.X1);
@@ -618,6 +618,35 @@ public class PdfDocumentCanvasTests {
         AssertClose(expected.Y1, rotatedLink.Y1);
         AssertClose(expected.X2, rotatedLink.X2);
         AssertClose(expected.Y2, rotatedLink.Y2);
+    }
+
+    [Fact]
+    public void CanvasImage_AppliesFitAfterSourceCrop() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 100,
+                PageHeight = 100,
+                MarginLeft = 0,
+                MarginRight = 0,
+                MarginTop = 0,
+                MarginBottom = 0,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Image(
+                CreateMinimalRgbPng(),
+                0,
+                0,
+                100,
+                100,
+                new PdfImageStyle {
+                    Fit = OfficeImageFit.Contain,
+                    SourceCrop = new PdfImageSourceCrop(0.5D, 0D, 0D, 0D)
+                }))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("100 0 0 100 -25 0 cm", raw, StringComparison.Ordinal);
+        Assert.Contains("0.5 0 0.5 1 re", raw, StringComparison.Ordinal);
     }
 
     [Fact]

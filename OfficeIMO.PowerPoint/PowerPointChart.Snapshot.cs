@@ -22,6 +22,11 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
 
+                if (CountSupportedChartElements(plotArea) > 1) {
+                    snapshot = null!;
+                    return false;
+                }
+
                 if (plotArea.GetFirstChild<C.BarChart>() is C.BarChart barChart) {
                     PowerPointChartData? data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>());
                     if (data == null) {
@@ -83,6 +88,14 @@ namespace OfficeIMO.PowerPoint {
                 snapshot = null!;
                 return false;
             }
+        }
+
+        private static int CountSupportedChartElements(C.PlotArea plotArea) {
+            return plotArea.Elements<C.BarChart>().Count()
+                + plotArea.Elements<C.LineChart>().Count()
+                + plotArea.Elements<C.ScatterChart>().Count()
+                + plotArea.Elements<C.PieChart>().Count()
+                + plotArea.Elements<C.DoughnutChart>().Count();
         }
 
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart, PowerPointChartSnapshotKind kind, PowerPointChartData data) {

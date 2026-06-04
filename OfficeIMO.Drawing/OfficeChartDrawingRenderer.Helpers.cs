@@ -53,6 +53,41 @@ public static partial class OfficeChartDrawingRenderer {
         return total;
     }
 
+    private static double GetPercentStackedCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex, bool positive) {
+        double total = 0D;
+        for (int s = 0; s < series.Count; s++) {
+            double value = GetSeriesValue(series[s], categoryIndex);
+            if (positive && value > 0D) {
+                total += value;
+            } else if (!positive && value < 0D) {
+                total += Math.Abs(value);
+            }
+        }
+
+        return total;
+    }
+
+    private static double NormalizePercentStackedValue(IReadOnlyList<OfficeChartSeries> series, int categoryIndex, double value) {
+        if (value == 0D) {
+            return 0D;
+        }
+
+        double total = GetPercentStackedCategoryTotal(series, categoryIndex, value > 0D);
+        return total <= 0D ? 0D : value / total;
+    }
+
+    private static ValueRange GetPercentStackedSeriesRange(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
+        bool hasNegative = false;
+        for (int category = 0; category < categoryCount; category++) {
+            if (GetPercentStackedCategoryTotal(series, category, positive: false) > 0D) {
+                hasNegative = true;
+                break;
+            }
+        }
+
+        return hasNegative ? new ValueRange(-1D, 1D) : new ValueRange(0D, 1D);
+    }
+
     private static ValueRange GetStackedSeriesRange(IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
         double min = 0D;
         double max = 0D;

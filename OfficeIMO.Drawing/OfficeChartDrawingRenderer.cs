@@ -128,7 +128,7 @@ public static partial class OfficeChartDrawingRenderer {
         bool percentStacked = IsPercentStackedBarOrColumnChart(snapshot.ChartKind);
         double barWidth = Math.Max(2D, stacked ? groupWidth : groupWidth / series.Count);
         ValueRange range = percentStacked
-            ? new ValueRange(0D, 1D)
+            ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
                 : GetFiniteSeriesRange(series);
@@ -141,7 +141,6 @@ public static partial class OfficeChartDrawingRenderer {
         for (int category = 0; category < categories.Count; category++) {
             double positiveBase = 0D;
             double negativeBase = 0D;
-            double percentTotal = percentStacked ? GetPositiveCategoryTotal(series, category) : 0D;
             for (int s = 0; s < series.Count; s++) {
                 double value = GetSeriesValue(series[s], category);
                 if (value == 0D) {
@@ -152,7 +151,7 @@ public static partial class OfficeChartDrawingRenderer {
                 double plottedValue = value;
                 if (stacked) {
                     if (percentStacked) {
-                        plottedValue = percentTotal <= 0D ? 0D : Math.Max(0D, value) / percentTotal;
+                        plottedValue = NormalizePercentStackedValue(series, category, value);
                     }
 
                     baseline = plottedValue >= 0D ? positiveBase : negativeBase;
@@ -195,7 +194,7 @@ public static partial class OfficeChartDrawingRenderer {
         bool stacked = IsStackedAreaChart(snapshot.ChartKind) || IsPercentStackedAreaChart(snapshot.ChartKind);
         bool percentStacked = IsPercentStackedAreaChart(snapshot.ChartKind);
         ValueRange range = percentStacked
-            ? new ValueRange(0D, 1D)
+            ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
                 : GetFiniteSeriesRange(series);
@@ -210,17 +209,11 @@ public static partial class OfficeChartDrawingRenderer {
 
             for (int i = 0; i < categories.Count; i++) {
                 double value = GetSeriesValue(series[s], i);
-                double rawValue = percentStacked ? Math.Max(0D, value) : value;
+                double rawValue = percentStacked ? NormalizePercentStackedValue(series, i, value) : value;
                 double baseline = stacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
                     : 0D;
                 double topValue = baseline + rawValue;
-
-                if (percentStacked) {
-                    double total = GetPositiveCategoryTotal(series, i);
-                    baseline = total <= 0D ? 0D : baseline / total;
-                    topValue = total <= 0D ? 0D : topValue / total;
-                }
 
                 double x = plotLeft + step * i;
                 topPoints.Add(new OfficePoint(x, ToPlotY(topValue, range.Min, range.Max, plotTop, plotHeight)));
@@ -238,7 +231,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             if (stacked) {
                 for (int i = 0; i < categories.Count; i++) {
-                    double value = percentStacked ? Math.Max(0D, GetSeriesValue(series[s], i)) : GetSeriesValue(series[s], i);
+                    double value = percentStacked ? NormalizePercentStackedValue(series, i, GetSeriesValue(series[s], i)) : GetSeriesValue(series[s], i);
                     if (value >= 0D) {
                         positiveCumulative[i] += value;
                     } else {
@@ -259,7 +252,7 @@ public static partial class OfficeChartDrawingRenderer {
         bool stacked = IsStackedLineChart(snapshot.ChartKind) || IsPercentStackedLineChart(snapshot.ChartKind);
         bool percentStacked = IsPercentStackedLineChart(snapshot.ChartKind);
         ValueRange range = percentStacked
-            ? new ValueRange(0D, 1D)
+            ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
                 : GetFiniteSeriesRange(series);
@@ -271,15 +264,11 @@ public static partial class OfficeChartDrawingRenderer {
             var points = new OfficePoint[categories.Count];
             for (int i = 0; i < categories.Count; i++) {
                 double value = GetSeriesValue(series[s], i);
-                double rawValue = percentStacked ? Math.Max(0D, value) : value;
+                double rawValue = percentStacked ? NormalizePercentStackedValue(series, i, value) : value;
                 double baseline = stacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
                     : 0D;
                 double plottedValue = stacked ? baseline + rawValue : value;
-                if (percentStacked) {
-                    double total = GetPositiveCategoryTotal(series, i);
-                    plottedValue = total <= 0D ? 0D : plottedValue / total;
-                }
 
                 points[i] = new OfficePoint(plotLeft + step * i, ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
             }
@@ -302,7 +291,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             if (stacked) {
                 for (int i = 0; i < categories.Count; i++) {
-                    double value = percentStacked ? Math.Max(0D, GetSeriesValue(series[s], i)) : GetSeriesValue(series[s], i);
+                    double value = percentStacked ? NormalizePercentStackedValue(series, i, GetSeriesValue(series[s], i)) : GetSeriesValue(series[s], i);
                     if (value >= 0D) {
                         positiveCumulative[i] += value;
                     } else {

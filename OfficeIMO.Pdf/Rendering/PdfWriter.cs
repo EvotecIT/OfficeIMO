@@ -884,8 +884,16 @@ internal static partial class PdfWriter {
         }
 
         content
-            .TransformMatrix(a, b, c, d, e, f)
-            .XObject(img.Name)
+            .TransformMatrix(a, b, c, d, e, f);
+        if (img.SourceCrop?.HasCrop == true) {
+            double clipWidth = 1D - img.SourceCrop.Left - img.SourceCrop.Right;
+            double clipHeight = 1D - img.SourceCrop.Top - img.SourceCrop.Bottom;
+            content.Rectangle(img.SourceCrop.Left, img.SourceCrop.Bottom, clipWidth, clipHeight)
+                .ClipPath()
+                .EndPath();
+        }
+
+        content.XObject(img.Name)
             .RestoreState();
 
         if (hasAlternativeText || img.IsBackgroundDecoration) {

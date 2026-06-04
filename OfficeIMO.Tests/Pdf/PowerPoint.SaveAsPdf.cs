@@ -326,8 +326,56 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.SaveAsPdf();
 
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("40 80 60 30 re", raw, StringComparison.Ordinal);
         Assert.Contains("120 0 0 30 -20 80 cm", raw, StringComparison.Ordinal);
+        Assert.Contains("0.5 0 0.5 1 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RotatesPictureCropWithImageFrame() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointPicture picture = presentation.Slides[0].AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(60),
+            PowerPointUnits.FromPoints(30));
+        picture.Crop(leftPercent: 25D, topPercent: 0D, rightPercent: 0D, bottomPercent: 0D);
+        picture.Rotation = 90D;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        int imageTransform = raw.IndexOf("0 80 -30 0 75 55 cm", StringComparison.Ordinal);
+        int localClip = raw.IndexOf("0.25 0 0.75 1 re", StringComparison.Ordinal);
+
+        Assert.True(imageTransform >= 0, "Expected the cropped picture to render through the rotated image transform.");
+        Assert.True(localClip > imageTransform, "Expected the source crop clip to be applied inside the rotated image frame.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesParagraphAlignmentAndListMarkers() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints(string.Empty, 30, 36, 170, 70);
+        textBox.FillTransparency = 100;
+        textBox.OutlineColor = null;
+        textBox.FontSize = 10;
+        textBox.SetParagraphs(new[] { "Heading", "Item" });
+        textBox.Paragraphs[0].Alignment = TextAlignmentTypeValues.Center;
+        textBox.Paragraphs[1].Alignment = TextAlignmentTypeValues.Left;
+        textBox.Paragraphs[1].SetBullet('*');
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        string text = string.Join("", page.Letters.Select(letter => letter.Value));
+        Assert.Contains("* Item", text, StringComparison.Ordinal);
+        Assert.True(FindWordStartX(page, "Heading") > FindWordStartX(page, "Item") + 20D, "Expected centered heading text to start to the right of the left-aligned bullet item.");
     }
 
     [Fact]
@@ -515,6 +563,29 @@ public class PowerPointSaveAsPdfTests {
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("Actual", text, StringComparison.Ordinal);
         Assert.Contains("Target", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_WarnsForComboChartsInsteadOfDroppingSeries() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2" },
+            new[] {
+                new PowerPointChartSeries("Bars", new[] { 10D, 12D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        ChartPart chartPart = GetChartPart(chart);
+        C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+        plotArea.AppendChild(new C.LineChart());
+        chartPart.ChartSpace.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        presentation.ToPdfDocument(options).ToBytes();
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
+        Assert.Equal("unsupported-chart", warning.Code);
     }
 
     [Fact]
@@ -726,6 +797,23 @@ public class PowerPointSaveAsPdfTests {
             int index = text.IndexOf(word, StringComparison.Ordinal);
             if (index >= 0) {
                 return ordered[index].StartBaseLine.Y;
+            }
+        }
+
+        throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
+    }
+
+    private static double FindWordStartX(UglyToad.PdfPig.Content.Page page, string word) {
+        var lines = page.Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1));
+
+        foreach (var line in lines) {
+            var ordered = line.OrderBy(letter => letter.StartBaseLine.X).ToList();
+            string text = string.Concat(ordered.Select(letter => letter.Value));
+            int index = text.IndexOf(word, StringComparison.Ordinal);
+            if (index >= 0) {
+                return ordered[index].StartBaseLine.X;
             }
         }
 

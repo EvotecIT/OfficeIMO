@@ -1,4 +1,5 @@
 using OfficeIMO.PowerPoint;
+using A = DocumentFormat.OpenXml.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -33,5 +34,30 @@ public class PowerPointBackgroundSnapshotTests {
 
         imageBytes[0] = 0;
         Assert.NotEqual(0, image.ImageBytes![0]);
+    }
+
+    [Fact]
+    public void GetBackground_PreservesImageSourceCrop() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        PowerPointSlide slide = presentation.Slides[0];
+        string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+        slide.SetBackgroundImage(imagePath);
+        A.BlipFill blipFill = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!.GetFirstChild<A.BlipFill>()!;
+        blipFill.SourceRectangle = new A.SourceRectangle {
+            Left = 25000,
+            Top = 10000,
+            Right = 5000,
+            Bottom = 15000
+        };
+
+        PowerPointSlideBackground image = slide.GetBackground();
+
+        Assert.Equal(PowerPointSlideBackgroundKind.Image, image.Kind);
+        Assert.True(image.HasImageCrop);
+        Assert.Equal(0.25D, image.ImageCropLeft);
+        Assert.Equal(0.1D, image.ImageCropTop);
+        Assert.Equal(0.05D, image.ImageCropRight);
+        Assert.Equal(0.15D, image.ImageCropBottom);
     }
 }

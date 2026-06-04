@@ -18,11 +18,43 @@ internal static partial class PdfWriter {
         if (sourceCrop?.HasCrop == true) {
             double visibleWidth = 1D - sourceCrop.Left - sourceCrop.Right;
             double visibleHeight = 1D - sourceCrop.Top - sourceCrop.Bottom;
-            drawWidth = targetWidth / visibleWidth;
-            drawHeight = targetHeight / visibleHeight;
-            drawX = targetX - sourceCrop.Left * drawWidth;
-            drawY = targetBottomY - sourceCrop.Bottom * drawHeight;
-            clipPath ??= OfficeClipPath.Rectangle(targetWidth, targetHeight);
+            double croppedAspect = (block.Info.Width * visibleWidth) / (double)(block.Info.Height * visibleHeight);
+            double fittedX = targetX;
+            double fittedY = targetBottomY;
+            double fittedWidth = targetWidth;
+            double fittedHeight = targetHeight;
+
+            if (style.Fit != OfficeImageFit.Stretch) {
+                double targetAspect = targetWidth / targetHeight;
+                if (style.Fit == OfficeImageFit.Contain) {
+                    if (targetAspect > croppedAspect) {
+                        fittedHeight = targetHeight;
+                        fittedWidth = fittedHeight * croppedAspect;
+                        fittedX = targetX + (targetWidth - fittedWidth) / 2D;
+                    } else {
+                        fittedWidth = targetWidth;
+                        fittedHeight = fittedWidth / croppedAspect;
+                        fittedY = targetBottomY + (targetHeight - fittedHeight) / 2D;
+                    }
+                } else {
+                    if (targetAspect > croppedAspect) {
+                        fittedWidth = targetWidth;
+                        fittedHeight = fittedWidth / croppedAspect;
+                        fittedY = targetBottomY + (targetHeight - fittedHeight) / 2D;
+                    } else {
+                        fittedHeight = targetHeight;
+                        fittedWidth = fittedHeight * croppedAspect;
+                        fittedX = targetX + (targetWidth - fittedWidth) / 2D;
+                    }
+
+                    clipPath ??= OfficeClipPath.Rectangle(targetWidth, targetHeight);
+                }
+            }
+
+            drawWidth = fittedWidth / visibleWidth;
+            drawHeight = fittedHeight / visibleHeight;
+            drawX = fittedX - sourceCrop.Left * drawWidth;
+            drawY = fittedY - sourceCrop.Bottom * drawHeight;
         } else if (style.Fit != OfficeImageFit.Stretch) {
             double imageAspect = block.Info.Width / (double)block.Info.Height;
             double targetAspect = targetWidth / targetHeight;
@@ -65,6 +97,7 @@ internal static partial class PdfWriter {
             ClipX = targetX,
             ClipY = targetBottomY,
             ClipHeight = targetHeight,
+            SourceCrop = sourceCrop?.Clone(),
             AlternativeText = style.AlternativeText
         };
     }

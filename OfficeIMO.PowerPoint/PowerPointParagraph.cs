@@ -153,6 +153,21 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
+        /// Gets the character bullet assigned to this paragraph, when present.
+        /// </summary>
+        public string? BulletCharacter => Paragraph.ParagraphProperties?.GetFirstChild<A.CharacterBullet>()?.Char?.Value;
+
+        /// <summary>
+        /// Gets whether the paragraph uses PowerPoint auto-numbering.
+        /// </summary>
+        public bool IsNumbered => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>() != null;
+
+        /// <summary>
+        /// Gets the explicit PowerPoint numbering start value, when present.
+        /// </summary>
+        public int? NumberingStartAt => Paragraph.ParagraphProperties?.GetFirstChild<A.AutoNumberedBullet>()?.StartAt?.Value;
+
+        /// <summary>
         /// Gets or sets paragraph indentation in points.
         /// </summary>
         public double? IndentPoints {

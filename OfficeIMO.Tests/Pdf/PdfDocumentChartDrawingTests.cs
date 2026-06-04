@@ -46,6 +46,22 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void PercentStackedRange_PreservesNegativeStacksBelowZero() {
+        var series = new[] {
+            new OfficeChartSeries("Positive", new[] { 6D, 4D }),
+            new OfficeChartSeries("Negative", new[] { -3D, 2D })
+        };
+        MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("GetPercentStackedSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        object range = method.Invoke(null, new object[] { series, 2 })!;
+
+        double min = (double)range.GetType().GetProperty("Min")!.GetValue(range)!;
+        double max = (double)range.GetType().GetProperty("Max")!.GetValue(range)!;
+        Assert.Equal(-1D, min);
+        Assert.Equal(1D, max);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersScatterXAxisLabelsFromNumericValues() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter",
