@@ -23,6 +23,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_TableStyles_MapsSideBorders() {
+            string html = "<table style=\"border-left:3px double #112233\"><tr style=\"border-bottom:2px dotted #445566\"><td style=\"border-right:1px dashed #778899\">Cell</td></tr></table>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var table = doc.Tables[0];
+            var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Left);
+            Assert.Equal(BorderValues.Double, style);
+            Assert.Equal((UInt32Value)18U, size);
+            Assert.Equal("112233", colorHex);
+            var cell = table.Rows[0].Cells[0];
+            Assert.Equal(BorderValues.Dotted, cell.Borders.BottomStyle);
+            Assert.Equal((UInt32Value)12U, cell.Borders.BottomSize);
+            Assert.Equal("445566", cell.Borders.BottomColorHex);
+            Assert.Equal(BorderValues.Dashed, cell.Borders.RightStyle);
+            Assert.Equal((UInt32Value)6U, cell.Borders.RightSize);
+            Assert.Equal("778899", cell.Borders.RightColorHex);
+        }
+
+        [Fact]
         public void HtmlToWord_TableStyles_TextAlign() {
             string html = "<table><tr><td style=\"text-align:center\">One</td><td style=\"text-align:right\">Two</td></tr></table>";
             using var doc = html.LoadFromHtml(new HtmlToWordOptions());

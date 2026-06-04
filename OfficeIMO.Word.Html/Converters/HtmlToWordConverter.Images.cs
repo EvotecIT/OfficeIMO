@@ -111,26 +111,33 @@ namespace OfficeIMO.Word.Html {
                     return;
                 }
             } else {
+                long reservedBytes = 0;
                 try {
                     var data = FetchBytes(new Uri(src), options);
+                    reservedBytes = data.LongLength;
                     using var ms = new MemoryStream(data);
                     string fileName = GetFileNameFromUri(src);
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     paragraph.AddImage(ms, fileName, width, height, wrap, description: alt);
+                    reservedBytes = 0;
                     image = paragraph.Image!;
                 } catch (HtmlResourceLimitException ex) {
+                    ReleaseImageBytes(reservedBytes, options);
                     AddDiagnostic(options, "ImageResourceTooLarge", "Image resource exceeded the configured byte limit and was replaced with alt text when available.", src, ex);
                     InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 } catch (HtmlResourceTotalLimitException ex) {
+                    ReleaseImageBytes(reservedBytes, options);
                     AddDiagnostic(options, "ImageResourceBudgetExceeded", "Image resource exceeded the configured total byte budget and was replaced with alt text when available.", src, ex);
                     InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 } catch (HtmlResourceContentTypeException ex) {
+                    ReleaseImageBytes(reservedBytes, options);
                     AddDiagnostic(options, "ImageContentTypeRejected", "Image resource content type is not allowed and was replaced with alt text when available.", src, ex);
                     InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
                 } catch (Exception ex) {
+                    ReleaseImageBytes(reservedBytes, options);
                     AddDiagnostic(options, "ImageLoadFailed", "Image resource could not be loaded and was replaced with alt text when available.", src, ex);
                     InsertAltText(currentParagraph, headerFooter, doc, alt);
                     return;
@@ -615,6 +622,7 @@ namespace OfficeIMO.Word.Html {
             if (double.TryParse(svg.GetAttribute("height")?.Replace("px", string.Empty), out var h)) height = h;
 
             var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : section.AddParagraph());
+            long reservedBytes = 0;
             try {
                 var svgByteCount = Encoding.UTF8.GetByteCount(svg.OuterHtml);
                 if (options.MaxImageBytes.HasValue && svgByteCount > options.MaxImageBytes.Value) {
@@ -624,9 +632,12 @@ namespace OfficeIMO.Word.Html {
                 if (!TryReserveImageBytes(svgByteCount, options, "svg")) {
                     return;
                 }
+                reservedBytes = svgByteCount;
 
                 SvgHelper.AddSvg(paragraph, svg.OuterHtml, width, height, string.Empty);
+                reservedBytes = 0;
             } catch (Exception ex) {
+                ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "InlineSvgEmbedFailed", "Inline SVG could not be embedded and was skipped.", "svg", ex);
             }
         }

@@ -332,6 +332,7 @@ namespace OfficeIMO.Word.Html {
             BorderValues? tableBorderStyle = null;
             UInt32Value? tableBorderSize = null;
             SixColor tableBorderColor = default;
+            var sideBorders = new Dictionary<TableBorderSide, (BorderValues Style, UInt32Value Size, SixColor Color)>();
             bool borderSpecified = false;
             bool collapse = true;
 
@@ -350,6 +351,14 @@ namespace OfficeIMO.Word.Html {
                                 tableBorderSize = bSize;
                                 tableBorderColor = bColor;
                                 borderSpecified = true;
+                            }
+                            break;
+                        case "border-left":
+                        case "border-right":
+                        case "border-top":
+                        case "border-bottom":
+                            if (TryGetBorderSide(name, out var side) && TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor)) {
+                                sideBorders[side] = (sideStyle, sideSize, sideColor);
                             }
                             break;
                         case "background-color":
@@ -451,6 +460,26 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            if (sideBorders.Count > 0) {
+                var hasTop = sideBorders.TryGetValue(TableBorderSide.Top, out var top);
+                var hasBottom = sideBorders.TryGetValue(TableBorderSide.Bottom, out var bottom);
+                var hasLeft = sideBorders.TryGetValue(TableBorderSide.Left, out var left);
+                var hasRight = sideBorders.TryGetValue(TableBorderSide.Right, out var right);
+                wordTable.StyleDetails?.SetCustomBorders(
+                    topStyle: hasTop ? top.Style : null,
+                    topSize: hasTop ? top.Size : null,
+                    topColor: hasTop ? top.Color : null,
+                    bottomStyle: hasBottom ? bottom.Style : null,
+                    bottomSize: hasBottom ? bottom.Size : null,
+                    bottomColor: hasBottom ? bottom.Color : null,
+                    leftStyle: hasLeft ? left.Style : null,
+                    leftSize: hasLeft ? left.Size : null,
+                    leftColor: hasLeft ? left.Color : null,
+                    rightStyle: hasRight ? right.Style : null,
+                    rightSize: hasRight ? right.Size : null,
+                    rightColor: hasRight ? right.Color : null);
+            }
+
             if (background != null) {
                 foreach (var row in wordTable.Rows) {
                     foreach (var cell in row.Cells) {
@@ -527,6 +556,7 @@ namespace OfficeIMO.Word.Html {
             BorderValues? borderStyle = null;
             UInt32Value? borderSize = null;
             SixColor borderColor = default;
+            var sideBorders = new Dictionary<TableBorderSide, (BorderValues Style, UInt32Value Size, SixColor Color)>();
 
             foreach (var part in (style ?? string.Empty).Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
                 var pieces = part.Split(new[] { ':' }, 2);
@@ -547,6 +577,14 @@ namespace OfficeIMO.Word.Html {
                             borderColor = bColor;
                         }
                         break;
+                    case "border-left":
+                    case "border-right":
+                    case "border-top":
+                    case "border-bottom":
+                        if (TryGetBorderSide(name, out var side) && TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor)) {
+                            sideBorders[side] = (sideStyle, sideSize, sideColor);
+                        }
+                        break;
                 }
             }
 
@@ -559,6 +597,9 @@ namespace OfficeIMO.Word.Html {
                     cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = borderSize;
                     var hex = borderColor.ToHexColor();
                     cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
+                }
+                foreach (var sideBorder in sideBorders) {
+                    ApplyCellBorder(cell, sideBorder.Key, sideBorder.Value.Style, sideBorder.Value.Size, sideBorder.Value.Color);
                 }
             }
         }
@@ -612,6 +653,15 @@ namespace OfficeIMO.Word.Html {
                                 borderSet = true;
                             }
                             break;
+                        case "border-left":
+                        case "border-right":
+                        case "border-top":
+                        case "border-bottom":
+                            if (TryGetBorderSide(name, out var side) && TryParseBorder(value, out var sideStyle, out var sideSize, out var sideColor)) {
+                                ApplyCellBorder(cell, side, sideStyle, sideSize, sideColor);
+                                borderSet = true;
+                            }
+                            break;
                         case "text-align":
                             var align = value.ToLowerInvariant();
                             alignment = align switch {
@@ -645,6 +695,59 @@ namespace OfficeIMO.Word.Html {
                 }
             }
             return alignment;
+        }
+
+        private enum TableBorderSide {
+            Left,
+            Right,
+            Top,
+            Bottom
+        }
+
+        private static bool TryGetBorderSide(string propertyName, out TableBorderSide side) {
+            switch (propertyName.ToLowerInvariant()) {
+                case "border-left":
+                    side = TableBorderSide.Left;
+                    return true;
+                case "border-right":
+                    side = TableBorderSide.Right;
+                    return true;
+                case "border-top":
+                    side = TableBorderSide.Top;
+                    return true;
+                case "border-bottom":
+                    side = TableBorderSide.Bottom;
+                    return true;
+                default:
+                    side = TableBorderSide.Left;
+                    return false;
+            }
+        }
+
+        private static void ApplyCellBorder(WordTableCell cell, TableBorderSide side, BorderValues style, UInt32Value size, SixColor color) {
+            var hex = color.ToHexColor();
+            switch (side) {
+                case TableBorderSide.Left:
+                    cell.Borders.LeftStyle = style;
+                    cell.Borders.LeftSize = size;
+                    cell.Borders.LeftColorHex = hex;
+                    break;
+                case TableBorderSide.Right:
+                    cell.Borders.RightStyle = style;
+                    cell.Borders.RightSize = size;
+                    cell.Borders.RightColorHex = hex;
+                    break;
+                case TableBorderSide.Top:
+                    cell.Borders.TopStyle = style;
+                    cell.Borders.TopSize = size;
+                    cell.Borders.TopColorHex = hex;
+                    break;
+                case TableBorderSide.Bottom:
+                    cell.Borders.BottomStyle = style;
+                    cell.Borders.BottomSize = size;
+                    cell.Borders.BottomColorHex = hex;
+                    break;
+            }
         }
 
         private static bool TryParseBorder(string value, out BorderValues style, out UInt32Value size, out SixColor color) {

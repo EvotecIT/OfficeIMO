@@ -261,6 +261,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_InvalidRemoteImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Encoding.ASCII.GetBytes("not an image"))
+                };
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+                return Task.FromResult(response);
+            }));
+            string html = $"<img src=\"https://example.test/broken.png\" alt=\"Broken\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxTotalImageBytes = 70
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageLoadFailed");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
         public void HtmlToWord_InvalidSvgDataImage_DoesNotConsumeTotalBudget() {
             const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
             var invalidSvgData = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>"));
@@ -273,6 +296,21 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(doc.Images);
             Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidInlineSvg_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            string html = $"<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 100
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "InlineSvgEmbedFailed");
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
         }
 

@@ -1,7 +1,9 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Xunit;
@@ -178,6 +180,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_TableColumnGroups_FallBackToGridWidths() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(1, 2);
+            table.GridColumnWidth = new List<int> { 2400, 4800 };
+            table.Rows[0].Cells[0].WidthType = null;
+            table.Rows[0].Cells[0].Width = null;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "A";
+            table.Rows[0].Cells[1].WidthType = null;
+            table.Rows[0].Cells[1].Width = null;
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "B";
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeTableColumnGroups = true });
+
+            Assert.Contains("<colgroup>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<col style=\"width:160px\">", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<col style=\"width:320px\">", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<td style=\"width:", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_WordToHtml_HeadersFooters_AreOptIn() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Body text");
@@ -222,6 +244,25 @@ namespace OfficeIMO.Tests {
             var footer = roundTripSection.Footer.Default!;
             Assert.Contains(header.Paragraphs, paragraph => string.Equals(paragraph.Text, "Header text", StringComparison.Ordinal));
             Assert.Contains(footer.Paragraphs, paragraph => string.Equals(paragraph.Text, "Footer text", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Test_WordToHtml_HeadersFooters_RoundTripToExportedSectionIndex() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("First body");
+            var second = doc.AddSection(SectionMarkValues.NextPage);
+            second.AddParagraph("Second body");
+            second.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Second header");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+
+            using var roundTrip = html.LoadFromHtml();
+
+            Assert.True(roundTrip.Sections.Count >= 2);
+            Assert.DoesNotContain(roundTrip.Sections[0].Header.Default?.Paragraphs ?? new List<WordParagraph>(),
+                paragraph => string.Equals(paragraph.Text, "Second header", StringComparison.Ordinal));
+            var header = Assert.IsAssignableFrom<WordHeader>(roundTrip.Sections[1].Header.Default);
+            Assert.Contains(header.Paragraphs, paragraph => string.Equals(paragraph.Text, "Second header", StringComparison.Ordinal));
         }
 
         [Fact]
@@ -729,6 +770,38 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(roundTrip.Sections);
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Only section", StringComparison.Ordinal));
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void Test_WordToHtml_SectionMetadata_RoundTripsPageSetup() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("First section");
+            var second = doc.AddSection(SectionMarkValues.NextPage);
+            second.PageSettings.PageSize = WordPageSize.Letter;
+            second.PageOrientation = PageOrientationValues.Landscape;
+            second.Margins.Top = 1440;
+            second.Margins.Bottom = 720;
+            second.Margins.Left = 1080;
+            second.Margins.Right = 1200;
+            second.AddParagraph("Second section");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeSectionMetadata = true });
+            var options = new HtmlToWordOptions {
+                SectionTagHandling = SectionTagHandling.WordSection,
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            };
+
+            using var roundTrip = html.LoadFromHtml(options);
+
+            Assert.Equal(2, roundTrip.Sections.Count);
+            var roundTripSecond = roundTrip.Sections[1];
+            Assert.Equal(PageOrientationValues.Landscape, roundTripSecond.PageOrientation);
+            Assert.Equal(WordPageSize.Letter, roundTripSecond.PageSettings.PageSize);
+            Assert.Equal(1440, roundTripSecond.Margins.Top);
+            Assert.Equal(720, roundTripSecond.Margins.Bottom);
+            Assert.Equal((UInt32Value)1080U, roundTripSecond.Margins.Left);
+            Assert.Equal((UInt32Value)1200U, roundTripSecond.Margins.Right);
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
         }
     }

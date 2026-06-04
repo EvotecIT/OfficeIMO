@@ -47,17 +47,18 @@ namespace OfficeIMO.Word.Html {
                     return new List<(TableWidthUnitValues? Type, int Width)>();
                 }
 
+                var gridColumns = GetGridColumnWidths(table);
                 var firstRow = table.Rows[0];
                 var columns = new List<(TableWidthUnitValues? Type, int Width)>();
                 foreach (var cell in firstRow.Cells) {
                     if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
-                        return new List<(TableWidthUnitValues? Type, int Width)>();
+                        return gridColumns;
                     }
                     if (cell.HorizontalMerge == MergedCellValues.Restart || cell.VerticalMerge == MergedCellValues.Restart) {
-                        return new List<(TableWidthUnitValues? Type, int Width)>();
+                        return gridColumns;
                     }
                     if (cell.WidthType == null || cell.Width == null || GetWidthCss(cell.WidthType, cell.Width) == null) {
-                        return new List<(TableWidthUnitValues? Type, int Width)>();
+                        return gridColumns;
                     }
 
                     columns.Add((cell.WidthType, cell.Width.Value));
@@ -67,12 +68,14 @@ namespace OfficeIMO.Word.Html {
                     return columns;
                 }
 
-                var gridWidths = table.GridColumnWidth;
-                if (gridWidths.Count > 0) {
-                    return gridWidths.Select(width => ((TableWidthUnitValues?)TableWidthUnitValues.Dxa, width)).ToList();
-                }
+                return gridColumns;
+            }
 
-                return columns;
+            List<(TableWidthUnitValues? Type, int Width)> GetGridColumnWidths(WordTable table) {
+                var gridWidths = table.GridColumnWidth;
+                return gridWidths.Count > 0
+                    ? gridWidths.Select(width => ((TableWidthUnitValues?)TableWidthUnitValues.Dxa, width)).ToList()
+                    : new List<(TableWidthUnitValues? Type, int Width)>();
             }
 
             static string FormatCssNumber(double value) {

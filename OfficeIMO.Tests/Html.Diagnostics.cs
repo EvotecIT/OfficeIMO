@@ -104,5 +104,16 @@ namespace OfficeIMO.Tests {
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:width", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:height", StringComparison.OrdinalIgnoreCase));
         }
+
+        [Fact]
+        public void HtmlToWord_BorderSideDiagnostics_MatchMappedProperties() {
+            var options = new HtmlToWordOptions();
+
+            "<table style=\"border-left:1px solid #123456;border-image:linear-gradient(red, blue) 1\"><tr><td>Cell</td></tr></table>".LoadFromHtml(options);
+
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border-left", StringComparison.OrdinalIgnoreCase));
+            var diagnostics = options.Diagnostics.Where(diagnostic => diagnostic.Code == "UnsupportedCssDeclaration").ToList();
+            Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border-image", StringComparison.OrdinalIgnoreCase));
+        }
     }
 }

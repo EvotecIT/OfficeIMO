@@ -100,7 +100,8 @@ namespace OfficeIMO.Word.Html {
 
         private static bool IsSupportedCssDiagnosticProperty(string propertyName) =>
             _supportedCssDiagnosticProperties.Contains(propertyName) ||
-            propertyName.StartsWith("border-", StringComparison.OrdinalIgnoreCase);
+            IsSupportedBorderSideShorthand(propertyName) ||
+            IsSupportedBorderLonghand(propertyName);
 
         private void AddUnsupportedCssDiagnostic(string code, string message, string source, string? detail = null) {
             if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Ignore) {
@@ -227,8 +228,12 @@ namespace OfficeIMO.Word.Html {
                     reason = $"Unsupported float value '{value}'.";
                     return true;
                 case "border":
+                case "border-left":
+                case "border-right":
+                case "border-top":
+                case "border-bottom":
                     if (!TryParseBorder(value, out _, out _, out _)) {
-                        reason = $"Unsupported border value '{value}'.";
+                        reason = $"Unsupported {propertyName} value '{value}'.";
                         return true;
                     }
                     return false;
@@ -280,6 +285,18 @@ namespace OfficeIMO.Word.Html {
 
             return false;
         }
+
+        private static bool IsSupportedBorderSideShorthand(string propertyName) =>
+            propertyName.Equals("border-left", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.Equals("border-right", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.Equals("border-top", StringComparison.OrdinalIgnoreCase) ||
+            propertyName.Equals("border-bottom", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsSupportedBorderLonghand(string propertyName) =>
+            propertyName.StartsWith("border-", StringComparison.OrdinalIgnoreCase) &&
+            (propertyName.EndsWith("-color", StringComparison.OrdinalIgnoreCase) ||
+             propertyName.EndsWith("-style", StringComparison.OrdinalIgnoreCase) ||
+             propertyName.EndsWith("-width", StringComparison.OrdinalIgnoreCase));
 
         private static bool TryUnsupportedColorValue(string value, string label, out string reason) {
             reason = string.Empty;

@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -22,8 +23,9 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
+            var targetSection = ResolveHeaderFooterSection(element, doc, section);
             var type = GetHeaderFooterType(element);
-            WordHeaderFooter target = isHeader ? section.GetOrCreateHeader(type) : section.GetOrCreateFooter(type);
+            WordHeaderFooter target = isHeader ? targetSection.GetOrCreateHeader(type) : targetSection.GetOrCreateFooter(type);
             RemoveEmptyHeaderFooterPlaceholders(target);
 
             var fmt = formatting;
@@ -42,10 +44,23 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
 
-                ProcessNode(child, doc, section, options, null, listStack, fmt, null, target, headingList);
+                ProcessNode(child, doc, targetSection, options, null, listStack, fmt, null, target, headingList);
             }
 
             return true;
+        }
+
+        private static WordSection ResolveHeaderFooterSection(IElement element, WordDocument doc, WordSection section) {
+            var indexAttribute = element.GetAttribute("data-section-index");
+            if (!int.TryParse(indexAttribute, NumberStyles.Integer, CultureInfo.InvariantCulture, out var index) || index < 0) {
+                return section;
+            }
+
+            while (doc.Sections.Count <= index) {
+                doc.AddSection();
+            }
+
+            return doc.Sections[index];
         }
 
         private static bool HasClass(IElement element, string className) =>

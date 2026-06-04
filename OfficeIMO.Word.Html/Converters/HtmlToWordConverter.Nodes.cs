@@ -5,8 +5,10 @@ using AngleSharp.Css.Parser;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Net;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -96,6 +98,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             if (options.SectionTagHandling == SectionTagHandling.WordSection) {
                                 var newSection = ShouldReuseInitialWordSection(element, doc, section) ? section : doc.AddSection();
+                                ApplyExportedSectionMetadata(element, newSection);
                                 int startIndex = newSection.Paragraphs.Count;
                                 WordParagraph? para = null;
                                 foreach (var child in element.ChildNodes) {
@@ -818,6 +821,65 @@ namespace OfficeIMO.Word.Html {
                 }
                 AddTextRun(currentParagraph, text, formatting, options);
             }
+        }
+
+        private static void ApplyExportedSectionMetadata(IElement element, WordSection section) {
+            if (!string.Equals(element.GetAttribute("data-word-section"), "1", StringComparison.OrdinalIgnoreCase) &&
+                !element.ClassList.Contains("word-section")) {
+                return;
+            }
+
+            var pageSizeValue = element.GetAttribute("data-page-size");
+            if (Enum.TryParse<WordPageSize>(pageSizeValue, ignoreCase: true, out var pageSize) && pageSize != WordPageSize.Unknown) {
+                section.PageSettings.PageSize = pageSize;
+            }
+
+            var orientationValue = element.GetAttribute("data-page-orientation");
+            if (TryParsePageOrientation(orientationValue, out var orientation)) {
+                section.PageOrientation = orientation;
+            }
+
+            if (TryGetUInt32Attribute(element, "data-page-width-twips", out var width)) {
+                section.PageSettings.Width = width;
+            }
+            if (TryGetUInt32Attribute(element, "data-page-height-twips", out var height)) {
+                section.PageSettings.Height = height;
+            }
+            if (TryGetInt32Attribute(element, "data-margin-top-twips", out var top)) {
+                section.Margins.Top = top;
+            }
+            if (TryGetUInt32Attribute(element, "data-margin-right-twips", out var right)) {
+                section.Margins.Right = right;
+            }
+            if (TryGetInt32Attribute(element, "data-margin-bottom-twips", out var bottom)) {
+                section.Margins.Bottom = bottom;
+            }
+            if (TryGetUInt32Attribute(element, "data-margin-left-twips", out var left)) {
+                section.Margins.Left = left;
+            }
+        }
+
+        private static bool TryGetUInt32Attribute(IElement element, string name, out UInt32Value value) {
+            value = 0U;
+            if (!uint.TryParse(element.GetAttribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed)) {
+                return false;
+            }
+
+            value = parsed;
+            return true;
+        }
+
+        private static bool TryGetInt32Attribute(IElement element, string name, out int value) =>
+            int.TryParse(element.GetAttribute(name), NumberStyles.Integer, CultureInfo.InvariantCulture, out value);
+
+        private static bool TryParsePageOrientation(string? value, out PageOrientationValues orientation) {
+            orientation = PageOrientationValues.Portrait;
+            if (string.Equals(value, "Landscape", StringComparison.OrdinalIgnoreCase)) {
+                orientation = PageOrientationValues.Landscape;
+                return true;
+            }
+
+            return string.Equals(value, "Portrait", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
