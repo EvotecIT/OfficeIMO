@@ -98,14 +98,15 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void MaterializePendingDirectCellValueSheetIfNeeded() {
+        private ExcelSheet? MaterializePendingDirectCellValueSheetIfNeeded() {
             var sheet = _pendingDirectCellValueSheet;
             if (sheet == null) {
-                return;
+                return null;
             }
 
             _pendingDirectCellValueSheet = null;
             sheet.MaterializePendingDirectCellValues();
+            return sheet;
         }
 
         private void PromotePendingDirectCellValueSheetIfPossible() {
