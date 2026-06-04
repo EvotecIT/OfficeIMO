@@ -337,6 +337,19 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Maps_Stacked_Line_Charts_To_Shared_Stacked_Line_Renderer() {
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod("TryMapChartKind", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        object?[] stackedArgs = { ExcelChartType.LineStacked, null };
+        object?[] percentArgs = { ExcelChartType.LineStacked100, null };
+
+        Assert.True((bool)method.Invoke(null, stackedArgs)!);
+        Assert.True((bool)method.Invoke(null, percentArgs)!);
+        Assert.Equal(OfficeChartKind.LineStacked, stackedArgs[1]);
+        Assert.Equal(OfficeChartKind.LineStacked100, percentArgs[1]);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Exports_Negative_Area_Chart_Values() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfNegativeAreaChart.xlsx");
 

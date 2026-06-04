@@ -139,6 +139,23 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_DegradesTinyTextBoxMarginsInsteadOfThrowing() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(160, 100);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints("Tiny", 20, 20, 6, 6);
+        textBox.FillTransparency = 100;
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
+        Assert.Equal("text-box-padding", warning.Code);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_RendersSolidSlideBackground() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -301,6 +318,29 @@ public class PowerPointSaveAsPdfTests {
         string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
         Assert.Contains("Won", text, StringComparison.Ordinal);
         Assert.Contains("Open", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesScatterSeriesXValues() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointScatterChartData(new[] {
+            new PowerPointScatterChartSeries("Actual", new[] { 1D, 2D, 3D }, new[] { 10D, 12D, 14D }),
+            new PowerPointScatterChartSeries("Forecast", new[] { 1.5D, 2.5D }, new[] { 11D, 13D })
+        });
+        PowerPointChart chart = presentation.Slides[0].AddScatterChartPoints(data, 40, 32, 240, 172);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        PowerPointChartSeries forecast = Assert.Single(snapshot.Data.Series, series => series.Name == "Forecast");
+        Assert.Equal(new[] { 1.5D, 2.5D }, forecast.XValues);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Forecast", text, StringComparison.Ordinal);
     }
 
     [Fact]

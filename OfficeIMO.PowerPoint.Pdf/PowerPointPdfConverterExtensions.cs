@@ -212,7 +212,31 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
         IReadOnlyList<PdfCore.TextRun> runs = CreateTextRuns(textBox, slideNumber, options);
         PdfCore.PdfCanvasTextBoxStyle style = CreateTextBoxStyle(textBox);
+        if (!TryFitTextBoxPadding(style, width, height, out bool adjustedPadding)) {
+            AddWarning(options, slideNumber, "invalid-text-box-bounds", "Skipped a PowerPoint text box because its margins leave no renderable PDF text area.");
+            return;
+        }
+
+        if (adjustedPadding) {
+            AddWarning(options, slideNumber, "text-box-padding", "Reduced PowerPoint text box margins because the original margins left no renderable PDF text area.");
+        }
+
         canvas.TextBox(runs, x, y, width, height, style, textBox.Rotation ?? 0D);
+    }
+
+    private static bool TryFitTextBoxPadding(PdfCore.PdfCanvasTextBoxStyle style, double width, double height, out bool adjustedPadding) {
+        const double minimumInnerSize = 0.5D;
+        double originalPaddingX = style.PaddingX;
+        double originalPaddingY = style.PaddingY;
+        adjustedPadding = false;
+        if (width <= minimumInnerSize || height <= minimumInnerSize) {
+            return false;
+        }
+
+        style.PaddingX = Math.Min(style.PaddingX, Math.Max(0D, (width - minimumInnerSize) / 2D));
+        style.PaddingY = Math.Min(style.PaddingY, Math.Max(0D, (height - minimumInnerSize) / 2D));
+        adjustedPadding = style.PaddingX != originalPaddingX || style.PaddingY != originalPaddingY;
+        return style.PaddingX * 2D < width && style.PaddingY * 2D < height;
     }
 
     private static IReadOnlyList<PdfCore.TextRun> CreateTextRuns(PptCore.PowerPointTextBox textBox, int slideNumber, PowerPointPdfSaveOptions options) {

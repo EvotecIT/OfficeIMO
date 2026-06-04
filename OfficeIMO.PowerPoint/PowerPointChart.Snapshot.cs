@@ -152,18 +152,25 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            IReadOnlyList<double> xValues = ReadCachedNumbers(seriesList[0].GetFirstChild<C.XValues>());
-            if (xValues.Count == 0) {
+            IReadOnlyList<double> firstXValues = ReadCachedNumbers(seriesList[0].GetFirstChild<C.XValues>());
+            if (firstXValues.Count == 0) {
                 return null;
             }
 
-            var categories = xValues
+            var categories = firstXValues
                 .Select(value => value.ToString(CultureInfo.InvariantCulture))
                 .ToList();
             var series = new List<PowerPointChartSeries>();
             for (int i = 0; i < seriesList.Count; i++) {
                 C.ScatterChartSeries seriesElement = seriesList[i];
-                IReadOnlyList<double> values = NormalizeValues(ReadCachedNumbers(seriesElement.GetFirstChild<C.YValues>()), categories.Count);
+                IReadOnlyList<double> xValues = ReadCachedNumbers(seriesElement.GetFirstChild<C.XValues>());
+                IReadOnlyList<double> yValues = ReadCachedNumbers(seriesElement.GetFirstChild<C.YValues>());
+                int pointCount = Math.Min(xValues.Count, yValues.Count);
+                if (pointCount == 0) {
+                    continue;
+                }
+
+                IReadOnlyList<double> values = NormalizeValues(yValues, pointCount);
                 if (values.Count == 0) {
                     continue;
                 }
@@ -173,7 +180,7 @@ namespace OfficeIMO.PowerPoint {
                     name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
                 }
 
-                series.Add(new PowerPointChartSeries(name, values));
+                series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList()));
             }
 
             return series.Count == 0 ? null : new PowerPointChartData(categories, series);

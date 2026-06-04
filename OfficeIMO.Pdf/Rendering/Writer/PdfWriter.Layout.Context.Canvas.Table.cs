@@ -213,8 +213,9 @@ internal static partial class PdfWriter {
                 visibleLines = StripRichLineLinksWhenCellLinked(visibleLines, linkUri, linkDestinationName);
             }
 
+            PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text);
             PdfColor? textColor = rowIsHeader ? style.HeaderTextColor : rowIsFooter ? style.FooterTextColor : style.TextColor;
-            var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(GetTableCellAlignment(style, rowIndex, columnIndex, cell.Text)), textColor);
+            var paragraph = new RichParagraphBlock(StripRunLinksWhenCellLinked(cell.Runs, linkUri, linkDestinationName), MapTableCellAlignment(align), textColor);
             int? markedContentId = RegisterTextStructureElement(rowIsHeader ? "TH" : "TD");
             WriteClippedRichParagraph(
                 sb,
@@ -252,6 +253,16 @@ internal static partial class PdfWriter {
 
             MarkRichFonts(cell.Runs);
             AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);
+            if (cell.Images.Count > 0 || cell.CheckBoxes.Count > 0 || cell.FormFields.Count > 0) {
+                if (CanRenderTableCellCheckBoxInline(cell, lines, 0, lineCount)) {
+                    RenderTableCellInlineCheckBox(currentPage!, cell, align, lines.Lines[0], cellX + padLeft, innerWidth, firstBaseline);
+                } else {
+                    double textHeight = MeasureTableCellTextHeight(lines, 0, lineCount, leading);
+                    double formFieldTop = cellTop - padTop - verticalOffset - (string.IsNullOrEmpty(cell.Text) ? 0D : textHeight + TableCellCheckBoxGap);
+                    RenderTableCellObjects(currentPage!, cell, align, cellX + padLeft, innerWidth, formFieldTop);
+                }
+            }
+
             if (HasCellLinkTarget(linkUri, linkDestinationName)) {
                 currentPage!.Annotations.Add(new LinkAnnotation {
                     X1 = cellX + padLeft,

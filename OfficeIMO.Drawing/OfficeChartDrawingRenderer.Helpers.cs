@@ -10,7 +10,14 @@ public static partial class OfficeChartDrawingRenderer {
         || kind == OfficeChartKind.BarStacked
         || kind == OfficeChartKind.BarStacked100;
 
-    private static bool IsLineChart(OfficeChartKind kind) => kind == OfficeChartKind.Line;
+    private static bool IsLineChart(OfficeChartKind kind) =>
+        kind == OfficeChartKind.Line
+        || kind == OfficeChartKind.LineStacked
+        || kind == OfficeChartKind.LineStacked100;
+
+    private static bool IsStackedLineChart(OfficeChartKind kind) => kind == OfficeChartKind.LineStacked;
+
+    private static bool IsPercentStackedLineChart(OfficeChartKind kind) => kind == OfficeChartKind.LineStacked100;
 
     private static bool IsAreaChart(OfficeChartKind kind) =>
         kind == OfficeChartKind.Area
@@ -115,6 +122,22 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         return values;
+    }
+
+    private static ValueRange GetScatterXRange(IReadOnlyList<OfficeChartSeries> series, IReadOnlyList<double> sharedXValues) {
+        var values = new List<double>(sharedXValues.Count);
+        bool hasSeriesXValues = false;
+        for (int s = 0; s < series.Count; s++) {
+            IReadOnlyList<double>? xValues = series[s].XValues;
+            if (xValues == null) {
+                continue;
+            }
+
+            hasSeriesXValues = true;
+            values.AddRange(xValues);
+        }
+
+        return hasSeriesXValues ? GetFiniteRange(values) : GetFiniteRange(sharedXValues);
     }
 
     private static IReadOnlyList<OfficePoint> CreateRadarPoints(int count, double centerX, double centerY, double radius) {

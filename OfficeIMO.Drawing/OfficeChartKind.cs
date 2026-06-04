@@ -25,6 +25,12 @@ public enum OfficeChartKind {
     /// <summary>Line chart.</summary>
     Line,
 
+    /// <summary>Stacked line chart.</summary>
+    LineStacked,
+
+    /// <summary>One-hundred percent stacked line chart.</summary>
+    LineStacked100,
+
     /// <summary>Area chart.</summary>
     Area,
 

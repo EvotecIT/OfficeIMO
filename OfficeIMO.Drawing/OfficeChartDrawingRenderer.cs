@@ -251,24 +251,59 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        ValueRange range = GetFiniteSeriesRange(series);
+        bool stacked = IsStackedLineChart(snapshot.ChartKind) || IsPercentStackedLineChart(snapshot.ChartKind);
+        bool percentStacked = IsPercentStackedLineChart(snapshot.ChartKind);
+        ValueRange range = percentStacked
+            ? new ValueRange(0D, 1D)
+            : stacked
+                ? GetStackedSeriesRange(series, categories.Count)
+                : GetFiniteSeriesRange(series);
         double step = plotWidth / (categories.Count - 1);
+        var positiveCumulative = new double[categories.Count];
+        var negativeCumulative = new double[categories.Count];
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, s);
+            var points = new OfficePoint[categories.Count];
+            for (int i = 0; i < categories.Count; i++) {
+                double value = GetSeriesValue(series[s], i);
+                double rawValue = percentStacked ? Math.Max(0D, value) : value;
+                double baseline = stacked
+                    ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
+                    : 0D;
+                double plottedValue = stacked ? baseline + rawValue : value;
+                if (percentStacked) {
+                    double total = GetPositiveCategoryTotal(series, i);
+                    plottedValue = total <= 0D ? 0D : plottedValue / total;
+                }
+
+                points[i] = new OfficePoint(plotLeft + step * i, ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
+            }
+
             for (int i = 1; i < categories.Count; i++) {
-                double x1 = plotLeft + step * (i - 1);
-                double y1 = ToPlotY(GetSeriesValue(series[s], i - 1), range.Min, range.Max, plotTop, plotHeight);
-                double x2 = plotLeft + step * i;
-                double y2 = ToPlotY(GetSeriesValue(series[s], i), range.Min, range.Max, plotTop, plotHeight);
+                double x1 = points[i - 1].X;
+                double y1 = points[i - 1].Y;
+                double x2 = points[i].X;
+                double y2 = points[i].Y;
                 double minX = Math.Min(x1, x2);
                 double minY = Math.Min(y1, y2);
                 AddShape(drawing, OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY), minX, minY, null, color, 1.75D);
             }
 
             for (int i = 0; i < categories.Count; i++) {
-                double x = plotLeft + step * i - 2D;
-                double y = ToPlotY(GetSeriesValue(series[s], i), range.Min, range.Max, plotTop, plotHeight) - 2D;
+                double x = points[i].X - 2D;
+                double y = points[i].Y - 2D;
                 AddShape(drawing, OfficeShape.Ellipse(4D, 4D), x, y, OfficeColor.White, color, 1D);
+            }
+
+            if (stacked) {
+                for (int i = 0; i < categories.Count; i++) {
+                    double value = percentStacked ? Math.Max(0D, GetSeriesValue(series[s], i)) : GetSeriesValue(series[s], i);
+                    if (value >= 0D) {
+                        positiveCumulative[i] += value;
+                    } else {
+                        negativeCumulative[i] += value;
+                    }
+                }
             }
         }
     }
@@ -280,13 +315,15 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        IReadOnlyList<double> xValues = GetScatterXValues(categories);
-        ValueRange xRange = GetFiniteRange(xValues);
+        IReadOnlyList<double> sharedXValues = GetScatterXValues(categories);
+        ValueRange xRange = GetScatterXRange(series, sharedXValues);
         ValueRange yRange = GetFiniteSeriesRange(series);
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, s);
-            var points = new List<OfficePoint>(categories.Count);
-            for (int i = 0; i < categories.Count; i++) {
+            IReadOnlyList<double> xValues = series[s].XValues ?? sharedXValues;
+            int pointCount = Math.Min(xValues.Count, series[s].Values.Count);
+            var points = new List<OfficePoint>(pointCount);
+            for (int i = 0; i < pointCount; i++) {
                 double yValue = GetSeriesValue(series[s], i);
                 double x = ToPlotX(xValues[i], xRange.Min, xRange.Max, plotLeft, plotWidth);
                 double y = ToPlotY(yValue, yRange.Min, yRange.Max, plotTop, plotHeight);

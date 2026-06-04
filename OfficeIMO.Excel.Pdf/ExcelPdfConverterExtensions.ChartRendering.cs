@@ -83,10 +83,14 @@ namespace OfficeIMO.Excel.Pdf {
                     kind = OfficeChartKind.BarStacked100;
                     return true;
                 case ExcelChartType.Line:
-                case ExcelChartType.LineStacked:
-                case ExcelChartType.LineStacked100:
                 case ExcelChartType.Line3D:
                     kind = OfficeChartKind.Line;
+                    return true;
+                case ExcelChartType.LineStacked:
+                    kind = OfficeChartKind.LineStacked;
+                    return true;
+                case ExcelChartType.LineStacked100:
+                    kind = OfficeChartKind.LineStacked100;
                     return true;
                 case ExcelChartType.Area:
                 case ExcelChartType.Area3D:

@@ -50,7 +50,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointPdfSaveOptions options) {
         var series = snapshot.Data.Series
-            .Select(item => new OfficeChartSeries(item.Name, item.Values))
+            .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues))
             .ToList();
         var data = new OfficeChartData(snapshot.Data.Categories, series);
         return new OfficeChartSnapshot(
