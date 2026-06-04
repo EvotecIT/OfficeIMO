@@ -301,7 +301,7 @@ namespace OfficeIMO.PowerPoint {
                         ? new PowerPointMedia(p, slidePart, kind)
                         : new PowerPointPicture(p, ownerPart);
                 case GroupShape g:
-                    return new PowerPointGroupShape(g);
+                    return new PowerPointGroupShape(g, ownerPart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
                     return new PowerPointTable(g, ownerPart as SlidePart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:

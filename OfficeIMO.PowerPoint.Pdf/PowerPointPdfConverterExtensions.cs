@@ -110,7 +110,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 continue;
             }
 
-            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, options);
+            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds);
             if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
                 NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
                 canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
@@ -120,10 +120,11 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static void RenderShapeContent(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
+    private static void RenderShapeContent(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape, double x, double y, double width, double height, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds) {
         if (shape is PptCore.PowerPointTextBox textBox) {
+            bool renderedGeometry = options.IncludeAutoShapes && RenderTextBoxGeometry(canvas, textBox, x, y, width, height);
             if (options.IncludeTextBoxes) {
-                RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options);
+                RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options, suppressFrame: renderedGeometry);
             }
             return;
         }
@@ -152,6 +153,15 @@ public static partial class PowerPointPdfConverterExtensions {
         if (shape is PptCore.PowerPointAutoShape autoShape) {
             if (options.IncludeAutoShapes) {
                 RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
+            }
+            return;
+        }
+
+        if (shape is PptCore.PowerPointGroupShape groupShape) {
+            if (shape.OwnerSlide != null) {
+                RenderShapes(canvas, shape.OwnerSlide.GetGroupChildren(groupShape), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds);
+            } else {
+                AddWarning(options, slideNumber, "unsupported-shape", "Skipped a PowerPoint group shape because its owning slide context could not be resolved.");
             }
             return;
         }
@@ -229,7 +239,7 @@ public static partial class PowerPointPdfConverterExtensions {
         canvas.Shape(background, 0, 0);
     }
 
-    private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
+    private static void RenderTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options, bool suppressFrame = false) {
         PdfCore.PdfCanvasTextBoxStyle style = CreateTextBoxStyle(textBox);
         if (!TryFitTextBoxPadding(style, width, height, out bool adjustedPadding)) {
             AddWarning(options, slideNumber, "invalid-text-box-bounds", "Skipped a PowerPoint text box because its margins leave no renderable PDF text area.");
@@ -240,8 +250,12 @@ public static partial class PowerPointPdfConverterExtensions {
             AddWarning(options, slideNumber, "text-box-padding", "Reduced PowerPoint text box margins because the original margins left no renderable PDF text area.");
         }
 
+        if (suppressFrame) {
+            RemoveTextBoxFrame(style);
+        }
+
         if (ShouldRenderParagraphsIndividually(textBox) && (textBox.Rotation ?? 0D) == 0D) {
-            RenderParagraphTextBox(canvas, textBox, x, y, width, height, style, slideNumber, options);
+            RenderParagraphTextBox(canvas, textBox, x, y, width, height, style, slideNumber, options, renderFrame: !suppressFrame);
             return;
         }
 
@@ -262,8 +276,10 @@ public static partial class PowerPointPdfConverterExtensions {
     private static bool HasListMarker(PptCore.PowerPointParagraph? paragraph) =>
         paragraph != null && (!string.IsNullOrEmpty(paragraph.BulletCharacter) || paragraph.IsNumbered);
 
-    private static void RenderParagraphTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, PdfCore.PdfCanvasTextBoxStyle style, int slideNumber, PowerPointPdfSaveOptions options) {
-        RenderTextBoxFrame(canvas, textBox, x, y, width, height);
+    private static void RenderParagraphTextBox(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height, PdfCore.PdfCanvasTextBoxStyle style, int slideNumber, PowerPointPdfSaveOptions options, bool renderFrame) {
+        if (renderFrame) {
+            RenderTextBoxFrame(canvas, textBox, x, y, width, height);
+        }
 
         double paddingLeft = style.PaddingLeft ?? style.PaddingX;
         double paddingRight = style.PaddingRight ?? style.PaddingX;
@@ -305,6 +321,14 @@ public static partial class PowerPointPdfConverterExtensions {
             canvas.TextBox(paragraphRuns[index], textX, cursorY, textWidth, Math.Max(1D, paragraphHeight), paragraphStyle);
             cursorY += paragraphHeight;
         }
+    }
+
+    private static void RemoveTextBoxFrame(PdfCore.PdfCanvasTextBoxStyle style) {
+        style.Background = null;
+        style.BackgroundOpacity = null;
+        style.BorderColor = null;
+        style.BorderWidth = 0D;
+        style.BorderDashStyle = OfficeStrokeDashStyle.Solid;
     }
 
     private static void RenderTextBoxFrame(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
@@ -685,7 +709,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void RenderAutoShape(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointAutoShape autoShape, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
-        OfficeShape? shape = CreateOfficeShape(autoShape, width, height);
+        OfficeShape? shape = CreateOfficeShape(autoShape.ShapeType, autoShape, width, height);
         if (shape == null) {
             AddWarning(options, slideNumber, "unsupported-auto-shape", "Skipped unsupported PowerPoint auto-shape type '" + autoShape.ShapeType + "'.");
             return;
@@ -695,8 +719,23 @@ public static partial class PowerPointPdfConverterExtensions {
         canvas.Shape(shape, x, y, rotationAngle: autoShape.Rotation ?? 0D);
     }
 
-    private static OfficeShape? CreateOfficeShape(PptCore.PowerPointAutoShape autoShape, double width, double height) {
-        ShapeTypeValues? type = autoShape.ShapeType;
+    private static bool RenderTextBoxGeometry(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointTextBox textBox, double x, double y, double width, double height) {
+        ShapeTypeValues? type = textBox.ShapeType;
+        if (type == ShapeTypeValues.Rectangle) {
+            return false;
+        }
+
+        OfficeShape? shape = CreateOfficeShape(type, textBox, width, height);
+        if (shape == null) {
+            return false;
+        }
+
+        ApplyShapeStyle(textBox, shape);
+        canvas.Shape(shape, x, y, rotationAngle: textBox.Rotation ?? 0D);
+        return true;
+    }
+
+    private static OfficeShape? CreateOfficeShape(ShapeTypeValues? type, PptCore.PowerPointShape source, double width, double height) {
         if (type == ShapeTypeValues.Rectangle) {
             return OfficeShape.Rectangle(width, height);
         }
@@ -710,17 +749,17 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (type == ShapeTypeValues.Line) {
-            double startX = autoShape.HorizontalFlip == true ? width : 0D;
-            double endX = autoShape.HorizontalFlip == true ? 0D : width;
-            double startY = autoShape.VerticalFlip == true ? height : 0D;
-            double endY = autoShape.VerticalFlip == true ? 0D : height;
+            double startX = source.HorizontalFlip == true ? width : 0D;
+            double endX = source.HorizontalFlip == true ? 0D : width;
+            double startY = source.VerticalFlip == true ? height : 0D;
+            double endY = source.VerticalFlip == true ? 0D : height;
             return OfficeShape.Line(startX, startY, endX, endY);
         }
 
         return null;
     }
 
-    private static void ApplyShapeStyle(PptCore.PowerPointAutoShape source, OfficeShape target) {
+    private static void ApplyShapeStyle(PptCore.PowerPointShape source, OfficeShape target) {
         target.FillColor = source.FillTransparency == 100 ? null : ParseOfficeColor(source.FillColor);
         if (source.FillTransparency.HasValue && source.FillTransparency.Value > 0 && source.FillTransparency.Value < 100) {
             target.FillOpacity = 1D - source.FillTransparency.Value / 100D;

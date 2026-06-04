@@ -26,6 +26,8 @@ namespace OfficeIMO.PowerPoint {
 
         private Shape Shape => (Shape)Element;
 
+        internal A.ShapeTypeValues? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value;
+
         private IEnumerable<A.Run> Runs => EnsureTextBody().Elements<A.Paragraph>().SelectMany(p => p.Elements<A.Run>());
 
         /// <summary>

@@ -22,6 +22,11 @@ namespace OfficeIMO.PowerPoint {
 
             A.SolidFill? solidFill = properties.GetFirstChild<A.SolidFill>();
             string? solidColor = solidFill?.RgbColorModelHex?.Val?.Value;
+            if (string.IsNullOrWhiteSpace(solidColor) && solidFill != null) {
+                A.ColorScheme? colorScheme = GetThemePart(ownerPart ?? _slidePart)?.Theme?.ThemeElements?.ColorScheme;
+                solidColor = ResolveSolidFillColor(solidFill, colorScheme, placeholderColor: null);
+            }
+
             if (!string.IsNullOrWhiteSpace(solidColor)) {
                 return PowerPointSlideBackground.SolidColor(solidColor!);
             }

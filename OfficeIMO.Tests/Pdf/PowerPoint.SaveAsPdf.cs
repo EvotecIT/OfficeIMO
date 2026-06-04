@@ -254,6 +254,26 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesDirectSchemeColorBackground() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeColor(PowerPointThemeColor.Light2, "654321");
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundProperties(
+                new SolidFill(new SchemeColor { Val = SchemeColorValues.Background2 })));
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.396 0.263 0.129 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutShapes() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -278,6 +298,29 @@ public class PowerPointSaveAsPdfTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("16 130 50 10 re", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersGroupedSlideShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
+        first.FillColor = "FF0000";
+        PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
+        second.FillColor = "00AA00";
+        slide.GroupShapes(new PowerPointShape[] { first, second });
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 120 30 20 re", raw, StringComparison.Ordinal);
+        Assert.Contains("60 120 30 20 re", raw, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 rg", raw, StringComparison.Ordinal);
         Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
     }
 
@@ -313,6 +356,30 @@ public class PowerPointSaveAsPdfTests {
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
 
         Assert.Equal(new[] { "https://officeimo.net/layout" }, info.LinkUris);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersTextBearingAutoShapeGeometry() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointTextBox textBox = slide.AddTextBoxPoints("Rounded Label", 30, 40, 100, 36);
+        textBox.FillColor = "FDE68A";
+        textBox.OutlineColor = "92400E";
+        textBox.FontSize = 12;
+        var shape = (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element;
+        shape.ShapeProperties!.GetFirstChild<PresetGeometry>()!.Preset = ShapeTypeValues.RoundRectangle;
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("Rounded Label", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains(" c", raw, StringComparison.Ordinal);
+        Assert.Contains("0.992 0.902 0.541 rg", raw, StringComparison.Ordinal);
     }
 
     [Fact]
