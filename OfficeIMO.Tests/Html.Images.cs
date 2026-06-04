@@ -261,6 +261,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_InvalidSvgDataImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            var invalidSvgData = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>"));
+            string html = $"<img src=\"data:image/svg+xml;base64,{invalidSvgData}\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 100
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
         public void HtmlToWord_DataImageWithRejectedContentType_SkipsWithDiagnostic() {
             string html = "<img src=\"data:image/x-officeimo;base64,AAAA\" alt=\"Bad mime\" />";
             var options = new HtmlToWordOptions();

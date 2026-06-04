@@ -3,6 +3,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System;
 using System.IO;
+using System.Linq;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -304,7 +305,27 @@ namespace OfficeIMO.Tests {
             Assert.Contains("data-word-list-level=\"0\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(".word-list-l0-ol-upper-roman", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("list-style-type:upper-roman", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("list-style-position", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("--word-list-hanging", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("style=\"list-style-type:upper-roman\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_ListDefinitions_RoundTripUnderStrictCss() {
+            using var doc = WordDocument.Create();
+            var list = doc.AddList(WordListStyle.HeadingIA1);
+            list.AddItem("Intro");
+            list.AddItem("Body");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListDefinitions = true });
+            var options = new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            };
+
+            using var roundTrip = html.LoadFromHtml(options);
+
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Intro", StringComparison.Ordinal));
         }
 
         [Fact]
@@ -686,9 +707,29 @@ namespace OfficeIMO.Tests {
             Assert.Contains("data-page-orientation=\"Landscape\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("data-page-size=\"Letter\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("data-margin-top-twips=\"1440\"", html, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("padding:72pt 54pt 36pt 54pt", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("padding:96px 72px 48px 72px", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("box-sizing", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("min-height", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("break-before:page", html, StringComparison.OrdinalIgnoreCase);
             Assert.True(html.IndexOf("First section", StringComparison.OrdinalIgnoreCase) < html.IndexOf("Second section", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void Test_WordToHtml_SectionMetadata_RoundTripsWithoutExtraInitialSectionUnderStrictCss() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Only section");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeSectionMetadata = true });
+            var options = new HtmlToWordOptions {
+                SectionTagHandling = SectionTagHandling.WordSection,
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            };
+
+            using var roundTrip = html.LoadFromHtml(options);
+
+            Assert.Single(roundTrip.Sections);
+            Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Only section", StringComparison.Ordinal));
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

@@ -31,6 +31,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_Select_PreservesBlankOptions() {
+            const string html = "<p>Status <select data-tag=\"status\"><option selected></option><option>Ready</option></select></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(new[] { string.Empty, "Ready" }, dropDown.Items.ToArray());
+            Assert.Equal(string.Empty, dropDown.SelectedValue);
+            Assert.Equal("status", dropDown.Tag);
+        }
+
+        [Fact]
+        public void HtmlToWord_TextInputWithDatalist_BecomesComboBox() {
+            const string html = "<p>Contact <input type=\"text\" list=\"word-combo-1\" data-tag=\"contact-method\" aria-label=\"Contact method\" value=\"Phone\"><datalist id=\"word-combo-1\"><option value=\"Email\"></option><option value=\"Phone\"></option></datalist></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var comboBox = Assert.Single(doc.ComboBoxes);
+            Assert.Equal(new[] { "Email", "Phone" }, comboBox.Items.ToArray());
+            Assert.Equal("Phone", comboBox.SelectedValue);
+            Assert.Equal("Contact method", comboBox.Alias);
+            Assert.Equal("contact-method", comboBox.Tag);
+            Assert.DoesNotContain(doc.Paragraphs, paragraph => paragraph.Text.Contains("Email", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void HtmlToWord_TextArea_BecomesStructuredDocumentTag() {
             const string html = "<p>Notes <textarea id=\"notes\" title=\"Review notes\">Line one\r\nLine two</textarea></p>";
 

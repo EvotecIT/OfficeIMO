@@ -27,6 +27,13 @@ namespace OfficeIMO.Word.Html {
                 currentParagraph.AddCheckBox(IsCheckedInput(element), alias, tag);
             } else if (IsDateInput(element)) {
                 currentParagraph.AddDatePicker(TryParseDateInput(element.GetAttribute("value")), alias, tag);
+            } else if (TryGetDataListOptions(element, out var dataListOptions)) {
+                var value = element.GetAttribute("value") ?? string.Empty;
+                if (!string.IsNullOrEmpty(value) && !dataListOptions.Contains(value, StringComparer.Ordinal)) {
+                    dataListOptions.Insert(0, value);
+                }
+                var defaultValue = dataListOptions.Contains(value, StringComparer.Ordinal) ? value : null;
+                currentParagraph.AddComboBox(dataListOptions, alias, tag, defaultValue);
             } else {
                 currentParagraph.AddStructuredDocumentTag(element.GetAttribute("value") ?? string.Empty, alias, tag);
             }
@@ -40,10 +47,9 @@ namespace OfficeIMO.Word.Html {
             var optionsList = element.Children
                 .Where(child => string.Equals(child.TagName, "option", StringComparison.OrdinalIgnoreCase))
                 .Select(option => new {
-                    Text = NormalizeFormText(option.TextContent),
+                    Text = GetOptionText(option),
                     Selected = option.HasAttribute("selected")
                 })
-                .Where(option => option.Text.Length > 0)
                 .ToList();
 
             if (optionsList.Count == 0) {
@@ -121,6 +127,52 @@ namespace OfficeIMO.Word.Html {
 
         private static string NormalizeFormText(string? text) =>
             text?.Replace("\r\n", "\n").Replace('\r', '\n') ?? string.Empty;
+
+        private static string GetOptionText(IElement option) =>
+            NormalizeFormText(option.GetAttribute("value") ?? option.TextContent);
+
+        private static bool TryGetDataListOptions(IElement element, out List<string> options) {
+            options = new List<string>();
+            var listId = element.GetAttribute("list");
+            if (string.IsNullOrWhiteSpace(listId)) {
+                return false;
+            }
+
+            var root = element;
+            while (root.ParentElement != null) {
+                root = root.ParentElement;
+            }
+
+            var dataList = FindDataListElement(root, listId!);
+            if (dataList == null) {
+                return false;
+            }
+
+            options = dataList.Children
+                .Where(child => string.Equals(child.TagName, "option", StringComparison.OrdinalIgnoreCase))
+                .Select(GetOptionText)
+                .ToList();
+
+            return options.Count > 0;
+        }
+
+        private static IElement? FindDataListElement(IElement root, string listId) {
+            var stack = new Stack<IElement>();
+            stack.Push(root);
+            while (stack.Count > 0) {
+                var current = stack.Pop();
+                if (string.Equals(current.TagName, "datalist", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(current.GetAttribute("id"), listId, StringComparison.Ordinal)) {
+                    return current;
+                }
+
+                foreach (var child in current.Children) {
+                    stack.Push(child);
+                }
+            }
+
+            return null;
+        }
 
         private static bool ShouldAddSpaceAfterInput(IElement element) {
             var sibling = element.NextSibling;

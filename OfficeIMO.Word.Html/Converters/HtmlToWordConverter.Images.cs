@@ -166,6 +166,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
+            long reservedBytes = 0;
             try {
                 string svgContent;
                 if (src.StartsWith("data:image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
@@ -186,6 +187,7 @@ namespace OfficeIMO.Word.Html {
                             InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
                             return;
                         }
+                        reservedBytes = estimatedBytes;
                         var bytes = System.Convert.FromBase64String(data);
                         svgContent = Encoding.UTF8.GetString(bytes);
                     } else {
@@ -200,6 +202,7 @@ namespace OfficeIMO.Word.Html {
                             InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
                             return;
                         }
+                        reservedBytes = svgByteCount;
                     }
                 } else if (Uri.TryCreate(src, UriKind.Absolute, out var uri) && uri.IsFile) {
                     EnsureFileWithinImageLimits(uri.LocalPath, options);
@@ -215,7 +218,10 @@ namespace OfficeIMO.Word.Html {
                     var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
                     SvgHelper.AddSvg(paragraph, svgContent, width, height, alt ?? string.Empty);
                     _imageCache[src] = paragraph.Image!;
+                    reservedBytes = 0;
                 } catch (Exception ex) {
+                    ReleaseImageBytes(reservedBytes, options);
+                    reservedBytes = 0;
                     AddDiagnostic(options, "SvgEmbedFailed", "SVG image could not be embedded and was replaced with alt text when available.", src, ex);
                     if (!string.IsNullOrEmpty(alt)) {
                         var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
@@ -223,15 +229,19 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
             } catch (HtmlResourceLimitException ex) {
+                ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "ImageResourceTooLarge", "SVG image resource exceeded the configured byte limit and was replaced with alt text when available.", src, ex);
                 InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
             } catch (HtmlResourceTotalLimitException ex) {
+                ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "ImageResourceBudgetExceeded", "SVG image resource exceeded the configured total byte budget and was replaced with alt text when available.", src, ex);
                 InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
             } catch (HtmlResourceContentTypeException ex) {
+                ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "ImageContentTypeRejected", "SVG image resource content type is not allowed and was replaced with alt text when available.", src, ex);
                 InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
             } catch (Exception ex) {
+                ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "SvgLoadFailed", "SVG image could not be loaded and was replaced with alt text when available.", src, ex);
                 InsertAltText(currentParagraph, headerFooter, doc, alt ?? string.Empty);
             }

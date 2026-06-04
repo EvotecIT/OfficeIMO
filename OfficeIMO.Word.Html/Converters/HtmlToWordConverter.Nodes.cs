@@ -37,6 +37,23 @@ namespace OfficeIMO.Word.Html {
         private static List<WordParagraph> GetGeneratedParagraphs(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter, int startIndex) =>
             GetParagraphsInScope(section, cell, headerFooter).Skip(startIndex).ToList();
 
+        private static bool ShouldReuseInitialWordSection(IElement element, WordDocument doc, WordSection section) {
+            if (!string.Equals(element.GetAttribute("data-word-section"), "1", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if (!element.ClassList.Contains("word-section")) {
+                return false;
+            }
+
+            if (doc.Sections.Count != 1 || !ReferenceEquals(doc.Sections[0], section)) {
+                return false;
+            }
+
+            return section.Tables.Count == 0 &&
+                   section.Paragraphs.All(paragraph => string.IsNullOrWhiteSpace(paragraph.Text) && !paragraph.GetRuns().Any());
+        }
+
         private static void ApplyContainerPageBreaksFromCss(IElement element, IReadOnlyList<WordParagraph> paragraphs) {
             if (paragraphs.Count == 0) {
                 return;
@@ -78,7 +95,7 @@ namespace OfficeIMO.Word.Html {
                                 ApplySpanStyles(element, ref fmt);
                             }
                             if (options.SectionTagHandling == SectionTagHandling.WordSection) {
-                                var newSection = doc.AddSection();
+                                var newSection = ShouldReuseInitialWordSection(element, doc, section) ? section : doc.AddSection();
                                 int startIndex = newSection.Paragraphs.Count;
                                 WordParagraph? para = null;
                                 foreach (var child in element.ChildNodes) {
@@ -373,7 +390,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "q": {
-                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : section.AddParagraph("");
+                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
@@ -749,6 +766,9 @@ namespace OfficeIMO.Word.Html {
                     case "select":
                     case "textarea": {
                             ProcessFormControl(element, section, options, currentParagraph, formatting, cell, headerFooter);
+                            break;
+                        }
+                    case "datalist": {
                             break;
                         }
                     case "script":

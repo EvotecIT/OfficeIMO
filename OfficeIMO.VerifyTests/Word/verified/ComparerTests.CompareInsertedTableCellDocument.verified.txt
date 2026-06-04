@@ -27,7 +27,7 @@
       <w:tblPr>
         <w:tblStyle w:val="TableGrid" />
         <w:tblW w:w="0" w:type="auto" />
-        <w:tblLook w:val="04A0" w:firstRow="true" w:lastRow="false" w:firstColumn="true" w:lastColumn="false" w:noHBand="false" w:noVBand="true" />
+        <w:tblLook w:val="04A0" />
       </w:tblPr>
       <w:tblGrid>
         <w:gridCol w:w="2400" />

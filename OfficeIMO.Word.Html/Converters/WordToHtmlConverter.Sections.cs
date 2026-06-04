@@ -33,15 +33,15 @@ namespace OfficeIMO.Word.Html {
             SetTwipsAttribute(element, "data-margin-bottom-twips", bottom);
             SetTwipsAttribute(element, "data-margin-left-twips", left);
 
-            List<string> styles = new() { "box-sizing:border-box" };
+            List<string> styles = new();
             if (widthTwips != null) {
-                styles.Add($"width:{FormatTwipsAsPoints(widthTwips.Value)}");
+                styles.Add($"width:{FormatTwipsAsPixels(widthTwips.Value)}");
             }
             if (heightTwips != null) {
-                styles.Add($"min-height:{FormatTwipsAsPoints(heightTwips.Value)}");
+                styles.Add($"height:{FormatTwipsAsPixels(heightTwips.Value)}");
             }
             if (top != null || right != null || bottom != null || left != null) {
-                styles.Add($"padding:{FormatTwipsAsPoints(top ?? 0)} {FormatTwipsAsPoints(right ?? 0)} {FormatTwipsAsPoints(bottom ?? 0)} {FormatTwipsAsPoints(left ?? 0)}");
+                styles.Add($"padding:{FormatTwipsAsPixels(top ?? 0)} {FormatTwipsAsPixels(right ?? 0)} {FormatTwipsAsPixels(bottom ?? 0)} {FormatTwipsAsPixels(left ?? 0)}");
             }
             if (!isFirstSection) {
                 styles.Add("break-before:page");
@@ -57,8 +57,8 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static string FormatTwipsAsPoints(long twips) {
-            return (twips / 20d).ToString("0.##", CultureInfo.InvariantCulture) + "pt";
+        private static string FormatTwipsAsPixels(long twips) {
+            return (twips / 15d).ToString("0.##", CultureInfo.InvariantCulture) + "px";
         }
 
         private static string FormatOrientation(PageOrientationValues orientation) {

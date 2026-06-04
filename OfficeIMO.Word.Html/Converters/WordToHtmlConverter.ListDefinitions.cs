@@ -65,12 +65,8 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 sb.Append('.').Append(definition.ClassName).Append(" { ");
                 sb.Append("list-style-type:").Append(definition.ListStyleType).Append(';');
-                sb.Append("list-style-position:outside;");
                 if (definition.LeftIndentTwips.HasValue && definition.LeftIndentTwips.Value > 0) {
                     sb.Append("padding-left:").Append(FormatListTwips(definition.LeftIndentTwips.Value)).Append(';');
-                }
-                if (definition.HangingIndentTwips.HasValue && definition.HangingIndentTwips.Value > 0) {
-                    sb.Append("--word-list-hanging:").Append(FormatListTwips(definition.HangingIndentTwips.Value)).Append(';');
                 }
                 sb.Append(" }\n");
             }

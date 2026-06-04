@@ -349,7 +349,28 @@ namespace OfficeIMO.Word.Html {
 
             var declaration = ParseInlineDeclaration($"x:{value}");
             var raw = declaration.GetProperty("x")?.RawValue;
-            return allowNegative ? TryConvertToTwipAllowNegative(raw, out _) : TryConvertToTwip(raw, out _);
+            if (allowNegative ? TryConvertToTwipAllowNegative(raw, out _) : TryConvertToTwip(raw, out _)) {
+                return true;
+            }
+
+            return IsSupportedCssLengthLiteral(lower, allowNegative);
+        }
+
+        private static bool IsSupportedCssLengthLiteral(string value, bool allowNegative) {
+            string[] units = { "px", "pt", "em", "rem", "cm", "mm", "in", "pc", "q" };
+            foreach (var unit in units) {
+                if (!value.EndsWith(unit, StringComparison.Ordinal)) {
+                    continue;
+                }
+
+                if (!double.TryParse(value.Substring(0, value.Length - unit.Length), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var number)) {
+                    return false;
+                }
+
+                return allowNegative || number >= 0;
+            }
+
+            return false;
         }
 
         private static bool IsCssZeroLength(string value) {
