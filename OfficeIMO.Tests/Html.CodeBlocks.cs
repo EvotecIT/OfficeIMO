@@ -29,6 +29,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_PreInTableCell_PreservesAllLines() {
+            string html = "<table><tr><td><pre>a\nb</pre></td></tr></table>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var paragraphs = doc.Tables[0].Rows[0].Cells[0].Paragraphs
+                .Where(paragraph => paragraph.StyleId == "HTMLPreformatted")
+                .Select(paragraph => paragraph.Text)
+                .Where(text => !string.IsNullOrEmpty(text))
+                .ToArray();
+            Assert.Equal(new[] { "a", "b" }, paragraphs);
+        }
+
+        [Fact]
         public void HtmlToWord_InlineCode_StaysInParagraphAndRoundTripsAsCode() {
             string html = "<p>Use <code>dotnet test</code> now.</p>";
 

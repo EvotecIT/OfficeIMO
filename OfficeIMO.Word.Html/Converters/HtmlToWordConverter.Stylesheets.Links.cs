@@ -10,6 +10,10 @@ namespace OfficeIMO.Word.Html {
             if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                 return;
             }
+            if (!_options.AllowDocumentStylesheetLinks) {
+                AddDiagnostic(_options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
+                return;
+            }
 
             var hrefAttr = element.GetAttribute("href");
             var href = (element as IHtmlLinkElement)?.Href ?? hrefAttr;

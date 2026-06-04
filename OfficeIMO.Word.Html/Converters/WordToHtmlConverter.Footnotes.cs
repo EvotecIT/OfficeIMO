@@ -85,10 +85,7 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 var li = htmlDoc.CreateElement("li");
                 li.SetAttribute("id", $"fn{number}");
-                var p = htmlDoc.CreateElement("p");
-                string text = string.Join(string.Empty, note.Paragraphs?.Skip(1).Select(r => r.Text) ?? Enumerable.Empty<string>());
-                p.TextContent = text;
-                li.AppendChild(p);
+                AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1).Select(r => r.Text));
                 ol.AppendChild(li);
             }
             footSection.AppendChild(ol);
@@ -114,14 +111,24 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 var li = htmlDoc.CreateElement("li");
                 li.SetAttribute("id", $"en{number}");
-                var p = htmlDoc.CreateElement("p");
-                string text = string.Join(string.Empty, note.Paragraphs?.Skip(1).Select(r => r.Text) ?? Enumerable.Empty<string>());
-                p.TextContent = text;
-                li.AppendChild(p);
+                AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1).Select(r => r.Text));
                 ol.AppendChild(li);
             }
             endSection.AppendChild(ol);
             body.AppendChild(endSection);
+        }
+
+        private static void AppendNoteParagraphs(IDocument htmlDoc, IElement li, IEnumerable<string?>? noteParagraphs) {
+            var paragraphs = noteParagraphs?.ToArray() ?? Array.Empty<string?>();
+            if (paragraphs.Length == 0) {
+                paragraphs = new string?[] { string.Empty };
+            }
+
+            foreach (var text in paragraphs) {
+                var p = htmlDoc.CreateElement("p");
+                p.TextContent = text ?? string.Empty;
+                li.AppendChild(p);
+            }
         }
     }
 }

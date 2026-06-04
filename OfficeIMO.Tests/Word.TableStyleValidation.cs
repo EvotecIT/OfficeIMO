@@ -49,5 +49,31 @@ namespace OfficeIMO.Tests {
             var errors = new OpenXmlValidator().Validate(package).ToList();
             Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
         }
+
+        [Fact]
+        public void Test_TableLookConditionalFormatting_HonorsExpandedFalseOverrides() {
+            using WordDocument document = WordDocument.Create();
+            WordTable table = document.AddTable(2, 2);
+            table._tableProperties!.TableLook = new DocumentFormat.OpenXml.Wordprocessing.TableLook {
+                Val = "04A0",
+                FirstRow = false,
+                FirstColumn = true,
+                NoVerticalBand = true
+            };
+
+            Assert.False(table.ConditionalFormattingFirstRow);
+            Assert.True(table.ConditionalFormattingFirstColumn);
+            Assert.True(table.ConditionalFormattingNoVerticalBand);
+
+            table.ConditionalFormattingLastRow = true;
+
+            Assert.False(table.ConditionalFormattingFirstRow);
+            Assert.True(table.ConditionalFormattingLastRow);
+
+            using MemoryStream stream = document.SaveAsMemoryStream();
+            using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
+            var tableLook = package.MainDocumentPart!.Document.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.TableLook>().Single();
+            Assert.Equal("04C0", tableLook.Val!.Value);
+        }
     }
 }

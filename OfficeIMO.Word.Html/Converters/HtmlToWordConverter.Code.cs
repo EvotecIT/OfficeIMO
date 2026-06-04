@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.Html {
             } else {
                 for (int i = start; i < end; i++) {
                     var line = lines[i];
-                    var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                    var paragraph = cell != null ? cell.AddParagraph("", i == start) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
                     AddPreformattedLine(element, paragraph, line, mono, ref bookmarkAdded, options);
                 }
             }

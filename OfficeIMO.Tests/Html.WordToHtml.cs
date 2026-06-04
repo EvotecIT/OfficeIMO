@@ -701,6 +701,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_BuiltinMetadata_RoundTrips() {
+            using var doc = WordDocument.Create();
+            doc.BuiltinDocumentProperties.Title = "Round Trip Title";
+            doc.BuiltinDocumentProperties.Creator = "Ada";
+            doc.BuiltinDocumentProperties.Description = "Round trip description";
+            doc.BuiltinDocumentProperties.Keywords = "alpha,beta";
+            doc.BuiltinDocumentProperties.Subject = "Metadata subject";
+            doc.AddParagraph("Content");
+
+            string html = doc.ToHtml();
+
+            using var roundTrip = html.LoadFromHtml();
+
+            Assert.Equal("Round Trip Title", roundTrip.BuiltinDocumentProperties.Title);
+            Assert.Equal("Ada", roundTrip.BuiltinDocumentProperties.Creator);
+            Assert.Equal("Round trip description", roundTrip.BuiltinDocumentProperties.Description);
+            Assert.Equal("alpha,beta", roundTrip.BuiltinDocumentProperties.Keywords);
+            Assert.Equal("Metadata subject", roundTrip.BuiltinDocumentProperties.Subject);
+        }
+
+        [Fact]
+        public void Test_HtmlToWord_HeadStyles_AreParsedBeforeBodyImport() {
+            string html = "<html><head><style>.title{font-weight:bold;font-size:24pt}</style></head><body><p class=\"title\">Title</p></body></html>";
+
+            using var doc = html.LoadFromHtml();
+
+            var paragraph = Assert.Single(doc.Paragraphs, paragraph => string.Equals(paragraph.Text, "Title", StringComparison.Ordinal));
+            Assert.Equal(WordParagraphStyles.Heading2, paragraph.Style);
+        }
+
+        [Fact]
         public void Test_WordToHtml_StyleClasses() {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph("Heading with style");

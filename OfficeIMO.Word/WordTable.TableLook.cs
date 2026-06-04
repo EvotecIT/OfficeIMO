@@ -67,14 +67,26 @@ namespace OfficeIMO.Word {
                 mask = parsed;
             }
 
-            if (tableLook.FirstRow?.Value == true) mask |= TableLookFirstRow;
-            if (tableLook.LastRow?.Value == true) mask |= TableLookLastRow;
-            if (tableLook.FirstColumn?.Value == true) mask |= TableLookFirstColumn;
-            if (tableLook.LastColumn?.Value == true) mask |= TableLookLastColumn;
-            if (tableLook.NoHorizontalBand?.Value == true) mask |= TableLookNoHorizontalBand;
-            if (tableLook.NoVerticalBand?.Value == true) mask |= TableLookNoVerticalBand;
+            ApplyExpandedTableLookFlag(tableLook.FirstRow, TableLookFirstRow, ref mask);
+            ApplyExpandedTableLookFlag(tableLook.LastRow, TableLookLastRow, ref mask);
+            ApplyExpandedTableLookFlag(tableLook.FirstColumn, TableLookFirstColumn, ref mask);
+            ApplyExpandedTableLookFlag(tableLook.LastColumn, TableLookLastColumn, ref mask);
+            ApplyExpandedTableLookFlag(tableLook.NoHorizontalBand, TableLookNoHorizontalBand, ref mask);
+            ApplyExpandedTableLookFlag(tableLook.NoVerticalBand, TableLookNoVerticalBand, ref mask);
 
             return mask;
+        }
+
+        private static void ApplyExpandedTableLookFlag(OnOffValue? value, int flag, ref int mask) {
+            if (value == null) {
+                return;
+            }
+
+            if (value.Value) {
+                mask |= flag;
+            } else {
+                mask &= ~flag;
+            }
         }
 
         private static void SetTableLookMask(TableLook tableLook, int mask) {

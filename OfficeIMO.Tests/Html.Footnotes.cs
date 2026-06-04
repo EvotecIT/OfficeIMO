@@ -29,6 +29,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void FootnotesRoundTripMultipleParagraphs() {
+            using var doc = WordDocument.Create();
+            var noteReference = doc.AddParagraph("Hello").AddFootNote("First paragraph");
+            noteReference.FootNote!.Paragraphs!.Last().AddParagraph("Second paragraph");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { ExportFootnotes = true });
+
+            Assert.Contains("<p>First paragraph</p><p>Second paragraph</p>", html, StringComparison.OrdinalIgnoreCase);
+
+            using var roundTrip = html.LoadFromHtml();
+
+            var footnote = Assert.Single(roundTrip.FootNotes);
+            var texts = footnote.Paragraphs!.Skip(1).Select(paragraph => paragraph.Text).ToArray();
+            Assert.Equal(new[] { "First paragraph", "Second paragraph" }, texts);
+        }
+
+        [Fact]
         public void FootnotesCanBeOmitted() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Hello").AddFootNote("hidden");

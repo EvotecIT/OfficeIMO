@@ -36,6 +36,28 @@ namespace OfficeIMO.Word.Html {
                 : paragraph.AddFootNote(text);
         }
 
+        private WordParagraph AddNoteReference(WordParagraph paragraph, IReadOnlyList<string> paragraphs, HtmlToWordOptions options, NoteReferenceType? noteType = null) {
+            var noteReference = AddNoteReference(paragraph, paragraphs.Count == 0 ? string.Empty : paragraphs[0], options, noteType);
+            if (paragraphs.Count <= 1) {
+                return noteReference;
+            }
+
+            var resolvedNoteType = noteType ?? options.NoteReferenceType;
+            var noteParagraphs = resolvedNoteType == NoteReferenceType.Endnote
+                ? noteReference.EndNote?.Paragraphs
+                : noteReference.FootNote?.Paragraphs;
+            var current = noteParagraphs?.LastOrDefault();
+            if (current == null) {
+                return noteReference;
+            }
+
+            for (int i = 1; i < paragraphs.Count; i++) {
+                current = current.AddParagraph(paragraphs[i] ?? string.Empty);
+            }
+
+            return noteReference;
+        }
+
         private void TryLinkNoteReference(WordParagraph noteReference, string text, HtmlToWordOptions options, NoteReferenceType? noteType = null) {
             if (!options.LinkNoteUrls) {
                 return;

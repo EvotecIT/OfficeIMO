@@ -50,12 +50,22 @@ namespace OfficeIMO.Word.Html {
             }
 
             var declarations = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var property in ParseInlineDeclaration(style)) {
-                declarations[property.Name] = property.Value;
-            }
-
+            var rawPropertyNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var pair in ParseCssDeclarationPairs(style!)) {
                 declarations[pair.Key] = pair.Value;
+                rawPropertyNames.Add(pair.Key);
+            }
+
+            var hasRawFontShorthand = rawPropertyNames.Contains("font");
+            foreach (var property in ParseInlineDeclaration(style)) {
+                if (rawPropertyNames.Contains(property.Name)) {
+                    continue;
+                }
+                if (hasRawFontShorthand && property.Name.StartsWith("font-", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                declarations[property.Name] = property.Value;
             }
 
             ReportUnsupportedCssDiagnostics(element, declarations);
@@ -134,6 +144,12 @@ namespace OfficeIMO.Word.Html {
                     return TryUnsupportedColorValue(value, "color", out reason);
                 case "background-color":
                     return TryUnsupportedColorValue(value, "background color", out reason);
+                case "font":
+                    if (!IsSupportedFontShorthand(value)) {
+                        reason = $"Unsupported font value '{value}'.";
+                        return true;
+                    }
+                    return false;
                 case "font-size":
                     if (!TryParseFontSize(value, out _)) {
                         reason = $"Unsupported font-size value '{value}'.";
@@ -263,6 +279,44 @@ namespace OfficeIMO.Word.Html {
             }
 
             return false;
+        }
+
+        private static bool IsSupportedFontShorthand(string value) {
+            var tokens = TokenizeFontShorthand(value);
+            if (tokens.Count == 0) {
+                return false;
+            }
+
+            int sizeIndex = -1;
+            for (int i = 0; i < tokens.Count; i++) {
+                var token = tokens[i];
+                if (token.IndexOf('/') >= 0) {
+                    return false;
+                }
+
+                if (TryParseFontSize(token, out _)) {
+                    sizeIndex = i;
+                    break;
+                }
+            }
+
+            if (sizeIndex < 0 || sizeIndex + 1 >= tokens.Count) {
+                return false;
+            }
+
+            for (int i = 0; i < sizeIndex; i++) {
+                var token = tokens[i].Trim().ToLowerInvariant();
+                if (token is "normal" or "italic" or "oblique" or "small-caps" or "bold" or "bolder" or "lighter") {
+                    continue;
+                }
+                if (int.TryParse(token, out _)) {
+                    continue;
+                }
+
+                return false;
+            }
+
+            return true;
         }
 
         private static bool IsSupportedBorderSideShorthand(string propertyName) =>

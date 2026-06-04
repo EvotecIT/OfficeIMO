@@ -192,6 +192,13 @@ namespace OfficeIMO.Word.Html {
         public List<string> StylesheetContents { get; } = new List<string>();
 
         /// <summary>
+        /// When true, stylesheet links declared in the imported HTML document are loaded.
+        /// Keep this disabled for untrusted HTML and prefer <see cref="StylesheetPaths"/> or
+        /// <see cref="StylesheetContents"/> for caller-provided stylesheets.
+        /// </summary>
+        public bool AllowDocumentStylesheetLinks { get; set; }
+
+        /// <summary>
         /// When true, <c>&lt;pre&gt;</c> elements are rendered inside a single-cell table.
         /// </summary>
         public bool RenderPreAsTable { get; set; }

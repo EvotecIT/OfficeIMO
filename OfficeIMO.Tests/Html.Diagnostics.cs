@@ -128,5 +128,31 @@ namespace OfficeIMO.Tests {
             Assert.Equal("UnsupportedCssDeclaration", exception.Code);
             Assert.Equal("td:border-left-color", exception.CssSource);
         }
+
+        [Theory]
+        [InlineData("caption")]
+        [InlineData("italic 12pt/14pt Arial")]
+        public void HtmlToWord_UnsupportedFontShorthandValues_CanStopConversion(string fontValue) {
+            var options = new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            };
+
+            var exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
+                $"<p style=\"font:{fontValue}\">Text</p>".LoadFromHtml(options));
+
+            Assert.Equal("UnsupportedCssValue", exception.Code);
+            Assert.Equal("p:font", exception.CssSource);
+            Assert.Contains(fontValue, exception.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_DocumentStylesheetLinks_AreSkippedByDefault() {
+            var options = new HtmlToWordOptions();
+
+            "<html><head><link rel=\"stylesheet\" href=\"https://example.invalid/site.css\"></head><body><p>Text</p></body></html>".LoadFromHtml(options);
+
+            var diagnostic = Assert.Single(options.Diagnostics, diagnostic => diagnostic.Code == "HtmlStylesheetLinkSkipped");
+            Assert.Equal(HtmlConversionDiagnosticSeverity.Warning, diagnostic.Severity);
+        }
     }
 }

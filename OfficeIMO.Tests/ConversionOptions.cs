@@ -27,6 +27,7 @@ public class ConversionOptionsTests {
         Assert.Equal(64, options.MaxHtmlDepth);
         Assert.Equal(8192, options.MaxCssBytes);
         Assert.Equal(10000, options.MaxTableCells);
+        Assert.False(options.AllowDocumentStylesheetLinks);
         Assert.True(options.ValidateImageContentTypes);
         Assert.Contains("image/png", options.AllowedImageContentTypes);
         Assert.Contains("https", options.AllowedImageUriSchemes);

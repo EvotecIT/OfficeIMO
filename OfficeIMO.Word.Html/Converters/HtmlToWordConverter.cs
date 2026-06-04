@@ -26,8 +26,8 @@ namespace OfficeIMO.Word.Html {
     /// 4. Follow existing patterns in OfficeIMO.Word for consistency
     /// </summary>
     internal partial class HtmlToWordConverter {
-        private readonly Dictionary<string, string> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
-        private readonly Dictionary<string, string> _endnoteMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string[]> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string[]> _endnoteMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, HtmlCommentInfo> _commentMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _unsupportedCssDiagnosticKeys = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<ICssStyleRule> _cssRules = new();
@@ -135,6 +135,10 @@ namespace OfficeIMO.Word.Html {
                     if (node is IHtmlLinkElement linkElement) {
                         var rel = linkElement.GetAttribute("rel");
                         if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
+                            continue;
+                        }
+                        if (!options.AllowDocumentStylesheetLinks) {
+                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
                             continue;
                         }
 
@@ -262,6 +266,10 @@ namespace OfficeIMO.Word.Html {
                         if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                             continue;
                         }
+                        if (!options.AllowDocumentStylesheetLinks) {
+                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
+                            continue;
+                        }
 
                         var hrefAttr = linkElement.GetAttribute("href");
                         var href = linkElement.Href ?? hrefAttr;
@@ -382,6 +390,10 @@ namespace OfficeIMO.Word.Html {
                     if (node is IHtmlLinkElement linkElement) {
                         var rel = linkElement.GetAttribute("rel");
                         if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
+                            continue;
+                        }
+                        if (!options.AllowDocumentStylesheetLinks) {
+                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
                             continue;
                         }
 

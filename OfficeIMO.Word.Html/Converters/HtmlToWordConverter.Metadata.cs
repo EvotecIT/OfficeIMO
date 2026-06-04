@@ -9,6 +9,7 @@ namespace OfficeIMO.Word.Html {
                 document.Settings.Language = language;
             }
 
+            ApplyBuiltinDocumentProperties(document, htmlDocument);
             ApplyCustomDocumentProperties(document, htmlDocument);
         }
 
@@ -26,6 +27,39 @@ namespace OfficeIMO.Word.Html {
             }
 
             return string.IsNullOrWhiteSpace(language) ? null : language!.Trim();
+        }
+
+        private static void ApplyBuiltinDocumentProperties(WordDocument document, IDocument htmlDocument) {
+            var props = document.BuiltinDocumentProperties;
+            var title = htmlDocument.QuerySelector("title")?.TextContent;
+            var normalizedTitle = string.IsNullOrWhiteSpace(title) ? null : title!.Trim();
+            if (!string.IsNullOrWhiteSpace(normalizedTitle) && !string.Equals(normalizedTitle, "Document", StringComparison.OrdinalIgnoreCase)) {
+                props.Title = normalizedTitle;
+            }
+
+            foreach (var meta in htmlDocument.QuerySelectorAll("meta[name]")) {
+                var name = meta.GetAttribute("name");
+                var content = meta.GetAttribute("content");
+                if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(content)) {
+                    continue;
+                }
+
+                switch (name!.Trim().ToLowerInvariant()) {
+                    case "author":
+                    case "creator":
+                        props.Creator = content!.Trim();
+                        break;
+                    case "description":
+                        props.Description = content!.Trim();
+                        break;
+                    case "keywords":
+                        props.Keywords = content!.Trim();
+                        break;
+                    case "subject":
+                        props.Subject = content!.Trim();
+                        break;
+                }
+            }
         }
 
         private static void ApplyCustomDocumentProperties(WordDocument document, IDocument htmlDocument) {

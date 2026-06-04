@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             File.WriteAllText(path, "p { color:#00ff00; }");
             string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>One</p><p>Two</p>";
             try {
-                var doc = html.LoadFromHtml(new HtmlToWordOptions());
+                var doc = html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 var run1 = doc.Paragraphs[0].GetRuns().First();
                 var run2 = doc.Paragraphs[1].GetRuns().First();
                 Assert.Equal("00ff00", run1.ColorHex);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 var baseHref = new Uri(new Uri(Path.Combine(dir, "dummy"), UriKind.Absolute), ".").AbsoluteUri;
                 Assert.EndsWith("/", baseHref);
                 string html = $"<base href=\"{baseHref}\"><link rel=\"stylesheet\" href=\"style.css\" /><p>Test</p>";
-                var doc = html.LoadFromHtml(new HtmlToWordOptions());
+                var doc = html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 var run = doc.Paragraphs[0].GetRuns().First();
                 Assert.Equal("654321", run.ColorHex);
             } finally {

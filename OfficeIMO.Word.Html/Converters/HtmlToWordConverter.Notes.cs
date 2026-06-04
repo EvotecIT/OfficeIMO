@@ -12,15 +12,15 @@ namespace OfficeIMO.Word.Html {
             WordHeaderFooter? headerFooter) {
             if (_footnoteMap.TryGetValue(anchor, out var fnText)) {
                 currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                var noteRef = AddNoteReference(currentParagraph!, fnText ?? string.Empty, options, NoteReferenceType.Footnote);
-                TryLinkNoteReference(noteRef, fnText ?? string.Empty, options, NoteReferenceType.Footnote);
+                var noteRef = AddNoteReference(currentParagraph!, fnText, options, NoteReferenceType.Footnote);
+                TryLinkNoteReference(noteRef, string.Join(Environment.NewLine, fnText), options, NoteReferenceType.Footnote);
                 return true;
             }
 
             if (_endnoteMap.TryGetValue(anchor, out var enText)) {
                 currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                var noteRef = AddNoteReference(currentParagraph!, enText ?? string.Empty, options, NoteReferenceType.Endnote);
-                TryLinkNoteReference(noteRef, enText ?? string.Empty, options, NoteReferenceType.Endnote);
+                var noteRef = AddNoteReference(currentParagraph!, enText, options, NoteReferenceType.Endnote);
+                TryLinkNoteReference(noteRef, string.Join(Environment.NewLine, enText), options, NoteReferenceType.Endnote);
                 return true;
             }
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Word.Html {
             CaptureNoteSection(document.QuerySelector("section.endnotes"), _endnoteMap, cancellationToken);
         }
 
-        private static void CaptureNoteSection(IElement? noteSection, Dictionary<string, string> noteMap, CancellationToken cancellationToken) {
+        private static void CaptureNoteSection(IElement? noteSection, Dictionary<string, string[]> noteMap, CancellationToken cancellationToken) {
             if (noteSection == null) {
                 return;
             }
@@ -41,7 +41,12 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 var id = li.GetAttribute("id");
                 if (!string.IsNullOrEmpty(id)) {
-                    noteMap[id!] = li.TextContent?.Trim() ?? string.Empty;
+                    var paragraphs = li.QuerySelectorAll("p")
+                        .Select(paragraph => paragraph.TextContent?.Trim() ?? string.Empty)
+                        .ToArray();
+                    noteMap[id!] = paragraphs.Length == 0
+                        ? new[] { li.TextContent?.Trim() ?? string.Empty }
+                        : paragraphs;
                 }
             }
 
