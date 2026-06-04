@@ -93,6 +93,7 @@ namespace OfficeIMO.Word.Html {
                     case "section": {
                             var fmt = formatting;
                             var divStyle = element.GetAttribute("style");
+                            var mergeSectionStyleIntoChildren = !IsExportedWordSectionElement(element);
                             if (!string.IsNullOrWhiteSpace(divStyle)) {
                                 ApplySpanStyles(element, ref fmt);
                             }
@@ -102,7 +103,7 @@ namespace OfficeIMO.Word.Html {
                                 int startIndex = newSection.Paragraphs.Count;
                                 WordParagraph? para = null;
                                 foreach (var child in element.ChildNodes) {
-                                    if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
+                                    if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
                                         var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
                                         if (!string.IsNullOrEmpty(merged)) {
                                             childElement.SetAttribute("style", merged);
@@ -120,7 +121,7 @@ namespace OfficeIMO.Word.Html {
                                 int startIndex = section.Paragraphs.Count;
                                 WordParagraph? para = currentParagraph;
                                 foreach (var child in element.ChildNodes) {
-                                    if (!string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
+                                    if (mergeSectionStyleIntoChildren && !string.IsNullOrWhiteSpace(divStyle) && child is IElement childElement) {
                                         var merged = MergeStyles(divStyle, childElement.GetAttribute("style"));
                                         if (!string.IsNullOrEmpty(merged)) {
                                             childElement.SetAttribute("style", merged);
@@ -824,8 +825,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ApplyExportedSectionMetadata(IElement element, WordSection section) {
-            if (!string.Equals(element.GetAttribute("data-word-section"), "1", StringComparison.OrdinalIgnoreCase) &&
-                !element.ClassList.Contains("word-section")) {
+            if (!IsExportedWordSectionElement(element)) {
                 return;
             }
 
@@ -858,6 +858,10 @@ namespace OfficeIMO.Word.Html {
                 section.Margins.Left = left;
             }
         }
+
+        private static bool IsExportedWordSectionElement(IElement element) =>
+            string.Equals(element.GetAttribute("data-word-section"), "1", StringComparison.OrdinalIgnoreCase) ||
+            element.ClassList.Contains("word-section");
 
         private static bool TryGetUInt32Attribute(IElement element, string name, out UInt32Value value) {
             value = 0U;

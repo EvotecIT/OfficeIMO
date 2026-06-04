@@ -129,9 +129,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (tableElem.Head != null) {
+                var headerStartIndex = rIndex;
                 HandleRows(tableElem.Head.Rows);
-                if (tableElem.Head.Rows.Length > 0) {
-                    wordTable.RepeatHeaderRowAtTheTopOfEachPage = true;
+                for (int headerIndex = headerStartIndex; headerIndex < rIndex; headerIndex++) {
+                    wordTable.Rows[headerIndex].RepeatHeaderRowAtTheTopOfEachPage = true;
                 }
             }
             foreach (var body in tableElem.Bodies) {

@@ -140,6 +140,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_TableHeaderRows_RoundTripMultipleRepeatedRows() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(3, 1);
+            table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+            table.Rows[1].RepeatHeaderRowAtTheTopOfEachPage = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Header 1";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "Header 2";
+            table.Rows[2].Cells[0].Paragraphs[0].Text = "Body";
+
+            string html = doc.ToHtml();
+
+            using var roundTrip = html.LoadFromHtml();
+
+            var roundTripTable = roundTrip.Tables[0];
+            Assert.True(roundTripTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.True(roundTripTable.Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
+            Assert.False(roundTripTable.Rows[2].RepeatHeaderRowAtTheTopOfEachPage);
+        }
+
+        [Fact]
         public void Test_WordToHtml_TableWithoutHeaderRows_KeepsFlatRows() {
             using var doc = WordDocument.Create();
             var table = doc.AddTable(1, 1);
@@ -802,6 +822,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(720, roundTripSecond.Margins.Bottom);
             Assert.Equal((UInt32Value)1080U, roundTripSecond.Margins.Left);
             Assert.Equal((UInt32Value)1200U, roundTripSecond.Margins.Right);
+            var paragraph = Assert.Single(roundTripSecond.Paragraphs, paragraph => string.Equals(paragraph.Text, "Second section", StringComparison.Ordinal));
+            Assert.Null(paragraph.IndentationBefore);
+            Assert.Null(paragraph.IndentationAfter);
+            Assert.Null(paragraph.LineSpacingBefore);
+            Assert.Null(paragraph.LineSpacingAfter);
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
         }
     }

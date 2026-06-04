@@ -284,11 +284,76 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_InvalidLocalImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+            File.WriteAllText(path, "not an image");
+            try {
+                string html = $"<img src=\"{path}\" alt=\"Broken\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+                var options = new HtmlToWordOptions {
+                    MaxTotalImageBytes = 70
+                };
+
+                var doc = html.LoadFromHtml(options);
+
+                Assert.Single(doc.Images);
+                Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageLoadFailed");
+                Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void HtmlToWord_InvalidSvgDataImage_DoesNotConsumeTotalBudget() {
             const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
             var invalidSvgData = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>"));
             string html = $"<img src=\"data:image/svg+xml;base64,{invalidSvgData}\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
             var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 100
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidLocalSvgImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".svg");
+            File.WriteAllText(path, "<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>");
+            try {
+                string html = $"<img src=\"{path}\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+                var options = new HtmlToWordOptions {
+                    MaxTotalImageBytes = 100
+                };
+
+                var doc = html.LoadFromHtml(options);
+
+                Assert.Single(doc.Images);
+                Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
+                Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidRemoteSvgImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>"))
+                };
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/svg+xml");
+                return Task.FromResult(response);
+            }));
+            string html = $"<img src=\"https://example.test/broken.svg\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
                 MaxTotalImageBytes = 100
             };
 
