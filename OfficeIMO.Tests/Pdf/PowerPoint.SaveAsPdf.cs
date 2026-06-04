@@ -1,10 +1,12 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
 using DocumentFormat.OpenXml.Packaging;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using PdfCore = OfficeIMO.Pdf;
@@ -117,6 +119,23 @@ public class PowerPointSaveAsPdfTests {
         PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
         Assert.Equal(1, warning.SlideNumber);
         Assert.Equal("unsupported-auto-shape", warning.Code);
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_WarnsAndSkipsOffSlideShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.Slides[0].AddRectanglePoints(-10, 20, 80, 40);
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
+        Assert.Equal(1, warning.SlideNumber);
+        Assert.Equal("invalid-shape-bounds", warning.Code);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
     }
 
     [Fact]
@@ -260,6 +279,31 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesHorizontalStackedBarChartKind() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "North", "South" },
+            new[] {
+                new PowerPointChartSeries("Won", new[] { 10D, 12D }),
+                new PowerPointChartSeries("Open", new[] { 4D, 6D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        SetBarChartShape(chart, C.BarDirectionValues.Bar, C.BarGroupingValues.Stacked);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.StackedBar, snapshot.ChartKind);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Won", text, StringComparison.Ordinal);
+        Assert.Contains("Open", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_AppliesSharedChartStyleAndLayoutOptions() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -345,6 +389,15 @@ public class PowerPointSaveAsPdfTests {
             73, 69, 78, 68,
             0, 0, 0, 0
         };
+    }
+
+    private static void SetBarChartShape(PowerPointChart chart, C.BarDirectionValues direction, C.BarGroupingValues grouping) {
+        MethodInfo method = typeof(PowerPointChart).GetMethod("GetChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var chartPart = (ChartPart)method.Invoke(chart, Array.Empty<object>())!;
+        C.BarChart barChart = chartPart.ChartSpace!.Descendants<C.BarChart>().Single();
+        barChart.GetFirstChild<C.BarDirection>()!.Val = direction;
+        barChart.GetFirstChild<C.BarGrouping>()!.Val = grouping;
+        chartPart.ChartSpace.Save();
     }
 
     private static double FindWordStartY(UglyToad.PdfPig.Content.Page page, string word) {

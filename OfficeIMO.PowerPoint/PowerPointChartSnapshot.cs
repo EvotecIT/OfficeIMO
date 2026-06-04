@@ -8,6 +8,21 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Clustered column chart.</summary>
         ClusteredColumn,
 
+        /// <summary>Stacked vertical column chart.</summary>
+        StackedColumn,
+
+        /// <summary>One-hundred percent stacked vertical column chart.</summary>
+        StackedColumn100,
+
+        /// <summary>Clustered horizontal bar chart.</summary>
+        ClusteredBar,
+
+        /// <summary>Stacked horizontal bar chart.</summary>
+        StackedBar,
+
+        /// <summary>One-hundred percent stacked horizontal bar chart.</summary>
+        StackedBar100,
+
         /// <summary>Line chart.</summary>
         Line,
 

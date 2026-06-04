@@ -68,6 +68,16 @@ public static partial class PowerPointPdfConverterExtensions {
         switch (kind) {
             case PptCore.PowerPointChartSnapshotKind.ClusteredColumn:
                 return OfficeChartKind.ColumnClustered;
+            case PptCore.PowerPointChartSnapshotKind.StackedColumn:
+                return OfficeChartKind.ColumnStacked;
+            case PptCore.PowerPointChartSnapshotKind.StackedColumn100:
+                return OfficeChartKind.ColumnStacked100;
+            case PptCore.PowerPointChartSnapshotKind.ClusteredBar:
+                return OfficeChartKind.BarClustered;
+            case PptCore.PowerPointChartSnapshotKind.StackedBar:
+                return OfficeChartKind.BarStacked;
+            case PptCore.PowerPointChartSnapshotKind.StackedBar100:
+                return OfficeChartKind.BarStacked100;
             case PptCore.PowerPointChartSnapshotKind.Line:
                 return OfficeChartKind.Line;
             case PptCore.PowerPointChartSnapshotKind.Scatter:

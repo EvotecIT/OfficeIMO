@@ -164,6 +164,26 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Rejects_Empty_Chart_Snapshots_Before_Shared_Rendering() {
+        var data = new ExcelChartData(Array.Empty<string>(), new[] {
+            new ExcelChartSeries("Empty", Array.Empty<double>())
+        });
+        var snapshot = new ExcelChartSnapshot(
+            "EmptyChart",
+            "Empty Chart",
+            ExcelChartType.Line,
+            data,
+            rowIndex: 1,
+            columnIndex: 1,
+            widthPixels: 320,
+            heightPixels: 180);
+
+        MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod("HasRenderableChartData", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        Assert.False((bool)method.Invoke(null, new object[] { snapshot })!);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Exports_Pie_And_Doughnut_Chart_Snapshots() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPieDoughnutCharts.xlsx");
 
@@ -299,12 +319,12 @@ public partial class Excel {
         Assert.Contains("Profit Trend", text);
         Assert.Contains("Profit", text);
 
-        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { new List<ExcelChartSeries> { new ExcelChartSeries("Profit", new[] { -10D, 0D, 10D }, ExcelChartType.Line) } })!;
-        double min = (double)range.GetType().GetField("Item1")!.GetValue(range)!;
-        double max = (double)range.GetType().GetField("Item2")!.GetValue(range)!;
+        MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeChartSeries> { new OfficeChartSeries("Profit", new[] { -10D, 0D, 10D }) } })!;
+        double min = (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
+        double max = (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
 
-        MethodInfo plotYMethod = typeof(ExcelPdfConverterExtensions)
+        MethodInfo plotYMethod = typeof(OfficeChartDrawingRenderer)
             .GetMethods(BindingFlags.NonPublic | BindingFlags.Static)
             .Single(method => method.Name == "ToPlotY" && method.GetParameters().Length == 5);
         double negativeY = (double)plotYMethod.Invoke(null, new object[] { -10D, min, max, 0D, 100D })!;
@@ -348,10 +368,10 @@ public partial class Excel {
         Assert.Contains("Delta Area", text);
         Assert.Contains("Delta", text);
 
-        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { new List<ExcelChartSeries> { new ExcelChartSeries("Delta", new[] { -6D, 0D, 9D }, ExcelChartType.Area) } })!;
-        Assert.Equal(-6D, (double)range.GetType().GetField("Item1")!.GetValue(range)!);
-        Assert.Equal(9D, (double)range.GetType().GetField("Item2")!.GetValue(range)!);
+        MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetFiniteSeriesRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { new List<OfficeChartSeries> { new OfficeChartSeries("Delta", new[] { -6D, 0D, 9D }) } })!;
+        Assert.Equal(-6D, (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!);
+        Assert.Equal(9D, (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!);
     }
 
     [Fact]
@@ -446,12 +466,12 @@ public partial class Excel {
             new ExcelChartSeries("Delta", new[] { -10D, -2D, 0D, 10D }, ExcelChartType.Radar)
         };
 
-        MethodInfo rangeMethod = typeof(ExcelPdfConverterExtensions).GetMethod("GetRadarValueRange", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object range = rangeMethod.Invoke(null, new object[] { series })!;
-        double min = (double)range.GetType().GetField("Item1")!.GetValue(range)!;
-        double max = (double)range.GetType().GetField("Item2")!.GetValue(range)!;
+        MethodInfo rangeMethod = typeof(OfficeChartDrawingRenderer).GetMethod("GetRadarValueRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object range = rangeMethod.Invoke(null, new object[] { series.Select(item => new OfficeChartSeries(item.Name, item.Values)).ToList() })!;
+        double min = (double)range.GetType().GetProperty("Min", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
+        double max = (double)range.GetType().GetProperty("Max", BindingFlags.Instance | BindingFlags.Public)!.GetValue(range)!;
 
-        MethodInfo ratioMethod = typeof(ExcelPdfConverterExtensions).GetMethod("ToRadarRadiusRatio", BindingFlags.NonPublic | BindingFlags.Static)!;
+        MethodInfo ratioMethod = typeof(OfficeChartDrawingRenderer).GetMethod("ToRadarRadiusRatio", BindingFlags.NonPublic | BindingFlags.Static)!;
         double negativeRatio = (double)ratioMethod.Invoke(null, new object[] { -2D, min, max })!;
         double zeroRatio = (double)ratioMethod.Invoke(null, new object[] { 0D, min, max })!;
         double positiveRatio = (double)ratioMethod.Invoke(null, new object[] { 10D, min, max })!;

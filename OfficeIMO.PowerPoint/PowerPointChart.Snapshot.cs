@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.ClusteredColumn, data);
+                    snapshot = CreateSnapshot(chart, GetBarChartSnapshotKind(barChart), data);
                     return true;
                 }
 
@@ -93,6 +93,22 @@ namespace OfficeIMO.PowerPoint {
                 data,
                 WidthPoints,
                 HeightPoints);
+        }
+
+        private static PowerPointChartSnapshotKind GetBarChartSnapshotKind(C.BarChart chart) {
+            C.BarDirectionValues direction = chart.GetFirstChild<C.BarDirection>()?.Val?.Value ?? C.BarDirectionValues.Column;
+            C.BarGroupingValues grouping = chart.GetFirstChild<C.BarGrouping>()?.Val?.Value ?? C.BarGroupingValues.Clustered;
+            bool horizontal = direction == C.BarDirectionValues.Bar;
+
+            if (grouping == C.BarGroupingValues.Stacked) {
+                return horizontal ? PowerPointChartSnapshotKind.StackedBar : PowerPointChartSnapshotKind.StackedColumn;
+            }
+
+            if (grouping == C.BarGroupingValues.PercentStacked) {
+                return horizontal ? PowerPointChartSnapshotKind.StackedBar100 : PowerPointChartSnapshotKind.StackedColumn100;
+            }
+
+            return horizontal ? PowerPointChartSnapshotKind.ClusteredBar : PowerPointChartSnapshotKind.ClusteredColumn;
         }
 
         private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements) {

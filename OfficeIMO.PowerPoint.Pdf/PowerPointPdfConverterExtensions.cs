@@ -100,7 +100,7 @@ public static partial class PowerPointPdfConverterExtensions {
                     continue;
                 }
 
-                if (!TryGetShapeBox(shape, slideNumber, options, out double x, out double y, out double width, out double height)) {
+                if (!TryGetShapeBox(shape, slideNumber, pageWidth, pageHeight, options, out double x, out double y, out double width, out double height)) {
                     continue;
                 }
 
@@ -496,16 +496,16 @@ public static partial class PowerPointPdfConverterExtensions {
         target.StrokeDashStyle = MapDash(source.OutlineDash);
     }
 
-    private static bool TryGetShapeBox(PptCore.PowerPointShape shape, int slideNumber, PowerPointPdfSaveOptions options, out double x, out double y, out double width, out double height) {
+    private static bool TryGetShapeBox(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, out double x, out double y, out double width, out double height) {
         x = shape.LeftPoints;
         y = shape.TopPoints;
         width = shape.WidthPoints;
         height = shape.HeightPoints;
-        if (width > 0D && height > 0D) {
+        if (width > 0D && height > 0D && x >= 0D && y >= 0D && x + width <= pageWidth && y + height <= pageHeight) {
             return true;
         }
 
-        AddWarning(options, slideNumber, "invalid-shape-bounds", "Skipped a PowerPoint shape with non-positive PDF bounds.");
+        AddWarning(options, slideNumber, "invalid-shape-bounds", "Skipped a PowerPoint shape with non-positive or off-slide PDF bounds.");
         return false;
     }
 
