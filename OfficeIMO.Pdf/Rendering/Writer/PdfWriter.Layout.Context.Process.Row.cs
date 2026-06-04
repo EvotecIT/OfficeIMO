@@ -430,6 +430,7 @@ internal static partial class PdfWriter {
                                 double topPad = start == 0 ? panelStyle.PaddingY : 0;
                                 double minLine = heights[start];
                                 if (remain < topPad + minLine) {
+                                    EnsurePanelSegmentCanFitLine(topPad, minLine);
                                     if (consumed > 0) break;
                                     remain = 0;
                                     break;
@@ -449,7 +450,10 @@ internal static partial class PdfWriter {
                                     take++;
                                 }
 
-                                if (take == 0) break;
+                                if (take == 0) {
+                                    EnsurePanelSegmentCanFitLine(topPad, minLine);
+                                    break;
+                                }
 
                                 bool lastSeg = start + take >= lines.Count;
                                 double panelTop = yCol;
@@ -674,7 +678,7 @@ internal static partial class PdfWriter {
                                     if (visibleLineCount > 0) {
                                         double availableTextHeight = Math.Max(0, cellHeight - cellPadTop - cellPadBottom);
                                         visibleTextHeight = MeasureTableCellTextHeight(lines, sourceStartLine, visibleLineCount, rowLeading);
-                                        double visibleContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading);
+                                        double visibleContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW);
                                         double unusedTextHeight = Math.Max(0, availableTextHeight - visibleContentHeight);
                                         if (verticalAlign == PdfCellVerticalAlign.Middle) verticalOffset = unusedTextHeight / 2;
                                         else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
@@ -922,12 +926,12 @@ internal static partial class PdfWriter {
                             yCol -= hr2.Thickness + hr2.SpacingAfter; remain -= needed; consumed += needed; idx++;
                         } else if (it is ColImg ciimg) {
                             var ib2 = ciimg.Block;
-                            PdfImageStyle imageStyle = ResolveImageStyle(ib2, currentOpts);
+                            PdfImageStyle imageStyle = ciimg.Style;
                             PdfDocument.ValidateImageStyleForBox(imageStyle, ib2.Width, ib2.Height, nameof(imageStyle.ClipPath));
                             PdfDocument.ValidateImageFitDimensions(ib2.Info, imageStyle.Fit, nameof(imageStyle.Fit));
                             double spacingBefore = ResolveColumnSpacingBefore(imageStyle.SpacingBefore, consumed);
-                            double needed = spacingBefore + ib2.Height + imageStyle.SpacingAfter;
-                            EnsureFixedFlowBlockFits("Image", ib2.Width, needed, wCol);
+                            double needed = spacingBefore + ciimg.Height + imageStyle.SpacingAfter;
+                            EnsureFixedFlowBlockFits("Image", ciimg.Width, needed, wCol);
                             if (imageStyle.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
                                 double keepHeight = needed + nextHeight;
@@ -943,13 +947,13 @@ internal static partial class PdfWriter {
                             if (needed > remain && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double xImg = xCol;
-                            if (imageStyle.Align == PdfAlign.Center) xImg = xCol + Math.Max(0, (wCol - ib2.Width) / 2);
-                            else if (imageStyle.Align == PdfAlign.Right) xImg = xCol + Math.Max(0, wCol - ib2.Width);
-                            PageImage pageImage = CreatePageImage(ib2, imageStyle, xImg, yCol - ib2.Height);
+                            if (imageStyle.Align == PdfAlign.Center) xImg = xCol + Math.Max(0, (wCol - ciimg.Width) / 2);
+                            else if (imageStyle.Align == PdfAlign.Right) xImg = xCol + Math.Max(0, wCol - ciimg.Width);
+                            PageImage pageImage = CreatePageImage(ib2, imageStyle, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
                             currentPage!.Images.Add(pageImage);
-                            AddImageLinkAnnotation(ib2, imageStyle, pageImage, xImg, yCol - ib2.Height);
+                            AddImageLinkAnnotation(ib2, imageStyle, pageImage, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
                             pageDirty = true;
-                            yCol -= ib2.Height + imageStyle.SpacingAfter; remain -= needed; consumed += needed; idx++;
+                            yCol -= ciimg.Height + imageStyle.SpacingAfter; remain -= needed; consumed += needed; idx++;
                         } else if (it is ColShape cs) {
                             var shape = cs.Block;
                             PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape, currentOpts);

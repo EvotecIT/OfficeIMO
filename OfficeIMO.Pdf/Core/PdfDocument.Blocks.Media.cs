@@ -3,6 +3,15 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocument {
+    /// <summary>Adds foreground page content at absolute top-left page coordinates.</summary>
+    public PdfDocument Canvas(System.Action<PdfPageCanvas> build) {
+        Guard.NotNull(build, nameof(build));
+        var canvas = new PdfPageCanvas();
+        build(canvas);
+        AddBlock(new PdfCanvasBlock(canvas.Items));
+        return this;
+    }
+
     /// <summary>Adds a shared OfficeIMO.Drawing shape at the current flow position.</summary>
     public PdfDocument Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         AddBlock(CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents));
@@ -86,7 +95,7 @@ public sealed partial class PdfDocument {
         return Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
     }
 
-    /// <summary>Adds a supported image at the current flow position. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
+    /// <summary>Adds a supported image at the current flow position. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
     public PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
 
@@ -94,7 +103,7 @@ public sealed partial class PdfDocument {
     public PdfDocument Image(byte[] jpegBytes, double width, double height, string? alternativeText) =>
         Image(jpegBytes, width, height, align: null, clipPath: null, fit: null, spacingBefore: null, spacingAfter: null, style: null, linkUri: null, linkContents: null, alternativeText: alternativeText);
 
-    /// <summary>Adds a supported image at the current flow position. JPEG and simple non-interlaced 8-bit PNG images, including grayscale-alpha/RGBA soft masks, are currently supported.</summary>
+    /// <summary>Adds a supported image at the current flow position. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are currently supported.</summary>
     public PdfDocument Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
@@ -295,8 +304,8 @@ public sealed partial class PdfDocument {
         Guard.Positive(drawing.Width, nameof(drawing.Width));
         Guard.Positive(drawing.Height, nameof(drawing.Height));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
-        if (drawing.Shapes.Count == 0) {
-            throw new System.ArgumentException("Drawing scenes require at least one shape.", nameof(drawing));
+        if (drawing.Elements.Count == 0) {
+            throw new System.ArgumentException("Drawing scenes require at least one shape or text element.", nameof(drawing));
         }
 
         for (int i = 0; i < drawing.Shapes.Count; i++) {
@@ -308,6 +317,27 @@ public sealed partial class PdfDocument {
 
             if (item.X + item.Shape.Width > drawing.Width || item.Y + item.Shape.Height > drawing.Height) {
                 throw new System.ArgumentOutOfRangeException(nameof(drawing), "Drawing scene shapes must fit inside the drawing width and height.");
+            }
+        }
+
+        for (int i = 0; i < drawing.Elements.Count; i++) {
+            var text = drawing.Elements[i] as OfficeDrawingText;
+            if (text == null) {
+                continue;
+            }
+
+            Guard.NotNull(text.Text, nameof(drawing.Elements));
+            Guard.NonNegative(text.X, nameof(drawing.Elements));
+            Guard.NonNegative(text.Y, nameof(drawing.Elements));
+            Guard.Positive(text.Width, nameof(drawing.Elements));
+            Guard.Positive(text.Height, nameof(drawing.Elements));
+            Guard.Positive(text.Font.Size, nameof(text.Font.Size));
+            if (text.LineHeight.HasValue) {
+                Guard.Positive(text.LineHeight.Value, nameof(text.LineHeight));
+            }
+
+            if (text.X + text.Width > drawing.Width || text.Y + text.Height > drawing.Height) {
+                throw new System.ArgumentOutOfRangeException(nameof(drawing), "Drawing scene text must fit inside the drawing width and height.");
             }
         }
 

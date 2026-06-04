@@ -26,7 +26,7 @@ public static partial class MarkdownPdfConverterExtensions {
         double width = image.Width ?? GetImageWidthPoints(info, options);
         double height = image.Height ?? GetImageHeightPoints(info, width, options);
         string? linkUri = NormalizeAbsoluteLink(image.LinkUrl);
-        pdf.Image(bytes, width, height, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, linkUri: linkUri, linkContents: linkUri == null ? null : image.PlainAlt ?? image.Alt);
+        pdf.Image(bytes, width, height, PdfCore.PdfAlign.Left, spacingBefore: 4, spacingAfter: 6, style: CreateConverterImageStyle(), linkUri: linkUri, linkContents: linkUri == null ? null : image.PlainAlt ?? image.Alt);
 
         if (!string.IsNullOrWhiteSpace(image.Caption)) {
             pdf.Paragraph(builder => builder.Italic(image.Caption!), style: new PdfCore.PdfParagraphStyle { SpacingAfter = 8 });
@@ -41,6 +41,10 @@ public static partial class MarkdownPdfConverterExtensions {
 
         pdf.Paragraph(builder => builder.Italic("[Image: " + label + "]"));
     }
+
+    private static PdfCore.PdfImageStyle CreateConverterImageStyle() => new() {
+        ScaleDownToFit = true
+    };
 
 
     private static bool TryReadImageBytes(string path, MarkdownPdfSaveOptions options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage) {

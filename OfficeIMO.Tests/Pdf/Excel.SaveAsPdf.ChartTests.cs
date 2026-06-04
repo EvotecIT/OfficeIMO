@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using System.Globalization;
@@ -73,6 +74,93 @@ public partial class Excel {
 
         using PdfPigDocument disabledPdf = PdfPigDocument.Open(new MemoryStream(disabledBytes));
         Assert.DoesNotContain("Revenue Chart", disabledPdf.GetPage(1).Text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Applies_Shared_Chart_Style_Options() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfStyledCharts.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Category");
+            sheet.Cell(1, 2, "Actual");
+            sheet.Cell(1, 3, "Target");
+            sheet.Cell(2, 1, "Jan");
+            sheet.Cell(2, 2, 12);
+            sheet.Cell(2, 3, 10);
+            sheet.Cell(3, 1, "Feb");
+            sheet.Cell(3, 2, 18);
+            sheet.Cell(3, 3, 16);
+            sheet.Cell(4, 1, "Mar");
+            sheet.Cell(4, 2, 24);
+            sheet.Cell(4, 3, 20);
+            sheet.AddChartFromRange("A1:C4", row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Styled Excel Chart");
+
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 1,
+                PageSize = new PdfCore.PageSize(480, 360),
+                Margins = PdfCore.PageMargins.Uniform(24),
+                ChartStyle = new OfficeChartStyle(
+                    palette: new[] {
+                        OfficeColor.FromRgb(18, 52, 86),
+                        OfficeColor.FromRgb(120, 40, 160)
+                    },
+                    backgroundColor: OfficeColor.FromRgb(242, 248, 255),
+                    titleColor: OfficeColor.FromRgb(200, 10, 10))
+            });
+        }
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.071 0.204 0.337 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.471 0.157 0.627 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.949 0.973 1 rg", rawPdf, StringComparison.Ordinal);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Styled Excel Chart", text);
+        Assert.Contains("Actual", text);
+        Assert.Contains("Target", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Warns_When_Shared_Chart_Quality_Preflight_Finds_Issues() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfChartQualityWarnings.xlsx");
+
+        byte[] bytes;
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 1,
+            PageSize = new PdfCore.PageSize(480, 360),
+            Margins = PdfCore.PageMargins.Uniform(24),
+            ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 12, preventLabelOverlap: false)
+        };
+
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Month");
+            sheet.Cell(1, 2, "Actual");
+            for (int row = 2; row <= 13; row++) {
+                sheet.Cell(row, 1, "M" + (row - 1).ToString("00", CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2, row * 3);
+            }
+
+            sheet.AddChartFromRange("A1:B13", row: 1, column: 4, widthPixels: 300, heightPixels: 180, type: ExcelChartType.Line, title: "Dense Month Chart");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        ExcelPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Feature == "chart-quality");
+        Assert.Equal("Charts", warning.SheetName);
+        Assert.Contains("Dense Month Chart", warning.Message);
+        Assert.Contains("TextOverlap", warning.Message);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("Dense Month Chart", pdf.GetPage(1).Text);
     }
 
     [Fact]

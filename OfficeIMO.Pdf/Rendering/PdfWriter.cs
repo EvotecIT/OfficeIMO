@@ -227,11 +227,11 @@ internal static partial class PdfWriter {
                 string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!);
                 contentStr += WrapArtifactContent(headerContent, markInfo);
             }
-            contentStr += page.Content;
+            contentStr += ReplaceInlineImageDrawTokens(page.Content, page.Images);
             if (page.Images.Count > 0) {
                 var sbImgs = new StringBuilder();
                 foreach (var img in page.Images) {
-                    if (img.IsBackgroundDecoration) {
+                    if (img.IsBackgroundDecoration || !string.IsNullOrEmpty(img.InlineDrawToken)) {
                         continue;
                     }
 
@@ -469,6 +469,25 @@ internal static partial class PdfWriter {
         infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords));
 
         return PdfFileAssembler.Assemble(objects, catalogId, infoId, opts.FileVersion);
+    }
+
+    private static string ReplaceInlineImageDrawTokens(string content, IReadOnlyList<PageImage> images) {
+        if (string.IsNullOrEmpty(content) || images.Count == 0) {
+            return content;
+        }
+
+        string result = content;
+        foreach (PageImage image in images) {
+            if (string.IsNullOrEmpty(image.InlineDrawToken)) {
+                continue;
+            }
+
+            var imageDraw = new StringBuilder();
+            AppendPageImageDraw(imageDraw, image);
+            result = result.Replace(image.InlineDrawToken!, imageDraw.ToString());
+        }
+
+        return result;
     }
 
     private static string BuildPageBackground(LayoutResult.Page page, PdfOptions options, string pageBackgroundShapeContent, PdfTextWatermark? watermark, string? watermarkFontAlias, string? textWatermarkGraphicsStateName, PdfPageBorder? pageBorder, string? pageBorderGraphicsStateName, bool markDecorativeArtifacts) {

@@ -432,7 +432,20 @@ internal static partial class PdfWriter {
         return height;
     }
 
-    private static double MeasureTableCellObjectStackHeight(TableCellLayout cell) {
+    private static (double Width, double Height) ResolveTableCellImageBox(PdfTableCellImage image, double innerWidth) {
+        if (image.Style?.ScaleDownToFit != true || innerWidth <= 0D) {
+            return (image.Width, image.Height);
+        }
+
+        double scale = Math.Min(1D, innerWidth / image.Width);
+        if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
+            return (image.Width, image.Height);
+        }
+
+        return (image.Width * scale, image.Height * scale);
+    }
+
+    private static double MeasureTableCellObjectStackHeight(TableCellLayout cell, double innerWidth) {
         if (cell.Images.Count == 0 && cell.CheckBoxes.Count == 0 && cell.FormFields.Count == 0) {
             return 0D;
         }
@@ -444,7 +457,7 @@ internal static partial class PdfWriter {
                 height += TableCellCheckBoxGap;
             }
 
-            height += cell.Images[index].Height;
+            height += ResolveTableCellImageBox(cell.Images[index], innerWidth).Height;
             objectCount++;
         }
 
@@ -469,9 +482,16 @@ internal static partial class PdfWriter {
         return height;
     }
 
-    private static double MeasureTableCellContentHeight(TableCellLayout cell, TableCellTextLayout layout, int startLine, int lineCount, double fallbackLeading) {
+    private static double MeasureTableCellContentHeight(TableCellLayout cell, TableCellTextLayout layout, int startLine, int lineCount, double fallbackLeading, double innerWidth) =>
+        MeasureTableCellContentHeight(cell, layout, startLine, lineCount, fallbackLeading, innerWidth, includeObjects: true);
+
+    private static double MeasureTableCellContentHeight(TableCellLayout cell, TableCellTextLayout layout, int startLine, int lineCount, double fallbackLeading, double innerWidth, bool includeObjects) {
         double textHeight = MeasureTableCellTextHeight(layout, startLine, lineCount, fallbackLeading);
-        double objectStackHeight = MeasureTableCellObjectStackHeight(cell);
+        if (!includeObjects) {
+            return textHeight;
+        }
+
+        double objectStackHeight = MeasureTableCellObjectStackHeight(cell, innerWidth);
         if (objectStackHeight <= 0D) {
             return textHeight;
         }
@@ -490,7 +510,8 @@ internal static partial class PdfWriter {
     private static double MeasureTableCellObjectWidth(TableCellLayout cell) {
         double width = 0D;
         for (int index = 0; index < cell.Images.Count; index++) {
-            width = System.Math.Max(width, cell.Images[index].Width);
+            PdfTableCellImage image = cell.Images[index];
+            width = System.Math.Max(width, image.Style?.ScaleDownToFit == true ? 1D : image.Width);
         }
 
         for (int index = 0; index < cell.CheckBoxes.Count; index++) {
@@ -537,7 +558,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void ApplyTableRowSpanHeights(TableBlock table, PdfTableStyle style, int columnCount, TableCellTextLayout[][] rowLines, double[] rowHeights, double[] rowLeadings, double rowGap) {
+    private static void ApplyTableRowSpanHeights(TableBlock table, PdfTableStyle style, int columnCount, double[] columnWidths, TableCellTextLayout[][] rowLines, double[] rowHeights, double[] rowLeadings, double columnGap, double rowGap) {
         for (int rowIndex = 0; rowIndex < table.Cells.Count; rowIndex++) {
             var cells = GetTableCellLayouts(table, rowIndex, columnCount);
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
@@ -552,7 +573,9 @@ internal static partial class PdfWriter {
                 }
 
                 TableCellTextLayout lines = rowLines[rowIndex][cell.Column];
-                double requiredHeight = MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeadings[rowIndex]) +
+                double cellWidth = GetTableCellWidth(columnWidths, cell.Column, cell.ColumnSpan, columnGap);
+                double innerWidth = Math.Max(1D, cellWidth - GetTableCellPaddingLeft(style, rowIndex, cell.Column) - GetTableCellPaddingRight(style, rowIndex, cell.Column));
+                double requiredHeight = MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeadings[rowIndex], innerWidth) +
                     GetTableCellPaddingTop(style, rowIndex, cell.Column) +
                     GetTableCellPaddingBottom(style, rowIndex, cell.Column);
                 double currentHeight = GetTableCellHeight(rowHeights, rowIndex, rowSpan, rowGap);

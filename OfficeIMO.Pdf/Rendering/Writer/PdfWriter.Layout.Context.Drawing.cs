@@ -196,15 +196,86 @@ internal static partial class PdfWriter {
             double xDrawing = GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align);
             bool markedContent;
             int? structElementIndex = AppendDrawingMarkedContentBegin(style, out markedContent);
-            for (int i = 0; i < block.Drawing.Shapes.Count; i++) {
-                var item = block.Drawing.Shapes[i];
-                double xShape = xDrawing + item.X;
-                double bottomY = topY - item.Y - item.Shape.Height;
-                DrawShapeGeometryAt(item.Shape, xShape, bottomY);
+            for (int i = 0; i < block.Drawing.Elements.Count; i++) {
+                if (block.Drawing.Elements[i] is OfficeDrawingShape shape) {
+                    double xShape = xDrawing + shape.X;
+                    double bottomY = topY - shape.Y - shape.Shape.Height;
+                    DrawShapeGeometryAt(shape.Shape, xShape, bottomY);
+                } else if (block.Drawing.Elements[i] is OfficeDrawingText text) {
+                    DrawDrawingTextAt(text, xDrawing + text.X, topY - text.Y);
+                }
             }
 
             AppendDrawingMarkedContentEnd(markedContent);
             return structElementIndex;
+        }
+
+        private void DrawDrawingTextAt(OfficeDrawingText text, double x, double topY) {
+            if (string.IsNullOrEmpty(text.Text)) {
+                return;
+            }
+
+            PdfStandardFont baseFont = ResolveDrawingTextFont(text.Font);
+            double size = text.Font.Size;
+            double leading = text.LineHeight ?? size * 1.2D;
+            PdfColor? color = ToPdfColor(text.Color);
+            var runs = new[] {
+                new TextRun(
+                    text.Text,
+                    bold: text.Font.IsBold,
+                    underline: text.Font.IsUnderline,
+                    color: color,
+                    italic: text.Font.IsItalic,
+                    fontSize: size,
+                    font: baseFont)
+            };
+            var block = new RichParagraphBlock(runs, MapDrawingTextAlignment(text.Alignment), color);
+            var wrap = WrapRichRunsCore(runs, text.Width, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
+            if (wrap.Lines.Count == 0) {
+                return;
+            }
+
+            WriteClippedRichParagraph(
+                sb,
+                block,
+                wrap.Lines,
+                wrap.LineHeights,
+                currentOpts,
+                FirstTextBaselineFromTop(baseFont, size, topY),
+                size,
+                leading,
+                currentPage!.Annotations,
+                x,
+                topY - text.Height,
+                text.Width,
+                text.Height,
+                x,
+                text.Width,
+                structureType: null,
+                markedContentId: null,
+                structurePage: null);
+            MarkRichFonts(runs);
+            pageDirty = true;
+        }
+
+        private PdfStandardFont ResolveDrawingTextFont(OfficeFontInfo font) {
+            if (!string.IsNullOrWhiteSpace(font.FamilyName) && PdfStandardFontMapper.TryMapFontFamily(font.FamilyName, out PdfStandardFont mapped)) {
+                return ChooseNormal(mapped);
+            }
+
+            return ChooseNormal(currentOpts.DefaultFont);
+        }
+
+        private static PdfAlign MapDrawingTextAlignment(OfficeTextAlignment alignment) {
+            if (alignment == OfficeTextAlignment.Center) {
+                return PdfAlign.Center;
+            }
+
+            if (alignment == OfficeTextAlignment.Right) {
+                return PdfAlign.Right;
+            }
+
+            return PdfAlign.Left;
         }
 
         private int? AppendDrawingMarkedContentBegin(PdfDrawingStyle style, out bool markedContent) {

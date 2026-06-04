@@ -152,13 +152,13 @@ internal static partial class PdfWriter {
                     rowLines[ri][cell.Column] = lines;
                     if (cell.RowSpan <= 1) {
                         maxLines = Math.Max(maxLines, lines.LineCount);
-                        maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading) + GetTableCellPaddingTop(style, ri, cell.Column) + GetTableCellPaddingBottom(style, ri, cell.Column));
+                        maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading, innerWidth) + GetTableCellPaddingTop(style, ri, cell.Column) + GetTableCellPaddingBottom(style, ri, cell.Column));
                     }
                 }
                 rowLineCounts[ri] = maxLines;
                 rowHeights[ri] = Math.Max(maxRequiredHeight, GetTableRowMinHeight(style, ri));
             }
-            ApplyTableRowSpanHeights(tb, style, cols, rowLines, rowHeights, rowLeadings, rowGapPx);
+            ApplyTableRowSpanHeights(tb, style, cols, colPixel, rowLines, rowHeights, rowLeadings, colGapPx, rowGapPx);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
 
             double maxContentHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
@@ -273,6 +273,46 @@ internal static partial class PdfWriter {
                 }
             }
 
+            double MeasureTableRowSegmentHeight(int rowIndex, int startLine, int lineCount, bool suppressCellObjects) {
+                double rowLeading = rowLeadings[rowIndex];
+                double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
+                double rowPadBottom = GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols);
+                double segmentHeight = rowLeading + rowPadTop + rowPadBottom;
+                var cells = GetTableCellLayouts(tb, rowIndex, cols);
+                for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                    TableCellLayout cell = cells[cellIndex];
+                    double cellWidth = GetTableCellWidth(colPixel, cell.Column, cell.ColumnSpan, colGapPx);
+                    double cellPadLeft = GetTableCellPaddingLeft(style, rowIndex, cell.Column);
+                    double cellPadRight = GetTableCellPaddingRight(style, rowIndex, cell.Column);
+                    double innerW = cellWidth - cellPadLeft - cellPadRight;
+                    TableCellTextLayout lines = rowLines[rowIndex][cell.Column];
+                    int sourceStartLine = startLine;
+                    int visibleLineCount = Math.Max(0, Math.Min(lineCount, lines.LineCount - sourceStartLine));
+                    bool includeObjects = !suppressCellObjects && sourceStartLine == 0;
+                    double cellContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW, includeObjects) +
+                        GetTableCellPaddingTop(style, rowIndex, cell.Column) +
+                        GetTableCellPaddingBottom(style, rowIndex, cell.Column);
+                    segmentHeight = Math.Max(segmentHeight, cellContentHeight);
+                }
+
+                return segmentHeight;
+            }
+
+            int GetTableRowSegmentLineCountThatFits(int rowIndex, int startLine, double available) {
+                int remaining = rowLineCounts[rowIndex] - startLine;
+                int best = 0;
+                for (int candidate = 1; candidate <= remaining; candidate++) {
+                    double candidateHeight = MeasureTableRowSegmentHeight(rowIndex, startLine, candidate, suppressCellObjects: false);
+                    if (candidateHeight > available + 0.001) {
+                        break;
+                    }
+
+                    best = candidate;
+                }
+
+                return Math.Max(1, best);
+            }
+
             void DrawTableRowSegment(int rowIndex, bool renderAsHeader, int startLine, int lineCount, bool suppressCellObjects = false, PageStructElement? existingRowStructureElement = null) {
                 bool renderAsFooter = rowIndex >= footerStartRowIndex;
                 bool rowUsesBold = rowBold[rowIndex];
@@ -287,7 +327,7 @@ internal static partial class PdfWriter {
                 bool wholeRowSegment = startLine == 0 && lineCount == rowLineCounts[rowIndex];
                 double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
                 double rowPadBottom = GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols);
-                double rowHeight = wholeRowSegment ? rowHeights[rowIndex] : Math.Max(1, lineCount) * rowLeading + rowPadTop + rowPadBottom;
+                double rowHeight = wholeRowSegment ? rowHeights[rowIndex] : MeasureTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
                 double rowBottom = y - rowHeight;
                 if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
                 int bodyRowIndex = rowIndex - headerRowCount;
@@ -383,7 +423,7 @@ internal static partial class PdfWriter {
                     if (visibleLineCount > 0) {
                         double availableTextHeight = Math.Max(0, cellHeight - cellPadTop - cellPadBottom);
                         visibleTextHeight = MeasureTableCellTextHeight(lines, sourceStartLine, visibleLineCount, rowLeading);
-                        double visibleContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading);
+                        double visibleContentHeight = MeasureTableCellContentHeight(cell, lines, sourceStartLine, visibleLineCount, rowLeading, innerW);
                         double unusedTextHeight = Math.Max(0, availableTextHeight - visibleContentHeight);
                         if (verticalAlign == PdfCellVerticalAlign.Middle) verticalOffset = unusedTextHeight / 2;
                         else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
@@ -549,8 +589,7 @@ internal static partial class PdfWriter {
                         available = y - currentOpts.MarginBottom;
                     }
 
-                    int maxLinesThisPage = Math.Max(1, (int)Math.Floor((available - rowPadTop - rowPadBottom) / rowLeadings[rowIndex]));
-                    int take = Math.Min(totalLines - startLine, maxLinesThisPage);
+                    int take = Math.Min(totalLines - startLine, GetTableRowSegmentLineCountThatFits(rowIndex, startLine, available));
                     DrawTableRowSegment(rowIndex, renderAsHeader && startLine == 0, startLine, take, existingRowStructureElement: rowStructureElement);
                     if (rowStructureElement == null && emitGeneratedStructure && currentPage != null) {
                         rowStructureElement = currentPage.StructElements.LastOrDefault(element => element.StructureType == "TR");

@@ -58,6 +58,9 @@ public sealed class PdfImageStyle {
     /// <summary>Moves the image to the next page with the first visible part of the following block when they fit together.</summary>
     public bool KeepWithNext { get; set; }
 
+    /// <summary>When true, oversized flow images are proportionally reduced to fit the current page or column frame.</summary>
+    public bool ScaleDownToFit { get; set; }
+
     /// <summary>Optional alternate text for meaningful generated images.</summary>
     public string? AlternativeText {
         get => _alternativeText;
@@ -79,6 +82,7 @@ public sealed class PdfImageStyle {
             SpacingBefore = SpacingBefore,
             SpacingAfter = SpacingAfter,
             KeepWithNext = KeepWithNext,
+            ScaleDownToFit = ScaleDownToFit,
             AlternativeText = AlternativeText
         };
     }

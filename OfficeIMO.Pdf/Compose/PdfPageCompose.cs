@@ -209,6 +209,8 @@ public class PdfPageCompose {
     public PdfPageCompose DefaultRowStyle(PdfRowStyle style) { Guard.NotNull(style, nameof(style)); Options.DefaultRowStyle = style; return this; }
     /// <summary>Builds the page content using a column/row flow.</summary>
     public PdfPageCompose Content(System.Action<PdfContentCompose> build) { Guard.NotNull(build, nameof(build)); var c = new PdfContentCompose(_doc); build(c); return this; }
+    /// <summary>Adds foreground page content at absolute top-left page coordinates.</summary>
+    public PdfPageCompose Canvas(System.Action<PdfPageCanvas> build) { _doc.Canvas(build); return this; }
     /// <summary>Defines the header layout and content.</summary>
     public PdfPageCompose Header(System.Action<PdfHeaderCompose> build) { Guard.NotNull(build, nameof(build)); var h = new PdfHeaderCompose(Options); build(h); return this; }
     /// <summary>Defines the footer layout and content.</summary>

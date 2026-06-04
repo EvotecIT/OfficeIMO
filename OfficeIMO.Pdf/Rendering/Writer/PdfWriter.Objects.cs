@@ -240,6 +240,7 @@ internal static partial class PdfWriter {
         public string? AlternativeText { get; set; }
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
+        public string? InlineDrawToken { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
     }

@@ -65,7 +65,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void AddImageLinkAnnotation(ImageBlock image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY) {
+        private void AddImageLinkAnnotation(ImageBlock image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight) {
             if (string.IsNullOrEmpty(image.LinkUri)) {
                 return;
             }
@@ -77,8 +77,8 @@ internal static partial class PdfWriter {
             if (style.Fit == OfficeImageFit.Cover || style.ClipPath != null) {
                 x1 = targetX;
                 y1 = targetBottomY;
-                x2 = targetX + image.Width;
-                y2 = targetBottomY + image.Height;
+                x2 = targetX + targetWidth;
+                y2 = targetBottomY + targetHeight;
             }
 
             currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });

@@ -382,7 +382,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             var pdfImages = new List<PdfCore.PdfTableCellImage>(images.Count);
             foreach (WorksheetImageExportData image in images) {
-                pdfImages.Add(new PdfCore.PdfTableCellImage(image.Bytes, image.WidthPoints, image.HeightPoints));
+                pdfImages.Add(new PdfCore.PdfTableCellImage(image.Bytes, image.WidthPoints, image.HeightPoints, CreateConverterImageStyle()));
             }
 
             return pdfImages;

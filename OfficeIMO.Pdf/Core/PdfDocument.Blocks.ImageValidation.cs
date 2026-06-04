@@ -34,11 +34,11 @@ public sealed partial class PdfDocument {
                 }
 
                 throw new NotSupportedException(
-                    "PdfDocument.Image currently supports JPEG and non-interlaced 8-bit grayscale/grayscale-alpha/RGB/RGBA PNG image bytes only. " +
+                    "PdfDocument.Image currently supports JPEG and grayscale/grayscale-alpha/indexed-color/RGB/RGBA PNG image bytes only, including Adam7-interlaced PNGs and supported 16-bit grayscale/grayscale-alpha/RGB/RGBA PNG payloads. " +
                     unsupportedReason);
             } else {
                 throw new NotSupportedException(
-                    $"PdfDocument.Image currently supports JPEG and non-interlaced 8-bit grayscale/grayscale-alpha/RGB/RGBA PNG image bytes only. Detected {info.Format} ({info.MimeType}).");
+                    $"PdfDocument.Image currently supports JPEG and grayscale/grayscale-alpha/indexed-color/RGB/RGBA PNG image bytes only, including Adam7-interlaced PNGs and supported 16-bit grayscale/grayscale-alpha/RGB/RGBA PNG payloads. Detected {info.Format} ({info.MimeType}).");
             }
         }
 

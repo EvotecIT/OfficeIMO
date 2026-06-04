@@ -87,4 +87,63 @@ public partial class PdfStamperTests {
         Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
         Assert.Contains("/OIMOStampIm", pdfContent);
     }
+
+    [Fact]
+    public void StampImage_WithIndexedColorPngTransparency_PreservesSoftMaskImageObject() {
+        byte[] source = BuildTwoPagePdf();
+
+        byte[] stamped = PdfStamper.StampImage(source, CreateMinimalIndexedColorPng(), new PdfImageStampOptions {
+            PageNumbers = new[] { 1 },
+            X = 72,
+            Y = 650,
+            Width = 24,
+            Height = 12
+        });
+
+        string pdfContent = Encoding.ASCII.GetString(stamped);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/SMask", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
+        Assert.Contains("/OIMOStampIm", pdfContent);
+    }
+
+    [Fact]
+    public void StampImage_WithRgbPngTransparency_PreservesSoftMaskImageObject() {
+        byte[] source = BuildTwoPagePdf();
+
+        byte[] stamped = PdfStamper.StampImage(source, CreateMinimalRgbTransparencyPng(), new PdfImageStampOptions {
+            PageNumbers = new[] { 1 },
+            X = 72,
+            Y = 650,
+            Width = 24,
+            Height = 24
+        });
+
+        string pdfContent = Encoding.ASCII.GetString(stamped);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/SMask", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceRGB", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
+        Assert.Contains("/OIMOStampIm", pdfContent);
+    }
+
+    [Fact]
+    public void StampImage_WithPackedGrayscalePngTransparency_PreservesSoftMaskImageObject() {
+        byte[] source = BuildTwoPagePdf();
+
+        byte[] stamped = PdfStamper.StampImage(source, CreateMinimalPackedGrayscalePng(), new PdfImageStampOptions {
+            PageNumbers = new[] { 1 },
+            X = 72,
+            Y = 650,
+            Width = 24,
+            Height = 12
+        });
+
+        string pdfContent = Encoding.ASCII.GetString(stamped);
+        Assert.Contains("/Subtype /Image", pdfContent);
+        Assert.Contains("/SMask", pdfContent);
+        Assert.Contains("/ColorSpace /DeviceGray", pdfContent);
+        Assert.Contains("/OIMOStampIm", pdfContent);
+    }
 }

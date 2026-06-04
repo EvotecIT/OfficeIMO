@@ -16,6 +16,34 @@ internal static partial class PdfWriter {
             }
         }
 
+        private (double Width, double Height) ResolveImageFlowBox(ImageBlock image, PdfImageStyle style, double frameWidth, double spacingBefore, double spacingAfter) {
+            double imageWidth = image.Width;
+            double imageHeight = image.Height;
+            if (!style.ScaleDownToFit) {
+                return (imageWidth, imageHeight);
+            }
+
+            double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom - spacingBefore - spacingAfter;
+            double scale = 1D;
+            if (imageWidth > frameWidth) {
+                scale = Math.Min(scale, frameWidth / imageWidth);
+            }
+
+            if (availableHeight > 0D && imageHeight * scale > availableHeight) {
+                scale = Math.Min(scale, availableHeight / imageHeight);
+            }
+
+            if (scale >= 1D) {
+                return (imageWidth, imageHeight);
+            }
+
+            if (scale <= 0D || double.IsNaN(scale) || double.IsInfinity(scale)) {
+                return (imageWidth, imageHeight);
+            }
+
+            return (imageWidth * scale, imageHeight * scale);
+        }
+
         private static void ValidateHorizontalRule(PdfHorizontalRuleStyle rule) {
             if (rule.Thickness <= 0 || double.IsNaN(rule.Thickness) || double.IsInfinity(rule.Thickness)) {
                 throw new ArgumentException("Horizontal rule thickness must be a positive finite value.");
@@ -59,6 +87,13 @@ internal static partial class PdfWriter {
 
             if (panelWidth - 2 * style.PaddingX <= 0) {
                 throw new ArgumentException("Panel horizontal padding must leave a positive text width.");
+            }
+        }
+
+        private void EnsurePanelSegmentCanFitLine(double topPadding, double lineHeight) {
+            double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+            if (topPadding + lineHeight > availableHeight + 0.001D) {
+                throw new ArgumentException("Panel vertical padding and first line height exceed the available page content height.");
             }
         }
 
@@ -291,7 +326,8 @@ internal static partial class PdfWriter {
 
             if (block is ImageBlock image) {
                 PdfImageStyle style = ResolveImageStyle(image, currentOpts);
-                return style.SpacingBefore + image.Height + style.SpacingAfter;
+                var box = ResolveImageFlowBox(image, style, frameWidth, style.SpacingBefore, style.SpacingAfter);
+                return style.SpacingBefore + box.Height + style.SpacingAfter;
             }
 
             if (block is ShapeBlock shape) {

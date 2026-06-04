@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -46,6 +47,68 @@ public class PdfImageExtractorTests {
         Assert.True(image.IsImageFile);
         AssertPngSignature(image.Bytes);
         Assert.Equal(6, ReadPngColorType(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsRgbaPngWhenRgbTransparencyCreatesSoftMask() {
+        byte[] source = PdfDocument.Create()
+            .Image(CreateMinimalRgbTransparencyPng(), 24, 24)
+            .Paragraph(p => p.Text("RGB tRNS image marker"))
+            .ToBytes();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(6, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 255, 0, 0, 0 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsGrayAlphaPngWhenGrayscaleTransparencyCreatesSoftMask() {
+        byte[] source = PdfDocument.Create()
+            .Image(CreateMinimalGrayscaleTransparencyPng(), 24, 24)
+            .Paragraph(p => p.Text("Grayscale tRNS image marker"))
+            .ToBytes();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(4, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 128, 0 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsGrayAlphaPngWhenPackedGrayscaleTransparencyCreatesSoftMask() {
+        byte[] source = PdfDocument.Create()
+            .Image(CreateMinimalPackedGrayscaleTransparencyPng(), 24, 12)
+            .Paragraph(p => p.Text("Packed grayscale tRNS image marker"))
+            .ToBytes();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal(2, image.Width);
+        Assert.Equal(1, image.Height);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(4, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 0, 255, 17, 0 }, DecodeStoredPngIdat(image.Bytes));
         Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
         Assert.Equal(OfficeImageFormat.Png, info.Format);
     }
@@ -369,6 +432,56 @@ public class PdfImageExtractorTests {
         return bytes[25];
     }
 
+    private static byte[] DecodeStoredPngIdat(byte[] bytes) {
+        using var idat = new MemoryStream();
+        int offset = 8;
+        while (offset + 12 <= bytes.Length) {
+            int length = ReadInt32BigEndian(bytes, offset);
+            Assert.True(length >= 0);
+            Assert.True(offset + 12 + length <= bytes.Length);
+            string type = Encoding.ASCII.GetString(bytes, offset + 4, 4);
+            if (type == "IDAT") {
+                idat.Write(bytes, offset + 8, length);
+            }
+
+            if (type == "IEND") {
+                break;
+            }
+
+            offset += 12 + length;
+        }
+
+        byte[] compressed = idat.ToArray();
+        Assert.True(compressed.Length >= 6);
+        Assert.Equal(0x78, compressed[0]);
+        using var decoded = new MemoryStream();
+        int compressedOffset = 2;
+        bool finalBlock;
+        do {
+            Assert.True(compressedOffset + 5 <= compressed.Length);
+            byte header = compressed[compressedOffset++];
+            finalBlock = (header & 1) != 0;
+            Assert.Equal(0, (header >> 1) & 0x03);
+
+            int length = compressed[compressedOffset] | (compressed[compressedOffset + 1] << 8);
+            int nlen = compressed[compressedOffset + 2] | (compressed[compressedOffset + 3] << 8);
+            compressedOffset += 4;
+            Assert.Equal(0xFFFF, length ^ nlen);
+            Assert.True(compressedOffset + length <= compressed.Length - 4);
+            decoded.Write(compressed, compressedOffset, length);
+            compressedOffset += length;
+        } while (!finalBlock);
+
+        return decoded.ToArray();
+    }
+
+    private static int ReadInt32BigEndian(byte[] buffer, int offset) {
+        return (buffer[offset] << 24) |
+               (buffer[offset + 1] << 16) |
+               (buffer[offset + 2] << 8) |
+               buffer[offset + 3];
+    }
+
     private static MemoryStream BuildPrefixedStream(byte[] pdf) {
         var data = new byte[pdf.Length + 5];
         data[0] = 1;
@@ -447,5 +560,139 @@ public class PdfImageExtractorTests {
             73, 69, 78, 68,
             0, 0, 0, 0
         };
+    }
+
+    private static byte[] CreateMinimalRgbTransparencyPng() {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 2, 0, 0, 0
+        });
+        WritePngChunk(ms, "tRNS", new byte[] {
+            0, 255,
+            0, 0,
+            0, 0
+        });
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, 255, 0, 0 }));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static byte[] CreateMinimalGrayscaleTransparencyPng() {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 1,
+            0, 0, 0, 1,
+            8, 0, 0, 0, 0
+        });
+        WritePngChunk(ms, "tRNS", new byte[] { 0, 128 });
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, 128 }));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static byte[] CreateMinimalPackedGrayscaleTransparencyPng() {
+        using var ms = new MemoryStream();
+        byte[] signature = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+        ms.Write(signature, 0, signature.Length);
+        WritePngChunk(ms, "IHDR", new byte[] {
+            0, 0, 0, 2,
+            0, 0, 0, 1,
+            4, 0, 0, 0, 0
+        });
+        WritePngChunk(ms, "tRNS", new byte[] { 0, 1 });
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(new byte[] { 0, 0x01 }));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
+    private static void WritePngChunk(Stream stream, string type, byte[] data) {
+        byte[] typeBytes = Encoding.ASCII.GetBytes(type);
+        var length = new byte[4];
+        WriteInt32BigEndian(length, 0, data.Length);
+        stream.Write(length, 0, length.Length);
+        stream.Write(typeBytes, 0, typeBytes.Length);
+        stream.Write(data, 0, data.Length);
+
+        uint crc = ComputeCrc32(typeBytes, data);
+        var crcBytes = new byte[4];
+        WriteUInt32BigEndian(crcBytes, 0, crc);
+        stream.Write(crcBytes, 0, crcBytes.Length);
+    }
+
+    private static byte[] BuildStoredZlib(byte[] scanline) {
+        using var ms = new MemoryStream();
+        ms.WriteByte(0x78);
+        ms.WriteByte(0x01);
+        ms.WriteByte(0x01);
+        ms.WriteByte((byte)(scanline.Length & 0xFF));
+        ms.WriteByte((byte)((scanline.Length >> 8) & 0xFF));
+        int nlen = scanline.Length ^ 0xFFFF;
+        ms.WriteByte((byte)(nlen & 0xFF));
+        ms.WriteByte((byte)((nlen >> 8) & 0xFF));
+        ms.Write(scanline, 0, scanline.Length);
+        uint adler = Adler32(scanline);
+        ms.WriteByte((byte)((adler >> 24) & 0xFF));
+        ms.WriteByte((byte)((adler >> 16) & 0xFF));
+        ms.WriteByte((byte)((adler >> 8) & 0xFF));
+        ms.WriteByte((byte)(adler & 0xFF));
+        return ms.ToArray();
+    }
+
+    private static void WriteInt32BigEndian(byte[] buffer, int offset, int value) {
+        buffer[offset] = (byte)((value >> 24) & 0xFF);
+        buffer[offset + 1] = (byte)((value >> 16) & 0xFF);
+        buffer[offset + 2] = (byte)((value >> 8) & 0xFF);
+        buffer[offset + 3] = (byte)(value & 0xFF);
+    }
+
+    private static void WriteUInt32BigEndian(byte[] buffer, int offset, uint value) {
+        buffer[offset] = (byte)((value >> 24) & 0xFF);
+        buffer[offset + 1] = (byte)((value >> 16) & 0xFF);
+        buffer[offset + 2] = (byte)((value >> 8) & 0xFF);
+        buffer[offset + 3] = (byte)(value & 0xFF);
+    }
+
+    private static uint Adler32(byte[] data) {
+        const uint mod = 65521;
+        uint a = 1;
+        uint b = 0;
+        for (int i = 0; i < data.Length; i++) {
+            a = (a + data[i]) % mod;
+            b = (b + a) % mod;
+        }
+
+        return (b << 16) | a;
+    }
+
+    private static uint ComputeCrc32(byte[] typeBytes, byte[] data) {
+        uint crc = 0xFFFFFFFF;
+        for (int i = 0; i < typeBytes.Length; i++) {
+            crc = UpdateCrc32(crc, typeBytes[i]);
+        }
+
+        for (int i = 0; i < data.Length; i++) {
+            crc = UpdateCrc32(crc, data[i]);
+        }
+
+        return crc ^ 0xFFFFFFFF;
+    }
+
+    private static uint UpdateCrc32(uint crc, byte value) {
+        crc ^= value;
+        for (int i = 0; i < 8; i++) {
+            if ((crc & 1) != 0) {
+                crc = (crc >> 1) ^ 0xEDB88320;
+            } else {
+                crc >>= 1;
+            }
+        }
+
+        return crc;
     }
 }

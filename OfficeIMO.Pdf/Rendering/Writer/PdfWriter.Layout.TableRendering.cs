@@ -55,15 +55,16 @@ internal static partial class PdfWriter {
             };
             PdfDocument.ValidateImageStyleForBox(imageStyle, block.Width, block.Height, nameof(image.Style));
             PdfDocument.ValidateImageFitDimensions(block.Info, imageStyle.Fit, nameof(image.Style));
+            var imageBox = ResolveTableCellImageBox(image, innerWidth);
             double x = imageStyle.Align switch {
-                PdfAlign.Center => textX + System.Math.Max(0D, (innerWidth - block.Width) / 2D),
-                PdfAlign.Right => textX + System.Math.Max(0D, innerWidth - block.Width),
+                PdfAlign.Center => textX + System.Math.Max(0D, (innerWidth - imageBox.Width) / 2D),
+                PdfAlign.Right => textX + System.Math.Max(0D, innerWidth - imageBox.Width),
                 _ => textX
             };
-            PageImage pageImage = CreatePageImage(block, imageStyle, x, yCursor - block.Height);
+            PageImage pageImage = CreatePageImage(block, imageStyle, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
             page.Images.Add(pageImage);
-            AddTableCellImageLinkAnnotation(page, image, imageStyle, pageImage, x, yCursor - block.Height);
-            yCursor -= block.Height;
+            AddTableCellImageLinkAnnotation(page, image, imageStyle, pageImage, x, yCursor - imageBox.Height, imageBox.Width, imageBox.Height);
+            yCursor -= imageBox.Height;
             objectCount++;
         }
 
@@ -128,7 +129,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void AddTableCellImageLinkAnnotation(LayoutResult.Page page, PdfTableCellImage image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY) {
+    private static void AddTableCellImageLinkAnnotation(LayoutResult.Page page, PdfTableCellImage image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight) {
         if (string.IsNullOrEmpty(image.LinkUri)) {
             return;
         }
@@ -140,8 +141,8 @@ internal static partial class PdfWriter {
         if (style.Fit == OfficeImageFit.Cover || style.ClipPath != null) {
             x1 = targetX;
             y1 = targetBottomY;
-            x2 = targetX + image.Width;
-            y2 = targetBottomY + image.Height;
+            x2 = targetX + targetWidth;
+            y2 = targetBottomY + targetHeight;
         }
 
         page.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = image.LinkUri!, Contents = image.LinkContents, LinkedImage = pageImage });

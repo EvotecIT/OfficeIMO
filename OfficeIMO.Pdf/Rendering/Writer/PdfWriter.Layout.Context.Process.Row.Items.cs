@@ -227,14 +227,14 @@ internal static partial class PdfWriter {
                             rowLines[ri][cell.Column] = lines;
                             if (cell.RowSpan <= 1) {
                                 maxLines = Math.Max(maxLines, lines.LineCount);
-                            maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading) + GetTableCellPaddingTop(style, ri, cell.Column) + GetTableCellPaddingBottom(style, ri, cell.Column));
+                                maxRequiredHeight = Math.Max(maxRequiredHeight, MeasureTableCellContentHeight(cell, lines, 0, lines.LineCount, rowLeading, innerWidth) + GetTableCellPaddingTop(style, ri, cell.Column) + GetTableCellPaddingBottom(style, ri, cell.Column));
                             }
                         }
 
                         rowLineCounts[ri] = maxLines;
                         rowHeights[ri] = Math.Max(maxRequiredHeight, GetTableRowMinHeight(style, ri));
                     }
-                    ApplyTableRowSpanHeights(tb2, style, cols, rowLines, rowHeights, rowLeadings, tableRowGap);
+                    ApplyTableRowSpanHeights(tb2, style, cols, colPixel, rowLines, rowHeights, rowLeadings, columnGap, tableRowGap);
 
                     System.Collections.Generic.List<string>? captionLines = null;
                     double captionLeading = 0;
@@ -256,7 +256,10 @@ internal static partial class PdfWriter {
                 } else if (cb is HorizontalRuleBlock hr2) {
                     items.Add(new ColRule { Block = hr2 });
                 } else if (cb is ImageBlock ib2) {
-                    items.Add(new ColImg { Block = ib2 });
+                    PdfImageStyle imageStyle = ResolveImageStyle(ib2, currentOpts);
+                    double spacingBefore = imageStyle.SpacingBefore;
+                    var imageBox = ResolveImageFlowBox(ib2, imageStyle, colWs[i], spacingBefore, imageStyle.SpacingAfter);
+                    items.Add(new ColImg { Block = ib2, Style = imageStyle, Width = imageBox.Width, Height = imageBox.Height });
                 } else if (cb is ShapeBlock sb2) {
                     items.Add(new ColShape { Block = sb2 });
                 } else if (cb is DrawingBlock db2) {
@@ -293,8 +296,8 @@ internal static partial class PdfWriter {
                     ValidateHorizontalRule(ruleStyle);
                     total += ResolveColumnSpacingBefore(ruleStyle.SpacingBefore, total) + ruleStyle.Thickness + ruleStyle.SpacingAfter;
                 } else if (item is ColImg image) {
-                    PdfImageStyle imageStyle = ResolveImageStyle(image.Block, currentOpts);
-                    total += ResolveColumnSpacingBefore(imageStyle.SpacingBefore, total) + image.Block.Height + imageStyle.SpacingAfter;
+                    PdfImageStyle imageStyle = image.Style;
+                    total += ResolveColumnSpacingBefore(imageStyle.SpacingBefore, total) + image.Height + imageStyle.SpacingAfter;
                 } else if (item is ColShape shape) {
                     PdfDrawingStyle shapeStyle = ResolveDrawingStyle(shape.Block, currentOpts);
                     total += ResolveColumnSpacingBefore(shapeStyle.SpacingBefore, total) + shape.Block.Shape.Height + shapeStyle.SpacingAfter;
@@ -340,8 +343,8 @@ internal static partial class PdfWriter {
             }
 
             if (item is ColImg image) {
-                PdfImageStyle imageStyle = ResolveImageStyle(image.Block, currentOpts);
-                return imageStyle.SpacingBefore + image.Block.Height + imageStyle.SpacingAfter;
+                PdfImageStyle imageStyle = image.Style;
+                return imageStyle.SpacingBefore + image.Height + imageStyle.SpacingAfter;
             }
 
             if (item is ColShape shape) {

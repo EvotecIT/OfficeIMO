@@ -30,6 +30,8 @@ internal static partial class PdfWriter {
         int compression = 0;
         int filter = 0;
         int interlace = 0;
+        byte[]? palette = null;
+        byte[]? transparency = null;
         var idat = new MemoryStream();
 
         while (offset + 12 <= data.Length) {
@@ -56,6 +58,17 @@ internal static partial class PdfWriter {
                 interlace = data[chunkData + 12];
             } else if (type == "IDAT") {
                 idat.Write(data, chunkData, length);
+            } else if (type == "PLTE") {
+                if (length == 0 || length % 3 != 0 || length > 768) {
+                    unsupportedReason = "PNG palette chunk is invalid.";
+                    return false;
+                }
+
+                palette = new byte[length];
+                Buffer.BlockCopy(data, chunkData, palette, 0, length);
+            } else if (type == "tRNS") {
+                transparency = new byte[length];
+                Buffer.BlockCopy(data, chunkData, transparency, 0, length);
             } else if (type == "IEND") {
                 break;
             }
@@ -73,8 +86,18 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (bitDepth != 8) {
-            unsupportedReason = "Only 8-bit PNG images are currently supported.";
+        if (colorType == 0) {
+            if (bitDepth != 1 && bitDepth != 2 && bitDepth != 4 && bitDepth != 8 && bitDepth != 16) {
+                unsupportedReason = "Grayscale PNG images must use 1, 2, 4, 8, or 16 bits per pixel.";
+                return false;
+            }
+        } else if (colorType == 3) {
+            if (bitDepth != 1 && bitDepth != 2 && bitDepth != 4 && bitDepth != 8) {
+                unsupportedReason = "Indexed-color PNG images must use 1, 2, 4, or 8 bits per pixel.";
+                return false;
+            }
+        } else if (bitDepth != 8 && bitDepth != 16) {
+            unsupportedReason = "Only 8-bit and 16-bit PNG images are currently supported for grayscale-alpha, RGB, and RGBA PNG images.";
             return false;
         }
 
@@ -83,31 +106,71 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (interlace != 0) {
-            unsupportedReason = "Interlaced PNG images are not currently supported.";
+        if (interlace != 0 && interlace != 1) {
+            unsupportedReason = "Unsupported PNG interlace method.";
+            return false;
+        }
+
+        if (transparency != null && (colorType == 4 || colorType == 6)) {
+            unsupportedReason = "PNG transparency chunks are not valid for grayscale-alpha or RGBA PNG images.";
+            return false;
+        }
+
+        byte[] streamData = idat.ToArray();
+        if (interlace == 1 &&
+            !TryNormalizeAdam7PngData(streamData, width, height, bitDepth, colorType, out streamData, out unsupportedReason)) {
             return false;
         }
 
         int colors;
         string colorSpace;
         if (colorType == 0) {
+            if (bitDepth == 16) {
+                return TryExpand16BitPng(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+            }
+
+            if (bitDepth != 8) {
+                return TryExpandPackedGrayscalePng(streamData, width, height, bitDepth, transparency, out image, out unsupportedReason);
+            }
+
+            if (transparency != null) {
+                return TrySplitPngTransparency(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+            }
+
             colors = 1;
             colorSpace = "/DeviceGray";
         } else if (colorType == 2) {
+            if (bitDepth == 16) {
+                return TryExpand16BitPng(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+            }
+
+            if (transparency != null) {
+                return TrySplitPngTransparency(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+            }
+
             colors = 3;
             colorSpace = "/DeviceRGB";
+        } else if (colorType == 3) {
+            if (!TryExpandIndexedPng(streamData, width, height, bitDepth, palette, transparency, out image, out unsupportedReason)) {
+                return false;
+            }
+
+            return true;
         } else if (colorType == 4 || colorType == 6) {
-            if (!TrySplitPngAlpha(idat.ToArray(), width, height, colorType, out image, out unsupportedReason)) {
+            if (bitDepth == 16) {
+                return TryExpand16BitPng(streamData, width, height, colorType, transparency, out image, out unsupportedReason);
+            }
+
+            if (!TrySplitPngAlpha(streamData, width, height, colorType, out image, out unsupportedReason)) {
                 return false;
             }
 
             return true;
         } else {
-            unsupportedReason = "Only grayscale, grayscale-alpha, RGB, and RGBA PNG images are currently supported.";
+            unsupportedReason = "Only grayscale, grayscale-alpha, indexed-color, RGB, and RGBA PNG images are currently supported.";
             return false;
         }
 
-        byte[] streamData = idat.ToArray();
         image = new PdfImageStream {
             Data = streamData,
             PixelWidth = width,
@@ -121,6 +184,240 @@ internal static partial class PdfWriter {
         };
         return true;
     }
+
+    private static bool TrySplitPngTransparency(byte[] compressedData, int width, int height, int colorType, byte[] transparency, out PdfImageStream image, out string? unsupportedReason) {
+        image = new PdfImageStream();
+        unsupportedReason = null;
+
+        int sourceChannels = colorType == 0 ? 1 : 3;
+        int requiredTransparencyLength = colorType == 0 ? 2 : 6;
+        if (transparency.Length < requiredTransparencyLength) {
+            unsupportedReason = colorType == 0
+                ? "Grayscale PNG transparency chunk is invalid."
+                : "RGB PNG transparency chunk is invalid.";
+            return false;
+        }
+
+        byte[] decoded = FlateDecoder.Decode(compressedData);
+        if (decoded.Length < (1 + width * sourceChannels) * height) {
+            unsupportedReason = "PNG image data ended before all transparency scanlines were decoded.";
+            return false;
+        }
+
+        if (!TryUnfilterPngRows(decoded, width, height, sourceChannels, out var rawPixels, out unsupportedReason)) {
+            return false;
+        }
+
+        byte[] baseRows = new byte[(1 + width * sourceChannels) * height];
+        byte[] alphaRows = new byte[(1 + width) * height];
+        int transparentGray = ReadUInt16BigEndian(transparency, 0);
+        int transparentRed = colorType == 2 ? ReadUInt16BigEndian(transparency, 0) : -1;
+        int transparentGreen = colorType == 2 ? ReadUInt16BigEndian(transparency, 2) : -1;
+        int transparentBlue = colorType == 2 ? ReadUInt16BigEndian(transparency, 4) : -1;
+
+        for (int row = 0; row < height; row++) {
+            int baseRowStart = row * (1 + width * sourceChannels);
+            int alphaRowStart = row * (1 + width);
+            baseRows[baseRowStart] = 0;
+            alphaRows[alphaRowStart] = 0;
+
+            int sourceRowStart = row * width * sourceChannels;
+            for (int pixel = 0; pixel < width; pixel++) {
+                int sourcePixel = sourceRowStart + pixel * sourceChannels;
+                int basePixel = baseRowStart + 1 + pixel * sourceChannels;
+                Buffer.BlockCopy(rawPixels, sourcePixel, baseRows, basePixel, sourceChannels);
+
+                bool isTransparent = colorType == 0
+                    ? rawPixels[sourcePixel] == transparentGray
+                    : rawPixels[sourcePixel] == transparentRed &&
+                      rawPixels[sourcePixel + 1] == transparentGreen &&
+                      rawPixels[sourcePixel + 2] == transparentBlue;
+                alphaRows[alphaRowStart + 1 + pixel] = isTransparent ? (byte)0 : (byte)255;
+            }
+        }
+
+        string colorSpace = colorType == 0 ? "/DeviceGray" : "/DeviceRGB";
+        image = new PdfImageStream {
+            Data = DeflateZlib(baseRows),
+            PixelWidth = width,
+            PixelHeight = height,
+            DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, sourceChannels, width),
+            SoftMask = new PdfImageStream {
+                Data = DeflateZlib(alphaRows),
+                PixelWidth = width,
+                PixelHeight = height,
+                DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
+            }
+        };
+        return true;
+    }
+
+    private static bool TryExpandPackedGrayscalePng(byte[] compressedData, int width, int height, int bitDepth, byte[]? transparency, out PdfImageStream image, out string? unsupportedReason) {
+        image = new PdfImageStream();
+        unsupportedReason = null;
+
+        int maxSample = (1 << bitDepth) - 1;
+        int transparentSample = -1;
+        if (transparency != null) {
+            if (transparency.Length < 2) {
+                unsupportedReason = "Grayscale PNG transparency chunk is invalid.";
+                return false;
+            }
+
+            transparentSample = ReadUInt16BigEndian(transparency, 0);
+            if (transparentSample > maxSample) {
+                unsupportedReason = "Grayscale PNG transparency value exceeds the image bit depth.";
+                return false;
+            }
+        }
+
+        byte[] decoded = FlateDecoder.Decode(compressedData);
+        int packedRowBytes = ((width * bitDepth) + 7) / 8;
+        if (decoded.Length < (packedRowBytes + 1) * height) {
+            unsupportedReason = "PNG image data ended before all grayscale scanlines were decoded.";
+            return false;
+        }
+
+        if (!TryUnfilterPngRows(decoded, packedRowBytes, height, 1, out var packedRows, out unsupportedReason)) {
+            return false;
+        }
+
+        byte[] baseRows = new byte[(1 + width) * height];
+        byte[]? alphaRows = transparency != null ? new byte[(1 + width) * height] : null;
+        for (int row = 0; row < height; row++) {
+            int baseRowStart = row * (1 + width);
+            int alphaRowStart = row * (1 + width);
+            baseRows[baseRowStart] = 0;
+            if (alphaRows != null) {
+                alphaRows[alphaRowStart] = 0;
+            }
+
+            int sourceRowStart = row * packedRowBytes;
+            for (int pixel = 0; pixel < width; pixel++) {
+                int sample = ReadPackedPngSample(packedRows, sourceRowStart, pixel, bitDepth);
+                int targetOffset = baseRowStart + 1 + pixel;
+                baseRows[targetOffset] = ScalePackedSampleToByte(sample, maxSample);
+                if (alphaRows != null) {
+                    alphaRows[alphaRowStart + 1 + pixel] = sample == transparentSample ? (byte)0 : (byte)255;
+                }
+            }
+        }
+
+        image = new PdfImageStream {
+            Data = DeflateZlib(baseRows),
+            PixelWidth = width,
+            PixelHeight = height,
+            DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
+        };
+        if (alphaRows != null) {
+            image.SoftMask = new PdfImageStream {
+                Data = DeflateZlib(alphaRows),
+                PixelWidth = width,
+                PixelHeight = height,
+                DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
+            };
+        }
+
+        return true;
+    }
+
+    private static bool TryExpandIndexedPng(byte[] compressedData, int width, int height, int bitDepth, byte[]? palette, byte[]? paletteAlpha, out PdfImageStream image, out string? unsupportedReason) {
+        image = new PdfImageStream();
+        unsupportedReason = null;
+
+        if (palette == null || palette.Length == 0) {
+            unsupportedReason = "Indexed-color PNG images require a PLTE palette chunk.";
+            return false;
+        }
+
+        int paletteEntries = palette.Length / 3;
+        if (paletteAlpha != null && paletteAlpha.Length > paletteEntries) {
+            unsupportedReason = "Indexed-color PNG transparency has more entries than the PLTE palette.";
+            return false;
+        }
+
+        byte[] decoded = FlateDecoder.Decode(compressedData);
+        int packedRowBytes = ((width * bitDepth) + 7) / 8;
+        if (decoded.Length < (packedRowBytes + 1) * height) {
+            unsupportedReason = "PNG image data ended before all indexed-color scanlines were decoded.";
+            return false;
+        }
+
+        if (!TryUnfilterPngRows(decoded, packedRowBytes, height, 1, out var packedRows, out unsupportedReason)) {
+            return false;
+        }
+
+        byte[] baseRows = new byte[(1 + width * 3) * height];
+        byte[]? alphaRows = HasPaletteTransparency(paletteAlpha) ? new byte[(1 + width) * height] : null;
+        for (int row = 0; row < height; row++) {
+            int baseRowStart = row * (1 + width * 3);
+            int alphaRowStart = row * (1 + width);
+            baseRows[baseRowStart] = 0;
+            if (alphaRows != null) {
+                alphaRows[alphaRowStart] = 0;
+            }
+
+            int sourceRowStart = row * packedRowBytes;
+            for (int pixel = 0; pixel < width; pixel++) {
+                int paletteIndex = ReadPackedPngSample(packedRows, sourceRowStart, pixel, bitDepth);
+                if (paletteIndex >= paletteEntries) {
+                    unsupportedReason = "Indexed-color PNG pixel references a palette entry that does not exist.";
+                    return false;
+                }
+
+                int paletteOffset = paletteIndex * 3;
+                int targetOffset = baseRowStart + 1 + pixel * 3;
+                baseRows[targetOffset] = palette[paletteOffset];
+                baseRows[targetOffset + 1] = palette[paletteOffset + 1];
+                baseRows[targetOffset + 2] = palette[paletteOffset + 2];
+
+                if (alphaRows != null) {
+                    alphaRows[alphaRowStart + 1 + pixel] =
+                        paletteAlpha != null && paletteIndex < paletteAlpha.Length ? paletteAlpha[paletteIndex] : (byte)255;
+                }
+            }
+        }
+
+        image = new PdfImageStream {
+            Data = DeflateZlib(baseRows),
+            PixelWidth = width,
+            PixelHeight = height,
+            DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceRGB", 3, width)
+        };
+        if (alphaRows != null) {
+            image.SoftMask = new PdfImageStream {
+                Data = DeflateZlib(alphaRows),
+                PixelWidth = width,
+                PixelHeight = height,
+                DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
+            };
+        }
+
+        return true;
+    }
+
+    private static bool HasPaletteTransparency(byte[]? paletteAlpha) =>
+        paletteAlpha != null && paletteAlpha.Any(alpha => alpha < 255);
+
+    private static int ReadPackedPngSample(byte[] packedRows, int rowStart, int pixelIndex, int bitDepth) {
+        if (bitDepth == 8) {
+            return packedRows[rowStart + pixelIndex];
+        }
+
+        int samplesPerByte = 8 / bitDepth;
+        int sourceByte = packedRows[rowStart + pixelIndex / samplesPerByte];
+        int shift = (samplesPerByte - 1 - (pixelIndex % samplesPerByte)) * bitDepth;
+        int mask = (1 << bitDepth) - 1;
+        return (sourceByte >> shift) & mask;
+    }
+
+    private static byte ScalePackedSampleToByte(int sample, int maxSample) =>
+        (byte)Math.Round(sample * 255.0 / maxSample, MidpointRounding.AwayFromZero);
+
+    private static int ReadUInt16BigEndian(byte[] data, int offset) =>
+        offset + 2 <= data.Length
+            ? (data[offset] << 8) | data[offset + 1]
+            : 0;
 
     private static bool TrySplitPngAlpha(byte[] compressedData, int width, int height, int colorType, out PdfImageStream image, out string? unsupportedReason) {
         image = new PdfImageStream();
@@ -164,12 +461,12 @@ internal static partial class PdfWriter {
 
         string colorSpace = colorType == 4 ? "/DeviceGray" : "/DeviceRGB";
         image = new PdfImageStream {
-            Data = DeflateZlibStored(baseRows),
+            Data = DeflateZlib(baseRows),
             PixelWidth = width,
             PixelHeight = height,
             DictionarySuffix = BuildPngPredictorDictionarySuffix(colorSpace, baseChannels, width),
             SoftMask = new PdfImageStream {
-                Data = DeflateZlibStored(alphaRows),
+                Data = DeflateZlib(alphaRows),
                 PixelWidth = width,
                 PixelHeight = height,
                 DictionarySuffix = BuildPngPredictorDictionarySuffix("/DeviceGray", 1, width)
@@ -246,33 +543,6 @@ internal static partial class PdfWriter {
         int pc = Math.Abs(p - upLeft);
         if (pa <= pb && pa <= pc) return left;
         return pb <= pc ? up : upLeft;
-    }
-
-    private static byte[] DeflateZlibStored(byte[] data) {
-        using var ms = new MemoryStream();
-        ms.WriteByte(0x78);
-        ms.WriteByte(0x01);
-
-        int offset = 0;
-        do {
-            int blockLength = Math.Min(65535, data.Length - offset);
-            bool final = offset + blockLength >= data.Length;
-            ms.WriteByte(final ? (byte)1 : (byte)0);
-            ms.WriteByte((byte)(blockLength & 0xFF));
-            ms.WriteByte((byte)((blockLength >> 8) & 0xFF));
-            int nlen = blockLength ^ 0xFFFF;
-            ms.WriteByte((byte)(nlen & 0xFF));
-            ms.WriteByte((byte)((nlen >> 8) & 0xFF));
-            ms.Write(data, offset, blockLength);
-            offset += blockLength;
-        } while (offset < data.Length);
-
-        uint adler = Adler32(data);
-        ms.WriteByte((byte)((adler >> 24) & 0xFF));
-        ms.WriteByte((byte)((adler >> 16) & 0xFF));
-        ms.WriteByte((byte)((adler >> 8) & 0xFF));
-        ms.WriteByte((byte)(adler & 0xFF));
-        return ms.ToArray();
     }
 
     private static uint Adler32(byte[] data) {

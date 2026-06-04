@@ -130,14 +130,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static bool IsSupportedChartSnapshot(ExcelChartSnapshot snapshot) {
-            return IsColumnChart(snapshot.ChartType)
-                   || IsBarChart(snapshot.ChartType)
-                   || IsLineChart(snapshot.ChartType)
-                   || IsAreaChart(snapshot.ChartType)
-                   || IsScatterChart(snapshot.ChartType)
-                   || IsRadarChart(snapshot.ChartType)
-                   || IsPieChart(snapshot.ChartType)
-                   || IsDoughnutChart(snapshot.ChartType);
+            return TryMapChartKind(snapshot.ChartType, out _);
         }
 
         private static string GetChartDisplayName(ExcelChartSnapshot snapshot) {
