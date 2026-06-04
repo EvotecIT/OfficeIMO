@@ -14,7 +14,7 @@ namespace OfficeIMO.Visio {
     /// </summary>
     public partial class VisioDocument {
 
-        private static void FixContentTypes(string filePath, int masterCount, bool includeTheme, IEnumerable<string> pagePartNames) {
+        private static void FixContentTypes(string filePath, int masterCount, bool includeTheme, bool includeComments, IEnumerable<string> pagePartNames) {
             if (string.IsNullOrWhiteSpace(filePath)) {
                 throw new ArgumentException("File path cannot be null or whitespace.", nameof(filePath));
             }
@@ -25,10 +25,10 @@ namespace OfficeIMO.Visio {
 
             using FileStream zipStream = File.Open(filePath, FileMode.Open, FileAccess.ReadWrite);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Update);
-            FixContentTypesCore(archive, masterCount, includeTheme, pagePartNames);
+            FixContentTypesCore(archive, masterCount, includeTheme, includeComments, pagePartNames);
         }
 
-        private static void FixContentTypes(Stream stream, int masterCount, bool includeTheme, IEnumerable<string> pagePartNames) {
+        private static void FixContentTypes(Stream stream, int masterCount, bool includeTheme, bool includeComments, IEnumerable<string> pagePartNames) {
             if (stream == null) {
                 throw new ArgumentNullException(nameof(stream));
             }
@@ -41,11 +41,11 @@ namespace OfficeIMO.Visio {
 
             stream.Seek(0, SeekOrigin.Begin);
             using ZipArchive archive = new(stream, ZipArchiveMode.Update, leaveOpen: true);
-            FixContentTypesCore(archive, masterCount, includeTheme, pagePartNames);
+            FixContentTypesCore(archive, masterCount, includeTheme, includeComments, pagePartNames);
             stream.Seek(0, SeekOrigin.Begin);
         }
 
-        private static void FixContentTypesCore(ZipArchive archive, int masterCount, bool includeTheme, IEnumerable<string> pagePartNames) {
+        private static void FixContentTypesCore(ZipArchive archive, int masterCount, bool includeTheme, bool includeComments, IEnumerable<string> pagePartNames) {
             ZipArchiveEntry? entry = archive.GetEntry("[Content_Types].xml");
             entry?.Delete();
             ZipArchiveEntry newEntry = archive.CreateEntry("[Content_Types].xml");
@@ -90,6 +90,9 @@ namespace OfficeIMO.Visio {
             }
             if (includeTheme) {
                 AddOverride("/visio/theme/theme1.xml", ThemeContentType);
+            }
+            if (includeComments) {
+                AddOverride("/visio/comments.xml", CommentsContentType);
             }
             if (masterCount > 0) {
                 AddOverride("/visio/masters/masters.xml", "application/vnd.ms-visio.masters+xml");

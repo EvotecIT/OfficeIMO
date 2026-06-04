@@ -8,7 +8,7 @@ namespace OfficeIMO.Visio.Fluent {
     /// Fluent builder for a single Visio page. Provides direct verbs like
     /// Rect/Ellipse/Diamond/Triangle/Connect, consistent with other OfficeIMO fluent APIs.
     /// </summary>
-    public class VisioFluentPage {
+    public partial class VisioFluentPage {
         private readonly VisioFluentDocument _fluent;
         private readonly VisioPage _page;
         private readonly Dictionary<string, VisioShape> _byId;
@@ -22,6 +22,15 @@ namespace OfficeIMO.Visio.Fluent {
             // Build once up-front; shapes added through this fluent API keep it in sync.
             _byId = new Dictionary<string, VisioShape>(Math.Max(4, page.Shapes.Count), StringComparer.Ordinal);
             foreach (var s in page.Shapes) RegisterShape(s);
+        }
+
+        internal VisioPage Page => _page;
+
+        internal void RebuildShapeIndex() {
+            _byId.Clear();
+            foreach (VisioShape shape in _page.Shapes) {
+                RegisterShape(shape);
+            }
         }
 
         /// <summary>Sets page size.</summary>

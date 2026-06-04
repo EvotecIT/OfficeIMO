@@ -661,7 +661,9 @@ namespace OfficeIMO.Visio {
                     if (!shapeMap.TryGetValue(fromId, out VisioShape? fromShape) || !shapeMap.TryGetValue(toId, out VisioShape? toShape)) {
                         continue;
                     }
-                    VisioConnector connector = new VisioConnector(id, fromShape!, toShape!);
+                    VisioConnector connector = new VisioConnector(id, fromShape!, toShape!) {
+                        PersistedId = persistedId
+                    };
 
                     foreach (XElement cell in connectorElement.Elements(vNs + "Cell")) {
                         string? n = cell.Attribute("N")?.Value;
@@ -908,6 +910,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
+            LoadComments(package, documentPart, document);
             ResolvePageBackgrounds(document);
             return document;
         }

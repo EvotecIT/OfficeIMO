@@ -9,8 +9,16 @@ namespace OfficeIMO.Visio {
         public const string UserAdornmentRole = "User";
         public const string SequenceActivationKind = "SequenceActivation";
         public const string SequenceFragmentKind = "SequenceFragment";
+        public const string SwimlaneLaneHeaderKind = "SwimlaneLaneHeader";
+        public const string SwimlaneLaneKind = "SwimlaneLane";
+        public const string SwimlanePhaseKind = "SwimlanePhase";
+        public const string SwimlaneActivityKind = "SwimlaneActivity";
         public const string CalloutTargetId = "OfficeIMO.CalloutTargetId";
         public const string CalloutLeaderId = "OfficeIMO.CalloutLeaderId";
+        public const string SwimlaneLaneId = "OfficeIMO.SwimlaneLaneId";
+        public const string SwimlanePhaseId = "OfficeIMO.SwimlanePhaseId";
+        public const string SwimlaneActivityType = "OfficeIMO.SwimlaneActivityType";
+        public const string ContainerHeadingHeight = "OfficeIMO.ContainerHeadingHeight";
         public const string DataGraphicTargetId = "OfficeIMO.DataGraphicTargetId";
         public const string DataGraphicField = "OfficeIMO.DataGraphicField";
         public const string DataGraphicValue = "OfficeIMO.DataGraphicValue";

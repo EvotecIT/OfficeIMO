@@ -4,7 +4,7 @@ namespace OfficeIMO.Visio.Fluent {
     /// <summary>
     /// Provides a fluent wrapper for <see cref="VisioDocument"/> allowing chained configuration.
     /// </summary>
-    public class VisioFluentDocument {
+    public partial class VisioFluentDocument {
         private readonly VisioDocument _document;
 
         internal VisioDocument Document => _document;

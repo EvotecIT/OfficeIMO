@@ -144,20 +144,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static void ApplyContainerSemantics(VisioShape container, VisioContainerOptions options, VisioMeasurementUnit unit) {
-            container.FillColor = options.FillColor;
-            container.LineColor = options.LineColor;
-            container.LineWeight = options.LineWeight;
-            container.FillPattern = 1;
-            container.LinePattern = 1;
-            container.SetUserCell("msvShapeCategories", "ContainerStyleDefaults", "STR", prompt: string.Empty);
-            container.SetUserCell("msvStructureType", "Container", "STR", prompt: string.Empty);
-            container.SetUserCell("msvSDContainerMargin", options.Margin.ToInches(unit).ToString(System.Globalization.CultureInfo.InvariantCulture), "IN", prompt: string.Empty);
-            container.SetUserCell("msvSDContainerResize", options.AutoResize ? "1" : "0", prompt: string.Empty);
-            container.SetUserCell("msvSDContainerLocked", options.Locked ? "1" : "0", "BOOL", prompt: string.Empty);
-            container.SetUserCell("msvSDContainerNoHighlight", "0", "BOOL", prompt: string.Empty);
-            container.SetUserCell("msvSDContainerNoRibbon", "0", "BOOL", prompt: string.Empty);
-            container.SetUserCell("msvSDContainerStyle", "1", prompt: string.Empty);
-            container.SetUserCell("msvSDHeadingStyle", "1", prompt: string.Empty);
+            VisioContainerSemantics.Apply(container, options, unit);
         }
 
         private static void GetContainerBounds(IReadOnlyList<VisioShape> members, VisioContainerOptions options, VisioMeasurementUnit unit, out double pinX, out double pinY, out double width, out double height) {

@@ -4,6 +4,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
+using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
 using Color = OfficeIMO.Drawing.OfficeColor;
@@ -137,6 +138,80 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, duplicates.Count);
             Assert.Equal(4, page.Shapes.Count);
             Assert.Single(page.Connectors);
+        }
+
+        [Fact]
+        public void DuplicateShapesOptionsCreateFriendlyUniqueIds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Friendly IDs", 11, 8.5);
+            VisioShape api = new("api", 2, 5, 1.4, 0.8, "API") { NameU = "Rectangle" };
+            VisioShape database = new("db", 5, 5, 1.4, 0.8, "Database") { NameU = "Rectangle" };
+            VisioShape existingCopy = new("api-copy", 2, 3, 1.4, 0.8, "Existing copy") { NameU = "Rectangle" };
+            page.Shapes.Add(api);
+            page.Shapes.Add(database);
+            page.Shapes.Add(existingCopy);
+            VisioConnector connector = page.AddConnector("route", api, database, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
+            connector.Label = "SQL";
+
+            VisioShapeSelection duplicates = page.DuplicateShapes(new[] { api, database }, new VisioShapeDuplicationOptions {
+                IdSuffix = "-copy",
+                ConnectorIdSuffix = "-copy",
+                OffsetX = 1.25,
+                OffsetY = -0.5
+            });
+
+            Assert.Equal(2, duplicates.Count);
+            VisioShape apiCopy = page.FindShapeById("api-copy-2")!;
+            VisioShape databaseCopy = page.FindShapeById("db-copy")!;
+            Assert.NotNull(apiCopy);
+            Assert.NotNull(databaseCopy);
+            Assert.Equal(api.PinX + 1.25, apiCopy.PinX, 6);
+            Assert.Equal(api.PinY - 0.5, apiCopy.PinY, 6);
+
+            VisioConnector connectorCopy = page.Connectors.Single(current => current.Id == "route-copy");
+            Assert.Same(apiCopy, connectorCopy.From);
+            Assert.Same(databaseCopy, connectorCopy.To);
+            Assert.Equal("SQL", connectorCopy.Label);
+
+            document.Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            Assert.NotNull(loaded.Pages[0].FindShapeById("api-copy-2"));
+            Assert.NotNull(loaded.Pages[0].FindShapeById("db-copy"));
+            Assert.Contains(loaded.Pages[0].Connectors, current => current.Label == "SQL" && current.From.Id == "api-copy-2" && current.To.Id == "db-copy");
+        }
+
+        [Fact]
+        public void FluentDuplicateShapesKeepsCopiesAddressableForChaining() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+
+            document.AsFluent()
+                .Page("Fluent copies", page => page
+                    .Rect("api", 2, 5, 1.4, 0.8, "API")
+                    .Rect("db", 5, 5, 1.4, 0.8, "Database")
+                    .Connect("api", "db", VisioSide.Right, VisioSide.Left, connector => connector.Label("SQL"))
+                    .DuplicateShapes(new[] { "api", "db" }, duplicates => duplicates.ShapeData("Copied", "Yes"))
+                    .Shape("api-copy", shape => shape.Text("API Copy"))
+                    .Shape("db-copy", shape => shape.Text("Database Copy"))
+                    .Connect("api-copy", "db-copy", VisioSide.Right, VisioSide.Left, connector => connector.Label("copied route")))
+                .End()
+                .Save();
+
+            Assert.Empty(VisioValidator.Validate(filePath));
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal("Yes", page.FindShapeById("api-copy")!.GetShapeDataValue("Copied"));
+            Assert.Equal("API Copy", page.FindShapeById("api-copy")!.Text);
+            Assert.Equal("Database Copy", page.FindShapeById("db-copy")!.Text);
+            Assert.Contains(page.Connectors, connector => connector.Label == "SQL" && connector.From.Id == "api-copy" && connector.To.Id == "db-copy");
+            Assert.Contains(page.Connectors, connector => connector.Label == "copied route" && connector.From.Id == "api-copy" && connector.To.Id == "db-copy");
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioPage loadedPage = Assert.Single(loaded.Pages);
+            Assert.Equal("Yes", loadedPage.FindShapeById("api-copy")!.GetShapeDataValue("Copied"));
+            Assert.Contains(loadedPage.Connectors, connector => connector.Label == "copied route" && connector.From.Id == "api-copy" && connector.To.Id == "db-copy");
         }
 
         [Fact]

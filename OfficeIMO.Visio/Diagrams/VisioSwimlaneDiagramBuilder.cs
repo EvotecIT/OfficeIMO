@@ -454,12 +454,15 @@ namespace OfficeIMO.Visio.Diagrams {
                     NameU = "Rectangle",
                 };
                 _theme.Emphasis.ApplyTo(laneHeader);
+                laneHeader.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SwimlaneLaneHeaderKind, "STR", prompt: "OfficeIMO semantic kind");
+                laneHeader.SetUserCell(VisioSemanticUserCells.SwimlaneLaneId, lane.Id, "STR", prompt: "OfficeIMO swimlane lane id");
                 page.Shapes.Add(laneHeader);
 
                 VisioShape laneBody = page.AddStencilShape(VisioStencils.Swimlane, "swim.lane", "lane-" + lane.Id, processCenterX, y, processWidth, _laneHeight, string.Empty);
                 laneBody.NameU = "Rectangle";
                 ApplyLaneBodyStyle(laneBody, i);
-                laneBody.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
+                laneBody.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SwimlaneLaneKind, "STR", prompt: "OfficeIMO semantic kind");
+                laneBody.SetUserCell(VisioSemanticUserCells.SwimlaneLaneId, lane.Id, "STR", prompt: "OfficeIMO swimlane lane id");
             }
 
             for (int i = 0; i < _phases.Count; i++) {
@@ -467,7 +470,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 VisioShape phaseHeader = page.AddStencilShape(VisioStencils.Swimlane, "swim.phase", "phase-" + phase.Id, PhaseCenterX(i), PhaseHeaderCenterY(), _phaseWidth, _phaseHeaderHeight, phase.Text);
                 phaseHeader.NameU = "Rectangle";
                 _theme.Container.ApplyTo(phaseHeader);
-                phaseHeader.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
+                phaseHeader.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SwimlanePhaseKind, "STR", prompt: "OfficeIMO semantic kind");
+                phaseHeader.SetUserCell(VisioSemanticUserCells.SwimlanePhaseId, phase.Id, "STR", prompt: "OfficeIMO swimlane phase id");
             }
         }
 
@@ -479,6 +483,10 @@ namespace OfficeIMO.Visio.Diagrams {
                 VisioShape shape = page.AddStencilShape(VisioStencils.Swimlane, GetActivityStencilId(activity.Kind), activity.Id, PhaseCenterX(phaseIndex), ActivityCenterY(activity, laneIndex, height), width, height, activity.Text);
                 shape.NameU = masterNameU;
                 GetActivityStyle(activity.Kind).ApplyTo(shape);
+                shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SwimlaneActivityKind, "STR", prompt: "OfficeIMO semantic kind");
+                shape.SetUserCell(VisioSemanticUserCells.SwimlaneLaneId, activity.LaneId, "STR", prompt: "OfficeIMO swimlane lane id");
+                shape.SetUserCell(VisioSemanticUserCells.SwimlanePhaseId, activity.PhaseId, "STR", prompt: "OfficeIMO swimlane phase id");
+                shape.SetUserCell(VisioSemanticUserCells.SwimlaneActivityType, activity.Kind.ToString(), "STR", prompt: "OfficeIMO swimlane activity type");
                 activity.Shape = shape;
             }
         }

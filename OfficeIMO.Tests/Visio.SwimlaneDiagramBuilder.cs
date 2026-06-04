@@ -1,8 +1,10 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
+using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
 
@@ -63,6 +65,98 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Equal(17, loaded.Pages[0].Shapes.Count);
             Assert.Equal(6, loaded.Pages[0].Connectors.Count);
+        }
+
+        [Fact]
+        public void SwimlaneDiagramBuilderPersistsTypedLanePhaseAndActivityMetadata() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath)
+                .SwimlaneDiagram("Fulfillment", swim => swim
+                    .Lane("sales", "Sales")
+                    .Lane("ops", "Operations")
+                    .Phase("review", "Review")
+                    .Phase("fulfill", "Fulfill")
+                    .Start("start", "Start", "sales", "review")
+                    .Step("pick", "Pick", "ops", "fulfill")
+                    .End("ship", "Ship", "ops", "fulfill")
+                    .Flow("start", "pick")
+                    .Flow("pick", "ship"));
+
+            VisioPage page = Assert.Single(document.Pages);
+            Assert.Equal(2, page.GetSwimlaneLanes().Count);
+            Assert.Equal(2, page.GetSwimlanePhases().Count);
+            VisioSwimlaneActivityPlacement pick = Assert.Single(page.GetSwimlaneActivities(), activity => activity.Shape.Id == "pick");
+            Assert.Equal("ops", pick.LaneId);
+            Assert.Equal("fulfill", pick.PhaseId);
+            Assert.Equal(VisioSwimlaneActivityKind.Step, pick.ActivityKind);
+            Assert.Equal(VisioSemanticUserCells.SwimlaneLaneKind, page.Shapes.Single(shape => shape.Id == "lane-ops").GetUserCellValue(VisioSemanticUserCells.Kind));
+            Assert.True(page.Shapes.Single(shape => shape.Id == "lane-ops").IsBackgroundSurface);
+
+            document.Save();
+            Assert.Empty(VisioValidator.Validate(filePath));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioPage loadedPage = loaded.Pages[0];
+            VisioSwimlaneActivityPlacement loadedPick = Assert.Single(loadedPage.GetSwimlaneActivities(), activity => activity.Shape.Id == "pick");
+            Assert.Equal("ops", loadedPick.LaneId);
+            Assert.Equal("fulfill", loadedPick.PhaseId);
+            Assert.Equal(VisioSwimlaneActivityKind.Step, loadedPick.ActivityKind);
+            Assert.Contains("OfficeIMO.SwimlaneLaneId", ReadZipText(filePath, "visio/pages/page1.xml"));
+            Assert.Contains("OfficeIMO.SwimlanePhaseId", ReadZipText(filePath, "visio/pages/page1.xml"));
+            Assert.Contains("OfficeIMO.SwimlaneActivityType", ReadZipText(filePath, "visio/pages/page1.xml"));
+        }
+
+        [Fact]
+        public void LoadedSwimlaneActivitiesCanMoveWithFluentRelayoutAndSave() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string editedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument.Create(filePath)
+                .SwimlaneDiagram("Fulfillment", swim => swim
+                    .Lane("sales", "Sales")
+                    .Lane("ops", "Operations")
+                    .Phase("review", "Review")
+                    .Phase("fulfill", "Fulfill")
+                    .Step("qualify", "Qualify", "sales", "review")
+                    .Step("pick", "Pick", "ops", "fulfill")
+                    .End("ship", "Ship", "ops", "fulfill")
+                    .Flow("qualify", "pick")
+                    .Flow("pick", "ship"))
+                .Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            loaded.AsFluent()
+                .ExistingPage("Fulfillment", page => page
+                    .MoveSwimlaneActivity("pick", "sales", "review", options => {
+                        options.AvoidShapes = false;
+                        options.ActivityGap = 0.18D;
+                    }));
+
+            VisioPage page = loaded.Pages[0];
+            VisioShape pick = page.Shapes.Single(shape => shape.Id == "pick");
+            VisioShape qualify = page.Shapes.Single(shape => shape.Id == "qualify");
+            VisioSwimlaneLane? sales = page.FindSwimlaneLane("sales");
+            VisioSwimlanePhase? review = page.FindSwimlanePhase("review");
+            Assert.NotNull(sales);
+            Assert.NotNull(review);
+            OfficeIMO.Visio.VisioShapeBounds salesBounds = sales!.Body.GetShapeBounds();
+            Assert.Equal("sales", pick.GetUserCellValue(VisioSemanticUserCells.SwimlaneLaneId));
+            Assert.Equal("review", pick.GetUserCellValue(VisioSemanticUserCells.SwimlanePhaseId));
+            Assert.Equal(review!.Header.PinX, pick.PinX, 6);
+            Assert.InRange(pick.PinY, salesBounds.Bottom, salesBounds.Top);
+            Assert.InRange(qualify.PinY, salesBounds.Bottom, salesBounds.Top);
+            Assert.NotEqual(qualify.PinY, pick.PinY);
+            Assert.All(page.Connectors, connector => Assert.NotEmpty(connector.Waypoints));
+
+            loaded.Save(editedPath);
+            Assert.Empty(VisioValidator.Validate(editedPath));
+
+            VisioDocument reloaded = VisioDocument.Load(editedPath);
+            VisioSwimlaneActivityPlacement moved = Assert.Single(reloaded.Pages[0].GetSwimlaneActivities(), activity => activity.Shape.Id == "pick");
+            Assert.Equal("sales", moved.LaneId);
+            Assert.Equal("review", moved.PhaseId);
+            Assert.Contains("OfficeIMO.SwimlaneLaneId", ReadZipText(editedPath, "visio/pages/page1.xml"));
         }
 
         [Fact]
@@ -318,6 +412,13 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("Placement must be", autoPlacement.Message);
             Assert.Contains("finite non-negative", badGap.Message);
+        }
+
+        private static string ReadZipText(string filePath, string entryName) {
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            using Stream stream = archive.GetEntry(entryName)!.Open();
+            using StreamReader reader = new(stream);
+            return reader.ReadToEnd();
         }
     }
 }
