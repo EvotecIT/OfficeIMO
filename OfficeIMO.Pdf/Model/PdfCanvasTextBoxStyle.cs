@@ -13,11 +13,21 @@ public sealed class PdfCanvasTextBoxStyle {
     private double _cornerRadius;
     private double? _fontSize;
     private double? _lineHeight;
+    private double? _backgroundOpacity;
     private PdfStandardFont? _font;
     private PdfVerticalAlign _verticalAlign = PdfVerticalAlign.Top;
 
     /// <summary>Background fill color. Set to null for a transparent text box.</summary>
     public PdfColor? Background { get; set; } = PdfColor.White;
+
+    /// <summary>Optional background fill opacity from 0 (transparent) to 1 (opaque).</summary>
+    public double? BackgroundOpacity {
+        get => _backgroundOpacity;
+        set {
+            ValidateOptionalOpacity(value, nameof(BackgroundOpacity));
+            _backgroundOpacity = value;
+        }
+    }
 
     /// <summary>Border color. Set to null for no border.</summary>
     public PdfColor? BorderColor { get; set; } = PdfColor.Gray;
@@ -122,6 +132,7 @@ public sealed class PdfCanvasTextBoxStyle {
     public PdfCanvasTextBoxStyle Clone() {
         return new PdfCanvasTextBoxStyle {
             Background = Background,
+            BackgroundOpacity = BackgroundOpacity,
             BorderColor = BorderColor,
             BorderWidth = BorderWidth,
             BorderDashStyle = BorderDashStyle,
@@ -148,6 +159,12 @@ public sealed class PdfCanvasTextBoxStyle {
     private static void ValidateOptionalPositiveFiniteValue(double? value, string paramName, string message) {
         if (value.HasValue && (value.Value <= 0 || double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
             throw new System.ArgumentException(message, paramName);
+        }
+    }
+
+    private static void ValidateOptionalOpacity(double? value, string paramName) {
+        if (value.HasValue && (value.Value < 0D || value.Value > 1D || double.IsNaN(value.Value) || double.IsInfinity(value.Value))) {
+            throw new System.ArgumentOutOfRangeException(paramName, "Canvas text box background opacity must be a finite value between 0 and 1.");
         }
     }
 

@@ -232,6 +232,34 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 700U, Name = "Layout Rule" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+                new ApplicationNonVisualDrawingProperties()),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(16), Y = PowerPointUnits.FromPoints(20) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(50), Cy = PowerPointUnits.FromPoints(10) }),
+                new PresetGeometry(new AdjustValueList()) { Preset = ShapeTypeValues.Rectangle },
+                new SolidFill(new RgbColorModelHex { Val = "00AA00" }))));
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("16 130 50 10 re", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesFlippedPictures() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -249,6 +277,23 @@ public class PowerPointSaveAsPdfTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("-60 0 0 30 100 80 cm", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTextBoxFillTransparency() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints("Transparent", 20, 30, 120, 40);
+        textBox.FillColor = "112233";
+        textBox.FillTransparency = 50;
+        textBox.OutlineColor = null;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/ca 0.5", raw, StringComparison.Ordinal);
+        Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -300,6 +345,25 @@ public class PowerPointSaveAsPdfTests {
         Assert.Contains("Metric", text, StringComparison.Ordinal);
         Assert.Contains("Quality", text, StringComparison.Ordinal);
         Assert.Contains("99", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTableRotation() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 34, 150, 70);
+        table.Rotation = 90D;
+        table.GetCell(0, 0).Text = "Rotated";
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        int transform = raw.IndexOf("0 1 -1 0 216 6 cm", StringComparison.Ordinal);
+        int tableRect = raw.IndexOf("30 76 150 70 re", StringComparison.Ordinal);
+
+        Assert.True(transform >= 0, "Expected PowerPoint table rotation to flow into the shared PDF canvas table.");
+        Assert.True(tableRect > transform, "Expected rotated table geometry to render after the rotation matrix.");
     }
 
     [Fact]
@@ -403,6 +467,22 @@ public class PowerPointSaveAsPdfTests {
         Assert.Contains("120 120 l", raw, StringComparison.Ordinal);
         Assert.Contains("140 130 m", raw, StringComparison.Ordinal);
         Assert.Contains("140 50 l", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesFlippedLineAutoShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointAutoShape line = presentation.Slides[0].AddShapePoints(ShapeTypeValues.Line, 20, 40, 80, 40);
+        line.HorizontalFlip = true;
+        line.Stroke("1E5A96", 1.5D);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("100 120 m", raw, StringComparison.Ordinal);
+        Assert.Contains("20 80 l", raw, StringComparison.Ordinal);
     }
 
     [Fact]

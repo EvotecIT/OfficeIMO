@@ -83,6 +83,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
     </ItemGroup>
 
   <ItemGroup>

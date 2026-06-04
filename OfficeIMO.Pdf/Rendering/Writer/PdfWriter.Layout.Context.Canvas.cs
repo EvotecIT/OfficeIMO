@@ -81,6 +81,7 @@ internal static partial class PdfWriter {
                     ? OfficeIMO.Drawing.OfficeShape.RoundedRectangle(item.Width, item.Height, style.CornerRadius)
                     : OfficeIMO.Drawing.OfficeShape.Rectangle(item.Width, item.Height);
                 shape.FillColor = style.Background?.ToOfficeColor();
+                shape.FillOpacity = style.Background.HasValue ? style.BackgroundOpacity : null;
                 shape.StrokeColor = style.BorderWidth > 0D ? style.BorderColor?.ToOfficeColor() : null;
                 shape.StrokeWidth = style.BorderWidth;
                 shape.StrokeDashStyle = style.BorderDashStyle;

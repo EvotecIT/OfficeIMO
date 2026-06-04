@@ -81,7 +81,12 @@ public static partial class OfficeChartDrawingRenderer {
             AddHorizontalValueAxisLabels(drawing, axisRange, plotLeft, plotBottomY, plotWidth, style, layout);
         } else {
             AddValueAxisLabels(drawing, axisRange, plotLeft, plotTop, plotHeight, style, layout);
-            AddCategoryAxisLabels(drawing, snapshot.Data.Categories, plotLeft, plotBottomY, plotWidth, style, layout);
+            if (IsScatterChart(snapshot.ChartKind)) {
+                IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
+                AddHorizontalValueAxisLabels(drawing, GetScatterXRange(snapshot.Data.Series, sharedXValues), plotLeft, plotBottomY, plotWidth, style, layout);
+            } else {
+                AddCategoryAxisLabels(drawing, snapshot.Data.Categories, plotLeft, plotBottomY, plotWidth, style, layout);
+            }
         }
 
         AddSeriesLegend(drawing, snapshot.Data.Series, width - legendWidth + 6D, plotTop, Math.Max(0D, legendWidth - 12D), plotHeight, style, layout);

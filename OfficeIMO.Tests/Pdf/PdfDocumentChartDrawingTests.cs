@@ -46,6 +46,29 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersScatterXAxisLabelsFromNumericValues() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Scatter",
+            "Scatter Axis",
+            OfficeChartKind.Scatter,
+            new OfficeChartData(
+                new[] { "Alpha", "Beta", "Gamma" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 3D, 4D, 5D }, new[] { 1D, 10D, 100D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("1", labels);
+        Assert.Contains("100", labels);
+        Assert.DoesNotContain("Alpha", labels);
+        Assert.DoesNotContain("Beta", labels);
+        Assert.DoesNotContain("Gamma", labels);
+    }
+
+    [Fact]
     public void FlowDrawing_UsesSharedChartLayoutForDenseLabelsAndLegend() {
         string[] categories = Enumerable.Range(1, 12).Select(index => "M" + index.ToString("00", System.Globalization.CultureInfo.InvariantCulture)).ToArray();
         OfficeChartSeries[] series = Enumerable.Range(1, 6)

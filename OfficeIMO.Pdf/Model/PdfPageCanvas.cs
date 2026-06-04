@@ -118,24 +118,26 @@ public sealed class PdfPageCanvas {
     }
 
     /// <summary>Adds a fixed-position table inside a page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null) {
+    public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null, double rotationAngle = 0D) {
         Guard.NotNull(rows, nameof(rows));
         Guard.NonNegative(x, nameof(x));
         Guard.NonNegative(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height));
+        ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas table rotation angle must be finite.");
+        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle));
         return this;
     }
 
     /// <summary>Adds a fixed-position rich table inside a page rectangle using top-left page coordinates.</summary>
-    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null) {
+    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null, double rotationAngle = 0D) {
         Guard.NotNull(rows, nameof(rows));
         Guard.NonNegative(x, nameof(x));
         Guard.NonNegative(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height));
+        ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas table rotation angle must be finite.");
+        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle));
         return this;
     }
 
@@ -299,14 +301,16 @@ internal sealed class PdfCanvasImageItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasTableItem : PdfCanvasItem {
-    public PdfCanvasTableItem(TableBlock block, double x, double y, double width, double height)
+    public PdfCanvasTableItem(TableBlock block, double x, double y, double width, double height, double rotationAngle)
         : base(x, y) {
         Block = block;
         Width = width;
         Height = height;
+        RotationAngle = rotationAngle;
     }
 
     public TableBlock Block { get; }
     public double Width { get; }
     public double Height { get; }
+    public double RotationAngle { get; }
 }

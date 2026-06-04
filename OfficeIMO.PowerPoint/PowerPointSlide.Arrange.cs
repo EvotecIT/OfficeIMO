@@ -289,21 +289,25 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private PowerPointShape? CreateShapeFromElement(OpenXmlElement element) {
+            return CreateShapeFromElement(element, _slidePart);
+        }
+
+        private PowerPointShape? CreateShapeFromElement(OpenXmlElement element, OpenXmlPartContainer ownerPart) {
             switch (element) {
                 case Shape s:
-                    return s.TextBody != null ? new PowerPointTextBox(s, _slidePart) : new PowerPointAutoShape(s);
+                    return s.TextBody != null ? new PowerPointTextBox(s, ownerPart as SlidePart) : new PowerPointAutoShape(s);
                 case Picture p:
-                    return PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
-                        ? new PowerPointMedia(p, _slidePart, kind)
-                        : new PowerPointPicture(p, _slidePart);
+                    return ownerPart is SlidePart slidePart && PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
+                        ? new PowerPointMedia(p, slidePart, kind)
+                        : new PowerPointPicture(p, ownerPart);
                 case GroupShape g:
                     return new PowerPointGroupShape(g);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:
-                    return new PowerPointTable(g, _slidePart);
-                case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null:
-                    return new PowerPointChart(g, _slidePart);
-                case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null:
-                    return new PowerPointSmartArt(g, _slidePart);
+                    return new PowerPointTable(g, ownerPart as SlidePart);
+                case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<C.ChartReference>() != null && ownerPart is SlidePart chartSlidePart:
+                    return new PowerPointChart(g, chartSlidePart);
+                case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<Dgm.RelationshipIds>() != null && ownerPart is SlidePart smartArtSlidePart:
+                    return new PowerPointSmartArt(g, smartArtSlidePart);
                 default:
                     return null;
             }

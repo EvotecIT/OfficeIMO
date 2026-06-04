@@ -364,6 +364,27 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasTable_WithRotation_RendersInsideRotatedFrame() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { "Name", "Score" },
+                new[] { "OfficeIMO", "99" }
+            }, 30, 30, 120, 60, rotationAngle: 90D))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        int transform = raw.IndexOf("0 1 -1 0 210 30 cm", StringComparison.Ordinal);
+        int tableRect = raw.IndexOf("30 90 120 60 re", StringComparison.Ordinal);
+
+        Assert.True(transform >= 0, "Expected a rotation matrix around the declared table frame center.");
+        Assert.True(tableRect > transform, "Expected table geometry to render inside the rotated frame.");
+    }
+
+    [Fact]
     public void CanvasTable_RendersRichCellImagesAndFormControls() {
         var rows = new[] {
             new[] {
@@ -468,6 +489,10 @@ public class PdfDocumentCanvasTests {
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PdfDocument.Create()
                 .Canvas(canvas => canvas.Image(CreateMinimalRgbPng(), 0, 0, 10, 10, rotationAngle: double.PositiveInfinity)));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            PdfDocument.Create()
+                .Canvas(canvas => canvas.Table(new[] { new[] { "Bad" } }, 0, 0, 10, 10, rotationAngle: double.NaN)));
     }
 
     [Fact]

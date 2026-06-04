@@ -25,9 +25,15 @@ internal static partial class PdfWriter {
             double tableHeight = GetTableRowsHeight(rowHeights, 0, rows, rowGap);
             double xOrigin = item.X;
             double topY = currentOpts.PageHeight - item.Y;
+            double bottomY = topY - item.Height;
             double footerStartRowIndex = rows - style.FooterRowCount;
             int headerRowCount = style.HeaderRowCount;
             int footerStart = rows - style.FooterRowCount;
+            int annotationStart = currentPage!.Annotations.Count;
+            bool rotated = item.RotationAngle != 0D;
+            if (rotated) {
+                BeginRotatedCanvasFrame(item.X, bottomY, item.Width, item.Height, item.RotationAngle);
+            }
 
             pageDirty = true;
             for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
@@ -53,6 +59,12 @@ internal static partial class PdfWriter {
 
             if (style.BorderColor is not null && style.BorderWidth > 0D) {
                 DrawCanvasTableGrid(table, style, columns, rows, xOrigin, topY, tableHeight, columnWidths, rowHeights, columnGap, rowGap);
+            }
+
+            if (rotated) {
+                new ContentStreamBuilder(sb)
+                    .RestoreState();
+                RotateCanvasLinkAnnotations(currentPage!.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
             }
         }
 

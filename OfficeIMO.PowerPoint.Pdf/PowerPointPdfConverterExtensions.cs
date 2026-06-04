@@ -95,53 +95,58 @@ public static partial class PowerPointPdfConverterExtensions {
         pdf.Canvas(canvas => {
             RenderSlideBackground(canvas, slide, slideNumber, pageWidth, pageHeight, options);
 
-            foreach (PptCore.PowerPointShape shape in slide.Shapes) {
-                if (shape.Hidden) {
-                    continue;
-                }
-
-                if (!TryGetShapeBox(shape, slideNumber, pageWidth, pageHeight, options, out double x, out double y, out double width, out double height)) {
-                    continue;
-                }
-
-                if (shape is PptCore.PowerPointTextBox textBox) {
-                    if (options.IncludeTextBoxes) {
-                        RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options);
-                    }
-                    continue;
-                }
-
-                if (shape is PptCore.PowerPointPicture picture) {
-                    if (options.IncludePictures) {
-                        RenderPicture(canvas, picture, x, y, width, height, slideNumber, options);
-                    }
-                    continue;
-                }
-
-                if (shape is PptCore.PowerPointTable table) {
-                    if (options.IncludeTables) {
-                        RenderTable(canvas, table, x, y, width, height, slideNumber, options);
-                    }
-                    continue;
-                }
-
-                if (shape is PptCore.PowerPointChart chart) {
-                    if (options.IncludeCharts) {
-                        RenderChart(canvas, chart, x, y, width, height, slideNumber, options);
-                    }
-                    continue;
-                }
-
-                if (shape is PptCore.PowerPointAutoShape autoShape) {
-                    if (options.IncludeAutoShapes) {
-                        RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
-                    }
-                    continue;
-                }
-
-                AddWarning(options, slideNumber, "unsupported-shape", "Skipped unsupported PowerPoint shape content type '" + shape.ShapeContentType + "'.");
-            }
+            RenderShapes(canvas, slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false);
+            RenderShapes(canvas, slide.Shapes, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: true);
         });
+    }
+
+    private static void RenderShapes(PdfCore.PdfPageCanvas canvas, IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds) {
+        foreach (PptCore.PowerPointShape shape in shapes) {
+            if (shape.Hidden) {
+                continue;
+            }
+
+            if (!TryGetShapeBox(shape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds, out double x, out double y, out double width, out double height)) {
+                continue;
+            }
+
+            if (shape is PptCore.PowerPointTextBox textBox) {
+                if (options.IncludeTextBoxes) {
+                    RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options);
+                }
+                continue;
+            }
+
+            if (shape is PptCore.PowerPointPicture picture) {
+                if (options.IncludePictures) {
+                    RenderPicture(canvas, picture, x, y, width, height, slideNumber, options);
+                }
+                continue;
+            }
+
+            if (shape is PptCore.PowerPointTable table) {
+                if (options.IncludeTables) {
+                    RenderTable(canvas, table, x, y, width, height, slideNumber, options);
+                }
+                continue;
+            }
+
+            if (shape is PptCore.PowerPointChart chart) {
+                if (options.IncludeCharts) {
+                    RenderChart(canvas, chart, x, y, width, height, slideNumber, options);
+                }
+                continue;
+            }
+
+            if (shape is PptCore.PowerPointAutoShape autoShape) {
+                if (options.IncludeAutoShapes) {
+                    RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
+                }
+                continue;
+            }
+
+            AddWarning(options, slideNumber, "unsupported-shape", "Skipped unsupported PowerPoint shape content type '" + shape.ShapeContentType + "'.");
+        }
     }
 
     private static void RenderEmptySlide(PdfCore.PdfDocument pdf, double pageWidth, double pageHeight) {
@@ -292,6 +297,9 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfCore.PdfColor? outline = ParsePdfColor(textBox.OutlineColor);
         return new PdfCore.PdfCanvasTextBoxStyle {
             Background = textBox.FillTransparency == 100 ? null : fill,
+            BackgroundOpacity = textBox.FillTransparency.HasValue && textBox.FillTransparency.Value > 0 && textBox.FillTransparency.Value < 100
+                ? 1D - textBox.FillTransparency.Value / 100D
+                : null,
             BorderColor = outline,
             BorderWidth = outline.HasValue ? textBox.OutlineWidthPoints ?? 0.75D : 0D,
             BorderDashStyle = MapDash(textBox.OutlineDash),
@@ -346,7 +354,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         PdfCore.PdfTableStyle style = CreateTableStyle(table);
         try {
-            canvas.Table(rows, x, y, width, height, style);
+            canvas.Table(rows, x, y, width, height, style, table.Rotation ?? 0D);
         } catch (Exception ex) {
             AddWarning(options, slideNumber, "unsupported-table", "Skipped a PowerPoint table because it could not be rendered as a PDF table: " + ex.Message);
         }
@@ -505,7 +513,11 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (type == ShapeTypeValues.Line) {
-            return OfficeShape.Line(0, 0, width, height);
+            double startX = autoShape.HorizontalFlip == true ? width : 0D;
+            double endX = autoShape.HorizontalFlip == true ? 0D : width;
+            double startY = autoShape.VerticalFlip == true ? height : 0D;
+            double endY = autoShape.VerticalFlip == true ? 0D : height;
+            return OfficeShape.Line(startX, startY, endX, endY);
         }
 
         return null;
@@ -522,7 +534,7 @@ public static partial class PowerPointPdfConverterExtensions {
         target.StrokeDashStyle = MapDash(source.OutlineDash);
     }
 
-    private static bool TryGetShapeBox(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, out double x, out double y, out double width, out double height) {
+    private static bool TryGetShapeBox(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options, bool warnInvalidBounds, out double x, out double y, out double width, out double height) {
         x = shape.LeftPoints;
         y = shape.TopPoints;
         width = shape.WidthPoints;
@@ -535,7 +547,10 @@ public static partial class PowerPointPdfConverterExtensions {
             return true;
         }
 
-        AddWarning(options, slideNumber, "invalid-shape-bounds", "Skipped a PowerPoint shape with non-positive or off-slide PDF bounds.");
+        if (warnInvalidBounds) {
+            AddWarning(options, slideNumber, "invalid-shape-bounds", "Skipped a PowerPoint shape with non-positive or off-slide PDF bounds.");
+        }
+
         return false;
     }
 
