@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private void ProcessInput(IElement element, WordSection section, HtmlToWordOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
-            if (!IsCheckboxInput(element) && !IsTextInput(element)) {
+            if (!IsCheckboxInput(element) && !IsTextInput(element) && !IsDateInput(element)) {
                 return;
             }
 
@@ -25,6 +25,8 @@ namespace OfficeIMO.Word.Html {
             var (alias, tag) = GetInputMetadata(element);
             if (IsCheckboxInput(element)) {
                 currentParagraph.AddCheckBox(IsCheckedInput(element), alias, tag);
+            } else if (IsDateInput(element)) {
+                currentParagraph.AddDatePicker(TryParseDateInput(element.GetAttribute("value")), alias, tag);
             } else {
                 currentParagraph.AddStructuredDocumentTag(element.GetAttribute("value") ?? string.Empty, alias, tag);
             }
@@ -78,6 +80,11 @@ namespace OfficeIMO.Word.Html {
             element.HasAttribute("checked") ||
             string.Equals(element.GetAttribute("aria-checked"), "true", StringComparison.OrdinalIgnoreCase);
 
+        private static bool IsDateInput(IElement element) {
+            var type = element.GetAttribute("type");
+            return string.Equals(type, "date", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static bool IsTextInput(IElement element) {
             var type = element.GetAttribute("type");
             if (string.IsNullOrWhiteSpace(type)) {
@@ -95,8 +102,21 @@ namespace OfficeIMO.Word.Html {
             var id = element.GetAttribute("id");
             var name = element.GetAttribute("name");
             var alias = element.GetAttribute("aria-label") ?? element.GetAttribute("title") ?? name ?? id;
-            var tag = id ?? name;
+            var dataTag = element.GetAttribute("data-tag");
+            var tag = dataTag ?? id ?? name;
             return (alias, tag);
+        }
+
+        private static DateTime? TryParseDateInput(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            if (DateTime.TryParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date)) {
+                return date;
+            }
+
+            return null;
         }
 
         private static string NormalizeFormText(string? text) =>

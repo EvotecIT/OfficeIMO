@@ -79,5 +79,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal(HtmlConversionDiagnosticSeverity.Error, diagnostic.Severity);
             Assert.Equal("p:text-align", diagnostic.Source);
         }
+
+        [Fact]
+        public void HtmlToWord_UnsupportedStylesheetCssValues_CanStopConversion() {
+            var options = new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            };
+
+            var exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
+                "<style>p{font-size:calc(1em + 1px)}</style><p>Text</p>".LoadFromHtml(options));
+
+            Assert.Equal("UnsupportedCssValue", exception.Code);
+            Assert.Equal("p:font-size", exception.CssSource);
+            Assert.Contains("calc", exception.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_UnsupportedWidthAndHeightValues_AddDiagnostics() {
+            var options = new HtmlToWordOptions();
+
+            "<p style=\"width:calc(100% - 1em);height:calc(10px + 1px)\">Text</p>".LoadFromHtml(options);
+
+            var diagnostics = options.Diagnostics.Where(diagnostic => diagnostic.Code == "UnsupportedCssValue").ToList();
+            Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:width", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:height", StringComparison.OrdinalIgnoreCase));
+        }
     }
 }

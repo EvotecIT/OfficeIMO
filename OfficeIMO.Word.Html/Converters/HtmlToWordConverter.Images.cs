@@ -333,6 +333,7 @@ namespace OfficeIMO.Word.Html {
                 AddDiagnostic(options, "ImageDataUriInvalid", "Image data URI could not be parsed and was skipped.", src);
                 return false;
             }
+            long reservedBytes = 0;
             try {
                 var contentType = GetDataUriContentType(meta);
                 if (!IsImageContentTypeAllowed(contentType, options)) {
@@ -354,6 +355,7 @@ namespace OfficeIMO.Word.Html {
                     if (!TryReserveImageBytes(estimatedBytes, options, "data:image")) {
                         return false;
                     }
+                    reservedBytes = estimatedBytes;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     paragraph.AddImageFromBase64(data, "image." + ext, width, height, wrap, description: alt);
                 } else {
@@ -366,15 +368,19 @@ namespace OfficeIMO.Word.Html {
                         AddDiagnostic(options, "ImageResourceTooLarge", "SVG data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image/svg+xml");
                         return false;
                     }
-                    if (!TryReserveImageBytes(Encoding.UTF8.GetByteCount(svgContent), options, "data:image/svg+xml")) {
+                    var svgByteCount = Encoding.UTF8.GetByteCount(svgContent);
+                    if (!TryReserveImageBytes(svgByteCount, options, "data:image/svg+xml")) {
                         return false;
                     }
+                    reservedBytes = svgByteCount;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
                     SvgHelper.AddSvg(paragraph, svgContent, width, height, alt);
                 }
                 image = paragraph.Image!;
+                reservedBytes = 0;
                 return true;
             } catch (Exception ex) {
+                ReleaseImageBytes(reservedBytes, options);
                 AddDiagnostic(options, "ImageDataUriInvalid", "Image data URI could not be decoded or embedded and was replaced with alt text when available.", src, ex);
                 return false;
             }
@@ -562,6 +568,14 @@ namespace OfficeIMO.Word.Html {
             }
 
             _imageBytesUsed += length;
+        }
+
+        private void ReleaseImageBytes(long length, HtmlToWordOptions options) {
+            if (length <= 0 || !options.MaxTotalImageBytes.HasValue) {
+                return;
+            }
+
+            _imageBytesUsed = Math.Max(0, _imageBytesUsed - length);
         }
 
         private sealed class HtmlResourceLimitException : Exception {

@@ -206,7 +206,9 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (accumulated.Count > 0) {
-                ReportUnsupportedCssDiagnostics(element, accumulated.Keys);
+                ReportUnsupportedCssDiagnostics(
+                    element,
+                    accumulated.ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase));
                 var sb = new StringBuilder();
                 foreach (var kvp in accumulated) {
                     sb.Append(kvp.Key).Append(':').Append(kvp.Value.Value).Append(';');

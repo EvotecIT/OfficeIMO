@@ -270,8 +270,9 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            if (lower is "width" or "height") {
-                if (!IsSupportedCssLength(value, allowNegative: false, allowPercent: lower == "width", allowAuto: true)) {
+            if (propertyName.Equals("width", StringComparison.OrdinalIgnoreCase) ||
+                propertyName.Equals("height", StringComparison.OrdinalIgnoreCase)) {
+                if (!IsSupportedCssLength(value, allowNegative: false, allowPercent: propertyName.Equals("width", StringComparison.OrdinalIgnoreCase), allowAuto: true)) {
                     reason = $"Unsupported {propertyName} value '{value}'.";
                     return true;
                 }

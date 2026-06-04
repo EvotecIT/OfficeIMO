@@ -246,6 +246,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_InvalidDataImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            string html = $"<img src=\"data:image/png;base64,not-valid-base64\" alt=\"Broken\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 70
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageDataUriInvalid");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
         public void HtmlToWord_DataImageWithRejectedContentType_SkipsWithDiagnostic() {
             string html = "<img src=\"data:image/x-officeimo;base64,AAAA\" alt=\"Bad mime\" />";
             var options = new HtmlToWordOptions();

@@ -1,4 +1,5 @@
 using OfficeIMO.Word.Html;
+using System;
 using System.Linq;
 using Xunit;
 
@@ -39,6 +40,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Line one\nLine two", control.Text);
             Assert.Equal("Review notes", control.Alias);
             Assert.Equal("notes", control.Tag);
+        }
+
+        [Fact]
+        public void HtmlToWord_FormControls_ImportExportedDataTag() {
+            const string html = "<p><input type=\"text\" data-tag=\"client-name\" aria-label=\"Client name\" value=\"Contoso\"><select data-tag=\"priority\" aria-label=\"Priority\"><option selected>High</option></select></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var control = Assert.Single(doc.StructuredDocumentTags, tag => tag.Text == "Contoso");
+            Assert.Equal("client-name", control.Tag);
+            var dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal("priority", dropDown.Tag);
+        }
+
+        [Fact]
+        public void HtmlToWord_DateInput_BecomesDatePicker() {
+            const string html = "<p>Due <input type=\"date\" data-tag=\"due-date\" aria-label=\"Due date\" value=\"2026-07-14\"></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var datePicker = Assert.Single(doc.DatePickers);
+            Assert.Equal(new DateTime(2026, 7, 14), datePicker.Date);
+            Assert.Equal("Due date", datePicker.Alias);
+            Assert.Equal("due-date", datePicker.Tag);
         }
     }
 }
