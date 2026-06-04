@@ -6,6 +6,7 @@ using System.Text;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Presentation;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
@@ -209,6 +210,45 @@ public class PowerPointSaveAsPdfTests {
                 File.Delete(imagePath);
             }
         }
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesInheritedLayoutBackground() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        layoutPart.SlideLayout.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+        layoutPart.SlideLayout.CommonSlideData.Background = new Background(
+            new BackgroundProperties(
+                new SolidFill(new RgbColorModelHex { Val = "112233" })));
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.067 0.133 0.2 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesFlippedPictures() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointPicture picture = presentation.Slides[0].AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(60),
+            PowerPointUnits.FromPoints(30));
+        picture.HorizontalFlip = true;
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("-60 0 0 30 100 80 cm", raw, StringComparison.Ordinal);
     }
 
     [Fact]

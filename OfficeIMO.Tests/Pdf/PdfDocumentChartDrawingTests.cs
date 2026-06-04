@@ -1,5 +1,6 @@
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -26,6 +27,22 @@ public class PdfDocumentChartDrawingTests {
         Assert.NotNull(result.Drawing);
         Assert.NotNull(result.QualityReport);
         Assert.False(result.QualityReport.HasIssues, string.Join("; ", result.QualityReport.Issues.Select(issue => issue.ToString())));
+    }
+
+    [Fact]
+    public void ScatterRange_IncludesSharedXValuesWhenSeriesMixExplicitAndSharedCoordinates() {
+        var series = new[] {
+            new OfficeChartSeries("Explicit", new[] { 4D, 5D }, new[] { 10D, 20D }),
+            new OfficeChartSeries("Shared", new[] { 1D, 2D })
+        };
+        MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("GetScatterXRange", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        object range = method.Invoke(null, new object[] { series, new[] { 100D, 200D } })!;
+
+        double min = (double)range.GetType().GetProperty("Min")!.GetValue(range)!;
+        double max = (double)range.GetType().GetProperty("Max")!.GetValue(range)!;
+        Assert.Equal(10D, min);
+        Assert.Equal(200D, max);
     }
 
     [Fact]

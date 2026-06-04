@@ -236,6 +236,8 @@ internal static partial class PdfWriter {
         public bool IsBackgroundDecoration { get; set; }
         public double Opacity { get; set; } = 1D;
         public double RotationAngle { get; set; }
+        public bool HorizontalFlip { get; set; }
+        public bool VerticalFlip { get; set; }
         public string? GraphicsStateName { get; set; }
         public string? AlternativeText { get; set; }
         public int? MarkedContentId { get; set; }

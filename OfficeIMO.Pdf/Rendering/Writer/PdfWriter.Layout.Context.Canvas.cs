@@ -249,6 +249,8 @@ internal static partial class PdfWriter {
             double bottomY = currentOpts.PageHeight - item.Y - block.Height;
             PageImage pageImage = CreatePageImage(block, imageStyle, item.X, bottomY, block.Width, block.Height);
             pageImage.RotationAngle = item.RotationAngle;
+            pageImage.HorizontalFlip = item.HorizontalFlip;
+            pageImage.VerticalFlip = item.VerticalFlip;
             currentPage!.Images.Add(pageImage);
             pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + currentPage.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
             sb.Append(pageImage.InlineDrawToken);

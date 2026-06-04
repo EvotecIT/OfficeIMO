@@ -94,7 +94,7 @@ public sealed class PdfPageCanvas {
     }
 
     /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
-    public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D) {
+    public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
         Guard.NotNullOrEmpty(imageBytes, nameof(imageBytes));
         Guard.NonNegative(x, nameof(x));
         Guard.NonNegative(y, nameof(y));
@@ -113,7 +113,7 @@ public sealed class PdfPageCanvas {
             PdfDocument.ValidateImageFitDimensions(imageInfo, imageStyle.Fit, nameof(style));
         }
 
-        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageBytes, width, height, imageInfo, imageStyle, linkUri, linkContents), x, y, rotationAngle));
+        _items.Add(new PdfCanvasImageItem(new ImageBlock(imageBytes, width, height, imageInfo, imageStyle, linkUri, linkContents), x, y, rotationAngle, horizontalFlip, verticalFlip));
         return this;
     }
 
@@ -284,14 +284,18 @@ internal sealed class PdfCanvasDrawingItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasImageItem : PdfCanvasItem {
-    public PdfCanvasImageItem(ImageBlock block, double x, double y, double rotationAngle)
+    public PdfCanvasImageItem(ImageBlock block, double x, double y, double rotationAngle, bool horizontalFlip, bool verticalFlip)
         : base(x, y) {
         Block = block;
         RotationAngle = rotationAngle;
+        HorizontalFlip = horizontalFlip;
+        VerticalFlip = verticalFlip;
     }
 
     public ImageBlock Block { get; }
     public double RotationAngle { get; }
+    public bool HorizontalFlip { get; }
+    public bool VerticalFlip { get; }
 }
 
 internal sealed class PdfCanvasTableItem : PdfCanvasItem {

@@ -315,7 +315,9 @@ public static partial class PowerPointPdfConverterExtensions {
                 height,
                 style: new PdfCore.PdfImageStyle(),
                 alternativeText: picture.AltText,
-                rotationAngle: picture.Rotation ?? 0D);
+                rotationAngle: picture.Rotation ?? 0D,
+                horizontalFlip: picture.HorizontalFlip == true,
+                verticalFlip: picture.VerticalFlip == true);
         } catch (Exception ex) {
             AddWarning(options, slideNumber, "unsupported-picture", "Skipped a PowerPoint picture because it could not be embedded as a PDF image: " + ex.Message);
         }

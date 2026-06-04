@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint {
         /// Returns a detached snapshot of the slide background fill that exporters can consume without Open XML coupling.
         /// </summary>
         public PowerPointSlideBackground GetBackground() {
-            BackgroundProperties? properties = SlideRoot.CommonSlideData?.Background?.BackgroundProperties;
+            (BackgroundProperties? properties, OpenXmlPart? ownerPart) = GetResolvedBackgroundProperties();
             if (properties == null || !properties.HasChildren) {
                 return PowerPointSlideBackground.None();
             }
@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
 
             A.BlipFill? blipFill = properties.GetFirstChild<A.BlipFill>();
             if (blipFill != null) {
-                return GetBackgroundImage(blipFill);
+                return GetBackgroundImage(blipFill, ownerPart ?? _slidePart);
             }
 
             A.GradientFill? gradientFill = properties.GetFirstChild<A.GradientFill>();
@@ -35,7 +35,28 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointSlideBackground.Unsupported("The slide background fill type is not currently supported by OfficeIMO exporters.");
         }
 
-        private PowerPointSlideBackground GetBackgroundImage(A.BlipFill blipFill) {
+        private (BackgroundProperties? Properties, OpenXmlPart? OwnerPart) GetResolvedBackgroundProperties() {
+            BackgroundProperties? slideProperties = SlideRoot.CommonSlideData?.Background?.BackgroundProperties;
+            if (slideProperties != null && slideProperties.HasChildren) {
+                return (slideProperties, _slidePart);
+            }
+
+            SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+            BackgroundProperties? layoutProperties = layoutPart?.SlideLayout?.CommonSlideData?.Background?.BackgroundProperties;
+            if (layoutProperties != null && layoutProperties.HasChildren) {
+                return (layoutProperties, layoutPart);
+            }
+
+            SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
+            BackgroundProperties? masterProperties = masterPart?.SlideMaster?.CommonSlideData?.Background?.BackgroundProperties;
+            if (masterProperties != null && masterProperties.HasChildren) {
+                return (masterProperties, masterPart);
+            }
+
+            return (null, null);
+        }
+
+        private static PowerPointSlideBackground GetBackgroundImage(A.BlipFill blipFill, OpenXmlPart ownerPart) {
             string? relationshipId = blipFill.Blip?.Embed?.Value;
             if (string.IsNullOrWhiteSpace(relationshipId)) {
                 return PowerPointSlideBackground.Unsupported("The slide background image is missing its relationship id.");
@@ -43,7 +64,7 @@ namespace OfficeIMO.PowerPoint {
 
             ImagePart? imagePart;
             try {
-                imagePart = _slidePart.GetPartById(relationshipId!) as ImagePart;
+                imagePart = ownerPart.GetPartById(relationshipId!) as ImagePart;
             } catch (ArgumentOutOfRangeException) {
                 return PowerPointSlideBackground.Unsupported("The slide background image relationship could not be resolved.");
             }

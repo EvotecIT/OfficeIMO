@@ -127,14 +127,20 @@ public static partial class OfficeChartDrawingRenderer {
     private static ValueRange GetScatterXRange(IReadOnlyList<OfficeChartSeries> series, IReadOnlyList<double> sharedXValues) {
         var values = new List<double>(sharedXValues.Count);
         bool hasSeriesXValues = false;
+        bool usesSharedXValues = false;
         for (int s = 0; s < series.Count; s++) {
             IReadOnlyList<double>? xValues = series[s].XValues;
             if (xValues == null) {
+                usesSharedXValues = true;
                 continue;
             }
 
             hasSeriesXValues = true;
             values.AddRange(xValues);
+        }
+
+        if (hasSeriesXValues && usesSharedXValues) {
+            values.AddRange(sharedXValues);
         }
 
         return hasSeriesXValues ? GetFiniteRange(values) : GetFiniteRange(sharedXValues);

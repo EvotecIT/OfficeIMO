@@ -863,6 +863,19 @@ internal static partial class PdfWriter {
         double centerY = img.Y + img.H / 2D;
         double e = centerX - (a + c) / 2D;
         double f = centerY - (b + d) / 2D;
+        if (img.HorizontalFlip) {
+            e += a;
+            f += b;
+            a = -a;
+            b = -b;
+        }
+
+        if (img.VerticalFlip) {
+            e += c;
+            f += d;
+            c = -c;
+            d = -d;
+        }
 
         var content = new ContentStreamBuilder(sb)
             .SaveState();
