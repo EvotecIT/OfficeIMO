@@ -7,6 +7,31 @@ namespace OfficeIMO.Visio {
     /// Applies approved stencil migration plans after validating that the target diagram still matches the reviewed plan.
     /// </summary>
     public static class VisioStencilMigrationPlanApplyExtensions {
+        private sealed class ValidatedPlannedReplacement {
+            public ValidatedPlannedReplacement(
+                VisioPage page,
+                VisioShape shape,
+                VisioStencilMigrationRule rule,
+                string? oldMasterNameU,
+                string? oldStencilId) {
+                Page = page;
+                Shape = shape;
+                Rule = rule;
+                OldMasterNameU = oldMasterNameU;
+                OldStencilId = oldStencilId;
+            }
+
+            public VisioPage Page { get; }
+
+            public VisioShape Shape { get; }
+
+            public VisioStencilMigrationRule Rule { get; }
+
+            public string? OldMasterNameU { get; }
+
+            public string? OldStencilId { get; }
+        }
+
         /// <summary>
         /// Applies a previously reviewed stencil migration plan to a document. The current document must still match the planned pages, shapes, match rules, and replacement stencils.
         /// </summary>
@@ -26,7 +51,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(map));
             }
 
-            List<VisioStencilMigrationReplacement> replacements = new();
+            List<ValidatedPlannedReplacement> validated = new();
             HashSet<string> applied = new(StringComparer.OrdinalIgnoreCase);
             foreach (VisioStencilMigrationPlannedReplacement planned in plan.Replacements) {
                 VisioPage page = ResolvePage(document, planned);
@@ -35,10 +60,10 @@ namespace OfficeIMO.Visio {
                     throw new InvalidOperationException($"Migration plan contains duplicate replacement for shape '{planned.ShapeId}' on page '{page.Name}'.");
                 }
 
-                replacements.Add(ApplyPlannedReplacement(page, planned, map, page.AllShapes()));
+                validated.Add(ValidatePlannedReplacement(page, planned, map, page.AllShapes()));
             }
 
-            return new VisioStencilMigrationResult(replacements);
+            return ApplyValidatedReplacements(validated);
         }
 
         /// <summary>
@@ -60,7 +85,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentNullException(nameof(map));
             }
 
-            List<VisioStencilMigrationReplacement> replacements = new();
+            List<ValidatedPlannedReplacement> validated = new();
             HashSet<string> applied = new(StringComparer.OrdinalIgnoreCase);
             IReadOnlyList<VisioShape> shapes = page.AllShapes();
             foreach (VisioStencilMigrationPlannedReplacement planned in plan.Replacements) {
@@ -69,10 +94,10 @@ namespace OfficeIMO.Visio {
                     throw new InvalidOperationException($"Migration plan contains duplicate replacement for shape '{planned.ShapeId}' on page '{page.Name}'.");
                 }
 
-                replacements.Add(ApplyPlannedReplacement(page, planned, map, shapes));
+                validated.Add(ValidatePlannedReplacement(page, planned, map, shapes));
             }
 
-            return new VisioStencilMigrationResult(replacements);
+            return ApplyValidatedReplacements(validated);
         }
 
         /// <summary>
@@ -100,7 +125,7 @@ namespace OfficeIMO.Visio {
 
             VisioPage page = selection.OwnerPage;
             IReadOnlyList<VisioShape> selectedShapes = selection.ToList();
-            List<VisioStencilMigrationReplacement> replacements = new();
+            List<ValidatedPlannedReplacement> validated = new();
             HashSet<string> applied = new(StringComparer.OrdinalIgnoreCase);
             foreach (VisioStencilMigrationPlannedReplacement planned in plan.Replacements) {
                 EnsurePlanTargetsPage(page, planned);
@@ -108,13 +133,13 @@ namespace OfficeIMO.Visio {
                     throw new InvalidOperationException($"Migration plan contains duplicate replacement for shape '{planned.ShapeId}' on page '{page.Name}'.");
                 }
 
-                replacements.Add(ApplyPlannedReplacement(page, planned, map, selectedShapes));
+                validated.Add(ValidatePlannedReplacement(page, planned, map, selectedShapes));
             }
 
-            return new VisioStencilMigrationResult(replacements);
+            return ApplyValidatedReplacements(validated);
         }
 
-        private static VisioStencilMigrationReplacement ApplyPlannedReplacement(
+        private static ValidatedPlannedReplacement ValidatePlannedReplacement(
             VisioPage page,
             VisioStencilMigrationPlannedReplacement planned,
             VisioStencilMigrationMap map,
@@ -132,17 +157,33 @@ namespace OfficeIMO.Visio {
 
             EnsureRuleMatchesPlan(rule, planned);
 
-            string? oldMasterNameU = shape.MasterNameU;
-            string? oldStencilId = shape.GetUserCellValue(VisioSemanticUserCells.StencilId);
-            page.ReplaceMaster(shape, rule.Replacement, rule.ResizeToStencil);
-            return new VisioStencilMigrationReplacement(
-                page.Name,
-                shape.Id,
-                shape.Text,
-                oldMasterNameU,
+            return new ValidatedPlannedReplacement(
+                page,
+                shape,
+                rule,
                 shape.MasterNameU,
-                oldStencilId,
                 shape.GetUserCellValue(VisioSemanticUserCells.StencilId));
+        }
+
+        private static VisioStencilMigrationResult ApplyValidatedReplacements(IReadOnlyList<ValidatedPlannedReplacement> validated) {
+            List<VisioStencilMigrationReplacement> replacements = new();
+            foreach (ValidatedPlannedReplacement replacement in validated) {
+                replacement.Page.ReplaceMaster(replacement.Shape, replacement.Rule.Replacement, replacement.Rule.ResizeToStencil);
+                replacements.Add(CreateReplacement(replacement));
+            }
+
+            return new VisioStencilMigrationResult(replacements);
+        }
+
+        private static VisioStencilMigrationReplacement CreateReplacement(ValidatedPlannedReplacement replacement) {
+            return new VisioStencilMigrationReplacement(
+                replacement.Page.Name,
+                replacement.Shape.Id,
+                replacement.Shape.Text,
+                replacement.OldMasterNameU,
+                replacement.Shape.MasterNameU,
+                replacement.OldStencilId,
+                replacement.Shape.GetUserCellValue(VisioSemanticUserCells.StencilId));
         }
 
         private static VisioPage ResolvePage(VisioDocument document, VisioStencilMigrationPlannedReplacement planned) {

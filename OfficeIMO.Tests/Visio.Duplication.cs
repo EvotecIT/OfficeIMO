@@ -261,6 +261,9 @@ namespace OfficeIMO.Tests {
             connector.Label = "route";
             connector.EndArrow = EndArrow.Triangle;
             connector.LayerNames.Add("Ops");
+            page.AddComment("Page review complete", "Operations", "OP");
+            page.AddComment(source, "Source review", "Operations", "OP");
+            page.AddCommentToShape(connector.Id, "Route review", "Operations", "OP");
 
             VisioPage duplicate = page.Duplicate("Original Copy");
 
@@ -314,6 +317,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, connectorCopy.Waypoints.Count);
             Assert.Equal(4, connectorCopy.Waypoints[0].X, 6);
             Assert.Contains("Ops", connectorCopy.LayerNames);
+            Assert.Equal(3, duplicate.Comments.Count);
+            Assert.Contains(duplicate.Comments, comment => comment.ShapeId == null && comment.Text == "Page review complete");
+            Assert.Contains(duplicate.Comments, comment => comment.ShapeId == sourceCopy.Id && comment.Text == "Source review");
+            Assert.Contains(duplicate.Comments, comment => comment.ShapeId == connectorCopy.Id && comment.Text == "Route review");
 
             document.Save();
 
@@ -325,6 +332,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, loadedDuplicate.Connectors.Single().Waypoints.Count);
             Assert.Equal(VisioPageRouteStyle.FlowchartLeftToRight, loadedDuplicate.ConnectorRouteStyle);
             Assert.NotNull(loadedDuplicate.BackgroundPage);
+            Assert.Equal(3, loadedDuplicate.Comments.Count);
+            Assert.Contains(loadedDuplicate.Comments, comment => comment.ShapeId == loadedDuplicate.Shapes.Single(shape => shape.Text == "Source").Id && comment.Text == "Source review");
+            Assert.Contains(loadedDuplicate.Comments, comment => comment.ShapeId == loadedDuplicate.Connectors.Single().Id && comment.Text == "Route review");
         }
 
         [Fact]

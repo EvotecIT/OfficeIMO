@@ -20,7 +20,7 @@ namespace OfficeIMO.Visio {
             }
 
             List<VisioStencilMigrationReplacement> replacements = new();
-            foreach (VisioPage page in document.Pages) {
+            foreach (VisioPage page in document.Pages.Where(page => !page.IsBackground)) {
                 replacements.AddRange(Apply(page, page.AllShapes(), map));
             }
 

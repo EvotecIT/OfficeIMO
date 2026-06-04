@@ -242,6 +242,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DocumentStencilMigrationSkipsBackgroundPages() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage background = document.AddBackgroundPage("Watermark", 11, 8.5);
+            background.AddStencilShape(VisioStencils.Flowchart.Get("process"), "background-process", 3, 7, "Background process");
+            VisioPage page = document.AddPage("Foreground", 11, 8.5);
+            page.SetBackgroundPage(background);
+            page.AddStencilShape(VisioStencils.Flowchart.Get("process"), "foreground-process", 3, 5, "Foreground process");
+            document.Save();
+
+            VisioStencilMigrationMap map = VisioStencilMigrationMap.Create(builder => builder
+                .MapStencilId("flow.process", VisioStencils.Infrastructure.Get("server"), resizeToStencil: true));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioStencilMigrationPlan plan = loaded.PlanStencilMigration(map);
+            VisioStencilMigrationResult result = loaded.ApplyStencilMigration(map);
+
+            Assert.Single(plan.Replacements);
+            Assert.Single(result.Replacements);
+            Assert.Equal("foreground-process", plan.Replacements.Single().ShapeId);
+            Assert.Equal("flow.process", loaded.Pages.Single(current => current.IsBackground).FindShapeById("background-process")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
+            Assert.Equal("infra.server", loaded.Pages.Single(current => !current.IsBackground).FindShapeById("foreground-process")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
+        }
+
+        [Fact]
         public void ApplyStencilMigrationPlanValidatesReviewedPlanAndDisambiguatesPages() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
@@ -300,6 +326,32 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("text changed", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal("flow.process", loaded.Pages[0].FindShapeById("worker")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
+        }
+
+        [Fact]
+        public void ApplyStencilMigrationPlanValidatesAllShapesBeforeMutating() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument.Create(filePath)
+                .AsFluent()
+                .Page("Atomic", page => page
+                    .Stencil("first", VisioStencils.Flowchart.Get("process"), 2, 5, "First")
+                    .Stencil("second", VisioStencils.Flowchart.Get("process"), 5, 5, "Second"))
+                .End()
+                .Save();
+
+            VisioStencilMigrationMap map = VisioStencilMigrationMap.Create(builder => builder
+                .MapStencilId("flow.process", VisioStencils.Infrastructure.Get("server"), resizeToStencil: true));
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioStencilMigrationPlan plan = loaded.PlanStencilMigration(map);
+            loaded.Pages[0].FindShapeById("second")!.Text = "Second changed after review";
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => loaded.ApplyStencilMigration(plan, map));
+
+            Assert.Contains("text changed", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("flow.process", loaded.Pages[0].FindShapeById("first")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
+            Assert.Equal("flow.process", loaded.Pages[0].FindShapeById("second")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
         }
 
         [Fact]

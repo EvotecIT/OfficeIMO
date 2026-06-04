@@ -68,6 +68,7 @@ namespace OfficeIMO.Visio {
 
             IdAllocator ids = new(clone, sourcePage);
             Dictionary<VisioShape, VisioShape> shapeMap = new();
+            Dictionary<VisioConnector, VisioConnector> connectorMap = new();
             Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap = new();
 
             foreach (VisioShape shape in sourcePage.Shapes) {
@@ -85,7 +86,10 @@ namespace OfficeIMO.Visio {
 
                 VisioConnector connectorClone = CloneConnector(connector, ids, clonedFrom, clonedTo, 0D, 0D, connectionPointMap);
                 clone.Connectors.Add(connectorClone);
+                connectorMap[connector] = connectorClone;
             }
+
+            CopyComments(sourcePage, clone, shapeMap, connectorMap);
 
             if (sourcePage.IsBackground) {
                 clone.IsBackground = true;
@@ -101,6 +105,45 @@ namespace OfficeIMO.Visio {
             }
 
             return clone;
+        }
+
+        private static void CopyComments(
+            VisioPage sourcePage,
+            VisioPage clone,
+            IReadOnlyDictionary<VisioShape, VisioShape> shapeMap,
+            IReadOnlyDictionary<VisioConnector, VisioConnector> connectorMap) {
+            Dictionary<string, string> targetMap = new(StringComparer.Ordinal);
+            foreach (KeyValuePair<VisioShape, VisioShape> pair in shapeMap) {
+                targetMap[pair.Key.Id] = pair.Value.Id;
+            }
+
+            foreach (KeyValuePair<VisioConnector, VisioConnector> pair in connectorMap) {
+                targetMap[pair.Key.Id] = pair.Value.Id;
+            }
+
+            foreach (VisioComment comment in sourcePage.Comments) {
+                VisioComment copy = CloneComment(comment);
+                if (!string.IsNullOrWhiteSpace(comment.ShapeId) &&
+                    targetMap.TryGetValue(comment.ShapeId!, out string? clonedTargetId)) {
+                    copy.ShapeId = clonedTargetId;
+                }
+
+                clone.Comments.Add(copy);
+            }
+        }
+
+        private static VisioComment CloneComment(VisioComment comment) {
+            return new VisioComment(comment.Text) {
+                Id = comment.Id,
+                AuthorName = comment.AuthorName,
+                AuthorInitials = comment.AuthorInitials,
+                AuthorResolutionId = comment.AuthorResolutionId,
+                ShapeId = comment.ShapeId,
+                CreatedAt = comment.CreatedAt,
+                EditedAt = comment.EditedAt,
+                Done = comment.Done,
+                AutoCommentType = comment.AutoCommentType
+            };
         }
 
         /// <summary>

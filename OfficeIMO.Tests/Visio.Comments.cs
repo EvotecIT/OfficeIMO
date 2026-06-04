@@ -82,6 +82,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAssignsFallbackIdsBackToManuallyAppendedComments() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Manual Comments", 11, 8.5);
+            VisioComment manual = new("Manual list append") {
+                AuthorName = "Operations",
+                AuthorInitials = "OP"
+            };
+            page.Comments.Add(manual);
+
+            document.Save();
+
+            Assert.Equal(1, manual.Id);
+            VisioComment addedAfterSave = page.AddComment("Added after save", "Operations", "OP");
+            Assert.Equal(2, addedAfterSave.Id);
+            document.Save();
+
+            using ZipArchive archive = ZipFile.OpenRead(filePath);
+            XNamespace v = "http://schemas.microsoft.com/office/visio/2012/main";
+            XDocument comments = ReadXml(archive, "visio/comments.xml");
+            Assert.Equal(new[] { "1", "2" }, comments.Descendants(v + "CommentEntry")
+                .Select(entry => (string?)entry.Attribute("IX"))
+                .OrderBy(id => id)
+                .ToArray());
+        }
+
+        [Fact]
         public void CommentsCanBeReviewedUpdatedReopenedAndRemovedInLoadedDocuments() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string reviewedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");

@@ -74,8 +74,9 @@ namespace OfficeIMO.Visio {
 
             XElement commentList = new(ns + "CommentList");
             foreach ((VisioPage page, VisioComment comment, int authorId) in comments) {
+                int commentId = comment.Id > 0 ? comment.Id : AssignSaveFallbackCommentId(comment, commentList);
                 XElement commentElement = new(ns + "CommentEntry",
-                    new XAttribute("IX", XmlConvert.ToString(comment.Id > 0 ? comment.Id : GetSaveFallbackCommentId(commentList))),
+                    new XAttribute("IX", XmlConvert.ToString(commentId)),
                     new XAttribute("AuthorID", XmlConvert.ToString(authorId)),
                     new XAttribute("PageID", XmlConvert.ToString(page.Id)),
                     new XAttribute("Date", FormatCommentDate(comment.CreatedAt)),
@@ -106,6 +107,12 @@ namespace OfficeIMO.Visio {
             using Stream stream = commentsPart.GetStream(FileMode.Create, FileAccess.Write);
             using StreamWriter writer = new(stream, new UTF8Encoding(false));
             writer.Write(commentsXml.Declaration + Environment.NewLine + commentsXml.ToString(SaveOptions.DisableFormatting));
+        }
+
+        private static int AssignSaveFallbackCommentId(VisioComment comment, XElement commentList) {
+            int commentId = GetSaveFallbackCommentId(commentList);
+            comment.Id = commentId;
+            return commentId;
         }
 
         private static int GetSaveFallbackCommentId(XElement commentList) {
