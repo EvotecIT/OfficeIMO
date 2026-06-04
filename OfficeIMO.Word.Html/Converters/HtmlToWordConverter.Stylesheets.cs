@@ -49,6 +49,54 @@ namespace OfficeIMO.Word.Html {
 
             ParseCss(File.ReadAllText(localPath), localPath);
         }
+
+        private void ParseLeadingStylesheetChildren(IElement element) {
+            foreach (var child in element.ChildNodes) {
+                if (child is IText text && string.IsNullOrWhiteSpace(text.Text)) {
+                    continue;
+                }
+
+                if (child is IHtmlStyleElement styleElement) {
+                    ParseCss(styleElement.TextContent);
+                    continue;
+                }
+
+                if (child is IHtmlLinkElement linkElement) {
+                    var rel = linkElement.GetAttribute("rel");
+                    if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
+                        break;
+                    }
+                    if (!_options.AllowDocumentStylesheetLinks) {
+                        AddDiagnostic(_options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
+                        continue;
+                    }
+
+                    var hrefAttr = linkElement.GetAttribute("href");
+                    var href = linkElement.Href ?? hrefAttr;
+                    if (string.IsNullOrEmpty(href)) {
+                        continue;
+                    }
+
+                    if (!string.IsNullOrEmpty(hrefAttr) && File.Exists(hrefAttr)) {
+                        ParseCss(File.ReadAllText(hrefAttr), hrefAttr);
+                        continue;
+                    }
+
+                    var url = new Url(href);
+                    if (!url.IsAbsolute && linkElement.BaseUrl != null) {
+                        url = new Url(new Url(linkElement.BaseUrl), href);
+                    }
+
+                    if (url.Scheme == "file") {
+                        TryLoadCssFromFileUrl(url);
+                    }
+                    continue;
+                }
+
+                break;
+            }
+        }
+
         private void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlToWordOptions options) {
             string? classAttr = element.GetAttribute("class");
             if (string.IsNullOrWhiteSpace(classAttr)) {
@@ -77,6 +125,8 @@ namespace OfficeIMO.Word.Html {
             if (string.IsNullOrWhiteSpace(css)) {
                 return;
             }
+
+            ValidateCssLimit(css, key);
 
             key ??= ComputeHash(css);
             if (!_stylesheetCache.TryGetValue(key, out var rules)) {
@@ -113,31 +163,78 @@ namespace OfficeIMO.Word.Html {
             return BitConverter.ToString(bytes).Replace("-", "");
         }
 
+        private static readonly HashSet<string> _inheritedCssProperties = new(StringComparer.OrdinalIgnoreCase) {
+            "color",
+            "direction",
+            "font",
+            "font-family",
+            "font-size",
+            "font-style",
+            "font-variant",
+            "font-weight",
+            "letter-spacing",
+            "line-height",
+            "text-align",
+            "text-decoration",
+            "text-transform",
+            "white-space",
+        };
+
         private void ApplyCssToElement(IElement element) {
             if (_cssRules.Count == 0) {
+                ReportUnsupportedInlineCssDiagnostics(element);
                 return;
             }
 
             var accumulated = new Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)>(
                 StringComparer.OrdinalIgnoreCase);
+
+            var ancestors = new List<IElement>();
+            var parent = element.ParentElement;
+            while (parent != null) {
+                ancestors.Add(parent);
+                parent = parent.ParentElement;
+            }
+            ancestors.Reverse();
+
+            foreach (var ancestor in ancestors) {
+                var inherited = CollectCssDeclarations(ancestor, inheritedOnly: true);
+                foreach (var kvp in inherited) {
+                    accumulated[kvp.Key] = kvp.Value;
+                }
+            }
+
+            var own = CollectCssDeclarations(element, inheritedOnly: false);
+            foreach (var kvp in own) {
+                accumulated[kvp.Key] = kvp.Value;
+            }
+
+            if (accumulated.Count > 0) {
+                ReportUnsupportedCssDiagnostics(
+                    element,
+                    accumulated.ToDictionary(pair => pair.Key, pair => pair.Value.Value, StringComparer.OrdinalIgnoreCase));
+                var sb = new StringBuilder();
+                foreach (var kvp in accumulated) {
+                    sb.Append(kvp.Key).Append(':').Append(kvp.Value.Value).Append(';');
+                }
+                element.SetAttribute("style", sb.ToString());
+            }
+        }
+
+        private Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)> CollectCssDeclarations(IElement element, bool inheritedOnly) {
+            var accumulated = new Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)>(
+                StringComparer.OrdinalIgnoreCase);
+
             for (int ruleIndex = 0; ruleIndex < _cssRules.Count; ruleIndex++) {
                 var rule = _cssRules[ruleIndex];
                 var selector = rule.Selector;
-                if (selector != null && selector.Match(element, null)) {
+                if (selector != null && SelectorMatches(rule, element)) {
                     var specificity = selector.Specificity;
                     foreach (var property in rule.Style) {
-                        var name = property.Name;
-                        var important = property.IsImportant;
-                        var candidate = (Value: property.Value, Specificity: specificity, Important: important, Order: ruleIndex);
-                        if (!accumulated.TryGetValue(name, out var existing)) {
-                            accumulated[name] = candidate;
-                        } else if (candidate.Important != existing.Important) {
-                            if (candidate.Important) {
-                                accumulated[name] = candidate;
-                            }
-                        } else if (specificity > existing.Specificity || (specificity == existing.Specificity && ruleIndex >= existing.Order)) {
-                            accumulated[name] = candidate;
+                        if (inheritedOnly && !_inheritedCssProperties.Contains(property.Name)) {
+                            continue;
                         }
+                        ApplyCssCandidate(accumulated, property.Name, property.Value, specificity, property.IsImportant, ruleIndex);
                     }
                 }
             }
@@ -147,30 +244,101 @@ namespace OfficeIMO.Word.Html {
                 try {
                     var declaration = _cssParser.ParseDeclaration(inline);
                     foreach (var property in declaration) {
-                        var name = property.Name;
-                        var important = property.IsImportant;
-                        var candidate = (Value: property.Value, Specificity: Priority.Inline, Important: important, Order: int.MaxValue);
-                        if (!accumulated.TryGetValue(name, out var existing)) {
-                            accumulated[name] = candidate;
-                        } else if (candidate.Important != existing.Important) {
-                            if (candidate.Important) {
-                                accumulated[name] = candidate;
-                            }
-                        } else if (Priority.Inline > existing.Specificity || (Priority.Inline == existing.Specificity && candidate.Order >= existing.Order)) {
-                            accumulated[name] = candidate;
+                        if (inheritedOnly && !_inheritedCssProperties.Contains(property.Name)) {
+                            continue;
                         }
+                        ApplyCssCandidate(accumulated, property.Name, property.Value, Priority.Inline, property.IsImportant, int.MaxValue);
                     }
                 } catch (Exception) {
                     // ignore invalid inline style
                 }
             }
 
-            if (accumulated.Count > 0) {
-                var sb = new StringBuilder();
-                foreach (var kvp in accumulated) {
-                    sb.Append(kvp.Key).Append(':').Append(kvp.Value.Value).Append(';');
+            return accumulated;
+        }
+
+        private static bool SelectorMatches(ICssStyleRule rule, IElement element) {
+            if (rule.Selector?.Match(element, null) == true) {
+                return true;
+            }
+
+            var selectorText = rule.SelectorText;
+            if (string.IsNullOrWhiteSpace(selectorText)) {
+                return false;
+            }
+
+            foreach (var selector in selectorText.Split(',')) {
+                if (SimpleSelectorMatches(selector.Trim(), element)) {
+                    return true;
                 }
-                element.SetAttribute("style", sb.ToString());
+            }
+
+            return false;
+        }
+
+        private static bool SimpleSelectorMatches(string selector, IElement element) {
+            if (string.IsNullOrWhiteSpace(selector) ||
+                selector.IndexOfAny(new[] { ' ', '>', '+', '~', '[', ']' }) >= 0) {
+                return false;
+            }
+
+            var pseudoIndex = selector.IndexOf(':');
+            if (pseudoIndex >= 0) {
+                selector = selector.Substring(0, pseudoIndex);
+            }
+
+            if (string.IsNullOrWhiteSpace(selector)) {
+                return false;
+            }
+
+            string? expectedId = null;
+            var hashIndex = selector.IndexOf('#');
+            if (hashIndex >= 0) {
+                var idEnd = selector.IndexOf('.', hashIndex + 1);
+                expectedId = idEnd >= 0 ? selector.Substring(hashIndex + 1, idEnd - hashIndex - 1) : selector.Substring(hashIndex + 1);
+                selector = selector.Remove(hashIndex, expectedId.Length + 1);
+            }
+
+            if (!string.IsNullOrEmpty(expectedId) && !string.Equals(element.Id, expectedId, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            var classMatches = _classRegex.Matches(selector);
+            var classAttribute = element.GetAttribute("class") ?? string.Empty;
+            var classes = new HashSet<string>(
+                classAttribute.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries),
+                StringComparer.Ordinal);
+            foreach (Match match in classMatches) {
+                if (!classes.Contains(match.Groups[1].Value)) {
+                    return false;
+                }
+            }
+
+            var tagEnd = selector.IndexOf('.');
+            var tag = tagEnd >= 0 ? selector.Substring(0, tagEnd) : selector;
+            if (!string.IsNullOrWhiteSpace(tag) && !string.Equals(element.TagName, tag, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            return !string.IsNullOrWhiteSpace(tag) || classMatches.Count > 0 || !string.IsNullOrEmpty(expectedId);
+        }
+
+        private static void ApplyCssCandidate(
+            Dictionary<string, (string Value, Priority Specificity, bool Important, int Order)> accumulated,
+            string name,
+            string value,
+            Priority specificity,
+            bool important,
+            int order) {
+            var candidate = (Value: value, Specificity: specificity, Important: important, Order: order);
+            if (!accumulated.TryGetValue(name, out var existing)) {
+                accumulated[name] = candidate;
+            } else if (candidate.Important != existing.Important) {
+                if (candidate.Important) {
+                    accumulated[name] = candidate;
+                }
+            } else if (specificity > existing.Specificity || (specificity == existing.Specificity && order >= existing.Order)) {
+                accumulated[name] = candidate;
             }
         }
     }

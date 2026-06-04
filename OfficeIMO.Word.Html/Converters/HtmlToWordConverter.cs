@@ -26,7 +26,10 @@ namespace OfficeIMO.Word.Html {
     /// 4. Follow existing patterns in OfficeIMO.Word for consistency
     /// </summary>
     internal partial class HtmlToWordConverter {
-        private readonly Dictionary<string, string> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string[]> _footnoteMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string[]> _endnoteMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, HtmlCommentInfo> _commentMap = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _unsupportedCssDiagnosticKeys = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
@@ -39,6 +42,8 @@ namespace OfficeIMO.Word.Html {
         private HttpClient _httpClient = _sharedHttpClient;
         private CancellationToken _cancellationToken = CancellationToken.None;
         private TimeSpan? _resourceTimeout;
+        private long _imageBytesUsed;
+        private HtmlToWordOptions _options = new HtmlToWordOptions();
         private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
         private static readonly HashSet<string> _blockTags = new(StringComparer.OrdinalIgnoreCase) {
             "p", "div", "section", "article", "aside", "nav", "header", "footer", "main",
@@ -57,23 +62,31 @@ namespace OfficeIMO.Word.Html {
             _cancellationToken = cancellationToken;
             _httpClient = options.HttpClient ?? _sharedHttpClient;
             _resourceTimeout = options.ResourceTimeout;
+            _options = options;
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
             _context = context;
             var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
+            ValidateDocumentLimits(document, options);
 
             var wordDoc = WordDocument.Create();
             if (!string.IsNullOrEmpty(options.FontFamily)) {
                 var resolved = ResolveFontFamily(options.FontFamily) ?? options.FontFamily;
                 wordDoc.Settings.FontFamily = resolved;
             }
+            ApplyDocumentMetadata(wordDoc, document);
 
             _footnoteMap.Clear();
+            _endnoteMap.Clear();
+            _commentMap.Clear();
+            _unsupportedCssDiagnosticKeys.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
+            _imageBytesUsed = 0;
+            ResetAccessibilityDiagnosticsState();
 
             foreach (var path in options.StylesheetPaths) {
                 if (string.IsNullOrEmpty(path)) {
@@ -124,6 +137,10 @@ namespace OfficeIMO.Word.Html {
                         if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                             continue;
                         }
+                        if (!options.AllowDocumentStylesheetLinks) {
+                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
+                            continue;
+                        }
 
                         var hrefAttr = linkElement.GetAttribute("href");
                         var href = linkElement.Href ?? hrefAttr;
@@ -150,16 +167,8 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            var footnoteSection = document.QuerySelector("section.footnotes");
-            if (footnoteSection != null) {
-                foreach (var li in footnoteSection.QuerySelectorAll("li")) {
-                    var id = li.GetAttribute("id");
-                    if (!string.IsNullOrEmpty(id)) {
-                        _footnoteMap[id!] = li.TextContent?.Trim() ?? string.Empty;
-                    }
-                }
-                footnoteSection.Remove();
-            }
+            CaptureNoteSections(document);
+            CaptureCommentSections(document);
 
             if (options.DefaultPageSize.HasValue) {
                 wordDoc.PageSettings.PageSize = options.DefaultPageSize.Value;
@@ -172,10 +181,8 @@ namespace OfficeIMO.Word.Html {
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? wordDoc.AddList(WordListStyle.Headings111) : null;
             if (document.Body != null) {
-                foreach (var child in document.Body.ChildNodes) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    ProcessNode(child, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
-                }
+                cancellationToken.ThrowIfCancellationRequested();
+                ProcessNode(document.Body, wordDoc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -190,17 +197,25 @@ namespace OfficeIMO.Word.Html {
             _cancellationToken = cancellationToken;
             _httpClient = options.HttpClient ?? _sharedHttpClient;
             _resourceTimeout = options.ResourceTimeout;
+            _options = options;
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
             _context = context;
             var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
+            ValidateDocumentLimits(document, options);
+            ApplyDocumentMetadata(doc, document);
 
             _footnoteMap.Clear();
+            _endnoteMap.Clear();
+            _commentMap.Clear();
+            _unsupportedCssDiagnosticKeys.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
+            _imageBytesUsed = 0;
+            ResetAccessibilityDiagnosticsState();
 
             foreach (var path in options.StylesheetPaths) {
                 if (string.IsNullOrEmpty(path)) {
@@ -251,6 +266,10 @@ namespace OfficeIMO.Word.Html {
                         if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                             continue;
                         }
+                        if (!options.AllowDocumentStylesheetLinks) {
+                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
+                            continue;
+                        }
 
                         var hrefAttr = linkElement.GetAttribute("href");
                         var href = linkElement.Href ?? hrefAttr;
@@ -277,25 +296,14 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            var footnoteSection = document.QuerySelector("section.footnotes");
-            if (footnoteSection != null) {
-                foreach (var li in footnoteSection.QuerySelectorAll("li")) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var id = li.GetAttribute("id");
-                    if (!string.IsNullOrEmpty(id)) {
-                        _footnoteMap[id!] = li.TextContent?.Trim() ?? string.Empty;
-                    }
-                }
-                footnoteSection.Remove();
-            }
+            CaptureNoteSections(document, cancellationToken);
+            CaptureCommentSections(document, cancellationToken);
 
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? doc.AddList(WordListStyle.Headings111) : null;
             if (document.Body != null) {
-                foreach (var child in document.Body.ChildNodes) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
-                }
+                cancellationToken.ThrowIfCancellationRequested();
+                ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), null, null, headingList);
             }
             InsertTopBookmarkIfNeeded(doc);
         }
@@ -315,17 +323,25 @@ namespace OfficeIMO.Word.Html {
             _cancellationToken = cancellationToken;
             _httpClient = options.HttpClient ?? _sharedHttpClient;
             _resourceTimeout = options.ResourceTimeout;
+            _options = options;
 
             var config = Configuration.Default.WithDefaultLoader();
             var context = BrowsingContext.New(config);
             _context = context;
             var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
+            ValidateDocumentLimits(document, options);
+            ApplyDocumentMetadata(doc, document);
 
             _footnoteMap.Clear();
+            _endnoteMap.Clear();
+            _commentMap.Clear();
+            _unsupportedCssDiagnosticKeys.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
+            _imageBytesUsed = 0;
+            ResetAccessibilityDiagnosticsState();
 
             foreach (var path in options.StylesheetPaths) {
                 if (string.IsNullOrEmpty(path)) {
@@ -376,6 +392,10 @@ namespace OfficeIMO.Word.Html {
                         if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                             continue;
                         }
+                        if (!options.AllowDocumentStylesheetLinks) {
+                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
+                            continue;
+                        }
 
                         var hrefAttr = linkElement.GetAttribute("href");
                         var href = linkElement.Href ?? hrefAttr;
@@ -402,26 +422,15 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            var footnoteSection = document.QuerySelector("section.footnotes");
-            if (footnoteSection != null) {
-                foreach (var li in footnoteSection.QuerySelectorAll("li")) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    var id = li.GetAttribute("id");
-                    if (!string.IsNullOrEmpty(id)) {
-                        _footnoteMap[id!] = li.TextContent?.Trim() ?? string.Empty;
-                    }
-                }
-                footnoteSection.Remove();
-            }
+            CaptureNoteSections(document, cancellationToken);
+            CaptureCommentSections(document, cancellationToken);
 
             var section = doc.Sections.First();
             var listStack = new Stack<WordList>();
             WordList? headingList = options.SupportsHeadingNumbering ? headerFooter.AddList(WordListStyle.Headings111) : null;
             if (document.Body != null) {
-                foreach (var child in document.Body.ChildNodes) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    ProcessNode(child, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
-                }
+                cancellationToken.ThrowIfCancellationRequested();
+                ProcessNode(document.Body, doc, section, options, null, listStack, new TextFormatting(), null, headerFooter, headingList);
             }
         }
 

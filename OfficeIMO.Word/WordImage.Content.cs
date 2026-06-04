@@ -262,8 +262,15 @@ namespace OfficeIMO.Word {
                     if (imageCharacteristics.Width == 0 || imageCharacteristics.Height == 0) {
                         throw new ArgumentException("Width and height must be provided for this image type.");
                     }
-                    width = imageCharacteristics.Width;
-                    height = imageCharacteristics.Height;
+
+                    if (width != null) {
+                        height = imageCharacteristics.Height * width.Value / imageCharacteristics.Width;
+                    } else if (height != null) {
+                        width = imageCharacteristics.Width * height.Value / imageCharacteristics.Height;
+                    } else {
+                        width = imageCharacteristics.Width;
+                        height = imageCharacteristics.Height;
+                    }
                 }
 
                 var imagePartType = imageCharacteristics.Type;

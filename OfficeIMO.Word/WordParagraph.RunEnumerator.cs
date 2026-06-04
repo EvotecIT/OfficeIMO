@@ -17,13 +17,15 @@ namespace OfficeIMO.Word {
                 if (element is Run runElement) {
                     yield return new WordParagraph(_document, _paragraph, runElement);
                 } else if (element is Hyperlink hyperlink) {
-                    foreach (var childRun in hyperlink.Elements<Run>()) {
-                        var paragraph = new WordParagraph(_document, _paragraph, childRun) { _hyperlink = hyperlink };
-                        yield return paragraph;
-                    }
+                foreach (var childRun in hyperlink.Elements<Run>()) {
+                    var paragraph = new WordParagraph(_document, _paragraph, childRun) { _hyperlink = hyperlink };
+                    yield return paragraph;
                 }
+            } else if (element is SdtRun sdtRun) {
+                yield return new WordParagraph(_document, _paragraph, sdtRun);
             }
         }
     }
+}
 }
 

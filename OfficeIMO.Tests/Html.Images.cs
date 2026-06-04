@@ -3,6 +3,12 @@ using OfficeIMO.Word;
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -49,18 +55,406 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_UnreachableImage_InsertsPlaceholder() {
             string html = "<img src=\"http://localhost:1/missing.png\" alt=\"Missing\" />";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var callbackDiagnostics = new List<HtmlConversionDiagnostic>();
+            var options = new HtmlToWordOptions {
+                DiagnosticHandler = diagnostic => callbackDiagnostics.Add(diagnostic)
+            };
+
+            var doc = html.LoadFromHtml(options);
+
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Missing", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageLoadFailed", diagnostic.Code);
+            Assert.Equal(HtmlConversionDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal("http://localhost:1/missing.png", diagnostic.Source);
+            Assert.Contains("image", diagnostic.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.NotNull(diagnostic.Detail);
+            Assert.Same(diagnostic, Assert.Single(callbackDiagnostics));
         }
 
         [Fact]
         public void HtmlToWord_UnreachableImage_NoAlt_SkipsImage() {
             string html = "<img src=\"http://localhost:1/missing.png\" />";
-            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
             Assert.Empty(doc.Images);
             Assert.Empty(doc.Paragraphs);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageLoadFailed", diagnostic.Code);
+            Assert.Equal("http://localhost:1/missing.png", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteImageOverMaxBytes_SkipsWithDiagnostic() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(new byte[16])
+                })));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxImageBytes = 4
+            };
+            string html = "<img src=\"https://example.test/large.png\" alt=\"Too large\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Too large", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceTooLarge", diagnostic.Code);
+            Assert.Equal("https://example.test/large.png", diagnostic.Source);
+            Assert.Contains("limit", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteImageWithRejectedContentType_SkipsWithDiagnostic() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(new byte[] { 1, 2, 3 })
+                };
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/html");
+                return Task.FromResult(response);
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            string html = "<img src=\"https://example.test/not-image.png\" alt=\"Not image\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Not image", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageContentTypeRejected", diagnostic.Code);
+            Assert.Equal("https://example.test/not-image.png", diagnostic.Source);
+            Assert.Contains("text/html", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteImageWithRejectedScheme_SkipsBeforeFetchWithDiagnostic() {
+            var fetched = false;
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                fetched = true;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            options.AllowedImageUriSchemes.Remove(Uri.UriSchemeHttps);
+            string html = "<img src=\"https://example.test/scheme.png\" alt=\"Blocked scheme\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.False(fetched);
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Blocked scheme", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceRejectedByPolicy", diagnostic.Code);
+            Assert.Equal("https://example.test/scheme.png", diagnostic.Source);
+            Assert.Contains("https", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteImageWithRejectedHost_SkipsBeforeFetchWithDiagnostic() {
+            var fetched = false;
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                fetched = true;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            options.AllowedImageHosts.Add("images.example.test");
+            string html = "<img src=\"https://other.example.test/host.png\" alt=\"Blocked host\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.False(fetched);
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Blocked host", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceRejectedByPolicy", diagnostic.Code);
+            Assert.Equal("https://other.example.test/host.png", diagnostic.Source);
+            Assert.Contains("other.example.test", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteImageOverTotalMaxBytes_SkipsWithDiagnostic() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ =>
+                Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(new byte[16])
+                })));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxTotalImageBytes = 4
+            };
+            string html = "<img src=\"https://example.test/budget.png\" alt=\"Budget\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Budget", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceBudgetExceeded", diagnostic.Code);
+            Assert.Equal("https://example.test/budget.png", diagnostic.Source);
+            Assert.Contains("budget", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteImageOverRemainingTotalMaxBytes_SkipsBeforeReadingBody() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ThrowIfReadContent(128)
+                };
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+                return Task.FromResult(response);
+            }));
+            string html = $"<img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" /><img src=\"https://example.test/too-large.png\" alt=\"Too large\" />";
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxTotalImageBytes = 80
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic =>
+                diagnostic.Code == "ImageResourceBudgetExceeded" &&
+                string.Equals(diagnostic.Source, "https://example.test/too-large.png", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageLoadFailed");
+        }
+
+        [Fact]
+        public void HtmlToWord_DataImageOverMaxBytes_SkipsBeforeDecodeWithDiagnostic() {
+            var data = Convert.ToBase64String(new byte[16]);
+            string html = $"<img src=\"data:image/png;base64,{data}\" alt=\"Too large data\" />";
+            var options = new HtmlToWordOptions {
+                MaxImageBytes = 4
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Too large data", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceTooLarge", diagnostic.Code);
+            Assert.Equal("data:image", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_DataImageOverTotalMaxBytes_SkipsBeforeDecodeWithDiagnostic() {
+            var data = Convert.ToBase64String(new byte[16]);
+            string html = $"<img src=\"data:image/png;base64,{data}\" alt=\"Too much data\" />";
+            var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 4
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Too much data", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceBudgetExceeded", diagnostic.Code);
+            Assert.Equal("data:image", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidDataImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            string html = $"<img src=\"data:image/png;base64,not-valid-base64\" alt=\"Broken\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 70
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageDataUriInvalid");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidRemoteImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Encoding.ASCII.GetBytes("not an image"))
+                };
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+                return Task.FromResult(response);
+            }));
+            string html = $"<img src=\"https://example.test/broken.png\" alt=\"Broken\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxTotalImageBytes = 70
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageLoadFailed");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidLocalImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".png");
+            File.WriteAllText(path, "not an image");
+            try {
+                string html = $"<img src=\"{path}\" alt=\"Broken\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+                var options = new HtmlToWordOptions {
+                    MaxTotalImageBytes = 70
+                };
+
+                var doc = html.LoadFromHtml(options);
+
+                Assert.Single(doc.Images);
+                Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "ImageLoadFailed");
+                Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidSvgDataImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            var invalidSvgData = Convert.ToBase64String(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>"));
+            string html = $"<img src=\"data:image/svg+xml;base64,{invalidSvgData}\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 100
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidLocalSvgImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".svg");
+            File.WriteAllText(path, "<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>");
+            try {
+                string html = $"<img src=\"{path}\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+                var options = new HtmlToWordOptions {
+                    MaxTotalImageBytes = 100
+                };
+
+                var doc = html.LoadFromHtml(options);
+
+                Assert.Single(doc.Images);
+                Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
+                Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidRemoteSvgImage_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                var response = new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg>"))
+                };
+                response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/svg+xml");
+                return Task.FromResult(response);
+            }));
+            string html = $"<img src=\"https://example.test/broken.svg\" alt=\"Broken svg\" /><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient,
+                MaxTotalImageBytes = 100
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
+        public void HtmlToWord_InvalidInlineSvg_DoesNotConsumeTotalBudget() {
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            string html = $"<svg xmlns=\"http://www.w3.org/2000/svg\"><path></svg><img src=\"data:image/png;base64,{validPng}\" alt=\"Valid\" />";
+            var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 100
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "InlineSvgEmbedFailed");
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
+        }
+
+        [Fact]
+        public void HtmlToWord_DataImageWithRejectedContentType_SkipsWithDiagnostic() {
+            string html = "<img src=\"data:image/x-officeimo;base64,AAAA\" alt=\"Bad mime\" />";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Bad mime", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageContentTypeRejected", diagnostic.Code);
+            Assert.Equal("data:image/x-officeimo", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_SvgDataImageOverMaxBytes_SkipsBeforeEmbedWithDiagnostic() {
+            var svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><text>too large</text></svg>";
+            var data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));
+            string html = $"<img src=\"data:image/svg+xml;base64,{data}\" alt=\"Too large svg\" />";
+            var options = new HtmlToWordOptions {
+                MaxImageBytes = 4
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Too large svg", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceTooLarge", diagnostic.Code);
+            Assert.Equal("data:image/svg+xml", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_SvgDataImageOverTotalMaxBytes_SkipsBeforeEmbedWithDiagnostic() {
+            var svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\"><text>budget</text></svg>";
+            var data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));
+            string html = $"<img src=\"data:image/svg+xml;base64,{data}\" alt=\"Budget svg\" />";
+            var options = new HtmlToWordOptions {
+                MaxTotalImageBytes = 4
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Budget svg", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceBudgetExceeded", diagnostic.Code);
+            Assert.Equal("data:image/svg+xml", diagnostic.Source);
         }
 
         [Fact]
@@ -132,6 +526,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImagePercentWidth_UsesPageContentWidth() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img src=\"data:image/png;base64,{base64}\" style=\"width:50%\"/>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var img = Assert.Single(doc.Images);
+            var section = doc.Sections.Last();
+            var contentWidthTwips = (section.PageSettings.Width?.Value ?? WordPageSizes.A4.Width!.Value)
+                - (section.Margins.Left?.Value ?? 1440U)
+                - (section.Margins.Right?.Value ?? 1440U);
+            var expectedWidthPixels = contentWidthTwips / 15D * 0.5D;
+            Assert.NotNull(img.Width);
+            Assert.InRange(img.Width!.Value, expectedWidthPixels - 0.5D, expectedWidthPixels + 0.5D);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageWidthOnly_PreservesRequestedWidth() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img src=\"data:image/png;base64,{base64}\" width=\"64\"/>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var img = Assert.Single(doc.Images);
+            Assert.NotNull(img.Width);
+            Assert.Equal(64D, Math.Round(img.Width!.Value));
+            Assert.NotNull(img.Height);
+            Assert.True(img.Height!.Value > 0);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageProcessing_LinkExternal_UsesExternalRelationship() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var uri = new Uri(path).AbsoluteUri;
@@ -147,15 +574,65 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageProcessing_LinkExternal_RejectsDisallowedHost() {
+            string html = "<img src=\"https://blocked.example.test/logo.png\" width=\"64\" height=\"64\" alt=\"Blocked link\" />";
+            var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.LinkExternal };
+            options.AllowedImageHosts.Add("images.example.test");
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Blocked link", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageResourceRejectedByPolicy", diagnostic.Code);
+            Assert.Equal("https://blocked.example.test/logo.png", diagnostic.Source);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageProcessing_EmbedDataUriOnly_SkipsExternalImages() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var uri = new Uri(path).AbsoluteUri;
             string html = $"<img src=\"{uri}\" alt=\"Logo\" />";
             var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.EmbedDataUriOnly };
+
             var doc = html.LoadFromHtml(options);
+
             Assert.Empty(doc.Images);
             Assert.Single(doc.Paragraphs);
             Assert.Equal("Logo", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageSkippedByPolicy", diagnostic.Code);
+            Assert.Equal(uri, diagnostic.Source);
+        }
+
+        private sealed class FakeHtmlHttpMessageHandler : HttpMessageHandler {
+            private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
+
+            internal FakeHtmlHttpMessageHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) {
+                _handler = handler;
+            }
+
+            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+                return _handler(request);
+            }
+        }
+
+        private sealed class ThrowIfReadContent : HttpContent {
+            private readonly long _length;
+
+            internal ThrowIfReadContent(long length) {
+                _length = length;
+            }
+
+            protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) {
+                throw new InvalidOperationException("Content body should not be read when headers exceed the remaining image byte budget.");
+            }
+
+            protected override bool TryComputeLength(out long length) {
+                length = _length;
+                return true;
+            }
         }
     }
 }

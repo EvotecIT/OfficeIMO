@@ -59,6 +59,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_SpanStyles_ModernRgbColorSyntax() {
+            string html = "<p><span style=\"color:rgb(100% 0% 50% / 0.5)\">Modern</span></p>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var run = doc.Paragraphs[0].GetRuns().First();
+
+            Assert.Equal("ff0080", run.ColorHex);
+        }
+
+        [Fact]
         public void HtmlToWord_NestedInheritance() {
             string html = "<div style=\"color:#ff0000;font-size:20px;\">A<span style=\"font-size:10px;\">B</span><span>C</span></div>";
             var doc = html.LoadFromHtml(new HtmlToWordOptions());
@@ -69,6 +78,50 @@ namespace OfficeIMO.Tests {
             Assert.Equal(10, runs[1].FontSize);
             Assert.Equal("ff0000", runs[2].ColorHex);
             Assert.Equal(20, runs[2].FontSize);
+        }
+
+        [Fact]
+        public void HtmlToWord_BodyStylesheet_InheritsTextFormatting() {
+            string html = "<style>body { color:#123456; font-size:22px; } .special { font-size:11px; }</style><p>One</p><p class=\"special\">Two</p>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var bodyRuns = doc._wordprocessingDocument!.MainDocumentPart!.Document!.Body!.Descendants<Run>();
+            var first = bodyRuns.Single(run => run.InnerText == "One");
+            var second = bodyRuns.Single(run => run.InnerText == "Two");
+
+            Assert.Equal("123456", first.RunProperties!.Color!.Val!.Value);
+            Assert.Equal("44", first.RunProperties!.FontSize!.Val!.Value);
+            Assert.Equal("123456", second.RunProperties!.Color!.Val!.Value);
+            Assert.Equal("22", second.RunProperties!.FontSize!.Val!.Value);
+        }
+
+        [Fact]
+        public void HtmlToWord_DirectStylesheetRule_OverridesInheritedStylesheetRule() {
+            string html = "<style>body.theme { color:#ff0000 } p { color:#0000ff }</style><body class=\"theme\"><p>Text</p></body>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var run = doc.Paragraphs[0].GetRuns().First();
+
+            Assert.Equal("0000ff", run.ColorHex);
+        }
+
+        [Fact]
+        public void HtmlToWord_StylesheetClass_AppliesRunFormatting() {
+            string html = "<style>.special { color:#abcdef; font-size:11px; }</style><p class=\"special\">Text</p>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var run = doc.Paragraphs[0].GetRuns().First();
+
+            Assert.Equal("abcdef", run.ColorHex);
+            Assert.Equal(11, run.FontSize);
+        }
+
+        [Fact]
+        public void HtmlToWord_BodyStyle_DoesNotInheritLayoutMargins() {
+            string html = "<body style=\"margin-left:72pt;color:#123456\"><p>Text</p></body>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var paragraph = doc.Paragraphs[0];
+            var run = paragraph.GetRuns().First();
+
+            Assert.Equal("123456", run.ColorHex);
+            Assert.Null(paragraph.IndentationBeforePoints);
         }
     }
 }

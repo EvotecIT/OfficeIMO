@@ -20,6 +20,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AddHtmlToHeader_InlineQuoteStaysInHeader() {
+            using WordDocument document = WordDocument.Create();
+            document.AddHtmlToHeader("<q>Quoted header</q>");
+
+            string innerText = GetHeaderInnerText(document, HeaderFooterValues.Default);
+
+            Assert.Contains("Quoted header", innerText);
+            Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text.Contains("Quoted header", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void AddHtmlToFooter_PlacesContentInFooter() {
             using WordDocument document = WordDocument.Create();
             document.AddHtmlToFooter("<p>Footer content</p>");

@@ -19,6 +19,12 @@ namespace OfficeIMO.Word.Html {
         public bool IncludeListStyles { get; set; }
 
         /// <summary>
+        /// When true, emits reusable CSS classes and a head stylesheet for Word list definitions.
+        /// Default is false to preserve the legacy inline/list-attribute output shape.
+        /// </summary>
+        public bool IncludeListDefinitions { get; set; }
+
+        /// <summary>
         /// When true, paragraph styles are emitted as CSS classes.
         /// </summary>
         public bool IncludeParagraphClasses { get; set; }
@@ -52,6 +58,44 @@ namespace OfficeIMO.Word.Html {
         /// When true, footnotes are exported to HTML. Set to false to omit footnotes.
         /// </summary>
         public bool ExportFootnotes { get; set; } = true;
+
+        /// <summary>
+        /// When true, endnotes are exported to HTML. Set to false to omit endnotes.
+        /// </summary>
+        public bool ExportEndnotes { get; set; } = true;
+
+        /// <summary>
+        /// When true, Word comments are exported as linked HTML references and a comments section.
+        /// Default is false so review metadata is not exposed unless requested.
+        /// </summary>
+        public bool ExportComments { get; set; }
+
+        /// <summary>
+        /// When true, Word section headers and footers are exported as semantic HTML
+        /// <c>header</c> and <c>footer</c> regions with section/type metadata.
+        /// Default is false to preserve the legacy body-only output.
+        /// </summary>
+        public bool ExportHeadersAndFooters { get; set; }
+
+        /// <summary>
+        /// When true, custom document properties are exported as typed HTML meta tags.
+        /// Default is false so callers explicitly choose whether custom metadata is browser-visible.
+        /// </summary>
+        public bool IncludeCustomProperties { get; set; }
+
+        /// <summary>
+        /// When true, wraps exported document content in per-section <c>section</c>
+        /// elements that preserve Word page size, orientation, and margin metadata.
+        /// Default is false to preserve the legacy flat body output.
+        /// </summary>
+        public bool IncludeSectionMetadata { get; set; }
+
+        /// <summary>
+        /// When true, emits table column width metadata as HTML <c>colgroup</c>
+        /// and <c>col</c> elements when the Word table exposes usable column widths.
+        /// Default is false to preserve the legacy row-first table output.
+        /// </summary>
+        public bool IncludeTableColumnGroups { get; set; }
 
         /// <summary>
         /// When true (default), embeds images as base64 data URIs. When false,
