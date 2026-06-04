@@ -525,7 +525,11 @@ public static partial class PowerPointPdfConverterExtensions {
         y = shape.TopPoints;
         width = shape.WidthPoints;
         height = shape.HeightPoints;
-        if (width > 0D && height > 0D && x >= 0D && y >= 0D && x + width <= pageWidth && y + height <= pageHeight) {
+        bool isLineShape = shape is PptCore.PowerPointAutoShape autoShape && autoShape.ShapeType == ShapeTypeValues.Line;
+        bool hasRenderableSize = isLineShape
+            ? width >= 0D && height >= 0D && (width > 0D || height > 0D)
+            : width > 0D && height > 0D;
+        if (hasRenderableSize && x >= 0D && y >= 0D && x + width <= pageWidth && y + height <= pageHeight) {
             return true;
         }
 

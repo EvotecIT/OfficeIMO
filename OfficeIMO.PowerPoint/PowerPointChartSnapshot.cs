@@ -26,6 +26,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Line chart.</summary>
         Line,
 
+        /// <summary>Stacked line chart.</summary>
+        StackedLine,
+
+        /// <summary>One-hundred percent stacked line chart.</summary>
+        StackedLine100,
+
         /// <summary>Scatter chart.</summary>
         Scatter,
 

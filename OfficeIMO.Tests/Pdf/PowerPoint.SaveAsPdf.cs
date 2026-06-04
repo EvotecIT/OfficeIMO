@@ -321,6 +321,51 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesStackedLineChartKind() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 12D, 16D }),
+                new PowerPointChartSeries("Target", new[] { 3D, 4D, 5D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddLineChartPoints(data, 40, 32, 240, 172);
+        SetLineChartGrouping(chart, C.GroupingValues.PercentStacked);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.StackedLine100, snapshot.ChartKind);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Target", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersZeroThicknessLineAutoShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddShapePoints(ShapeTypeValues.Line, 20, 40, 100, 0).Stroke("1E5A96", 1.5D);
+        slide.AddShapePoints(ShapeTypeValues.Line, 140, 30, 0, 80).Stroke("C00000", 1.5D);
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 120 m", raw, StringComparison.Ordinal);
+        Assert.Contains("120 120 l", raw, StringComparison.Ordinal);
+        Assert.Contains("140 130 m", raw, StringComparison.Ordinal);
+        Assert.Contains("140 50 l", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesScatterSeriesXValues() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -437,6 +482,15 @@ public class PowerPointSaveAsPdfTests {
         C.BarChart barChart = chartPart.ChartSpace!.Descendants<C.BarChart>().Single();
         barChart.GetFirstChild<C.BarDirection>()!.Val = direction;
         barChart.GetFirstChild<C.BarGrouping>()!.Val = grouping;
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void SetLineChartGrouping(PowerPointChart chart, C.GroupingValues grouping) {
+        MethodInfo method = typeof(PowerPointChart).GetMethod("GetChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var chartPart = (ChartPart)method.Invoke(chart, Array.Empty<object>())!;
+        C.LineChart lineChart = chartPart.ChartSpace!.Descendants<C.LineChart>().Single();
+        C.Grouping chartGrouping = lineChart.GetFirstChild<C.Grouping>() ?? lineChart.PrependChild(new C.Grouping());
+        chartGrouping.Val = grouping;
         chartPart.ChartSpace.Save();
     }
 

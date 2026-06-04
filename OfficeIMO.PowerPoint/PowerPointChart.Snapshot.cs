@@ -40,7 +40,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Line, data);
+                    snapshot = CreateSnapshot(chart, GetLineChartSnapshotKind(lineChart), data);
                     return true;
                 }
 
@@ -109,6 +109,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return horizontal ? PowerPointChartSnapshotKind.ClusteredBar : PowerPointChartSnapshotKind.ClusteredColumn;
+        }
+
+        private static PowerPointChartSnapshotKind GetLineChartSnapshotKind(C.LineChart chart) {
+            C.GroupingValues grouping = chart.GetFirstChild<C.Grouping>()?.Val?.Value ?? C.GroupingValues.Standard;
+            if (grouping == C.GroupingValues.Stacked) {
+                return PowerPointChartSnapshotKind.StackedLine;
+            }
+
+            if (grouping == C.GroupingValues.PercentStacked) {
+                return PowerPointChartSnapshotKind.StackedLine100;
+            }
+
+            return PowerPointChartSnapshotKind.Line;
         }
 
         private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements) {

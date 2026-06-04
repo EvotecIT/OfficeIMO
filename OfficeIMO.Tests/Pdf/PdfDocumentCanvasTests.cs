@@ -396,6 +396,26 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasTable_SkipsVerticalGridDividersInsideMergedCells() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { PdfTableCell.Span("Merged", 2) },
+                new[] { PdfTableCell.TextCell("Left"), PdfTableCell.TextCell("Right") }
+            }, 30, 30, 120, 60))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("30 90 120 60 re", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("90 150 m", raw, StringComparison.Ordinal);
+        Assert.Contains("90 120 m", raw, StringComparison.Ordinal);
+        Assert.Contains("90 90 l", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasTextBox_WithRotation_RendersBoxAndTextInsideRotatedGroup() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 260,

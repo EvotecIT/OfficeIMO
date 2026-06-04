@@ -293,9 +293,16 @@ internal static partial class PdfWriter {
             double lineX = x;
             for (int column = 0; column < columns - 1; column++) {
                 lineX += columnWidths[column];
-                double lineTop = topY;
-                double lineBottom = topY - height;
-                DrawVLine(sb, color, width, lineX, lineTop, lineBottom, true);
+                for (int row = 0; row < rows; row++) {
+                    if (IsTableBoundaryInsideSpannedCell(table, row, column, columns)) {
+                        continue;
+                    }
+
+                    double lineTop = topY - GetTableRowsHeight(rowHeights, 0, row, rowGap);
+                    double lineBottom = lineTop - rowHeights[row];
+                    DrawVLine(sb, color, width, lineX, lineTop, lineBottom, true);
+                }
+
                 lineX += columnGap;
             }
 
