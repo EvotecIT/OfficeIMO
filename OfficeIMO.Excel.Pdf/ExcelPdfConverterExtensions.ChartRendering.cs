@@ -36,7 +36,21 @@ namespace OfficeIMO.Excel.Pdf {
             return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
         }
 
+        private static bool HasMixedSeriesChartTypes(ExcelChartSnapshot snapshot) {
+            foreach (ExcelChartSeries series in snapshot.Data.Series) {
+                if (series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         private static OfficeChartSnapshot CreateOfficeChartSnapshot(ExcelChartSnapshot snapshot, ExcelPdfSaveOptions options) {
+            if (HasMixedSeriesChartTypes(snapshot)) {
+                throw new NotSupportedException("Excel chart '" + GetChartDisplayName(snapshot) + "' uses mixed per-series chart types, which are not supported by the shared OfficeIMO chart renderer yet.");
+            }
+
             if (!TryMapChartKind(snapshot.ChartType, out OfficeChartKind chartKind)) {
                 throw new NotSupportedException("Excel chart type '" + snapshot.ChartType + "' is not supported by the shared OfficeIMO chart renderer.");
             }

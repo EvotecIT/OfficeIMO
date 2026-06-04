@@ -532,6 +532,24 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasClip_PreservesInlineImageClipPathInsideFrame() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(20, 20, 100, 80, clipped => clipped.Image(CreateMinimalRgbPng(), 30, 30, 40, 40, new PdfImageStyle {
+                ClipPath = OfficeClipPath.Rectangle(20, 20)
+            })))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 60 100 80 re W", raw, StringComparison.Ordinal);
+        Assert.Contains("30 110 20 20 re W", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("30 90 40 40 re W", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CanvasTable_SkipsVerticalGridDividersInsideMergedCells() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,

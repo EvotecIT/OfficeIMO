@@ -710,6 +710,38 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesTableCellLineBreaks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 28, 150, 96);
+        table.SetRowHeightsPoints(96);
+
+        PowerPointTableCell cell = table.GetCell(0, 0);
+        cell.FontSize = 12;
+        cell.Text = "First";
+        DocumentFormat.OpenXml.Drawing.TextBody textBody = cell.Cell.TextBody!;
+        textBody.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.Paragraph>();
+        textBody.Append(new DocumentFormat.OpenXml.Drawing.Paragraph(
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("First")),
+            new DocumentFormat.OpenXml.Drawing.Break(),
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Second"))));
+        textBody.Append(new DocumentFormat.OpenXml.Drawing.Paragraph(
+            new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Third"))));
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        double firstY = FindWordStartY(page, "First");
+        double secondY = FindWordStartY(page, "Second");
+        double thirdY = FindWordStartY(page, "Third");
+
+        Assert.True(firstY > secondY, "Expected an explicit PowerPoint table cell line break to render the following run on a lower line.");
+        Assert.True(secondY > thirdY, "Expected a second PowerPoint table cell paragraph to render on a lower line.");
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesTableRotation() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

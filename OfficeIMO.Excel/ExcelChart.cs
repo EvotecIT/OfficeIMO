@@ -78,6 +78,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
+                chartData = ExcelChartUtils.ApplyChartSeriesTypes(chartPart, chartData, ChartType);
                 _dataRange = range;
                 data = chartData;
                 return true;

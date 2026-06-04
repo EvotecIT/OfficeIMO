@@ -358,11 +358,46 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
-                image.ClipPath = OfficeIMO.Drawing.OfficeClipPath.Rectangle(x2 - x1, y2 - y1);
-                image.ClipX = x1;
-                image.ClipY = y1;
-                image.ClipHeight = y2 - y1;
+                if (!string.IsNullOrEmpty(image.InlineDrawToken) || CanvasClipContainsFrame(image, x1, y1, x2, y2)) {
+                    continue;
+                }
+
+                if (!TryApplyCanvasPageImageClip(image, x1, y1, x2, y2)) {
+                    images.RemoveAt(i);
+                }
             }
+        }
+
+        private static bool CanvasClipContainsFrame(PageImage image, double x1, double y1, double x2, double y2) {
+            const double tolerance = 0.01D;
+            return x1 <= image.X + tolerance
+                   && y1 <= image.Y + tolerance
+                   && x2 >= image.X + image.W - tolerance
+                   && y2 >= image.Y + image.H - tolerance;
+        }
+
+        private static bool TryApplyCanvasPageImageClip(PageImage image, double x1, double y1, double x2, double y2) {
+            if (image.ClipPath != null && image.ClipPath.Kind == OfficeIMO.Drawing.OfficeClipPathKind.Rectangle) {
+                double existingX1 = image.ClipX;
+                double existingY1 = image.ClipY + image.ClipHeight - image.ClipPath.Height;
+                double existingX2 = image.ClipX + image.ClipPath.Width;
+                double existingY2 = image.ClipY + image.ClipHeight;
+
+                x1 = System.Math.Max(x1, existingX1);
+                y1 = System.Math.Max(y1, existingY1);
+                x2 = System.Math.Min(x2, existingX2);
+                y2 = System.Math.Min(y2, existingY2);
+            }
+
+            if (x2 <= x1 || y2 <= y1) {
+                return false;
+            }
+
+            image.ClipPath = OfficeIMO.Drawing.OfficeClipPath.Rectangle(x2 - x1, y2 - y1);
+            image.ClipX = x1;
+            image.ClipY = y1;
+            image.ClipHeight = y2 - y1;
+            return true;
         }
 
         private static void ClipCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {

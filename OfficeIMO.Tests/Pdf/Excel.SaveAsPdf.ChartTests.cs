@@ -337,6 +337,39 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_WarnsAndSkipsMixedSeriesChartTypes() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMixedSeriesChart.xlsx");
+
+        byte[] bytes;
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 1,
+            PageSize = new PdfCore.PageSize(480, 360),
+            Margins = PdfCore.PageMargins.Uniform(24)
+        };
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            var data = new ExcelChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new ExcelChartSeries("Sales", new[] { 12D, 18D, 24D }, ExcelChartType.ColumnClustered, ExcelChartAxisGroup.Primary),
+                    new ExcelChartSeries("Trend", new[] { 10D, 16D, 22D }, ExcelChartType.Line, ExcelChartAxisGroup.Secondary)
+                });
+
+            sheet.AddChart(data, row: 1, column: 5, widthPixels: 360, heightPixels: 220, type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        ExcelPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Feature == "WorksheetChart");
+        Assert.Contains("mixed per-series chart types", warning.Message, StringComparison.Ordinal);
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.DoesNotContain("Sales vs Trend", pdf.GetPage(1).Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Stacked_Line_Charts_To_Shared_Stacked_Line_Renderer() {
         MethodInfo method = typeof(ExcelPdfConverterExtensions).GetMethod("TryMapChartKind", BindingFlags.NonPublic | BindingFlags.Static)!;
 

@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 using PptCore = OfficeIMO.PowerPoint;
 
@@ -640,14 +642,62 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static PdfCore.PdfTableCell CreatePdfTableCell(PptCore.PowerPointTableCell cell) {
         (int rowSpan, int columnSpan) = cell.Merge;
-        PdfCore.TextRun run = new PdfCore.TextRun(
-            cell.Text ?? string.Empty,
+        return PdfCore.PdfTableCell.Merge(CreatePdfTableCellRuns(cell), Math.Max(1, columnSpan), Math.Max(1, rowSpan));
+    }
+
+    private static IReadOnlyList<PdfCore.TextRun> CreatePdfTableCellRuns(PptCore.PowerPointTableCell cell) {
+        var runs = new List<PdfCore.TextRun>();
+        A.TextBody? textBody = cell.Cell.TextBody;
+        if (textBody != null) {
+            bool hasParagraph = false;
+            foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
+                if (hasParagraph) {
+                    runs.Add(PdfCore.TextRun.LineBreak());
+                }
+
+                AppendPdfTableCellParagraphRuns(runs, paragraph, cell);
+                hasParagraph = true;
+            }
+        }
+
+        if (runs.Count == 0) {
+            runs.Add(CreatePdfTableCellTextRun(cell, cell.Text ?? string.Empty));
+        }
+
+        return runs;
+    }
+
+    private static void AppendPdfTableCellParagraphRuns(List<PdfCore.TextRun> runs, A.Paragraph paragraph, PptCore.PowerPointTableCell cell) {
+        foreach (OpenXmlElement child in paragraph.ChildElements) {
+            switch (child) {
+                case A.Run run:
+                    foreach (A.Text text in run.Elements<A.Text>()) {
+                        runs.Add(CreatePdfTableCellTextRun(cell, text.Text ?? string.Empty));
+                    }
+
+                    break;
+                case A.Break:
+                    runs.Add(PdfCore.TextRun.LineBreak());
+                    break;
+                case A.Field field:
+                    string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
+                    if (!string.IsNullOrEmpty(fieldText)) {
+                        runs.Add(CreatePdfTableCellTextRun(cell, fieldText));
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    private static PdfCore.TextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, string text) {
+        return new PdfCore.TextRun(
+            text,
             bold: cell.Bold,
             italic: cell.Italic,
             color: ParsePdfColor(cell.Color),
             fontSize: cell.FontSize,
             font: MapFont(cell.FontName));
-        return PdfCore.PdfTableCell.Merge(new[] { run }, Math.Max(1, columnSpan), Math.Max(1, rowSpan));
     }
 
     private static PdfCore.PdfTableStyle CreateTableStyle(PptCore.PowerPointTable table) {

@@ -118,6 +118,12 @@ namespace OfficeIMO.Excel.Pdf {
                         sheetName,
                         "WorksheetChart",
                         $"Worksheet chart '{GetChartDisplayName(snapshot)}' was not exported because it does not contain renderable chart categories and series.");
+                } else if (HasMixedSeriesChartTypes(snapshot)) {
+                    AddWarning(
+                        options,
+                        sheetName,
+                        "WorksheetChart",
+                        $"Worksheet chart '{GetChartDisplayName(snapshot)}' was not exported because mixed per-series chart types are not supported by the first-party PDF chart snapshot renderer yet.");
                 } else if (IsSupportedChartSnapshot(snapshot)) {
                     charts.Add(new WorksheetChartExportData(snapshot));
                 } else {
