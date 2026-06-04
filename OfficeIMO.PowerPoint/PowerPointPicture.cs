@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -36,6 +37,19 @@ namespace OfficeIMO.PowerPoint {
         ///     Gets the MIME content type of the underlying image.
         /// </summary>
         public string? MimeType => ContentType;
+
+        internal Uri? ClickHyperlink {
+            get {
+                string? relId = Picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.GetFirstChild<A.HyperlinkOnClick>()?.Id;
+                if (string.IsNullOrWhiteSpace(relId)) {
+                    return null;
+                }
+
+                HyperlinkRelationship? rel = _ownerPart.HyperlinkRelationships
+                    .FirstOrDefault(r => string.Equals(r.Id, relId, StringComparison.Ordinal));
+                return rel?.Uri;
+            }
+        }
 
         private ImagePart? GetImagePart() {
             Picture picture = (Picture)Element;

@@ -105,6 +105,28 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersSingleCategoryBarChart() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Single bar",
+            "One Category",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Only" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 42D })
+                }),
+            widthPoints: 220D,
+            heightPoints: 140D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width > 2D &&
+            shape.Shape.Height > 2D &&
+            shape.Shape.FillColor.HasValue &&
+            shape.Shape.StrokeWidth == 0D);
+    }
+
+    [Fact]
     public void FlowDrawing_SkipsNonFiniteScatterXCoordinates() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter",

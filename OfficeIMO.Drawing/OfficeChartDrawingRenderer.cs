@@ -117,7 +117,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
-        if (categories.Count < 2 || series.Count == 0) {
+        if (categories.Count == 0 || series.Count == 0) {
             return;
         }
 

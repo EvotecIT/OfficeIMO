@@ -124,20 +124,21 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_WarnsAndSkipsOffSlideShapes() {
+    public void SaveAsPdf_PowerPointPresentation_ClipsPartiallyOffSlideShapes() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(240, 160);
-        presentation.Slides[0].AddRectanglePoints(-10, 20, 80, 40);
+        PowerPointAutoShape shape = presentation.Slides[0].AddRectanglePoints(-12, 20, 48, 30);
+        shape.FillColor = "1E5A96";
+        shape.OutlineColor = "1E5A96";
         var options = new PowerPointPdfSaveOptions();
 
         byte[] bytes = presentation.SaveAsPdf(options);
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
-        Assert.Equal(1, warning.SlideNumber);
-        Assert.Equal("invalid-shape-bounds", warning.Code);
-        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
-        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0 110 36 30 re W", raw, StringComparison.Ordinal);
+        Assert.Contains("-12 110 48 30 re", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -233,6 +234,26 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ResolvesThemeBackgroundStyleReference() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeColor(PowerPointThemeColor.Light1, "123456");
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundStyleReference(
+                new SchemeColor { Val = SchemeColorValues.Background1 }) { Index = 1001U });
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.071 0.204 0.337 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutShapes() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -258,6 +279,40 @@ public class PowerPointSaveAsPdfTests {
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("16 130 50 10 re", raw, StringComparison.Ordinal);
         Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesInheritedLayoutTextBoxHyperlinks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+        HyperlinkRelationship rel = layoutPart.AddHyperlinkRelationship(new Uri("https://officeimo.net/layout"), true);
+        ShapeTree tree = layoutPart.SlideLayout.CommonSlideData!.ShapeTree!;
+        tree.AppendChild(new DocumentFormat.OpenXml.Presentation.Shape(
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+                new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = 701U, Name = "Layout Link" },
+                new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(new ShapeLocks { NoGrouping = true }),
+                new ApplicationNonVisualDrawingProperties()),
+            new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new Transform2D(
+                    new Offset { X = PowerPointUnits.FromPoints(24), Y = PowerPointUnits.FromPoints(32) },
+                    new Extents { Cx = PowerPointUnits.FromPoints(150), Cy = PowerPointUnits.FromPoints(36) }),
+                new PresetGeometry(new AdjustValueList()) { Preset = ShapeTypeValues.Rectangle }),
+            new DocumentFormat.OpenXml.Presentation.TextBody(
+                new BodyProperties(),
+                new ListStyle(),
+                new Paragraph(
+                    new Run(
+                        new RunProperties(new HyperlinkOnClick { Id = rel.Id }),
+                        new DocumentFormat.OpenXml.Drawing.Text("Layout Link"))))));
+        layoutPart.SlideLayout.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+
+        Assert.Equal(new[] { "https://officeimo.net/layout" }, info.LinkUris);
     }
 
     [Fact]
@@ -330,6 +385,35 @@ public class PowerPointSaveAsPdfTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("-60 0 0 30 100 80 cm", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesPictureHyperlinks() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(30),
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(30));
+        HyperlinkRelationship rel = slide.SlidePart.AddHyperlinkRelationship(new Uri("https://officeimo.net/picture"), true);
+        DocumentFormat.OpenXml.Presentation.Picture picture = slide.SlidePart.Slide.Descendants<DocumentFormat.OpenXml.Presentation.Picture>().Single();
+        picture.NonVisualPictureProperties!.NonVisualDrawingProperties!.Append(new HyperlinkOnClick { Id = rel.Id });
+        slide.SlidePart.Slide.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+
+        PdfCore.PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+        Assert.Equal("https://officeimo.net/picture", link.Uri);
+        Assert.Equal(30D, link.X1, 1);
+        Assert.Equal(90D, link.Y1, 1);
+        Assert.Equal(80D, link.X2, 1);
+        Assert.Equal(120D, link.Y2, 1);
     }
 
     [Fact]
@@ -744,6 +828,27 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ReadsCategoriesFromFirstRenderableCategorySeries() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Jan", "Feb", "Mar" },
+            new[] {
+                new PowerPointChartSeries("Empty", new[] { 0D, 0D, 0D }),
+                new PowerPointChartSeries("Actual", new[] { 10D, 20D, 30D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
+        MakeFirstBarSeriesCacheEmpty(chart);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+
+        Assert.Equal(new[] { "Jan", "Feb", "Mar" }, snapshot.Data.Categories);
+        PowerPointChartSeries actual = Assert.Single(snapshot.Data.Series, series => series.Name == "Actual");
+        Assert.Equal(new[] { 10D, 20D, 30D }, actual.Values);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_AppliesSharedChartStyleAndLayoutOptions() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -854,6 +959,20 @@ public class PowerPointSaveAsPdfTests {
         C.NumberingCache valueCache = series.GetFirstChild<C.Values>()!.Descendants<C.NumberingCache>().Single();
         categoryCache.Elements<C.StringPoint>().Single(point => point.Index?.Value == 1U).Remove();
         valueCache.Elements<C.NumericPoint>().Single(point => point.Index?.Value == 1U).Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void MakeFirstBarSeriesCacheEmpty(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.BarChartSeries series = chartPart.ChartSpace!.Descendants<C.BarChartSeries>().First();
+        foreach (C.StringPoint point in series.GetFirstChild<C.CategoryAxisData>()!.Descendants<C.StringPoint>().ToList()) {
+            point.Remove();
+        }
+
+        foreach (C.NumericPoint point in series.GetFirstChild<C.Values>()!.Descendants<C.NumericPoint>().ToList()) {
+            point.Remove();
+        }
+
         chartPart.ChartSpace.Save();
     }
 

@@ -26,6 +26,9 @@ internal static partial class PdfWriter {
                     case PdfCanvasTableItem table:
                         RenderCanvasTable(table);
                         break;
+                    case PdfCanvasClipItem clip:
+                        RenderCanvasClip(clip);
+                        break;
                 }
             }
         }
@@ -271,13 +274,65 @@ internal static partial class PdfWriter {
             pageDirty = true;
         }
 
+        private void RenderCanvasClip(PdfCanvasClipItem item) {
+            ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas clip");
+            double bottomY = currentOpts.PageHeight - item.Y - item.Height;
+            int annotationStart = currentPage!.Annotations.Count;
+            new ContentStreamBuilder(sb)
+                .SaveState()
+                .Rectangle(item.X, bottomY, item.Width, item.Height)
+                .ClipPath()
+                .EndPath();
+
+            _canvasClipDepth++;
+            try {
+                RenderCanvasBlock(new PdfCanvasBlock(item.Items));
+            } finally {
+                _canvasClipDepth--;
+            }
+
+            ClipCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height);
+            new ContentStreamBuilder(sb)
+                .RestoreState();
+            pageDirty = true;
+        }
+
         private void ValidateCanvasBox(double x, double yFromTop, double boxWidth, double boxHeight, string name) {
+            if (double.IsNaN(x) || double.IsNaN(yFromTop) || double.IsInfinity(x) || double.IsInfinity(yFromTop)) {
+                throw new ArgumentOutOfRangeException(name, name + " coordinates must be finite.");
+            }
+
+            if (double.IsNaN(boxWidth) || double.IsNaN(boxHeight) || double.IsInfinity(boxWidth) || double.IsInfinity(boxHeight) || boxWidth < 0D || boxHeight < 0D || (boxWidth == 0D && boxHeight == 0D)) {
+                throw new ArgumentOutOfRangeException(name, name + " dimensions must be finite non-negative values with at least one positive dimension.");
+            }
+
+            if (_canvasClipDepth > 0) {
+                return;
+            }
+
             if (x + boxWidth > currentOpts.PageWidth + 0.001D || yFromTop + boxHeight > currentOpts.PageHeight + 0.001D) {
                 throw new ArgumentException(name + " exceeds the current page bounds.");
             }
+        }
 
-            if (double.IsNaN(x) || double.IsNaN(yFromTop) || double.IsInfinity(x) || double.IsInfinity(yFromTop)) {
-                throw new ArgumentOutOfRangeException(name, name + " coordinates must be finite.");
+        private static void ClipCanvasLinkAnnotations(System.Collections.Generic.List<LinkAnnotation> annotations, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {
+            double clipRight = clipX + clipWidth;
+            double clipTop = clipBottomY + clipHeight;
+            for (int i = annotations.Count - 1; i >= startIndex; i--) {
+                LinkAnnotation annotation = annotations[i];
+                double x1 = System.Math.Max(annotation.X1, clipX);
+                double y1 = System.Math.Max(annotation.Y1, clipBottomY);
+                double x2 = System.Math.Min(annotation.X2, clipRight);
+                double y2 = System.Math.Min(annotation.Y2, clipTop);
+                if (x2 <= x1 || y2 <= y1) {
+                    annotations.RemoveAt(i);
+                    continue;
+                }
+
+                annotation.X1 = x1;
+                annotation.Y1 = y1;
+                annotation.X2 = x2;
+                annotation.Y2 = y2;
             }
         }
 

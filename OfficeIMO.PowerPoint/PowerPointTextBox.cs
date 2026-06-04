@@ -11,9 +11,17 @@ namespace OfficeIMO.PowerPoint {
     /// </summary>
     public partial class PowerPointTextBox : PowerPointShape {
         private readonly SlidePart? _slidePart;
+        private readonly OpenXmlPartContainer? _ownerPart;
 
-        internal PowerPointTextBox(Shape shape, SlidePart? slidePart = null) : base(shape) {
+        internal PowerPointTextBox(Shape shape, SlidePart? slidePart = null) : this(shape, slidePart, slidePart) {
+        }
+
+        internal PowerPointTextBox(Shape shape, OpenXmlPartContainer ownerPart) : this(shape, ownerPart as SlidePart, ownerPart) {
+        }
+
+        private PowerPointTextBox(Shape shape, SlidePart? slidePart, OpenXmlPartContainer? ownerPart) : base(shape) {
             _slidePart = slidePart;
+            _ownerPart = ownerPart ?? slidePart;
         }
 
         private Shape Shape => (Shape)Element;
@@ -24,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Paragraphs contained in the textbox.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> Paragraphs =>
-            EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p, _slidePart)).ToList();
+            EnsureTextBody().Elements<A.Paragraph>().Select(p => new PowerPointParagraph(p, _slidePart, _ownerPart)).ToList();
 
         /// <summary>
         ///     Adds a paragraph to the textbox.
@@ -797,7 +805,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             textBody.Append(paragraph);
-            return new PowerPointParagraph(paragraph, _slidePart);
+            return new PowerPointParagraph(paragraph, _slidePart, _ownerPart);
         }
 
         private static A.Paragraph CreateEmptyParagraph(A.Paragraph? templateParagraph) {

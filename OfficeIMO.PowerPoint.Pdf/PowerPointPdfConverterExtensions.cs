@@ -110,43 +110,53 @@ public static partial class PowerPointPdfConverterExtensions {
                 continue;
             }
 
-            if (shape is PptCore.PowerPointTextBox textBox) {
-                if (options.IncludeTextBoxes) {
-                    RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options);
-                }
-                continue;
+            Action<PdfCore.PdfPageCanvas> render = target => RenderShapeContent(target, shape, x, y, width, height, slideNumber, options);
+            if (TryGetVisibleSlideBox(x, y, width, height, pageWidth, pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) &&
+                NeedsSlideClip(x, y, width, height, pageWidth, pageHeight)) {
+                canvas.Clip(clipX, clipY, clipWidth, clipHeight, render);
+            } else {
+                render(canvas);
             }
-
-            if (shape is PptCore.PowerPointPicture picture) {
-                if (options.IncludePictures) {
-                    RenderPicture(canvas, picture, x, y, width, height, slideNumber, options);
-                }
-                continue;
-            }
-
-            if (shape is PptCore.PowerPointTable table) {
-                if (options.IncludeTables) {
-                    RenderTable(canvas, table, x, y, width, height, slideNumber, options);
-                }
-                continue;
-            }
-
-            if (shape is PptCore.PowerPointChart chart) {
-                if (options.IncludeCharts) {
-                    RenderChart(canvas, chart, x, y, width, height, slideNumber, options);
-                }
-                continue;
-            }
-
-            if (shape is PptCore.PowerPointAutoShape autoShape) {
-                if (options.IncludeAutoShapes) {
-                    RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
-                }
-                continue;
-            }
-
-            AddWarning(options, slideNumber, "unsupported-shape", "Skipped unsupported PowerPoint shape content type '" + shape.ShapeContentType + "'.");
         }
+    }
+
+    private static void RenderShapeContent(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointShape shape, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
+        if (shape is PptCore.PowerPointTextBox textBox) {
+            if (options.IncludeTextBoxes) {
+                RenderTextBox(canvas, textBox, x, y, width, height, slideNumber, options);
+            }
+            return;
+        }
+
+        if (shape is PptCore.PowerPointPicture picture) {
+            if (options.IncludePictures) {
+                RenderPicture(canvas, picture, x, y, width, height, slideNumber, options);
+            }
+            return;
+        }
+
+        if (shape is PptCore.PowerPointTable table) {
+            if (options.IncludeTables) {
+                RenderTable(canvas, table, x, y, width, height, slideNumber, options);
+            }
+            return;
+        }
+
+        if (shape is PptCore.PowerPointChart chart) {
+            if (options.IncludeCharts) {
+                RenderChart(canvas, chart, x, y, width, height, slideNumber, options);
+            }
+            return;
+        }
+
+        if (shape is PptCore.PowerPointAutoShape autoShape) {
+            if (options.IncludeAutoShapes) {
+                RenderAutoShape(canvas, autoShape, x, y, width, height, slideNumber, options);
+            }
+            return;
+        }
+
+        AddWarning(options, slideNumber, "unsupported-shape", "Skipped unsupported PowerPoint shape content type '" + shape.ShapeContentType + "'.");
     }
 
     private static void RenderEmptySlide(PdfCore.PdfDocument pdf, double pageWidth, double pageHeight) {
@@ -492,6 +502,14 @@ public static partial class PowerPointPdfConverterExtensions {
                 style.SourceCrop = new PdfCore.PdfImageSourceCrop(crop.Left, crop.Top, crop.Right, crop.Bottom);
             }
 
+            Uri? hyperlink = picture.ClickHyperlink;
+            string? linkUri = null;
+            if (hyperlink != null && hyperlink.IsAbsoluteUri) {
+                linkUri = hyperlink.AbsoluteUri;
+            } else if (hyperlink != null) {
+                AddWarning(options, slideNumber, "relative-picture-hyperlink", "Skipped a relative PowerPoint picture hyperlink because PDF URI annotations require absolute targets.");
+            }
+
             canvas.Image(
                 picture.GetImageBytes(),
                 x,
@@ -499,6 +517,8 @@ public static partial class PowerPointPdfConverterExtensions {
                 width,
                 height,
                 style: style,
+                linkUri: linkUri,
+                linkContents: picture.AltText,
                 alternativeText: picture.AltText,
                 rotationAngle: picture.Rotation ?? 0D,
                 horizontalFlip: picture.HorizontalFlip == true,
@@ -735,7 +755,7 @@ public static partial class PowerPointPdfConverterExtensions {
         bool hasRenderableSize = isLineShape
             ? width >= 0D && height >= 0D && (width > 0D || height > 0D)
             : width > 0D && height > 0D;
-        if (hasRenderableSize && x >= 0D && y >= 0D && x + width <= pageWidth && y + height <= pageHeight) {
+        if (hasRenderableSize && IntersectsPage(x, y, width, height, pageWidth, pageHeight)) {
             return true;
         }
 
@@ -744,6 +764,22 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         return false;
+    }
+
+    private static bool IntersectsPage(double x, double y, double width, double height, double pageWidth, double pageHeight) =>
+        x + width > 0D && y + height > 0D && x < pageWidth && y < pageHeight;
+
+    private static bool NeedsSlideClip(double x, double y, double width, double height, double pageWidth, double pageHeight) =>
+        x < 0D || y < 0D || x + width > pageWidth || y + height > pageHeight;
+
+    private static bool TryGetVisibleSlideBox(double x, double y, double width, double height, double pageWidth, double pageHeight, out double clipX, out double clipY, out double clipWidth, out double clipHeight) {
+        clipX = Math.Max(0D, x);
+        clipY = Math.Max(0D, y);
+        double clipRight = Math.Min(pageWidth, x + width);
+        double clipBottom = Math.Min(pageHeight, y + height);
+        clipWidth = clipRight - clipX;
+        clipHeight = clipBottom - clipY;
+        return clipWidth > 0D && clipHeight > 0D;
     }
 
     private static PdfCore.PdfAlign MapAlign(TextAlignmentTypeValues? alignment) {

@@ -7,6 +7,15 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfPageCanvas {
     private readonly List<PdfCanvasItem> _items = new();
+    private readonly bool _allowOutOfPageCoordinates;
+
+    /// <summary>Creates an empty absolute-positioning page canvas.</summary>
+    public PdfPageCanvas() {
+    }
+
+    private PdfPageCanvas(bool allowOutOfPageCoordinates) {
+        _allowOutOfPageCoordinates = allowOutOfPageCoordinates;
+    }
 
     internal IReadOnlyList<PdfCanvasItem> Items => _items;
 
@@ -19,8 +28,8 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds rich text runs inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Text(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfColor? defaultColor = null, PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null) {
         Guard.NotNull(runs, nameof(runs));
-        Guard.NonNegative(x, nameof(x));
-        Guard.NonNegative(y, nameof(y));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.ParagraphAlign(align, nameof(align), "Canvas text");
@@ -50,8 +59,8 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates.</summary>
     public PdfPageCanvas TextBox(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D) {
         Guard.NotNull(runs, nameof(runs));
-        Guard.NonNegative(x, nameof(x));
-        Guard.NonNegative(y, nameof(y));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas text box rotation angle must be finite.");
@@ -71,8 +80,8 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds a shared drawing shape at fixed top-left page coordinates.</summary>
     public PdfPageCanvas Shape(OfficeShape shape, double x, double y, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, double rotationAngle = 0D) {
         Guard.NotNull(shape, nameof(shape));
-        Guard.NonNegative(x, nameof(x));
-        Guard.NonNegative(y, nameof(y));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas shape rotation angle must be finite.");
         ShapeBlock block = PdfDocument.CreateShapeBlock(CreateRotatedShape(shape, rotationAngle), PdfAlign.Left, spacingBefore: 0D, spacingAfter: 0D, style, linkUri, linkContents);
         _items.Add(new PdfCanvasShapeItem(block, x, y, rotationAngle));
@@ -82,8 +91,8 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds a shared vector drawing inside a fixed page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Drawing(OfficeDrawing drawing, double x, double y, double width, double height, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null, double rotationAngle = 0D) {
         Guard.NotNull(drawing, nameof(drawing));
-        Guard.NonNegative(x, nameof(x));
-        Guard.NonNegative(y, nameof(y));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas drawing rotation angle must be finite.");
@@ -96,8 +105,8 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds a supported image at fixed top-left page coordinates.</summary>
     public PdfPageCanvas Image(byte[] imageBytes, double x, double y, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null, string? alternativeText = null, double rotationAngle = 0D, bool horizontalFlip = false, bool verticalFlip = false) {
         Guard.NotNullOrEmpty(imageBytes, nameof(imageBytes));
-        Guard.NonNegative(x, nameof(x));
-        Guard.NonNegative(y, nameof(y));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
@@ -120,8 +129,8 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds a fixed-position table inside a page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null, double rotationAngle = 0D) {
         Guard.NotNull(rows, nameof(rows));
-        Guard.NonNegative(x, nameof(x));
-        Guard.NonNegative(y, nameof(y));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas table rotation angle must be finite.");
@@ -132,12 +141,26 @@ public sealed class PdfPageCanvas {
     /// <summary>Adds a fixed-position rich table inside a page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null, double rotationAngle = 0D) {
         Guard.NotNull(rows, nameof(rows));
-        Guard.NonNegative(x, nameof(x));
-        Guard.NonNegative(y, nameof(y));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas table rotation angle must be finite.");
         _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle));
+        return this;
+    }
+
+    /// <summary>Adds a clipped fixed-position canvas frame using top-left page coordinates.</summary>
+    public PdfPageCanvas Clip(double x, double y, double width, double height, Action<PdfPageCanvas> build) {
+        Guard.NonNegative(x, nameof(x));
+        Guard.NonNegative(y, nameof(y));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        Guard.NotNull(build, nameof(build));
+
+        var clippedCanvas = new PdfPageCanvas(allowOutOfPageCoordinates: true);
+        build(clippedCanvas);
+        _items.Add(new PdfCanvasClipItem(clippedCanvas.Items, x, y, width, height));
         return this;
     }
 
@@ -199,6 +222,16 @@ public sealed class PdfPageCanvas {
     private static void ValidateFiniteRotation(double value, string paramName, string message) {
         if (double.IsNaN(value) || double.IsInfinity(value)) {
             throw new ArgumentOutOfRangeException(paramName, message);
+        }
+    }
+
+    private void ValidateCanvasCoordinate(double value, string paramName) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(paramName, "Canvas coordinates must be finite.");
+        }
+
+        if (!_allowOutOfPageCoordinates) {
+            Guard.NonNegative(value, paramName);
         }
     }
 }
@@ -314,4 +347,17 @@ internal sealed class PdfCanvasTableItem : PdfCanvasItem {
     public double Width { get; }
     public double Height { get; }
     public double RotationAngle { get; }
+}
+
+internal sealed class PdfCanvasClipItem : PdfCanvasItem {
+    public PdfCanvasClipItem(IReadOnlyList<PdfCanvasItem> items, double x, double y, double width, double height)
+        : base(x, y) {
+        Items = items;
+        Width = width;
+        Height = height;
+    }
+
+    public IReadOnlyList<PdfCanvasItem> Items { get; }
+    public double Width { get; }
+    public double Height { get; }
 }

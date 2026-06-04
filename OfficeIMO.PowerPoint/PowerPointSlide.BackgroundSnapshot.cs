@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -13,7 +14,10 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointSlideBackground GetBackground() {
             (BackgroundProperties? properties, OpenXmlPart? ownerPart) = GetResolvedBackgroundProperties();
             if (properties == null || !properties.HasChildren) {
-                return PowerPointSlideBackground.None();
+                (BackgroundStyleReference? styleReference, OpenXmlPart? styleOwnerPart) = GetResolvedBackgroundStyleReference();
+                return styleReference != null
+                    ? GetBackgroundStyleReference(styleReference, styleOwnerPart ?? _slidePart)
+                    : PowerPointSlideBackground.None();
             }
 
             A.SolidFill? solidFill = properties.GetFirstChild<A.SolidFill>();
@@ -54,6 +58,134 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return (null, null);
+        }
+
+        private (BackgroundStyleReference? StyleReference, OpenXmlPart? OwnerPart) GetResolvedBackgroundStyleReference() {
+            BackgroundStyleReference? slideReference = SlideRoot.CommonSlideData?.Background?.BackgroundStyleReference;
+            if (slideReference != null) {
+                return (slideReference, _slidePart);
+            }
+
+            SlideLayoutPart? layoutPart = _slidePart.SlideLayoutPart;
+            BackgroundStyleReference? layoutReference = layoutPart?.SlideLayout?.CommonSlideData?.Background?.BackgroundStyleReference;
+            if (layoutReference != null) {
+                return (layoutReference, layoutPart);
+            }
+
+            SlideMasterPart? masterPart = layoutPart?.SlideMasterPart;
+            BackgroundStyleReference? masterReference = masterPart?.SlideMaster?.CommonSlideData?.Background?.BackgroundStyleReference;
+            if (masterReference != null) {
+                return (masterReference, masterPart);
+            }
+
+            return (null, null);
+        }
+
+        private static PowerPointSlideBackground GetBackgroundStyleReference(BackgroundStyleReference styleReference, OpenXmlPart ownerPart) {
+            ThemePart? themePart = GetThemePart(ownerPart);
+            A.FormatScheme? formatScheme = themePart?.Theme?.ThemeElements?.FormatScheme;
+            if (formatScheme == null) {
+                return PowerPointSlideBackground.Unsupported("The slide background references a theme background style but no theme format scheme could be resolved.");
+            }
+
+            OpenXmlElement? fill = ResolveThemeBackgroundFill(formatScheme, styleReference.Index?.Value);
+            if (fill == null) {
+                return PowerPointSlideBackground.Unsupported("The slide background references a theme background style that could not be resolved.");
+            }
+
+            A.ColorScheme? colorScheme = themePart?.Theme?.ThemeElements?.ColorScheme;
+            string? solidColor = ResolveSolidFillColor(fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(), colorScheme, styleReference.GetFirstChild<A.SchemeColor>());
+            if (!string.IsNullOrWhiteSpace(solidColor)) {
+                return PowerPointSlideBackground.SolidColor(solidColor!);
+            }
+
+            return PowerPointSlideBackground.Unsupported("The slide background references a theme background fill type that is not currently supported by OfficeIMO exporters.");
+        }
+
+        private static ThemePart? GetThemePart(OpenXmlPart ownerPart) {
+            if (ownerPart is SlidePart slidePart) {
+                return slidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart;
+            }
+
+            if (ownerPart is SlideLayoutPart layoutPart) {
+                return layoutPart.SlideMasterPart?.ThemePart;
+            }
+
+            return (ownerPart as SlideMasterPart)?.ThemePart;
+        }
+
+        private static OpenXmlElement? ResolveThemeBackgroundFill(A.FormatScheme formatScheme, uint? index) {
+            if (!index.HasValue) {
+                return null;
+            }
+
+            if (index.Value >= 1001U) {
+                int backgroundIndex = (int)(index.Value - 1001U);
+                return formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?.ChildElements.ElementAtOrDefault(backgroundIndex);
+            }
+
+            if (index.Value >= 1U) {
+                return formatScheme.GetFirstChild<A.FillStyleList>()?.ChildElements.ElementAtOrDefault((int)index.Value - 1);
+            }
+
+            return null;
+        }
+
+        private static string? ResolveSolidFillColor(A.SolidFill? solidFill, A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor) {
+            if (solidFill == null) {
+                return null;
+            }
+
+            string? rgbColor = solidFill.RgbColorModelHex?.Val?.Value;
+            if (!string.IsNullOrWhiteSpace(rgbColor)) {
+                return rgbColor;
+            }
+
+            A.SchemeColor? schemeColor = solidFill.GetFirstChild<A.SchemeColor>();
+            string? scheme = GetSchemeColorValue(schemeColor);
+            if (IsPlaceholderSchemeColor(scheme)) {
+                scheme = GetSchemeColorValue(placeholderColor);
+            }
+
+            return ResolveSchemeColor(colorScheme, scheme);
+        }
+
+        private static string? GetSchemeColorValue(A.SchemeColor? schemeColor) {
+            string? attribute = schemeColor?.GetAttribute("val", string.Empty).Value;
+            return !string.IsNullOrWhiteSpace(attribute)
+                ? attribute
+                : schemeColor?.Val?.Value.ToString();
+        }
+
+        private static bool IsPlaceholderSchemeColor(string? scheme) {
+            return string.Equals(scheme, "Placeholder", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(scheme, "PlaceholderColor", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(scheme, "phClr", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? ResolveSchemeColor(A.ColorScheme? colorScheme, string? scheme) {
+            if (colorScheme == null || string.IsNullOrWhiteSpace(scheme)) {
+                return null;
+            }
+
+            OpenXmlCompositeElement? colorElement = scheme switch {
+                "Dark1" or "dk1" or "Text1" or "tx1" => colorScheme.GetFirstChild<A.Dark1Color>(),
+                "Light1" or "lt1" or "Background1" or "bg1" => colorScheme.GetFirstChild<A.Light1Color>(),
+                "Dark2" or "dk2" or "Text2" or "tx2" => colorScheme.GetFirstChild<A.Dark2Color>(),
+                "Light2" or "lt2" or "Background2" or "bg2" => colorScheme.GetFirstChild<A.Light2Color>(),
+                "Accent1" or "accent1" => colorScheme.GetFirstChild<A.Accent1Color>(),
+                "Accent2" or "accent2" => colorScheme.GetFirstChild<A.Accent2Color>(),
+                "Accent3" or "accent3" => colorScheme.GetFirstChild<A.Accent3Color>(),
+                "Accent4" or "accent4" => colorScheme.GetFirstChild<A.Accent4Color>(),
+                "Accent5" or "accent5" => colorScheme.GetFirstChild<A.Accent5Color>(),
+                "Accent6" or "accent6" => colorScheme.GetFirstChild<A.Accent6Color>(),
+                "Hyperlink" or "hlink" => colorScheme.GetFirstChild<A.Hyperlink>(),
+                "FollowedHyperlink" or "folHlink" => colorScheme.GetFirstChild<A.FollowedHyperlinkColor>(),
+                _ => null
+            };
+
+            return colorElement?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value
+                ?? colorElement?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
         }
 
         private static PowerPointSlideBackground GetBackgroundImage(A.BlipFill blipFill, OpenXmlPart ownerPart) {

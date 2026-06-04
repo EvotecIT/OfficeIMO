@@ -143,10 +143,21 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            IReadOnlyList<string> categories = ReadCachedStrings(seriesList[0].GetFirstChild<C.CategoryAxisData>());
-            if (categories.Count == 0) {
-                IReadOnlyList<double> firstValues = ReadCachedNumbers(seriesList[0].GetFirstChild<C.Values>());
-                categories = CreateFallbackCategories(firstValues.Count);
+            IReadOnlyList<string> categories = Array.Empty<string>();
+            for (int i = 0; i < seriesList.Count; i++) {
+                IReadOnlyList<double> values = ReadCachedNumbers(seriesList[i].GetFirstChild<C.Values>());
+                if (values.Count == 0) {
+                    continue;
+                }
+
+                categories = ReadCachedStrings(seriesList[i].GetFirstChild<C.CategoryAxisData>());
+                if (categories.Count == 0) {
+                    categories = CreateFallbackCategories(values.Count);
+                }
+
+                if (categories.Count > 0) {
+                    break;
+                }
             }
 
             if (categories.Count == 0) {
