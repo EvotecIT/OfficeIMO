@@ -337,6 +337,65 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SharedChartRenderer_UsesDisplayedAxisRangeForPositiveLineCharts() {
+        var snapshot = new OfficeChartSnapshot(
+            "PositiveLine",
+            null,
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Low", "High" },
+                new[] { new OfficeChartSeries("Value", new[] { 10D, 20D }) }),
+            360D,
+            220D);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        OfficeDrawingShape firstMarker = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && Math.Abs(shape.Shape.Width - 4D) < 0.01D)
+            .OrderBy(shape => shape.X)
+            .First();
+
+        Assert.InRange(firstMarker.Y, 90D, 110D);
+    }
+
+    [Fact]
+    public void SharedChartRenderer_UsesDisplayedAxisRangeForPositiveAreaCharts() {
+        var snapshot = new OfficeChartSnapshot(
+            "PositiveArea",
+            null,
+            OfficeChartKind.Area,
+            new OfficeChartData(
+                new[] { "Low", "High" },
+                new[] { new OfficeChartSeries("Value", new[] { 10D, 20D }) }),
+            360D,
+            220D);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Polygon && shape.Y >= 0D && shape.Y < drawing.Height);
+    }
+
+    [Fact]
+    public void SharedChartRenderer_RendersDoughnutRingForEachSeries() {
+        var snapshot = new OfficeChartSnapshot(
+            "MultiDoughnut",
+            null,
+            OfficeChartKind.Doughnut,
+            new OfficeChartData(
+                new[] { "A", "B", "C" },
+                new[] {
+                    new OfficeChartSeries("Outer", new[] { 3D, 2D, 1D }),
+                    new OfficeChartSeries("Inner", new[] { 1D, 2D, 3D })
+                }),
+            360D,
+            220D);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        int slices = drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon);
+
+        Assert.Equal(6, slices);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_WarnsAndSkipsMixedSeriesChartTypes() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMixedSeriesChart.xlsx");
 

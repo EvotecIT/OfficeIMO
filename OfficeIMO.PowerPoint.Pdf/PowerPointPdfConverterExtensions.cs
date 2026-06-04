@@ -601,7 +601,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 height,
                 style: style,
                 linkUri: linkUri,
-                linkContents: picture.AltText,
+                linkContents: linkUri != null ? picture.AltText : null,
                 alternativeText: picture.AltText,
                 rotationAngle: picture.Rotation ?? 0D,
                 horizontalFlip: picture.HorizontalFlip == true,

@@ -131,7 +131,7 @@ public static partial class OfficeChartDrawingRenderer {
             ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
-                : GetFiniteSeriesRange(series);
+                : GetCartesianValueRange(snapshot);
         double min = Math.Min(0D, range.Min);
         double max = Math.Max(0D, range.Max);
         if (max <= min) {
@@ -197,7 +197,7 @@ public static partial class OfficeChartDrawingRenderer {
             ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
-                : GetFiniteSeriesRange(series);
+                : GetCartesianValueRange(snapshot);
         double step = plotWidth / (categories.Count - 1);
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
@@ -255,7 +255,7 @@ public static partial class OfficeChartDrawingRenderer {
             ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(series, categories.Count)
-                : GetFiniteSeriesRange(series);
+                : GetCartesianValueRange(snapshot);
         double step = categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D;
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
@@ -400,6 +400,11 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
+        if (doughnut) {
+            AddDoughnutSeries(drawing, categories, series, width, height, contentTop, style, layout);
+            return;
+        }
+
         OfficeChartSeries values = series[0];
         double total = 0D;
         for (int i = 0; i < categories.Count; i++) {
@@ -443,19 +448,88 @@ public static partial class OfficeChartDrawingRenderer {
             start = end;
         }
 
-        if (doughnut) {
-            double innerDiameter = radius * 1.02D;
-            AddShape(
-                drawing,
-                OfficeShape.Ellipse(innerDiameter, innerDiameter),
-                centerX - innerDiameter / 2D,
-                centerY - innerDiameter / 2D,
-                style.BackgroundColor,
-                null,
-                0D);
+        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout);
+    }
+
+    private static void AddDoughnutSeries(OfficeDrawing drawing, IReadOnlyList<string> categories, IReadOnlyList<OfficeChartSeries> series, double width, double height, double contentTop, OfficeChartStyle style, OfficeChartLayout layout) {
+        double legendWidth = GetCategoryLegendWidth(categories, width, layout);
+        double contentHeight = Math.Max(40D, height - contentTop);
+        double visualWidth = Math.Max(80D, width - legendWidth);
+        double radius = Math.Max(28D, Math.Min(visualWidth - 48D, contentHeight - 36D) / 2D);
+        double centerX = visualWidth / 2D;
+        double centerY = contentTop + contentHeight / 2D;
+
+        var renderableSeries = new List<OfficeChartSeries>();
+        for (int s = 0; s < series.Count; s++) {
+            if (GetPositiveSeriesTotal(series[s], categories.Count) > 0D) {
+                renderableSeries.Add(series[s]);
+            }
+        }
+
+        if (renderableSeries.Count == 0) {
+            return;
+        }
+
+        double ringThickness = radius / (renderableSeries.Count + 0.9D);
+        for (int s = 0; s < renderableSeries.Count; s++) {
+            OfficeChartSeries values = renderableSeries[s];
+            double outerRadius = radius - s * ringThickness;
+            double innerRadius = Math.Max(0D, outerRadius - ringThickness * 0.82D);
+            double total = GetPositiveSeriesTotal(values, categories.Count);
+            double start = -Math.PI / 2D;
+            for (int i = 0; i < categories.Count; i++) {
+                double value = Math.Max(0D, GetSeriesValue(values, i));
+                if (value <= 0D) {
+                    continue;
+                }
+
+                double sweep = value / total * Math.PI * 2D;
+                double end = start + sweep;
+                AddPieSlice(drawing, centerX, centerY, outerRadius, start, sweep, GetSeriesColor(style, i));
+                start = end;
+            }
+
+            if (innerRadius > 0D) {
+                double innerDiameter = innerRadius * 2D;
+                AddShape(
+                    drawing,
+                    OfficeShape.Ellipse(innerDiameter, innerDiameter),
+                    centerX - innerRadius,
+                    centerY - innerRadius,
+                    style.BackgroundColor,
+                    null,
+                    0D);
+            }
         }
 
         AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout);
+    }
+
+    private static double GetPositiveSeriesTotal(OfficeChartSeries values, int categoryCount) {
+        double total = 0D;
+        for (int i = 0; i < categoryCount; i++) {
+            double value = GetSeriesValue(values, i);
+            if (value > 0D) {
+                total += value;
+            }
+        }
+
+        return total;
+    }
+
+    private static void AddPieSlice(OfficeDrawing drawing, double centerX, double centerY, double radius, double start, double sweep, OfficeColor color) {
+        var points = new List<OfficePoint> {
+            new OfficePoint(centerX, centerY)
+        };
+        int segments = Math.Max(2, (int)Math.Ceiling(sweep / (Math.PI / 18D)));
+        for (int segment = 0; segment <= segments; segment++) {
+            double angle = start + sweep * segment / segments;
+            points.Add(new OfficePoint(
+                centerX + Math.Cos(angle) * radius,
+                centerY + Math.Sin(angle) * radius));
+        }
+
+        AddPolygonShape(drawing, points, color, OfficeColor.White, 0.5D);
     }
 
     private static void AddShape(OfficeDrawing drawing, OfficeShape shape, double x, double y, OfficeColor? fill, OfficeColor? stroke, double strokeWidth) {

@@ -21,8 +21,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.SolidFill? solidFill = properties.GetFirstChild<A.SolidFill>();
-            string? solidColor = solidFill?.RgbColorModelHex?.Val?.Value;
-            if (string.IsNullOrWhiteSpace(solidColor) && solidFill != null) {
+            string? solidColor = null;
+            if (solidFill != null) {
                 A.ColorScheme? colorScheme = GetThemePart(ownerPart ?? _slidePart)?.Theme?.ThemeElements?.ColorScheme;
                 solidColor = ResolveSolidFillColor(solidFill, colorScheme, placeholderColor: null);
             }
@@ -143,7 +143,7 @@ namespace OfficeIMO.PowerPoint {
 
             string? rgbColor = solidFill.RgbColorModelHex?.Val?.Value;
             if (!string.IsNullOrWhiteSpace(rgbColor)) {
-                return rgbColor;
+                return ApplyColorTransforms(rgbColor, solidFill.RgbColorModelHex);
             }
 
             A.SchemeColor? schemeColor = solidFill.GetFirstChild<A.SchemeColor>();
@@ -151,11 +151,11 @@ namespace OfficeIMO.PowerPoint {
             if (IsPlaceholderSchemeColor(scheme)) {
                 string? placeholderScheme = GetSchemeColorValue(placeholderColor);
                 string? placeholderResolvedColor = ResolveSchemeColor(colorScheme, placeholderScheme);
-                placeholderResolvedColor = ApplySchemeColorTransforms(placeholderResolvedColor, placeholderColor);
-                return ApplySchemeColorTransforms(placeholderResolvedColor, schemeColor);
+                placeholderResolvedColor = ApplyColorTransforms(placeholderResolvedColor, placeholderColor);
+                return ApplyColorTransforms(placeholderResolvedColor, schemeColor);
             }
 
-            return ApplySchemeColorTransforms(ResolveSchemeColor(colorScheme, scheme), schemeColor);
+            return ApplyColorTransforms(ResolveSchemeColor(colorScheme, scheme), schemeColor);
         }
 
         private static string? GetSchemeColorValue(A.SchemeColor? schemeColor) {
@@ -196,8 +196,8 @@ namespace OfficeIMO.PowerPoint {
                 ?? colorElement?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
         }
 
-        private static string? ApplySchemeColorTransforms(string? hexColor, A.SchemeColor? schemeColor) {
-            if (string.IsNullOrWhiteSpace(hexColor) || schemeColor == null) {
+        private static string? ApplyColorTransforms(string? hexColor, OpenXmlElement? colorElement) {
+            if (string.IsNullOrWhiteSpace(hexColor) || colorElement == null) {
                 return hexColor;
             }
 
@@ -210,7 +210,7 @@ namespace OfficeIMO.PowerPoint {
                 return hexColor;
             }
 
-            foreach (OpenXmlElement transform in schemeColor.ChildElements) {
+            foreach (OpenXmlElement transform in colorElement.ChildElements) {
                 int? rawValue = GetTransformValue(transform);
                 if (!rawValue.HasValue) {
                     continue;

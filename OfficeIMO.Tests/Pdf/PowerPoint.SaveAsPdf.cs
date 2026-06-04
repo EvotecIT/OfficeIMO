@@ -296,6 +296,27 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesDirectRgbBackgroundTransforms() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundProperties(
+                new SolidFill(
+                    new RgbColorModelHex(
+                        new LuminanceModulation { Val = 50000 }) { Val = "654321" })));
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.196 0.133 0.063 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_SkipsHiddenSlidesByDefault() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -553,6 +574,30 @@ public class PowerPointSaveAsPdfTests {
         Assert.Equal(90D, link.Y1, 1);
         Assert.Equal(80D, link.X2, 1);
         Assert.Equal(120D, link.Y2, 1);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersPictureWithAltTextWithoutHyperlink() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointPicture picture = presentation.Slides[0].AddPicture(
+            new MemoryStream(CreateMinimalRgbPng()),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(30),
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(50),
+            PowerPointUnits.FromPoints(30));
+        picture.AltText = "Logo alt";
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
+        Assert.Contains("/Figure << /Alt <4C6F676F20616C74> >> BDC", raw, StringComparison.Ordinal);
+        Assert.Empty(PdfCore.PdfInspector.Inspect(bytes).LinkAnnotations);
     }
 
     [Fact]
