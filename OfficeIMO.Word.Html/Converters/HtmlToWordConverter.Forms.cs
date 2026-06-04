@@ -26,14 +26,20 @@ namespace OfficeIMO.Word.Html {
             if (IsCheckboxInput(element)) {
                 currentParagraph.AddCheckBox(IsCheckedInput(element), alias, tag);
             } else if (IsDateInput(element)) {
-                currentParagraph.AddDatePicker(TryParseDateInput(element.GetAttribute("value")), alias, tag);
+                var date = TryParseDateInput(element.GetAttribute("value"));
+                var datePicker = currentParagraph.AddDatePicker(date, alias, tag);
+                datePicker.Date = date;
             } else if (TryGetDataListOptions(element, out var dataListOptions)) {
+                var hasValueAttribute = element.HasAttribute("value");
                 var value = element.GetAttribute("value") ?? string.Empty;
                 if (!string.IsNullOrEmpty(value) && !dataListOptions.Contains(value, StringComparer.Ordinal)) {
                     dataListOptions.Insert(0, value);
                 }
                 var defaultValue = dataListOptions.Contains(value, StringComparer.Ordinal) ? value : null;
-                currentParagraph.AddComboBox(dataListOptions, alias, tag, defaultValue);
+                var comboBox = currentParagraph.AddComboBox(dataListOptions, alias, tag, defaultValue);
+                if (!hasValueAttribute && dataListOptions.Contains(string.Empty, StringComparer.Ordinal)) {
+                    comboBox.SelectedValue = string.Empty;
+                }
             } else {
                 currentParagraph.AddStructuredDocumentTag(element.GetAttribute("value") ?? string.Empty, alias, tag);
             }

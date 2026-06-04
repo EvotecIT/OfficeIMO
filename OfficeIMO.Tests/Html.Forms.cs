@@ -1,4 +1,5 @@
 using OfficeIMO.Word.Html;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System;
 using System.Linq;
 using Xunit;
@@ -57,6 +58,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_TextInputWithDatalist_PreservesBlankSelectedValue() {
+            const string html = "<p>Status <input type=\"text\" list=\"word-combo-1\" data-tag=\"status\"><datalist id=\"word-combo-1\"><option value=\"Ready\"></option><option value=\"\"></option></datalist></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var comboBox = Assert.Single(doc.ComboBoxes);
+            Assert.Equal(new[] { "Ready", string.Empty }, comboBox.Items.ToArray());
+            Assert.Equal(string.Empty, comboBox.SelectedValue);
+            Assert.Equal("status", comboBox.Tag);
+        }
+
+        [Fact]
         public void HtmlToWord_TextArea_BecomesStructuredDocumentTag() {
             const string html = "<p>Notes <textarea id=\"notes\" title=\"Review notes\">Line one\r\nLine two</textarea></p>";
 
@@ -90,6 +103,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new DateTime(2026, 7, 14), datePicker.Date);
             Assert.Equal("Due date", datePicker.Alias);
             Assert.Equal("due-date", datePicker.Tag);
+            var displayedText = doc._document.MainDocumentPart!.Document.Body!.Descendants<SdtRun>()
+                .Single(sdt => sdt.SdtProperties?.Elements<SdtContentDate>().Any() == true)
+                .SdtContentRun!.Descendants<Text>().Single().Text;
+            Assert.Equal("2026-07-14", displayedText);
         }
     }
 }

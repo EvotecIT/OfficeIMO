@@ -683,6 +683,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_CustomProperties_RoundTripTypedMetaWhenEnabled() {
+            using var doc = WordDocument.Create();
+            doc.CustomDocumentProperties["ReviewStatus"] = new WordCustomProperty("Approved");
+            doc.CustomDocumentProperties["IsFinal"] = new WordCustomProperty(true);
+            doc.CustomDocumentProperties["Score"] = new WordCustomProperty(6.15);
+            doc.CustomDocumentProperties["ReviewedAt"] = new WordCustomProperty(new DateTime(2024, 1, 2, 3, 4, 5));
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeCustomProperties = true });
+
+            using var roundTrip = html.LoadFromHtml();
+
+            Assert.Equal("Approved", roundTrip.CustomDocumentProperties["ReviewStatus"].Text);
+            Assert.True(roundTrip.CustomDocumentProperties["IsFinal"].Bool);
+            Assert.Equal(6.15, roundTrip.CustomDocumentProperties["Score"].NumberDouble);
+            Assert.Equal(new DateTime(2024, 1, 2, 3, 4, 5), roundTrip.CustomDocumentProperties["ReviewedAt"].Date);
+        }
+
+        [Fact]
         public void Test_WordToHtml_StyleClasses() {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph("Heading with style");
