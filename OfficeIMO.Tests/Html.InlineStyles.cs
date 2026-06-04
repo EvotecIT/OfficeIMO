@@ -95,6 +95,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_DirectStylesheetRule_OverridesInheritedStylesheetRule() {
+            string html = "<style>body.theme { color:#ff0000 } p { color:#0000ff }</style><body class=\"theme\"><p>Text</p></body>";
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var run = doc.Paragraphs[0].GetRuns().First();
+
+            Assert.Equal("0000ff", run.ColorHex);
+        }
+
+        [Fact]
         public void HtmlToWord_StylesheetClass_AppliesRunFormatting() {
             string html = "<style>.special { color:#abcdef; font-size:11px; }</style><p class=\"special\">Text</p>";
             var doc = html.LoadFromHtml(new HtmlToWordOptions());

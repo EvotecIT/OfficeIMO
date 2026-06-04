@@ -328,8 +328,12 @@ namespace OfficeIMO.Word.Html {
         private static bool TryUnsupportedColorValue(string value, string label, out string reason) {
             reason = string.Empty;
             if (value.Equals("transparent", StringComparison.OrdinalIgnoreCase) ||
-                value.Equals("currentColor", StringComparison.OrdinalIgnoreCase) ||
-                NormalizeColor(value) != null) {
+                value.Equals("currentColor", StringComparison.OrdinalIgnoreCase)) {
+                reason = $"Unsupported {label} value '{value}'.";
+                return true;
+            }
+
+            if (NormalizeColor(value) != null) {
                 return false;
             }
 

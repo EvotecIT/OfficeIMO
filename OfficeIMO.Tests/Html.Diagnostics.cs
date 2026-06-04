@@ -52,6 +52,22 @@ namespace OfficeIMO.Tests {
             Assert.Contains(diagnostics, diagnostic => diagnostic.Detail?.Contains("clamp(12px,2vw,20px)", StringComparison.OrdinalIgnoreCase) == true);
         }
 
+        [Theory]
+        [InlineData("transparent")]
+        [InlineData("currentColor")]
+        public void HtmlToWord_UnmappedColorKeywords_CanStopConversion(string colorValue) {
+            var options = new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            };
+
+            var exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
+                $"<p style=\"color:{colorValue}\">Text</p>".LoadFromHtml(options));
+
+            Assert.Equal("UnsupportedCssValue", exception.Code);
+            Assert.Equal("p:color", exception.CssSource);
+            Assert.Contains(colorValue, exception.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+
         [Fact]
         public void HtmlToWord_UnsupportedCssDiagnostics_CanBeIgnored() {
             var options = new HtmlToWordOptions {
