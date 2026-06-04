@@ -39,7 +39,19 @@ namespace OfficeIMO.PowerPoint {
         Pie,
 
         /// <summary>Doughnut chart.</summary>
-        Doughnut
+        Doughnut,
+
+        /// <summary>Area chart.</summary>
+        Area,
+
+        /// <summary>Stacked area chart.</summary>
+        StackedArea,
+
+        /// <summary>One-hundred percent stacked area chart.</summary>
+        StackedArea100,
+
+        /// <summary>Radar chart.</summary>
+        Radar
     }
 
     /// <summary>

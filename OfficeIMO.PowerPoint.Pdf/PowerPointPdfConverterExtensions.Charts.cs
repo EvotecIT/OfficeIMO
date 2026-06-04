@@ -84,6 +84,14 @@ public static partial class PowerPointPdfConverterExtensions {
                 return OfficeChartKind.LineStacked;
             case PptCore.PowerPointChartSnapshotKind.StackedLine100:
                 return OfficeChartKind.LineStacked100;
+            case PptCore.PowerPointChartSnapshotKind.Area:
+                return OfficeChartKind.Area;
+            case PptCore.PowerPointChartSnapshotKind.StackedArea:
+                return OfficeChartKind.AreaStacked;
+            case PptCore.PowerPointChartSnapshotKind.StackedArea100:
+                return OfficeChartKind.AreaStacked100;
+            case PptCore.PowerPointChartSnapshotKind.Radar:
+                return OfficeChartKind.Radar;
             case PptCore.PowerPointChartSnapshotKind.Scatter:
                 return OfficeChartKind.Scatter;
             case PptCore.PowerPointChartSnapshotKind.Pie:

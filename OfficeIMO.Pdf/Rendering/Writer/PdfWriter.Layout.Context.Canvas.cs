@@ -278,6 +278,8 @@ internal static partial class PdfWriter {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas clip");
             double bottomY = currentOpts.PageHeight - item.Y - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
+            int imageStart = currentPage.Images.Count;
+            int formFieldStart = currentPage.FormFields.Count;
             new ContentStreamBuilder(sb)
                 .SaveState()
                 .Rectangle(item.X, bottomY, item.Width, item.Height)
@@ -292,6 +294,8 @@ internal static partial class PdfWriter {
             }
 
             ClipCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height);
+            ClipCanvasPageImages(currentPage.Images, imageStart, item.X, bottomY, item.Width, item.Height);
+            ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height);
             new ContentStreamBuilder(sb)
                 .RestoreState();
             pageDirty = true;
@@ -333,6 +337,52 @@ internal static partial class PdfWriter {
                 annotation.Y1 = y1;
                 annotation.X2 = x2;
                 annotation.Y2 = y2;
+            }
+        }
+
+        private void ClipCanvasPageImages(System.Collections.Generic.List<PageImage> images, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {
+            double clipRight = clipX + clipWidth;
+            double clipTop = clipBottomY + clipHeight;
+            for (int i = images.Count - 1; i >= startIndex; i--) {
+                PageImage image = images[i];
+                double x1 = System.Math.Max(image.X, clipX);
+                double y1 = System.Math.Max(image.Y, clipBottomY);
+                double x2 = System.Math.Min(image.X + image.W, clipRight);
+                double y2 = System.Math.Min(image.Y + image.H, clipTop);
+                if (x2 <= x1 || y2 <= y1) {
+                    if (!string.IsNullOrEmpty(image.InlineDrawToken)) {
+                        sb.Replace(image.InlineDrawToken, string.Empty);
+                    }
+
+                    images.RemoveAt(i);
+                    continue;
+                }
+
+                image.ClipPath = OfficeIMO.Drawing.OfficeClipPath.Rectangle(x2 - x1, y2 - y1);
+                image.ClipX = x1;
+                image.ClipY = y1;
+                image.ClipHeight = y2 - y1;
+            }
+        }
+
+        private static void ClipCanvasFormFields(System.Collections.Generic.List<FormFieldAnnotation> formFields, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {
+            double clipRight = clipX + clipWidth;
+            double clipTop = clipBottomY + clipHeight;
+            for (int i = formFields.Count - 1; i >= startIndex; i--) {
+                FormFieldAnnotation formField = formFields[i];
+                double x1 = System.Math.Max(formField.X1, clipX);
+                double y1 = System.Math.Max(formField.Y1, clipBottomY);
+                double x2 = System.Math.Min(formField.X2, clipRight);
+                double y2 = System.Math.Min(formField.Y2, clipTop);
+                if (x2 <= x1 || y2 <= y1) {
+                    formFields.RemoveAt(i);
+                    continue;
+                }
+
+                formField.X1 = x1;
+                formField.Y1 = y1;
+                formField.X2 = x2;
+                formField.Y2 = y2;
             }
         }
 

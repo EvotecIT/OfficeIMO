@@ -274,6 +274,50 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesDirectSchemeColorBackgroundTransforms() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        presentation.SetThemeColor(PowerPointThemeColor.Light2, "654321");
+        PowerPointSlide slide = presentation.Slides[0];
+        slide.SlidePart.Slide.CommonSlideData!.Background = new Background(
+            new BackgroundProperties(
+                new SolidFill(
+                    new SchemeColor(
+                        new LuminanceModulation { Val = 50000 }) { Val = SchemeColorValues.Background2 })));
+        slide.SlidePart.Slide.Save();
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("0.196 0.133 0.063 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_SkipsHiddenSlidesByDefault() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide visibleSlide = presentation.AddSlide();
+        PowerPointAutoShape visible = visibleSlide.AddRectanglePoints(20, 24, 50, 20);
+        visible.FillColor = "00AA00";
+        PowerPointSlide hidden = presentation.AddSlide();
+        hidden.Hidden = true;
+        PowerPointAutoShape hiddenShape = hidden.AddRectanglePoints(120, 24, 50, 20);
+        hiddenShape.FillColor = "FF0000";
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Equal(1, pdf.NumberOfPages);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 116 50 20 re", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("120 116 50 20 re", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_RendersInheritedLayoutShapes() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -322,6 +366,34 @@ public class PowerPointSaveAsPdfTests {
         Assert.Contains("60 120 30 20 re", raw, StringComparison.Ordinal);
         Assert.Contains("1 0 0 rg", raw, StringComparison.Ordinal);
         Assert.Contains("0 0.667 0 rg", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_AppliesGroupTransformToChildShapes() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 160);
+        PowerPointSlide slide = presentation.Slides[0];
+        PowerPointAutoShape first = slide.AddRectanglePoints(20, 20, 30, 20);
+        first.FillColor = "FF0000";
+        PowerPointAutoShape second = slide.AddRectanglePoints(60, 20, 30, 20);
+        second.FillColor = "00AA00";
+        slide.GroupShapes(new PowerPointShape[] { first, second });
+        DocumentFormat.OpenXml.Presentation.GroupShape group = slide.SlidePart.Slide.CommonSlideData!.ShapeTree!
+            .Elements<DocumentFormat.OpenXml.Presentation.GroupShape>()
+            .Single();
+        TransformGroup transform = group.GroupShapeProperties!.TransformGroup!;
+        transform.Extents!.Cx = PowerPointUnits.FromPoints(140);
+        transform.Extents.Cy = PowerPointUnits.FromPoints(40);
+        transform.ChildExtents!.Cx = PowerPointUnits.FromPoints(70);
+        transform.ChildExtents.Cy = PowerPointUnits.FromPoints(20);
+        slide.SlidePart.Slide.Save();
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("20 100 60 40 re", raw, StringComparison.Ordinal);
+        Assert.Contains("100 100 60 40 re", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -774,6 +846,57 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersAreaChartSnapshots() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 12D, 16D }),
+                new PowerPointChartSeries("Target", new[] { 3D, 4D, 5D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddLineChartPoints(data, 40, 32, 240, 172);
+        ConvertLineChartToAreaChart(chart, C.GroupingValues.Stacked);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.StackedArea, snapshot.ChartKind);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Target", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_RendersRadarChartSnapshots() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(320, 240);
+        var data = new PowerPointChartData(
+            new[] { "Speed", "Quality", "Reach" },
+            new[] {
+                new PowerPointChartSeries("Actual", new[] { 10D, 12D, 16D }),
+                new PowerPointChartSeries("Target", new[] { 8D, 11D, 14D })
+            });
+        PowerPointChart chart = presentation.Slides[0].AddLineChartPoints(data, 40, 32, 240, 172);
+        ConvertLineChartToRadarChart(chart);
+
+        Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+        Assert.Equal(PowerPointChartSnapshotKind.Radar, snapshot.ChartKind);
+
+        byte[] bytes = presentation.SaveAsPdf();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Actual", text, StringComparison.Ordinal);
+        Assert.Contains("Target", text, StringComparison.Ordinal);
+        Assert.Contains("Speed", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ToPdfDocument_PowerPointPresentation_WarnsForComboChartsInsteadOfDroppingSeries() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -1016,6 +1139,52 @@ public class PowerPointSaveAsPdfTests {
         C.LineChart lineChart = chartPart.ChartSpace!.Descendants<C.LineChart>().Single();
         C.Grouping chartGrouping = lineChart.GetFirstChild<C.Grouping>() ?? lineChart.PrependChild(new C.Grouping());
         chartGrouping.Val = grouping;
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void ConvertLineChartToAreaChart(PowerPointChart chart, C.GroupingValues grouping) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+        C.LineChart lineChart = plotArea.Elements<C.LineChart>().Single();
+        var areaChart = new C.AreaChart(new C.Grouping { Val = grouping });
+        foreach (C.LineChartSeries lineSeries in lineChart.Elements<C.LineChartSeries>()) {
+            var areaSeries = new C.AreaChartSeries();
+            foreach (OpenXmlElement child in lineSeries.ChildElements) {
+                areaSeries.Append(child.CloneNode(true));
+            }
+
+            areaChart.Append(areaSeries);
+        }
+
+        foreach (C.AxisId axisId in lineChart.Elements<C.AxisId>()) {
+            areaChart.Append((C.AxisId)axisId.CloneNode(true));
+        }
+
+        lineChart.InsertAfterSelf(areaChart);
+        lineChart.Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void ConvertLineChartToRadarChart(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+        C.LineChart lineChart = plotArea.Elements<C.LineChart>().Single();
+        var radarChart = new C.RadarChart(new C.RadarStyle { Val = C.RadarStyleValues.Standard });
+        foreach (C.LineChartSeries lineSeries in lineChart.Elements<C.LineChartSeries>()) {
+            var radarSeries = new C.RadarChartSeries();
+            foreach (OpenXmlElement child in lineSeries.ChildElements) {
+                radarSeries.Append(child.CloneNode(true));
+            }
+
+            radarChart.Append(radarSeries);
+        }
+
+        foreach (C.AxisId axisId in lineChart.Elements<C.AxisId>()) {
+            radarChart.Append((C.AxisId)axisId.CloneNode(true));
+        }
+
+        lineChart.InsertAfterSelf(radarChart);
+        lineChart.Remove();
         chartPart.ChartSpace.Save();
     }
 

@@ -28,6 +28,9 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>When true, supported slide charts are rendered through shared vector chart primitives. Defaults to true.</summary>
     public bool IncludeCharts { get; set; } = true;
 
+    /// <summary>When true, slides marked hidden in PowerPoint are exported. Defaults to false.</summary>
+    public bool IncludeHiddenSlides { get; set; }
+
     /// <summary>Optional shared chart style applied to supported slide chart snapshots.</summary>
     public DrawingCore.OfficeChartStyle? ChartStyle { get; set; }
 

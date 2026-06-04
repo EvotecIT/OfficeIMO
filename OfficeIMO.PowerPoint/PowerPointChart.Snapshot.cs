@@ -49,6 +49,28 @@ namespace OfficeIMO.PowerPoint {
                     return true;
                 }
 
+                if (plotArea.GetFirstChild<C.AreaChart>() is C.AreaChart areaChart) {
+                    PowerPointChartData? data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>());
+                    if (data == null) {
+                        snapshot = null!;
+                        return false;
+                    }
+
+                    snapshot = CreateSnapshot(chart, GetAreaChartSnapshotKind(areaChart), data);
+                    return true;
+                }
+
+                if (plotArea.GetFirstChild<C.RadarChart>() is C.RadarChart radarChart) {
+                    PowerPointChartData? data = ReadCategorySeriesData(radarChart.Elements<C.RadarChartSeries>().Cast<OpenXmlCompositeElement>());
+                    if (data == null) {
+                        snapshot = null!;
+                        return false;
+                    }
+
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Radar, data);
+                    return true;
+                }
+
                 if (plotArea.GetFirstChild<C.ScatterChart>() is C.ScatterChart scatterChart) {
                     PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>());
                     if (data == null) {
@@ -93,6 +115,8 @@ namespace OfficeIMO.PowerPoint {
         private static int CountSupportedChartElements(C.PlotArea plotArea) {
             return plotArea.Elements<C.BarChart>().Count()
                 + plotArea.Elements<C.LineChart>().Count()
+                + plotArea.Elements<C.AreaChart>().Count()
+                + plotArea.Elements<C.RadarChart>().Count()
                 + plotArea.Elements<C.ScatterChart>().Count()
                 + plotArea.Elements<C.PieChart>().Count()
                 + plotArea.Elements<C.DoughnutChart>().Count();
@@ -135,6 +159,19 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return PowerPointChartSnapshotKind.Line;
+        }
+
+        private static PowerPointChartSnapshotKind GetAreaChartSnapshotKind(C.AreaChart chart) {
+            C.GroupingValues grouping = chart.GetFirstChild<C.Grouping>()?.Val?.Value ?? C.GroupingValues.Standard;
+            if (grouping == C.GroupingValues.Stacked) {
+                return PowerPointChartSnapshotKind.StackedArea;
+            }
+
+            if (grouping == C.GroupingValues.PercentStacked) {
+                return PowerPointChartSnapshotKind.StackedArea100;
+            }
+
+            return PowerPointChartSnapshotKind.Area;
         }
 
         private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements) {

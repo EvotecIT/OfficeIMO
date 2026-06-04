@@ -496,6 +496,42 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasClip_ClipsDeferredTableImagesAndFormControls() {
+        var rows = new[] {
+            new[] {
+                PdfTableCell.WithImages(
+                    string.Empty,
+                    new[] { new PdfTableCellImage(CreateMinimalRgbPng(), 40, 40) },
+                    formFields: new[] { PdfTableCellFormField.TextField("Canvas.ClippedOwner", "Ada", width: 44, height: 40, fontSize: 8) })
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(50, 24, 34, 86, clipped => clipped.Table(rows, 24, 24, 120, 86, new PdfTableStyle {
+                RowMinHeights = new System.Collections.Generic.List<double?> { 86D },
+                CellPaddingX = 6D,
+                CellPaddingY = 6D
+            })))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
+        Assert.Contains("50 90 20 40 re W", raw, StringComparison.Ordinal);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfFormField field = Assert.Single(info.FormFields, item => item.Name == "Canvas.ClippedOwner");
+        PdfFormWidget widget = Assert.Single(field.Widgets);
+        AssertClose(50D, widget.X1);
+        AssertClose(50D, widget.Y1);
+        AssertClose(74D, widget.X2);
+        AssertClose(88D, widget.Y2);
+    }
+
+    [Fact]
     public void CanvasTable_SkipsVerticalGridDividersInsideMergedCells() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 240,

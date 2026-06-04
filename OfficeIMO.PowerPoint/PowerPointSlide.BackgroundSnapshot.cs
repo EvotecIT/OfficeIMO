@@ -149,10 +149,13 @@ namespace OfficeIMO.PowerPoint {
             A.SchemeColor? schemeColor = solidFill.GetFirstChild<A.SchemeColor>();
             string? scheme = GetSchemeColorValue(schemeColor);
             if (IsPlaceholderSchemeColor(scheme)) {
-                scheme = GetSchemeColorValue(placeholderColor);
+                string? placeholderScheme = GetSchemeColorValue(placeholderColor);
+                string? placeholderResolvedColor = ResolveSchemeColor(colorScheme, placeholderScheme);
+                placeholderResolvedColor = ApplySchemeColorTransforms(placeholderResolvedColor, placeholderColor);
+                return ApplySchemeColorTransforms(placeholderResolvedColor, schemeColor);
             }
 
-            return ResolveSchemeColor(colorScheme, scheme);
+            return ApplySchemeColorTransforms(ResolveSchemeColor(colorScheme, scheme), schemeColor);
         }
 
         private static string? GetSchemeColorValue(A.SchemeColor? schemeColor) {
@@ -191,6 +194,83 @@ namespace OfficeIMO.PowerPoint {
 
             return colorElement?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value
                 ?? colorElement?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
+        }
+
+        private static string? ApplySchemeColorTransforms(string? hexColor, A.SchemeColor? schemeColor) {
+            if (string.IsNullOrWhiteSpace(hexColor) || schemeColor == null) {
+                return hexColor;
+            }
+
+            string color = hexColor!;
+            if (color.Length != 6) {
+                return hexColor;
+            }
+
+            if (!TryParseHexColor(color, out int red, out int green, out int blue)) {
+                return hexColor;
+            }
+
+            foreach (OpenXmlElement transform in schemeColor.ChildElements) {
+                int? rawValue = GetTransformValue(transform);
+                if (!rawValue.HasValue) {
+                    continue;
+                }
+
+                double amount = Math.Max(0D, Math.Min(100000D, rawValue.Value)) / 100000D;
+                switch (transform.LocalName) {
+                    case "lumMod":
+                        red = ClampColor(red * amount);
+                        green = ClampColor(green * amount);
+                        blue = ClampColor(blue * amount);
+                        break;
+                    case "lumOff":
+                        red = ClampColor(red + 255D * amount);
+                        green = ClampColor(green + 255D * amount);
+                        blue = ClampColor(blue + 255D * amount);
+                        break;
+                    case "tint":
+                        red = ClampColor(red + (255D - red) * amount);
+                        green = ClampColor(green + (255D - green) * amount);
+                        blue = ClampColor(blue + (255D - blue) * amount);
+                        break;
+                    case "shade":
+                        red = ClampColor(red * amount);
+                        green = ClampColor(green * amount);
+                        blue = ClampColor(blue * amount);
+                        break;
+                }
+            }
+
+            return red.ToString("X2") + green.ToString("X2") + blue.ToString("X2");
+        }
+
+        private static int? GetTransformValue(OpenXmlElement transform) {
+            string? value = transform.GetAttributes()
+                .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "val", StringComparison.Ordinal))
+                .Value;
+            return int.TryParse(value, out int result) ? result : null;
+        }
+
+        private static bool TryParseHexColor(string hexColor, out int red, out int green, out int blue) {
+            red = 0;
+            green = 0;
+            blue = 0;
+            if (hexColor.Length != 6) {
+                return false;
+            }
+
+            try {
+                red = Convert.ToInt32(hexColor.Substring(0, 2), 16);
+                green = Convert.ToInt32(hexColor.Substring(2, 2), 16);
+                blue = Convert.ToInt32(hexColor.Substring(4, 2), 16);
+                return true;
+            } catch (FormatException) {
+                return false;
+            }
+        }
+
+        private static int ClampColor(double value) {
+            return (int)Math.Max(0D, Math.Min(255D, Math.Round(value)));
         }
 
         private static PowerPointSlideBackground GetBackgroundImage(A.BlipFill blipFill, OpenXmlPart ownerPart) {
