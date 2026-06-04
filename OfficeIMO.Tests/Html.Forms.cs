@@ -70,6 +70,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_TextInputWithDatalist_DoesNotAddSpaceForSkippedMetadata() {
+            const string html = "<p><input type=\"text\" list=\"word-combo-1\" value=\"Phone\"><datalist id=\"word-combo-1\"><option value=\"Email\"></option><option value=\"Phone\"></option></datalist></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var comboBox = Assert.Single(doc.ComboBoxes);
+            Assert.Equal("Phone", comboBox.SelectedValue);
+            var textRuns = doc._document.MainDocumentPart!.Document.Body!.Descendants<Text>().Select(text => text.Text).ToList();
+            Assert.DoesNotContain(" ", textRuns);
+        }
+
+        [Fact]
         public void HtmlToWord_TextArea_BecomesStructuredDocumentTag() {
             const string html = "<p>Notes <textarea id=\"notes\" title=\"Review notes\">Line one\r\nLine two</textarea></p>";
 

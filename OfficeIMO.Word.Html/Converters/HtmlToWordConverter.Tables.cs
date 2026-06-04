@@ -21,8 +21,9 @@ namespace OfficeIMO.Word.Html {
             if (caption != null) {
                 ApplyCssToElement(caption);
             }
+            ApplyCssToElement(tableElem);
 
-            int cols = DetermineTableColumnCount(tableElem, rows);
+            int cols = DetermineTableColumnCount(tableElem, rows, options);
             ValidateTableLimit(options, rows, cols);
             WordParagraph? captionParagraph = null;
             if (caption != null && options.TableCaptionPosition == TableCaptionPosition.Above) {
@@ -59,11 +60,13 @@ namespace OfficeIMO.Word.Html {
             ApplyColumnGroup(wordTable, tableElem, cols);
             var occupied = new bool[rows, cols];
             int rIndex = 0;
+            bool useRawSpanAttributes = options.MaxTableCells.HasValue;
 
             void HandleRows(IHtmlCollection<IHtmlTableRowElement> htmlRows) {
                 var groupRowCount = htmlRows.Length;
                 for (int localRowIndex = 0; localRowIndex < groupRowCount; localRowIndex++) {
                     var htmlRow = htmlRows[localRowIndex];
+                    ApplyCssToElement(htmlRow);
                     var wordRow = wordTable.Rows[rIndex];
                     ApplyRowStyles(wordRow, htmlRow);
                     int cIndex = 0;
@@ -73,6 +76,7 @@ namespace OfficeIMO.Word.Html {
                         }
 
                         var htmlCell = htmlRow.Cells[c];
+                        ApplyCssToElement(htmlCell);
                         var wordCell = wordRow.Cells[cIndex];
                         var alignment = ApplyCellStyles(wordCell, htmlCell as IHtmlTableCellElement);
                         if (wordCell.Paragraphs.Count == 1 && string.IsNullOrEmpty(wordCell.Paragraphs[0].Text)) {
@@ -98,8 +102,8 @@ namespace OfficeIMO.Word.Html {
                         int rowSpan = 1;
                         int colSpan = 1;
                         if (htmlCell is IHtmlTableCellElement htmlTableCell) {
-                            rowSpan = htmlTableCell.RowSpan;
-                            colSpan = Math.Max(1, htmlTableCell.ColumnSpan);
+                            rowSpan = GetHtmlRowSpan(htmlTableCell, useRawSpanAttributes);
+                            colSpan = GetHtmlColumnSpan(htmlTableCell, useRawSpanAttributes);
                             if (rowSpan == 0) {
                                 rowSpan = groupRowCount - localRowIndex;
                             }
@@ -180,7 +184,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows) {
+        private int DetermineTableColumnCount(IHtmlTableElement tableElem, int rows, HtmlToWordOptions options) {
             var occupied = new HashSet<long>();
             int cols = 0;
             int rowIndex = 0;
@@ -196,14 +200,15 @@ namespace OfficeIMO.Word.Html {
                         }
 
                         var htmlCell = htmlRow.Cells[cellIndex] as IHtmlTableCellElement;
-                        int rowSpan = htmlCell?.RowSpan ?? 1;
-                        int colSpan = Math.Max(1, htmlCell?.ColumnSpan ?? 1);
+                        int rowSpan = GetHtmlRowSpan(htmlCell, options.MaxTableCells.HasValue);
+                        int colSpan = GetHtmlColumnSpan(htmlCell, options.MaxTableCells.HasValue);
                         if (rowSpan == 0) {
                             rowSpan = groupRowCount - localRowIndex;
                         }
 
                         rowSpan = Math.Max(1, Math.Min(rowSpan, rows - rowIndex));
                         cols = Math.Max(cols, columnIndex + colSpan);
+                        ValidateTableLimit(options, rows, cols);
 
                         for (int rr = rowIndex; rr < rowIndex + rowSpan && rr < rows; rr++) {
                             for (int cc = columnIndex; cc < columnIndex + colSpan; cc++) {
@@ -235,6 +240,34 @@ namespace OfficeIMO.Word.Html {
 
         private static long GetTableGridKey(int row, int column) {
             return ((long)row << 32) | (uint)column;
+        }
+
+        private static int GetHtmlRowSpan(IHtmlTableCellElement? htmlCell, bool useRawAttribute) {
+            if (htmlCell == null) {
+                return 1;
+            }
+
+            if (useRawAttribute &&
+                int.TryParse(htmlCell.GetAttribute("rowspan"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var rowSpan) &&
+                rowSpan >= 0) {
+                return rowSpan;
+            }
+
+            return htmlCell.RowSpan;
+        }
+
+        private static int GetHtmlColumnSpan(IHtmlTableCellElement? htmlCell, bool useRawAttribute) {
+            if (htmlCell == null) {
+                return 1;
+            }
+
+            if (useRawAttribute &&
+                int.TryParse(htmlCell.GetAttribute("colspan"), NumberStyles.Integer, CultureInfo.InvariantCulture, out var colSpan) &&
+                colSpan > 0) {
+                return colSpan;
+            }
+
+            return Math.Max(1, htmlCell.ColumnSpan);
         }
 
         private static void ApplyColumnGroup(WordTable wordTable, IHtmlTableElement tableElem, int cols) {

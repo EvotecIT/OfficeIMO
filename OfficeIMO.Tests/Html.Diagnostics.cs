@@ -115,5 +115,18 @@ namespace OfficeIMO.Tests {
             var diagnostics = options.Diagnostics.Where(diagnostic => diagnostic.Code == "UnsupportedCssDeclaration").ToList();
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border-image", StringComparison.OrdinalIgnoreCase));
         }
+
+        [Fact]
+        public void HtmlToWord_BorderLonghandDiagnostics_ReportDroppedProperties() {
+            var options = new HtmlToWordOptions {
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
+            };
+
+            var exception = Assert.Throws<HtmlUnsupportedCssException>(() =>
+                "<table><tr><td style=\"border-left-color:red\">Cell</td></tr></table>".LoadFromHtml(options));
+
+            Assert.Equal("UnsupportedCssDeclaration", exception.Code);
+            Assert.Equal("td:border-left-color", exception.CssSource);
+        }
     }
 }

@@ -723,6 +723,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_StyleDefinitions_OmitAutomaticColors() {
+            using var doc = WordDocument.Create();
+            var style = new Style { Type = StyleValues.Paragraph, StyleId = "AutoColorStyle" };
+            style.Append(new StyleName { Val = "Auto Color Style" });
+            var runProperties = new StyleRunProperties();
+            runProperties.Append(new Color { Val = "auto" });
+            style.Append(runProperties);
+            doc._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+            doc.AddParagraph("Automatic color").SetStyleId("AutoColorStyle");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeParagraphClasses = true });
+
+            Assert.Contains(".AutoColorStyle {", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("color:#auto", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_WordToHtml_RunColorAndHighlightStyles() {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph();

@@ -100,8 +100,7 @@ namespace OfficeIMO.Word.Html {
 
         private static bool IsSupportedCssDiagnosticProperty(string propertyName) =>
             _supportedCssDiagnosticProperties.Contains(propertyName) ||
-            IsSupportedBorderSideShorthand(propertyName) ||
-            IsSupportedBorderLonghand(propertyName);
+            IsSupportedBorderSideShorthand(propertyName);
 
         private void AddUnsupportedCssDiagnostic(string code, string message, string source, string? detail = null) {
             if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Ignore) {
@@ -246,26 +245,6 @@ namespace OfficeIMO.Word.Html {
                     return false;
             }
 
-            if (propertyName.StartsWith("border-", StringComparison.OrdinalIgnoreCase)) {
-                if (propertyName.EndsWith("-color", StringComparison.OrdinalIgnoreCase)) {
-                    return TryUnsupportedColorValue(value, propertyName, out reason);
-                }
-                if (propertyName.EndsWith("-style", StringComparison.OrdinalIgnoreCase)) {
-                    if (lower is "none" or "solid" or "dotted" or "dashed" or "double") {
-                        return false;
-                    }
-                    reason = $"Unsupported {propertyName} value '{value}'.";
-                    return true;
-                }
-                if (propertyName.EndsWith("-width", StringComparison.OrdinalIgnoreCase)) {
-                    if (!IsSupportedCssLength(value, allowNegative: false, allowPercent: false, allowAuto: false)) {
-                        reason = $"Unsupported {propertyName} value '{value}'.";
-                        return true;
-                    }
-                    return false;
-                }
-            }
-
             if (propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase) ||
                 propertyName.StartsWith("padding", StringComparison.OrdinalIgnoreCase)) {
                 if (!IsSupportedBoxLengthList(value, allowAuto: propertyName.StartsWith("margin", StringComparison.OrdinalIgnoreCase))) {
@@ -291,12 +270,6 @@ namespace OfficeIMO.Word.Html {
             propertyName.Equals("border-right", StringComparison.OrdinalIgnoreCase) ||
             propertyName.Equals("border-top", StringComparison.OrdinalIgnoreCase) ||
             propertyName.Equals("border-bottom", StringComparison.OrdinalIgnoreCase);
-
-        private static bool IsSupportedBorderLonghand(string propertyName) =>
-            propertyName.StartsWith("border-", StringComparison.OrdinalIgnoreCase) &&
-            (propertyName.EndsWith("-color", StringComparison.OrdinalIgnoreCase) ||
-             propertyName.EndsWith("-style", StringComparison.OrdinalIgnoreCase) ||
-             propertyName.EndsWith("-width", StringComparison.OrdinalIgnoreCase));
 
         private static bool TryUnsupportedColorValue(string value, string label, out string reason) {
             reason = string.Empty;

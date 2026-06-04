@@ -65,7 +65,8 @@ namespace OfficeIMO.Word.Html {
                             props["text-decoration"] = "underline";
                         }
                         var colorVal = rPr.Color?.Val?.Value;
-                        if (!string.IsNullOrEmpty(colorVal)) {
+                        if (!string.IsNullOrEmpty(colorVal) &&
+                            !string.Equals(colorVal, "auto", StringComparison.OrdinalIgnoreCase)) {
                             var cv = colorVal!;
                             props["color"] = "#" + cv.ToLowerInvariant();
                         }

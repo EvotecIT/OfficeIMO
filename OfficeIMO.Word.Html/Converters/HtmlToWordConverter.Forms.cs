@@ -182,10 +182,14 @@ namespace OfficeIMO.Word.Html {
 
         private static bool ShouldAddSpaceAfterInput(IElement element) {
             var sibling = element.NextSibling;
+            while (sibling is IElement siblingElement &&
+                string.Equals(siblingElement.TagName, "datalist", StringComparison.OrdinalIgnoreCase)) {
+                sibling = sibling.NextSibling;
+            }
+
             if (sibling == null) {
                 return false;
             }
-
             if (sibling is IText text) {
                 return text.Text.Length > 0 && !char.IsWhiteSpace(text.Text[0]);
             }
