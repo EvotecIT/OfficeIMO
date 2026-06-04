@@ -184,6 +184,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DuplicateShapesCopiesTargetedCommentsToClonedTargets() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Annotated copies", 11, 8.5);
+            VisioShape api = new("api", 2, 5, 1.4, 0.8, "API");
+            VisioShape database = new("db", 5, 5, 1.4, 0.8, "Database");
+            page.Shapes.Add(api);
+            page.Shapes.Add(database);
+            VisioConnector connector = page.AddConnector("route", api, database, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
+            connector.Label = "SQL";
+            page.AddComment(api, "Review API", "Operations", "OP");
+            page.AddCommentToShape(connector.Id, "Review route", "Operations", "OP");
+            page.AddComment("Page note", "Operations", "OP");
+
+            page.DuplicateShapes(new[] { api, database }, new VisioShapeDuplicationOptions {
+                IdSuffix = "-copy",
+                ConnectorIdSuffix = "-copy"
+            });
+
+            Assert.Equal(5, page.Comments.Count);
+            Assert.Contains(page.Comments, comment => comment.ShapeId == "api-copy" && comment.Text == "Review API");
+            Assert.Contains(page.Comments, comment => comment.ShapeId == "route-copy" && comment.Text == "Review route");
+            Assert.Single(page.Comments, comment => comment.ShapeId == null && comment.Text == "Page note");
+            Assert.Equal(page.Comments.Count, page.Comments.Select(comment => comment.Id).Distinct().Count());
+
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioPage loadedPage = Assert.Single(loaded.Pages);
+            Assert.Contains(loadedPage.Comments, comment => comment.ShapeId == "api-copy" && comment.Text == "Review API");
+            Assert.Contains(loadedPage.Comments, comment => comment.ShapeId == "route-copy" && comment.Text == "Review route");
+        }
+
+        [Fact]
         public void FluentDuplicateShapesKeepsCopiesAddressableForChaining() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);

@@ -18,6 +18,7 @@ namespace OfficeIMO.Tests {
                     .Rect("cluster", 5, 6.5, 5.0, 1.1, "AKS Cluster")
                     .Rect("namespace", 2, 5.2, 1.8, 0.8, "Tenant Namespace")
                     .Rect("node", 4, 5.2, 1.8, 0.8, "Worker Node")
+                    .Rect("cluster-node", 6, 6.5, 1.8, 0.8, "Cluster Node")
                     .Hexagon("pod", 6, 5.2, 1.4, 0.8, "Workload Pod")
                     .Rect("container", 8, 5.2, 1.6, 0.8, "Container Image")
                     .Rect("service", 2, 4.0, 1.8, 0.8, "Kubernetes Service")
@@ -35,8 +36,8 @@ namespace OfficeIMO.Tests {
             VisioStencilMigrationResult result = loaded.ApplyStencilMigration(map);
             loaded.Save(updatedPath);
 
-            Assert.Equal(9, plan.Count);
-            Assert.Equal(9, result.Count);
+            Assert.Equal(10, plan.Count);
+            Assert.Equal(10, result.Count);
             Assert.DoesNotContain(result.Replacements, replacement => replacement.ShapeId == "already");
 
             VisioDocument updated = VisioDocument.Load(updatedPath);
@@ -44,6 +45,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("k8s.cluster", page.FindShapeById("cluster")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
             Assert.Equal("k8s.namespace", page.FindShapeById("namespace")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
             Assert.Equal("k8s.node", page.FindShapeById("node")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
+            Assert.Equal("k8s.node", page.FindShapeById("cluster-node")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
             Assert.Equal("k8s.pod", page.FindShapeById("pod")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
             Assert.Equal("k8s.container", page.FindShapeById("container")!.GetUserCellValue(VisioSemanticUserCells.StencilId));
             Assert.Equal("k8s.service", page.FindShapeById("service")!.GetUserCellValue(VisioSemanticUserCells.StencilId));

@@ -190,6 +190,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LoadedContainerScalarStyleEditsPersistWithoutClearingShapeStyle() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+
+            VisioDocument document = VisioDocument.Create(filePath);
+            VisioPage page = document.AddPage("Container scalar style", 11, 8.5);
+            VisioShape api = AddRect(page, "api", 2, 5, 1.4, 0.7, "API");
+            VisioShape worker = AddRect(page, "worker", 4.5, 5, 1.4, 0.7, "Worker");
+            page.AddContainer("tier", "Runtime tier", new[] { api, worker });
+            document.Save();
+
+            VisioDocument loaded = VisioDocument.Load(filePath);
+            VisioShape loadedContainer = loaded.Pages[0].FindShapeById("tier")!;
+            loaded.Pages[0].ConfigureContainer(loadedContainer, options => {
+                options.FillColor = Color.LightGreen;
+                options.LineColor = Color.DarkGreen;
+                options.LineWeight = 0.04;
+            });
+            loaded.Save(updatedPath);
+
+            VisioDocument updated = VisioDocument.Load(updatedPath);
+            VisioShape updatedContainer = updated.Pages[0].FindShapeById("tier")!;
+            Assert.Equal(Color.LightGreen, updatedContainer.FillColor);
+            Assert.Equal(Color.DarkGreen, updatedContainer.LineColor);
+            Assert.Equal(0.04, updatedContainer.LineWeight, 6);
+        }
+
+        [Fact]
         public void LoadedMetricContainerRefitKeepsStoredMarginAndHeadingInInches() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);

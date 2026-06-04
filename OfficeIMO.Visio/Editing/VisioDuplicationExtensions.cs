@@ -146,6 +146,47 @@ namespace OfficeIMO.Visio {
             };
         }
 
+        private static void CopyTargetedComments(
+            VisioPage page,
+            IReadOnlyDictionary<VisioShape, VisioShape> shapeMap,
+            IReadOnlyDictionary<VisioConnector, VisioConnector> connectorMap) {
+            Dictionary<string, string> targetMap = new(StringComparer.Ordinal);
+            foreach (KeyValuePair<VisioShape, VisioShape> pair in shapeMap) {
+                targetMap[pair.Key.Id] = pair.Value.Id;
+            }
+
+            foreach (KeyValuePair<VisioConnector, VisioConnector> pair in connectorMap) {
+                targetMap[pair.Key.Id] = pair.Value.Id;
+            }
+
+            if (targetMap.Count == 0) {
+                return;
+            }
+
+            HashSet<int> usedCommentIds = new(page.Comments.Select(comment => comment.Id));
+            foreach (VisioComment comment in page.Comments.ToList()) {
+                if (string.IsNullOrWhiteSpace(comment.ShapeId) ||
+                    !targetMap.TryGetValue(comment.ShapeId!, out string? clonedTargetId)) {
+                    continue;
+                }
+
+                VisioComment copy = CloneComment(comment);
+                copy.Id = AllocateNextCommentId(usedCommentIds);
+                copy.ShapeId = clonedTargetId;
+                page.Comments.Add(copy);
+            }
+        }
+
+        private static int AllocateNextCommentId(HashSet<int> usedCommentIds) {
+            int nextId = 1;
+            while (usedCommentIds.Contains(nextId)) {
+                nextId++;
+            }
+
+            usedCommentIds.Add(nextId);
+            return nextId;
+        }
+
         /// <summary>
         /// Duplicates this page in its owner document.
         /// </summary>
@@ -230,6 +271,7 @@ namespace OfficeIMO.Visio {
 
             IdAllocator ids = new(page);
             Dictionary<VisioShape, VisioShape> shapeMap = new();
+            Dictionary<VisioConnector, VisioConnector> connectorMap = new();
             Dictionary<VisioConnectionPoint, VisioConnectionPoint> connectionPointMap = new();
             List<VisioShape> duplicatedRoots = new();
 
@@ -250,8 +292,11 @@ namespace OfficeIMO.Visio {
 
                     VisioConnector clonedConnector = CloneConnector(connector, ids, clonedFrom, clonedTo, effectiveOptions.OffsetX, effectiveOptions.OffsetY, connectionPointMap, effectiveOptions);
                     page.Connectors.Add(clonedConnector);
+                    connectorMap[connector] = clonedConnector;
                 }
             }
+
+            CopyTargetedComments(page, shapeMap, connectorMap);
 
             return new VisioShapeSelection(duplicatedRoots, page);
         }

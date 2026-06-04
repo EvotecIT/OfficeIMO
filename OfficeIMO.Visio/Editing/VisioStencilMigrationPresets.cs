@@ -438,9 +438,9 @@ namespace OfficeIMO.Visio {
             }
 
             int mapped = 0;
+            MapIfFound(builder, UnstenciledIdentity("worker node", "cluster node", "node host"), catalog, new[] { "node", "worker", "host" }, resizeToStencil, ref mapped);
             MapIfFound(builder, UnstenciledIdentity("kubernetes cluster", "aks cluster", "eks cluster", "gke cluster", "cluster"), catalog, new[] { "cluster", "kubernetes", "aks", "eks", "gke" }, resizeToStencil, ref mapped);
             MapIfFound(builder, UnstenciledIdentity("namespace", "tenant namespace", "scope"), catalog, new[] { "namespace", "tenant", "scope" }, resizeToStencil, ref mapped);
-            MapIfFound(builder, UnstenciledIdentity("worker node", "cluster node", "node host"), catalog, new[] { "node", "worker", "host" }, resizeToStencil, ref mapped);
             MapIfFound(builder, UnstenciledIdentity("pod", "workload pod", "workload"), catalog, new[] { "pod", "workload" }, resizeToStencil, ref mapped);
             MapIfFound(builder, UnstenciledIdentity("container image", "container runtime", "container"), catalog, new[] { "image", "runtime" }, resizeToStencil, ref mapped);
             MapIfFound(builder, UnstenciledIdentity("kubernetes service", "k8s service", "svc", "service endpoint"), catalog, new[] { "service", "svc", "endpoint" }, resizeToStencil, ref mapped);

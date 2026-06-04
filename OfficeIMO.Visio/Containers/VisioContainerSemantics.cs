@@ -55,9 +55,6 @@ namespace OfficeIMO.Visio {
                 FillColor = container.FillColor,
                 LineColor = container.LineColor,
                 LineWeight = container.LineWeight,
-                ShapeStyle = new VisioShapeStyle(container.FillColor, container.LineColor, container.LineWeight, container.LinePattern, container.FillPattern) {
-                    TextStyle = container.TextStyle?.Clone()
-                },
                 TextStyle = container.TextStyle?.Clone()
             };
 
