@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using OfficeIMO.Visio;
 
 namespace OfficeIMO.Examples.Visio {
@@ -64,6 +65,7 @@ namespace OfficeIMO.Examples.Visio {
             }
 
             ValidateGeneratedPackages(generatedFiles);
+            IReadOnlyList<string> proofFiles = ExportStructuralProofFiles(showcasePath, generatedFiles);
             IReadOnlyList<string> previewFiles = Array.Empty<string>();
             if (exportPreviews || string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_DESKTOP_SHOWCASE"), "1", StringComparison.OrdinalIgnoreCase)) {
                 previewFiles = ExportPreviewFiles(showcasePath, generatedFiles);
@@ -73,7 +75,16 @@ namespace OfficeIMO.Examples.Visio {
                 previewFiles = previewFiles.Concat(ExportNativePreviewFiles(showcasePath, generatedFiles)).ToList();
             }
 
-            WriteShowcaseSummary(showcasePath, generatedFiles, previewFiles);
+            VisioShowcaseSummary summary = VisioShowcaseSummary.Create(
+                showcasePath,
+                generatedFiles,
+                previewFiles,
+                proofFiles: proofFiles);
+            summary.EnsureArtifactsValid(requirePreviewsPerDiagram: previewFiles.Count > 0, requireProofsPerDiagram: true);
+            summary.SaveArtifacts();
+            Console.WriteLine($"    summary: {Path.Combine(showcasePath, VisioShowcaseSummary.MarkdownFileName)}");
+            Console.WriteLine($"    summary json: {Path.Combine(showcasePath, VisioShowcaseSummary.JsonFileName)}");
+            Console.WriteLine($"    gallery: {Path.Combine(showcasePath, VisioShowcaseSummary.HtmlFileName)}");
 
             if (openVisio && generatedFiles.Count > 0) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(generatedFiles[0]) { UseShellExecute = true });
@@ -94,6 +105,11 @@ namespace OfficeIMO.Examples.Visio {
             string nativePreviewPath = Path.Combine(showcasePath, "Native Preview");
             if (Directory.Exists(nativePreviewPath)) {
                 Directory.Delete(nativePreviewPath, recursive: true);
+            }
+
+            string structuralProofPath = Path.Combine(showcasePath, "Structural Proof");
+            if (Directory.Exists(structuralProofPath)) {
+                Directory.Delete(structuralProofPath, recursive: true);
             }
         }
 
@@ -172,38 +188,42 @@ namespace OfficeIMO.Examples.Visio {
             return previewFiles;
         }
 
+        private static IReadOnlyList<string> ExportStructuralProofFiles(string showcasePath, IReadOnlyList<string> generatedFiles) {
+            string proofPath = Path.Combine(showcasePath, "Structural Proof");
+            Directory.CreateDirectory(proofPath);
+            List<string> proofFiles = new();
+
+            foreach (string filePath in generatedFiles) {
+                VisioDocument document = VisioDocument.Load(filePath);
+                string prefix = CreatePreviewPrefix(filePath, showcasePath);
+                string inspectionPath = Path.Combine(proofPath, prefix + ".inspection.txt");
+                string stencilProfilePath = Path.Combine(proofPath, prefix + ".stencil-profile.txt");
+                string visualQualityPath = Path.Combine(proofPath, prefix + ".visual-quality.txt");
+
+                VisioInspectionSnapshot inspection = document.CreateInspectionSnapshot();
+                File.WriteAllText(inspectionPath, inspection.ToText(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                File.WriteAllText(stencilProfilePath, inspection.CreateStencilProfile().ToText(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                File.WriteAllText(visualQualityPath, document.GetVisualQualityReport().ToText(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+
+                VerifyNonEmptyPreview(inspectionPath, "inspection proof");
+                VerifyNonEmptyPreview(stencilProfilePath, "stencil profile proof");
+                VerifyNonEmptyPreview(visualQualityPath, "visual quality proof");
+                proofFiles.Add(inspectionPath);
+                proofFiles.Add(stencilProfilePath);
+                proofFiles.Add(visualQualityPath);
+                Console.WriteLine($"    structural proof: {inspectionPath}");
+                Console.WriteLine($"    structural proof: {stencilProfilePath}");
+                Console.WriteLine($"    visual quality proof: {visualQualityPath}");
+            }
+
+            return proofFiles;
+        }
+
         private static void VerifyNonEmptyPreview(string path, string description) {
             FileInfo file = new(path);
             if (!file.Exists || file.Length == 0) {
                 throw new InvalidOperationException($"OfficeIMO native export created an empty or missing {description}: {path}");
             }
-        }
-
-        private static void WriteShowcaseSummary(string showcasePath, IReadOnlyList<string> generatedFiles, IReadOnlyList<string> previewFiles) {
-            string summaryPath = Path.Combine(showcasePath, "showcase-summary.md");
-            using StreamWriter writer = new(summaryPath, false);
-            writer.WriteLine("# OfficeIMO Visio Showcase Summary");
-            writer.WriteLine();
-            writer.WriteLine($"Generated: {DateTimeOffset.UtcNow:O}");
-            writer.WriteLine($"VSDX files: {generatedFiles.Count}");
-            writer.WriteLine($"Preview files: {previewFiles.Count}");
-            writer.WriteLine();
-            writer.WriteLine("## Packages");
-            writer.WriteLine();
-            foreach (string filePath in generatedFiles.OrderBy(file => file, StringComparer.OrdinalIgnoreCase)) {
-                writer.WriteLine($"- `{Path.GetRelativePath(showcasePath, filePath)}`");
-            }
-
-            if (previewFiles.Count > 0) {
-                writer.WriteLine();
-                writer.WriteLine("## Previews");
-                writer.WriteLine();
-                foreach (string filePath in previewFiles.OrderBy(file => file, StringComparer.OrdinalIgnoreCase)) {
-                    writer.WriteLine($"- `{Path.GetRelativePath(showcasePath, filePath)}`");
-                }
-            }
-
-            Console.WriteLine($"    summary: {summaryPath}");
         }
 
         private static string WritePreviewGallery(string previewPath, IEnumerable<string> previewFiles) {

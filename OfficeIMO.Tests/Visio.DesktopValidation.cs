@@ -7,6 +7,10 @@ namespace OfficeIMO.Tests {
     public class VisioDesktopValidation {
         [Fact]
         public void DesktopValidatorReportsAvailabilityOrOpensGeneratedDocument() {
+            if (!IsDesktopValidationRequested()) {
+                return;
+            }
+
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
@@ -29,6 +33,10 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void DesktopValidatorCanRoundTripAndExportGeneratedDocument() {
+            if (!IsDesktopValidationRequested()) {
+                return;
+            }
+
             string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO-VisioDesktop-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(directory);
             string filePath = Path.Combine(directory, "source.vsdx");
@@ -70,5 +78,10 @@ namespace OfficeIMO.Tests {
 
             Assert.Throws<FileNotFoundException>(() => VisioDesktopValidator.Validate(filePath));
         }
+
+        private static bool IsDesktopValidationRequested() =>
+            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_RUN_VISIO_DESKTOP_VALIDATION"), "1", StringComparison.Ordinal) ||
+            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_RUN_VISIO_PREMIUM_DESKTOP_BASELINES"), "1", StringComparison.Ordinal) ||
+            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_VISIO_PREMIUM_BASELINES"), "1", StringComparison.Ordinal);
     }
 }

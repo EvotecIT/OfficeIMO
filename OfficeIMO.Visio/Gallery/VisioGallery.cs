@@ -8,7 +8,7 @@ namespace OfficeIMO.Visio {
     /// <summary>
     /// Generates a small gallery of polished OfficeIMO.Visio reference diagrams.
     /// </summary>
-    public static class VisioGallery {
+    public static partial class VisioGallery {
         /// <summary>
         /// Generates gallery documents into a folder and optionally validates them.
         /// </summary>
@@ -32,8 +32,12 @@ namespace OfficeIMO.Visio {
             results.Add(CreateResult("Routed Decision Flow", Path.Combine(folderPath, "OfficeIMO Gallery - Routed Decision Flow.vsdx"), CreateRoutedDecisionFlow, resolvedOptions));
             results.Add(CreateResult("CI/CD Inventory Graph", Path.Combine(folderPath, "OfficeIMO Gallery - CI-CD Inventory Graph.vsdx"), CreateCiCdInventoryGraph, resolvedOptions));
             results.Add(CreateResult("Identity Authentication Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Identity Authentication Graph.vsdx"), CreateIdentityAuthenticationGraph, resolvedOptions));
+            results.Add(CreateResult("Privileged Access Review Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Privileged Access Review Graph.vsdx"), CreatePrivilegedAccessReviewGraph, resolvedOptions));
             results.Add(CreateResult("Kubernetes Service Mesh Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Kubernetes Service Mesh Graph.vsdx"), CreateKubernetesServiceMeshGraph, resolvedOptions));
             results.Add(CreateResult("Application Dependency Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Application Dependency Graph.vsdx"), CreateApplicationDependencyGraph, resolvedOptions));
+            results.Add(CreateResult("Data Platform Lineage Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Data Platform Lineage Graph.vsdx"), CreateDataPlatformLineageGraph, resolvedOptions));
+            results.Add(CreateResult("Hybrid Network Operations Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Hybrid Network Operations Graph.vsdx"), CreateHybridNetworkOperationsGraph, resolvedOptions));
+            results.Add(CreateResult("Process Governance Review Graph", Path.Combine(folderPath, "OfficeIMO Gallery - Process Governance Review Graph.vsdx"), CreateProcessGovernanceReviewGraph, resolvedOptions));
             results.Add(CreateResult("Incident Runbook Sequence", Path.Combine(folderPath, "OfficeIMO Gallery - Incident Runbook Sequence.vsdx"), CreateIncidentRunbookSequence, resolvedOptions));
             results.Add(CreateResult("Network Segmentation Diagram", Path.Combine(folderPath, "OfficeIMO Gallery - Network Segmentation Diagram.vsdx"), CreateNetworkSegmentationDiagram, resolvedOptions));
             return results;

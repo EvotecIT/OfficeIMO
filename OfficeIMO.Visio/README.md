@@ -5,7 +5,7 @@ OfficeIMO.Visio provides helpers for creating and editing .vsdx drawings with Op
 - Targets: netstandard2.0, net472 (Windows), net8.0, net10.0
 - License: MIT
 - NuGet: `OfficeIMO.Visio`
-- Dependencies: OfficeIMO.Drawing, System.IO.Packaging (Windows), Microsoft.Bcl.AsyncInterfaces (net472)
+- Dependencies: OfficeIMO.Drawing, System.IO.Packaging, Microsoft.Bcl.AsyncInterfaces (net472)
 
 ## Install
 
@@ -861,6 +861,11 @@ var proofOptions = new VisioGalleryOptions {
 };
 var proofResults = VisioGallery.Create("gallery-proof", proofOptions);
 
+// Gallery coverage includes identity/authentication, privileged access review,
+// Kubernetes/service mesh, application dependency, data-platform lineage,
+// hybrid network operations, process governance, incident sequence, and network segmentation
+// scenarios with validation metadata.
+
 var issues = doc.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
     RequireConnectorLabels = false,
     CheckConnectorLabelOverlaps = true,
@@ -871,14 +876,51 @@ doc.EnsureVisualQuality(minimumSeverity: VisioDiagramQualityIssueSeverity.Warnin
 
 page.ResolveConnectorLabelOverlaps();
 doc.PolishDiagrams();
+
+zoneShape.MarkAsBackgroundSurface();
+captionShape.MarkAsGeneratedDiagramAdornment();
 ```
 
 The reusable gallery includes data-driven CI/CD inventory, identity
-authentication, and Kubernetes service-mesh graphs built from
+authentication, privileged-access review, Kubernetes service-mesh,
+application-dependency, data-platform lineage, hybrid network operations, and
+process governance review graphs built from
 `VisioGraphNodeRecord`, `VisioGraphEdgeRecord`, and `VisioGraphClusterRecord`
 records. They use first-party stencil catalogs, generated clusters, Shape Data,
 hyperlinks, and automatic graph legends, so the gallery exercises real
 inventory-to-diagram workflows rather than only coordinate-authored examples.
+
+Showcase runs can also write reviewable proof metadata for generated packages,
+previews, inspection snapshots, stencil-profile summaries, and visual-quality summaries, including
+top-level proof and evidence totals, structural shape/connector counts, Shape Data key counts,
+native/desktop preview evidence, connector Shape Data key counts, semantic-kind counts,
+stencil-backed/basic-geometry mix, connection-point coverage, parsed
+visual-quality `quality.*` counts, clean visual-quality totals, and stencil provenance.
+`VisioShowcaseSummary` emits Markdown, JSON, and browsable HTML artifacts, and
+`EnsureArtifactsValid(...)` recomputes file sizes and SHA-256 hashes so stale
+or modified proof files fail before they are published. The HTML gallery includes
+a review index with stable diagram deep links, headline proof metrics, compact
+SHA-256 fingerprints with the full hash available on hover, visual-quality proof
+links parsed from `.visual-quality.txt` artifacts, and stencil catalog proof
+summaries parsed from `.stencil-profile.txt` artifacts. It also includes
+`proofTotals`, `evidenceTotals`, shape/connector/Shape Data rollups,
+stencil-backed/basic-geometry mix, connection-point coverage, native/desktop
+preview completeness, clean visual-quality totals, complete structural proof, complete review proof, and a stencil coverage table
+so reviewers can see both overall generated coverage and which diagrams exercise
+each catalog. The JSON output includes `schemaVersion`, `artifactCount`,
+`proofTotals`, `evidenceTotals`, `stencilCatalogCoverage`, and per-diagram
+`proofSummary` / `evidence` fields for downstream CI/review tooling:
+
+```csharp
+var summary = VisioShowcaseSummary.Create(
+    "gallery-proof",
+    Directory.EnumerateFiles("gallery-proof", "*.vsdx"),
+    Directory.EnumerateFiles(Path.Combine("gallery-proof", "Native Preview"), "*.*"),
+    proofFiles: Directory.EnumerateFiles(Path.Combine("gallery-proof", "Structural Proof"), "*.txt"));
+
+summary.EnsureArtifactsValid(requirePreviewsPerDiagram: true, requireProofsPerDiagram: true);
+summary.SaveArtifacts();
+```
 
 `EnsureVisualQuality(...)` throws `VisioDiagramQualityException` with the
 blocking issues, which makes it practical to use generated diagrams in tests or
@@ -1761,7 +1803,7 @@ See `OfficeIMO.Examples/Visio/*` for more.
 - 🧰 Native stencils: ✅ built-in searchable catalogs for basic, flowchart, block-diagram, architecture, network, infrastructure, cloud, security/identity, containers/Kubernetes, data/platform, collaboration/business process, sequence, swimlane, org-chart, and timeline shapes; ✅ external package catalogs with learned dimensions, preview metadata, source package provenance, and native connection points
 - 🎨 Style themes: ✅ reusable shape/connector/text styles and Modern/Office/Fluent/Technical/Minimal/Dark/Print authoring presets
 - 🔎 Rich editing: ✅ recursive shape queries, shape/data/text/master/layer/hyperlink selectors, connector neighbor queries, page layers, shape and connector hyperlinks, typed stencil migration maps, bulk style/data/layer/hyperlink edits, align/distribute, resize-to-text, center content, and fit-to-content
-- 🖼️ Export/proof: ✅ dependency-free native SVG and PNG preview exports for OfficeIMO-authored pages; ✅ premium gallery baselines with PNG/SVG, inspection, and stencil-profile proof
+- 🖼️ Export/proof: ✅ dependency-free native SVG and PNG preview exports for OfficeIMO-authored pages; ✅ premium gallery baselines with PNG/SVG, inspection, and stencil-profile proof; ✅ showcase review proof with inspection, stencil profile, and visual-quality artifacts
 - 🧩 VSDX learning fixtures: ✅ inspect supported masters without treating sample files as runtime templates
 - 🧪 Validation: ✅ package/in-memory validators, visual quality analyzer, premium baseline lane, and optional Microsoft Visio desktop open, save-copy, and SVG/PNG/PDF export checks via late-bound COM
 
@@ -1797,6 +1839,8 @@ The old ensure method has been internalized.
 - Semantic builders for flowcharts, block diagrams, architecture, networks, topology, swimlanes, org charts, timelines, sequences, dependencies, and graphs
 - Built-in and package-backed stencil catalogs with searchable metadata and typed migration maps for loaded diagrams
 - Native SVG/PNG previews plus optional Microsoft Visio desktop validation/export proof
+- Showcase proof summaries through `VisioShowcaseSummary`, which writes Markdown, JSON, and browsable HTML artifact metadata for generated packages, previews, and review proof files, including headline proof/evidence totals plus diagram-level records/cards that pair packages with previews, SHA-256 hashes, native/desktop preview flags, inspection/stencil-profile/visual-quality proof flags, clean visual-quality and issue totals, shape/connector rollups, Shape Data key counts, semantic-kind counts, stencil-backed/basic-geometry mix, connection-point coverage, stencil provenance, complete review proof, and catalog coverage
+- Optional desktop preview artifacts are designed for explicit self-hosted Windows proof lanes where Microsoft Visio desktop automation is installed
 
 ## Why OfficeIMO.Visio
 

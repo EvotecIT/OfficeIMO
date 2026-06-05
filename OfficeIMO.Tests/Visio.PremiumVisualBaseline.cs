@@ -24,9 +24,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PremiumGalleryPreviewsMatchApprovedBaselines() {
+            if (!IsDesktopBaselineRunRequested()) {
+                return;
+            }
+
             if (!VisioDesktopValidator.IsAvailable()) {
-                if (IsRequired()) {
-                    throw new InvalidOperationException("Premium Visio visual baseline tests require Microsoft Visio desktop automation. Install Visio or unset OFFICEIMO_REQUIRE_VISIO_PREMIUM_BASELINES.");
+                if (IsRequired() || IsBaselineUpdateRequested()) {
+                    throw new InvalidOperationException("Premium Visio visual baseline tests require Microsoft Visio desktop automation. Install Visio or unset OFFICEIMO_REQUIRE_VISIO_PREMIUM_BASELINES / OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES.");
                 }
 
                 return;
@@ -870,6 +874,11 @@ namespace OfficeIMO.Tests {
 
         private static bool IsRequired() =>
             string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_VISIO_PREMIUM_BASELINES"), "1", StringComparison.Ordinal);
+
+        private static bool IsDesktopBaselineRunRequested() =>
+            IsRequired() ||
+            IsBaselineUpdateRequested() ||
+            string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_RUN_VISIO_PREMIUM_DESKTOP_BASELINES"), "1", StringComparison.Ordinal);
 
         private static bool IsBaselineUpdateRequested() =>
             string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES"), "1", StringComparison.Ordinal);

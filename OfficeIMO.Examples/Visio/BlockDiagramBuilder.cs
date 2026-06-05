@@ -9,8 +9,9 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Block diagram builder");
             string filePath = Path.Combine(folderPath, "Block Diagram Builder.vsdx");
 
-            VisioDocument.Create(filePath)
+            VisioDocument document = VisioDocument.Create(filePath)
                 .BlockDiagram("Block Diagram", diagram => diagram
+                    .PageSize(13.5, 9.5)
                     .Region("processor", "Processor", 1, 2, 2, 2)
                     .Block("input", "Input Device", 0, 2)
                     .EmphasisBlock("memory", "Memory Unit", 1, 2)
@@ -24,8 +25,9 @@ namespace OfficeIMO.Examples.Visio {
                     .DataFlow("control", "alu")
                     .ControlFlow("control", "input")
                     .ControlFlow("control", "memory")
-                    .ControlFlow("control", "output", "Control Flow"))
-                .Save();
+                    .ControlFlow("control", "output", "Control Flow"));
+            document.Pages[0].FitToContent(0.7, 0.55);
+            document.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

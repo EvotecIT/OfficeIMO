@@ -16,12 +16,12 @@
 
         <PackageId>OfficeIMO.Visio</PackageId>
         <PackageTags>
-            vsdx;visio;office;openxml;net472;net50;netstandard;netstandard2.0,netstandard2.1;net70</PackageTags>
+            vsdx;visio;office;openxml;stencils;diagram;svg;png;net472;netstandard2.0;net8.0;net10.0</PackageTags>
         <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <DelaySign>False</DelaySign>
         <IsPublishable>True</IsPublishable>
-        <Copyright>(c) 2011 - 2024 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
+        <Copyright>(c) 2011 - 2026 Przemyslaw Klys @ Evotec. All rights reserved.</Copyright>
         <PackageIcon>OfficeIMO.png</PackageIcon>
         <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
         <DebugType>portable</DebugType>

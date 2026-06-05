@@ -1,7 +1,7 @@
 # OfficeIMO.Visio Assessment
 
-Date: 2026-06-04
-Branch/worktree: `codex/visio-premium-next-20260604` at `C:\Support\GitHub\OfficeIMO-visio-premium-next-20260604`
+Date: 2026-06-05
+Branch/worktree: `codex/visio-market-review-20260605` at `C:\Support\GitHub\OfficeIMO-visio-market-review-20260605`
 
 ## Current Status Update
 
@@ -11,7 +11,7 @@ The Visio work has moved well beyond the first external-stencil slice. The curre
 dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~Visio"
 ```
 
-Result: `731/731` Visio-filtered tests passed.
+Result: `738/738` Visio-filtered tests passed.
 
 The current product slice includes:
 
@@ -22,6 +22,7 @@ The current product slice includes:
 - Robust gallery and showcase handling for duplicate generated IDs, connector ID reservation, metric-page sizing, optional pack probing, and stencil caption page fitting.
 - Better visual behavior for package-backed stencil nodes: imported master artwork stays clean and captions are rendered as separate Visio text boxes when needed.
 - Dependency-free native SVG and PNG preview export for OfficeIMO-authored diagrams, backed by premium visual baselines and structural/stencil profile snapshots.
+- Versioned showcase summary evidence with top-level `proofTotals` and `evidenceTotals`, per-diagram preview/proof/evidence/visual-quality records, a browsable Evidence Coverage gallery section, and CI validation that can require native SVG/PNG previews plus inspection, stencil-profile, visual-quality, complete structural, and complete review proof for every diagram while exposing clean-quality and warning/error rollups.
 - Shape Data data graphics that render badge/bar adornments as real local geometry, now with data-bar range validation to prevent invalid generated output.
 - Typed fluent page targeting and selection editing for loaded diagrams, so create-or-edit workflows can use `ExistingPage(...)`, `PageOrAdd(...)`, and bulk shape/connector selection helpers instead of dropping to lower-level loops.
 - Advanced fluent loaded-diagram selections for contained/intersecting geometry, connected components, shortest paths, User cells, hyperlinks, protection, connector layers, connector hyperlinks, and connector neighborhoods.
@@ -53,7 +54,7 @@ The strongest path is not to replace the existing model. Keep the current VSDX p
 
 - `OfficeIMO.Visio` targets `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
 - It references `OfficeIMO.Drawing`.
-- It references `System.IO.Packaging` and `Microsoft.Bcl.AsyncInterfaces` for `net472`.
+- It references `System.IO.Packaging` across target frameworks and `Microsoft.Bcl.AsyncInterfaces` for `net472`.
 - The package metadata declares MIT and `OfficeIMO.Visio/LICENSE.MD` now matches the repository MIT license story.
 - README now describes the broader Visio surface instead of calling the package early/minimal, but website and product docs still need an API-accuracy pass before public positioning.
 
@@ -81,7 +82,7 @@ Current weakness:
 
 - The fluent API is friendly and can now target loaded pages, bulk-edit typed selections, edit by geometry/path/component/connectors, standardize masters, run typed stencil migration maps, use catalog-query/domain preset migration helpers, plan/report/persist migrations, and replay approved migration plans with drift validation, but it is still coordinate-driven for new shape placement.
 - Styling still exposes some Visio-index details for line/fill patterns, but reusable style objects and presets now give high-level code a safer default path.
-- There is now a first-pass diagram DSL for flowcharts, block diagrams, dependency diagrams, architecture diagrams, network diagrams, swimlane process maps, org charts, and date-scaled timelines. The remaining gap is breadth and depth: richer branch layout, joins, advanced lane assignment, richer org chart variants, rack/server diagrams, BPMN-ish process detail, and automatic obstacle-aware routing.
+- There is now a first-pass diagram DSL for flowcharts, block diagrams, dependency diagrams, architecture diagrams, network diagrams, swimlane process maps, org charts, and date-scaled timelines, plus reusable data-driven gallery scenarios for security, data, network, and process governance. The remaining gap is breadth and depth: richer branch layout, joins, advanced lane assignment, richer org chart variants, deeper BPMN-style process semantics, and automatic obstacle-aware routing.
 - There is now first-pass deterministic connector routing, label placement, label cleanup, visual quality analysis, and a CI-friendly `EnsureVisualQuality(...)` quality gate for explicit/manual routes, but no full diagram-level routing engine with global obstacle avoidance, line crossing minimization, or multi-pass label optimization.
 - Premium enterprise, technical, cloud, process, print-safe, and dark-safe presets exist and are used in the gallery. The remaining issue is art direction and breadth: more scenarios need to reach the same reviewed bar before the package can claim market-leading output quality.
 
@@ -103,8 +104,8 @@ Current weakness:
 
 Evidence gathered in this assessment:
 
-- Visio-related test declarations: 712 facts/theories by file scan.
-- Latest focused Visio test run passed `731/731`:
+- Visio-related test declarations: 717 facts/theories by file scan.
+- Latest focused Visio test run passed `738/738`:
 
 ```powershell
 dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~Visio"
@@ -143,7 +144,7 @@ Existing examples:
 Current weakness:
 
 - The examples are useful API smoke tests, not a polished gallery.
-- There are now copyable builder examples for flowchart, block diagram, cloud/service architecture, network map, swimlane process diagrams, org charts, and timeline roadmaps. Remaining target examples include rack/server diagrams, BPMN-ish process detail, dependency graphs, and more polished visual baselines.
+- There are now copyable builder examples for flowchart, block diagram, cloud/service architecture, network map, swimlane process diagrams, org charts, and timeline roadmaps, with gallery-backed data-driven examples for rack/server operations and process governance. Remaining target examples include deeper BPMN-style process detail, dependency graphs, and more polished visual baselines.
 
 ## Reuse From OfficeIMO.Drawing
 
@@ -347,7 +348,7 @@ The key is that the builder owns layout, continuation markers, connectors, text 
   - strict: replace with internal OPC writer/reader over `ZipArchive`.
 - Update README to reflect actual capabilities and limitations.
 - Add local optional Visio validation harness. Initial open/save-copy/export helper exists and gallery runs can now attach optional desktop round-trip/export proof; expand it to repair diagnostics and visual baseline capture.
-- Add generated gallery sample runner for beautiful reference diagrams. Initial runner exists with package, visual-quality, and optional desktop proof result data.
+- Add generated gallery sample runner for beautiful reference diagrams. Initial runner exists with package validation, visual-quality validation, machine-readable showcase artifact summaries, deterministic inspection/profile/visual-quality proof artifacts, explicit preview/proof evidence totals, browsable showcase gallery output, and optional desktop proof result data.
 - Add polished theme/style model.
 
 ### P1: First "Wow" Authoring Layer
