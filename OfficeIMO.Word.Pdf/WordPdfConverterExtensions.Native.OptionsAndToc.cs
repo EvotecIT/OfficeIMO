@@ -26,8 +26,9 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeDefaultFont(WordDocument document, PdfSaveOptions? options, PdfCore.PdfOptions pdfOptions) {
-            if (!string.IsNullOrWhiteSpace(options?.FontFamily)) {
-                TryApplyNativeDefaultFontCandidate(options.FontFamily, pdfOptions, embedSystemFont: true);
+            string? optionFontFamily = options?.FontFamily;
+            if (!string.IsNullOrWhiteSpace(optionFontFamily)) {
+                TryApplyNativeDefaultFontCandidate(optionFontFamily, pdfOptions, embedSystemFont: true);
                 return;
             }
 
