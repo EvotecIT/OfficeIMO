@@ -23,6 +23,8 @@ namespace OfficeIMO.Visio {
             builder.AppendLine("Proof stencil-backed shapes: " + ProofTotals.StencilBackedShapeCount.ToString(CultureInfo.InvariantCulture));
             builder.AppendLine("Proof connection points: " + ProofTotals.TotalConnectionPointCount.ToString(CultureInfo.InvariantCulture));
             builder.AppendLine("Complete native evidence: " + EvidenceTotals.CompleteNativeEvidenceDiagramCount.ToString(CultureInfo.InvariantCulture) + "/" + EvidenceTotals.DiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.AppendLine("Complete desktop evidence: " + EvidenceTotals.CompleteDesktopEvidenceDiagramCount.ToString(CultureInfo.InvariantCulture) + "/" + EvidenceTotals.DiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.AppendLine("Complete preview evidence: " + EvidenceTotals.CompletePreviewEvidenceDiagramCount.ToString(CultureInfo.InvariantCulture) + "/" + EvidenceTotals.DiagramCount.ToString(CultureInfo.InvariantCulture));
             builder.AppendLine("Complete structural proof: " + EvidenceTotals.CompleteStructuralProofDiagramCount.ToString(CultureInfo.InvariantCulture) + "/" + EvidenceTotals.DiagramCount.ToString(CultureInfo.InvariantCulture));
             builder.AppendLine("Complete review proof: " + EvidenceTotals.CompleteReviewProofDiagramCount.ToString(CultureInfo.InvariantCulture) + "/" + EvidenceTotals.DiagramCount.ToString(CultureInfo.InvariantCulture));
             builder.AppendLine("Clean visual quality: " + EvidenceTotals.CleanVisualQualityDiagramCount.ToString(CultureInfo.InvariantCulture) + "/" + EvidenceTotals.DiagramCount.ToString(CultureInfo.InvariantCulture));
@@ -315,6 +317,18 @@ namespace OfficeIMO.Visio {
             builder.Append(totals.CompleteNativePreviewDiagramCount.ToString(CultureInfo.InvariantCulture));
             builder.Append("/");
             builder.AppendLine(totals.DiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("- Desktop SVG previews: ");
+            builder.Append(totals.DesktopSvgPreviewDiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("/");
+            builder.AppendLine(totals.DiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("- Desktop PNG previews: ");
+            builder.Append(totals.DesktopPngPreviewDiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("/");
+            builder.AppendLine(totals.DiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("- Complete desktop preview evidence: ");
+            builder.Append(totals.CompleteDesktopPreviewDiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("/");
+            builder.AppendLine(totals.DiagramCount.ToString(CultureInfo.InvariantCulture));
             builder.Append("- Inspection proofs: ");
             builder.Append(totals.InspectionProofDiagramCount.ToString(CultureInfo.InvariantCulture));
             builder.Append("/");
@@ -350,6 +364,14 @@ namespace OfficeIMO.Visio {
             builder.AppendLine(totals.DiagramCount.ToString(CultureInfo.InvariantCulture));
             builder.Append("- Complete native evidence: ");
             builder.Append(totals.CompleteNativeEvidenceDiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("/");
+            builder.AppendLine(totals.DiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("- Complete desktop evidence: ");
+            builder.Append(totals.CompleteDesktopEvidenceDiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("/");
+            builder.AppendLine(totals.DiagramCount.ToString(CultureInfo.InvariantCulture));
+            builder.Append("- Complete preview evidence: ");
+            builder.Append(totals.CompletePreviewEvidenceDiagramCount.ToString(CultureInfo.InvariantCulture));
             builder.Append("/");
             builder.AppendLine(totals.DiagramCount.ToString(CultureInfo.InvariantCulture));
         }
