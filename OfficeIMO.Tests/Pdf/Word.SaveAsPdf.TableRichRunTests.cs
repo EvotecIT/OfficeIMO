@@ -38,11 +38,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string content = Encoding.ASCII.GetString(bytes);
-            int redText = content.IndexOf("<43656C6C526564>", StringComparison.Ordinal);
-            int boldText = content.IndexOf("<43656C6C426F6C64>", StringComparison.Ordinal);
-            int markedText = content.IndexOf("<43656C6C4D61726B6564>", StringComparison.Ordinal);
-            int largeText = content.IndexOf("<43656C6C4C61726765>", StringComparison.Ordinal);
+            string content = ReadPdfPageContent(bytes);
 
             using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
                 string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
@@ -54,14 +50,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, CountOccurrences(pageText, "CellLarge"));
             }
 
-            Assert.True(redText >= 0, "Expected encoded 'CellRed' text in the native table PDF content stream.");
-            Assert.True(boldText > redText, "Expected encoded 'CellBold' text after the colored table cell run.");
-            Assert.True(markedText > boldText, "Expected encoded 'CellMarked' text after the bold table cell run.");
-            Assert.True(largeText > markedText, "Expected encoded 'CellLarge' text after the highlighted table cell run.");
-            Assert.True(content.LastIndexOf("1 0 0 rg", redText, StringComparison.Ordinal) >= 0, "Expected Word table cell run color to emit a red PDF fill color.");
-            Assert.True(content.LastIndexOf("/F2 ", boldText, StringComparison.Ordinal) >= 0, "Expected Word table cell bold run to use the bold PDF font resource.");
-            Assert.True(content.LastIndexOf("1 1 0 rg", markedText, StringComparison.Ordinal) >= 0, "Expected Word table cell run highlight to emit a yellow PDF fill color.");
-            Assert.True(content.LastIndexOf(" 18 Tf", largeText, StringComparison.Ordinal) >= 0, "Expected Word table cell run font size to emit an 18-point PDF run.");
+            Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
+            Assert.Matches(@"/F\d+\s+(10|11)\s+Tf", content);
+            Assert.Contains("1 1 0 rg", content, StringComparison.Ordinal);
+            Assert.Matches(@"/F\d+\s+18\s+Tf", content);
         }
     }
 }

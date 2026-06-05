@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -569,6 +570,44 @@ public partial class Word {
         }
 
         return Encoding.GetEncoding("ISO-8859-1").GetString(streamData);
+    }
+
+    private static string ReadPdfPageContent(byte[] bytes, int pageNumber = 1) {
+        var document = PdfCore.PdfReadDocument.Load(bytes);
+        var (objects, _) = PdfCore.PdfSyntax.ParseObjects(bytes);
+        int pageObjectNumber = document.Pages[pageNumber - 1].ObjectNumber;
+        if (!objects.TryGetValue(pageObjectNumber, out PdfCore.PdfIndirectObject pageObject) ||
+            pageObject.Value is not PdfCore.PdfDictionary pageDictionary) {
+            throw new InvalidOperationException("Page object was not found.");
+        }
+
+        if (!pageDictionary.Items.TryGetValue("Contents", out PdfCore.PdfObject contents)) {
+            throw new InvalidOperationException("Page contents were not found.");
+        }
+
+        var streams = new List<string>();
+        AppendPdfPageContentStreams(objects, contents, streams);
+        return string.Join("\n", streams);
+    }
+
+    private static void AppendPdfPageContentStreams(
+        Dictionary<int, PdfCore.PdfIndirectObject> objects,
+        PdfCore.PdfObject contents,
+        List<string> streams) {
+        if (contents is PdfCore.PdfReference reference) {
+            if (objects.TryGetValue(reference.ObjectNumber, out PdfCore.PdfIndirectObject indirect) &&
+                indirect.Value is PdfCore.PdfStream stream) {
+                streams.Add(Encoding.GetEncoding("ISO-8859-1").GetString(stream.Data));
+            }
+
+            return;
+        }
+
+        if (contents is PdfCore.PdfArray array) {
+            foreach (PdfCore.PdfObject item in array.Items) {
+                AppendPdfPageContentStreams(objects, item, streams);
+            }
+        }
     }
 
     private static int FindPdfStreamDataStart(byte[] bytes) {
