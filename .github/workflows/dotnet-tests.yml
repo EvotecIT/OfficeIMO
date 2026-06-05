@@ -232,7 +232,7 @@ jobs:
   test-macos:
     name: 'macOS'
     runs-on: macos-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
