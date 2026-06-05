@@ -9,14 +9,25 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static void RenderChart(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointChart chart, double x, double y, double width, double height, int slideNumber, PowerPointPdfSaveOptions options) {
         if (!chart.TryGetSnapshot(out PptCore.PowerPointChartSnapshot snapshot)) {
-            AddWarning(options, slideNumber, "unsupported-chart", "Skipped a PowerPoint chart because its cached chart data could not be read into a first-party PDF snapshot.");
+            AddLayoutWarning(
+                options,
+                slideNumber,
+                "unsupported-chart",
+                "Skipped a PowerPoint chart because its cached chart data could not be read into a first-party PDF snapshot.",
+                PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
+                "PowerPointChart",
+                "The PowerPoint chart snapshot could not be read into the shared PDF chart renderer.",
+                x,
+                y,
+                width,
+                height);
             return;
         }
 
         try {
             OfficeChartSnapshot chartSnapshot = CreateOfficeChartSnapshot(snapshot, width, height, options);
             OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(chartSnapshot);
-            AddChartQualityWarning(options, slideNumber, snapshot, rendering.QualityReport);
+            AddChartQualityWarning(options, slideNumber, snapshot, rendering.QualityReport, x, y, width, height);
             canvas.Drawing(
                 rendering.Drawing,
                 x,
@@ -28,20 +39,38 @@ public static partial class PowerPointPdfConverterExtensions {
                 },
                 rotationAngle: chart.Rotation ?? 0D);
         } catch (Exception ex) {
-            AddWarning(options, slideNumber, "unsupported-chart", "Skipped a PowerPoint chart because it could not be rendered as a shared PDF chart: " + ex.Message);
+            AddLayoutWarning(
+                options,
+                slideNumber,
+                "unsupported-chart",
+                "Skipped a PowerPoint chart because it could not be rendered as a shared PDF chart: " + ex.Message,
+                PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
+                "PowerPointChart",
+                "The PowerPoint chart could not be rendered by the shared PDF chart renderer.",
+                x,
+                y,
+                width,
+                height);
         }
     }
 
-    private static void AddChartQualityWarning(PowerPointPdfSaveOptions options, int slideNumber, PptCore.PowerPointChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport) {
+    private static void AddChartQualityWarning(PowerPointPdfSaveOptions options, int slideNumber, PptCore.PowerPointChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport, double x, double y, double width, double height) {
         if (!qualityReport.HasIssues) {
             return;
         }
 
-        AddWarning(
+        AddLayoutWarning(
             options,
             slideNumber,
             "chart-quality",
-            "Rendered PowerPoint chart '" + (string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title) + "' with shared drawing quality warnings: " + FormatQualityIssues(qualityReport));
+            "Rendered PowerPoint chart '" + (string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title) + "' with shared drawing quality warnings: " + FormatQualityIssues(qualityReport),
+            PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
+            "PowerPointChart",
+            "The shared PDF chart renderer reported visual quality issues.",
+            x,
+            y,
+            width,
+            height);
     }
 
     private static string FormatQualityIssues(OfficeDrawingQualityReport qualityReport) {

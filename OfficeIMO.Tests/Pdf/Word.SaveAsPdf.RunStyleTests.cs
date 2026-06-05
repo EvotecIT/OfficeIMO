@@ -90,6 +90,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Embeds_Document_Default_Font_When_Available() {
+            if (!PdfEmbeddedFontFamily.TryFromSystem("Calibri", out PdfEmbeddedFontFamily? _)) {
+                return;
+            }
+
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontEmbedding.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontEmbedding.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.Settings.FontFamily = "Calibri";
+                document.AddParagraph("Document default font should be embedded for stable PDF viewers.");
+
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            byte[] bytes = File.ReadAllBytes(pdfPath);
+            string content = Encoding.ASCII.GetString(bytes);
+
+            Assert.Contains("/Subtype /Type0", content, StringComparison.Ordinal);
+            Assert.Contains("/Subtype /CIDFontType2", content, StringComparison.Ordinal);
+            Assert.Contains("/Encoding /Identity-H", content, StringComparison.Ordinal);
+            Assert.Contains("/FontFile2", content, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /Calibri", content, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Maps_Run_Highlight_To_Background() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeRunHighlight.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeRunHighlight.pdf");

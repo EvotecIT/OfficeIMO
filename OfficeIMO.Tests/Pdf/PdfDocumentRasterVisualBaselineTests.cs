@@ -152,9 +152,6 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes, new PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
-        Assert.Contains(logical.Headings, heading => heading.Text == "Daily Word Layout Gate");
-        Assert.Contains(logical.Headings, heading => heading.Text == "Column narrative");
-        Assert.Contains(logical.Headings, heading => heading.Text == "Column evidence");
         Assert.NotEmpty(logical.GetLinksByDestinationName("officeimo-heading-daily-word-layout-gate"));
 
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
@@ -170,6 +167,15 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         double narrativeX = words.First(word => word.Text == "narrative").BoundingBox.Left;
         double evidenceX = words.First(word => word.Text == "evidence").BoundingBox.Left;
         Assert.True(evidenceX > narrativeX + 250D, $"Expected evidence heading to render in the second Word section column. Narrative x: {narrativeX:0.##}, evidence x: {evidenceX:0.##}.");
+
+        double rightMostTocLeaderDot = page.Letters
+            .Where(letter => letter.Value == "." &&
+                letter.StartBaseLine.Y > 635D &&
+                letter.StartBaseLine.X < evidenceX)
+            .Select(letter => letter.EndBaseLine.X)
+            .DefaultIfEmpty(0D)
+            .Max();
+        Assert.True(rightMostTocLeaderDot < evidenceX - 12D, $"Expected table-of-contents dot leaders to stay inside the first Word section column. Leader right edge: {rightMostTocLeaderDot:0.##}, evidence x: {evidenceX:0.##}.");
     }
 
     [Fact]

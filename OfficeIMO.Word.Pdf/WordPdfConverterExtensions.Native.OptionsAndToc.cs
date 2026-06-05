@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.Pdf {
                 document.Settings.FontFamilyEastAsia,
                 document.Settings.FontFamilyComplexScript
             }) {
-                if (TryApplyNativeDefaultFontCandidate(family, pdfOptions, embedSystemFont: false)) {
+                if (TryApplyNativeDefaultFontCandidate(family, pdfOptions, embedSystemFont: true)) {
                     return;
                 }
             }

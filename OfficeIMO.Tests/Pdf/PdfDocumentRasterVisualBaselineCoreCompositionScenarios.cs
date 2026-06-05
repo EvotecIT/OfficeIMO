@@ -28,6 +28,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             FooterFont = PdfStandardFont.Helvetica,
             FooterFontSize = 8
         };
+        options.UseOfficeFontFamily("Arial");
 
         return PdfDocument.Create(options)
             .Compose(document => {
@@ -246,7 +247,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 FooterFormat = "OfficeIMO.Pdf examples - page {page}/{pages}",
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true
-            })
+            }.UseOfficeFontFamily("Arial"))
             .Meta(title: "OfficeIMO.Pdf Drawing Gallery", author: "OfficeIMO")
             .H1("Drawing Gallery", PdfAlign.Left, PdfColor.FromRgb(25, 55, 85))
             .Paragraph(p => p.Text("A visual baseline for shared OfficeIMO.Drawing vector descriptors rendered by the dependency-free PDF engine."))

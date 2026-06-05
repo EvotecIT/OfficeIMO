@@ -97,6 +97,39 @@ internal static class PdfPngTestImages {
         return ms.ToArray();
     }
 
+    internal static byte[] CreateRgbPng(int width, int height) {
+        if (width <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(width));
+        }
+
+        if (height <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(height));
+        }
+
+        using var ms = CreatePng();
+        var header = new byte[] {
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            8, 2, 0, 0, 0
+        };
+        WriteInt32BigEndian(header, 0, width);
+        WriteInt32BigEndian(header, 4, height);
+        WritePngChunk(ms, "IHDR", header);
+
+        var scanlines = new byte[(1 + width * 3) * height];
+        for (int y = 0; y < height; y++) {
+            int rowStart = y * (1 + width * 3);
+            scanlines[rowStart] = 0;
+            for (int x = 0; x < width; x++) {
+                WriteRgbPixel(scanlines, rowStart + 1 + x * 3, x, y);
+            }
+        }
+
+        WritePngChunk(ms, "IDAT", BuildStoredZlib(scanlines));
+        WritePngChunk(ms, "IEND", Array.Empty<byte>());
+        return ms.ToArray();
+    }
+
     internal static byte[] CreateInterlacedRgbaPng() {
         using var ms = CreatePng();
         WritePngChunk(ms, "IHDR", new byte[] {

@@ -31,6 +31,27 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>When true, slides marked hidden in PowerPoint are exported. Defaults to false.</summary>
     public bool IncludeHiddenSlides { get; set; }
 
+    private DrawingCore.OfficeImageFit _pictureFit = DrawingCore.OfficeImageFit.Contain;
+
+    /// <summary>
+    /// Image fit mode used for uncropped PowerPoint pictures. Defaults to Contain to preserve picture aspect ratio in mismatched frames.
+    /// </summary>
+    public DrawingCore.OfficeImageFit PictureFit {
+        get => _pictureFit;
+        set {
+            if (value != DrawingCore.OfficeImageFit.Stretch &&
+                value != DrawingCore.OfficeImageFit.Contain &&
+                value != DrawingCore.OfficeImageFit.Cover) {
+                throw new ArgumentException("PowerPoint picture fit must be Stretch, Contain, or Cover.", nameof(value));
+            }
+
+            _pictureFit = value;
+        }
+    }
+
+    /// <summary>When true, warns when stretched uncropped pictures visibly change their original aspect ratio. Defaults to true.</summary>
+    public bool WarnOnPictureAspectRatioDistortion { get; set; } = true;
+
     /// <summary>Optional shared chart style applied to supported slide chart snapshots.</summary>
     public DrawingCore.OfficeChartStyle? ChartStyle { get; set; }
 

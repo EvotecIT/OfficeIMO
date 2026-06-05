@@ -119,6 +119,24 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_RightAlignedTabsClampOversizedStopsToTextFrame() {
+            var result = InvokeWrapRichRuns(new[] {
+                new TextRun("Column evidence"),
+                TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),
+                new TextRun("1")
+            }, 180, 12, PdfStandardFont.Helvetica, tabStopWidth: 432);
+
+            var line = Assert.Single(ExtractLines(result));
+            double usedWidth = line.Sum(segment =>
+                ExtractLeadingAdvance(segment) +
+                InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", ExtractText(segment), PdfStandardFont.Helvetica, 12.0));
+
+            Assert.Equal(new[] { "Column", "evidence", "1" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.Equal(PdfTabLeaderStyle.Dots, ExtractLeadingTabLeader(line[2]));
+            Assert.InRange(usedWidth, 178, 180.5);
+        }
+
+        [Fact]
         public void WrapRichRuns_RightAlignedLeadingTabAccountsForFollowingTokenWidth() {
             var shortResult = InvokeWrapRichRuns(new[] {
                 TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),

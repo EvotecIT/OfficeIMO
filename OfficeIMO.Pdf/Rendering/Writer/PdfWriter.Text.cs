@@ -322,7 +322,7 @@ internal static partial class PdfWriter {
         return MeasureRichText(text.Substring(0, decimalIndex), font, fontSize, baseline, options);
     }
 
-    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null) {
+    private static double CalculateTabAdvance(double lineWidth, double followingTextWidth, double spaceWidth, PdfTabAlignment alignment, double tabStopWidth = DefaultParagraphTabStopWidth, string followingText = "", PdfStandardFont followingFont = PdfStandardFont.Helvetica, double fontSize = 12D, PdfTextBaseline baseline = PdfTextBaseline.Normal, PdfOptions? options = null, double? maxWidth = null) {
         if (alignment == PdfTabAlignment.Left) {
             return CalculateDefaultTabAdvance(lineWidth, spaceWidth, tabStopWidth);
         }
@@ -333,6 +333,12 @@ internal static partial class PdfWriter {
             return spaceWidth;
         }
 
+        double? boundedMaxWidth = maxWidth.HasValue &&
+            maxWidth.Value > 0 &&
+            !double.IsNaN(maxWidth.Value) &&
+            !double.IsInfinity(maxWidth.Value)
+                ? maxWidth.Value
+                : null;
         double anchorWidth = alignment switch {
             PdfTabAlignment.Center => followingTextWidth / 2D,
             PdfTabAlignment.Right => followingTextWidth,
@@ -340,10 +346,22 @@ internal static partial class PdfWriter {
             _ => followingTextWidth
         };
         double nextStop = (Math.Floor(lineWidth / tabStopWidth) + 1D) * tabStopWidth;
+        if (boundedMaxWidth.HasValue) {
+            nextStop = Math.Min(nextStop, boundedMaxWidth.Value);
+        }
+
         double advance = nextStop - anchorWidth - lineWidth;
         if (advance < spaceWidth) {
+            if (boundedMaxWidth.HasValue && nextStop >= boundedMaxWidth.Value) {
+                return Math.Max(0D, advance);
+            }
+
             double stopsToAdd = Math.Ceiling((spaceWidth - advance) / tabStopWidth);
             nextStop += Math.Max(1D, stopsToAdd) * tabStopWidth;
+            if (boundedMaxWidth.HasValue) {
+                nextStop = Math.Min(nextStop, boundedMaxWidth.Value);
+            }
+
             advance = nextStop - anchorWidth - lineWidth;
         }
 
@@ -468,7 +486,7 @@ internal static partial class PdfWriter {
                         pendingLeadingTabLeader = PdfTabLeaderStyle.None;
                     } else if (nextWs != -1) {
                         bool hadTab = text[nextWs] == '\t';
-                        pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth, options: options) : spaceW;
+                        pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth, options: options, maxWidth: CurrentMaxWidth()) : spaceW;
                         pendingLeadingIsExpandable = !hadTab;
                         pendingLeadingIsTab = hadTab;
                         pendingLeadingTabAlignment = hadTab ? tabAlignment : PdfTabAlignment.Left;
@@ -477,7 +495,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
                 if (token.Length > 0 && pendingLeadingIsTab) {
-                    pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options);
+                    pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options, CurrentMaxWidth());
                 }
                 needed = lastLine.Count == 0
                     ? (pendingLeadingIsTab ? pendingLeadingAdvance + tokenW : tokenW)
@@ -509,7 +527,7 @@ internal static partial class PdfWriter {
                     pendingLeadingTabLeader = PdfTabLeaderStyle.None;
                 } else if (nextWs != -1) {
                     bool hadTab = text[nextWs] == '\t';
-                    pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth, options: options) : spaceW;
+                    pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth, options: options, maxWidth: CurrentMaxWidth()) : spaceW;
                     pendingLeadingIsExpandable = !hadTab;
                     pendingLeadingIsTab = hadTab;
                     pendingLeadingTabAlignment = hadTab ? tabAlignment : PdfTabAlignment.Left;
