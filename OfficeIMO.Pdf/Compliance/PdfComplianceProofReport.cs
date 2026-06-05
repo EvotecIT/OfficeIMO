@@ -95,7 +95,8 @@ public sealed class PdfComplianceProofReport {
             var failed = new List<PdfExternalValidationResult>();
             for (int i = 0; i < _externalValidations.Count; i++) {
                 PdfExternalValidationResult result = _externalValidations[i];
-                if (!_requiredExternalValidators.Contains(result.ValidatorKind)) {
+                if (!_requiredExternalValidators.Contains(result.ValidatorKind) ||
+                    !IsExternalValidationForRequestedProfile(result)) {
                     continue;
                 }
 
@@ -129,6 +130,7 @@ public sealed class PdfComplianceProofReport {
         for (int i = 0; i < _externalValidations.Count; i++) {
             PdfExternalValidationResult result = _externalValidations[i];
             if (result.ValidatorKind == validatorKind &&
+                IsExternalValidationForRequestedProfile(result) &&
                 result.Status == PdfExternalValidationStatus.Passed) {
                 return true;
             }
@@ -141,6 +143,7 @@ public sealed class PdfComplianceProofReport {
         for (int i = 0; i < _externalValidations.Count; i++) {
             PdfExternalValidationResult result = _externalValidations[i];
             if (result.ValidatorKind == validatorKind &&
+                IsExternalValidationForRequestedProfile(result) &&
                 (result.Status == PdfExternalValidationStatus.Failed ||
                  result.Status == PdfExternalValidationStatus.Error)) {
                 return true;
@@ -148,5 +151,48 @@ public sealed class PdfComplianceProofReport {
         }
 
         return false;
+    }
+
+    private bool IsExternalValidationForRequestedProfile(PdfExternalValidationResult result) {
+        if (Profile == PdfComplianceProfile.None) {
+            return string.IsNullOrWhiteSpace(result.Profile);
+        }
+
+        string? resultProfile = result.Profile;
+        if (string.IsNullOrWhiteSpace(resultProfile)) {
+            return false;
+        }
+
+        string normalizedResult = NormalizeProfileName(resultProfile!);
+        foreach (string expectedProfileName in EnumerateExpectedExternalProfileNames(result.ValidatorKind)) {
+            if (string.Equals(normalizedResult, NormalizeProfileName(expectedProfileName), StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private IEnumerable<string> EnumerateExpectedExternalProfileNames(PdfExternalValidatorKind validatorKind) {
+        yield return DisplayName;
+        yield return Profile.ToString();
+
+        if ((Profile == PdfComplianceProfile.FacturX || Profile == PdfComplianceProfile.Zugferd) &&
+            validatorKind == PdfExternalValidatorKind.VeraPdf) {
+            yield return "PDF/A-3b";
+            yield return PdfComplianceProfile.PdfA3B.ToString();
+        }
+    }
+
+    private static string NormalizeProfileName(string profile) {
+        var builder = new System.Text.StringBuilder(profile.Length);
+        for (int i = 0; i < profile.Length; i++) {
+            char ch = profile[i];
+            if (char.IsLetterOrDigit(ch)) {
+                builder.Append(char.ToUpperInvariant(ch));
+            }
+        }
+
+        return builder.ToString();
     }
 }

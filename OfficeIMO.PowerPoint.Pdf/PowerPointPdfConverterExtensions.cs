@@ -99,19 +99,55 @@ public static partial class PowerPointPdfConverterExtensions {
         pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
         pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);
-        if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
-            pdfOptions.UseOfficeFontFamily(options.FontFamily);
-        } else if (options.PdfOptions == null) {
-            pdfOptions.UseOfficeFontFamily(DefaultEmbeddedFontFamily);
+        bool preserveConfiguredFontSlots = options.PdfOptions != null;
+        if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
+            TryApplyPdfFontFamily(options.FontFamily, pdfOptions)) {
+            preserveConfiguredFontSlots = true;
         }
 
-        RegisterPresentationFonts(pdfOptions, presentation, options);
+        RegisterPresentationFonts(pdfOptions, presentation, options, preserveConfiguredFontSlots);
+        ApplyDefaultEmbeddedFontFallback(pdfOptions, options);
         return pdfOptions;
     }
 
-    private static void RegisterPresentationFonts(PdfCore.PdfOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
+    private static void ApplyDefaultEmbeddedFontFallback(PdfCore.PdfOptions pdfOptions, PowerPointPdfSaveOptions options) {
+        if (options.PdfOptions == null &&
+            !HasEmbeddedFontSlot(pdfOptions, pdfOptions.DefaultFont)) {
+            TryApplyPdfFontFamily(DefaultEmbeddedFontFamily, pdfOptions, requireEmbeddedFont: true);
+        }
+    }
+
+    private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool requireEmbeddedFont = false) {
+        if (string.IsNullOrWhiteSpace(familyName)) {
+            return false;
+        }
+
+        PdfCore.PdfStandardFont beforeDefault = pdfOptions.DefaultFont;
+        PdfCore.PdfStandardFont beforeHeader = pdfOptions.HeaderFont;
+        PdfCore.PdfStandardFont beforeFooter = pdfOptions.FooterFont;
+        string beforeEmbeddedFonts = CaptureEmbeddedFontState(pdfOptions);
+        pdfOptions.UseOfficeFontFamily(familyName);
+
+        bool changed = beforeDefault != pdfOptions.DefaultFont ||
+                       beforeHeader != pdfOptions.HeaderFont ||
+                       beforeFooter != pdfOptions.FooterFont ||
+                       !string.Equals(beforeEmbeddedFonts, CaptureEmbeddedFontState(pdfOptions), StringComparison.Ordinal);
+        return changed && (!requireEmbeddedFont || HasEmbeddedFontSlot(pdfOptions, pdfOptions.DefaultFont));
+    }
+
+    private static string CaptureEmbeddedFontState(PdfCore.PdfOptions pdfOptions) {
+        return string.Join("|", pdfOptions.EmbeddedFonts
+            .OrderBy(font => font.Key)
+            .Select(font => ((int)font.Key).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.Data.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    private static bool HasEmbeddedFontSlot(PdfCore.PdfOptions pdfOptions, PdfCore.PdfStandardFont font) {
+        return pdfOptions.EmbeddedFonts.ContainsKey(PdfCore.PdfStandardFontMapper.GetFontFamily(font));
+    }
+
+    private static void RegisterPresentationFonts(PdfCore.PdfOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options, bool preserveConfiguredFontSlots) {
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateRegisteredFontSlots(pdfOptions);
+        HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateRegisteredFontSlots(pdfOptions, preserveConfiguredFontSlots);
         double pageWidth = presentation.SlideSize.WidthPoints;
         double pageHeight = presentation.SlideSize.HeightPoints;
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
@@ -176,7 +212,21 @@ public static partial class PowerPointPdfConverterExtensions {
                 PptCore.PowerPointTableCell cell = table.GetCell(row, column);
                 if (!cell.IsMergedCell) {
                     RegisterPresentationFontCandidate(cell.FontName, pdfOptions, registeredFamilies, registeredFontSlots);
+                    RegisterPresentationTableCellRunFonts(cell, pdfOptions, registeredFamilies, registeredFontSlots);
                 }
+            }
+        }
+    }
+
+    private static void RegisterPresentationTableCellRunFonts(PptCore.PowerPointTableCell cell, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
+        A.TextBody? textBody = cell.Cell.TextBody;
+        if (textBody == null) {
+            return;
+        }
+
+        foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
+            foreach (A.Run run in paragraph.Elements<A.Run>()) {
+                RegisterPresentationFontCandidate(ReadRunFontName(run.RunProperties), pdfOptions, registeredFamilies, registeredFontSlots);
             }
         }
     }
@@ -199,11 +249,14 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static HashSet<PdfCore.PdfStandardFont> CreateRegisteredFontSlots(PdfCore.PdfOptions pdfOptions) {
+    private static HashSet<PdfCore.PdfStandardFont> CreateRegisteredFontSlots(PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
         var registeredFontSlots = new HashSet<PdfCore.PdfStandardFont>();
-        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.DefaultFont);
-        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.HeaderFont);
-        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.FooterFont);
+        if (preserveConfiguredFontSlots) {
+            AddRegisteredFontSlot(registeredFontSlots, pdfOptions.DefaultFont);
+            AddRegisteredFontSlot(registeredFontSlots, pdfOptions.HeaderFont);
+            AddRegisteredFontSlot(registeredFontSlots, pdfOptions.FooterFont);
+        }
+
         foreach (PdfCore.PdfStandardFont embeddedFont in pdfOptions.EmbeddedFonts.Keys) {
             AddRegisteredFontSlot(registeredFontSlots, embeddedFont);
         }

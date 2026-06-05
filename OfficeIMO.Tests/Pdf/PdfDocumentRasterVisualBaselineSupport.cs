@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentRasterVisualBaselineTests {
     private static PdfDocument CreateVisualBaselineDocument(PdfOptions options) {
-        return PdfDocument.Create(options.UseOfficeFontFamily("Arial"));
+        return PdfDocument.Create(options);
     }
 
     private static void WriteReviewPdfArtifact(string scenarioName, byte[] pdfBytes) {

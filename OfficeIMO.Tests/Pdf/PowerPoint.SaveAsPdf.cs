@@ -670,7 +670,30 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void SaveAsPdf_PowerPointPresentation_DefaultPictureFitPreservesAspectRatio() {
+    public void SaveAsPdf_PowerPointPresentation_ExplicitContainPictureFitPreservesAspectRatio() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(200, 160);
+        presentation.Slides[0].AddPicture(
+            new MemoryStream(PdfPngTestImages.CreateRgbPng(2, 1)),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(80),
+            PowerPointUnits.FromPoints(80));
+        var options = new PowerPointPdfSaveOptions {
+            PictureFit = OfficeImageFit.Contain
+        };
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("80 0 0 40 40 60 cm", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_DefaultPictureFitMatchesAuthoredFrame() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(200, 160);
@@ -687,7 +710,7 @@ public class PowerPointSaveAsPdfTests {
 
         Assert.Empty(options.Warnings);
         string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("80 0 0 40 40 60 cm", raw, StringComparison.Ordinal);
+        Assert.Contains("80 0 0 80 40 40 cm", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -703,7 +726,8 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(80),
             PowerPointUnits.FromPoints(80));
         var options = new PowerPointPdfSaveOptions {
-            PictureFit = OfficeImageFit.Stretch
+            PictureFit = OfficeImageFit.Stretch,
+            WarnOnPictureAspectRatioDistortion = true
         };
 
         byte[] bytes = presentation.SaveAsPdf(options);
@@ -740,9 +764,9 @@ public class PowerPointSaveAsPdfTests {
 
         PdfCore.PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
         Assert.Equal("https://officeimo.net/picture", link.Uri);
-        Assert.Equal(40D, link.X1, 1);
+        Assert.Equal(30D, link.X1, 1);
         Assert.Equal(90D, link.Y1, 1);
-        Assert.Equal(70D, link.X2, 1);
+        Assert.Equal(80D, link.X2, 1);
         Assert.Equal(120D, link.Y2, 1);
     }
 
@@ -1114,7 +1138,6 @@ public class PowerPointSaveAsPdfTests {
         byte[] bytes = presentation.SaveAsPdf();
         string raw = Encoding.ASCII.GetString(bytes);
 
-        AssertRawPdfContainsAnyBaseFont(raw, "Helvetica-Bold");
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         var page = pdf.GetPage(1);
         double smallSize = AverageLetterFontSize(page, "Small");
