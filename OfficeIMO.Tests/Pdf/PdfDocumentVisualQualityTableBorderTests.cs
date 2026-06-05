@@ -232,6 +232,42 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void CanvasTable_RendersConfiguredCellBordersAfterCellText() {
+        var style = TableStyles.Minimal();
+        style.BorderColor = null;
+        style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
+            [(0, 0)] = new PdfCellBorder {
+                Color = PdfColor.FromRgb(255, 0, 0),
+                Width = 3,
+                DiagonalDown = true
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { "FixedBorderText" }
+            }, 24, 24, 160, 60, style))
+            .ToBytes();
+
+        string content = string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1));
+        int text = content.IndexOf("<4669786564426F7264657254657874>", StringComparison.Ordinal);
+        int borderColor = content.LastIndexOf("1 0 0 RG", StringComparison.Ordinal);
+        int stroke = borderColor < 0 ? -1 : content.IndexOf(" S", borderColor, StringComparison.Ordinal);
+
+        using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+            Assert.Contains("FixedBorderText", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        }
+
+        Assert.True(text >= 0, "Expected encoded fixed-position table cell text in the page content stream.");
+        Assert.True(borderColor > text, "Expected configured fixed-position table cell borders to be painted after cell text.");
+        Assert.True(stroke > borderColor, "Expected configured fixed-position table cell borders to emit a stroke after their color.");
+    }
+
+    [Fact]
     public void RowColumnTable_RendersConfiguredCellBorders() {
         var style = TableStyles.Minimal();
         style.BorderColor = null;

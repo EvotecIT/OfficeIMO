@@ -647,73 +647,6 @@ internal static partial class PdfWriter {
                                     pageDirty = true;
                                 }
 
-                                if (tableStyle.BorderColor is not null && tableStyle.BorderWidth > 0) {
-                                    pageDirty = true;
-                                    bool[] topBorderSkips = GetRowSpanBoundarySkipColumns(tbColumn, rowIndex - 1, table.Columns);
-                                    bool[] bottomBorderSkips = GetRowSpanBoundarySkipColumns(tbColumn, rowIndex, table.Columns);
-                                    bool segmentBorderRows = HasSkippedColumns(topBorderSkips, table.Columns) || HasSkippedColumns(bottomBorderSkips, table.Columns);
-                                    if (segmentBorderRows) {
-                                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom + rowHeight, topBorderSkips, emitGeneratedStructure);
-                                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom, bottomBorderSkips, emitGeneratedStructure);
-                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
-                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable + table.Width, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
-                                    } else {
-                                        DrawRowRect(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom, table.Width, rowHeight, emitGeneratedStructure);
-                                    }
-
-                                    double xi2 = xTable;
-                                    for (int c = 0; c < table.Columns - 1; c++) {
-                                        xi2 += table.ColumnWidths[c];
-                                        if (IsTableBoundaryInsideSpannedCell(tbColumn, rowIndex, c, table.Columns)) {
-                                            xi2 += columnGap;
-                                            continue;
-                                        }
-
-                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xi2, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
-                                        xi2 += columnGap;
-                                    }
-                                }
-
-                                if (renderAsFooter && rowIndex == table.FooterStartRowIndex) {
-                                    PdfColor? footerSeparatorColor = tableStyle.FooterSeparatorColor ?? tableStyle.RowSeparatorColor;
-                                    double footerSeparatorWidth = tableStyle.FooterSeparatorWidth > 0 ? tableStyle.FooterSeparatorWidth : tableStyle.RowSeparatorWidth;
-                                    if (footerSeparatorColor is not null && footerSeparatorWidth > 0) {
-                                        pageDirty = true;
-                                        DrawTableHorizontalLine(sb, footerSeparatorColor.Value, footerSeparatorWidth, xTable, table.ColumnWidths, columnGap, yCol, GetRowSpanBoundarySkipColumns(tbColumn, rowIndex - 1, table.Columns), emitGeneratedStructure);
-                                    }
-                                }
-
-                                PdfColor? separatorColor = renderAsHeader && tableStyle.HeaderSeparatorColor is not null ? tableStyle.HeaderSeparatorColor : tableStyle.RowSeparatorColor;
-                                double separatorWidth = renderAsHeader && tableStyle.HeaderSeparatorWidth > 0 ? tableStyle.HeaderSeparatorWidth : tableStyle.RowSeparatorWidth;
-                                if (separatorColor is not null && separatorWidth > 0) {
-                                    pageDirty = true;
-                                    DrawTableHorizontalLine(sb, separatorColor.Value, separatorWidth, xTable, table.ColumnWidths, columnGap, rowBottom, GetRowSpanBoundarySkipColumns(tbColumn, rowIndex, table.Columns), emitGeneratedStructure);
-                                }
-
-                                if (tableStyle.CellBorders != null && tableStyle.CellBorders.Count > 0) {
-                                    double borderX = xTable;
-                                    for (int borderColumn = 0; borderColumn < table.Columns; borderColumn++) {
-                                        if (tableStyle.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
-                                            TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
-                                            (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
-                                            HasRenderableCellBorder(cellBorder)) {
-                                            int span = wholeRowSegment ? borderCell.ColumnSpan : 1;
-                                            double borderHeight = rowHeight;
-                                            double borderBottom = rowBottom;
-                                            if (wholeRowSegment) {
-                                                if (borderCell.RowSpan > 1) {
-                                                    borderHeight = GetTableCellHeight(table.RowHeights, rowIndex, borderCell.RowSpan, columnTableRowGap);
-                                                    borderBottom = yCol - borderHeight;
-                                                }
-                                            }
-
-                                            pageDirty = true;
-                                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure);
-                                        }
-                                        borderX += table.ColumnWidths[borderColumn] + columnGap;
-                                    }
-                                }
-
                                 var textColor = renderAsHeader ? tableStyle.HeaderTextColor : renderAsFooter ? tableStyle.FooterTextColor : tableStyle.TextColor;
                                 double xi = xTable;
                                 int? rowStructureElementIndex = RegisterStructureContainer("TR", EnsureTableStructureElement());
@@ -805,6 +738,73 @@ internal static partial class PdfWriter {
 
                                     if (HasCellLinkTarget(linkUri, linkDestinationName)) {
                                         currentPage!.Annotations.Add(new LinkAnnotation { X1 = xi + cellPadLeft, Y1 = cellBottom, X2 = xi + cellWidth - cellPadRight, Y2 = yCol, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text, StructElementIndex = cellLinkStructElementIndex });
+                                    }
+                                }
+
+                                if (tableStyle.BorderColor is not null && tableStyle.BorderWidth > 0) {
+                                    pageDirty = true;
+                                    bool[] topBorderSkips = GetRowSpanBoundarySkipColumns(tbColumn, rowIndex - 1, table.Columns);
+                                    bool[] bottomBorderSkips = GetRowSpanBoundarySkipColumns(tbColumn, rowIndex, table.Columns);
+                                    bool segmentBorderRows = HasSkippedColumns(topBorderSkips, table.Columns) || HasSkippedColumns(bottomBorderSkips, table.Columns);
+                                    if (segmentBorderRows) {
+                                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom + rowHeight, topBorderSkips, emitGeneratedStructure);
+                                        DrawTableHorizontalLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, table.ColumnWidths, columnGap, rowBottom, bottomBorderSkips, emitGeneratedStructure);
+                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
+                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable + table.Width, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
+                                    } else {
+                                        DrawRowRect(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xTable, rowBottom, table.Width, rowHeight, emitGeneratedStructure);
+                                    }
+
+                                    double xi2 = xTable;
+                                    for (int c = 0; c < table.Columns - 1; c++) {
+                                        xi2 += table.ColumnWidths[c];
+                                        if (IsTableBoundaryInsideSpannedCell(tbColumn, rowIndex, c, table.Columns)) {
+                                            xi2 += columnGap;
+                                            continue;
+                                        }
+
+                                        DrawVLine(sb, tableStyle.BorderColor.Value, tableStyle.BorderWidth, xi2, rowBottom + rowHeight, rowBottom, emitGeneratedStructure);
+                                        xi2 += columnGap;
+                                    }
+                                }
+
+                                if (renderAsFooter && rowIndex == table.FooterStartRowIndex) {
+                                    PdfColor? footerSeparatorColor = tableStyle.FooterSeparatorColor ?? tableStyle.RowSeparatorColor;
+                                    double footerSeparatorWidth = tableStyle.FooterSeparatorWidth > 0 ? tableStyle.FooterSeparatorWidth : tableStyle.RowSeparatorWidth;
+                                    if (footerSeparatorColor is not null && footerSeparatorWidth > 0) {
+                                        pageDirty = true;
+                                        DrawTableHorizontalLine(sb, footerSeparatorColor.Value, footerSeparatorWidth, xTable, table.ColumnWidths, columnGap, yCol, GetRowSpanBoundarySkipColumns(tbColumn, rowIndex - 1, table.Columns), emitGeneratedStructure);
+                                    }
+                                }
+
+                                PdfColor? separatorColor = renderAsHeader && tableStyle.HeaderSeparatorColor is not null ? tableStyle.HeaderSeparatorColor : tableStyle.RowSeparatorColor;
+                                double separatorWidth = renderAsHeader && tableStyle.HeaderSeparatorWidth > 0 ? tableStyle.HeaderSeparatorWidth : tableStyle.RowSeparatorWidth;
+                                if (separatorColor is not null && separatorWidth > 0) {
+                                    pageDirty = true;
+                                    DrawTableHorizontalLine(sb, separatorColor.Value, separatorWidth, xTable, table.ColumnWidths, columnGap, rowBottom, GetRowSpanBoundarySkipColumns(tbColumn, rowIndex, table.Columns), emitGeneratedStructure);
+                                }
+
+                                if (tableStyle.CellBorders != null && tableStyle.CellBorders.Count > 0) {
+                                    double borderX = xTable;
+                                    for (int borderColumn = 0; borderColumn < table.Columns; borderColumn++) {
+                                        if (tableStyle.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
+                                            TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
+                                            (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
+                                            HasRenderableCellBorder(cellBorder)) {
+                                            int span = wholeRowSegment ? borderCell.ColumnSpan : 1;
+                                            double borderHeight = rowHeight;
+                                            double borderBottom = rowBottom;
+                                            if (wholeRowSegment) {
+                                                if (borderCell.RowSpan > 1) {
+                                                    borderHeight = GetTableCellHeight(table.RowHeights, rowIndex, borderCell.RowSpan, columnTableRowGap);
+                                                    borderBottom = yCol - borderHeight;
+                                                }
+                                            }
+
+                                            pageDirty = true;
+                                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(table.ColumnWidths, borderColumn, span, columnGap), borderHeight, emitGeneratedStructure);
+                                        }
+                                        borderX += table.ColumnWidths[borderColumn] + columnGap;
                                     }
                                 }
 
