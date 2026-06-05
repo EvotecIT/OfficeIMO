@@ -271,6 +271,23 @@ public partial class Word {
         AssertPdfUsesFont(pdfPath, "Times");
     }
 
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_Preserves_Default_Font_Slot_During_Font_Prepass() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfDefaultFontSlotPrepass.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfDefaultFontSlotPrepass.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Styled serif").SetFontFamily("Georgia");
+            document.AddParagraph("Default serif");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "Times New Roman" });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+        AssertPdfDoesNotUseFont(pdfPath, "Georgia");
+    }
+
     [Theory]
     [InlineData(PdfPageOrientation.Portrait)]
     [InlineData(PdfPageOrientation.Landscape)]
@@ -556,5 +573,10 @@ public partial class Word {
 
         string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
         Assert.Contains("/BaseFont /" + expectedFontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void AssertPdfDoesNotUseFont(string pdfPath, string fontNamePart) {
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.DoesNotContain("/BaseFont /" + fontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
     }
 }

@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions) {
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var registeredFontSlots = new HashSet<PdfCore.PdfStandardFont>();
+            HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateNativeRegisteredFontSlots(pdfOptions);
             foreach (WordSection section in document.Sections) {
                 foreach (WordElement element in CollapseNativeParagraphElements(section.Elements)) {
                     if (element is WordParagraph paragraph) {
@@ -87,6 +87,22 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
             }
+        }
+
+        private static HashSet<PdfCore.PdfStandardFont> CreateNativeRegisteredFontSlots(PdfCore.PdfOptions pdfOptions) {
+            var registeredFontSlots = new HashSet<PdfCore.PdfStandardFont>();
+            AddNativeRegisteredFontSlot(registeredFontSlots, pdfOptions.DefaultFont);
+            AddNativeRegisteredFontSlot(registeredFontSlots, pdfOptions.HeaderFont);
+            AddNativeRegisteredFontSlot(registeredFontSlots, pdfOptions.FooterFont);
+            foreach (PdfCore.PdfStandardFont embeddedFont in pdfOptions.EmbeddedFonts.Keys) {
+                AddNativeRegisteredFontSlot(registeredFontSlots, embeddedFont);
+            }
+
+            return registeredFontSlots;
+        }
+
+        private static void AddNativeRegisteredFontSlot(HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PdfCore.PdfStandardFont font) {
+            registeredFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(font));
         }
 
         private static void RegisterNativeTableFonts(WordTable table, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {

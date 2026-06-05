@@ -103,7 +103,9 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void RegisterPresentationFonts(PdfCore.PdfOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var registeredFontSlots = new HashSet<PdfCore.PdfStandardFont>();
+        HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateRegisteredFontSlots(pdfOptions);
+        double pageWidth = presentation.SlideSize.WidthPoints;
+        double pageHeight = presentation.SlideSize.HeightPoints;
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
         for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
             PptCore.PowerPointSlide slide = slides[slideIndex];
@@ -111,19 +113,24 @@ public static partial class PowerPointPdfConverterExtensions {
                 continue;
             }
 
-            RegisterPresentationShapesFonts(slide.GetInheritedShapesForExport(), pdfOptions, registeredFamilies, registeredFontSlots, options);
-            RegisterPresentationShapesFonts(slide.Shapes, pdfOptions, registeredFamilies, registeredFontSlots, options);
+            int slideNumber = slideIndex + 1;
+            RegisterPresentationShapesFonts(slide.GetInheritedShapesForExport(), slideNumber, pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options);
+            RegisterPresentationShapesFonts(slide.Shapes, slideNumber, pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options);
         }
     }
 
-    private static void RegisterPresentationShapesFonts(IReadOnlyList<PptCore.PowerPointShape> shapes, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
+    private static void RegisterPresentationShapesFonts(IReadOnlyList<PptCore.PowerPointShape> shapes, int slideNumber, double pageWidth, double pageHeight, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
         foreach (PptCore.PowerPointShape shape in shapes) {
-            RegisterPresentationShapeFonts(shape, pdfOptions, registeredFamilies, registeredFontSlots, options);
+            RegisterPresentationShapeFonts(shape, slideNumber, pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options);
         }
     }
 
-    private static void RegisterPresentationShapeFonts(PptCore.PowerPointShape shape, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
+    private static void RegisterPresentationShapeFonts(PptCore.PowerPointShape shape, int slideNumber, double pageWidth, double pageHeight, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PowerPointPdfSaveOptions options) {
         if (shape.Hidden) {
+            return;
+        }
+
+        if (!TryGetShapeBox(shape, slideNumber, pageWidth, pageHeight, options, warnInvalidBounds: false, out _, out _, out _, out _)) {
             return;
         }
 
@@ -142,7 +149,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         if (shape is PptCore.PowerPointGroupShape groupShape && groupShape.OwnerSlide != null) {
-            RegisterPresentationShapesFonts(groupShape.OwnerSlide.GetGroupChildren(groupShape), pdfOptions, registeredFamilies, registeredFontSlots, options);
+            RegisterPresentationShapesFonts(groupShape.OwnerSlide.GetGroupChildren(groupShape), slideNumber, pageWidth, pageHeight, pdfOptions, registeredFamilies, registeredFontSlots, options);
         }
     }
 
@@ -182,6 +189,22 @@ public static partial class PowerPointPdfConverterExtensions {
                 pdfOptions.RegisterOfficeFontFamily(trimmedFamilyName, fontFamily);
             }
         }
+    }
+
+    private static HashSet<PdfCore.PdfStandardFont> CreateRegisteredFontSlots(PdfCore.PdfOptions pdfOptions) {
+        var registeredFontSlots = new HashSet<PdfCore.PdfStandardFont>();
+        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.DefaultFont);
+        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.HeaderFont);
+        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.FooterFont);
+        foreach (PdfCore.PdfStandardFont embeddedFont in pdfOptions.EmbeddedFonts.Keys) {
+            AddRegisteredFontSlot(registeredFontSlots, embeddedFont);
+        }
+
+        return registeredFontSlots;
+    }
+
+    private static void AddRegisteredFontSlot(HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PdfCore.PdfStandardFont font) {
+        registeredFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(font));
     }
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {

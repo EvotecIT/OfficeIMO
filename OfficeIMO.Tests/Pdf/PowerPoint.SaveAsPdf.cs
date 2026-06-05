@@ -877,6 +877,63 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_SkipsUnrenderableShapeFontsBeforeRendering() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointSlide slide = presentation.Slides[0];
+
+        PowerPointTextBox offSlide = slide.AddTextBoxPoints("OffSlide", -180, 24, 80, 28);
+        offSlide.FontName = "Georgia";
+
+        PowerPointTable table = slide.AddTablePoints(1, 1, 30, 74, 150, 42);
+        PowerPointTableCell cell = table.GetCell(0, 0);
+        cell.Text = "Visible";
+        cell.FontName = "Times New Roman";
+
+        byte[] bytes = presentation.SaveAsPdf(new PowerPointPdfSaveOptions {
+            IncludeTextBoxes = true,
+            IncludeTables = true
+        });
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+        Assert.DoesNotContain("Georgia", raw, StringComparison.OrdinalIgnoreCase);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Visible", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("OffSlide", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesConfiguredDefaultFontSlot() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointSlide slide = presentation.Slides[0];
+
+        PowerPointTextBox styled = slide.AddTextBoxPoints("StyledSerif", 30, 34, 120, 28);
+        styled.FontName = "Georgia";
+        PowerPointTextBox plain = slide.AddTextBoxPoints("DefaultSerif", 30, 84, 120, 28);
+
+        byte[] bytes = presentation.SaveAsPdf(new PowerPointPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                DefaultFont = PdfCore.PdfStandardFont.TimesRoman
+            }
+        });
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+        Assert.DoesNotContain("Georgia", raw, StringComparison.OrdinalIgnoreCase);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("StyledSerif", text, StringComparison.Ordinal);
+        Assert.Contains("DefaultSerif", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_UsesSansFallbackForUnmappedExplicitFonts() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

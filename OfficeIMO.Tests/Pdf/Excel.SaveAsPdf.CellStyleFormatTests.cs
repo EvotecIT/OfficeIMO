@@ -120,6 +120,36 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_PreservesConfiguredDefaultFontSlot() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDefaultFontSlot.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.CellAt(1, 1).SetValue("StyledSerif").SetFontName("Georgia");
+            sheet.CellAt(1, 2).SetValue("DefaultSerif");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                FontFamily = "Times New Roman",
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("StyledSerif", text);
+        Assert.Contains("DefaultSerif", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
+        AssertRawPdfBaseFontsDoNotContain(rawPdf, "Georgia");
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Conditional_ColorScale_Fills() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfConditionalColorScale.xlsx");
 
