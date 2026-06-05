@@ -254,6 +254,23 @@ public partial class Word {
         AssertPdfUsesFont(pdfPath, "Times");
     }
 
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_RequestedUnavailableFont_FallsBack_To_DocumentDefaultFont() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfUnavailableRequestedFontFallsBack.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfUnavailableRequestedFontFallsBack.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.FontFamily = "OfficeIMO Missing Theme Font";
+            document.Settings.FontFamilyHighAnsi = "Times New Roman";
+            document.AddParagraph("Hello unavailable requested font fallback");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "OfficeIMO Missing Requested Font" });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+    }
+
     [Theory]
     [InlineData(PdfPageOrientation.Portrait)]
     [InlineData(PdfPageOrientation.Landscape)]

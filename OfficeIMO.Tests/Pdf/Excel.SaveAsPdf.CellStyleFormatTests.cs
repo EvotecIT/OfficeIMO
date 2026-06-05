@@ -91,6 +91,35 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_DoesNotOverwriteSameFamilyCellFontSlot() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSameFamilyFontSlot.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.CellAt(1, 1).SetValue("FirstSerif").SetFontName("Times New Roman");
+            sheet.CellAt(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("FirstSerif", text);
+        Assert.Contains("SecondSerif", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
+        AssertRawPdfBaseFontsDoNotContain(rawPdf, "Georgia");
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Maps_Conditional_ColorScale_Fills() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfConditionalColorScale.xlsx");
 
@@ -137,6 +166,15 @@ public partial class Excel {
         Assert.True(
             fontNameParts.Any(fontNamePart => rawPdf.Contains("/BaseFont /" + fontNamePart, StringComparison.OrdinalIgnoreCase)),
             "Expected raw PDF to contain one of these BaseFont names: " + string.Join(", ", fontNameParts) + ". Actual BaseFont names: " + string.Join(", ", baseFonts));
+    }
+
+    private static void AssertRawPdfBaseFontsDoNotContain(string rawPdf, string fontNamePart) {
+        string[] baseFonts = Regex.Matches(rawPdf, @"/BaseFont /([^\s/<>\[\]()]+)")
+            .Cast<Match>()
+            .Select(match => match.Groups[1].Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Assert.DoesNotContain(baseFonts, baseFont => baseFont.Contains(fontNamePart, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

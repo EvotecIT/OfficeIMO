@@ -877,6 +877,28 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_UsesSansFallbackForUnmappedExplicitFonts() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints("VisibleSans", 30, 40, 150, 36);
+        textBox.FontName = "Aptos Display";
+
+        byte[] bytes = presentation.SaveAsPdf(new PowerPointPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                DefaultFont = PdfCore.PdfStandardFont.TimesRoman
+            }
+        });
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(raw, "Helvetica");
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("VisibleSans", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesTableCellLineBreaks() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

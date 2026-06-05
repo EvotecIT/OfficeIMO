@@ -28,6 +28,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var registeredFontSlots = new HashSet<PdfCore.PdfStandardFont>();
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
                 ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
                 if (styles == null) {
@@ -38,13 +39,13 @@ namespace OfficeIMO.Excel.Pdf {
                 int columns = styles.GetLength(1);
                 for (int row = 0; row < rows; row++) {
                     for (int column = 0; column < columns; column++) {
-                        RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies);
+                        RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies, registeredFontSlots);
                     }
                 }
             }
         }
 
-        private static void RegisterWorksheetFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+        private static void RegisterWorksheetFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
             if (string.IsNullOrWhiteSpace(familyName)) {
                 return;
             }
@@ -55,9 +56,10 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont standardFont)) {
-                pdfOptions.RegisterOfficeFontFamily(
-                    trimmedFamilyName,
-                    PdfCore.PdfStandardFontMapper.GetFontFamily(standardFont));
+                PdfCore.PdfStandardFont fontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(standardFont);
+                if (registeredFontSlots.Add(fontFamily)) {
+                    pdfOptions.RegisterOfficeFontFamily(trimmedFamilyName, fontFamily);
+                }
             }
         }
 
