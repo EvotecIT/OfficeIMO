@@ -253,6 +253,22 @@ public partial class Word {
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_DocumentMappedDefaultFont_StaysOnStandardFamily() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentMappedDefaultFont.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentMappedDefaultFont.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.FontFamily = "serif";
+            document.AddParagraph("Hello mapped document default font");
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_DocumentDefaultFont_FallsBack_To_HighAnsi_When_Primary_Font_Is_Unmapped() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFontHighAnsiFallback.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFontHighAnsiFallback.pdf");

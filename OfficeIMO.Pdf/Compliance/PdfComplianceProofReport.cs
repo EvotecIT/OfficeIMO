@@ -113,8 +113,10 @@ public sealed class PdfComplianceProofReport {
     /// <summary>Finds the first external validation result for the requested validator family.</summary>
     public PdfExternalValidationResult? FindExternalValidation(PdfExternalValidatorKind validatorKind) {
         for (int i = 0; i < _externalValidations.Count; i++) {
-            if (_externalValidations[i].ValidatorKind == validatorKind) {
-                return _externalValidations[i];
+            PdfExternalValidationResult result = _externalValidations[i];
+            if (result.ValidatorKind == validatorKind &&
+                IsExternalValidationForRequestedProfile(result)) {
+                return result;
             }
         }
 

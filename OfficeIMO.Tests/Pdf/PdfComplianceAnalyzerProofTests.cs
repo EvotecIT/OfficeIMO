@@ -68,6 +68,30 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void ProofReportFindExternalValidationReturnsRequestedProfileResult() {
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        PdfExternalValidationResult otherProfile = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "PDF/A-2b profile accepted.",
+            "PDF/A-2b");
+        PdfExternalValidationResult requestedProfile = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "PDF/A-3b profile accepted.",
+            "PDF/A-3b");
+
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            PdfComplianceProfile.PdfA3B,
+            options,
+            new[] { otherProfile, requestedProfile },
+            generatedStandardFonts: Array.Empty<PdfStandardFont>());
+
+        Assert.Same(requestedProfile, proof.FindExternalValidation(PdfExternalValidatorKind.VeraPdf));
+    }
+
+    [Fact]
     public void ProofReportBlocksClaimWhenRequiredValidatorFailedEvenIfLaterResultPassed() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
