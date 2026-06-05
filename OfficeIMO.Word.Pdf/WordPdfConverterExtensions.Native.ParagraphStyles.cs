@@ -34,7 +34,12 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (paragraph.IndentationHangingPoints.HasValue) {
-                style.FirstLineIndent = -paragraph.IndentationHangingPoints.Value;
+                double hangingIndent = paragraph.IndentationHangingPoints.Value;
+                if (style.LeftIndent < hangingIndent) {
+                    style.LeftIndent = hangingIndent;
+                }
+
+                style.FirstLineIndent = -hangingIndent;
             }
 
             double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0 ? paragraph.FontSize.Value : 11D;

@@ -395,6 +395,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Hanging_Indent_Without_Left_Indent() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHangingIndentNoLeft.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHangingIndentNoLeft.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordParagraph paragraph = document.AddParagraph("HangingOnly alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu");
+                paragraph.IndentationHangingPoints = 36;
+
+                document.Save();
+                document.SaveAsPdf(pdfPath);
+            }
+
+            Assert.True(File.Exists(pdfPath));
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            Assert.Contains("HangingOnly", pdf.GetPage(1).Text);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_Paragraph_Hanging_Indent() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHangingIndent.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHangingIndent.pdf");
