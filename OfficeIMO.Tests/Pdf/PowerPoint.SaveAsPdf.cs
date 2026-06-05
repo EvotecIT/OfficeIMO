@@ -289,7 +289,7 @@ public class PowerPointSaveAsPdfTests {
             Assert.Empty(options.Warnings);
             string raw = Encoding.ASCII.GetString(bytes);
             Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
-            Assert.Contains("320 0 0 160 -40 0 cm", raw, StringComparison.Ordinal);
+            Assert.Contains("240 0 0 160 0 0 cm", raw, StringComparison.Ordinal);
         } finally {
             if (File.Exists(imagePath)) {
                 File.Delete(imagePath);

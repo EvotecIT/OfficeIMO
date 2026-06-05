@@ -430,29 +430,6 @@ internal static partial class PdfWriter {
                     pageDirty = true;
                     DrawTableHorizontalLine(sb, separatorColor.Value, separatorWidth, xOrigin, colPixel, colGapPx, rowBottom, GetRowSpanBoundarySkipColumns(tb, rowIndex, cols), emitGeneratedStructure);
                 }
-                if (style?.CellBorders != null && style.CellBorders.Count > 0) {
-                    double borderX = xOrigin;
-                    for (int borderColumn = 0; borderColumn < cols; borderColumn++) {
-                        if (style.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
-                            TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
-                            (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
-                            HasRenderableCellBorder(cellBorder)) {
-                            int span = wholeRowSegment ? borderCell.ColumnSpan : 1;
-                            double borderHeight = hRect;
-                            double borderBottom = yRect;
-                            if (wholeRowSegment) {
-                                if (borderCell.RowSpan > 1) {
-                                    borderHeight = GetTableCellHeight(rowHeights, rowIndex, borderCell.RowSpan, rowGapPx);
-                                    borderBottom = y - borderHeight;
-                                }
-                            }
-
-                            pageDirty = true;
-                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure);
-                        }
-                        borderX += colPixel[borderColumn] + colGapPx;
-                    }
-                }
                 var textColor = renderAsHeader ? style!.HeaderTextColor : renderAsFooter ? style!.FooterTextColor : style!.TextColor;
                 int? rowStructureElementIndex = null;
                 PageStructElement? rowStructureElement = existingRowStructureElement;
@@ -564,6 +541,29 @@ internal static partial class PdfWriter {
                         double y1 = cellBottom;
                         double y2 = y;
                         currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = linkUri, DestinationName = linkDestinationName, Contents = linkContents ?? cell.Text, StructElementIndex = cellLinkStructElementIndex });
+                    }
+                }
+                if (style?.CellBorders != null && style.CellBorders.Count > 0) {
+                    double borderX = xOrigin;
+                    for (int borderColumn = 0; borderColumn < cols; borderColumn++) {
+                        if (style.CellBorders.TryGetValue((rowIndex, borderColumn), out PdfCellBorder? cellBorder) &&
+                            TryGetTableCellLayoutAtColumn(cells, borderColumn, out TableCellLayout borderCell) &&
+                            (borderColumn >= rowFillSkips.Length || !rowFillSkips[borderColumn]) &&
+                            HasRenderableCellBorder(cellBorder)) {
+                            int span = wholeRowSegment ? borderCell.ColumnSpan : 1;
+                            double borderHeight = hRect;
+                            double borderBottom = yRect;
+                            if (wholeRowSegment) {
+                                if (borderCell.RowSpan > 1) {
+                                    borderHeight = GetTableCellHeight(rowHeights, rowIndex, borderCell.RowSpan, rowGapPx);
+                                    borderBottom = y - borderHeight;
+                                }
+                            }
+
+                            pageDirty = true;
+                            DrawCellBorder(sb, cellBorder, borderX, borderBottom, GetTableCellWidth(colPixel, borderColumn, span, colGapPx), borderHeight, emitGeneratedStructure);
+                        }
+                        borderX += colPixel[borderColumn] + colGapPx;
                     }
                 }
                 y -= rowHeight;

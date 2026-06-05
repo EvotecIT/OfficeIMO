@@ -193,6 +193,45 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void Table_RendersConfiguredCellBordersAfterCellText() {
+        var style = TableStyles.Minimal();
+        style.BorderColor = null;
+        style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
+            [(0, 0)] = new PdfCellBorder {
+                Color = PdfColor.FromRgb(255, 0, 0),
+                Width = 3,
+                DiagonalDown = true
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 160,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24
+            })
+            .Table(new[] {
+                new[] { "BorderText" }
+            }, style: style)
+            .ToBytes();
+
+        string content = string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1));
+        int text = content.IndexOf("<426F7264657254657874>", StringComparison.Ordinal);
+        int borderColor = content.LastIndexOf("1 0 0 RG", StringComparison.Ordinal);
+        int stroke = borderColor < 0 ? -1 : content.IndexOf(" S", borderColor, StringComparison.Ordinal);
+
+        using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+            Assert.Contains("BorderText", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        }
+
+        Assert.True(text >= 0, "Expected encoded table cell text in the page content stream.");
+        Assert.True(borderColor > text, "Expected configured cell borders to be painted after table cell text.");
+        Assert.True(stroke > borderColor, "Expected configured cell borders to emit a stroke after their color.");
+    }
+
+    [Fact]
     public void RowColumnTable_RendersConfiguredCellBorders() {
         var style = TableStyles.Minimal();
         style.BorderColor = null;
