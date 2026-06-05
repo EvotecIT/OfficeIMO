@@ -33,6 +33,7 @@ public class PowerPointSaveAsPdfTests {
         PowerPointTextBox textBox = slide.AddTextBoxPoints("Premium Slide", 32, 36, 150, 36);
         textBox.FillColor = "FFFFFF";
         textBox.OutlineColor = "94A3B8";
+        textBox.FontName = "Georgia";
         textBox.FontSize = 14;
         textBox.Color = "123456";
         textBox.Rotation = 0D;
@@ -53,6 +54,7 @@ public class PowerPointSaveAsPdfTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("20 108 120 48 re", raw, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Times-Roman", raw, StringComparison.Ordinal);
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
     }
 

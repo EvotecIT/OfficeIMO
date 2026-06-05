@@ -421,6 +421,7 @@ namespace OfficeIMO.Excel {
                 Bold = font?.Bold != null,
                 Italic = font?.Italic != null,
                 Underline = font?.Underline != null,
+                FontName = font?.FontName?.Val?.Value,
                 FontColorArgb = GetColorArgb(font?.Color),
                 FillColorArgb = GetFillColorArgb(fill),
                 Border = BuildBorderSnapshot(border),

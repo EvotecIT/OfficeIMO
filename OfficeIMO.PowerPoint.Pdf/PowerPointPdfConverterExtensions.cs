@@ -97,7 +97,85 @@ public static partial class PowerPointPdfConverterExtensions {
         pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
         pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);
+        RegisterPresentationFonts(pdfOptions, presentation, options);
         return pdfOptions;
+    }
+
+    private static void RegisterPresentationFonts(PdfCore.PdfOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
+        var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
+        for (int slideIndex = 0; slideIndex < slides.Count; slideIndex++) {
+            PptCore.PowerPointSlide slide = slides[slideIndex];
+            if (!options.IncludeHiddenSlides && slide.Hidden) {
+                continue;
+            }
+
+            RegisterPresentationShapesFonts(slide.GetInheritedShapesForExport(), pdfOptions, registeredFamilies);
+            RegisterPresentationShapesFonts(slide.Shapes, pdfOptions, registeredFamilies);
+        }
+    }
+
+    private static void RegisterPresentationShapesFonts(IReadOnlyList<PptCore.PowerPointShape> shapes, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+        foreach (PptCore.PowerPointShape shape in shapes) {
+            RegisterPresentationShapeFonts(shape, pdfOptions, registeredFamilies);
+        }
+    }
+
+    private static void RegisterPresentationShapeFonts(PptCore.PowerPointShape shape, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+        if (shape.Hidden) {
+            return;
+        }
+
+        if (shape is PptCore.PowerPointTextBox textBox) {
+            RegisterPresentationTextBoxFonts(textBox, pdfOptions, registeredFamilies);
+            return;
+        }
+
+        if (shape is PptCore.PowerPointTable table) {
+            RegisterPresentationTableFonts(table, pdfOptions, registeredFamilies);
+            return;
+        }
+
+        if (shape is PptCore.PowerPointGroupShape groupShape && groupShape.OwnerSlide != null) {
+            RegisterPresentationShapesFonts(groupShape.OwnerSlide.GetGroupChildren(groupShape), pdfOptions, registeredFamilies);
+        }
+    }
+
+    private static void RegisterPresentationTextBoxFonts(PptCore.PowerPointTextBox textBox, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+        RegisterPresentationFontCandidate(textBox.FontName, pdfOptions, registeredFamilies);
+        foreach (PptCore.PowerPointParagraph paragraph in textBox.Paragraphs) {
+            foreach (PptCore.PowerPointTextRun run in paragraph.Runs) {
+                RegisterPresentationFontCandidate(run.FontName, pdfOptions, registeredFamilies);
+            }
+        }
+    }
+
+    private static void RegisterPresentationTableFonts(PptCore.PowerPointTable table, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+        for (int row = 0; row < table.Rows; row++) {
+            for (int column = 0; column < table.Columns; column++) {
+                PptCore.PowerPointTableCell cell = table.GetCell(row, column);
+                if (!cell.IsMergedCell) {
+                    RegisterPresentationFontCandidate(cell.FontName, pdfOptions, registeredFamilies);
+                }
+            }
+        }
+    }
+
+    private static void RegisterPresentationFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+        if (string.IsNullOrWhiteSpace(familyName)) {
+            return;
+        }
+
+        string trimmedFamilyName = familyName!.Trim();
+        if (!registeredFamilies.Add(trimmedFamilyName)) {
+            return;
+        }
+
+        if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont standardFont)) {
+            pdfOptions.RegisterOfficeFontFamily(
+                trimmedFamilyName,
+                PdfCore.PdfStandardFontMapper.GetFontFamily(standardFont));
+        }
     }
 
     private static void RenderSlide(PdfCore.PdfDocument pdf, PptCore.PowerPointSlide slide, int slideNumber, double pageWidth, double pageHeight, PowerPointPdfSaveOptions options) {
@@ -1012,20 +1090,9 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static PdfCore.PdfStandardFont? MapFont(string? fontName) {
-        if (string.IsNullOrWhiteSpace(fontName)) {
-            return null;
-        }
-
-        string normalized = (fontName ?? string.Empty).ToUpperInvariant();
-        if (normalized.Contains("COURIER") || normalized.Contains("CONSOLAS")) {
-            return PdfCore.PdfStandardFont.Courier;
-        }
-
-        if (normalized.Contains("TIMES") || normalized.Contains("GEORGIA")) {
-            return PdfCore.PdfStandardFont.TimesRoman;
-        }
-
-        return PdfCore.PdfStandardFont.Helvetica;
+        return PdfCore.PdfStandardFontMapper.TryMapFontFamily(fontName, out PdfCore.PdfStandardFont font)
+            ? font
+            : null;
     }
 
     private static OfficeStrokeDashStyle MapDash(PresetLineDashValues? dash) {

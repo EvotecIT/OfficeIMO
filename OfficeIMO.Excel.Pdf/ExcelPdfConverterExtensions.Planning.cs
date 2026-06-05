@@ -4,9 +4,12 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static PdfCore.PdfOptions CreatePdfOptions(ExcelPdfSaveOptions options) {
-            var pdfOptions = new PdfCore.PdfOptions {
-                CreateOutlineFromHeadings = true
-            };
+            PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+            pdfOptions.CreateOutlineFromHeadings = true;
+
+            if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
+                pdfOptions.UseOfficeFontFamily(options.FontFamily);
+            }
 
             if (options.PageSize.HasValue) {
                 pdfOptions.PageSize = options.PageSize.Value;
@@ -17,6 +20,45 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return pdfOptions;
+        }
+
+        private static void RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelPdfSaveOptions options) {
+            if (!options.UseWorksheetCellStyles) {
+                return;
+            }
+
+            var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (WorksheetPdfExportPlan plan in exportPlans) {
+                ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
+                if (styles == null) {
+                    continue;
+                }
+
+                int rows = Math.Min(plan.ExportedRows, styles.GetLength(0));
+                int columns = styles.GetLength(1);
+                for (int row = 0; row < rows; row++) {
+                    for (int column = 0; column < columns; column++) {
+                        RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies);
+                    }
+                }
+            }
+        }
+
+        private static void RegisterWorksheetFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+            if (string.IsNullOrWhiteSpace(familyName)) {
+                return;
+            }
+
+            string trimmedFamilyName = familyName!.Trim();
+            if (!registeredFamilies.Add(trimmedFamilyName)) {
+                return;
+            }
+
+            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont standardFont)) {
+                pdfOptions.RegisterOfficeFontFamily(
+                    trimmedFamilyName,
+                    PdfCore.PdfStandardFontMapper.GetFontFamily(standardFont));
+            }
         }
 
         private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelPdfSaveOptions options, bool hasExplicitSheetSelection) {

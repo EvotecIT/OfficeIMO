@@ -24,13 +24,14 @@ public static class PdfStandardFontMapper {
             return false;
         }
 
-        string normalized = NormalizeFontFamily(fontFamily!);
-        if (!TryMapNormalizedFamily(normalized, out PdfStandardFont family)) {
-            return false;
+        foreach (string candidate in EnumerateNormalizedFamilies(fontFamily!)) {
+            if (TryMapNormalizedFamily(candidate, out PdfStandardFont family)) {
+                font = GetStyledFont(family, bold, italic);
+                return true;
+            }
         }
 
-        font = GetStyledFont(family, bold, italic);
-        return true;
+        return false;
     }
 
     /// <summary>
@@ -73,8 +74,17 @@ public static class PdfStandardFontMapper {
         };
     }
 
-    private static string NormalizeFontFamily(string fontFamily) {
-        string firstFamily = fontFamily.Split(FamilySeparators, 2)[0].Trim(FamilyTrimChars);
+    private static IEnumerable<string> EnumerateNormalizedFamilies(string fontFamily) {
+        foreach (string family in fontFamily.Split(FamilySeparators)) {
+            string normalized = NormalizeSingleFontFamily(family);
+            if (normalized.Length > 0) {
+                yield return normalized;
+            }
+        }
+    }
+
+    private static string NormalizeSingleFontFamily(string fontFamily) {
+        string firstFamily = fontFamily.Trim(FamilyTrimChars);
         var builder = new StringBuilder(firstFamily.Length);
         foreach (char ch in firstFamily) {
             if (char.IsLetterOrDigit(ch)) {

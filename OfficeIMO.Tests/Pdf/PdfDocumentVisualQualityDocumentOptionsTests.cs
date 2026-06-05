@@ -224,6 +224,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(PdfStandardFontMapper.TryMapFontFamily("Segoe UI, sans-serif", out PdfStandardFont sans));
         Assert.Equal(PdfStandardFont.Helvetica, sans);
 
+        Assert.True(PdfStandardFontMapper.TryMapFontFamily("Unmapped Display Face, Georgia, serif", out PdfStandardFont fallbackList));
+        Assert.Equal(PdfStandardFont.TimesRoman, fallbackList);
+
         Assert.True(PdfStandardFontMapper.TryMapFontFamily("\"Times New Roman\", serif", bold: true, italic: true, out PdfStandardFont serif));
         Assert.Equal(PdfStandardFont.TimesBoldItalic, serif);
 

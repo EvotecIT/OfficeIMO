@@ -46,7 +46,11 @@ public static partial class MarkdownPdfConverterExtensions {
         options ??= new MarkdownPdfSaveOptions();
         options.ResetExportState();
 
-        PdfCore.PdfOptions pdfOptions = options.PdfOptions ?? new PdfCore.PdfOptions();
+        PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+        if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
+            pdfOptions.UseOfficeFontFamily(options.FontFamily);
+        }
+
         if (options.CreateOutlineFromHeadings) {
             pdfOptions.CreateOutlineFromHeadings = true;
         }
@@ -57,6 +61,7 @@ public static partial class MarkdownPdfConverterExtensions {
         if (documentTheme != null) {
             pdf.Theme(documentTheme);
         }
+        ApplyMarkdownDefaultFont(pdf, options);
         visualTheme.ApplyPageDecorations(pdf, pdfOptions);
 
         IReadOnlyList<IMarkdownBlock> topLevelBlocks = GetPdfTopLevelBlocks(document);
@@ -68,6 +73,12 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         return pdf;
+    }
+
+    private static void ApplyMarkdownDefaultFont(PdfCore.PdfDocument pdf, MarkdownPdfSaveOptions options) {
+        if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(options.FontFamily, out PdfCore.PdfStandardFont font)) {
+            pdf.DefaultTextStyle(style => style.Font(PdfCore.PdfStandardFontMapper.GetFontFamily(font)));
+        }
     }
 
     private static IReadOnlyList<IMarkdownBlock> GetPdfTopLevelBlocks(MarkdownDoc document) {

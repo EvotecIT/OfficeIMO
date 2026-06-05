@@ -23,6 +23,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.CellAt(1, 1)
                 .SetValue("StyledCell")
+                .SetFontName("Consolas")
                 .SetBold()
                 .SetItalic()
                 .SetUnderline()
@@ -34,6 +35,7 @@ public partial class Excel {
             Assert.True(style.Bold);
             Assert.True(style.Italic);
             Assert.True(style.Underline);
+            Assert.Equal("Consolas", style.FontName);
             Assert.Equal("112233", style.FontColorHex);
             Assert.Equal("DDEEFF", style.FillColorHex);
 
@@ -53,6 +55,7 @@ public partial class Excel {
         Assert.Contains("PlainCell", text);
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/BaseFont /Courier", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.067 0.133 0.2 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.867 0.933 1 rg", rawPdf, StringComparison.Ordinal);
     }

@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel.Pdf {
                     int sourceRow = visibility?.RowOffsets[row] ?? row;
                     int sourceColumn = visibility?.ColumnOffsets[column] ?? column;
                     ExcelCellStyleSnapshot style = workbookSheet.GetCellStyle(firstRow + sourceRow, firstColumn + sourceColumn);
-                    if (style.HasPdfVisualStyle) {
+                    if (HasPdfExportStyle(style)) {
                         styles[row, column] = style;
                         hasAnyStyle = true;
                     }
@@ -118,6 +118,15 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return hasAnyStyle ? styles : null;
+        }
+
+        private static bool HasPdfExportStyle(ExcelCellStyleSnapshot style) {
+            if (style.HasPdfVisualStyle) {
+                return true;
+            }
+
+            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(style.FontName, out PdfCore.PdfStandardFont font) &&
+                PdfCore.PdfStandardFontMapper.GetFontFamily(font) != PdfCore.PdfStandardFont.Helvetica;
         }
 
         private static ExcelHyperlinkSnapshot?[,]? ReadHyperlinkData(ExcelSheet? workbookSheet, string normalizedRange, int rowCount, int columnCount, bool enabled, VisibilityLayoutData? visibility = null) {

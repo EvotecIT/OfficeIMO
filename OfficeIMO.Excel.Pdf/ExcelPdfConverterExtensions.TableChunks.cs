@@ -360,8 +360,9 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
             string? linkContents = linkUri == null && linkDestinationName == null ? null : text;
             IReadOnlyList<PdfCore.PdfTableCellImage>? pdfImages = ToPdfTableCellImages(cellImages);
-            IReadOnlyList<PdfCore.TextRun> runs = style != null && (style.Bold || style.Italic || style.Underline || textColor.HasValue)
-                ? new[] { new PdfCore.TextRun(text, bold: style.Bold, underline: style.Underline, color: textColor, italic: style.Italic) }
+            PdfCore.PdfStandardFont? font = MapFont(style?.FontName);
+            IReadOnlyList<PdfCore.TextRun> runs = style != null && (style.Bold || style.Italic || style.Underline || textColor.HasValue || font.HasValue)
+                ? new[] { new PdfCore.TextRun(text, bold: style.Bold, underline: style.Underline, color: textColor, italic: style.Italic, font: font) }
                 : new[] { PdfCore.TextRun.Normal(text) };
 
             return new PdfCore.PdfTableCell(
@@ -373,6 +374,16 @@ namespace OfficeIMO.Excel.Pdf {
                 images: pdfImages,
                 linkDestinationName: linkDestinationName,
                 namedDestinationName: cellDestinationName);
+        }
+
+        private static PdfCore.PdfStandardFont? MapFont(string? fontName) {
+            if (!PdfCore.PdfStandardFontMapper.TryMapFontFamily(fontName, out PdfCore.PdfStandardFont font)) {
+                return null;
+            }
+
+            return PdfCore.PdfStandardFontMapper.GetFontFamily(font) == PdfCore.PdfStandardFont.Helvetica
+                ? null
+                : font;
         }
 
         private static IReadOnlyList<PdfCore.PdfTableCellImage>? ToPdfTableCellImages(IReadOnlyList<WorksheetImageExportData>? images) {

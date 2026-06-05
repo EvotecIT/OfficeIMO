@@ -56,5 +56,22 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("native, keyword", info.Keywords);
             }
         }
+
+        [Fact]
+        public void Test_WordDocument_SaveAsPdf_OfficeIMOEngine_FontFamily_Does_Not_Pollute_MetadataKeywords() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeFontMetadata.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeFontMetadata.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.BuiltinDocumentProperties.Keywords = "native, keyword";
+                document.AddParagraph("Native metadata font");
+                document.Save();
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "Times New Roman" });
+            }
+
+            using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+                Assert.Equal("native, keyword", pdf.Information.Keywords);
+            }
+        }
     }
 }

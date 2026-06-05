@@ -126,6 +126,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Sets the font family name.
+        /// </summary>
+        public ExcelCell SetFontName(string fontName) {
+            Sheet.CellFontName(Row, Column, fontName);
+            return this;
+        }
+
+        /// <summary>
         /// Sets the font color using a hex color value.
         /// </summary>
         public ExcelCell SetFontColor(string hexColor) {
@@ -344,6 +352,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelRange SetFontColor(string hexColor) {
             ForEachCell((row, column) => Sheet.CellFontColor(row, column, hexColor));
+            return this;
+        }
+
+        /// <summary>
+        /// Applies a font family name to every cell in the range.
+        /// </summary>
+        public ExcelRange SetFontName(string fontName) {
+            ForEachCell((row, column) => Sheet.CellFontName(row, column, fontName));
             return this;
         }
 

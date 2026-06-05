@@ -16,6 +16,16 @@ namespace OfficeIMO.Excel.Pdf {
         public List<ExcelPdfExportWarning> Warnings { get; } = new List<ExcelPdfExportWarning>();
 
         /// <summary>
+        /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
+        /// </summary>
+        public PdfCore.PdfOptions? PdfOptions { get; set; }
+
+        /// <summary>
+        /// Optional workbook default font family used by the first-party PDF engine.
+        /// </summary>
+        public string? FontFamily { get; set; }
+
+        /// <summary>
         /// Optional first-party page size in PDF points.
         /// </summary>
         public PdfCore.PageSize? PageSize { get; set; }

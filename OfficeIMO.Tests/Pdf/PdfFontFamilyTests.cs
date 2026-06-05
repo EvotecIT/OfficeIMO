@@ -71,6 +71,46 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfOptions_UseOfficeFontFamilyFallsBackThroughFamilyListToStandardFont() {
+        PdfOptions options = new PdfOptions()
+            .UseOfficeFontFamily("OfficeIMO Missing Display, Consolas, monospace", embedSystemFont: false);
+
+        Assert.Equal(PdfStandardFont.Courier, options.DefaultFont);
+        Assert.Equal(PdfStandardFont.Courier, options.HeaderFont);
+        Assert.Equal(PdfStandardFont.Courier, options.FooterFont);
+    }
+
+    [Fact]
+    public void PdfOptions_RegisterFontFamilyEmbedsSemanticSlotWithoutChangingDefaults() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = new PdfOptions {
+            CompressContentStreams = false
+        }.RegisterFontFamily(
+            PdfStandardFont.TimesRoman,
+            PdfEmbeddedFontFamily.FromFiles("OfficeIMO Semantic Serif", fontPath));
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph
+                .Font(PdfStandardFont.TimesRoman)
+                .Text("Semantic serif Łódź"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Equal(PdfStandardFont.Helvetica, options.DefaultFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.HeaderFont);
+        Assert.Equal(PdfStandardFont.Helvetica, options.FooterFont);
+        Assert.Contains("/BaseFont /OfficeIMOSemanticSerif-Regular", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("Semantic serif Łódź", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFamily_TryFromSystemFontFilesMatchesRenamedTrueTypeMetadata() {
         if (!TryFindSingleInstalledRegularFontFace(out string familyName, out string fontPath)) {
             return;

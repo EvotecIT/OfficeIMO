@@ -171,13 +171,7 @@ public sealed partial class PdfOptions {
     }
 
     internal PdfOptions UseDefaultTextFontFamily(PdfEmbeddedFontFamily fontFamily) {
-        Guard.NotNull(fontFamily, nameof(fontFamily));
-        PdfEmbeddedFontFamily snapshot = fontFamily.Clone();
-
-        EmbedStandardFont(PdfStandardFont.Helvetica, snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Regular"));
-        EmbedStandardFont(PdfStandardFont.HelveticaBold, snapshot.BoldSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Bold"));
-        EmbedStandardFont(PdfStandardFont.HelveticaOblique, snapshot.ItalicSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Italic"));
-        EmbedStandardFont(PdfStandardFont.HelveticaBoldOblique, snapshot.BoldItalicSnapshot ?? snapshot.BoldSnapshot ?? snapshot.ItalicSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "BoldItalic"));
+        RegisterFontFamily(PdfStandardFont.Helvetica, fontFamily);
         DefaultFont = PdfStandardFont.Helvetica;
         return this;
     }

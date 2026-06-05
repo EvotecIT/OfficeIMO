@@ -33,6 +33,10 @@ namespace OfficeIMO.Word.Pdf {
                 style.FirstLineIndent = paragraph.IndentationFirstLinePoints.Value;
             }
 
+            if (paragraph.IndentationHangingPoints.HasValue) {
+                style.FirstLineIndent = -paragraph.IndentationHangingPoints.Value;
+            }
+
             double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0 ? paragraph.FontSize.Value : 11D;
             style.LineHeight = ResolveNativeParagraphLineHeight(paragraph, fontSize);
 
@@ -403,13 +407,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? BuildNativeKeywords(PdfSaveOptions? options, BuiltinDocumentProperties properties) {
-            string? keys = options?.Keywords ?? properties.Keywords;
-            string? family = options?.FontFamily;
-            if (!string.IsNullOrWhiteSpace(family)) {
-                keys = string.IsNullOrWhiteSpace(keys) ? family : keys + ";" + family;
-            }
-
-            return keys;
+            return options?.Keywords ?? properties.Keywords;
         }
 
         private static PdfCore.PdfColor? ParseNativeColor(string? hex) {

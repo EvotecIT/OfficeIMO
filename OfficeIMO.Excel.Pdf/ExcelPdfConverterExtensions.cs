@@ -16,11 +16,13 @@ namespace OfficeIMO.Excel.Pdf {
 
             options ??= new ExcelPdfSaveOptions();
             options.Warnings.Clear();
-            var pdf = PdfCore.PdfDocument.Create(CreatePdfOptions(options));
+            PdfCore.PdfOptions pdfOptions = CreatePdfOptions(options);
             using ExcelDocumentReader reader = document.CreateReader();
             IReadOnlyList<string> sheetNames = GetSheetNames(reader, options);
             bool hasExplicitSheetSelection = HasExplicitSheetSelection(options);
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans = BuildWorksheetExportPlans(document, reader, sheetNames, options, hasExplicitSheetSelection);
+            RegisterWorksheetFonts(pdfOptions, exportPlans, options);
+            var pdf = PdfCore.PdfDocument.Create(pdfOptions);
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);
             foreach (WorksheetPdfExportPlan plan in exportPlans) {

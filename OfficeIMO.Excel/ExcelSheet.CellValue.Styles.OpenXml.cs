@@ -155,6 +155,12 @@ namespace OfficeIMO.Excel {
             };
         }
 
+        private static void SetFontName(DocumentFormat.OpenXml.Spreadsheet.Font font, string fontName) {
+            font.FontName = new FontName {
+                Val = fontName.Trim()
+            };
+        }
+
         private static void SetUniformBorder(Border border, BorderStyleValues style, string? hexColor) {
             var argb = string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
             border.LeftBorder = CreateBorderSide<LeftBorder>(style, argb);
