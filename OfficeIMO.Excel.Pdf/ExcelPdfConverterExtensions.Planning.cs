@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
         }
 
-        private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelPdfSaveOptions options, bool hasExplicitSheetSelection) {
+        private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelPdfSaveOptions options, bool hasExplicitSheetSelection, PdfCore.PdfStandardFont defaultFontFamily) {
             var plans = new List<WorksheetPdfExportPlan>();
             for (int i = 0; i < sheetNames.Count; i++) {
                 string sheetName = sheetNames[i];
@@ -74,7 +74,7 @@ namespace OfficeIMO.Excel.Pdf {
                 ExcelSheetPageSetup? pageSetup = options.UseWorksheetPageSetup ? workbookSheet?.GetPageSetup() : null;
                 ExcelSheet.HeaderFooterSnapshot? headerFooter = (options.UseWorksheetHeadersAndFooters || options.UseWorksheetHeaderFooterImages) ? workbookSheet?.GetHeaderFooter() : null;
                 string exportRange = GetExportRange(sheet, workbookSheet, options);
-                SheetExportData exportData = ReadSheetExportData(sheet, workbookSheet, exportRange, options);
+                SheetExportData exportData = ReadSheetExportData(sheet, workbookSheet, exportRange, options, defaultFontFamily);
                 IReadOnlyList<int> manualRowBreaks = options.UseWorksheetPageBreaks && workbookSheet != null
                     ? workbookSheet.GetManualRowPageBreaks()
                     : Array.Empty<int>();

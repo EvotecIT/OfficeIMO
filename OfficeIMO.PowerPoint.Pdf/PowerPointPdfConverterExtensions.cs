@@ -110,34 +110,38 @@ public static partial class PowerPointPdfConverterExtensions {
                 continue;
             }
 
-            RegisterPresentationShapesFonts(slide.GetInheritedShapesForExport(), pdfOptions, registeredFamilies);
-            RegisterPresentationShapesFonts(slide.Shapes, pdfOptions, registeredFamilies);
+            RegisterPresentationShapesFonts(slide.GetInheritedShapesForExport(), pdfOptions, registeredFamilies, options);
+            RegisterPresentationShapesFonts(slide.Shapes, pdfOptions, registeredFamilies, options);
         }
     }
 
-    private static void RegisterPresentationShapesFonts(IReadOnlyList<PptCore.PowerPointShape> shapes, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+    private static void RegisterPresentationShapesFonts(IReadOnlyList<PptCore.PowerPointShape> shapes, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, PowerPointPdfSaveOptions options) {
         foreach (PptCore.PowerPointShape shape in shapes) {
-            RegisterPresentationShapeFonts(shape, pdfOptions, registeredFamilies);
+            RegisterPresentationShapeFonts(shape, pdfOptions, registeredFamilies, options);
         }
     }
 
-    private static void RegisterPresentationShapeFonts(PptCore.PowerPointShape shape, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies) {
+    private static void RegisterPresentationShapeFonts(PptCore.PowerPointShape shape, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, PowerPointPdfSaveOptions options) {
         if (shape.Hidden) {
             return;
         }
 
         if (shape is PptCore.PowerPointTextBox textBox) {
-            RegisterPresentationTextBoxFonts(textBox, pdfOptions, registeredFamilies);
+            if (options.IncludeTextBoxes) {
+                RegisterPresentationTextBoxFonts(textBox, pdfOptions, registeredFamilies);
+            }
             return;
         }
 
         if (shape is PptCore.PowerPointTable table) {
-            RegisterPresentationTableFonts(table, pdfOptions, registeredFamilies);
+            if (options.IncludeTables) {
+                RegisterPresentationTableFonts(table, pdfOptions, registeredFamilies);
+            }
             return;
         }
 
         if (shape is PptCore.PowerPointGroupShape groupShape && groupShape.OwnerSlide != null) {
-            RegisterPresentationShapesFonts(groupShape.OwnerSlide.GetGroupChildren(groupShape), pdfOptions, registeredFamilies);
+            RegisterPresentationShapesFonts(groupShape.OwnerSlide.GetGroupChildren(groupShape), pdfOptions, registeredFamilies, options);
         }
     }
 

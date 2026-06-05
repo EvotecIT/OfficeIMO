@@ -54,7 +54,7 @@ public class PowerPointSaveAsPdfTests {
 
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("20 108 120 48 re", raw, StringComparison.Ordinal);
-        Assert.Contains("/BaseFont /Times-Roman", raw, StringComparison.Ordinal);
+        AssertRawPdfContainsAnyBaseFont(raw, "Times-Roman", "Georgia");
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
     }
 
@@ -847,6 +847,36 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_SkipsExcludedShapeFontsBeforeRendering() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointSlide slide = presentation.Slides[0];
+
+        PowerPointTextBox excluded = slide.AddTextBoxPoints("Excluded", 30, 26, 100, 28);
+        excluded.FontName = "Georgia";
+
+        PowerPointTable table = slide.AddTablePoints(1, 1, 30, 74, 150, 42);
+        PowerPointTableCell cell = table.GetCell(0, 0);
+        cell.Text = "Visible";
+        cell.FontName = "Times New Roman";
+
+        byte[] bytes = presentation.SaveAsPdf(new PowerPointPdfSaveOptions {
+            IncludeTextBoxes = false,
+            IncludeTables = true
+        });
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+        Assert.DoesNotContain("Georgia", raw, StringComparison.OrdinalIgnoreCase);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Visible", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Excluded", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_PreservesTableCellLineBreaks() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -1425,5 +1455,11 @@ public class PowerPointSaveAsPdfTests {
         }
 
         throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
+    }
+
+    private static void AssertRawPdfContainsAnyBaseFont(string rawPdf, params string[] fontNameParts) {
+        Assert.True(
+            fontNameParts.Any(fontNamePart => rawPdf.Contains("/BaseFont /" + fontNamePart, StringComparison.OrdinalIgnoreCase)),
+            "Expected raw PDF to contain one of these BaseFont names: " + string.Join(", ", fontNameParts));
     }
 }

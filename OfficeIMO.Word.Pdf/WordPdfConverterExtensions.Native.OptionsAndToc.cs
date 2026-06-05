@@ -29,13 +29,17 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            string? family = document.Settings.FontFamily ??
-                    document.Settings.FontFamilyHighAnsi ??
-                    document.Settings.FontFamilyEastAsia ??
-                    document.Settings.FontFamilyComplexScript;
-
-            if (!string.IsNullOrWhiteSpace(family)) {
-                pdfOptions.UseOfficeFontFamily(family, embedSystemFont: false);
+            foreach (string? family in new[] {
+                document.Settings.FontFamily,
+                document.Settings.FontFamilyHighAnsi,
+                document.Settings.FontFamilyEastAsia,
+                document.Settings.FontFamilyComplexScript
+            }) {
+                if (!string.IsNullOrWhiteSpace(family) &&
+                    PdfCore.PdfStandardFontMapper.TryMapFontFamily(family, out _)) {
+                    pdfOptions.UseOfficeFontFamily(family, embedSystemFont: false);
+                    return;
+                }
             }
         }
 

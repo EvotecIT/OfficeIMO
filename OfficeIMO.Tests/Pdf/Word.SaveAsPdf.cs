@@ -237,6 +237,23 @@ public partial class Word {
         AssertPdfUsesFont(pdfPath, "Courier");
     }
 
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_DocumentDefaultFont_FallsBack_To_HighAnsi_When_Primary_Font_Is_Unmapped() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFontHighAnsiFallback.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFontHighAnsiFallback.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.FontFamily = "OfficeIMO Missing Theme Font";
+            document.Settings.FontFamilyHighAnsi = "Times New Roman";
+            document.AddParagraph("Hello HighAnsi fallback font");
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+    }
+
     [Theory]
     [InlineData(PdfPageOrientation.Portrait)]
     [InlineData(PdfPageOrientation.Landscape)]

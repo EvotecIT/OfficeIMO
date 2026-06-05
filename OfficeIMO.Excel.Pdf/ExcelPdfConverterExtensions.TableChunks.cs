@@ -283,7 +283,7 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName) {
+        private static IEnumerable<PdfCore.PdfTableCell[]> CreatePdfRows(object?[,] values, ExcelCellStyleSnapshot?[,]? styles, ExcelHyperlinkSnapshot?[,]? hyperlinks, string?[,]? cellReferences, MergeLayoutData? mergedCells, IReadOnlyDictionary<string, IReadOnlyList<WorksheetImageExportData>>? imagesByCellReference, IReadOnlyList<int> rowIndexes, int startColumn, int columnCount, string emptyCellText, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, PdfCore.PdfStandardFont defaultFontFamily) {
             int endColumn = Math.Min(values.GetLength(1), startColumn + columnCount);
             for (int localRow = 0; localRow < rowIndexes.Count; localRow++) {
                 int row = rowIndexes[localRow];
@@ -305,7 +305,7 @@ namespace OfficeIMO.Excel.Pdf {
                         ? destinationName
                         : null;
                     IReadOnlyList<WorksheetImageExportData>? cellImages = GetCellImages(imagesByCellReference, cellReferences, row, column);
-                    cells.Add(CreatePdfCell(text, style, hyperlink, span, sheetDestinations, cellDestinations, sheetName, cellDestinationName, cellImages));
+                    cells.Add(CreatePdfCell(text, style, hyperlink, span, sheetDestinations, cellDestinations, sheetName, cellDestinationName, cellImages, defaultFontFamily));
                 }
 
                 yield return cells.ToArray();
@@ -350,7 +350,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
         }
 
-        private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleSnapshot? style, ExcelHyperlinkSnapshot? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages) {
+        private static PdfCore.PdfTableCell CreatePdfCell(string text, ExcelCellStyleSnapshot? style, ExcelHyperlinkSnapshot? hyperlink, MergeSpan? span, IReadOnlyDictionary<string, string> sheetDestinations, IReadOnlyDictionary<string, string> cellDestinations, string sheetName, string? cellDestinationName, IReadOnlyList<WorksheetImageExportData>? cellImages, PdfCore.PdfStandardFont defaultFontFamily) {
             int rowSpan = span?.RowSpan ?? 1;
             int columnSpan = span?.ColumnSpan ?? 1;
             PdfCore.PdfColor? textColor = ToPdfColor(style?.FontColorHex);
@@ -360,7 +360,7 @@ namespace OfficeIMO.Excel.Pdf {
                 : null;
             string? linkContents = linkUri == null && linkDestinationName == null ? null : text;
             IReadOnlyList<PdfCore.PdfTableCellImage>? pdfImages = ToPdfTableCellImages(cellImages);
-            PdfCore.PdfStandardFont? font = MapFont(style?.FontName);
+            PdfCore.PdfStandardFont? font = MapFont(style?.FontName, defaultFontFamily);
             IReadOnlyList<PdfCore.TextRun> runs = style != null && (style.Bold || style.Italic || style.Underline || textColor.HasValue || font.HasValue)
                 ? new[] { new PdfCore.TextRun(text, bold: style.Bold, underline: style.Underline, color: textColor, italic: style.Italic, font: font) }
                 : new[] { PdfCore.TextRun.Normal(text) };
@@ -376,12 +376,12 @@ namespace OfficeIMO.Excel.Pdf {
                 namedDestinationName: cellDestinationName);
         }
 
-        private static PdfCore.PdfStandardFont? MapFont(string? fontName) {
+        private static PdfCore.PdfStandardFont? MapFont(string? fontName, PdfCore.PdfStandardFont defaultFontFamily) {
             if (!PdfCore.PdfStandardFontMapper.TryMapFontFamily(fontName, out PdfCore.PdfStandardFont font)) {
                 return null;
             }
 
-            return PdfCore.PdfStandardFontMapper.GetFontFamily(font) == PdfCore.PdfStandardFont.Helvetica
+            return PdfCore.PdfStandardFontMapper.GetFontFamily(font) == defaultFontFamily
                 ? null
                 : font;
         }
