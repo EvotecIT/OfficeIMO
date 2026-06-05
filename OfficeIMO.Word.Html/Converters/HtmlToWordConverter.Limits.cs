@@ -33,14 +33,43 @@ namespace OfficeIMO.Word.Html {
         }
 
         private void ValidateCssLimit(string css, string? source) {
-            if (!_options.MaxCssBytes.HasValue) {
+            var bytes = Encoding.UTF8.GetByteCount(css);
+            if (_options.MaxCssBytes.HasValue && bytes > _options.MaxCssBytes.Value) {
+                ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", source ?? "stylesheet", bytes, _options.MaxCssBytes.Value);
+            }
+
+            ReserveCssBytes(bytes, source ?? "stylesheet");
+        }
+
+        private void ReserveCssBytes(long length, string source) {
+            if (!_options.MaxTotalCssBytes.HasValue) {
                 return;
             }
 
-            var bytes = Encoding.UTF8.GetByteCount(css);
-            if (bytes > _options.MaxCssBytes.Value) {
-                ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", source ?? "stylesheet", bytes, _options.MaxCssBytes.Value);
+            var remaining = _options.MaxTotalCssBytes.Value - _cssBytesUsed;
+            if (length > remaining) {
+                ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + length, _options.MaxTotalCssBytes.Value);
             }
+
+            _cssBytesUsed += length;
+        }
+
+        private (long? Limit, bool LimitedByTotalBudget) GetCssReadLimit() {
+            var limit = _options.MaxCssBytes;
+            var limitedByTotalBudget = false;
+            if (_options.MaxTotalCssBytes.HasValue) {
+                var remaining = _options.MaxTotalCssBytes.Value - _cssBytesUsed;
+                if (remaining <= 0) {
+                    ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", "MaxTotalCssBytes", _cssBytesUsed, _options.MaxTotalCssBytes.Value);
+                }
+
+                if (!limit.HasValue || remaining < limit.Value) {
+                    limit = remaining;
+                    limitedByTotalBudget = true;
+                }
+            }
+
+            return (limit, limitedByTotalBudget);
         }
 
         private void ValidateTableLimit(HtmlToWordOptions options, int rows, int columns) {

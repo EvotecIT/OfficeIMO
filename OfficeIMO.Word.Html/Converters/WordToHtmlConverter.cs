@@ -138,6 +138,9 @@ namespace OfficeIMO.Word.Html {
                                 if (!string.IsNullOrEmpty(imgObj.Description)) {
                                     imgSvg.AlternativeText = imgObj.Description;
                                 }
+                                if (!string.IsNullOrEmpty(imgObj.Title)) {
+                                    imgSvg.SetAttribute("title", imgObj.Title!);
+                                }
                                 nodes.Add(imgSvg);
                             }
                             continue;
@@ -160,6 +163,9 @@ namespace OfficeIMO.Word.Html {
                         if (!string.IsNullOrEmpty(imgObj.Description)) {
                             img.AlternativeText = imgObj.Description;
                         }
+                        if (!string.IsNullOrEmpty(imgObj.Title)) {
+                            img.SetAttribute("title", imgObj.Title!);
+                        }
                         nodes.Add(img);
                         continue;
                     }
@@ -171,6 +177,10 @@ namespace OfficeIMO.Word.Html {
                     if (string.IsNullOrEmpty(run.Text)) {
                         continue;
                     }
+
+                    bool isHtmlDeletedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.OrdinalIgnoreCase);
+                    bool isHtmlInsertedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase);
+                    bool isHtmlMarkedText = string.Equals(run.CharacterStyleId, HtmlSemanticStyleIds.MarkedText, StringComparison.OrdinalIgnoreCase);
 
                     if (string.Equals(run.CharacterStyleId, "HtmlQuote", StringComparison.OrdinalIgnoreCase)) {
                         if (!inQuote) {
@@ -198,13 +208,13 @@ namespace OfficeIMO.Word.Html {
                         node = em;
                     }
 
-                    if (run.Strike || run.DoubleStrike) {
+                    if ((run.Strike || run.DoubleStrike) && !isHtmlDeletedText) {
                         var s = htmlDoc.CreateElement("s");
                         s.AppendChild(node);
                         node = s;
                     }
 
-                    if (run.Underline != null) {
+                    if (run.Underline != null && !isHtmlInsertedText) {
                         var u = htmlDoc.CreateElement("u");
                         u.AppendChild(node);
                         node = u;
@@ -240,7 +250,22 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     bool handledHtmlStyle = false;
-                    if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
+                    if (isHtmlDeletedText) {
+                        var del = htmlDoc.CreateElement("del");
+                        del.AppendChild(node);
+                        node = del;
+                        handledHtmlStyle = true;
+                    } else if (isHtmlInsertedText) {
+                        var ins = htmlDoc.CreateElement("ins");
+                        ins.AppendChild(node);
+                        node = ins;
+                        handledHtmlStyle = true;
+                    } else if (isHtmlMarkedText) {
+                        var mark = htmlDoc.CreateElement("mark");
+                        mark.AppendChild(node);
+                        node = mark;
+                        handledHtmlStyle = true;
+                    } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
                         var cite = htmlDoc.CreateElement("cite");
                         cite.AppendChild(node);
                         node = cite;
@@ -252,8 +277,11 @@ namespace OfficeIMO.Word.Html {
                         handledHtmlStyle = true;
                     } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
                         var time = htmlDoc.CreateElement("time");
-                        string dt = run.Text ?? string.Empty;
-                        if (DateTime.TryParse(run.Text, out var parsed)) {
+                        bool hasImportedDateTime = HtmlSemanticMetadata.TryGetTimeDateTime(run, out var dt);
+                        if (!hasImportedDateTime) {
+                            dt = run.Text ?? string.Empty;
+                        }
+                        if (!hasImportedDateTime && DateTime.TryParse(run.Text, out var parsed)) {
                             dt = parsed.ToString("o");
                         }
                         time.SetAttribute("datetime", dt);
@@ -308,7 +336,7 @@ namespace OfficeIMO.Word.Html {
                                 inlineStyles.Add($"color:#{normalized}");
                             }
                         }
-                        if (options.IncludeRunHighlightStyles) {
+                        if (options.IncludeRunHighlightStyles && !isHtmlMarkedText) {
                             var highlightCss = GetHighlightCss(run.Highlight);
                             if (!string.IsNullOrEmpty(highlightCss)) {
                                 inlineStyles.Add($"background-color:{highlightCss}");
@@ -328,6 +356,14 @@ namespace OfficeIMO.Word.Html {
                         spanClass.AppendChild(node);
                         node = spanClass;
                         runStyles.Add(run.CharacterStyleId!);
+                    }
+
+                    var runLanguage = NormalizeRunLanguage(run.Language, document.Settings.Language);
+                    if (!string.IsNullOrEmpty(runLanguage)) {
+                        var spanLanguage = htmlDoc.CreateElement("span");
+                        spanLanguage.SetAttribute("lang", runLanguage);
+                        spanLanguage.AppendChild(node);
+                        node = spanLanguage;
                     }
 
                     if (inQuote && quote != null) {
@@ -352,14 +388,14 @@ namespace OfficeIMO.Word.Html {
             }
 
 
-            void AppendParagraph(IElement parent, WordParagraph para) {
-                if (para.IsBookmark && para.Bookmark != null) {
+            void AppendParagraph(IElement parent, WordParagraph para, bool suppressStructuralBookmark = false) {
+                if (!suppressStructuralBookmark && para.IsBookmark && para.Bookmark != null) {
                     var name = para.Bookmark.Name ?? string.Empty;
                     var parts = name.Split(new[] { ':' }, 2);
                     if (parts.Length == 2 && IsStructuralTag(parts[0])) {
                         var structEl = htmlDoc.CreateElement(parts[0]);
                         structEl.SetAttribute("id", parts[1]);
-                        AppendRuns(structEl, para);
+                        AppendParagraph(structEl, para, suppressStructuralBookmark: true);
                         parent.AppendChild(structEl);
                         return;
                     }
@@ -386,6 +422,9 @@ namespace OfficeIMO.Word.Html {
                 bool isBlockQuote = (!string.IsNullOrEmpty(para.StyleId) && (string.Equals(para.StyleId, "Quote", StringComparison.OrdinalIgnoreCase) || string.Equals(para.StyleId, "IntenseQuote", StringComparison.OrdinalIgnoreCase)))
                     || (para.IndentationBefore.HasValue && para.IndentationBefore.Value > 0);
                 var element = htmlDoc.CreateElement(isBlockQuote ? "blockquote" : (level > 0 ? $"h{level}" : "p"));
+                if (isBlockQuote && TryGetBlockquoteCiteAttribute(para, out var blockquoteCite)) {
+                    element.SetAttribute("cite", blockquoteCite);
+                }
                 ApplyBookmarkId(element, para);
                 if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(para.StyleId)) {
                     element.SetAttribute("class", para.StyleId);
@@ -447,20 +486,53 @@ namespace OfficeIMO.Word.Html {
                 parent.AppendChild(element);
             }
 
+            void AppendDefinitionListItem(IElement definitionList, WordParagraph para) {
+                var item = htmlDoc.CreateElement(GetDefinitionListTagName(para));
+                ApplyBookmarkId(item, para);
+                if (para.BiDi) {
+                    item.SetAttribute("dir", "rtl");
+                }
+                AppendRuns(item, para);
+                definitionList.AppendChild(item);
+            }
 
-            void AppendTable(IElement parent, WordTable table) {
+            bool IsCaptionParagraph(WordParagraph para) =>
+                string.Equals(para.StyleId, "Caption", StringComparison.OrdinalIgnoreCase);
+
+            void AppendTableCaption(IElement tableElement, WordParagraph captionParagraph) {
+                var caption = htmlDoc.CreateElement("caption");
+                ApplyBookmarkId(caption, captionParagraph);
+                if (captionParagraph.BiDi) {
+                    caption.SetAttribute("dir", "rtl");
+                }
+                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(captionParagraph.StyleId)) {
+                    caption.SetAttribute("class", captionParagraph.StyleId);
+                    paragraphStyles.Add(captionParagraph.StyleId!);
+                }
+                AppendRuns(caption, captionParagraph);
+                tableElement.AppendChild(caption);
+            }
+
+            void AppendTable(IElement parent, WordTable table, WordParagraph? captionParagraph = null) {
                 var tableEl = htmlDoc.CreateElement("table");
                 var tableStyles = new List<string>();
                 var tableWidth = GetWidthCss(table.WidthType, table.Width);
                 if (!string.IsNullOrEmpty(tableWidth)) {
                     tableStyles.Add($"width:{tableWidth}");
                 }
+                var tableCellSpacing = GetTableCellSpacingCss(table);
+                if (!string.IsNullOrEmpty(tableCellSpacing)) {
+                    tableStyles.Add($"border-spacing:{tableCellSpacing}");
+                }
                 if (TableHasBorder(table)) {
                     tableStyles.Add("border:1px solid black");
-                    tableStyles.Add("border-collapse:collapse");
+                    tableStyles.Add(!string.IsNullOrEmpty(tableCellSpacing) ? "border-collapse:separate" : "border-collapse:collapse");
                 }
                 if (tableStyles.Count > 0) {
                     tableEl.SetAttribute("style", string.Join(";", tableStyles));
+                }
+                if (captionParagraph != null) {
+                    AppendTableCaption(tableEl, captionParagraph);
                 }
                 if (options.IncludeTableColumnGroups) {
                     AppendColumnGroup(htmlDoc, tableEl, table);
@@ -470,19 +542,25 @@ namespace OfficeIMO.Word.Html {
                 while (headerRowCount < table.Rows.Count && table.Rows[headerRowCount].RepeatHeaderRowAtTheTopOfEachPage) {
                     headerRowCount++;
                 }
+                bool hasFooterRow = table.ConditionalFormattingLastRow == true && table.Rows.Count > headerRowCount;
                 IElement? thead = null;
                 IElement? tbody = null;
+                IElement? tfoot = null;
 
                 for (int r = 0; r < table.Rows.Count; r++) {
                     var row = table.Rows[r];
                     var tr = htmlDoc.CreateElement("tr");
                     bool isHeaderRow = headerRowCount > 0 && r < headerRowCount;
+                    bool isFooterRow = hasFooterRow && r == table.Rows.Count - 1;
                     for (int c = 0; c < row.Cells.Count; c++) {
                         var cell = row.Cells[c];
                         if (cell.HorizontalMerge == MergedCellValues.Continue || cell.VerticalMerge == MergedCellValues.Continue) {
                             continue;
                         }
                         var cellElement = htmlDoc.CreateElement(isHeaderRow ? "th" : "td");
+                        if (isHeaderRow) {
+                            cellElement.SetAttribute("scope", "col");
+                        }
                         int colSpan = 1;
                         int rowSpan = 1;
                         if (cell.HorizontalMerge == MergedCellValues.Restart) {
@@ -518,12 +596,10 @@ namespace OfficeIMO.Word.Html {
                         }
                         // Vertical alignment within table cells
                         if (cell.VerticalAlignment != null) {
-                            // Avoid enum switch expressions for broad TFM support
-                            var s = cell.VerticalAlignment.Value.ToString();
                             string vAlign = "top";
-                            if (string.Equals(s, nameof(TableVerticalAlignmentValues.Center), StringComparison.Ordinal)) {
+                            if (cell.VerticalAlignment.Value == TableVerticalAlignmentValues.Center) {
                                 vAlign = "middle";
-                            } else if (string.Equals(s, nameof(TableVerticalAlignmentValues.Bottom), StringComparison.Ordinal)) {
+                            } else if (cell.VerticalAlignment.Value == TableVerticalAlignmentValues.Bottom) {
                                 vAlign = "bottom";
                             }
                             cellStyles.Add($"vertical-align:{vAlign}");
@@ -540,13 +616,32 @@ namespace OfficeIMO.Word.Html {
                             cellElement.SetAttribute("style", string.Join(";", cellStyles));
                         }
 
-                        for (int pIdx = 0; pIdx < cell.Paragraphs.Count; pIdx++) {
-                            var p = cell.Paragraphs[pIdx];
+                        IElement? cellDefinitionList = null;
+                        var cellParagraphs = cell.Paragraphs;
+                        var processedCellParagraphs = new HashSet<WordParagraph>();
+                        for (int pIdx = 0; pIdx < cellParagraphs.Count; pIdx++) {
+                            var p = cellParagraphs[pIdx];
+                            if (processedCellParagraphs.Contains(p)) {
+                                continue;
+                            }
+                            if (IsDefinitionListParagraph(p) && IsEmptyDefinitionListParagraph(p)) {
+                                for (int j = pIdx + 1; j < cellParagraphs.Count; j++) {
+                                    if (!cellParagraphs[j].Equals(p)) {
+                                        break;
+                                    }
+                                    if (!IsEmptyDefinitionListParagraph(cellParagraphs[j])) {
+                                        p = cellParagraphs[j];
+                                        break;
+                                    }
+                                }
+                            }
+                            processedCellParagraphs.Add(p);
                             if (IsCodeParagraph(p)) {
+                                cellDefinitionList = null;
                                 List<string> lines = new();
                                 lines.Add(p.Text);
-                                while (pIdx + 1 < cell.Paragraphs.Count && IsCodeParagraph(cell.Paragraphs[pIdx + 1])) {
-                                    lines.Add(cell.Paragraphs[pIdx + 1].Text);
+                                while (pIdx + 1 < cellParagraphs.Count && IsCodeParagraph(cellParagraphs[pIdx + 1])) {
+                                    lines.Add(cellParagraphs[pIdx + 1].Text);
                                     pIdx++;
                                 }
                                 var pre = htmlDoc.CreateElement("pre");
@@ -554,7 +649,17 @@ namespace OfficeIMO.Word.Html {
                                 code.TextContent = string.Join("\n", lines);
                                 pre.AppendChild(code);
                                 cellElement.AppendChild(pre);
+                            } else if (IsDefinitionListParagraph(p)) {
+                                if (IsEmptyDefinitionListParagraph(p)) {
+                                    continue;
+                                }
+                                if (cellDefinitionList == null) {
+                                    cellDefinitionList = htmlDoc.CreateElement("dl");
+                                    cellElement.AppendChild(cellDefinitionList);
+                                }
+                                AppendDefinitionListItem(cellDefinitionList, p);
                             } else {
+                                cellDefinitionList = null;
                                 AppendParagraph(cellElement, p);
                             }
                         }
@@ -568,7 +673,7 @@ namespace OfficeIMO.Word.Html {
 
                         tr.AppendChild(cellElement);
                     }
-                    if (headerRowCount == 0) {
+                    if (headerRowCount == 0 && !hasFooterRow) {
                         tableEl.AppendChild(tr);
                     } else if (isHeaderRow) {
                         if (thead == null) {
@@ -576,6 +681,12 @@ namespace OfficeIMO.Word.Html {
                             tableEl.AppendChild(thead);
                         }
                         thead.AppendChild(tr);
+                    } else if (isFooterRow) {
+                        if (tfoot == null) {
+                            tfoot = htmlDoc.CreateElement("tfoot");
+                            tableEl.AppendChild(tfoot);
+                        }
+                        tfoot.AppendChild(tr);
                     } else {
                         if (tbody == null) {
                             tbody = htmlDoc.CreateElement("tbody");
@@ -615,7 +726,10 @@ namespace OfficeIMO.Word.Html {
                         "-" => "'-'",
                         "\u2013" => "'\\2013'",
                         "\u2014" => "'\\2014'",
-                        _ => "disc",
+                        "*" => "'*'",
+                        "+" => "'+'",
+                        "•" or "·" or "●" or "∙" or "" or null or "" => "disc",
+                        _ => QuoteCssListMarker(info.LevelText),
                     };
                 }
                 if (format != null && formatMap.TryGetValue(format.Value, out var map)) {
@@ -624,14 +738,25 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
+            string QuoteCssListMarker(string marker) {
+                var escaped = marker
+                    .Replace("\\", "\\\\")
+                    .Replace("'", "\\'")
+                    .Replace("\r", "\\d ")
+                    .Replace("\n", "\\a ")
+                    .Replace("\t", "\\9 ");
+                return $"'{escaped}'";
+            }
+
             string? GetListType(DocumentTraversal.ListInfo info) {
                 var format = info.NumberFormat;
                 if (format == NumberFormatValues.Bullet) {
                     return info.LevelText switch {
                         "o" or "◦" => "circle",
                         "■" or "§" => "square",
-                        "-" or "\u2013" or "\u2014" => null,
-                        _ => "disc",
+                        "-" or "\u2013" or "\u2014" or "*" or "+" => null,
+                        "•" or "·" or "●" or "∙" or "" or null or "" => "disc",
+                        _ => null,
                     };
                 }
                 if (format != null && formatMap.TryGetValue(format.Value, out var map)) {
@@ -651,7 +776,7 @@ namespace OfficeIMO.Word.Html {
                     sectionParent = CreateSectionElement(htmlDoc, section, sectionIndex, sectionIndex == 0);
                     body.AppendChild(sectionParent);
                 }
-                AppendHeaderFooterRegions(htmlDoc, sectionParent, section, sectionIndex, true, AppendParagraph, AppendTable, options, cancellationToken);
+                AppendHeaderFooterRegions(htmlDoc, sectionParent, section, sectionIndex, true, (parent, paragraph) => AppendParagraph(parent, paragraph), (parent, table) => AppendTable(parent, table), options, cancellationToken);
 
                 var elements = section.Elements;
                 if (elements == null || elements.Count == 0) {
@@ -664,9 +789,10 @@ namespace OfficeIMO.Word.Html {
                 if (elements == null) {
                     continue;
                 }
+                IElement? activeDefinitionList = null;
                 for (int idx = 0; idx < elements.Count; idx++) {
-                    var element = elements[idx];
-                    if (element is WordParagraph paragraph) {
+                        var element = elements[idx];
+                        if (element is WordParagraph paragraph) {
                         // Render each underlying OpenXml paragraph exactly once.
                         // Prefer the bookmark-bearing wrapper when multiple wrappers exist for the same paragraph.
                         if (processedParagraphs.Contains(paragraph)) {
@@ -683,8 +809,13 @@ namespace OfficeIMO.Word.Html {
                             }
                         }
                         processedParagraphs.Add(paragraph);
+                        if (IsCaptionParagraph(paragraph) && idx + 1 < elements.Count && elements[idx + 1] is WordTable) {
+                            activeDefinitionList = null;
+                            continue;
+                        }
                         var listInfo = DocumentTraversal.GetListInfo(paragraph);
                         if (listInfo != null) {
+                            activeDefinitionList = null;
                             int level = listInfo.Value.Level;
                             while (listStack.Count > level) {
                                 listStack.Pop();
@@ -730,7 +861,17 @@ namespace OfficeIMO.Word.Html {
                             AppendRuns(li, paragraph);
                         } else {
                             CloseLists();
-                            if (paragraph.IsImage && idx + 1 < elements.Count && elements[idx + 1] is WordParagraph captionPara && string.Equals(captionPara.StyleId, "Caption", StringComparison.OrdinalIgnoreCase)) {
+                            if (IsDefinitionListParagraph(paragraph)) {
+                                if (IsEmptyDefinitionListParagraph(paragraph)) {
+                                    continue;
+                                }
+                                if (activeDefinitionList == null) {
+                                    activeDefinitionList = htmlDoc.CreateElement("dl");
+                                    sectionParent.AppendChild(activeDefinitionList);
+                                }
+                                AppendDefinitionListItem(activeDefinitionList, paragraph);
+                            } else if (paragraph.IsImage && idx + 1 < elements.Count && elements[idx + 1] is WordParagraph captionPara && string.Equals(captionPara.StyleId, "Caption", StringComparison.OrdinalIgnoreCase)) {
+                                activeDefinitionList = null;
                                 var figure = htmlDoc.CreateElement("figure");
                                 ApplyBookmarkId(figure, paragraph);
                                 AppendRuns(figure, paragraph);
@@ -744,6 +885,7 @@ namespace OfficeIMO.Word.Html {
                                 sectionParent.AppendChild(figure);
                                 idx++;
                             } else if (IsCodeParagraph(paragraph)) {
+                                activeDefinitionList = null;
                                 List<string> lines = new();
                                 lines.Add(paragraph.Text);
                                 while (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextPara && DocumentTraversal.GetListInfo(nextPara) == null && IsCodeParagraph(nextPara)) {
@@ -757,17 +899,27 @@ namespace OfficeIMO.Word.Html {
                                 pre.AppendChild(code);
                                 sectionParent.AppendChild(pre);
                             } else {
+                                activeDefinitionList = null;
                                 AppendParagraph(sectionParent, paragraph);
                             }
                         }
                     } else if (element is WordTable table) {
                         CloseLists();
-                        AppendTable(sectionParent, table);
+                        activeDefinitionList = null;
+                        WordParagraph? captionParagraph = null;
+                        if (idx > 0 && elements[idx - 1] is WordParagraph previousCaption && IsCaptionParagraph(previousCaption)) {
+                            captionParagraph = previousCaption;
+                        } else if (idx + 1 < elements.Count && elements[idx + 1] is WordParagraph nextCaption && IsCaptionParagraph(nextCaption)) {
+                            captionParagraph = nextCaption;
+                            processedParagraphs.Add(nextCaption);
+                            idx++;
+                        }
+                        AppendTable(sectionParent, table, captionParagraph);
                     }
                 }
                 if (options.ExportHeadersAndFooters) {
                     CloseLists();
-                    AppendHeaderFooterRegions(htmlDoc, sectionParent, section, sectionIndex, false, AppendParagraph, AppendTable, options, cancellationToken);
+                    AppendHeaderFooterRegions(htmlDoc, sectionParent, section, sectionIndex, false, (parent, paragraph) => AppendParagraph(parent, paragraph), (parent, table) => AppendTable(parent, table), options, cancellationToken);
                 }
                 if (options.IncludeSectionMetadata) {
                     CloseLists();
@@ -784,6 +936,21 @@ namespace OfficeIMO.Word.Html {
             AppendStyleDefinitions(document, htmlDoc, head, paragraphStyles, runStyles, cancellationToken);
 
             return htmlDoc.DocumentElement.OuterHtml;
+        }
+
+        private static string? NormalizeRunLanguage(string? language, string? documentLanguage) {
+            var normalized = language?.Trim();
+            if (string.IsNullOrEmpty(normalized)) {
+                return null;
+            }
+
+            var normalizedDocumentLanguage = documentLanguage?.Trim();
+            if (!string.IsNullOrEmpty(normalizedDocumentLanguage) &&
+                string.Equals(normalized, normalizedDocumentLanguage, StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
+            return normalized;
         }
     }
 }

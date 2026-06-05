@@ -22,6 +22,7 @@ namespace OfficeIMO.Word.Html {
                 Bold = bold;
                 Italic = italic;
                 Underline = underline;
+                UnderlineStyle = underline ? UnderlineValues.Single : null;
                 Strike = strike;
                 Superscript = superscript;
                 Subscript = subscript;
@@ -39,6 +40,7 @@ namespace OfficeIMO.Word.Html {
             internal bool Bold { get; set; }
             internal bool Italic { get; set; }
             internal bool Underline { get; set; }
+            internal UnderlineValues? UnderlineStyle { get; set; }
             internal bool Strike { get; set; }
             internal bool Superscript { get; set; }
             internal bool Subscript { get; set; }
@@ -260,14 +262,8 @@ namespace OfficeIMO.Word.Html {
             }
 
             var align = GetInlinePropertyValue(declaration, styleAttribute, "text-align")?.Trim();
-            if (!string.IsNullOrEmpty(align)) {
-                alignment = align!.ToLowerInvariant() switch {
-                    "center" => JustificationValues.Center,
-                    "right" => JustificationValues.Right,
-                    "justify" => JustificationValues.Both,
-                    "left" => JustificationValues.Left,
-                    _ => alignment
-                };
+            if (TryMapTextAlign(align, GetBidiFromDir(element), out var mappedAlignment)) {
+                alignment = mappedAlignment;
             }
 
             var floatVal = GetInlinePropertyValue(declaration, styleAttribute, "float")?.Trim();
@@ -320,6 +316,36 @@ namespace OfficeIMO.Word.Html {
             return parsed;
         }
 
+        private static bool TryMapTextAlign(string? value, bool? bidi, out JustificationValues alignment) {
+            alignment = JustificationValues.Left;
+            if (string.IsNullOrWhiteSpace(value)) {
+                return false;
+            }
+
+            switch (value!.Trim().ToLowerInvariant()) {
+                case "center":
+                    alignment = JustificationValues.Center;
+                    return true;
+                case "right":
+                    alignment = JustificationValues.Right;
+                    return true;
+                case "justify":
+                    alignment = JustificationValues.Both;
+                    return true;
+                case "left":
+                    alignment = JustificationValues.Left;
+                    return true;
+                case "start":
+                    alignment = bidi == true ? JustificationValues.Right : JustificationValues.Left;
+                    return true;
+                case "end":
+                    alignment = bidi == true ? JustificationValues.Left : JustificationValues.Right;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         private static readonly Regex _urlRegex = new(@"((?:https?|ftp)://[^\s]+)", RegexOptions.IgnoreCase);
         private static readonly Regex _collapseWhitespaceRegex = new(@"\s+", RegexOptions.Compiled);
 
@@ -334,7 +360,7 @@ namespace OfficeIMO.Word.Html {
                 if (string.IsNullOrEmpty(segment)) {
                     return;
                 }
-                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
+                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting));
                 ApplyFormatting(run, formatting, options);
                 return;
             }
@@ -344,7 +370,7 @@ namespace OfficeIMO.Word.Html {
                 if (match.Index > lastIndex) {
                     var segment = text.Substring(lastIndex, match.Index - lastIndex);
                     segment = ApplyTextTransform(segment, formatting.Transform);
-                    var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
+                    var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting));
                     ApplyFormatting(run, formatting, options);
                 }
                 var display = ApplyTextTransform(match.Value, formatting.Transform);
@@ -355,7 +381,7 @@ namespace OfficeIMO.Word.Html {
             if (lastIndex < text.Length) {
                 var segment = text.Substring(lastIndex);
                 segment = ApplyTextTransform(segment, formatting.Transform);
-                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, formatting.Underline ? UnderlineValues.Single : null);
+                var run = paragraph.AddFormattedText(segment, formatting.Bold, formatting.Italic, GetUnderlineValue(formatting));
                 ApplyFormatting(run, formatting, options);
             }
         }
@@ -384,7 +410,7 @@ namespace OfficeIMO.Word.Html {
         private static void ApplyFormatting(WordParagraph run, TextFormatting formatting, HtmlToWordOptions options) {
             if (formatting.Bold) run.SetBold();
             if (formatting.Italic) run.SetItalic();
-            if (formatting.Underline) run.SetUnderline(UnderlineValues.Single);
+            if (formatting.Underline) run.SetUnderline(GetUnderlineValue(formatting) ?? UnderlineValues.Single);
             if (formatting.Strike) run.SetStrike();
             if (formatting.Superscript) run.SetSuperScript();
             if (formatting.Subscript) run.SetSubScript();
@@ -407,6 +433,9 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
+        private static UnderlineValues? GetUnderlineValue(TextFormatting formatting) =>
+            formatting.Underline ? formatting.UnderlineStyle ?? UnderlineValues.Single : null;
+
         private static void ApplySpanStyles(IElement element, ref TextFormatting formatting) {
             var styleText = element.GetAttribute("style") ?? string.Empty;
             var parsed = CssStyleMapper.ParseStyles(styleText);
@@ -415,7 +444,7 @@ namespace OfficeIMO.Word.Html {
             if (!string.IsNullOrWhiteSpace(language)) {
                 formatting.Language = language;
             }
-            if (string.IsNullOrWhiteSpace(styleText) && declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline && !parsed.Strike) {
+            if (string.IsNullOrWhiteSpace(styleText) && declaration.Length == 0 && parsed.BackgroundColor == null && !parsed.Underline.HasValue && !parsed.Strike.HasValue && !parsed.UnderlineStyle.HasValue) {
                 return;
             }
 
@@ -487,11 +516,16 @@ namespace OfficeIMO.Word.Html {
                 formatting.Transform = transform.Value;
             }
 
-            if (parsed.Underline) {
-                formatting.Underline = true;
+            if (parsed.Underline.HasValue) {
+                formatting.Underline = parsed.Underline.Value;
             }
-            if (parsed.Strike) {
-                formatting.Strike = true;
+            if (parsed.UnderlineStyle.HasValue) {
+                formatting.UnderlineStyle = parsed.UnderlineStyle.Value;
+            } else if (formatting.Underline && !formatting.UnderlineStyle.HasValue) {
+                formatting.UnderlineStyle = UnderlineValues.Single;
+            }
+            if (parsed.Strike.HasValue) {
+                formatting.Strike = parsed.Strike.Value;
             }
             if (!string.IsNullOrEmpty(parsed.BackgroundColor)) {
                 var highlight = MapColorToHighlight(parsed.BackgroundColor);

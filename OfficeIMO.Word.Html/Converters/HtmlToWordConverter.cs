@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.Html {
         private readonly Dictionary<string, string[]> _endnoteMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<string, HtmlCommentInfo> _commentMap = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<string> _unsupportedCssDiagnosticKeys = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<IElement> _processedRadioInputs = new();
         private readonly List<ICssStyleRule> _cssRules = new();
         private readonly CssParser _cssParser = new();
         private readonly Dictionary<string, WordImage> _imageCache = new(StringComparer.OrdinalIgnoreCase);
@@ -43,6 +44,7 @@ namespace OfficeIMO.Word.Html {
         private CancellationToken _cancellationToken = CancellationToken.None;
         private TimeSpan? _resourceTimeout;
         private long _imageBytesUsed;
+        private long _cssBytesUsed;
         private HtmlToWordOptions _options = new HtmlToWordOptions();
         private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
         private static readonly HashSet<string> _blockTags = new(StringComparer.OrdinalIgnoreCase) {
@@ -81,91 +83,17 @@ namespace OfficeIMO.Word.Html {
             _endnoteMap.Clear();
             _commentMap.Clear();
             _unsupportedCssDiagnosticKeys.Clear();
+            _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
+            _cssBytesUsed = 0;
             ResetAccessibilityDiagnosticsState();
 
-            foreach (var path in options.StylesheetPaths) {
-                if (string.IsNullOrEmpty(path)) {
-                    continue;
-                }
-                if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)) {
-                    if (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps) {
-                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()), cancellationToken).ConfigureAwait(false);
-                    } else if (absolute.Scheme == Uri.UriSchemeFile && File.Exists(absolute.LocalPath)) {
-                        ParseCss(File.ReadAllText(absolute.LocalPath), absolute.LocalPath);
-                    }
-                } else if (document.BaseUrl != null) {
-                    var url = new Url(new Url(document.BaseUrl), path);
-                    if (url.Scheme == "http" || url.Scheme == "https") {
-                        await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                    } else if (url.Scheme == "file") {
-                        TryLoadCssFromFileUrl(url);
-                    }
-                } else if (File.Exists(path)) {
-                    ParseCss(File.ReadAllText(path), path);
-                }
-            }
-            foreach (var content in options.StylesheetContents) {
-                if (!string.IsNullOrEmpty(content)) {
-                    ParseCss(content);
-                }
-            }
-
-            if (document.Head != null) {
-                Uri? baseUri = null;
-                if (document.BaseUrl != null && Uri.TryCreate(document.BaseUrl.Href, UriKind.Absolute, out var du)) {
-                    baseUri = du;
-                }
-
-                foreach (var node in document.Head.ChildNodes) {
-                    if (node is IHtmlBaseElement baseElement) {
-                        if (Uri.TryCreate(baseElement.Href, UriKind.Absolute, out var bu)) {
-                            baseUri = bu;
-                        }
-                        continue;
-                    }
-                    if (node is IHtmlStyleElement styleElement) {
-                        ParseCss(styleElement.TextContent);
-                        continue;
-                    }
-                    if (node is IHtmlLinkElement linkElement) {
-                        var rel = linkElement.GetAttribute("rel");
-                        if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
-                            continue;
-                        }
-                        if (!options.AllowDocumentStylesheetLinks) {
-                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
-                            continue;
-                        }
-
-                        var hrefAttr = linkElement.GetAttribute("href");
-                        var href = linkElement.Href ?? hrefAttr;
-                        if (string.IsNullOrEmpty(href)) {
-                            continue;
-                        }
-
-                        if (!string.IsNullOrEmpty(hrefAttr) && File.Exists(hrefAttr)) {
-                            ParseCss(File.ReadAllText(hrefAttr), hrefAttr);
-                            continue;
-                        }
-
-                        var url = new Url(href);
-                        if (!url.IsAbsolute && baseUri != null) {
-                            url = new Url(new Url(baseUri.ToString()), href);
-                        }
-
-                        if (url.Scheme == "http" || url.Scheme == "https") {
-                            await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                        } else if (url.Scheme == "file") {
-                            TryLoadCssFromFileUrl(url);
-                        }
-                    }
-                }
-            }
+            await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
+            await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
 
             CaptureNoteSections(document);
             CaptureCommentSections(document);
@@ -210,91 +138,17 @@ namespace OfficeIMO.Word.Html {
             _endnoteMap.Clear();
             _commentMap.Clear();
             _unsupportedCssDiagnosticKeys.Clear();
+            _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
+            _cssBytesUsed = 0;
             ResetAccessibilityDiagnosticsState();
 
-            foreach (var path in options.StylesheetPaths) {
-                if (string.IsNullOrEmpty(path)) {
-                    continue;
-                }
-                if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)) {
-                    if (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps) {
-                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()), cancellationToken).ConfigureAwait(false);
-                    } else if (absolute.Scheme == Uri.UriSchemeFile && File.Exists(absolute.LocalPath)) {
-                        ParseCss(File.ReadAllText(absolute.LocalPath), absolute.LocalPath);
-                    }
-                } else if (document.BaseUrl != null) {
-                    var url = new Url(new Url(document.BaseUrl), path);
-                    if (url.Scheme == "http" || url.Scheme == "https") {
-                        await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                    } else if (url.Scheme == "file") {
-                        TryLoadCssFromFileUrl(url);
-                    }
-                } else if (File.Exists(path)) {
-                    ParseCss(File.ReadAllText(path), path);
-                }
-            }
-            foreach (var content in options.StylesheetContents) {
-                if (!string.IsNullOrEmpty(content)) {
-                    ParseCss(content);
-                }
-            }
-
-            if (document.Head != null) {
-                Uri? baseUri = null;
-                if (document.BaseUrl != null && Uri.TryCreate(document.BaseUrl.Href, UriKind.Absolute, out var du)) {
-                    baseUri = du;
-                }
-
-                foreach (var node in document.Head.ChildNodes) {
-                    if (node is IHtmlBaseElement baseElement) {
-                        if (Uri.TryCreate(baseElement.Href, UriKind.Absolute, out var bu)) {
-                            baseUri = bu;
-                        }
-                        continue;
-                    }
-                    if (node is IHtmlStyleElement styleElement) {
-                        ParseCss(styleElement.TextContent);
-                        continue;
-                    }
-                    if (node is IHtmlLinkElement linkElement) {
-                        var rel = linkElement.GetAttribute("rel");
-                        if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
-                            continue;
-                        }
-                        if (!options.AllowDocumentStylesheetLinks) {
-                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
-                            continue;
-                        }
-
-                        var hrefAttr = linkElement.GetAttribute("href");
-                        var href = linkElement.Href ?? hrefAttr;
-                        if (string.IsNullOrEmpty(href)) {
-                            continue;
-                        }
-
-                        if (!string.IsNullOrEmpty(hrefAttr) && File.Exists(hrefAttr)) {
-                            ParseCss(File.ReadAllText(hrefAttr), hrefAttr);
-                            continue;
-                        }
-
-                        var url = new Url(href);
-                        if (!url.IsAbsolute && baseUri != null) {
-                            url = new Url(new Url(baseUri.ToString()), href);
-                        }
-
-                        if (url.Scheme == "http" || url.Scheme == "https") {
-                            await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                        } else if (url.Scheme == "file") {
-                            TryLoadCssFromFileUrl(url);
-                        }
-                    }
-                }
-            }
+            await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
+            await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
 
             CaptureNoteSections(document, cancellationToken);
             CaptureCommentSections(document, cancellationToken);
@@ -336,91 +190,17 @@ namespace OfficeIMO.Word.Html {
             _endnoteMap.Clear();
             _commentMap.Clear();
             _unsupportedCssDiagnosticKeys.Clear();
+            _processedRadioInputs.Clear();
             _cssRules.Clear();
             _imageCache.Clear();
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
+            _cssBytesUsed = 0;
             ResetAccessibilityDiagnosticsState();
 
-            foreach (var path in options.StylesheetPaths) {
-                if (string.IsNullOrEmpty(path)) {
-                    continue;
-                }
-                if (Uri.TryCreate(path, UriKind.Absolute, out var absolute)) {
-                    if (absolute.Scheme == Uri.UriSchemeHttp || absolute.Scheme == Uri.UriSchemeHttps) {
-                        await LoadAndParseCssAsync(context, new Url(absolute.ToString()), cancellationToken).ConfigureAwait(false);
-                    } else if (absolute.Scheme == Uri.UriSchemeFile && File.Exists(absolute.LocalPath)) {
-                        ParseCss(File.ReadAllText(absolute.LocalPath), absolute.LocalPath);
-                    }
-                } else if (document.BaseUrl != null) {
-                    var url = new Url(new Url(document.BaseUrl), path);
-                    if (url.Scheme == "http" || url.Scheme == "https") {
-                        await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                    } else if (url.Scheme == "file") {
-                        TryLoadCssFromFileUrl(url);
-                    }
-                } else if (File.Exists(path)) {
-                    ParseCss(File.ReadAllText(path), path);
-                }
-            }
-            foreach (var content in options.StylesheetContents) {
-                if (!string.IsNullOrEmpty(content)) {
-                    ParseCss(content);
-                }
-            }
-
-            if (document.Head != null) {
-                Uri? baseUri = null;
-                if (document.BaseUrl != null && Uri.TryCreate(document.BaseUrl.Href, UriKind.Absolute, out var du)) {
-                    baseUri = du;
-                }
-
-                foreach (var node in document.Head.ChildNodes) {
-                    if (node is IHtmlBaseElement baseElement) {
-                        if (Uri.TryCreate(baseElement.Href, UriKind.Absolute, out var bu)) {
-                            baseUri = bu;
-                        }
-                        continue;
-                    }
-                    if (node is IHtmlStyleElement styleElement) {
-                        ParseCss(styleElement.TextContent);
-                        continue;
-                    }
-                    if (node is IHtmlLinkElement linkElement) {
-                        var rel = linkElement.GetAttribute("rel");
-                        if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
-                            continue;
-                        }
-                        if (!options.AllowDocumentStylesheetLinks) {
-                            AddDiagnostic(options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
-                            continue;
-                        }
-
-                        var hrefAttr = linkElement.GetAttribute("href");
-                        var href = linkElement.Href ?? hrefAttr;
-                        if (string.IsNullOrEmpty(href)) {
-                            continue;
-                        }
-
-                        if (!string.IsNullOrEmpty(hrefAttr) && File.Exists(hrefAttr)) {
-                            ParseCss(File.ReadAllText(hrefAttr), hrefAttr);
-                            continue;
-                        }
-
-                        var url = new Url(href);
-                        if (!url.IsAbsolute && baseUri != null) {
-                            url = new Url(new Url(baseUri.ToString()), href);
-                        }
-
-                        if (url.Scheme == "http" || url.Scheme == "https") {
-                            await LoadAndParseCssAsync(context, url, cancellationToken).ConfigureAwait(false);
-                        } else if (url.Scheme == "file") {
-                            TryLoadCssFromFileUrl(url);
-                        }
-                    }
-                }
-            }
+            await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
+            await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
 
             CaptureNoteSections(document, cancellationToken);
             CaptureCommentSections(document, cancellationToken);

@@ -18,15 +18,12 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (options.ExportFootnotes && run.FootNote != null) {
+                if (IsBlockquoteCiteReference(run.CharacterStyleId)) {
+                    return true;
+                }
+
                 var note = run.FootNote;
-                if (string.Equals(run.CharacterStyleId, "HtmlAbbr", StringComparison.OrdinalIgnoreCase) && nodes.Count > 0) {
-                    string text = string.Join(string.Empty, note.Paragraphs?.Skip(1).Select(r => r.Text) ?? Enumerable.Empty<string>());
-                    var abbr = htmlDoc.CreateElement("abbr");
-                    abbr.SetAttribute("title", text);
-                    var lastNode = nodes[nodes.Count - 1];
-                    abbr.AppendChild(lastNode);
-                    nodes[nodes.Count - 1] = abbr;
-                } else {
+                if (!TryReplaceLastNodeWithAbbreviation(run.CharacterStyleId, htmlDoc, nodes, note.Paragraphs?.Skip(1).Select(r => r.Text))) {
                     long id = note.ReferenceId ?? 0;
                     if (!footnoteMap.TryGetValue(id, out int number)) {
                         number = footnotes.Count + 1;
@@ -46,24 +43,96 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (options.ExportEndnotes && run.EndNote != null) {
-                var note = run.EndNote;
-                long id = note.ReferenceId ?? 0;
-                if (!endnoteMap.TryGetValue(id, out int number)) {
-                    number = endnotes.Count + 1;
-                    endnoteMap[id] = number;
-                    endnotes.Add((number, note));
+                if (IsBlockquoteCiteReference(run.CharacterStyleId)) {
+                    return true;
                 }
-                var sup = htmlDoc.CreateElement("sup");
-                var a = htmlDoc.CreateElement("a");
-                a.SetAttribute("href", $"#en{number}");
-                a.SetAttribute("id", $"enref{number}");
-                a.TextContent = number.ToString();
-                sup.AppendChild(a);
-                nodes.Add(sup);
+
+                var note = run.EndNote;
+                if (!TryReplaceLastNodeWithAbbreviation(run.CharacterStyleId, htmlDoc, nodes, note.Paragraphs?.Skip(1).Select(r => r.Text))) {
+                    long id = note.ReferenceId ?? 0;
+                    if (!endnoteMap.TryGetValue(id, out int number)) {
+                        number = endnotes.Count + 1;
+                        endnoteMap[id] = number;
+                        endnotes.Add((number, note));
+                    }
+                    var sup = htmlDoc.CreateElement("sup");
+                    var a = htmlDoc.CreateElement("a");
+                    a.SetAttribute("href", $"#en{number}");
+                    a.SetAttribute("id", $"enref{number}");
+                    a.TextContent = number.ToString();
+                    sup.AppendChild(a);
+                    nodes.Add(sup);
+                }
+
                 return true;
             }
 
             return false;
+        }
+
+        private static bool IsBlockquoteCiteReference(string? characterStyleId) {
+            return string.Equals(characterStyleId, HtmlSemanticStyleIds.BlockquoteCite, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryGetBlockquoteCiteAttribute(WordParagraph paragraph, out string cite) {
+            if (HtmlSemanticMetadata.TryGetBlockquoteCite(paragraph, out cite)) {
+                return true;
+            }
+
+            foreach (var run in paragraph.GetRuns()) {
+                if (!IsBlockquoteCiteReference(run.CharacterStyleId)) {
+                    continue;
+                }
+
+                if (run.FootNote != null && TryGetNoteCitation(run.FootNote.Paragraphs, out cite)) {
+                    return true;
+                }
+
+                if (run.EndNote != null && TryGetNoteCitation(run.EndNote.Paragraphs, out cite)) {
+                    return true;
+                }
+            }
+
+            cite = string.Empty;
+            return false;
+        }
+
+        private static bool TryGetNoteCitation(IEnumerable<WordParagraph>? noteParagraphs, out string cite) {
+            foreach (var paragraph in noteParagraphs?.Skip(1) ?? Enumerable.Empty<WordParagraph>()) {
+                if (paragraph.Hyperlink?.Uri != null) {
+                    cite = paragraph.Hyperlink.Uri.ToString();
+                    return true;
+                }
+
+                foreach (var run in paragraph.GetRuns()) {
+                    if (run.Hyperlink?.Uri != null) {
+                        cite = run.Hyperlink.Uri.ToString();
+                        return true;
+                    }
+                }
+
+                if (!string.IsNullOrWhiteSpace(paragraph.Text)) {
+                    cite = paragraph.Text.Trim();
+                    return true;
+                }
+            }
+
+            cite = string.Empty;
+            return false;
+        }
+
+        private static bool TryReplaceLastNodeWithAbbreviation(string? characterStyleId, IDocument htmlDoc, List<INode> nodes, IEnumerable<string?>? noteParagraphs) {
+            if (!string.Equals(characterStyleId, "HtmlAbbr", StringComparison.OrdinalIgnoreCase) || nodes.Count == 0) {
+                return false;
+            }
+
+            string text = string.Join(string.Empty, noteParagraphs ?? Enumerable.Empty<string?>());
+            var abbr = htmlDoc.CreateElement("abbr");
+            abbr.SetAttribute("title", text);
+            var lastNode = nodes[nodes.Count - 1];
+            abbr.AppendChild(lastNode);
+            nodes[nodes.Count - 1] = abbr;
+            return true;
         }
 
         private static void AppendFootnotes(

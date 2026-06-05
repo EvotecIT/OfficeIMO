@@ -33,6 +33,16 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
+        private static WordParagraph AddParagraphInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+            if (cell != null) {
+                var paragraphs = cell.Paragraphs;
+                bool removeExisting = paragraphs.Count == 1 && string.IsNullOrEmpty(paragraphs[0].Text);
+                return cell.AddParagraph("", removeExisting);
+            }
+
+            return headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+        }
+
         private static List<WordParagraph> GetParagraphsInScope(WordSection section, WordTableCell? cell, WordHeaderFooter? headerFooter) =>
             cell?.Paragraphs ?? headerFooter?.Paragraphs ?? section.Paragraphs;
 
@@ -132,7 +142,7 @@ namespace OfficeIMO.Word.Html {
                                 }
                                 var secId = element.GetAttribute("id");
                                 if (!string.IsNullOrEmpty(secId)) {
-                                    var paragraph = section.Paragraphs.Count > startIndex ? section.Paragraphs[startIndex] : (cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph(""));
+                                    var paragraph = section.Paragraphs.Count > startIndex ? section.Paragraphs[startIndex] : AddParagraphInScope(section, cell, headerFooter);
                                     WordBookmark.AddBookmark(paragraph, $"section:{secId}");
                                 }
                             }
@@ -167,7 +177,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             var id = element.GetAttribute("id");
                             if (!string.IsNullOrEmpty(id)) {
-                                var paragraph = section.Paragraphs.Count > startIndex ? section.Paragraphs[startIndex] : (cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph(""));
+                                var paragraph = section.Paragraphs.Count > startIndex ? section.Paragraphs[startIndex] : AddParagraphInScope(section, cell, headerFooter);
                                 WordBookmark.AddBookmark(paragraph, $"{element.TagName.ToLowerInvariant()}:{id}");
                             }
                             ApplyContainerPageBreaksFromCss(element, GetGeneratedParagraphs(section, cell, headerFooter, scopeStartIndex));
@@ -184,7 +194,7 @@ namespace OfficeIMO.Word.Html {
                             if (options.SupportsHeadingNumbering && headingList != null && cell == null) {
                                 paragraph = headingList.AddItem("", level - 1);
                             } else {
-                                paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                paragraph = AddParagraphInScope(section, cell, headerFooter);
                             }
                             paragraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(level);
                             var fmt = formatting;
@@ -203,7 +213,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "p": {
-                            var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            var paragraph = AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
@@ -220,7 +230,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "dt": {
-                            var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            var paragraph = AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
@@ -228,6 +238,7 @@ namespace OfficeIMO.Word.Html {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
                             ApplyClassStyle(element, paragraph, options);
+                            paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionTerm);
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
                             foreach (var child in element.ChildNodes) {
@@ -237,7 +248,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "dd": {
-                            var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            var paragraph = AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             var props = ApplyParagraphStyleFromCss(paragraph, element);
@@ -245,6 +256,7 @@ namespace OfficeIMO.Word.Html {
                                 fmt.WhiteSpace = props.WhiteSpace.Value;
                             }
                             ApplyClassStyle(element, paragraph, options);
+                            paragraph.SetStyleId(HtmlSemanticStyleIds.DefinitionDescription);
                             ApplyBidiIfPresent(element, paragraph);
                             AddBookmarkIfPresent(element, paragraph);
                             var currentIndent = paragraph.IndentationBefore ?? 0;
@@ -258,23 +270,25 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "blockquote": {
-                            var startIndex = doc.Paragraphs.Count;
+                            var startIndex = GetParagraphsInScope(section, cell, headerFooter).Count;
                             var cite = element.GetAttribute("cite");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
                             WordParagraph? firstPara = null;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, firstPara, listStack, fmt, cell, headerFooter, headingList);
-                                if (firstPara == null && doc.Paragraphs.Count > startIndex) {
-                                    firstPara = doc.Paragraphs[startIndex];
+                                var scopedParagraphs = GetParagraphsInScope(section, cell, headerFooter);
+                                if (firstPara == null && scopedParagraphs.Count > startIndex) {
+                                    firstPara = scopedParagraphs[startIndex];
                                 }
                             }
                             if (firstPara == null) {
-                                firstPara = cell?.AddParagraph("", true) ?? headerFooter?.AddParagraph("") ?? section.AddParagraph("");
+                                firstPara = AddParagraphInScope(section, cell, headerFooter);
                             }
-                            var endIndex = doc.Paragraphs.Count;
+                            var blockquoteParagraphs = GetParagraphsInScope(section, cell, headerFooter);
+                            var endIndex = blockquoteParagraphs.Count;
                             for (int i = startIndex; i < endIndex; i++) {
-                                var para = doc.Paragraphs[i];
+                                var para = blockquoteParagraphs[i];
                                 if (doc.StyleExists("Quote")) {
                                     para.SetStyleId("Quote");
                                 }
@@ -287,7 +301,9 @@ namespace OfficeIMO.Word.Html {
                                 }
                             }
                             if (!string.IsNullOrEmpty(cite)) {
+                                HtmlSemanticMetadata.SetBlockquoteCite(firstPara!, cite);
                                 var noteRef = AddNoteReference(firstPara!, cite ?? string.Empty, options);
+                                noteRef.SetCharacterStyleId(HtmlSemanticStyleIds.BlockquoteCite);
                                 TryLinkNoteReference(noteRef, cite ?? string.Empty, options);
                             }
                             break;
@@ -330,7 +346,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "br": {
-                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             currentParagraph.AddBreak();
                             break;
                         }
@@ -363,6 +379,7 @@ namespace OfficeIMO.Word.Html {
                     case "u": {
                             var fmt = formatting;
                             fmt.Underline = true;
+                            fmt.UnderlineStyle ??= UnderlineValues.Single;
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
@@ -370,46 +387,67 @@ namespace OfficeIMO.Word.Html {
                         }
                     case "s":
                     case "del": {
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Strike = true;
+                            int startRuns = currentParagraph.GetRuns().Count();
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            if (string.Equals(element.TagName, "del", StringComparison.OrdinalIgnoreCase)) {
+                                var runs = currentParagraph.GetRuns().ToList();
+                                for (int i = startRuns; i < runs.Count; i++) {
+                                    runs[i].SetCharacterStyleId(HtmlSemanticStyleIds.DeletedText);
+                                }
                             }
                             break;
                         }
                     case "ins": {
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Underline = true;
+                            fmt.UnderlineStyle ??= UnderlineValues.Single;
+                            int startRuns = currentParagraph.GetRuns().Count();
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            var runs = currentParagraph.GetRuns().ToList();
+                            for (int i = startRuns; i < runs.Count; i++) {
+                                runs[i].SetCharacterStyleId(HtmlSemanticStyleIds.InsertedText);
                             }
                             break;
                         }
                     case "mark": {
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Highlight = HighlightColorValues.Yellow;
+                            int startRuns = currentParagraph.GetRuns().Count();
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            var runs = currentParagraph.GetRuns().ToList();
+                            for (int i = startRuns; i < runs.Count; i++) {
+                                runs[i].SetCharacterStyleId(HtmlSemanticStyleIds.MarkedText);
                             }
                             break;
                         }
                     case "q": {
-                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
-                            var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
+                            var open = currentParagraph.AddFormattedText(options.QuotePrefix, fmt.Bold, fmt.Italic, GetUnderlineValue(fmt));
                             ApplyFormatting(open, fmt, options);
                             open.SetCharacterStyleId("HtmlQuote");
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
-                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold, fmt.Italic, fmt.Underline ? UnderlineValues.Single : null);
+                            var close = currentParagraph.AddFormattedText(options.QuoteSuffix, fmt.Bold, fmt.Italic, GetUnderlineValue(fmt));
                             ApplyFormatting(close, fmt, options);
                             close.SetCharacterStyleId("HtmlQuote");
                             break;
                         }
                     case "cite": {
-                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Italic = true;
                             ApplySpanStyles(element, ref fmt);
@@ -424,7 +462,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "dfn": {
-                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             fmt.Italic = true;
                             ApplySpanStyles(element, ref fmt);
@@ -439,9 +477,10 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "time": {
-                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
+                            var dateTime = element.GetAttribute("datetime");
                             int startRuns = currentParagraph.GetRuns().Count();
                             foreach (var child in element.ChildNodes) {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
@@ -449,6 +488,7 @@ namespace OfficeIMO.Word.Html {
                             var runs = currentParagraph.GetRuns().ToList();
                             for (int i = startRuns; i < runs.Count; i++) {
                                 runs[i].SetCharacterStyleId("HtmlTime");
+                                HtmlSemanticMetadata.SetTimeDateTime(runs[i], dateTime);
                             }
                             break;
                         }
@@ -530,7 +570,17 @@ namespace OfficeIMO.Word.Html {
                             }
                             break;
                         }
-                    case "ruby":
+                    case "ruby": {
+                            var fmt = formatting;
+                            ApplySpanStyles(element, ref fmt);
+                            if (TryProcessRubyElement(element, section, options, currentParagraph, fmt, cell, headerFooter)) {
+                                break;
+                            }
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                            }
+                            break;
+                        }
                     case "rb":
                     case "rt":
                     case "rp": {
@@ -551,7 +601,7 @@ namespace OfficeIMO.Word.Html {
                         }
                     case "abbr":
                     case "acronym": {
-                            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                            currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                             var title = element.GetAttribute("title");
                             var fmt = formatting;
                             ApplySpanStyles(element, ref fmt);
@@ -559,7 +609,7 @@ namespace OfficeIMO.Word.Html {
                                 ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
                             }
                             if (!string.IsNullOrEmpty(title)) {
-                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                                 var fnRun = AddNoteReference(currentParagraph, title ?? string.Empty, options);
                                 fnRun.SetCharacterStyleId("HtmlAbbr");
                                 TryLinkNoteReference(fnRun, title ?? string.Empty, options);
@@ -573,7 +623,7 @@ namespace OfficeIMO.Word.Html {
                             var idAttr = element.GetAttribute("id");
                             var nameAttr = element.GetAttribute("name");
                             if (!string.IsNullOrEmpty(idAttr) || !string.IsNullOrEmpty(nameAttr)) {
-                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                                 AddBookmarkIfPresent(element, currentParagraph);
                             }
                             if (string.IsNullOrWhiteSpace(href)) {
@@ -622,7 +672,7 @@ namespace OfficeIMO.Word.Html {
                                     break;
                                 }
 
-                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                                 var fmtAnchor = formatting;
                                 ApplySpanStyles(element, ref fmtAnchor);
                                 var hasBlockAnchor = HasBlockDescendant(element);
@@ -682,7 +732,7 @@ namespace OfficeIMO.Word.Html {
                             }
 
                             try {
-                                currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+                                currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                                 var fmtExternal = formatting;
                                 ApplySpanStyles(element, ref fmtExternal);
                                 var hasBlock = HasBlockDescendant(element);
@@ -741,25 +791,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "figure": {
-                            WordParagraph? figPara = currentParagraph;
-                            foreach (var child in element.ChildNodes) {
-                                if (child is IElement childEl && string.Equals(childEl.TagName, "figcaption", StringComparison.OrdinalIgnoreCase)) {
-                                    ApplyCssToElement(childEl);
-                                    var paragraph = cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
-                                    paragraph.SetStyleId("Caption");
-                                    ApplyParagraphStyleFromCss(paragraph, childEl);
-                                    ApplyClassStyle(childEl, paragraph, options);
-                                    AddBookmarkIfPresent(childEl, paragraph);
-                                    foreach (var captionChild in childEl.ChildNodes) {
-                                        ProcessNode(captionChild, doc, section, options, paragraph, listStack, formatting, cell, headerFooter, headingList);
-                                    }
-                                } else {
-                                    ProcessNode(child, doc, section, options, figPara, listStack, formatting, cell, headerFooter, headingList);
-                                    if (figPara == null && doc.Paragraphs.Count > 0) {
-                                        figPara = doc.Paragraphs.Last();
-                                    }
-                                }
-                            }
+                            ProcessFigureElement(element, doc, section, options, currentParagraph, listStack, formatting, cell, headerFooter, headingList);
                             break;
                         }
                     case "img": {
@@ -768,8 +800,25 @@ namespace OfficeIMO.Word.Html {
                         }
                     case "input":
                     case "select":
-                    case "textarea": {
+                    case "textarea":
+                    case "meter":
+                    case "progress": {
                             ProcessFormControl(element, section, options, currentParagraph, formatting, cell, headerFooter);
+                            break;
+                        }
+                    case "label": {
+                            if (IsRadioChoiceLabel(element)) {
+                                foreach (var radio in element.QuerySelectorAll("input").Where(IsRadioInput)) {
+                                    ProcessFormControl(radio, section, options, currentParagraph, formatting, cell, headerFooter);
+                                }
+
+                                break;
+                            }
+
+                            foreach (var child in element.ChildNodes) {
+                                ProcessNode(child, doc, section, options, currentParagraph, listStack, formatting, cell, headerFooter, headingList);
+                            }
+
                             break;
                         }
                     case "datalist": {
@@ -778,6 +827,15 @@ namespace OfficeIMO.Word.Html {
                     case "script":
                     case "template": {
                             AddDiagnostic(options, "HtmlElementSkipped", "HTML element content was skipped because it is not rendered as document content.", element.TagName.ToLowerInvariant());
+                            break;
+                        }
+                    case "iframe":
+                    case "object":
+                    case "embed":
+                    case "video":
+                    case "audio":
+                    case "canvas": {
+                            AddDiagnostic(options, "HtmlEmbeddedContentSkipped", "Embedded HTML content was skipped because it does not have a Word conversion contract.", element.TagName.ToLowerInvariant());
                             break;
                         }
                     case "style": {
@@ -795,6 +853,8 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                 }
+            } else if (node is IComment commentNode) {
+                ProcessRawHtmlComment(commentNode, section, ref currentParagraph, cell, headerFooter, options);
             } else if (node is IText textNode) {
                 var text = textNode.Text;
                 if (string.IsNullOrEmpty(text)) {

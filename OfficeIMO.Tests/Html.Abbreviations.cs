@@ -35,5 +35,19 @@ namespace OfficeIMO.Tests {
             Assert.Single(endNotes!);
             Assert.Equal("desc", endNotes![0].Paragraphs![1].Text);
         }
+
+        [Fact]
+        public void AbbrEndnoteRoundTripsAsAbbrTitle() {
+            const string html = "<abbr title=\"desc\">text</abbr>";
+            var options = new HtmlToWordOptions { NoteReferenceType = NoteReferenceType.Endnote };
+            using var doc = html.LoadFromHtml(options);
+
+            string roundTrip = doc.ToHtml(new WordToHtmlOptions { ExportEndnotes = true });
+
+            Assert.Contains("<abbr", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("title=\"desc\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(">text</abbr>", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<sup", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

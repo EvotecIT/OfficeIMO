@@ -205,6 +205,23 @@ public partial class Html {
     }
 
     [Fact]
+    public void Test_Html_BlockquoteInTableCell_RoundTripsWithoutPlaceholderParagraph() {
+        string html = "<table><tr><td><blockquote><p>Quoted cell</p></blockquote></td></tr></table>";
+
+        var doc = html.LoadFromHtml(new HtmlToWordOptions());
+        var cell = doc.Tables[0].Rows[0].Cells[0];
+
+        var textParagraphs = cell.Paragraphs.Where(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).ToList();
+        Assert.Single(textParagraphs);
+        Assert.Equal("Quoted cell", textParagraphs[0].Text);
+        Assert.True(textParagraphs[0].IndentationBefore > 0);
+
+        string roundTrip = doc.ToHtml();
+        Assert.Matches("(?is)<td[^>]*><blockquote[^>]*>Quoted cell</blockquote></td>", roundTrip);
+        Assert.DoesNotContain("<p></p>", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Test_Html_Blockquote_WithoutQuoteStyle() {
         RemoveCustomStyle("Quote");
         string html = "<blockquote>Quoted text</blockquote>";

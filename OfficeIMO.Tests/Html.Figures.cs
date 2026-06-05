@@ -25,6 +25,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Html_FigureWithLeadingCaption_RoundTripsAsFigure() {
+            string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
+            byte[] imageBytes = File.ReadAllBytes(assetPath);
+            string base64 = Convert.ToBase64String(imageBytes);
+            string html = $"<figure><figcaption>Logo caption</figcaption><img src=\"data:image/png;base64,{base64}\" alt=\"Logo\"/></figure>";
+
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            Assert.Single(doc.Images);
+            Assert.Equal("Logo caption", doc.Paragraphs[1].Text);
+            Assert.Equal("Caption", doc.Paragraphs[1].StyleId);
+
+            string roundTrip = doc.ToHtml();
+            Assert.Contains("<figure>", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<figcaption>Logo caption</figcaption>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void WordToHtml_FigureWithCaption_RendersFigure() {
             string assetPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png");
             using var doc = WordDocument.Create();

@@ -19,6 +19,19 @@ namespace OfficeIMO.Tests {
             Assert.Contains("datetime=\"2023-01-01", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("2023-01-01</time>", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Fact]
+        public void TimePreservesDateTimeWhenVisibleTextDiffers() {
+            const string html = "<p>On <time datetime=\"2023-01-01\">New Year's Day</time> we met.</p>";
+            using var doc = html.LoadFromHtml();
+
+            string roundTrip = doc.ToHtml();
+
+            Assert.Contains("<time", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("datetime=\"2023-01-01\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(">New Year's Day</time>", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("id=\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
 

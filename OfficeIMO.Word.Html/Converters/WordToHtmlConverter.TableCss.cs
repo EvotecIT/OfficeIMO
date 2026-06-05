@@ -24,6 +24,15 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
+            string? GetTableCellSpacingCss(WordTable table) {
+                var cellSpacing = table.StyleDetails?.CellSpacing;
+                if (cellSpacing == null || cellSpacing.Value <= 0) {
+                    return null;
+                }
+
+                return FormatTwips(cellSpacing.Value);
+            }
+
             void AppendColumnGroup(IDocument htmlDoc, IElement tableElement, WordTable table) {
                 var columns = GetColumnWidths(table);
                 if (columns.Count == 0) {

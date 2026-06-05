@@ -16,24 +16,30 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private async Task LoadAndParseCssAsync(IBrowsingContext context, Url url, CancellationToken cancellationToken) {
-            var loader = context.GetService<IResourceLoader>();
-            if (loader == null) {
+        private async Task LoadAndParseCssAsync(Url url, CancellationToken cancellationToken) {
+            if (!Uri.TryCreate(url.Href, UriKind.Absolute, out var uri)) {
                 return;
             }
-            var request = new ResourceRequest(null!, url);
-            var download = loader.FetchAsync(request);
-            var response = await download.Task.ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-            if (response.StatusCode == HttpStatusCode.OK) {
-                using var reader = new StreamReader(response.Content);
-#if NET8_0_OR_GREATER
-                var css = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-#else
-                var css = await reader.ReadToEndAsync().ConfigureAwait(false);
-                cancellationToken.ThrowIfCancellationRequested();
-#endif
-                ParseCss(css, url.Href);
+
+            if (!TryApplyStylesheetUriPolicy(uri, url.Href)) {
+                return;
+            }
+
+            try {
+                var css = await FetchCssStringAsync(uri, url.Href, cancellationToken).ConfigureAwait(false);
+                if (css != null) {
+                    ParseCss(css, url.Href);
+                }
+            } catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested) {
+                AddDiagnostic(_options, "StylesheetLoadTimedOut", "Stylesheet resource timed out or was canceled by the resource pipeline and was skipped.", url.Href, ex);
+            } catch (OperationCanceledException) {
+                throw;
+            } catch (HttpRequestException ex) {
+                AddDiagnostic(_options, "StylesheetTransportFailed", "Stylesheet resource could not be fetched and was skipped.", url.Href, ex);
+            } catch (HtmlConversionLimitException) {
+                throw;
+            } catch (Exception ex) {
+                AddDiagnostic(_options, "StylesheetLoadFailed", "Stylesheet resource could not be loaded and was skipped.", url.Href, ex);
             }
         }
 
@@ -42,12 +48,16 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
+            if (!TryApplyStylesheetUriPolicy(fileUri, url.Href)) {
+                return;
+            }
+
             var localPath = fileUri.LocalPath;
             if (string.IsNullOrEmpty(localPath) || !File.Exists(localPath)) {
                 return;
             }
 
-            ParseCss(File.ReadAllText(localPath), localPath);
+            ParseCss(ReadCssFileWithLimit(localPath), localPath);
         }
 
         private void ParseLeadingStylesheetChildren(IElement element) {
@@ -66,35 +76,136 @@ namespace OfficeIMO.Word.Html {
                     if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
                         break;
                     }
-                    if (!_options.AllowDocumentStylesheetLinks) {
-                        AddDiagnostic(_options, "HtmlStylesheetLinkSkipped", "HTML stylesheet link was skipped because document-provided stylesheet links are disabled.", "link");
-                        continue;
-                    }
-
-                    var hrefAttr = linkElement.GetAttribute("href");
-                    var href = linkElement.Href ?? hrefAttr;
-                    if (string.IsNullOrEmpty(href)) {
-                        continue;
-                    }
-
-                    if (!string.IsNullOrEmpty(hrefAttr) && File.Exists(hrefAttr)) {
-                        ParseCss(File.ReadAllText(hrefAttr), hrefAttr);
-                        continue;
-                    }
-
-                    var url = new Url(href);
-                    if (!url.IsAbsolute && linkElement.BaseUrl != null) {
-                        url = new Url(new Url(linkElement.BaseUrl), href);
-                    }
-
-                    if (url.Scheme == "file") {
-                        TryLoadCssFromFileUrl(url);
-                    }
+                    ProcessStylesheetLinkElementAsync(linkElement, baseUri: null, _cancellationToken).GetAwaiter().GetResult();
                     continue;
                 }
 
                 break;
             }
+        }
+
+        private async Task<string?> FetchCssStringAsync(Uri uri, string source, CancellationToken cancellationToken) {
+            using var cts = _resourceTimeout.HasValue
+                ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+                : null;
+            var token = cts?.Token ?? cancellationToken;
+            if (cts != null && _resourceTimeout.HasValue) {
+                cts.CancelAfter(_resourceTimeout.Value);
+            }
+
+            using var request = new HttpRequestMessage(System.Net.Http.HttpMethod.Get, uri);
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).ConfigureAwait(false);
+            if (!response.IsSuccessStatusCode) {
+                AddDiagnostic(_options, "StylesheetHttpStatusRejected", "Stylesheet resource returned a non-success status and was skipped.", source, new HttpRequestException($"{(int)response.StatusCode} {response.StatusCode}"));
+                return null;
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType;
+            if (!IsStylesheetContentTypeAllowed(contentType)) {
+                AddDiagnostic(_options, "StylesheetContentTypeRejected", "Stylesheet resource content type is not allowed and was skipped.", source, new HtmlResourceContentTypeException($"Stylesheet content type '{contentType}' is not allowed."));
+                return null;
+            }
+
+            return await ReadCssContentWithLimitAsync(response.Content, source, token).ConfigureAwait(false);
+        }
+
+        private async Task<string> ReadCssContentWithLimitAsync(HttpContent content, string source, CancellationToken cancellationToken) {
+            var readLimit = GetCssReadLimit();
+            if (readLimit.Limit.HasValue && content.Headers.ContentLength.HasValue && content.Headers.ContentLength.Value > readLimit.Limit.Value) {
+                if (readLimit.LimitedByTotalBudget) {
+                    ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + content.Headers.ContentLength.Value, _options.MaxTotalCssBytes!.Value);
+                }
+
+                ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", source, content.Headers.ContentLength.Value, readLimit.Limit.Value);
+            }
+
+            using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
+            using var memory = new MemoryStream();
+            var buffer = new byte[81920];
+            long total = 0;
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+#if NET8_0_OR_GREATER
+                var read = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false);
+#else
+                var read = await stream.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                cancellationToken.ThrowIfCancellationRequested();
+#endif
+                if (read == 0) {
+                    break;
+                }
+
+                total += read;
+                if (readLimit.Limit.HasValue && total > readLimit.Limit.Value) {
+                    if (readLimit.LimitedByTotalBudget) {
+                        ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", source, _cssBytesUsed + total, _options.MaxTotalCssBytes!.Value);
+                    }
+
+                    ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", source, total, readLimit.Limit.Value);
+                }
+
+                memory.Write(buffer, 0, read);
+            }
+
+            return Encoding.UTF8.GetString(memory.ToArray());
+        }
+
+        private string ReadCssFileWithLimit(string path) {
+            var readLimit = GetCssReadLimit();
+            if (readLimit.Limit.HasValue) {
+                var length = new FileInfo(path).Length;
+                if (length > readLimit.Limit.Value) {
+                    if (readLimit.LimitedByTotalBudget) {
+                        ThrowLimitExceeded(_options, "CssTotalSizeLimitExceeded", "Total CSS size exceeded the configured conversion limit.", path, _cssBytesUsed + length, _options.MaxTotalCssBytes!.Value);
+                    }
+
+                    ThrowLimitExceeded(_options, "CssSizeLimitExceeded", "CSS size exceeded the configured conversion limit.", path, length, readLimit.Limit.Value);
+                }
+            }
+
+            return File.ReadAllText(path);
+        }
+
+        private bool TryApplyStylesheetUriPolicy(Uri uri, string source) {
+            if (!IsStylesheetSchemeAllowed(uri.Scheme, out var detail)) {
+                AddDiagnostic(_options, "StylesheetResourceRejectedByPolicy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
+                return false;
+            }
+
+            if (!uri.IsFile && _options.AllowedStylesheetHosts.Count > 0 && !_options.AllowedStylesheetHosts.Contains(uri.Host)) {
+                detail = $"Stylesheet host '{uri.Host}' is not allowed.";
+                AddDiagnostic(_options, "StylesheetResourceRejectedByPolicy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryApplyLocalStylesheetPolicy(string source) {
+            if (IsStylesheetSchemeAllowed(Uri.UriSchemeFile, out var detail)) {
+                return true;
+            }
+
+            AddDiagnostic(_options, "StylesheetResourceRejectedByPolicy", "Stylesheet resource was skipped because its URI is not allowed by the current stylesheet policy.", source, new HtmlResourcePolicyException(detail));
+            return false;
+        }
+
+        private bool IsStylesheetSchemeAllowed(string scheme, out string detail) {
+            if (_options.AllowedStylesheetUriSchemes.Contains(scheme)) {
+                detail = string.Empty;
+                return true;
+            }
+
+            detail = $"Stylesheet URI scheme '{scheme}' is not allowed.";
+            return false;
+        }
+
+        private bool IsStylesheetContentTypeAllowed(string? contentType) {
+            if (!_options.ValidateStylesheetContentTypes || string.IsNullOrWhiteSpace(contentType)) {
+                return true;
+            }
+
+            return _options.AllowedStylesheetContentTypes.Contains(contentType!.Trim());
         }
 
         private void ApplyClassStyle(IElement element, WordParagraph paragraph, HtmlToWordOptions options) {
@@ -128,14 +239,14 @@ namespace OfficeIMO.Word.Html {
 
             ValidateCssLimit(css, key);
 
-            key ??= ComputeHash(css);
-            if (!_stylesheetCache.TryGetValue(key, out var rules)) {
+            var cacheKey = ComputeHash(css);
+            if (!_stylesheetCache.TryGetValue(cacheKey, out var rules)) {
                 try {
                     var sheet = _cssParser.ParseStyleSheet(css);
                     rules = sheet.Rules.OfType<ICssStyleRule>().ToArray();
-                    _stylesheetCache[key] = rules;
+                    _stylesheetCache[cacheKey] = rules;
                 } catch (Exception) {
-                    _stylesheetCache[key] = Array.Empty<ICssStyleRule>();
+                    _stylesheetCache[cacheKey] = Array.Empty<ICssStyleRule>();
                     return;
                 }
             }

@@ -125,6 +125,76 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_ReadHtmlString_PreservesConfiguredMaxInputCharacters() {
+        var html = "<html><body><p>Too much content for this limit.</p></body></html>";
+
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => DocumentReaderHtmlExtensions.ReadHtmlString(
+            html: html,
+            sourceName: "limited.html",
+            htmlOptions: new ReaderHtmlOptions {
+                HtmlToMarkdownOptions = new HtmlToMarkdownOptions {
+                    MaxInputCharacters = 12
+                }
+            }).ToList());
+
+        Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReaderHtmlOptions_ProfilesExposeExpectedMarkdownOptions() {
+        var officeProfile = ReaderHtmlOptions.CreateOfficeIMOProfile();
+        Assert.NotNull(officeProfile.HtmlToMarkdownOptions);
+        Assert.Null(officeProfile.HtmlToMarkdownOptions.MarkdownWriteOptions);
+        Assert.Null(officeProfile.HtmlToMarkdownOptions.MaxInputCharacters);
+
+        var portableProfile = ReaderHtmlOptions.CreatePortableProfile();
+        Assert.NotNull(portableProfile.HtmlToMarkdownOptions);
+        Assert.NotNull(portableProfile.HtmlToMarkdownOptions.MarkdownWriteOptions);
+        Assert.Null(portableProfile.HtmlToMarkdownOptions.MaxInputCharacters);
+
+        var untrustedProfile = ReaderHtmlOptions.CreateUntrustedHtmlProfile(64);
+        Assert.NotNull(untrustedProfile.HtmlToMarkdownOptions);
+        Assert.NotNull(untrustedProfile.HtmlToMarkdownOptions.MarkdownWriteOptions);
+        Assert.Equal(64, untrustedProfile.HtmlToMarkdownOptions.MaxInputCharacters);
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => ReaderHtmlOptions.CreateUntrustedHtmlProfile(0));
+        Assert.Equal("maxInputCharacters", exception.ParamName);
+    }
+
+    [Fact]
+    public void ReaderHtmlOptions_CloneCopiesNestedOptionsIndependently() {
+        var options = ReaderHtmlOptions.CreateUntrustedHtmlProfile(64);
+        options.HtmlToMarkdownOptions!.BaseUri = new Uri("https://example.com/docs/");
+
+        var clone = options.Clone();
+
+        Assert.NotSame(options, clone);
+        Assert.NotNull(clone.HtmlToMarkdownOptions);
+        Assert.NotSame(options.HtmlToMarkdownOptions, clone.HtmlToMarkdownOptions);
+        Assert.Equal(options.HtmlToMarkdownOptions.BaseUri, clone.HtmlToMarkdownOptions.BaseUri);
+        Assert.Equal(options.HtmlToMarkdownOptions.MaxInputCharacters, clone.HtmlToMarkdownOptions.MaxInputCharacters);
+        Assert.NotNull(clone.HtmlToMarkdownOptions.MarkdownWriteOptions);
+        Assert.NotSame(options.HtmlToMarkdownOptions.MarkdownWriteOptions, clone.HtmlToMarkdownOptions.MarkdownWriteOptions);
+
+        clone.HtmlToMarkdownOptions.MaxInputCharacters = 128;
+
+        Assert.Equal(64, options.HtmlToMarkdownOptions.MaxInputCharacters);
+        Assert.Equal(128, clone.HtmlToMarkdownOptions.MaxInputCharacters);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_ReadHtmlString_UntrustedProfileEnforcesMaxInputCharacters() {
+        var html = "<html><body><p>Too much content for this profile limit.</p></body></html>";
+
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => DocumentReaderHtmlExtensions.ReadHtmlString(
+            html: html,
+            sourceName: "profile-limited.html",
+            htmlOptions: ReaderHtmlOptions.CreateUntrustedHtmlProfile(12)).ToList());
+
+        Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlStream_EmitsLogicalSourceMetadata() {
         var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
@@ -252,6 +322,27 @@ public sealed class ReaderHtmlModularTests {
                 new ReaderOptions { MaxInputBytes = 16 }).ToList());
 
             Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+        } finally {
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_Registration_PreservesConfiguredMaxInputCharacters() {
+        try {
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
+                htmlOptions: new ReaderHtmlOptions {
+                    HtmlToMarkdownOptions = new HtmlToMarkdownOptions {
+                        MaxInputCharacters = 12
+                    }
+                },
+                replaceExisting: true);
+
+            var html = "<html><body><p>Too much content for this limit.</p></body></html>";
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
+            var ex = Assert.Throws<ArgumentOutOfRangeException>(() => DocumentReader.Read(stream, "configured.html").ToList());
+
+            Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
         } finally {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
         }
