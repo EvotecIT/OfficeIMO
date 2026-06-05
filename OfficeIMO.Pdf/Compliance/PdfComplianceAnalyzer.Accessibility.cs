@@ -7,6 +7,11 @@ public static partial class PdfComplianceAnalyzer {
             AddPdfUaIdentificationRequirement(requirements, options);
             requirements.Add(BuildDocumentTitleRequirement(options, documentTitle, hasDocumentMetadataEvidence));
             requirements.Add(BuildDisplayDocumentTitleRequirement(options));
+            requirements.Add(new PdfComplianceRequirement(
+                "pdfua-validation",
+                "PDF/UA validator evidence",
+                PdfComplianceRequirementStatus.Unsupported,
+                "External PDF/UA validator evidence has not been supplied. Use PdfComplianceAnalyzer.AssessProof(...) with a passing PDF/UA validator result before claiming PDF/UA-1."));
         }
 
         requirements.Add(BuildDocumentLanguageRequirement(options));
