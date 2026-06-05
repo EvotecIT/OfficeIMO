@@ -89,7 +89,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     internal static byte[] CreateShowcaseDashboard() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9.5,
                 DefaultTextColor = PdfColor.FromRgb(30, 41, 59),
@@ -233,7 +233,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateDrawingGallery() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -324,7 +324,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateWatermark() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -379,7 +379,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
         byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
 
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -431,7 +431,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreatePageBorder() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -487,7 +487,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         string logoPath = Path.Combine(GetTestsProjectRoot(), "Images", "EvotecLogo.png");
         byte[] logo = File.Exists(logoPath) ? File.ReadAllBytes(logoPath) : CreateFallbackLogo();
 
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -541,7 +541,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateBackgroundShapes() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -597,7 +597,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateRowColumns() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -686,7 +686,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateHeadersFooters() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -721,7 +721,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateStyleCheatsheet() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -783,7 +783,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "Flow", "Generic", "Borders and row separators should reveal each preset shape at raster level." }
         };
 
-        PdfDocument doc = PdfDocument.Create(new PdfOptions {
+        PdfDocument doc = CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 9.5,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

@@ -3,12 +3,16 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
+        private const string DefaultEmbeddedFontFamily = "Arial, Aptos, Calibri, Liberation Sans, DejaVu Sans";
+
         private static PdfCore.PdfOptions CreatePdfOptions(ExcelPdfSaveOptions options) {
             PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
             pdfOptions.CreateOutlineFromHeadings = true;
 
             if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
                 pdfOptions.UseOfficeFontFamily(options.FontFamily);
+            } else if (options.PdfOptions == null) {
+                pdfOptions.UseOfficeFontFamily(DefaultEmbeddedFontFamily);
             }
 
             if (options.PageSize.HasValue) {

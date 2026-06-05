@@ -11,6 +11,8 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
+        private const string DefaultEmbeddedFontFamily = "Arial, Aptos, Calibri, Liberation Sans, DejaVu Sans";
+
         private static PdfCore.PdfOptions CreateNativeOptions(WordDocument document, PdfSaveOptions? options) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
@@ -24,7 +26,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeDefaultFont(WordDocument document, PdfSaveOptions? options, PdfCore.PdfOptions pdfOptions) {
-            if (TryApplyNativeDefaultFontCandidate(options?.FontFamily, pdfOptions, embedSystemFont: true)) {
+            if (!string.IsNullOrWhiteSpace(options?.FontFamily)) {
+                TryApplyNativeDefaultFontCandidate(options.FontFamily, pdfOptions, embedSystemFont: true);
                 return;
             }
 
@@ -34,20 +37,26 @@ namespace OfficeIMO.Word.Pdf {
                 document.Settings.FontFamilyEastAsia,
                 document.Settings.FontFamilyComplexScript
             }) {
-                if (TryApplyNativeDefaultFontCandidate(family, pdfOptions, embedSystemFont: true)) {
+                if (TryApplyNativeDefaultFontCandidate(family, pdfOptions, embedSystemFont: true, requireEmbeddedFont: true)) {
                     return;
                 }
             }
+
+            if (options?.PdfOptions == null) {
+                TryApplyNativeDefaultFontCandidate(DefaultEmbeddedFontFamily, pdfOptions, embedSystemFont: true, requireEmbeddedFont: true);
+            }
         }
 
-        private static bool TryApplyNativeDefaultFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont) {
+        private static bool TryApplyNativeDefaultFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
             if (string.IsNullOrWhiteSpace(familyName)) {
                 return false;
             }
 
             if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out _)) {
+                string beforeMappedEmbeddedFonts = CaptureNativeEmbeddedFontState(pdfOptions);
                 pdfOptions.UseOfficeFontFamily(familyName, embedSystemFont);
-                return true;
+                return !requireEmbeddedFont ||
+                       !string.Equals(beforeMappedEmbeddedFonts, CaptureNativeEmbeddedFontState(pdfOptions), StringComparison.Ordinal);
             }
 
             if (!embedSystemFont) {

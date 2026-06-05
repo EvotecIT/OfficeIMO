@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentRasterVisualBaselineTests {
     private static byte[] CreateHelloWorld() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 11,
                 FooterFont = PdfStandardFont.Helvetica,
@@ -36,7 +36,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateCoreLayout() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 FooterFont = PdfStandardFont.Helvetica,
@@ -91,7 +91,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "Total", "", "", "$467.50", "Ready for approval." }
         };
 
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -132,7 +132,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             new[] { "PowerShell wrapper", "PSWriteOffice", "Expose safe PDF operations" }
         };
 
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -164,7 +164,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateStyledRuns() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),
@@ -221,7 +221,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static byte[] CreateTabsLeaders() {
-        return PdfDocument.Create(new PdfOptions {
+        return CreateVisualBaselineDocument(new PdfOptions {
                 DefaultFont = PdfStandardFont.Helvetica,
                 DefaultFontSize = 10,
                 DefaultTextColor = PdfColor.FromRgb(31, 41, 55),

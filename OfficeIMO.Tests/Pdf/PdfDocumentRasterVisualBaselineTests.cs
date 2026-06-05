@@ -261,6 +261,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 " page(s). Update the expected page count and baselines deliberately if this page-flow change is intended.");
         }
 
+        WriteReviewPdfArtifact(scenarioName, pdfBytes);
+
         if (!TryFindPdftoppm(out string rasterizerPath)) {
             if (IsRequired()) {
                 throw new InvalidOperationException("PDF raster baseline tests require Poppler pdftoppm. Install Poppler or set OFFICEIMO_PDF_RASTERIZER to pdftoppm.exe.");

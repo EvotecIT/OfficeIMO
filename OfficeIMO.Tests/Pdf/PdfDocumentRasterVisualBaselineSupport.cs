@@ -4,10 +4,30 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfDocumentRasterVisualBaselineTests {
+    private static PdfDocument CreateVisualBaselineDocument(PdfOptions options) {
+        return PdfDocument.Create(options.UseOfficeFontFamily("Arial"));
+    }
+
+    private static void WriteReviewPdfArtifact(string scenarioName, byte[] pdfBytes) {
+        string? outputDirectory = Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT");
+        if (string.IsNullOrWhiteSpace(outputDirectory)) {
+            return;
+        }
+
+        Directory.CreateDirectory(outputDirectory);
+        string safeName = scenarioName;
+        foreach (char invalidChar in Path.GetInvalidFileNameChars()) {
+            safeName = safeName.Replace(invalidChar, '-');
+        }
+
+        File.WriteAllBytes(Path.Combine(outputDirectory, safeName + ".pdf"), pdfBytes);
+    }
+
     private static void AssertRasterBaseline(string baselineName, string actualPath) {
         string expectedPath = Path.Combine(GetTestsProjectRoot(), "Pdf", "VisualBaselines", baselineName);
         if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_PDF_RASTER_BASELINE"), "1", StringComparison.Ordinal)) {

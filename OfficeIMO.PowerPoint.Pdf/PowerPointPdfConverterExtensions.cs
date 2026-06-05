@@ -13,6 +13,8 @@ namespace OfficeIMO.PowerPoint.Pdf;
 /// First-party PowerPoint presentation to PDF conversion helpers.
 /// </summary>
 public static partial class PowerPointPdfConverterExtensions {
+    private const string DefaultEmbeddedFontFamily = "Arial, Aptos, Calibri, Liberation Sans, DejaVu Sans";
+
     /// <summary>
     /// Converts a PowerPoint presentation to a first-party OfficeIMO PDF document model.
     /// </summary>
@@ -97,6 +99,12 @@ public static partial class PowerPointPdfConverterExtensions {
         pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
         pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);
+        if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
+            pdfOptions.UseOfficeFontFamily(options.FontFamily);
+        } else if (options.PdfOptions == null) {
+            pdfOptions.UseOfficeFontFamily(DefaultEmbeddedFontFamily);
+        }
+
         RegisterPresentationFonts(pdfOptions, presentation, options);
         return pdfOptions;
     }

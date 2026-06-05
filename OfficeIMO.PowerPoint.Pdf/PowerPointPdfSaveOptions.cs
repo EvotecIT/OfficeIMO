@@ -10,6 +10,9 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
     public PdfCore.PdfOptions? PdfOptions { get; set; }
 
+    /// <summary>Optional PowerPoint-style font family used as the first-party PDF default font.</summary>
+    public string? FontFamily { get; set; }
+
     /// <summary>When true, supported slide pictures are embedded through the shared PDF image pipeline. Defaults to true.</summary>
     public bool IncludePictures { get; set; } = true;
 
