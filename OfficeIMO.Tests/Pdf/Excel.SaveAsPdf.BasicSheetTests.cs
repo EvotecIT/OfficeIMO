@@ -42,6 +42,27 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_PreservesExplicitMappedDefaultFontFamily() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfExplicitSerif.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Serif")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Title");
+            sheet.Cell(2, 1, "Explicit serif default");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                FontFamily = "serif",
+                IncludeSheetHeadings = false
+            });
+        }
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("/BaseFont /Times", raw, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Respects_Selected_Sheets() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSelectedSheets.xlsx");
 

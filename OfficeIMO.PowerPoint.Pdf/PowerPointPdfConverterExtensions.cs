@@ -13,6 +13,8 @@ namespace OfficeIMO.PowerPoint.Pdf;
 /// First-party PowerPoint presentation to PDF conversion helpers.
 /// </summary>
 public static partial class PowerPointPdfConverterExtensions {
+    private const string DefaultEmbeddedFontFamily = "Arial, Aptos, Calibri, Liberation Sans, DejaVu Sans";
+
     /// <summary>
     /// Converts a PowerPoint presentation to a first-party OfficeIMO PDF document model.
     /// </summary>
@@ -97,13 +99,56 @@ public static partial class PowerPointPdfConverterExtensions {
         pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
         pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);
-        RegisterPresentationFonts(pdfOptions, presentation, options);
+        bool preserveConfiguredFontSlots = options.PdfOptions != null;
+        if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
+            TryApplyPdfFontFamily(options.FontFamily, pdfOptions)) {
+            preserveConfiguredFontSlots = true;
+        }
+
+        RegisterPresentationFonts(pdfOptions, presentation, options, preserveConfiguredFontSlots);
+        ApplyDefaultEmbeddedFontFallback(pdfOptions, options, preserveConfiguredFontSlots);
         return pdfOptions;
     }
 
-    private static void RegisterPresentationFonts(PdfCore.PdfOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
+    private static void ApplyDefaultEmbeddedFontFallback(PdfCore.PdfOptions pdfOptions, PowerPointPdfSaveOptions options, bool preserveConfiguredFontSlots) {
+        if (options.PdfOptions == null &&
+            !preserveConfiguredFontSlots &&
+            !HasEmbeddedFontSlot(pdfOptions, pdfOptions.DefaultFont)) {
+            TryApplyPdfFontFamily(DefaultEmbeddedFontFamily, pdfOptions, requireEmbeddedFont: true);
+        }
+    }
+
+    private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool requireEmbeddedFont = false) {
+        if (string.IsNullOrWhiteSpace(familyName)) {
+            return false;
+        }
+
+        PdfCore.PdfStandardFont beforeDefault = pdfOptions.DefaultFont;
+        PdfCore.PdfStandardFont beforeHeader = pdfOptions.HeaderFont;
+        PdfCore.PdfStandardFont beforeFooter = pdfOptions.FooterFont;
+        string beforeEmbeddedFonts = CaptureEmbeddedFontState(pdfOptions);
+        pdfOptions.UseOfficeFontFamily(familyName);
+
+        bool changed = beforeDefault != pdfOptions.DefaultFont ||
+                       beforeHeader != pdfOptions.HeaderFont ||
+                       beforeFooter != pdfOptions.FooterFont ||
+                       !string.Equals(beforeEmbeddedFonts, CaptureEmbeddedFontState(pdfOptions), StringComparison.Ordinal);
+        return changed && (!requireEmbeddedFont || HasEmbeddedFontSlot(pdfOptions, pdfOptions.DefaultFont));
+    }
+
+    private static string CaptureEmbeddedFontState(PdfCore.PdfOptions pdfOptions) {
+        return string.Join("|", pdfOptions.EmbeddedFonts
+            .OrderBy(font => font.Key)
+            .Select(font => ((int)font.Key).ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.Data.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+    }
+
+    private static bool HasEmbeddedFontSlot(PdfCore.PdfOptions pdfOptions, PdfCore.PdfStandardFont font) {
+        return pdfOptions.EmbeddedFonts.ContainsKey(PdfCore.PdfStandardFontMapper.GetFontFamily(font));
+    }
+
+    private static void RegisterPresentationFonts(PdfCore.PdfOptions pdfOptions, PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options, bool preserveConfiguredFontSlots) {
         var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateRegisteredFontSlots(pdfOptions);
+        HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateRegisteredFontSlots(pdfOptions, preserveConfiguredFontSlots);
         double pageWidth = presentation.SlideSize.WidthPoints;
         double pageHeight = presentation.SlideSize.HeightPoints;
         IReadOnlyList<PptCore.PowerPointSlide> slides = presentation.Slides;
@@ -168,7 +213,21 @@ public static partial class PowerPointPdfConverterExtensions {
                 PptCore.PowerPointTableCell cell = table.GetCell(row, column);
                 if (!cell.IsMergedCell) {
                     RegisterPresentationFontCandidate(cell.FontName, pdfOptions, registeredFamilies, registeredFontSlots);
+                    RegisterPresentationTableCellRunFonts(cell, pdfOptions, registeredFamilies, registeredFontSlots);
                 }
+            }
+        }
+    }
+
+    private static void RegisterPresentationTableCellRunFonts(PptCore.PowerPointTableCell cell, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
+        A.TextBody? textBody = cell.Cell.TextBody;
+        if (textBody == null) {
+            return;
+        }
+
+        foreach (A.Paragraph paragraph in textBody.Elements<A.Paragraph>()) {
+            foreach (A.Run run in paragraph.Elements<A.Run>()) {
+                RegisterPresentationFontCandidate(ReadRunFontName(run.RunProperties), pdfOptions, registeredFamilies, registeredFontSlots);
             }
         }
     }
@@ -191,11 +250,14 @@ public static partial class PowerPointPdfConverterExtensions {
         }
     }
 
-    private static HashSet<PdfCore.PdfStandardFont> CreateRegisteredFontSlots(PdfCore.PdfOptions pdfOptions) {
+    private static HashSet<PdfCore.PdfStandardFont> CreateRegisteredFontSlots(PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
         var registeredFontSlots = new HashSet<PdfCore.PdfStandardFont>();
-        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.DefaultFont);
-        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.HeaderFont);
-        AddRegisteredFontSlot(registeredFontSlots, pdfOptions.FooterFont);
+        if (preserveConfiguredFontSlots) {
+            AddRegisteredFontSlot(registeredFontSlots, pdfOptions.DefaultFont);
+            AddRegisteredFontSlot(registeredFontSlots, pdfOptions.HeaderFont);
+            AddRegisteredFontSlot(registeredFontSlots, pdfOptions.FooterFont);
+        }
+
         foreach (PdfCore.PdfStandardFont embeddedFont in pdfOptions.EmbeddedFonts.Keys) {
             AddRegisteredFontSlot(registeredFontSlots, embeddedFont);
         }
@@ -457,6 +519,7 @@ public static partial class PowerPointPdfConverterExtensions {
         double textHeight = Math.Max(1D, height - paddingTop - paddingBottom);
         double fontSize = style.FontSize ?? 12D;
         double lineHeight = style.LineHeight ?? fontSize * 1.2D;
+        AddPowerPointListLayoutDiagnostics(options, slideNumber, textBox, x, y, width, height);
         var paragraphRuns = new List<IReadOnlyList<PdfCore.TextRun>>();
         var paragraphHeights = new List<double>();
         int numberIndex = 1;
@@ -480,12 +543,33 @@ public static partial class PowerPointPdfConverterExtensions {
         };
 
         double cursorY = textY + offsetY;
+        int renderedParagraphs = 0;
+        bool clipped = totalHeight > textHeight;
         for (int index = 0; index < paragraphRuns.Count && cursorY < textY + textHeight; index++) {
             PptCore.PowerPointParagraph paragraph = textBox.Paragraphs.Count > index ? textBox.Paragraphs[index] : textBox.Paragraphs.Last();
-            double paragraphHeight = Math.Min(paragraphHeights[index], textY + textHeight - cursorY);
+            double availableHeight = textY + textHeight - cursorY;
+            double paragraphHeight = Math.Min(paragraphHeights[index], availableHeight);
+            clipped |= paragraphHeight + 0.01D < paragraphHeights[index];
             var paragraphStyle = CreateTransparentParagraphStyle(style, paragraph);
             canvas.TextBox(paragraphRuns[index], textX, cursorY, textWidth, Math.Max(1D, paragraphHeight), paragraphStyle);
             cursorY += paragraphHeight;
+            renderedParagraphs++;
+        }
+
+        if (clipped || renderedParagraphs < paragraphRuns.Count) {
+            AddWarning(
+                options,
+                slideNumber,
+                "text-box-overflow",
+                "Clipped PowerPoint text box content because the mapped PDF text area was too small for all paragraphs.",
+                new PdfCore.PdfLayoutDiagnostic(
+                    PdfCore.PdfLayoutDiagnosticKind.ClippedContent,
+                    "PowerPointTextBox",
+                    "The mapped PDF text area was too small for all PowerPoint paragraphs.",
+                    x,
+                    y,
+                    width,
+                    height));
         }
     }
 
@@ -717,6 +801,8 @@ public static partial class PowerPointPdfConverterExtensions {
             PptCore.PowerPointPictureCrop crop = picture.GetCrop();
             if (crop.HasCrop) {
                 style.SourceCrop = new PdfCore.PdfImageSourceCrop(crop.Left, crop.Top, crop.Right, crop.Bottom);
+            } else {
+                style.Fit = options.PictureFit;
             }
 
             Uri? hyperlink = picture.ClickHyperlink;
@@ -727,8 +813,11 @@ public static partial class PowerPointPdfConverterExtensions {
                 AddWarning(options, slideNumber, "relative-picture-hyperlink", "Skipped a relative PowerPoint picture hyperlink because PDF URI annotations require absolute targets.");
             }
 
+            byte[] imageBytes = picture.GetImageBytes();
+            AddPowerPointPictureAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
+
             canvas.Image(
-                picture.GetImageBytes(),
+                imageBytes,
                 x,
                 y,
                 width,
@@ -741,7 +830,18 @@ public static partial class PowerPointPdfConverterExtensions {
                 horizontalFlip: picture.HorizontalFlip == true,
                 verticalFlip: picture.VerticalFlip == true);
         } catch (Exception ex) {
-            AddWarning(options, slideNumber, "unsupported-picture", "Skipped a PowerPoint picture because it could not be embedded as a PDF image: " + ex.Message);
+            AddLayoutWarning(
+                options,
+                slideNumber,
+                "unsupported-picture",
+                "Skipped a PowerPoint picture because it could not be embedded as a PDF image: " + ex.Message,
+                PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
+                "PowerPointPicture",
+                "The PowerPoint picture could not be embedded as a PDF image.",
+                x,
+                y,
+                width,
+                height);
         }
     }
 
@@ -767,10 +867,22 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         PdfCore.PdfTableStyle style = CreateTableStyle(table);
+        AddPowerPointTableLayoutDiagnostics(options, slideNumber, table, x, y, width, height);
         try {
             canvas.Table(rows, x, y, width, height, style, table.Rotation ?? 0D);
         } catch (Exception ex) {
-            AddWarning(options, slideNumber, "unsupported-table", "Skipped a PowerPoint table because it could not be rendered as a PDF table: " + ex.Message);
+            AddLayoutWarning(
+                options,
+                slideNumber,
+                "unsupported-table",
+                "Skipped a PowerPoint table because it could not be rendered as a PDF table: " + ex.Message,
+                PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
+                "PowerPointTable",
+                "The PowerPoint table could not be rendered by the fixed-position PDF table renderer.",
+                x,
+                y,
+                width,
+                height);
         }
     }
 
@@ -806,7 +918,7 @@ public static partial class PowerPointPdfConverterExtensions {
             switch (child) {
                 case A.Run run:
                     foreach (A.Text text in run.Elements<A.Text>()) {
-                        runs.Add(CreatePdfTableCellTextRun(cell, text.Text ?? string.Empty));
+                        runs.Add(CreatePdfTableCellTextRun(cell, run, text.Text ?? string.Empty));
                     }
 
                     break;
@@ -1210,5 +1322,9 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static void AddWarning(PowerPointPdfSaveOptions options, int slideNumber, string code, string message) {
         options.Warnings.Add(new PowerPointPdfExportWarning(slideNumber, code, message));
+    }
+
+    private static void AddWarning(PowerPointPdfSaveOptions options, int slideNumber, string code, string message, PdfCore.PdfLayoutDiagnostic layoutDiagnostic) {
+        options.Warnings.Add(new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic));
     }
 }

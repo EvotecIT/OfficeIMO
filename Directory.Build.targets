@@ -1,0 +1,19 @@
+<Project>
+  <!-- Production projects inherit TreatWarningsAsErrors=true from Directory.Build.props.
+       Tests and benchmarks still show warnings, but warnings do not block local or CI validation. -->
+  <PropertyGroup Condition="
+      '$(IsTestProject)' == 'true'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Tests'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.CSV.Tests'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.VerifyTests'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.MarkdownRenderer.Wpf.Tests'
+      Or $([System.String]::Copy('$(MSBuildProjectName)').Contains('.Benchmarks'))">
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Examples are executable documentation. Keep samples focused on API usage rather than nullable ceremony. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'OfficeIMO.Examples'">
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+</Project>

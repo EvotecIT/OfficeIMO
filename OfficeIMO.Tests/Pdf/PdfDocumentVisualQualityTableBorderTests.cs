@@ -193,6 +193,81 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void Table_RendersConfiguredCellBordersAfterCellText() {
+        var style = TableStyles.Minimal();
+        style.BorderColor = null;
+        style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
+            [(0, 0)] = new PdfCellBorder {
+                Color = PdfColor.FromRgb(255, 0, 0),
+                Width = 3,
+                DiagonalDown = true
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 160,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24
+            })
+            .Table(new[] {
+                new[] { "BorderText" }
+            }, style: style)
+            .ToBytes();
+
+        string content = string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1));
+        int text = content.IndexOf("<426F7264657254657874>", StringComparison.Ordinal);
+        int borderColor = content.LastIndexOf("1 0 0 RG", StringComparison.Ordinal);
+        int stroke = borderColor < 0 ? -1 : content.IndexOf(" S", borderColor, StringComparison.Ordinal);
+
+        using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+            Assert.Contains("BorderText", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        }
+
+        Assert.True(text >= 0, "Expected encoded table cell text in the page content stream.");
+        Assert.True(borderColor > text, "Expected configured cell borders to be painted after table cell text.");
+        Assert.True(stroke > borderColor, "Expected configured cell borders to emit a stroke after their color.");
+    }
+
+    [Fact]
+    public void CanvasTable_RendersConfiguredCellBordersAfterCellText() {
+        var style = TableStyles.Minimal();
+        style.BorderColor = null;
+        style.CellBorders = new Dictionary<(int Row, int Column), PdfCellBorder> {
+            [(0, 0)] = new PdfCellBorder {
+                Color = PdfColor.FromRgb(255, 0, 0),
+                Width = 3,
+                DiagonalDown = true
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Table(new[] {
+                new[] { "FixedBorderText" }
+            }, 24, 24, 160, 60, style))
+            .ToBytes();
+
+        string content = string.Join("\n", GetPageContentStreams(bytes, pageNumber: 1));
+        int text = content.IndexOf("<4669786564426F7264657254657874>", StringComparison.Ordinal);
+        int borderColor = content.LastIndexOf("1 0 0 RG", StringComparison.Ordinal);
+        int stroke = borderColor < 0 ? -1 : content.IndexOf(" S", borderColor, StringComparison.Ordinal);
+
+        using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
+            Assert.Contains("FixedBorderText", pdf.GetPage(1).Text, StringComparison.Ordinal);
+        }
+
+        Assert.True(text >= 0, "Expected encoded fixed-position table cell text in the page content stream.");
+        Assert.True(borderColor > text, "Expected configured fixed-position table cell borders to be painted after cell text.");
+        Assert.True(stroke > borderColor, "Expected configured fixed-position table cell borders to emit a stroke after their color.");
+    }
+
+    [Fact]
     public void RowColumnTable_RendersConfiguredCellBorders() {
         var style = TableStyles.Minimal();
         style.BorderColor = null;
@@ -303,6 +378,39 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("1.1 w", content);
         Assert.Contains(" l S", content);
         Assert.DoesNotContain(" re S", content);
+    }
+
+    [Fact]
+    public void Table_DrawsHeaderRulesBeforeHeaderText() {
+        var style = TableStyles.Minimal();
+        style.HeaderFill = PdfColor.FromRgb(15, 23, 42);
+        style.HeaderTextColor = PdfColor.White;
+        style.BorderColor = PdfColor.FromRgb(238, 51, 68);
+        style.BorderWidth = 1.1;
+        style.HeaderSeparatorColor = PdfColor.FromRgb(238, 51, 68);
+        style.HeaderSeparatorWidth = 1.1;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 320,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                CompressContentStreams = false
+            })
+            .Table(new[] {
+                new[] { "HeaderGlyphClearance", "Value" }
+            }, style: style)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+        int borderColor = content.IndexOf("0.933 0.2 0.267 RG", StringComparison.Ordinal);
+        int firstTextObject = content.IndexOf("BT\n", StringComparison.Ordinal);
+
+        Assert.True(borderColor >= 0, "Expected the configured header rule color in the content stream.");
+        Assert.True(firstTextObject >= 0, "Expected table header text in the content stream.");
+        Assert.True(borderColor < firstTextObject, "Table header rules should be painted before text so strokes cannot cut through glyphs.");
     }
 
     [Fact]

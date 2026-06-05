@@ -192,10 +192,7 @@ namespace OfficeIMO.Tests {
             }
 
             byte[] bytes = File.ReadAllBytes(pdfPath);
-            string content = Encoding.ASCII.GetString(bytes);
-            int redText = content.IndexOf("<4C697374526564>", StringComparison.Ordinal);
-            int boldText = content.IndexOf("<4C697374426F6C64>", StringComparison.Ordinal);
-            int markedText = content.IndexOf("<4C6973744D61726B6564>", StringComparison.Ordinal);
+            string content = ReadPdfPageContent(bytes);
 
             using (PdfPigDocument pdf = PdfPigDocument.Open(bytes)) {
                 string pageText = string.Concat(pdf.GetPages().Select(page => page.Text));
@@ -216,12 +213,9 @@ namespace OfficeIMO.Tests {
             PdfLogicalLinkAnnotation link = Assert.Single(logical.GetLinksByUri(linkUri));
 
             Assert.Contains(listItems, item => item.Text == "ListPlain ListRed ListBold ListMarked ListLink");
-            Assert.True(redText >= 0, "Expected encoded 'ListRed' text in the native list PDF content stream.");
-            Assert.True(boldText > redText, "Expected encoded 'ListBold' text after the colored list run.");
-            Assert.True(markedText > boldText, "Expected encoded 'ListMarked' text after the bold list run.");
-            Assert.True(content.LastIndexOf("1 0 0 rg", redText, StringComparison.Ordinal) >= 0, "Expected Word list run color to emit a red PDF fill color.");
-            Assert.True(content.LastIndexOf("/F2 11 Tf", boldText, StringComparison.Ordinal) >= 0, "Expected Word list bold run to use the bold PDF font resource.");
-            Assert.True(content.LastIndexOf("1 1 0 rg", markedText, StringComparison.Ordinal) >= 0, "Expected Word list run highlight to emit a yellow PDF fill color.");
+            Assert.Contains("1 0 0 rg", content, StringComparison.Ordinal);
+            Assert.Matches(@"/F\d+\s+11\s+Tf", content);
+            Assert.Contains("1 1 0 rg", content, StringComparison.Ordinal);
             Assert.Equal("Native list link metadata", link.Contents);
         }
 

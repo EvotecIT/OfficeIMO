@@ -40,7 +40,7 @@ public partial class Word {
         }
 
         byte[] bytes = File.ReadAllBytes(pdfPath);
-        string content = ReadFirstPdfStreamContent(bytes);
+        string content = ReadPdfPageContent(bytes);
         Assert.Contains("1 0 0 rg", content);
         Assert.Contains("0 0 1 RG", content);
     }
@@ -80,10 +80,10 @@ public partial class Word {
             Assert.Contains("Native styled cell", text);
         }
 
-        string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("1 0 0 rg", raw);
-        Assert.Contains("0 0 1 RG", raw);
-        Assert.Contains("1 w", raw);
+        string content = ReadPdfPageContent(bytes);
+        Assert.Contains("1 0 0 rg", content);
+        Assert.Contains("0 0 1 RG", content);
+        Assert.Contains("1 w", content);
     }
 
     [Fact]
@@ -117,11 +117,11 @@ public partial class Word {
             Assert.Contains("cell", text);
         }
 
-        string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("1 0 0 RG", raw);
-        Assert.Contains("2 w", raw);
-        Assert.Contains("0 0 1 RG", raw);
-        Assert.Contains("2.5 w", raw);
+        string content = ReadPdfPageContent(bytes);
+        Assert.Contains("1 0 0 RG", content);
+        Assert.Contains("2 w", content);
+        Assert.Contains("0 0 1 RG", content);
+        Assert.Contains("2.5 w", content);
     }
 
     [Fact]
@@ -166,10 +166,10 @@ public partial class Word {
             Assert.Contains("Native double diagonal", text);
         }
 
-        string raw = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("0.071 0.204 0.337 RG", raw, StringComparison.Ordinal);
-        Assert.Contains("0.396 0.263 0.129 RG", raw, StringComparison.Ordinal);
-        Assert.True(raw.Split(new[] { " S" }, StringSplitOptions.None).Length - 1 >= 10, "Expected Word double and diagonal borders to emit multiple stroked lines.");
-        Assert.True(raw.Contains(" m ", StringComparison.Ordinal) && raw.Contains(" l S", StringComparison.Ordinal), "Expected Word diagonal borders to emit PDF line segments.");
+        string content = ReadPdfPageContent(bytes);
+        Assert.Contains("0.071 0.204 0.337 RG", content, StringComparison.Ordinal);
+        Assert.Contains("0.396 0.263 0.129 RG", content, StringComparison.Ordinal);
+        Assert.True(content.Split(new[] { " S" }, StringSplitOptions.None).Length - 1 >= 10, "Expected Word double and diagonal borders to emit multiple stroked lines.");
+        Assert.True(content.Contains(" m ", StringComparison.Ordinal) && content.Contains(" l S", StringComparison.Ordinal), "Expected Word diagonal borders to emit PDF line segments.");
     }
 }

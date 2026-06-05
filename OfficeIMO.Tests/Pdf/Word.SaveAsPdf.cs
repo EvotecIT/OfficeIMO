@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -222,6 +223,21 @@ public partial class Word {
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_ExplicitMappedDefaultFontFamily_StaysOnStandardFamily() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfExplicitSerifDefaultFont.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfExplicitSerifDefaultFont.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello explicit serif default font");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "serif" });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_DocumentDefaultFont() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFont.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFont.pdf");
@@ -235,6 +251,22 @@ public partial class Word {
 
         Assert.True(File.Exists(pdfPath));
         AssertPdfUsesFont(pdfPath, "Courier");
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_DocumentMappedDefaultFont_StaysOnStandardFamily() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentMappedDefaultFont.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentMappedDefaultFont.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.FontFamily = "serif";
+            document.AddParagraph("Hello mapped document default font");
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
     }
 
     [Fact]
@@ -538,6 +570,44 @@ public partial class Word {
         }
 
         return Encoding.GetEncoding("ISO-8859-1").GetString(streamData);
+    }
+
+    private static string ReadPdfPageContent(byte[] bytes, int pageNumber = 1) {
+        var document = PdfCore.PdfReadDocument.Load(bytes);
+        var (objects, _) = PdfCore.PdfSyntax.ParseObjects(bytes);
+        int pageObjectNumber = document.Pages[pageNumber - 1].ObjectNumber;
+        if (!objects.TryGetValue(pageObjectNumber, out PdfCore.PdfIndirectObject pageObject) ||
+            pageObject.Value is not PdfCore.PdfDictionary pageDictionary) {
+            throw new InvalidOperationException("Page object was not found.");
+        }
+
+        if (!pageDictionary.Items.TryGetValue("Contents", out PdfCore.PdfObject contents)) {
+            throw new InvalidOperationException("Page contents were not found.");
+        }
+
+        var streams = new List<string>();
+        AppendPdfPageContentStreams(objects, contents, streams);
+        return string.Join("\n", streams);
+    }
+
+    private static void AppendPdfPageContentStreams(
+        Dictionary<int, PdfCore.PdfIndirectObject> objects,
+        PdfCore.PdfObject contents,
+        List<string> streams) {
+        if (contents is PdfCore.PdfReference reference) {
+            if (objects.TryGetValue(reference.ObjectNumber, out PdfCore.PdfIndirectObject indirect) &&
+                indirect.Value is PdfCore.PdfStream stream) {
+                streams.Add(Encoding.GetEncoding("ISO-8859-1").GetString(stream.Data));
+            }
+
+            return;
+        }
+
+        if (contents is PdfCore.PdfArray array) {
+            foreach (PdfCore.PdfObject item in array.Items) {
+                AppendPdfPageContentStreams(objects, item, streams);
+            }
+        }
     }
 
     private static int FindPdfStreamDataStart(byte[] bytes) {

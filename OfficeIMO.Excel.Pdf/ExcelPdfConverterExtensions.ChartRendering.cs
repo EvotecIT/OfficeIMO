@@ -7,6 +7,10 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
+        private static readonly OfficeChartLayout DefaultExcelPdfChartLayout = new OfficeChartLayout(
+            seriesLegendWidthRatio: 0.0001D,
+            categoryLegendWidthRatio: 0.0001D);
+
         private static void AddWorksheetChart(PdfCore.PdfItemCompose item, WorksheetChartExportData chart, string sheetName, ExcelPdfSaveOptions options) {
             ExcelChartSnapshot snapshot = chart.Snapshot;
             string title = string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title!;
@@ -67,7 +71,7 @@ namespace OfficeIMO.Excel.Pdf {
                 PixelsToPoints(snapshot.WidthPixels),
                 PixelsToPoints(snapshot.HeightPixels),
                 options.ChartStyle,
-                options.ChartLayout);
+                options.ChartLayout ?? DefaultExcelPdfChartLayout);
         }
 
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind) {

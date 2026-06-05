@@ -116,7 +116,7 @@ public partial class Excel {
         string rawPdf = Encoding.ASCII.GetString(bytes);
         Assert.Contains("1 0 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0 0 1 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("Helvetica-Bold", rawPdf, StringComparison.Ordinal);
+        Assert.Matches("Helvetica-Bold|Arial-Bold|Aptos-Bold|Calibri-Bold|LiberationSans-Bold|DejaVuSans-Bold", rawPdf);
         Assert.Contains("Times-Italic", rawPdf, StringComparison.Ordinal);
         Assert.Contains(" 18 Tf", rawPdf, StringComparison.Ordinal);
         Assert.Contains(" 10 Tf", rawPdf, StringComparison.Ordinal);
@@ -153,7 +153,7 @@ public partial class Excel {
         Assert.Contains("HeaderFooterFontAliasBody", text);
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
-        Assert.Contains("Helvetica-Bold", rawPdf, StringComparison.Ordinal);
+        Assert.Matches("Helvetica-Bold|Arial-Bold|Aptos-Bold|Calibri-Bold|LiberationSans-Bold|DejaVuSans-Bold", rawPdf);
         Assert.Contains("Courier-Oblique", rawPdf, StringComparison.Ordinal);
         Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetHeaderFooterFormatting");
     }

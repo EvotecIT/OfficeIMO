@@ -92,9 +92,9 @@ jobs:
 
       - name: Run tests
         run: |
-          # Ubuntu and macOS already cover net8.0/net10.0 for the test matrix.
+          # Ubuntu and macOS matrix jobs already cover net8.0/net10.0 for the test matrix.
           # Keep the Windows job focused on the unique .NET Framework coverage so it stays inside the timeout budget.
-          dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+          dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --framework net472 --verbosity ${{ env.TEST_VERBOSITY }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -137,13 +137,93 @@ jobs:
           name: test-results-windows
           path: '**/*.trx'
 
-      - name: Upload coverage reports
+  test-ubuntu-matrix:
+    name: 'Ubuntu ${{ matrix.framework }}'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: [net8.0, net10.0]
+        include:
+          - framework: net8.0
+            collectCoverage: true
+          - framework: net10.0
+            collectCoverage: false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore OfficeIMO.sln
+
+      - name: Build solution
+        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Run tests
+        run: |
+          # Collect coverage once on the primary Linux net8.0 leg; the other OS/framework legs stay as full test runs without coverage overhead.
+          if [ "${{ matrix.collectCoverage }}" = "true" ]; then
+            dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+          else
+            dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          fi
+
+      - name: Summarize failing tests
+        if: failure() && env.SUMMARIZE_FAILURES == 'true'
+        shell: pwsh
+        run: |
+          $trxFiles = Get-ChildItem -Recurse -Filter *.trx
+          if ($trxFiles.Count -eq 0) {
+            Write-Host "No TRX files found for failure analysis"
+            exit 0
+          }
+
+          Write-Host "=== Failed Tests Summary ==="
+          $failureCount = 0
+
+          foreach ($file in $trxFiles) {
+            try {
+              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
+                ForEach-Object {
+                  $name = $_.Node.testName
+                  $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
+                  Write-Host "❌ $name"
+                  Write-Host "   $msg"
+                  $failureCount++
+                }
+            } catch {
+              Write-Host "Warning: Could not parse TRX file $($file.Name): $($_.Exception.Message)"
+            }
+          }
+
+          if ($failureCount -eq 0) {
+            Write-Host "No failed tests found in TRX files"
+          } else {
+            Write-Host "=== Total failed tests: $failureCount ==="
+          }
+
+      - name: Upload test results
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: coverage-reports-windows
-          path: '**/coverage.cobertura.xml'
+          name: test-results-ubuntu-${{ matrix.framework }}
+          path: '**/*.trx'
       - name: Upload coverage to Codecov
+        if: ${{ matrix.collectCoverage }}
         uses: codecov/codecov-action@v5
         with:
           files: '**/coverage.cobertura.xml'
@@ -153,7 +233,25 @@ jobs:
   test-ubuntu:
     name: 'Ubuntu'
     runs-on: ubuntu-latest
+    needs: test-ubuntu-matrix
+    if: always()
+    steps:
+      - name: Check Ubuntu test matrix
+        run: |
+          if [ "${{ needs.test-ubuntu-matrix.result }}" != "success" ]; then
+            echo "Ubuntu test matrix result: ${{ needs.test-ubuntu-matrix.result }}"
+            exit 1
+          fi
+          echo "Ubuntu test matrix passed."
+
+  test-macos-matrix:
+    name: 'macOS ${{ matrix.framework }}'
+    runs-on: macos-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        framework: [net8.0, net10.0]
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -178,9 +276,7 @@ jobs:
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: |
-          dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net8.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
-          dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net10.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
+        run: dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -220,93 +316,22 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-results-ubuntu
+          name: test-results-macos-${{ matrix.framework }}
           path: '**/*.trx'
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
-        continue-on-error: true
 
   test-macos:
     name: 'macOS'
-    runs-on: macos-latest
-    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    needs: test-macos-matrix
+    if: always()
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Cache NuGet packages
-        uses: actions/cache@v5
-        with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
-
-      - name: Restore dependencies
-        run: dotnet restore OfficeIMO.sln
-
-      - name: Build solution
-        run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
-
-      - name: Run tests
+      - name: Check macOS test matrix
         run: |
-          dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net8.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
-          dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework net10.0 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx --collect:"XPlat Code Coverage"
-
-      - name: Summarize failing tests
-        if: failure() && env.SUMMARIZE_FAILURES == 'true'
-        shell: pwsh
-        run: |
-          $trxFiles = Get-ChildItem -Recurse -Filter *.trx
-          if ($trxFiles.Count -eq 0) {
-            Write-Host "No TRX files found for failure analysis"
-            exit 0
-          }
-
-          Write-Host "=== Failed Tests Summary ==="
-          $failureCount = 0
-
-          foreach ($file in $trxFiles) {
-            try {
-              Select-Xml -Path $file.FullName -XPath "//UnitTestResult[@outcome='Failed']" |
-                ForEach-Object {
-                  $name = $_.Node.testName
-                  $msg = $_.Node.Output.ErrorInfo.Message ?? "No error message available"
-                  Write-Host "❌ $name"
-                  Write-Host "   $msg"
-                  $failureCount++
-                }
-            } catch {
-              Write-Host "Warning: Could not parse TRX file $($file.Name): $($_.Exception.Message)"
-            }
-          }
-
-          if ($failureCount -eq 0) {
-            Write-Host "No failed tests found in TRX files"
-          } else {
-            Write-Host "=== Total failed tests: $failureCount ==="
-          }
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: test-results-macos
-          path: '**/*.trx'
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        with:
-          files: '**/coverage.cobertura.xml'
-          fail_ci_if_error: false
-        continue-on-error: true
+          if [ "${{ needs.test-macos-matrix.result }}" != "success" ]; then
+            echo "macOS test matrix result: ${{ needs.test-macos-matrix.result }}"
+            exit 1
+          fi
+          echo "macOS test matrix passed."
 
   aot-trim-analyzers:
     name: 'AOT/Trim analyzers'

@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
@@ -109,6 +110,58 @@ public class PowerPointSaveAsPdfTests {
 
         Assert.True(topY > middleY + 30D, $"Expected PowerPoint center-anchored text to render lower than top-anchored text. Top: {topY:0.##}, middle: {middleY:0.##}.");
         Assert.True(middleY > bottomY + 30D, $"Expected PowerPoint bottom-anchored text to render lower than center-anchored text. Middle: {middleY:0.##}, bottom: {bottomY:0.##}.");
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_WarnsWhenParagraphTextBoxOverflows() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(240, 140);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints(string.Empty, 24, 28, 120, 24);
+        textBox.FontSize = 14;
+        textBox.FillTransparency = 100;
+        var paragraphs = textBox.SetParagraphs(new[] {
+            "First paragraph needs room",
+            "Second paragraph should trigger overflow"
+        });
+        paragraphs[0].SetAlignment(TextAlignmentTypeValues.Left);
+        paragraphs[1].SetAlignment(TextAlignmentTypeValues.Right);
+        var options = new PowerPointPdfSaveOptions();
+
+        presentation.ToPdfDocument(options).ToBytes();
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "text-box-overflow");
+        Assert.Equal(1, warning.SlideNumber);
+        Assert.NotNull(warning.LayoutDiagnostic);
+        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.Equal("PowerPointTextBox", warning.LayoutDiagnostic.Source);
+        Assert.True(warning.LayoutDiagnostic.HasBounds);
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_WarnsWhenListIndentIsSimplified() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 150);
+        PowerPointTextBox textBox = presentation.Slides[0].AddTextBoxPoints(string.Empty, 28, 26, 170, 76);
+        textBox.FontSize = 12;
+        textBox.FillTransparency = 100;
+        textBox.SetBullets(
+            new[] { "Indented bullet with explicit margin" },
+            configure: paragraph => {
+                paragraph.SetLeftMarginPoints(48);
+                paragraph.SetHangingPoints(18);
+            });
+        var options = new PowerPointPdfSaveOptions();
+
+        presentation.ToPdfDocument(options).ToBytes();
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "list-indent-simplified");
+        Assert.Equal(1, warning.SlideNumber);
+        Assert.NotNull(warning.LayoutDiagnostic);
+        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.Equal("PowerPointList", warning.LayoutDiagnostic.Source);
+        Assert.True(warning.LayoutDiagnostic.HasBounds);
     }
 
     [Fact]
@@ -224,7 +277,7 @@ public class PowerPointSaveAsPdfTests {
     public void SaveAsPdf_PowerPointPresentation_RendersImageSlideBackground() {
         string imagePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".png");
         try {
-            File.WriteAllBytes(imagePath, CreateMinimalRgbPng());
+            File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(240, 160);
@@ -237,6 +290,32 @@ public class PowerPointSaveAsPdfTests {
             string raw = Encoding.ASCII.GetString(bytes);
             Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
             Assert.Contains("240 0 0 160 0 0 cm", raw, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(imagePath)) {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_StretchesCroppedImageSlideBackground() {
+        string imagePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".png");
+        try {
+            File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(240, 160);
+            PowerPointSlide slide = presentation.Slides[0];
+            slide.SetBackgroundImage(imagePath);
+            A.BlipFill blipFill = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!.GetFirstChild<A.BlipFill>()!;
+            blipFill.SourceRectangle = new A.SourceRectangle { Left = 50000 };
+            slide.SlidePart.Slide.Save();
+
+            byte[] bytes = presentation.SaveAsPdf();
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            Assert.Contains("480 0 0 160 -240 0 cm", raw, StringComparison.Ordinal);
+            Assert.Contains("0.5 0 0.5 1 re", raw, StringComparison.Ordinal);
         } finally {
             if (File.Exists(imagePath)) {
                 File.Delete(imagePath);
@@ -605,11 +684,87 @@ public class PowerPointSaveAsPdfTests {
             PowerPointUnits.FromPoints(60),
             PowerPointUnits.FromPoints(30));
         picture.HorizontalFlip = true;
+        var options = new PowerPointPdfSaveOptions {
+            PictureFit = OfficeImageFit.Stretch,
+            WarnOnPictureAspectRatioDistortion = false
+        };
 
-        byte[] bytes = presentation.SaveAsPdf();
+        byte[] bytes = presentation.SaveAsPdf(options);
 
         string raw = Encoding.ASCII.GetString(bytes);
         Assert.Contains("-60 0 0 30 100 80 cm", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_ExplicitContainPictureFitPreservesAspectRatio() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(200, 160);
+        presentation.Slides[0].AddPicture(
+            new MemoryStream(PdfPngTestImages.CreateRgbPng(2, 1)),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(80),
+            PowerPointUnits.FromPoints(80));
+        var options = new PowerPointPdfSaveOptions {
+            PictureFit = OfficeImageFit.Contain
+        };
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("80 0 0 40 40 60 cm", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_DefaultPictureFitMatchesAuthoredFrame() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(200, 160);
+        presentation.Slides[0].AddPicture(
+            new MemoryStream(PdfPngTestImages.CreateRgbPng(2, 1)),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(80),
+            PowerPointUnits.FromPoints(80));
+        var options = new PowerPointPdfSaveOptions();
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        Assert.Empty(options.Warnings);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("80 0 0 80 40 40 cm", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_WarnsWhenExplicitStretchDistortsPictureAspectRatio() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(200, 160);
+        presentation.Slides[0].AddPicture(
+            new MemoryStream(PdfPngTestImages.CreateRgbPng(2, 1)),
+            OfficeIMO.PowerPoint.ImagePartType.Png,
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(40),
+            PowerPointUnits.FromPoints(80),
+            PowerPointUnits.FromPoints(80));
+        var options = new PowerPointPdfSaveOptions {
+            PictureFit = OfficeImageFit.Stretch,
+            WarnOnPictureAspectRatioDistortion = true
+        };
+
+        byte[] bytes = presentation.SaveAsPdf(options);
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "picture-aspect-distortion");
+        Assert.Equal(1, warning.SlideNumber);
+        Assert.NotNull(warning.LayoutDiagnostic);
+        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.Equal("PowerPointPicture", warning.LayoutDiagnostic.Source);
+        string raw = Encoding.ASCII.GetString(bytes);
+        Assert.Contains("80 0 0 80 40 40 cm", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -934,6 +1089,21 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesExplicitMappedDefaultFontFamily() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        presentation.Slides[0].AddTextBoxPoints("ExplicitSerif", 30, 40, 150, 36);
+
+        byte[] bytes = presentation.SaveAsPdf(new PowerPointPdfSaveOptions {
+            FontFamily = "serif"
+        });
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_UsesSansFallbackForUnmappedExplicitFonts() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -985,6 +1155,56 @@ public class PowerPointSaveAsPdfTests {
 
         Assert.True(firstY > secondY, "Expected an explicit PowerPoint table cell line break to render the following run on a lower line.");
         Assert.True(secondY > thirdY, "Expected a second PowerPoint table cell paragraph to render on a lower line.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesPowerPointTableCellRunFormatting() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 34, 180, 70);
+        PowerPointTableCell cell = table.GetCell(0, 0);
+        cell.Text = "SmallLarge";
+        cell.FontSize = 10;
+        A.TextBody textBody = cell.Cell.TextBody!;
+        textBody.RemoveAllChildren<A.Paragraph>();
+        textBody.Append(new A.Paragraph(
+            new A.Run(
+                new A.RunProperties { FontSize = 1000 },
+                new A.Text("Small")),
+            new A.Run(
+                new A.RunProperties { FontSize = 1800, Bold = true },
+                new A.Text("Large"))));
+
+        byte[] bytes = presentation.SaveAsPdf();
+        string raw = Encoding.ASCII.GetString(bytes);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var page = pdf.GetPage(1);
+        double smallSize = AverageLetterFontSize(page, "Small");
+        double largeSize = AverageLetterFontSize(page, "Large");
+        Assert.True(largeSize > smallSize + 4D, $"Expected table rich run font size to flow into PDF output. Small: {smallSize:0.##}, large: {largeSize:0.##}.");
+    }
+
+    [Fact]
+    public void ToPdfDocument_PowerPointPresentation_WarnsWhenTableCellTextMayOverflow() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 150);
+        PowerPointTable table = presentation.Slides[0].AddTablePoints(1, 1, 30, 34, 86, 22);
+        PowerPointTableCell cell = table.GetCell(0, 0);
+        cell.Text = "A very dense PowerPoint table cell that cannot fit inside this tiny fixed PDF frame";
+        cell.FontSize = 14;
+        var options = new PowerPointPdfSaveOptions();
+
+        presentation.ToPdfDocument(options).ToBytes();
+
+        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "table-cell-overflow");
+        Assert.Equal(1, warning.SlideNumber);
+        Assert.NotNull(warning.LayoutDiagnostic);
+        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.Equal("PowerPointTableCell", warning.LayoutDiagnostic.Source);
+        Assert.True(warning.LayoutDiagnostic.HasBounds);
     }
 
     [Fact]
@@ -1380,6 +1600,10 @@ public class PowerPointSaveAsPdfTests {
         Assert.Equal(1, warning.SlideNumber);
         Assert.Contains("Dense Slide Chart", warning.Message, StringComparison.Ordinal);
         Assert.Contains("TextOverlap", warning.Message, StringComparison.Ordinal);
+        Assert.NotNull(warning.LayoutDiagnostic);
+        Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
+        Assert.Equal("PowerPointChart", warning.LayoutDiagnostic.Source);
+        Assert.True(warning.LayoutDiagnostic.HasBounds);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Contains("Dense Slide Chart", pdf.GetPage(1).Text, StringComparison.Ordinal);
@@ -1534,6 +1758,14 @@ public class PowerPointSaveAsPdfTests {
         }
 
         throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
+    }
+
+    private static double AverageLetterFontSize(UglyToad.PdfPig.Content.Page page, string word) {
+        var letters = page.Letters.ToList();
+        string text = string.Join("", letters.Select(letter => letter.Value));
+        int index = text.IndexOf(word, StringComparison.Ordinal);
+        Assert.True(index >= 0, "Expected to find word '" + word + "' in PDF text '" + text + "'.");
+        return letters.Skip(index).Take(word.Length).Average(letter => letter.FontSize);
     }
 
     private static void AssertRawPdfContainsAnyBaseFont(string rawPdf, params string[] fontNameParts) {
