@@ -26,8 +26,9 @@ namespace OfficeIMO.Excel.Pdf {
             return pdfOptions;
         }
 
-        private static void ApplyDefaultEmbeddedFontFallback(PdfCore.PdfOptions pdfOptions, ExcelPdfSaveOptions options) {
+        private static void ApplyDefaultEmbeddedFontFallback(PdfCore.PdfOptions pdfOptions, ExcelPdfSaveOptions options, bool preserveConfiguredFontSlots) {
             if (options.PdfOptions == null &&
+                !preserveConfiguredFontSlots &&
                 !HasEmbeddedFontSlot(pdfOptions, pdfOptions.DefaultFont)) {
                 TryApplyPdfFontFamily(DefaultEmbeddedFontFamily, pdfOptions, requireEmbeddedFont: true);
             }

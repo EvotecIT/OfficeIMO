@@ -106,12 +106,13 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         RegisterPresentationFonts(pdfOptions, presentation, options, preserveConfiguredFontSlots);
-        ApplyDefaultEmbeddedFontFallback(pdfOptions, options);
+        ApplyDefaultEmbeddedFontFallback(pdfOptions, options, preserveConfiguredFontSlots);
         return pdfOptions;
     }
 
-    private static void ApplyDefaultEmbeddedFontFallback(PdfCore.PdfOptions pdfOptions, PowerPointPdfSaveOptions options) {
+    private static void ApplyDefaultEmbeddedFontFallback(PdfCore.PdfOptions pdfOptions, PowerPointPdfSaveOptions options, bool preserveConfiguredFontSlots) {
         if (options.PdfOptions == null &&
+            !preserveConfiguredFontSlots &&
             !HasEmbeddedFontSlot(pdfOptions, pdfOptions.DefaultFont)) {
             TryApplyPdfFontFamily(DefaultEmbeddedFontFamily, pdfOptions, requireEmbeddedFont: true);
         }

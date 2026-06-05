@@ -23,7 +23,7 @@ namespace OfficeIMO.Excel.Pdf {
             bool hasExplicitSheetSelection = HasExplicitSheetSelection(options);
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans = BuildWorksheetExportPlans(document, reader, sheetNames, options, hasExplicitSheetSelection, defaultFontFamily);
             RegisterWorksheetFonts(pdfOptions, exportPlans, options, preserveConfiguredFontSlots);
-            ApplyDefaultEmbeddedFontFallback(pdfOptions, options);
+            ApplyDefaultEmbeddedFontFallback(pdfOptions, options, preserveConfiguredFontSlots);
             var pdf = PdfCore.PdfDocument.Create(pdfOptions);
             IReadOnlyDictionary<string, string> sheetDestinations = BuildSheetDestinationMap(exportPlans);
             IReadOnlyDictionary<string, string> cellDestinations = BuildCellDestinationMap(exportPlans);

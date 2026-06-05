@@ -222,6 +222,21 @@ public partial class Word {
     }
 
     [Fact]
+    public void Test_WordDocument_SaveAsPdf_ExplicitMappedDefaultFontFamily_StaysOnStandardFamily() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfExplicitSerifDefaultFont.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfExplicitSerifDefaultFont.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Hello explicit serif default font");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "serif" });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+    }
+
+    [Fact]
     public void Test_WordDocument_SaveAsPdf_DocumentDefaultFont() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFont.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFont.pdf");

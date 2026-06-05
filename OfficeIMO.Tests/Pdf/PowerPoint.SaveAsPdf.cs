@@ -1063,6 +1063,21 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_PreservesExplicitMappedDefaultFontFamily() {
+        using var stream = new MemoryStream();
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+        presentation.SlideSize.SetSizePoints(260, 180);
+        presentation.Slides[0].AddTextBoxPoints("ExplicitSerif", 30, 40, 150, 36);
+
+        byte[] bytes = presentation.SaveAsPdf(new PowerPointPdfSaveOptions {
+            FontFamily = "serif"
+        });
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(raw, "Times");
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_UsesSansFallbackForUnmappedExplicitFonts() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.Pdf {
             bool preserveConfiguredFontSlots = ApplyNativeDefaultFont(document, options, pdfOptions) ||
                                                 options?.PdfOptions != null;
             RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots);
-            ApplyNativeFallbackFont(options, pdfOptions);
+            ApplyNativeFallbackFont(options, pdfOptions, preserveConfiguredFontSlots);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             return pdfOptions;
@@ -48,8 +48,9 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static void ApplyNativeFallbackFont(PdfSaveOptions? options, PdfCore.PdfOptions pdfOptions) {
+        private static void ApplyNativeFallbackFont(PdfSaveOptions? options, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
             if (options?.PdfOptions == null &&
+                !preserveConfiguredFontSlots &&
                 !HasNativeEmbeddedFontSlot(pdfOptions, pdfOptions.DefaultFont)) {
                 TryApplyNativeDefaultFontCandidate(DefaultEmbeddedFontFamily, pdfOptions, embedSystemFont: true, requireEmbeddedFont: true);
             }
