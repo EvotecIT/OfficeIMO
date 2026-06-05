@@ -53,6 +53,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_RunLanguage_RoundTripsLangAttributes() {
+            const string sourceHtml = "<html lang=\"en-US\"><body><p>Hello <span lang=\"pl-PL\">Czesc</span></p></body></html>";
+
+            using var doc = sourceHtml.LoadFromHtml();
+
+            Assert.Equal("en-US", doc.Settings.Language);
+            Assert.Contains(doc.Paragraphs[0].GetRuns(), run => string.Equals(run.Text, "Czesc", StringComparison.Ordinal) && string.Equals(run.Language, "pl-PL", StringComparison.OrdinalIgnoreCase));
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<html lang=\"en-US\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<span lang=\"pl-PL\">Czesc</span>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("lang=\"en-US\">Hello", html, StringComparison.OrdinalIgnoreCase);
+
+            using var roundTrip = html.LoadFromHtml();
+
+            Assert.Contains(roundTrip.Paragraphs[0].GetRuns(), run => string.Equals(run.Text, "Czesc", StringComparison.Ordinal) && string.Equals(run.Language, "pl-PL", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void Test_WordToHtml_BookmarkedHeading_ExportsId() {
             using var doc = WordDocument.Create();
             var heading = doc.AddParagraph("Bookmarked heading");
@@ -84,7 +104,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<article id=\"article-anchor\">Article content</article>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<article id=\"article-anchor\"><p>Article content</p></article>", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("<p id=\"article:article-anchor\"", html, StringComparison.OrdinalIgnoreCase);
         }
 
@@ -130,6 +150,8 @@ namespace OfficeIMO.Tests {
             string html = doc.ToHtml();
 
             Assert.Contains("<thead><tr><th", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(2, html.Split(new[] { "scope=\"col\"" }, StringSplitOptions.None).Length - 1);
+            Assert.DoesNotContain("<td scope=\"col\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<p>Name</p>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<p>Score</p>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("</th></tr></thead>", html, StringComparison.OrdinalIgnoreCase);
@@ -157,6 +179,78 @@ namespace OfficeIMO.Tests {
             Assert.True(roundTripTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
             Assert.True(roundTripTable.Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
             Assert.False(roundTripTable.Rows[2].RepeatHeaderRowAtTheTopOfEachPage);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_TableFooterRow_ExportsTfootAndRoundTrips() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(3, 1);
+            table.ConditionalFormattingLastRow = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Header";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "Body";
+            table.Rows[2].Cells[0].Paragraphs[0].Text = "Total";
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<tbody><tr><td", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<p>Body</p>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<tfoot><tr><td", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<p>Total</p>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.True(html.IndexOf("<tbody>", StringComparison.OrdinalIgnoreCase) < html.IndexOf("<tfoot>", StringComparison.OrdinalIgnoreCase));
+
+            using var roundTrip = html.LoadFromHtml();
+
+            Assert.True(roundTrip.Tables[0].ConditionalFormattingLastRow);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_TableCaption_ExportsCaptionElementAndRoundTrips() {
+            const string sourceHtml = "<table><caption>Score summary</caption><tr><td>Ada</td><td>42</td></tr></table>";
+
+            using var doc = sourceHtml.LoadFromHtml();
+
+            Assert.Contains(doc.Paragraphs, paragraph =>
+                string.Equals(paragraph.StyleId, "Caption", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(paragraph.Text, "Score summary", StringComparison.Ordinal));
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<caption>Score summary</caption>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<p>Score summary</p><table", html, StringComparison.OrdinalIgnoreCase);
+
+            using var roundTrip = html.LoadFromHtml();
+
+            Assert.Single(roundTrip.Tables);
+            Assert.Contains(roundTrip.Paragraphs, paragraph =>
+                string.Equals(paragraph.StyleId, "Caption", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(paragraph.Text, "Score summary", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void Test_WordToHtml_TableCaptionBelow_ExportsCaptionElementWithoutDuplicateParagraph() {
+            const string sourceHtml = "<table><caption>Totals</caption><tr><td>42</td></tr></table>";
+            var options = new HtmlToWordOptions {
+                TableCaptionPosition = TableCaptionPosition.Below
+            };
+
+            using var doc = sourceHtml.LoadFromHtml(options);
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<caption>Totals</caption>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("</table><p>Totals</p>", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_TopLevelTable_DoesNotExportPlaceholderParagraph() {
+            const string sourceHtml = "<table><tr><td>42</td></tr></table>";
+
+            using var doc = sourceHtml.LoadFromHtml();
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<body><table>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<body><p></p><table>", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -478,6 +572,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordToHtml_EditorMarkerBulletListStyles() {
+            using var doc = WordDocument.Create();
+            var starList = doc.AddList(WordListStyle.Bulleted);
+            starList.Numbering.Levels[0]._level.LevelText!.Val = "*";
+            starList.AddItem("Star");
+            var plusList = doc.AddList(WordListStyle.Bulleted);
+            plusList.Numbering.Levels[0]._level.LevelText!.Val = "+";
+            plusList.AddItem("Plus");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+
+            Assert.Contains("list-style-type:'*'", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:'+'", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_CustomBulletListStyle() {
+            using var doc = WordDocument.Create();
+            var checkList = doc.AddList(WordListStyle.Bulleted);
+            checkList.Numbering.Levels[0]._level.LevelText!.Val = "✓";
+            checkList.AddItem("Done");
+            var diamondList = doc.AddList(WordListStyle.Bulleted);
+            diamondList.Numbering.Levels[0]._level.LevelText!.Val = "◆";
+            diamondList.AddItem("Diamond");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+
+            Assert.Contains("list-style-type:'✓'", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("list-style-type:'◆'", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("type=\"disc\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Test_WordToHtml_CheckBoxControl() {
             using var doc = WordDocument.Create();
             var paragraph = doc.AddParagraph("");
@@ -528,6 +655,38 @@ namespace OfficeIMO.Tests {
             Assert.Contains("value=\"Contoso\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("aria-label=\"Client name\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("data-tag=\"client-name\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_MultilineStructuredDocumentTag_ExportsTextArea() {
+            using var doc = WordDocument.Create();
+            var paragraph = doc.AddParagraph("Notes: ");
+            paragraph.AddStructuredDocumentTag("Line one\nLine two", "Review notes", "notes");
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("<textarea", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("disabled", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("aria-label=\"Review notes\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("data-tag=\"notes\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Line one", html, StringComparison.Ordinal);
+            Assert.Contains("Line two", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("value=\"Line one", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_MultilineStructuredDocumentTag_RoundTripsThroughTextArea() {
+            using var doc = WordDocument.Create();
+            var paragraph = doc.AddParagraph("Notes: ");
+            paragraph.AddStructuredDocumentTag("Line one\nLine two", "Review notes", "notes");
+
+            string html = doc.ToHtml();
+            using var roundTrip = html.LoadFromHtml();
+
+            var control = Assert.Single(roundTrip.StructuredDocumentTags);
+            Assert.Equal("Line one\nLine two", control.Text);
+            Assert.Equal("Review notes", control.Alias);
+            Assert.Equal("notes", control.Tag);
         }
 
         [Fact]
@@ -600,6 +759,43 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("<table style=\"width:100%;border:1px solid black;border-collapse:collapse\">", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<td style=\"width:50%;text-align:center;border:1px solid black\">", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_TableCellSpacing_ExportsBorderSpacingAndRoundTrips() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(1, 1);
+            table.StyleDetails!.CellSpacing = 240;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Spaced";
+            table.Rows[0].Cells[0].Borders.LeftStyle = BorderValues.Single;
+            table.Rows[0].Cells[0].Borders.RightStyle = BorderValues.Single;
+            table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Single;
+            table.Rows[0].Cells[0].Borders.BottomStyle = BorderValues.Single;
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("border-spacing:12pt", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border-collapse:separate", html, StringComparison.OrdinalIgnoreCase);
+
+            using var roundTrip = html.LoadFromHtml();
+
+            Assert.Equal((short)240, roundTrip.Tables[0].StyleDetails!.CellSpacing);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_TableCellVerticalAlignment_RoundTrips() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(1, 1);
+            table.Rows[0].Cells[0].VerticalAlignment = TableVerticalAlignmentValues.Center;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Centered";
+
+            string html = doc.ToHtml();
+
+            Assert.Contains("vertical-align:middle", html, StringComparison.OrdinalIgnoreCase);
+
+            using var roundTrip = html.LoadFromHtml();
+
+            Assert.Equal(TableVerticalAlignmentValues.Center, roundTrip.Tables[0].Rows[0].Cells[0].VerticalAlignment);
         }
 
         [Fact]

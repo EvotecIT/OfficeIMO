@@ -73,6 +73,14 @@ namespace OfficeIMO.Word.Html {
         }
 
         IElement CreateStructuredDocumentTagInput(IDocument htmlDoc, WordStructuredDocumentTag structuredDocumentTag) {
+            if (HasLineBreaks(structuredDocumentTag.Text)) {
+                var textArea = htmlDoc.CreateElement("textarea");
+                textArea.SetAttribute("disabled", string.Empty);
+                textArea.TextContent = structuredDocumentTag.Text ?? string.Empty;
+                ApplyContentControlMetadata(textArea, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
+                return textArea;
+            }
+
             var input = htmlDoc.CreateElement("input");
             input.SetAttribute("type", "text");
             input.SetAttribute("disabled", string.Empty);
@@ -82,6 +90,9 @@ namespace OfficeIMO.Word.Html {
             ApplyContentControlMetadata(input, structuredDocumentTag.Alias, structuredDocumentTag.Tag);
             return input;
         }
+
+        static bool HasLineBreaks(string? text) =>
+            !string.IsNullOrEmpty(text) && (text!.IndexOf('\n') >= 0 || text.IndexOf('\r') >= 0);
 
         static void ApplyContentControlMetadata(IElement element, string? alias, string? tag) {
             if (!string.IsNullOrEmpty(alias)) {

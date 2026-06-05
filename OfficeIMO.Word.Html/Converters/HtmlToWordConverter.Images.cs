@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             var alt = img.AlternativeText ?? string.Empty;
+            var title = img.GetAttribute("title") ?? string.Empty;
             if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
                 AddDiagnostic(options, "ImageSkippedByPolicy", "External image was skipped because only data URI images are enabled.", src);
                 InsertAltText(currentParagraph, headerFooter, doc, alt);
@@ -56,7 +57,8 @@ namespace OfficeIMO.Word.Html {
 
             if (horizontalAlignment == null && _imageCache.TryGetValue(src, out var cached)) {
                 paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                cached.Clone(paragraph);
+                var clonedImage = cached.Clone(paragraph);
+                ApplyImageMetadata(clonedImage, alt, title);
                 return;
             }
 
@@ -162,6 +164,8 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
+            ApplyImageMetadata(image, alt, title);
+
             if (horizontalAlignment == null) {
                 _imageCache[src] = image;
             }
@@ -176,6 +180,7 @@ namespace OfficeIMO.Word.Html {
             width ??= TryParsePixelValue(img.GetAttribute("width"));
             height ??= TryParsePixelValue(img.GetAttribute("height"));
             var alt = img.AlternativeText;
+            var title = img.GetAttribute("title") ?? string.Empty;
 
             if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
                 AddDiagnostic(options, "ImageSkippedByPolicy", "External SVG image was skipped because only data URI images are enabled.", src);
@@ -234,6 +239,9 @@ namespace OfficeIMO.Word.Html {
                 try {
                     var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
                     SvgHelper.AddSvg(paragraph, svgContent, width, height, alt ?? string.Empty);
+                    if (paragraph.Image != null) {
+                        ApplyImageMetadata(paragraph.Image, alt ?? string.Empty, title);
+                    }
                     _imageCache[src] = paragraph.Image!;
                     reservedBytes = 0;
                 } catch (Exception ex) {
@@ -320,6 +328,11 @@ namespace OfficeIMO.Word.Html {
             }
             var paragraph = currentParagraph ?? (headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph());
             paragraph.AddText(alt);
+        }
+
+        private static void ApplyImageMetadata(WordImage image, string alt, string? title) {
+            image.Description = alt;
+            image.Title = string.IsNullOrEmpty(title) ? null : title;
         }
 
         private long EnsureFileWithinImageLimits(string path, HtmlToWordOptions options) {

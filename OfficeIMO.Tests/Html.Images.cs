@@ -1,5 +1,7 @@
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using System;
 using System.IO;
 using System.Linq;
@@ -50,6 +52,25 @@ namespace OfficeIMO.Tests {
                 File.Delete(dest);
                 Directory.Delete(dir);
             }
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageTitleRoundTripsThroughSavedDocument() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string html = $"<img src=\"{path}\" alt=\"Company logo\" title=\"Quarterly report logo\" width=\"32\" height=\"32\" />";
+
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var image = Assert.Single(doc.Images);
+            Assert.Equal("Company logo", image.Description);
+            Assert.Equal("Quarterly report logo", image.Title);
+
+            using MemoryStream stream = doc.SaveAsMemoryStream();
+            using var loaded = WordDocument.Load(stream);
+            string roundTrip = loaded.ToHtml();
+
+            Assert.Contains("alt=\"Company logo\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("title=\"Quarterly report logo\"", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -159,6 +180,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal("ImageResourceRejectedByPolicy", diagnostic.Code);
             Assert.Equal("https://example.test/scheme.png", diagnostic.Source);
             Assert.Contains("https", diagnostic.Detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void HtmlToWord_UntrustedProfile_SkipsExternalImageBeforeFetch() {
+            var fetched = false;
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                fetched = true;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+            }));
+            var options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
+            options.HttpClient = httpClient;
+            string html = "<img src=\"https://example.test/untrusted.png\" alt=\"Blocked by profile\" />";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.False(fetched);
+            Assert.Empty(doc.Images);
+            Assert.Single(doc.Paragraphs);
+            Assert.Equal("Blocked by profile", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("ImageSkippedByPolicy", diagnostic.Code);
+            Assert.Equal("https://example.test/untrusted.png", diagnostic.Source);
         }
 
         [Fact]
@@ -486,6 +529,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DuplicateImageSrcKeepsPerImageAltAndTitleMetadata() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            var base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            var dataUri = $"data:image/png;base64,{base64}";
+            string html = $"<p><img src=\"{dataUri}\" alt=\"First logo\" title=\"First title\"/><img src=\"{dataUri}\" alt=\"Second logo\" title=\"Second title\"/></p>";
+
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            Assert.Equal(2, doc.Images.Count);
+            Assert.Equal(doc.Images[0].RelationshipId, doc.Images[1].RelationshipId);
+            Assert.Equal("First logo", doc.Images[0].Description);
+            Assert.Equal("First title", doc.Images[0].Title);
+            Assert.Equal("Second logo", doc.Images[1].Description);
+            Assert.Equal("Second title", doc.Images[1].Title);
+
+            using MemoryStream stream = doc.SaveAsMemoryStream();
+            using var loaded = WordDocument.Load(stream);
+            string roundTrip = loaded.ToHtml();
+
+            Assert.Contains("alt=\"First logo\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("title=\"First title\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("alt=\"Second logo\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("title=\"Second title\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void DuplicateImageFileSrcSharesPart() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             string html = $"<p><img src=\"{path}\"/><img src=\"{path}\"/></p>";
@@ -556,6 +625,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal(64D, Math.Round(img.Width!.Value));
             Assert.NotNull(img.Height);
             Assert.True(img.Height!.Value > 0);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageDimensionsPersistInSavedDrawingExtent() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string html = $"<img src=\"{path}\" width=\"64\" height=\"32\" alt=\"Logo\" />";
+
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var img = Assert.Single(doc.Images);
+            Assert.Equal(64D, Math.Round(img.Width!.Value));
+            Assert.Equal(32D, Math.Round(img.Height!.Value));
+
+            using MemoryStream stream = doc.SaveAsMemoryStream();
+            using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
+            var errors = new OpenXmlValidator().Validate(package).ToList();
+            Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+
+            var drawing = Assert.Single(package.MainDocumentPart!.Document.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+            var extent = drawing.Inline!.Extent!;
+            Assert.Equal(64L * 9525L, extent.Cx!.Value);
+            Assert.Equal(32L * 9525L, extent.Cy!.Value);
         }
 
         [Fact]

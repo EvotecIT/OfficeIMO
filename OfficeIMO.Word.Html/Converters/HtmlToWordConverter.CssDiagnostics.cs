@@ -6,6 +6,7 @@ namespace OfficeIMO.Word.Html {
             "background-color",
             "border",
             "border-collapse",
+            "border-spacing",
             "break-after",
             "break-before",
             "color",
@@ -36,6 +37,8 @@ namespace OfficeIMO.Word.Html {
             "page-break-before",
             "text-align",
             "text-decoration",
+            "text-decoration-line",
+            "text-decoration-style",
             "text-indent",
             "text-transform",
             "vertical-align",
@@ -98,7 +101,7 @@ namespace OfficeIMO.Word.Html {
                     continue;
                 }
 
-                if (TryGetUnsupportedCssValueReason(propertyName, pair.Value, out var reason)) {
+                if (TryGetUnsupportedCssValueReason(elementName, propertyName, pair.Value, out var reason)) {
                     AddUnsupportedCssDiagnostic(
                         "UnsupportedCssValue",
                         "CSS declaration value is not currently mapped to Word output.",
@@ -131,7 +134,7 @@ namespace OfficeIMO.Word.Html {
             AddDiagnostic(_options, code, message, source, detail == null ? null : new HtmlUnsupportedCssException(code, message, source, detail));
         }
 
-        private static bool TryGetUnsupportedCssValueReason(string propertyName, string? rawValue, out string reason) {
+        private static bool TryGetUnsupportedCssValueReason(string elementName, string propertyName, string? rawValue, out string reason) {
             reason = string.Empty;
             var value = NormalizeCssDiagnosticValue(rawValue);
             if (string.IsNullOrWhiteSpace(value) || IsCssGlobalKeyword(value)) {
@@ -181,17 +184,33 @@ namespace OfficeIMO.Word.Html {
                     }
                     return false;
                 case "text-align":
-                    if (lower is "left" or "right" or "center" or "justify") {
+                    if (lower is "left" or "right" or "center" or "justify" or "start" or "end") {
                         return false;
                     }
                     reason = $"Unsupported text-align value '{value}'.";
                     return true;
                 case "text-decoration":
-                    if (!ContainsSupportedTextDecorationOnly(lower)) {
-                        reason = $"Unsupported text-decoration value '{value}'.";
+                    if (TryGetUnsupportedTextDecorationReason(value, "text-decoration", out reason)) {
                         return true;
                     }
                     return false;
+                case "text-decoration-line":
+                    if (TryGetUnsupportedTextDecorationLineReason(value, "text-decoration-line", out reason)) {
+                        return true;
+                    }
+                    return false;
+                case "text-decoration-style":
+                    if (!IsSupportedTextDecorationStyle(lower)) {
+                        reason = $"Unsupported text-decoration-style value '{value}'.";
+                        return true;
+                    }
+                    return false;
+                case "direction":
+                    if (lower is "ltr" or "rtl") {
+                        return false;
+                    }
+                    reason = $"Unsupported direction value '{value}'.";
+                    return true;
                 case "text-transform":
                     if (lower is "none" or "uppercase" or "lowercase" or "capitalize") {
                         return false;
@@ -199,6 +218,9 @@ namespace OfficeIMO.Word.Html {
                     reason = $"Unsupported text-transform value '{value}'.";
                     return true;
                 case "vertical-align":
+                    if (IsTableCellElement(elementName) && lower is "top" or "middle" or "center" or "bottom") {
+                        return false;
+                    }
                     if (lower is "baseline" or "super" or "sup" or "sub") {
                         return false;
                     }
@@ -252,6 +274,18 @@ namespace OfficeIMO.Word.Html {
                         return true;
                     }
                     return false;
+                case "border-collapse":
+                    if (lower is "collapse" or "separate") {
+                        return false;
+                    }
+                    reason = $"Unsupported border-collapse value '{value}'.";
+                    return true;
+                case "border-spacing":
+                    if (!IsSupportedBorderSpacingValue(value)) {
+                        reason = $"Unsupported border-spacing value '{value}'.";
+                        return true;
+                    }
+                    return false;
                 case "letter-spacing":
                 case "text-indent":
                     if (!IsSupportedCssLength(value, allowNegative: true, allowPercent: false, allowAuto: false)) {
@@ -279,6 +313,25 @@ namespace OfficeIMO.Word.Html {
             }
 
             return false;
+        }
+
+        private static bool IsTableCellElement(string elementName) =>
+            elementName.Equals("td", StringComparison.OrdinalIgnoreCase) ||
+            elementName.Equals("th", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsSupportedBorderSpacingValue(string value) {
+            var tokens = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length is < 1 or > 2) {
+                return false;
+            }
+
+            foreach (var token in tokens) {
+                if (!IsSupportedCssLength(token, allowNegative: false, allowPercent: false, allowAuto: false)) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private static bool IsSupportedFontShorthand(string value) {
@@ -351,19 +404,52 @@ namespace OfficeIMO.Word.Html {
             return parsed.LineHeight.HasValue;
         }
 
-        private static bool ContainsSupportedTextDecorationOnly(string value) {
-            if (string.IsNullOrWhiteSpace(value) || value == "none") {
+        private static bool TryGetUnsupportedTextDecorationReason(string value, string propertyName, out string reason) {
+            reason = string.Empty;
+            var tokens = value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length == 0) {
+                return false;
+            }
+
+            foreach (var token in tokens) {
+                var lower = token.Trim().ToLowerInvariant();
+                if (IsSupportedTextDecorationLine(lower) || IsSupportedTextDecorationStyle(lower)) {
+                    continue;
+                }
+
+                if (NormalizeColor(token) != null ||
+                    lower is "currentcolor" or "transparent") {
+                    reason = $"Unsupported {propertyName} color token '{token}' in value '{value}'.";
+                    return true;
+                }
+
+                reason = $"Unsupported {propertyName} token '{token}' in value '{value}'.";
                 return true;
             }
 
-            foreach (var token in value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                if (token is not ("underline" or "line-through")) {
-                    return false;
+            return false;
+        }
+
+        private static bool TryGetUnsupportedTextDecorationLineReason(string value, string propertyName, out string reason) {
+            reason = string.Empty;
+            foreach (var token in value.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+                var lower = token.Trim().ToLowerInvariant();
+                if (IsSupportedTextDecorationLine(lower)) {
+                    continue;
                 }
+
+                reason = $"Unsupported {propertyName} token '{token}' in value '{value}'.";
+                return true;
             }
 
-            return true;
+            return false;
         }
+
+        private static bool IsSupportedTextDecorationLine(string value) =>
+            value is "none" or "underline" or "line-through";
+
+        private static bool IsSupportedTextDecorationStyle(string value) =>
+            value is "solid" or "double" or "dotted" or "dashed" or "wavy";
 
         private static bool IsSupportedBoxLengthList(string value, bool allowAuto) {
             var tokens = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);

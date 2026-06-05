@@ -41,5 +41,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(UnderlineValues.Single, run.Underline);
             Assert.True(run.Strike);
         }
+
+        [Fact]
+        public void HtmlToWord_Css_TextDecorationStyle_MapsUnderlineVariants() {
+            string html = "<p><span style=\"text-decoration:underline dotted\">dotted</span><span style=\"text-decoration-line:underline;text-decoration-style:wavy\">wavy</span></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var runs = doc.Paragraphs[0].GetRuns().ToArray();
+
+            Assert.Equal(UnderlineValues.Dotted, runs[0].Underline);
+            Assert.Equal(UnderlineValues.Wave, runs[1].Underline);
+        }
+
+        [Fact]
+        public void HtmlToWord_Css_TextDecorationNone_ClearsInheritedDecoration() {
+            string html = "<p style=\"text-decoration-line:underline;text-decoration-style:double\">under <span style=\"text-decoration:none\">plain</span></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var runs = doc.Paragraphs[0].GetRuns().ToArray();
+
+            Assert.Equal(UnderlineValues.Double, runs[0].Underline);
+            Assert.Null(runs[1].Underline);
+        }
     }
 }

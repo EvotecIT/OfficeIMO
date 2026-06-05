@@ -84,5 +84,37 @@ namespace OfficeIMO.Tests {
             Assert.Equal(commentDate, rootComment.DateTime);
             Assert.Equal(replyDate, rootReply.DateTime);
         }
+
+        [Fact]
+        public void HtmlToWord_RawHtmlComments_CanImportAsNativeWordComments() {
+            var options = new HtmlToWordOptions {
+                ImportHtmlComments = true,
+                HtmlCommentAuthor = "HTML Reviewer",
+                HtmlCommentInitials = "HR"
+            };
+            string html = "<p>Visible <!-- reviewer note -->text.</p>";
+
+            using var doc = html.LoadFromHtml(options);
+
+            Assert.Equal("Visible text.", string.Concat(doc.Paragraphs.Select(paragraph => paragraph.Text)));
+            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "HtmlCommentSkipped");
+            var comment = Assert.Single(doc.Comments);
+            Assert.Equal("HTML Reviewer", comment.Author);
+            Assert.Equal("HR", comment.Initials);
+            Assert.Equal("reviewer note", comment.Text);
+
+            using var stream = doc.SaveAsMemoryStream();
+            using var loaded = WordDocument.Load(stream);
+            var loadedComment = Assert.Single(loaded.Comments);
+            Assert.Equal("HTML Reviewer", loadedComment.Author);
+            Assert.Equal("HR", loadedComment.Initials);
+            Assert.Equal("reviewer note", loadedComment.Text);
+
+            string roundTrip = loaded.ToHtml(new WordToHtmlOptions { ExportComments = true });
+            Assert.Contains("class=\"comments\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("data-author=\"HTML Reviewer\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("data-initials=\"HR\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("reviewer note", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

@@ -2,8 +2,10 @@ using System;
 using OfficeIMO.Word.Html;
 using Xunit;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Tests {
@@ -61,6 +63,232 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_RemoteStylesheet_UsesConfiguredHttpClient() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                Assert.Equal(new Uri("https://styles.example.test/site.css"), request.RequestUri);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("p { color:#abcdef; }", Encoding.UTF8, "text/css")
+                });
+            }));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/site.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.Equal("abcdef", run.ColorHex);
+        }
+
+        [Fact]
+        public void HtmlToWord_UntrustedProfile_SkipsDocumentStylesheetLinkBeforeFetch() {
+            var fetched = false;
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                fetched = true;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("p { color:#abcdef; }", Encoding.UTF8, "text/css")
+                });
+            }));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/untrusted.css\" /><p>Remote CSS</p>";
+            var options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
+            options.HttpClient = httpClient;
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.False(fetched);
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.NotEqual("abcdef", run.ColorHex);
+            var diagnostic = Assert.Single(options.Diagnostics, item => item.Code == "HtmlStylesheetLinkSkipped");
+            Assert.Equal("https://styles.example.test/untrusted.css", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteStylesheet_DisallowedHost_EmitsDiagnosticAndSkipsFetch() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => throw new InvalidOperationException("Disallowed stylesheet host should not be fetched.")));
+            string html = "<link rel=\"stylesheet\" href=\"https://blocked.example.test/site.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient
+            };
+            options.AllowedStylesheetHosts.Add("styles.example.test");
+
+            var doc = html.LoadFromHtml(options);
+
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.NotEqual("abcdef", run.ColorHex);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("StylesheetResourceRejectedByPolicy", diagnostic.Code);
+            Assert.Equal("https://blocked.example.test/site.css", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteStylesheet_MaxCssBytes_StopsBeforeReadingContent() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ThrowIfReadContent(1024)
+            })));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/max.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient,
+                MaxCssBytes = 8
+            };
+
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+
+            Assert.Equal("CssSizeLimitExceeded", exception.Code);
+            Assert.Equal("https://styles.example.test/max.css", exception.LimitSource);
+            Assert.Equal(8, exception.Limit);
+            Assert.Equal(1024, exception.Actual);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("CssSizeLimitExceeded", diagnostic.Code);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteStylesheet_MaxTotalCssBytes_StopsBeforeReadingContent() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ThrowIfReadContent(1024)
+            })));
+            string seededCss = "body { color:#111111; }";
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/total.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient,
+                MaxTotalCssBytes = Encoding.UTF8.GetByteCount(seededCss) + 8
+            };
+            options.StylesheetContents.Add(seededCss);
+
+            var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+
+            Assert.Equal("CssTotalSizeLimitExceeded", exception.Code);
+            Assert.Equal("https://styles.example.test/total.css", exception.LimitSource);
+            Assert.Equal(options.MaxTotalCssBytes, exception.Limit);
+            Assert.True(exception.Actual > exception.Limit);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("CssTotalSizeLimitExceeded", diagnostic.Code);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteStylesheet_DisallowedContentType_EmitsDiagnosticAndSkipsStylesheet() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent("p { color:#fedcba; }", Encoding.UTF8, "application/json")
+            })));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/rejected-content-type.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.NotEqual("fedcba", run.ColorHex);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("StylesheetContentTypeRejected", diagnostic.Code);
+            Assert.Equal("https://styles.example.test/rejected-content-type.css", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteStylesheet_ContentTypeValidationCanBeDisabled() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent("p { color:#112233; }", Encoding.UTF8, "application/json")
+            })));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/json.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient,
+                ValidateStylesheetContentTypes = false
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.Equal("112233", run.ColorHex);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteStylesheet_NonSuccessStatus_EmitsSpecificDiagnosticAndSkipsStylesheet() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound) {
+                Content = new StringContent("p { color:#445566; }", Encoding.UTF8, "text/css")
+            })));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/not-found.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.NotEqual("445566", run.ColorHex);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("StylesheetHttpStatusRejected", diagnostic.Code);
+            Assert.Equal("https://styles.example.test/not-found.css", diagnostic.Source);
+            Assert.Contains("404", diagnostic.Detail, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteStylesheet_TransportFailure_EmitsSpecificDiagnosticAndSkipsStylesheet() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ =>
+                Task.FromException<HttpResponseMessage>(new HttpRequestException("DNS resolution failed."))));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/transport.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.NotEqual("778899", run.ColorHex);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("StylesheetTransportFailed", diagnostic.Code);
+            Assert.Equal("https://styles.example.test/transport.css", diagnostic.Source);
+            Assert.Contains("DNS resolution failed", diagnostic.Detail, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HtmlToWord_RemoteStylesheet_ResourceTimeout_EmitsSpecificDiagnosticAndSkipsStylesheet() {
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ =>
+                Task.FromException<HttpResponseMessage>(new TaskCanceledException("The stylesheet request timed out."))));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/timeout.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient,
+                ResourceTimeout = TimeSpan.FromMilliseconds(1)
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.NotEqual("aabbcc", run.ColorHex);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("StylesheetLoadTimedOut", diagnostic.Code);
+            Assert.Equal("https://styles.example.test/timeout.css", diagnostic.Source);
+            Assert.Contains("timed out", diagnostic.Detail, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public async Task HtmlToWord_RemoteStylesheet_CallerCancellationStillThrows() {
+            using var cts = new CancellationTokenSource();
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
+                cts.Cancel();
+                return Task.FromException<HttpResponseMessage>(new OperationCanceledException(cts.Token));
+            }));
+            string html = "<link rel=\"stylesheet\" href=\"https://styles.example.test/caller-cancel.css\" /><p>Remote CSS</p>";
+            var options = new HtmlToWordOptions {
+                AllowDocumentStylesheetLinks = true,
+                HttpClient = httpClient
+            };
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() => html.LoadFromHtmlAsync(options, cts.Token));
+
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_RelativeStylesheet_UsesBaseUrl() {
             var dir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
             Directory.CreateDirectory(dir);
@@ -78,6 +306,139 @@ namespace OfficeIMO.Tests {
                 Directory.Delete(dir);
             }
         }
+
+        [Fact]
+        public void HtmlToWord_FileStylesheet_DisallowedScheme_EmitsDiagnosticAndSkipsStylesheet() {
+            var path = Path.GetTempFileName();
+            File.WriteAllText(path, "p { color:#246810; }");
+            string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Local CSS</p>";
+            try {
+                var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
+                options.AllowedStylesheetUriSchemes.Remove(Uri.UriSchemeFile);
+
+                var doc = html.LoadFromHtml(options);
+
+                var run = doc.Paragraphs[0].GetRuns().First();
+                Assert.NotEqual("246810", run.ColorHex);
+                var diagnostic = Assert.Single(options.Diagnostics);
+                Assert.Equal("StylesheetResourceRejectedByPolicy", diagnostic.Code);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_FileStylesheet_MaxCssBytes_StopsBeforeParsingStylesheet() {
+            var path = Path.GetTempFileName();
+            File.WriteAllText(path, "p { color:#135790; }");
+            string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Local CSS</p>";
+            try {
+                var options = new HtmlToWordOptions {
+                    AllowDocumentStylesheetLinks = true,
+                    MaxCssBytes = 8
+                };
+
+                var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+
+                Assert.Equal("CssSizeLimitExceeded", exception.Code);
+                Assert.Equal(path, exception.LimitSource);
+                Assert.Equal(8, exception.Limit);
+                Assert.True(exception.Actual > exception.Limit);
+                var diagnostic = Assert.Single(options.Diagnostics);
+                Assert.Equal("CssSizeLimitExceeded", diagnostic.Code);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_FileStylesheet_MaxTotalCssBytes_StopsBeforeParsingSecondStylesheet() {
+            var path = Path.GetTempFileName();
+            File.WriteAllText(path, "p { color:#abcdef; }");
+            string seededCss = "body { color:#111111; }";
+            string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Local CSS</p>";
+            try {
+                var options = new HtmlToWordOptions {
+                    AllowDocumentStylesheetLinks = true,
+                    MaxTotalCssBytes = Encoding.UTF8.GetByteCount(seededCss) + 8
+                };
+                options.StylesheetContents.Add(seededCss);
+
+                var exception = Assert.Throws<HtmlConversionLimitException>(() => html.LoadFromHtml(options));
+
+                Assert.Equal("CssTotalSizeLimitExceeded", exception.Code);
+                Assert.Equal(path, exception.LimitSource);
+                Assert.Equal(options.MaxTotalCssBytes, exception.Limit);
+                Assert.True(exception.Actual > exception.Limit);
+                var diagnostic = Assert.Single(options.Diagnostics);
+                Assert.Equal("CssTotalSizeLimitExceeded", diagnostic.Code);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_BodyStylesheetLink_AppliesToFollowingContent() {
+            var path = Path.GetTempFileName();
+            File.WriteAllText(path, "p { color:#456789; }");
+            string html = $"<p>Before</p><link rel=\"stylesheet\" href=\"{path}\" /><p>After</p>";
+            try {
+                var doc = html.LoadFromHtml(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+
+                var beforeRun = doc.Paragraphs[0].GetRuns().First();
+                var afterRun = doc.Paragraphs[1].GetRuns().First();
+                Assert.NotEqual("456789", beforeRun.ColorHex);
+                Assert.Equal("456789", afterRun.ColorHex);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_BodyStylesheetLink_Disabled_EmitsDiagnosticAndSkipsStylesheet() {
+            var path = Path.GetTempFileName();
+            File.WriteAllText(path, "p { color:#765432; }");
+            string html = $"<p>Before</p><link rel=\"stylesheet\" href=\"{path}\" /><p>After</p>";
+            try {
+                var options = new HtmlToWordOptions();
+                var doc = html.LoadFromHtml(options);
+
+                var afterRun = doc.Paragraphs[1].GetRuns().First();
+                Assert.NotEqual("765432", afterRun.ColorHex);
+                var diagnostic = Assert.Single(options.Diagnostics);
+                Assert.Equal("HtmlStylesheetLinkSkipped", diagnostic.Code);
+                Assert.Equal(path, diagnostic.Source, ignoreCase: true);
+            } finally {
+                File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void HtmlToWord_StylesheetLinkWithoutHref_EmitsDiagnostic() {
+            string html = "<link rel=\"stylesheet\" /><p>Missing href</p>";
+            var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Equal("Missing href", doc.Paragraphs[0].Text);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("HtmlStylesheetLinkMissingHref", diagnostic.Code);
+            Assert.Equal("link", diagnostic.Source);
+        }
+
+        [Fact]
+        public void HtmlToWord_StylesheetLinkUnsupportedScheme_EmitsPolicyDiagnostic() {
+            string html = "<link rel=\"stylesheet\" href=\"data:text/css,p%7Bcolor:%23999999%7D\" /><p>Unsupported scheme</p>";
+            var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
+
+            var doc = html.LoadFromHtml(options);
+
+            var run = doc.Paragraphs[0].GetRuns().First();
+            Assert.NotEqual("999999", run.ColorHex);
+            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.Equal("StylesheetResourceRejectedByPolicy", diagnostic.Code);
+            Assert.Equal("data:text/css,p%7Bcolor:%23999999%7D", diagnostic.Source);
+            Assert.Contains("data", diagnostic.Detail, StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
-

@@ -1,4 +1,5 @@
 using OfficeIMO.Markdown.Html;
+using System;
 
 namespace OfficeIMO.Reader.Html;
 
@@ -7,7 +8,49 @@ namespace OfficeIMO.Reader.Html;
 /// </summary>
 public sealed class ReaderHtmlOptions {
     /// <summary>
+    /// Creates the default OfficeIMO HTML reader profile.
+    /// </summary>
+    /// <returns>A new <see cref="ReaderHtmlOptions"/> instance using the default HTML-to-Markdown profile.</returns>
+    public static ReaderHtmlOptions CreateOfficeIMOProfile() => new ReaderHtmlOptions {
+        HtmlToMarkdownOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile()
+    };
+
+    /// <summary>
+    /// Creates a portable HTML reader profile that favors portable Markdown output.
+    /// </summary>
+    /// <returns>A new <see cref="ReaderHtmlOptions"/> instance using the portable HTML-to-Markdown profile.</returns>
+    public static ReaderHtmlOptions CreatePortableProfile() => new ReaderHtmlOptions {
+        HtmlToMarkdownOptions = HtmlToMarkdownOptions.CreatePortableProfile()
+    };
+
+    /// <summary>
+    /// Creates a bounded HTML reader profile for untrusted or size-sensitive HTML ingestion.
+    /// </summary>
+    /// <param name="maxInputCharacters">Maximum HTML input length accepted by the HTML-to-Markdown stage.</param>
+    /// <returns>A new <see cref="ReaderHtmlOptions"/> instance with a configured HTML input character limit.</returns>
+    public static ReaderHtmlOptions CreateUntrustedHtmlProfile(int maxInputCharacters) {
+        if (maxInputCharacters <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(maxInputCharacters), "Maximum input characters must be greater than zero.");
+        }
+
+        var options = HtmlToMarkdownOptions.CreatePortableProfile();
+        options.MaxInputCharacters = maxInputCharacters;
+
+        return new ReaderHtmlOptions {
+            HtmlToMarkdownOptions = options
+        };
+    }
+
+    /// <summary>
     /// Options passed to HTML-to-Markdown conversion stage.
     /// </summary>
     public HtmlToMarkdownOptions? HtmlToMarkdownOptions { get; set; }
+
+    /// <summary>
+    /// Creates a copy of the current options instance so reader registrations can reuse templates safely.
+    /// </summary>
+    /// <returns>A new <see cref="ReaderHtmlOptions"/> with cloned nested HTML-to-Markdown options.</returns>
+    public ReaderHtmlOptions Clone() => new ReaderHtmlOptions {
+        HtmlToMarkdownOptions = HtmlToMarkdownOptions?.Clone()
+    };
 }

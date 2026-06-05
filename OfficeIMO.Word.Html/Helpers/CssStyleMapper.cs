@@ -20,8 +20,9 @@ namespace OfficeIMO.Word.Html {
             internal int? PaddingRight { get; set; }
             internal int? PaddingTop { get; set; }
             internal int? PaddingBottom { get; set; }
-            internal bool Underline { get; set; }
-            internal bool Strike { get; set; }
+            internal bool? Underline { get; set; }
+            internal UnderlineValues? UnderlineStyle { get; set; }
+            internal bool? Strike { get; set; }
             internal string? BackgroundColor { get; set; }
             internal int? LineHeight { get; set; }
             internal LineSpacingRuleValues? LineHeightRule { get; set; }
@@ -85,16 +86,14 @@ namespace OfficeIMO.Word.Html {
             if (properties.TryGetValue("padding-bottom", out string? pb) && TryParseLength(pb, out int pB)) result.PaddingBottom = pB;
 
             if (properties.TryGetValue("text-decoration", out string? deco)) {
-                foreach (var part in deco.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                    switch (part.Trim().ToLowerInvariant()) {
-                        case "underline":
-                            result.Underline = true;
-                            break;
-                        case "line-through":
-                            result.Strike = true;
-                            break;
-                    }
-                }
+                ApplyTextDecoration(deco, result);
+            }
+            if (properties.TryGetValue("text-decoration-line", out string? decoLine)) {
+                ApplyTextDecorationLine(decoLine, result);
+            }
+            if (properties.TryGetValue("text-decoration-style", out string? decoStyle) &&
+                TryMapTextDecorationStyle(decoStyle, out var underlineStyle)) {
+                result.UnderlineStyle = underlineStyle;
             }
 
             if (properties.TryGetValue("background-color", out string? bg)) {
@@ -133,6 +132,75 @@ namespace OfficeIMO.Word.Html {
                 }
             }
             return dict;
+        }
+
+        private static void ApplyTextDecoration(string value, CssProperties result) {
+            foreach (var token in SplitCssTokens(value)) {
+                if (ApplyTextDecorationLineToken(token, result)) {
+                    continue;
+                }
+                if (TryMapTextDecorationStyle(token, out var underlineStyle)) {
+                    result.UnderlineStyle = underlineStyle;
+                }
+            }
+        }
+
+        private static void ApplyTextDecorationLine(string value, CssProperties result) {
+            foreach (var token in SplitCssTokens(value)) {
+                ApplyTextDecorationLineToken(token, result);
+            }
+        }
+
+        private static bool ApplyTextDecorationLineToken(string token, CssProperties result) {
+            switch (token.Trim().ToLowerInvariant()) {
+                case "none":
+                    result.Underline = false;
+                    result.Strike = false;
+                    result.UnderlineStyle = null;
+                    return true;
+                case "underline":
+                    result.Underline = true;
+                    result.UnderlineStyle ??= UnderlineValues.Single;
+                    return true;
+                case "line-through":
+                    result.Strike = true;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool TryMapTextDecorationStyle(string value, out UnderlineValues underlineStyle) {
+            underlineStyle = UnderlineValues.Single;
+            switch (value.Trim().ToLowerInvariant()) {
+                case "solid":
+                    underlineStyle = UnderlineValues.Single;
+                    return true;
+                case "double":
+                    underlineStyle = UnderlineValues.Double;
+                    return true;
+                case "dotted":
+                    underlineStyle = UnderlineValues.Dotted;
+                    return true;
+                case "dashed":
+                    underlineStyle = UnderlineValues.Dash;
+                    return true;
+                case "wavy":
+                    underlineStyle = UnderlineValues.Wave;
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static IEnumerable<string> SplitCssTokens(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                yield break;
+            }
+
+            foreach (var token in value!.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)) {
+                yield return token;
+            }
         }
 
         private static bool TryParseFontSize(string value, out double size) {

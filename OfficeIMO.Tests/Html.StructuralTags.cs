@@ -58,7 +58,15 @@ namespace OfficeIMO.Tests {
             string roundTrip = doc.ToHtml();
             Assert.Contains("<section id=\"intro\">", roundTrip);
             Assert.Contains("<article id=\"art\">", roundTrip);
+            AssertContainedText(roundTrip, "<section id=\"intro\">", "</section>", "Intro");
+            AssertContainedText(roundTrip, "<article id=\"art\">", "</article>", "Article");
+        }
+
+        private static void AssertContainedText(string html, string openTag, string closeTag, string text) {
+            int start = html.IndexOf(openTag, StringComparison.OrdinalIgnoreCase);
+            int end = start >= 0 ? html.IndexOf(closeTag, start, StringComparison.OrdinalIgnoreCase) : -1;
+            int textIndex = start >= 0 ? html.IndexOf(text, start, StringComparison.OrdinalIgnoreCase) : -1;
+            Assert.True(start >= 0 && end > start && textIndex > start && textIndex < end);
         }
     }
 }
-

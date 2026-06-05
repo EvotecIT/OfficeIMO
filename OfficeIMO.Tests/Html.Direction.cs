@@ -1,5 +1,6 @@
 using System.Linq;
 
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using Xunit;
@@ -37,6 +38,28 @@ namespace OfficeIMO.Tests {
 
             var paragraph = doc.Paragraphs.First(p => p.Text.Contains("Delta"));
             Assert.True(paragraph.BiDi);
+        }
+
+        [Fact]
+        public void HtmlToWord_LogicalTextAlign_UsesDirection() {
+            string html = "<p style=\"text-align:start\">Left</p><p dir=\"rtl\" style=\"text-align:start\">Right</p><p dir=\"rtl\" style=\"text-align:end\">LeftAgain</p>";
+
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            Assert.Equal(JustificationValues.Left, doc.Paragraphs.First(p => p.Text.Contains("Left")).ParagraphAlignment);
+            Assert.Equal(JustificationValues.Right, doc.Paragraphs.First(p => p.Text.Contains("Right")).ParagraphAlignment);
+            Assert.Equal(JustificationValues.Left, doc.Paragraphs.First(p => p.Text.Contains("LeftAgain")).ParagraphAlignment);
+        }
+
+        [Fact]
+        public void HtmlToWord_TableCellLogicalTextAlign_UsesInheritedDirection() {
+            string html = "<table dir=\"rtl\"><tr><td style=\"text-align:start\">Start</td><td style=\"text-align:end\">End</td></tr></table>";
+
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var row = doc.Tables[0].Rows[0];
+
+            Assert.Equal(JustificationValues.Right, row.Cells[0].Paragraphs[0].ParagraphAlignment);
+            Assert.Equal(JustificationValues.Left, row.Cells[1].Paragraphs[0].ParagraphAlignment);
         }
     }
 }

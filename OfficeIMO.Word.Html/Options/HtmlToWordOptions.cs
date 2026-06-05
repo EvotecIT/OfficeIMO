@@ -7,6 +7,57 @@ namespace OfficeIMO.Word.Html {
     /// </summary>
     public class HtmlToWordOptions {
         /// <summary>
+        /// Creates the default OfficeIMO HTML import profile.
+        /// </summary>
+        /// <returns>A new <see cref="HtmlToWordOptions"/> instance with the default compatibility-oriented settings.</returns>
+        public static HtmlToWordOptions CreateOfficeIMOProfile() => new HtmlToWordOptions();
+
+        /// <summary>
+        /// Creates a bounded offline profile for untrusted HTML ingestion.
+        /// </summary>
+        /// <remarks>
+        /// The profile keeps document-provided stylesheet links disabled, embeds only data URI images,
+        /// blocks external image and stylesheet URI schemes, enables accessibility diagnostics, and
+        /// applies conservative HTML, CSS, image, and table limits. Callers can relax individual
+        /// limits or allow-lists when their ingestion boundary is more trusted.
+        /// </remarks>
+        /// <returns>A new <see cref="HtmlToWordOptions"/> instance configured for untrusted HTML.</returns>
+        public static HtmlToWordOptions CreateUntrustedHtmlProfile() {
+            var options = new HtmlToWordOptions {
+                ImageProcessing = ImageProcessingMode.EmbedDataUriOnly,
+                ResourceTimeout = TimeSpan.FromSeconds(5),
+                MaxImageBytes = 5L * 1024L * 1024L,
+                MaxTotalImageBytes = 20L * 1024L * 1024L,
+                MaxHtmlNodes = 10000,
+                MaxHtmlDepth = 64,
+                MaxCssBytes = 256L * 1024L,
+                MaxTotalCssBytes = 512L * 1024L,
+                MaxTableCells = 50000,
+                EnableAccessibilityDiagnostics = true,
+                UnsupportedCssHandling = HtmlUnsupportedCssHandling.Warn
+            };
+
+            options.AllowedImageUriSchemes.Clear();
+            options.AllowedImageUriSchemes.Add("data");
+            options.AllowedStylesheetUriSchemes.Clear();
+
+            return options;
+        }
+
+        /// <summary>
+        /// Creates a profile for trusted HTML documents whose own linked stylesheets may be loaded.
+        /// </summary>
+        /// <remarks>
+        /// This profile preserves default conversion behavior and validation settings while enabling
+        /// <see cref="AllowDocumentStylesheetLinks"/>. Callers should still configure host allow-lists
+        /// or byte limits when trusted documents can reference broad network locations.
+        /// </remarks>
+        /// <returns>A new <see cref="HtmlToWordOptions"/> instance configured for trusted document links.</returns>
+        public static HtmlToWordOptions CreateTrustedDocumentProfile() => new HtmlToWordOptions {
+            AllowDocumentStylesheetLinks = true
+        };
+
+        /// <summary>
         /// Optional font family applied to created runs during conversion.
         /// </summary>
         public string? FontFamily { get; set; }
@@ -133,6 +184,34 @@ namespace OfficeIMO.Word.Html {
         public HashSet<string> AllowedImageHosts { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
+        /// Stylesheet URI schemes allowed during import. Defaults allow HTTP, HTTPS, and file-based stylesheets.
+        /// Remove entries to reject matching stylesheet sources before they are loaded.
+        /// </summary>
+        public HashSet<string> AllowedStylesheetUriSchemes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            Uri.UriSchemeHttp,
+            Uri.UriSchemeHttps,
+            Uri.UriSchemeFile
+        };
+
+        /// <summary>
+        /// Optional host allow-list for absolute non-file stylesheet URIs. When empty, all hosts are allowed.
+        /// </summary>
+        public HashSet<string> AllowedStylesheetHosts { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        /// <summary>
+        /// When true, validates declared content types for remote stylesheet resources.
+        /// Stylesheets with rejected content types are skipped and a diagnostic is emitted.
+        /// </summary>
+        public bool ValidateStylesheetContentTypes { get; set; } = true;
+
+        /// <summary>
+        /// Declared stylesheet media types allowed when <see cref="ValidateStylesheetContentTypes"/> is enabled.
+        /// </summary>
+        public HashSet<string> AllowedStylesheetContentTypes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            "text/css"
+        };
+
+        /// <summary>
         /// Optional maximum number of parsed HTML nodes allowed for a conversion operation.
         /// When exceeded, conversion stops with <see cref="HtmlConversionLimitException"/> and an error diagnostic.
         /// </summary>
@@ -149,6 +228,12 @@ namespace OfficeIMO.Word.Html {
         /// When exceeded, conversion stops with <see cref="HtmlConversionLimitException"/> and an error diagnostic.
         /// </summary>
         public long? MaxCssBytes { get; set; }
+
+        /// <summary>
+        /// Optional maximum UTF-8 byte count allowed across all stylesheets in a single import operation.
+        /// When exceeded, conversion stops with <see cref="HtmlConversionLimitException"/> and an error diagnostic.
+        /// </summary>
+        public long? MaxTotalCssBytes { get; set; }
 
         /// <summary>
         /// Optional maximum number of Word table cells allowed for a single imported HTML table.
@@ -174,6 +259,23 @@ namespace OfficeIMO.Word.Html {
         /// and data tables without header cells.
         /// </summary>
         public bool EnableAccessibilityDiagnostics { get; set; }
+
+        /// <summary>
+        /// When true, raw HTML comment nodes are imported as native Word comments anchored at their DOM position.
+        /// Empty comments are skipped. Existing exported OfficeIMO comment sections are always imported through
+        /// their linked comment references.
+        /// </summary>
+        public bool ImportHtmlComments { get; set; }
+
+        /// <summary>
+        /// Author name used for native Word comments created from raw HTML comment nodes.
+        /// </summary>
+        public string HtmlCommentAuthor { get; set; } = "HTML";
+
+        /// <summary>
+        /// Author initials used for native Word comments created from raw HTML comment nodes.
+        /// </summary>
+        public string HtmlCommentInitials { get; set; } = "HTML";
 
         /// <summary>
         /// Controls how unsupported CSS properties and values are handled during import.
@@ -212,6 +314,86 @@ namespace OfficeIMO.Word.Html {
         /// Controls how the <c>&lt;section&gt;</c> tag is mapped into Word.
         /// </summary>
         public SectionTagHandling SectionTagHandling { get; set; } = SectionTagHandling.WordSection;
+
+        /// <summary>
+        /// Creates a copy of the current options instance so callers can reuse option templates safely.
+        /// </summary>
+        /// <remarks>
+        /// Configuration values, allow-lists, configured stylesheets, and the diagnostic callback are copied.
+        /// The runtime <see cref="Diagnostics"/> collection starts empty on the clone so diagnostics from one
+        /// conversion are not carried into the next.
+        /// </remarks>
+        /// <returns>A new <see cref="HtmlToWordOptions"/> with the same configuration values.</returns>
+        public HtmlToWordOptions Clone() {
+            var clone = new HtmlToWordOptions {
+                FontFamily = FontFamily,
+                QuotePrefix = QuotePrefix,
+                QuoteSuffix = QuoteSuffix,
+                DefaultPageSize = DefaultPageSize,
+                DefaultOrientation = DefaultOrientation,
+                IncludeListStyles = IncludeListStyles,
+                ContinueNumbering = ContinueNumbering,
+                SupportsHeadingNumbering = SupportsHeadingNumbering,
+                BasePath = BasePath,
+                NoteReferenceType = NoteReferenceType,
+                LinkNoteUrls = LinkNoteUrls,
+                ImageProcessing = ImageProcessing,
+                HttpClient = HttpClient,
+                ResourceTimeout = ResourceTimeout,
+                MaxImageBytes = MaxImageBytes,
+                MaxTotalImageBytes = MaxTotalImageBytes,
+                ValidateImageContentTypes = ValidateImageContentTypes,
+                ValidateStylesheetContentTypes = ValidateStylesheetContentTypes,
+                MaxHtmlNodes = MaxHtmlNodes,
+                MaxHtmlDepth = MaxHtmlDepth,
+                MaxCssBytes = MaxCssBytes,
+                MaxTotalCssBytes = MaxTotalCssBytes,
+                MaxTableCells = MaxTableCells,
+                DiagnosticHandler = DiagnosticHandler,
+                EnableAccessibilityDiagnostics = EnableAccessibilityDiagnostics,
+                ImportHtmlComments = ImportHtmlComments,
+                HtmlCommentAuthor = HtmlCommentAuthor,
+                HtmlCommentInitials = HtmlCommentInitials,
+                UnsupportedCssHandling = UnsupportedCssHandling,
+                AllowDocumentStylesheetLinks = AllowDocumentStylesheetLinks,
+                RenderPreAsTable = RenderPreAsTable,
+                TableCaptionPosition = TableCaptionPosition,
+                SectionTagHandling = SectionTagHandling
+            };
+
+            CopyDictionary(ClassStyles, clone.ClassStyles);
+            CopyList(StylesheetPaths, clone.StylesheetPaths);
+            CopyList(StylesheetContents, clone.StylesheetContents);
+            CopySet(AllowedImageContentTypes, clone.AllowedImageContentTypes);
+            CopySet(AllowedImageUriSchemes, clone.AllowedImageUriSchemes);
+            CopySet(AllowedImageHosts, clone.AllowedImageHosts);
+            CopySet(AllowedStylesheetUriSchemes, clone.AllowedStylesheetUriSchemes);
+            CopySet(AllowedStylesheetHosts, clone.AllowedStylesheetHosts);
+            CopySet(AllowedStylesheetContentTypes, clone.AllowedStylesheetContentTypes);
+
+            return clone;
+        }
+
+        private static void CopyDictionary<TKey, TValue>(IDictionary<TKey, TValue> source, IDictionary<TKey, TValue> destination) {
+            destination.Clear();
+            foreach (var pair in source) {
+                destination[pair.Key] = pair.Value;
+            }
+        }
+
+        private static void CopyList<T>(IEnumerable<T> source, ICollection<T> destination) {
+            destination.Clear();
+            foreach (var item in source) {
+                destination.Add(item);
+            }
+        }
+
+        private static void CopySet<T>(IEnumerable<T> source, ISet<T> destination) {
+            destination.Clear();
+            foreach (var item in source) {
+                destination.Add(item);
+            }
+        }
     }
 
     /// <summary>

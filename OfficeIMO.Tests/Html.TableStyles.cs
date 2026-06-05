@@ -104,5 +104,33 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(TableRowAlignmentValues.Center, table.Alignment);
         }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_CellSpacingAttributeSetsTableSpacing() {
+            string html = "<table cellspacing=\"6\"><tr><td>One</td><td>Two</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+
+            Assert.Equal((short)90, table.StyleDetails!.CellSpacing);
+        }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_BorderSpacingSetsTableSpacing() {
+            string html = "<table cellspacing=\"2\" style=\"border-spacing:5pt 10pt\"><tr><td>One</td><td>Two</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+
+            Assert.Equal((short)100, table.StyleDetails!.CellSpacing);
+        }
+
+        [Fact]
+        public void HtmlToWord_TableStyles_VerticalAlignSetsCellVerticalAlignment() {
+            string html = "<table><tr><td style=\"vertical-align:middle\">Middle</td><td valign=\"bottom\">Bottom</td></tr></table>";
+            using var doc = html.LoadFromHtml(new HtmlToWordOptions());
+            var table = doc.Tables[0];
+
+            Assert.Equal(TableVerticalAlignmentValues.Center, table.Rows[0].Cells[0].VerticalAlignment);
+            Assert.Equal(TableVerticalAlignmentValues.Bottom, table.Rows[0].Cells[1].VerticalAlignment);
+        }
     }
 }

@@ -98,5 +98,31 @@ namespace OfficeIMO.Word.Html {
 
             return true;
         }
+
+        private void ProcessRawHtmlComment(
+            IComment comment,
+            WordSection section,
+            ref WordParagraph? currentParagraph,
+            WordTableCell? cell,
+            WordHeaderFooter? headerFooter,
+            HtmlToWordOptions options) {
+            if (!options.ImportHtmlComments) {
+                AddDiagnostic(options, "HtmlCommentSkipped", "HTML comment was skipped because raw HTML comment import is disabled.", "comment");
+                return;
+            }
+
+            var text = comment.TextContent?.Trim();
+            if (string.IsNullOrWhiteSpace(text)) {
+                AddDiagnostic(options, "HtmlCommentSkipped", "HTML comment was skipped because it was empty.", "comment");
+                return;
+            }
+
+            currentParagraph ??= cell != null ? cell.AddParagraph("", true) : headerFooter != null ? headerFooter.AddParagraph("") : section.AddParagraph("");
+            if (!currentParagraph.GetRuns().Any()) {
+                currentParagraph.AddText(string.Empty);
+            }
+
+            currentParagraph.AddComment(options.HtmlCommentAuthor, options.HtmlCommentInitials, text!);
+        }
     }
 }

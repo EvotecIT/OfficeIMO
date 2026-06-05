@@ -164,15 +164,18 @@ namespace OfficeIMO.Word.Html {
                 trimmed = trimmed.Substring(0, importantIndex).Trim();
             }
             var token = trimmed.TrimEnd(',');
+            var quoted = false;
             if (token.Length >= 2 && ((token[0] == '\'' && token[token.Length - 1] == '\'') || (token[0] == '"' && token[token.Length - 1] == '"'))) {
+                quoted = true;
                 token = token.Substring(1, token.Length - 2);
             }
             token = DecodeCssStringToken(token);
             if (token.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) {
                 return null;
             }
-            token = token.Trim().ToLowerInvariant();
-            return token switch {
+            var normalizedToken = token.Trim();
+            var lowerToken = normalizedToken.ToLowerInvariant();
+            return lowerToken switch {
                 "disc" => "disc",
                 "circle" => "circle",
                 "square" => "square",
@@ -203,7 +206,11 @@ namespace OfficeIMO.Word.Html {
                 "en-dash" => "en-dash",
                 "\u2014" => "em-dash",
                 "em-dash" => "em-dash",
-                _ => null,
+                "*" => "asterisk",
+                "asterisk" => "asterisk",
+                "+" => "plus",
+                "plus" => "plus",
+                _ => quoted && normalizedToken.Length > 0 ? "custom:" + normalizedToken : null,
             };
         }
 
@@ -338,6 +345,17 @@ namespace OfficeIMO.Word.Html {
                 case "em-dash":
                     level.LevelText = "\u2014";
                     break;
+                case "asterisk":
+                    level.LevelText = "*";
+                    break;
+                case "plus":
+                    level.LevelText = "+";
+                    break;
+                default:
+                    if (bulletToken.StartsWith("custom:", StringComparison.Ordinal)) {
+                        level.LevelText = token.Substring("custom:".Length);
+                    }
+                    break;
                 // disc/default -> no change
             }
         }
@@ -347,6 +365,7 @@ namespace OfficeIMO.Word.Html {
             var list = listStack.Peek();
             int level = listStack.Count - 1;
             var paragraph = list.AddItem("", level);
+            WordParagraph? blockAnchor = paragraph;
 
             ApplyParagraphStyleFromCss(paragraph, element);
             ApplyClassStyle(element, paragraph, options);
@@ -356,9 +375,80 @@ namespace OfficeIMO.Word.Html {
                 paragraph.BiDi = bidi.Value;
             }
             foreach (var child in element.ChildNodes) {
-                ProcessNode(child, doc, section, options, paragraph, listStack, formatting, cell, headerFooter);
+                if (IsListItemTableChild(child)) {
+                    var tableAnchor = blockAnchor ?? paragraph;
+                    ProcessNode(child, doc, section, options, tableAnchor, listStack, formatting, cell, headerFooter);
+                    blockAnchor = GetTrailingAnchorAfterTable(tableAnchor, section, cell, headerFooter);
+                    continue;
+                }
+
+                var anchor = IsListItemBlockChild(child) ? blockAnchor : paragraph;
+                ProcessNode(child, doc, section, options, anchor, listStack, formatting, cell, headerFooter);
+                if (IsListItemBlockChild(child)) {
+                    blockAnchor = GetLastParagraphInSameContainer(paragraph, section, cell, headerFooter);
+                }
             }
             ApplyPageBreakAfterFromCss(paragraph, element);
+        }
+
+        private static bool IsListItemTableChild(INode node) =>
+            node is IElement element && string.Equals(element.TagName, "table", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsListItemBlockChild(INode node) =>
+            node is IElement element && _blockTags.Contains(element.TagName);
+
+        private static WordParagraph GetLastParagraphInSameContainer(
+            WordParagraph anchor,
+            WordSection section,
+            WordTableCell? cell,
+            WordHeaderFooter? headerFooter) {
+            var parent = anchor._paragraph.Parent;
+            var paragraphs = GetParagraphsInScope(section, cell, headerFooter);
+            for (int i = paragraphs.Count - 1; i >= 0; i--) {
+                var candidate = paragraphs[i];
+                if (ReferenceEquals(candidate._paragraph.Parent, parent)) {
+                    return candidate;
+                }
+            }
+
+            return anchor;
+        }
+
+        private static WordParagraph? GetTrailingAnchorAfterTable(
+            WordParagraph anchor,
+            WordSection section,
+            WordTableCell? cell,
+            WordHeaderFooter? headerFooter) {
+            if (cell != null || headerFooter != null) {
+                return GetLastParagraphInSameContainer(anchor, section, cell, headerFooter);
+            }
+
+            var parent = anchor._paragraph.Parent;
+            if (parent == null) {
+                return null;
+            }
+
+            var children = parent.ChildElements.ToList();
+            var anchorIndex = children.IndexOf(anchor._paragraph);
+            if (anchorIndex < 0) {
+                return null;
+            }
+
+            var table = children
+                .Skip(anchorIndex + 1)
+                .OfType<Table>()
+                .LastOrDefault();
+            if (table == null) {
+                return null;
+            }
+
+            var trailing = table.NextSibling<Paragraph>();
+            if (trailing == null) {
+                trailing = new Paragraph();
+                table.InsertAfterSelf(trailing);
+            }
+
+            return new WordParagraph(anchor._document, trailing);
         }
 
         private static bool TryGetListItemValue(IHtmlListItemElement element, out int value) {
