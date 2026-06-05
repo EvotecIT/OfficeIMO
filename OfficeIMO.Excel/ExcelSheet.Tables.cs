@@ -397,16 +397,16 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(range));
             }
 
-            if (_excelDocument.HasPendingDirectCellValues) {
-                MaterializeDeferredDataSetImportIfNeeded();
-            }
-
-            if (_excelDocument.ShouldMaterializeDeferredDirectTabularSaveCandidateForTable(this, range, hasHeader)) {
-                _excelDocument.MaterializeDeferredDataSetImport();
-            }
-
             string resolvedName = string.Empty;
             WriteLock(() => {
+                if (_excelDocument.HasPendingDirectCellValues) {
+                    MaterializeDeferredDataSetImportIfNeeded();
+                }
+
+                if (_excelDocument.ShouldMaterializeDeferredDirectTabularSaveCandidateForTable(this, range, hasHeader)) {
+                    _excelDocument.MaterializeDeferredDataSetImport();
+                }
+
                 if (!A1.TryParseStrictRange(range, out int startRowIndex, out int startColumnIndex, out int endRowIndex, out int endColumnIndex)) {
                     throw new ArgumentException("Invalid range format", nameof(range));
                 }
