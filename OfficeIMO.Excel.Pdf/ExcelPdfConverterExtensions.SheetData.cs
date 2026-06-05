@@ -64,10 +64,10 @@ namespace OfficeIMO.Excel.Pdf {
         private static string? GetWorksheetPrintArea(ExcelSheet? workbookSheet, ExcelPdfSaveOptions options) =>
             options.UseWorksheetPrintAreas && workbookSheet != null ? workbookSheet.GetPrintArea() : null;
 
-        private static SheetExportData ReadSheetExportData(ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelPdfSaveOptions options) {
+        private static SheetExportData ReadSheetExportData(ExcelSheetReader sheet, ExcelSheet? workbookSheet, string exportRange, ExcelPdfSaveOptions options, PdfCore.PdfStandardFont defaultFontFamily) {
             string normalizedRange = NormalizeA1Range(exportRange);
             A1.TryParseRange(normalizedRange, out int rangeFirstRow, out int rangeFirstColumn, out _, out int rangeLastColumn);
-            RangeExportData bodyRange = ReadRangeExportData(sheet, workbookSheet, normalizedRange, options);
+            RangeExportData bodyRange = ReadRangeExportData(sheet, workbookSheet, normalizedRange, options, defaultFontFamily);
             object?[,] values = bodyRange.Values;
             ExcelCellStyleSnapshot?[,]? styles = bodyRange.Styles;
             ExcelHyperlinkSnapshot?[,]? hyperlinks = bodyRange.Hyperlinks;
@@ -90,7 +90,7 @@ namespace OfficeIMO.Excel.Pdf {
             if (firstTitleRow < rangeFirstRow) {
                 int prependedLastTitleRow = Math.Min(lastTitleRow, rangeFirstRow - 1);
                 string titleRange = ToA1Range(firstTitleRow, rangeFirstColumn, prependedLastTitleRow, rangeLastColumn);
-                RangeExportData titleRangeData = ReadRangeExportData(sheet, workbookSheet, titleRange, options);
+                RangeExportData titleRangeData = ReadRangeExportData(sheet, workbookSheet, titleRange, options, defaultFontFamily);
                 int prependedRowCount = titleRangeData.Values.GetLength(0);
                 int bodyRowCount = values.GetLength(0);
                 int columnCount = values.GetLength(1);
@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel.Pdf {
             return new SheetExportData(values, styles, hyperlinks, cellReferences, mergedCells, columnWidths, rowHeights, headerRows, firstBodyRowNumber, conditionalFills);
         }
 
-        private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? workbookSheet, string normalizedRange, ExcelPdfSaveOptions options) {
+        private static RangeExportData ReadRangeExportData(ExcelSheetReader sheet, ExcelSheet? workbookSheet, string normalizedRange, ExcelPdfSaveOptions options, PdfCore.PdfStandardFont defaultFontFamily) {
             object?[,] rawValues = sheet.ReadRange(normalizedRange);
             VisibilityLayoutData? visibility = ReadVisibilityLayoutData(
                 workbookSheet,
@@ -157,6 +157,7 @@ namespace OfficeIMO.Excel.Pdf {
                 rowCount,
                 columnCount,
                 options.UseWorksheetCellStyles,
+                defaultFontFamily,
                 visibility);
             ExcelHyperlinkSnapshot?[,]? hyperlinks = ReadHyperlinkData(
                 workbookSheet,

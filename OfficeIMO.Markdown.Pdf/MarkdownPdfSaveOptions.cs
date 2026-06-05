@@ -14,6 +14,9 @@ public sealed class MarkdownPdfSaveOptions {
     /// <summary>PDF creation options passed to the first-party PDF engine.</summary>
     public PdfCore.PdfOptions? PdfOptions { get; set; }
 
+    /// <summary>Optional Markdown default font family used by the first-party PDF engine.</summary>
+    public string? FontFamily { get; set; }
+
     /// <summary>Markdown reader options used by string and file overloads.</summary>
     public MarkdownReaderOptions? ReaderOptions { get; set; }
 

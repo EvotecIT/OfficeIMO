@@ -94,7 +94,7 @@ namespace OfficeIMO.Excel.Pdf {
             return false;
         }
 
-        private static ExcelCellStyleSnapshot?[,]? ReadCellStyleData(ExcelSheet? workbookSheet, string normalizedRange, int rowCount, int columnCount, bool enabled, VisibilityLayoutData? visibility = null) {
+        private static ExcelCellStyleSnapshot?[,]? ReadCellStyleData(ExcelSheet? workbookSheet, string normalizedRange, int rowCount, int columnCount, bool enabled, PdfCore.PdfStandardFont defaultFontFamily, VisibilityLayoutData? visibility = null) {
             if (!enabled || workbookSheet == null || rowCount == 0 || columnCount == 0) {
                 return null;
             }
@@ -110,7 +110,7 @@ namespace OfficeIMO.Excel.Pdf {
                     int sourceRow = visibility?.RowOffsets[row] ?? row;
                     int sourceColumn = visibility?.ColumnOffsets[column] ?? column;
                     ExcelCellStyleSnapshot style = workbookSheet.GetCellStyle(firstRow + sourceRow, firstColumn + sourceColumn);
-                    if (style.HasPdfVisualStyle) {
+                    if (HasPdfExportStyle(style, defaultFontFamily)) {
                         styles[row, column] = style;
                         hasAnyStyle = true;
                     }
@@ -118,6 +118,15 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return hasAnyStyle ? styles : null;
+        }
+
+        private static bool HasPdfExportStyle(ExcelCellStyleSnapshot style, PdfCore.PdfStandardFont defaultFontFamily) {
+            if (style.HasPdfVisualStyle) {
+                return true;
+            }
+
+            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(style.FontName, out PdfCore.PdfStandardFont font) &&
+                PdfCore.PdfStandardFontMapper.GetFontFamily(font) != defaultFontFamily;
         }
 
         private static ExcelHyperlinkSnapshot?[,]? ReadHyperlinkData(ExcelSheet? workbookSheet, string normalizedRange, int rowCount, int columnCount, bool enabled, VisibilityLayoutData? visibility = null) {

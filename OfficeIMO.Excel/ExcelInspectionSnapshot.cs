@@ -737,6 +737,11 @@ namespace OfficeIMO.Excel {
         public bool Underline { get; internal set; }
 
         /// <summary>
+        /// Resolved font family name, when available.
+        /// </summary>
+        public string? FontName { get; internal set; }
+
+        /// <summary>
         /// Font color in ARGB hexadecimal form, when directly resolvable.
         /// </summary>
         public string? FontColorArgb { get; internal set; }

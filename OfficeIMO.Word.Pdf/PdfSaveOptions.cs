@@ -7,7 +7,12 @@ namespace OfficeIMO.Word.Pdf {
     /// </summary>
     public class PdfSaveOptions {
         /// <summary>
-        /// Optional Word-style font family used as the first-party PDF default font when it maps to Helvetica, Times, or Courier standard PDF families.
+        /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
+        /// </summary>
+        public PdfCore.PdfOptions? PdfOptions { get; set; }
+
+        /// <summary>
+        /// Optional Word-style font family used as the first-party PDF default font. Installed TrueType faces are embedded when available; otherwise the family maps to the nearest PDF standard font.
         /// </summary>
         public string? FontFamily { get; set; }
 

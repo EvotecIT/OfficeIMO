@@ -46,6 +46,20 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies a font family name to a single cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index of the cell to modify.</param>
+        /// <param name="column">The 1-based column index of the cell to modify.</param>
+        /// <param name="fontName">The font family name to assign.</param>
+        public void CellFontName(int row, int column, string fontName) {
+            if (string.IsNullOrWhiteSpace(fontName)) return;
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontName(cell, fontName);
+            });
+        }
+
+        /// <summary>
         /// Applies solid background to a single cell. Accepts #RRGGBB or #AARRGGBB.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to fill.</param>
@@ -542,6 +556,25 @@ namespace OfficeIMO.Excel {
             var underlineFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetUnderline(font, underline));
             ApplyCellFormatOverride(stylesheet, cell, format => {
                 format.FontId = underlineFontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
+        private void ApplyFontName(Cell cell, string fontName) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart;
+            if (stylesPart == null)
+                stylesPart = workbookPart.AddNewPart<WorkbookStylesPart>();
+
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var namedFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontName(font, fontName));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = namedFontId;
                 format.ApplyFont = true;
             });
             stylesPart.Stylesheet.Save();

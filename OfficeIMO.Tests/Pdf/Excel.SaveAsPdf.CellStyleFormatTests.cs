@@ -23,6 +23,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.CellAt(1, 1)
                 .SetValue("StyledCell")
+                .SetFontName("Consolas")
                 .SetBold()
                 .SetItalic()
                 .SetUnderline()
@@ -34,6 +35,7 @@ public partial class Excel {
             Assert.True(style.Bold);
             Assert.True(style.Italic);
             Assert.True(style.Underline);
+            Assert.Equal("Consolas", style.FontName);
             Assert.Equal("112233", style.FontColorHex);
             Assert.Equal("DDEEFF", style.FillColorHex);
 
@@ -53,8 +55,98 @@ public partial class Excel {
         Assert.Contains("PlainCell", text);
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier", "Consolas");
         Assert.Contains("0.067 0.133 0.2 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.867 0.933 1 rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Preserves_Helvetica_Cell_Font_When_Default_Font_Changes() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHelveticaCellWithTimesDefault.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.CellAt(1, 1).SetValue("ArialCell").SetFontName("Arial");
+            sheet.CellAt(1, 2).SetValue("PlainCell");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                FontFamily = "Times New Roman",
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("ArialCell", text);
+        Assert.Contains("PlainCell", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Helvetica", "Arial", "Calibri", "LiberationSans", "Liberation Sans");
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_DoesNotOverwriteSameFamilyCellFontSlot() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSameFamilyFontSlot.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.CellAt(1, 1).SetValue("FirstSerif").SetFontName("Times New Roman");
+            sheet.CellAt(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("FirstSerif", text);
+        Assert.Contains("SecondSerif", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
+        AssertRawPdfBaseFontsDoNotContain(rawPdf, "Georgia");
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_PreservesConfiguredDefaultFontSlot() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDefaultFontSlot.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Fonts")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.CellAt(1, 1).SetValue("StyledSerif").SetFontName("Georgia");
+            sheet.CellAt(1, 2).SetValue("DefaultSerif");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                FontFamily = "Times New Roman",
+                IncludeSheetHeadings = false,
+                HeaderRowCount = 0,
+                PageSize = new PdfCore.PageSize(360, 220),
+                Margins = PdfCore.PageMargins.Uniform(24)
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("StyledSerif", text);
+        Assert.Contains("DefaultSerif", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times");
+        AssertRawPdfBaseFontsDoNotContain(rawPdf, "Georgia");
     }
 
     [Fact]
@@ -93,6 +185,26 @@ public partial class Excel {
         Assert.Contains("1 0 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.502 0.502 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0 1 0 rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    private static void AssertRawPdfContainsAnyBaseFont(string rawPdf, params string[] fontNameParts) {
+        string[] baseFonts = Regex.Matches(rawPdf, @"/BaseFont /([^\s/<>\[\]()]+)")
+            .Cast<Match>()
+            .Select(match => match.Groups[1].Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Assert.True(
+            fontNameParts.Any(fontNamePart => rawPdf.Contains("/BaseFont /" + fontNamePart, StringComparison.OrdinalIgnoreCase)),
+            "Expected raw PDF to contain one of these BaseFont names: " + string.Join(", ", fontNameParts) + ". Actual BaseFont names: " + string.Join(", ", baseFonts));
+    }
+
+    private static void AssertRawPdfBaseFontsDoNotContain(string rawPdf, string fontNamePart) {
+        string[] baseFonts = Regex.Matches(rawPdf, @"/BaseFont /([^\s/<>\[\]()]+)")
+            .Cast<Match>()
+            .Select(match => match.Groups[1].Value)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Assert.DoesNotContain(baseFonts, baseFont => baseFont.Contains(fontNamePart, StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

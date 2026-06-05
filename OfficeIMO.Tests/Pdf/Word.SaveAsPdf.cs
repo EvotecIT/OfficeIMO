@@ -237,6 +237,57 @@ public partial class Word {
         AssertPdfUsesFont(pdfPath, "Courier");
     }
 
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_DocumentDefaultFont_FallsBack_To_HighAnsi_When_Primary_Font_Is_Unmapped() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFontHighAnsiFallback.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfDocumentDefaultFontHighAnsiFallback.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.FontFamily = "OfficeIMO Missing Theme Font";
+            document.Settings.FontFamilyHighAnsi = "Times New Roman";
+            document.AddParagraph("Hello HighAnsi fallback font");
+            document.Save();
+            document.SaveAsPdf(pdfPath);
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_RequestedUnavailableFont_FallsBack_To_DocumentDefaultFont() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfUnavailableRequestedFontFallsBack.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfUnavailableRequestedFontFallsBack.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.Settings.FontFamily = "OfficeIMO Missing Theme Font";
+            document.Settings.FontFamilyHighAnsi = "Times New Roman";
+            document.AddParagraph("Hello unavailable requested font fallback");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "OfficeIMO Missing Requested Font" });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+    }
+
+    [Fact]
+    public void Test_WordDocument_SaveAsPdf_Preserves_Default_Font_Slot_During_Font_Prepass() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfDefaultFontSlotPrepass.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfDefaultFontSlotPrepass.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddParagraph("Styled serif").SetFontFamily("Georgia");
+            document.AddParagraph("Default serif");
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions { FontFamily = "Times New Roman" });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        AssertPdfUsesFont(pdfPath, "Times");
+        AssertPdfDoesNotUseFont(pdfPath, "Georgia");
+    }
+
     [Theory]
     [InlineData(PdfPageOrientation.Portrait)]
     [InlineData(PdfPageOrientation.Landscape)]
@@ -522,5 +573,10 @@ public partial class Word {
 
         string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
         Assert.Contains("/BaseFont /" + expectedFontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void AssertPdfDoesNotUseFont(string pdfPath, string fontNamePart) {
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.DoesNotContain("/BaseFont /" + fontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
     }
 }
