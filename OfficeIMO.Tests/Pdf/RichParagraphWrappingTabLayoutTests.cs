@@ -137,6 +137,25 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void CalculateTabAdvance_BoundedRightTabCanShrinkBelowSpace() {
+            double advance = InvokePrivateFontMethod<double>(
+                "CalculateTabAdvance",
+                10D,
+                89D,
+                3D,
+                PdfTabAlignment.Right,
+                36D,
+                string.Empty,
+                PdfStandardFont.Helvetica,
+                12D,
+                PdfTextBaseline.Normal,
+                null!,
+                100D);
+
+            Assert.Equal(1D, advance);
+        }
+
+        [Fact]
         public void WrapRichRuns_RightAlignedLeadingTabAccountsForFollowingTokenWidth() {
             var shortResult = InvokeWrapRichRuns(new[] {
                 TextRun.Tab(PdfTabLeaderStyle.Dots, PdfTabAlignment.Right),

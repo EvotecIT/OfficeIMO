@@ -419,7 +419,7 @@ public static partial class PowerPointPdfConverterExtensions {
         } else if (background.Kind == PptCore.PowerPointSlideBackgroundKind.Image && background.ImageBytes != null) {
             RenderFallbackBackground(canvas, pageWidth, pageHeight);
             try {
-                var imageStyle = new PdfCore.PdfImageStyle { Fit = background.HasImageCrop ? OfficeImageFit.Cover : OfficeImageFit.Stretch };
+                var imageStyle = new PdfCore.PdfImageStyle { Fit = OfficeImageFit.Stretch };
                 if (background.HasImageCrop) {
                     imageStyle.SourceCrop = new PdfCore.PdfImageSourceCrop(background.ImageCropLeft, background.ImageCropTop, background.ImageCropRight, background.ImageCropBottom);
                 }

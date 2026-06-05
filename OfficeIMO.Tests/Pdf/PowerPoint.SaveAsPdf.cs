@@ -298,6 +298,32 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
+    public void SaveAsPdf_PowerPointPresentation_StretchesCroppedImageSlideBackground() {
+        string imagePath = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Guid.NewGuid() + ".png");
+        try {
+            File.WriteAllBytes(imagePath, PdfPngTestImages.CreateRgbPng(2, 1));
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(240, 160);
+            PowerPointSlide slide = presentation.Slides[0];
+            slide.SetBackgroundImage(imagePath);
+            A.BlipFill blipFill = slide.SlidePart.Slide.CommonSlideData!.Background!.BackgroundProperties!.GetFirstChild<A.BlipFill>()!;
+            blipFill.SourceRectangle = new A.SourceRectangle { Left = 50000 };
+            slide.SlidePart.Slide.Save();
+
+            byte[] bytes = presentation.SaveAsPdf();
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            Assert.Contains("480 0 0 160 -240 0 cm", raw, StringComparison.Ordinal);
+            Assert.Contains("0.5 0 0.5 1 re", raw, StringComparison.Ordinal);
+        } finally {
+            if (File.Exists(imagePath)) {
+                File.Delete(imagePath);
+            }
+        }
+    }
+
+    [Fact]
     public void SaveAsPdf_PowerPointPresentation_ResolvesInheritedLayoutBackground() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);

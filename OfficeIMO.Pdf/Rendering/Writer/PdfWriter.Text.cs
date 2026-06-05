@@ -363,6 +363,9 @@ internal static partial class PdfWriter {
             }
 
             advance = nextStop - anchorWidth - lineWidth;
+            if (boundedMaxWidth.HasValue && nextStop >= boundedMaxWidth.Value) {
+                return Math.Max(0D, advance);
+            }
         }
 
         return Math.Max(spaceWidth, advance);
