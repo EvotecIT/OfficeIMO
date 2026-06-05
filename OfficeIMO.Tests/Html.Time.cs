@@ -1,6 +1,9 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System;
+using System.IO;
 using System.Linq;
 using Xunit;
 
@@ -31,6 +34,30 @@ namespace OfficeIMO.Tests {
             Assert.Contains("datetime=\"2023-01-01\"", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(">New Year's Day</time>", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("id=\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void TimePreservesDateTimeAfterSaveAndReload() {
+            const string html = "<p>On <time datetime=\"2023-01-01\">New Year's Day</time> we met.</p>";
+
+            using var doc = html.LoadFromHtml();
+            using MemoryStream stream = doc.SaveAsMemoryStream();
+            byte[] packageBytes = stream.ToArray();
+
+            using (var validationStream = new MemoryStream(packageBytes))
+            using (var package = WordprocessingDocument.Open(validationStream, false)) {
+                var errors = new OpenXmlValidator().Validate(package).ToList();
+                Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+            }
+
+            using var reloadStream = new MemoryStream(packageBytes);
+            using var reloaded = WordDocument.Load(reloadStream, readOnly: true);
+
+            string roundTrip = reloaded.ToHtml();
+
+            Assert.Contains("<time", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("datetime=\"2023-01-01\"", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(">New Year's Day</time>", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

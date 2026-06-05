@@ -54,4 +54,17 @@ public partial class Html {
             }
         }
     }
+
+    [Fact]
+    public void Test_Html_Ruby_RoundTripsToHtml() {
+        var html = "<p>Word <ruby><rb>東</rb><rt>とう</rt></ruby> ruby</p>";
+
+        using var document = html.LoadFromHtml(new HtmlToWordOptions());
+
+        string roundTrip = document.ToHtml();
+
+        Assert.Contains("<ruby>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<rb>東</rb>", roundTrip, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<rt>とう</rt>", roundTrip, StringComparison.OrdinalIgnoreCase);
+    }
 }

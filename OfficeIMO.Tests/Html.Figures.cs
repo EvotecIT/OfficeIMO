@@ -34,12 +34,15 @@ namespace OfficeIMO.Tests {
             using var doc = html.LoadFromHtml(new HtmlToWordOptions());
 
             Assert.Single(doc.Images);
-            Assert.Equal("Logo caption", doc.Paragraphs[1].Text);
-            Assert.Equal("Caption", doc.Paragraphs[1].StyleId);
+            Assert.Equal("Logo caption", doc.Paragraphs[0].Text);
+            Assert.Equal("Caption", doc.Paragraphs[0].StyleId);
 
             string roundTrip = doc.ToHtml();
             Assert.Contains("<figure>", roundTrip, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<figcaption>Logo caption</figcaption>", roundTrip, StringComparison.OrdinalIgnoreCase);
+            Assert.True(
+                roundTrip.IndexOf("<figcaption", StringComparison.OrdinalIgnoreCase) <
+                roundTrip.IndexOf("<img", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]

@@ -14,11 +14,10 @@ namespace OfficeIMO.Word.Html {
             WordHeaderFooter? headerFooter,
             WordList? headingList) {
             WordParagraph? figureParagraph = currentParagraph;
-            List<IElement> captions = new();
 
             foreach (var child in element.ChildNodes) {
                 if (child is IElement childElement && string.Equals(childElement.TagName, "figcaption", StringComparison.OrdinalIgnoreCase)) {
-                    captions.Add(childElement);
+                    ProcessFigureCaptionElement(childElement, doc, section, options, listStack, formatting, cell, headerFooter, headingList);
                     continue;
                 }
 
@@ -30,10 +29,6 @@ namespace OfficeIMO.Word.Html {
                         figureParagraph = paragraphs[paragraphs.Count - 1];
                     }
                 }
-            }
-
-            foreach (var caption in captions) {
-                ProcessFigureCaptionElement(caption, doc, section, options, listStack, formatting, cell, headerFooter, headingList);
             }
         }
 

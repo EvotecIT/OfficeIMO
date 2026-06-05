@@ -78,6 +78,10 @@ namespace OfficeIMO.Word.Html {
                 IElement? quote = null;
                 for (int i = 0; i < runs.Count; i++) {
                     var run = runs[i];
+                    if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(run)) {
+                        continue;
+                    }
+
                     if (TryAppendNoteReference(htmlDoc, run, options, processNotes, nodes, footnotes, footnoteMap, endnotes, endnoteMap)) {
                         continue;
                     }
@@ -173,6 +177,10 @@ namespace OfficeIMO.Word.Html {
                     // Still honor explicit line breaks even when the run carries no text
                     if (run.Break != null && run.PageBreak == null) {
                         nodes.Add(htmlDoc.CreateElement("br"));
+                    }
+                    if (TryCreateRubyNode(htmlDoc, run, out var rubyNode)) {
+                        nodes.Add(rubyNode);
+                        continue;
                     }
                     if (string.IsNullOrEmpty(run.Text)) {
                         continue;
@@ -882,6 +890,20 @@ namespace OfficeIMO.Word.Html {
                                 }
                                 AppendRuns(figCap, captionPara);
                                 figure.AppendChild(figCap);
+                                sectionParent.AppendChild(figure);
+                                idx++;
+                            } else if (IsCaptionParagraph(paragraph) && idx + 1 < elements.Count && elements[idx + 1] is WordParagraph imagePara && imagePara.IsImage) {
+                                activeDefinitionList = null;
+                                var figure = htmlDoc.CreateElement("figure");
+                                ApplyBookmarkId(figure, imagePara);
+                                var figCap = htmlDoc.CreateElement("figcaption");
+                                if (options.IncludeParagraphClasses && !string.IsNullOrEmpty(paragraph.StyleId)) {
+                                    figCap.SetAttribute("class", paragraph.StyleId);
+                                    paragraphStyles.Add(paragraph.StyleId!);
+                                }
+                                AppendRuns(figCap, paragraph);
+                                figure.AppendChild(figCap);
+                                AppendRuns(figure, imagePara);
                                 sectionParent.AppendChild(figure);
                                 idx++;
                             } else if (IsCodeParagraph(paragraph)) {

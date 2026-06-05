@@ -209,6 +209,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_RadioGroupWithExplicitAndAncestorFormOwners_StaysTogether() {
+            const string html = "<form id=\"f\"><input type=\"radio\" name=\"status\" value=\"internal\" checked></form><input type=\"radio\" name=\"status\" form=\"f\" value=\"external\">";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            var dropDown = Assert.Single(doc.DropDownLists);
+            Assert.Equal(new[] { "internal", "external" }, dropDown.Items.ToArray());
+            Assert.Equal("internal", dropDown.SelectedValue);
+        }
+
+        [Fact]
         public void HtmlToWord_RadioGroup_SavesAsValidOpenXmlDocument() {
             const string html = "<p>Priority <label><input type=\"radio\" name=\"priority\" value=\"low\"> Low</label><label><input type=\"radio\" name=\"priority\" value=\"high\" checked> High</label></p>";
 

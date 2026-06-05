@@ -230,22 +230,24 @@ namespace OfficeIMO.Word.Html {
             }
 
             var root = GetRootElement(element);
-            var explicitFormOwner = element.GetAttribute("form");
-            var ancestorFormOwner = FindAncestorForm(element);
+            var formOwner = ResolveRadioFormOwner(element, root);
             return root.QuerySelectorAll("input")
                 .Where(IsRadioInput)
                 .Where(input => string.Equals(input.GetAttribute("name"), name, StringComparison.Ordinal))
-                .Where(input => SameRadioFormOwner(input, explicitFormOwner, ancestorFormOwner))
+                .Where(input => ReferenceEquals(ResolveRadioFormOwner(input, root), formOwner))
                 .ToList();
         }
 
-        private static bool SameRadioFormOwner(IElement element, string? explicitFormOwner, IElement? ancestorFormOwner) {
-            var elementExplicitFormOwner = element.GetAttribute("form");
-            if (!string.IsNullOrWhiteSpace(explicitFormOwner) || !string.IsNullOrWhiteSpace(elementExplicitFormOwner)) {
-                return string.Equals(elementExplicitFormOwner, explicitFormOwner, StringComparison.Ordinal);
+        private static IElement? ResolveRadioFormOwner(IElement element, IElement root) {
+            var explicitFormOwner = element.GetAttribute("form");
+            if (!string.IsNullOrWhiteSpace(explicitFormOwner)) {
+                var explicitOwner = FindElementById(root, explicitFormOwner!);
+                return explicitOwner != null && string.Equals(explicitOwner.TagName, "form", StringComparison.OrdinalIgnoreCase)
+                    ? explicitOwner
+                    : null;
             }
 
-            return ReferenceEquals(FindAncestorForm(element), ancestorFormOwner);
+            return FindAncestorForm(element);
         }
 
         private static IElement? FindAncestorForm(IElement element) {
