@@ -38,6 +38,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void VisualQualityReportWritesDeterministicProofText() {
+            VisioDiagramQualityIssue[] issues = {
+                new(
+                    VisioDiagramQualityIssueSeverity.Warning,
+                    "ShapeOverlap",
+                    "Shapes overlap",
+                    pageName: "Main",
+                    shapeId: "a",
+                    otherShapeId: "b"),
+                new(
+                    VisioDiagramQualityIssueSeverity.Information,
+                    "ConnectorMissingLabel",
+                    "Connector has no label",
+                    pageName: "Main",
+                    connectorId: "c1")
+            };
+
+            string proof = new VisioDiagramQualityReport(issues).ToText();
+
+            Assert.Contains("quality.isClean=false", proof);
+            Assert.Contains("quality.issueCount=2", proof);
+            Assert.Contains("quality.warningCount=1", proof);
+            Assert.Contains("quality.informationCount=1", proof);
+            Assert.Contains("quality.issueKinds=ConnectorMissingLabel,ShapeOverlap", proof);
+            Assert.Contains("quality.issue[0].severity=Information", proof);
+            Assert.Contains("quality.issue[0].connector=c1", proof);
+            Assert.Contains("quality.issue[1].severity=Warning", proof);
+            Assert.Contains("quality.issue[1].shape=a", proof);
+            Assert.Contains("quality.issue[1].otherShape=b", proof);
+        }
+
+        [Fact]
         public void VisualQualityAnalyzerReportsConnectorLabelShapeOverlaps() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("LabelShapes", 7, 5);
@@ -98,6 +130,25 @@ namespace OfficeIMO.Tests {
             IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality();
 
             Assert.True(caption.IsDiagramAdornment);
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ShapeOverlap" && (issue.ShapeId == background.Id || issue.OtherShapeId == background.Id));
+            Assert.DoesNotContain(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == caption.Id && issue.ConnectorId == connector.Id);
+        }
+
+        [Fact]
+        public void SemanticShapeMarkersExposeBackgroundAndGeneratedAdornmentRoles() {
+            VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
+            VisioPage page = document.AddPage("SemanticMarkers", 7, 5);
+            VisioShape background = page.AddRectangle(3, 2, 4, 2, "Region").MarkAsBackgroundSurface();
+            VisioShape caption = page.AddTextBox("generated-caption", 3, 2.85, 3.6, 0.3, "Region").MarkAsGeneratedDiagramAdornment();
+            VisioShape source = page.AddRectangle(0.45, 2.85, 0.6, 0.4, "Source");
+            VisioShape target = page.AddRectangle(5.55, 2.85, 0.6, 0.4, "Target");
+            VisioConnector connector = page.AddConnector(source, target, ConnectorKind.Straight, VisioSide.Right, VisioSide.Left);
+
+            IReadOnlyList<VisioDiagramQualityIssue> issues = page.AnalyzeVisualQuality();
+
+            Assert.True(background.IsBackgroundSurface);
+            Assert.True(caption.IsDiagramAdornment);
+            Assert.True(VisioSemanticUserCells.IsGeneratedDiagramAdornment(caption));
             Assert.DoesNotContain(issues, issue => issue.Kind == "ShapeOverlap" && (issue.ShapeId == background.Id || issue.OtherShapeId == background.Id));
             Assert.DoesNotContain(issues, issue => issue.Kind == "ConnectorCrossesShape" && issue.ShapeId == caption.Id && issue.ConnectorId == connector.Id);
         }
@@ -277,7 +328,7 @@ namespace OfficeIMO.Tests {
 
             IReadOnlyList<VisioGalleryResult> results = VisioGallery.Create(folderPath);
 
-            Assert.Equal(14, results.Count);
+            Assert.Equal(18, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
             Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
@@ -305,6 +356,19 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Security and Identity", identityProfile.StencilCatalogs);
             Assert.Contains("Collaboration and Business Process", identityProfile.StencilCatalogs);
 
+            VisioGalleryResult accessReview = results.Single(result => result.Name == "Privileged Access Review Graph");
+            VisioDocument loadedAccessReview = VisioDocument.Load(accessReview.FilePath);
+            VisioPage accessReviewPage = Assert.Single(loadedAccessReview.Pages);
+            Assert.Contains(accessReviewPage.Shapes, shape => shape.Id == "access-control-cluster" && shape.GetShapeDataValue("Owner") == "Identity Security");
+            Assert.Contains(accessReviewPage.Shapes, shape => shape.Id == "evidence-cluster" && shape.GetShapeDataValue("Retention") == "7 years");
+            Assert.Contains(accessReviewPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(accessReviewPage.Connectors, connector => connector.Id == "pam-data-vault" && connector.GetShapeDataValue("SecretType") == "ephemeral credential");
+            Assert.Contains(accessReviewPage.Connectors, connector => connector.Id == "policy-control-pam" && connector.GetShapeDataValue("Duration") == "60 minutes");
+            VisioStencilProfile accessReviewProfile = loadedAccessReview.CreateStencilProfile();
+            Assert.Contains("Security and Identity", accessReviewProfile.StencilCatalogs);
+            Assert.Contains("Cloud", accessReviewProfile.StencilCatalogs);
+            Assert.Contains("Infrastructure", accessReviewProfile.StencilCatalogs);
+
             VisioGalleryResult kubernetes = results.Single(result => result.Name == "Kubernetes Service Mesh Graph");
             VisioDocument loadedKubernetes = VisioDocument.Load(kubernetes.FilePath);
             VisioPage kubernetesPage = Assert.Single(loadedKubernetes.Pages);
@@ -325,6 +389,59 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Cloud", applicationProfile.StencilCatalogs);
             Assert.Contains("Data and Platform", applicationProfile.StencilCatalogs);
             Assert.Contains("Security and Identity", applicationProfile.StencilCatalogs);
+
+            VisioGalleryResult dataPlatform = results.Single(result => result.Name == "Data Platform Lineage Graph");
+            VisioDocument loadedDataPlatform = VisioDocument.Load(dataPlatform.FilePath);
+            VisioPage dataPlatformPage = Assert.Single(loadedDataPlatform.Pages);
+            Assert.Contains(dataPlatformPage.Shapes, shape => shape.Id == "ingestion-cluster" && shape.GetShapeDataValue("Owner") == "Data Engineering");
+            Assert.Contains(dataPlatformPage.Shapes, shape => shape.Id == "serving-cluster" && shape.GetShapeDataValue("Owner") == "Data Platform");
+            Assert.Contains(dataPlatformPage.Shapes, shape => shape.Id == "catalog" && shape.GetShapeDataValue("Owner") == "Data Governance");
+            Assert.Contains(dataPlatformPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(dataPlatformPage.Connectors, connector => connector.Id == "source-system-data-event-stream" && connector.GetShapeDataValue("Format") == "CloudEvents");
+            Assert.Contains(dataPlatformPage.Connectors, connector => connector.Id == "query-api-data-analytics" && connector.GetShapeDataValue("Refresh") == "15 minutes");
+            VisioStencilProfile dataPlatformProfile = loadedDataPlatform.CreateStencilProfile();
+            Assert.Contains("Data and Platform", dataPlatformProfile.StencilCatalogs);
+            Assert.Contains("Cloud", dataPlatformProfile.StencilCatalogs);
+            Assert.Contains("Collaboration and Business Process", dataPlatformProfile.StencilCatalogs);
+
+            VisioGalleryResult hybridNetwork = results.Single(result => result.Name == "Hybrid Network Operations Graph");
+            VisioDocument loadedHybridNetwork = VisioDocument.Load(hybridNetwork.FilePath);
+            VisioPage hybridNetworkPage = Assert.Single(loadedHybridNetwork.Pages);
+            Assert.Contains(hybridNetworkPage.Shapes, shape => shape.Id == "edge-cluster" && shape.GetShapeDataValue("Owner") == "Network Security");
+            Assert.Contains(hybridNetworkPage.Shapes, shape => shape.Id == "datacenter-cluster" && shape.GetShapeDataValue("Owner") == "Infrastructure");
+            Assert.Contains(hybridNetworkPage.Shapes, shape => shape.Id == "operations-cluster" && shape.GetShapeDataValue("Owner") == "SRE");
+            Assert.Contains(hybridNetworkPage.Shapes, shape => shape.Id == "rack-a" && shape.GetShapeDataValue("Power") == "A feed");
+            Assert.Contains(hybridNetworkPage.Shapes, shape => shape.Id == "storage-array" && shape.GetShapeDataValue("Tier") == "Replication target");
+            Assert.Contains(hybridNetworkPage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(hybridNetworkPage.Connectors, connector => connector.Id == "wan-router-data-core-switch" && connector.GetShapeDataValue("Protocol") == "802.1Q");
+            Assert.Contains(hybridNetworkPage.Connectors, connector => connector.Id == "app-tier-data-database" && connector.GetShapeDataValue("Port") == "1433");
+            VisioStencilProfile hybridNetworkProfile = loadedHybridNetwork.CreateStencilProfile();
+            Assert.Contains("Network", hybridNetworkProfile.StencilCatalogs);
+            Assert.Contains("Infrastructure", hybridNetworkProfile.StencilCatalogs);
+            Assert.Contains("Cloud", hybridNetworkProfile.StencilCatalogs);
+            Assert.Contains("Data and Platform", hybridNetworkProfile.StencilCatalogs);
+            Assert.Contains("Collaboration and Business Process", hybridNetworkProfile.StencilCatalogs);
+            Assert.Contains(hybridNetworkProfile.Usages, usage => usage.StencilId == "infra.rack" && usage.Count == 2);
+            Assert.Contains(hybridNetworkProfile.Usages, usage => usage.StencilId == "infra.storage-array" && usage.Count == 1);
+
+            VisioGalleryResult processGovernance = results.Single(result => result.Name == "Process Governance Review Graph");
+            VisioDocument loadedProcessGovernance = VisioDocument.Load(processGovernance.FilePath);
+            VisioPage processGovernancePage = Assert.Single(loadedProcessGovernance.Pages);
+            Assert.Contains(processGovernancePage.Shapes, shape => shape.Id == "intake-cluster" && shape.GetShapeDataValue("Owner") == "Process Office");
+            Assert.Contains(processGovernancePage.Shapes, shape => shape.Id == "governance-cluster" && shape.GetShapeDataValue("Owner") == "Change Advisory Board");
+            Assert.Contains(processGovernancePage.Shapes, shape => shape.Id == "process-evidence-cluster" && shape.GetShapeDataValue("Retention") == "7 years");
+            Assert.Contains(processGovernancePage.Shapes, shape => shape.Id == "approval" && shape.GetShapeDataValue("Sla") == "2 business days");
+            Assert.Contains(processGovernancePage.Shapes, shape => shape.Id == "audit" && shape.GetShapeDataValue("Retention") == "7 years");
+            Assert.Contains(processGovernancePage.Shapes, shape => shape.Id == "legend-title" && shape.Text == "Legend");
+            Assert.Contains(processGovernancePage.Connectors, connector => connector.Id == "approval-implementation-authorize" && connector.GetShapeDataValue("Control") == "CAB minutes");
+            Assert.Contains(processGovernancePage.Connectors, connector => connector.Id == "implementation-evidence-pack" && connector.GetShapeDataValue("Artifacts") == "test log, backout proof");
+            Assert.Contains(processGovernancePage.Connectors, connector => connector.Id == "risk-exception-no" && connector.GetShapeDataValue("Decision") == "exception required");
+            VisioStencilProfile processGovernanceProfile = loadedProcessGovernance.CreateStencilProfile();
+            Assert.Contains("Collaboration and Business Process", processGovernanceProfile.StencilCatalogs);
+            Assert.Contains("Security and Identity", processGovernanceProfile.StencilCatalogs);
+            Assert.Contains("Flowchart", processGovernanceProfile.StencilCatalogs);
+            Assert.Contains(processGovernanceProfile.Usages, usage => usage.StencilId == "collab.approval" && usage.Count == 1);
+            Assert.Contains(processGovernanceProfile.Usages, usage => usage.StencilId == "sec.audit" && usage.Count == 1);
 
             VisioGalleryResult incident = results.Single(result => result.Name == "Incident Runbook Sequence");
             VisioDocument loadedIncident = VisioDocument.Load(incident.FilePath);

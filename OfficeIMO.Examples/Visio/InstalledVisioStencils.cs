@@ -59,6 +59,15 @@ namespace OfficeIMO.Examples.Visio {
             Connect(page, nsg, vm, "Private");
             Connect(page, function, database, "Reads/Writes");
             Connect(page, vm, database, "Batch");
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                FitToContent = false,
+                ResizeShapesToText = false,
+                ResizeConnectorLabelsToText = true,
+                ResolveConnectorShapeIntersections = true,
+                ResolveConnectorLabelOverlaps = true,
+                ConnectorLabelMaxAttempts = 18,
+                ConnectorLabelOptimizationPasses = 2
+            });
 
             VisioShape note = page.AddTextBox("source-note", 7, 0.75, 11.5, 0.42,
                 "Catalog composed from installed Microsoft Visio stencil packages: " + string.Join(", ", selectedPackages.Select(Path.GetFileName)));
@@ -109,6 +118,7 @@ namespace OfficeIMO.Examples.Visio {
             zone.FillColor = fill;
             zone.LineColor = stroke;
             zone.LineWeight = 0.012;
+            zone.MarkAsBackgroundSurface();
             VisioShape label = page.AddTextBox("zone-" + title.Replace(" ", "-", StringComparison.OrdinalIgnoreCase), x, y + (height / 2) - 0.25, width - 0.25, 0.3, title);
             label.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
@@ -118,16 +128,19 @@ namespace OfficeIMO.Examples.Visio {
                 HorizontalAlignment = VisioTextHorizontalAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
+            label.MarkAsGeneratedDiagramAdornment();
         }
 
         private static void Label(VisioPage page, string id, double x, double y, string text) {
-            page.AddTextBox(id, x, y, 1.7, 0.36, text).TextStyle = new VisioTextStyle {
+            VisioShape label = page.AddTextBox(id, x, y, 1.7, 0.36, text);
+            label.TextStyle = new VisioTextStyle {
                 FontFamily = "Aptos",
                 Size = 9.5,
                 Color = Color.FromRgb(33, 37, 41),
                 HorizontalAlignment = VisioTextHorizontalAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
+            label.MarkAsGeneratedDiagramAdornment();
         }
 
         private static void Connect(VisioPage page, VisioShape from, VisioShape to, string label) {

@@ -297,6 +297,13 @@ namespace OfficeIMO.Visio.Diagrams {
             AddLinks(page);
             AddCallouts(page);
             AddAdornments(page);
+            page.PolishDiagram(new VisioDiagramPolishOptions {
+                FitToContent = false,
+                ResizeShapesToText = false,
+                ResizeConnectorLabelsToText = false,
+                ResolveConnectorShapeIntersections = true,
+                ResolveConnectorLabelOverlaps = true
+            });
             _document.RequestRecalcOnOpen();
             return page;
         }

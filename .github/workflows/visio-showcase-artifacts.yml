@@ -1,0 +1,144 @@
+name: Visio Showcase Artifacts
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'OfficeIMO.Visio/**'
+      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
+      - 'OfficeIMO.Examples/Visio/**'
+      - 'OfficeIMO.Examples/Program.cs'
+      - 'OfficeIMO.Examples/README.md'
+      - 'Docs/officeimo.visio*.md'
+      - '.github/scripts/Assert-VisioShowcase*.ps1'
+      - '.github/workflows/visio-showcase-artifacts.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'OfficeIMO.Visio/**'
+      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Examples/OfficeIMO.Examples.csproj'
+      - 'OfficeIMO.Examples/Visio/**'
+      - 'OfficeIMO.Examples/Program.cs'
+      - 'OfficeIMO.Examples/README.md'
+      - 'Docs/officeimo.visio*.md'
+      - '.github/scripts/Assert-VisioShowcase*.ps1'
+      - '.github/workflows/visio-showcase-artifacts.yml'
+  workflow_dispatch:
+    inputs:
+      run_desktop_preview:
+        description: 'Run the optional Microsoft Visio desktop preview lane'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: |
+    8.0.418
+    10.0.103
+  BUILD_CONFIGURATION: Release
+  SHOWCASE_PATH: OfficeIMO.Examples/bin/Release/net8.0/Documents/Visio Showcase
+
+jobs:
+  visio-showcase:
+    name: Generate native preview bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Build examples
+        run: dotnet build OfficeIMO.Examples/OfficeIMO.Examples.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0
+
+      - name: Generate Visio showcase and native previews
+        run: dotnet OfficeIMO.Examples/bin/Release/net8.0/OfficeIMO.Examples.dll --visio-showcase --visio-native-preview
+
+      - name: Validate showcase summary
+        shell: pwsh
+        run: ./.github/scripts/Assert-VisioShowcaseSummary.ps1 -ShowcasePath "${{ env.SHOWCASE_PATH }}" -RequirePreviewsPerDiagram -RequireProofsPerDiagram -RequireNativePreviewFormatsPerDiagram
+
+      - name: Upload Visio showcase artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: officeimo-visio-showcase-native-preview
+          if-no-files-found: error
+          path: |
+            ${{ env.SHOWCASE_PATH }}/showcase-summary.md
+            ${{ env.SHOWCASE_PATH }}/showcase-summary.json
+            ${{ env.SHOWCASE_PATH }}/showcase-gallery.html
+            ${{ env.SHOWCASE_PATH }}/**/*.vsdx
+            ${{ env.SHOWCASE_PATH }}/Native Preview/**
+            ${{ env.SHOWCASE_PATH }}/Structural Proof/**
+
+  visio-desktop-showcase:
+    name: Generate desktop Visio preview bundle
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_desktop_preview }}
+    runs-on: [self-hosted, Windows, Visio]
+    timeout-minutes: 45
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Verify Microsoft Visio desktop automation
+        shell: pwsh
+        run: |
+          $type = [type]::GetTypeFromProgID('Visio.Application')
+          if ($null -eq $type) {
+            throw 'Microsoft Visio desktop automation is not registered on this runner.'
+          }
+
+      - name: Build examples
+        run: dotnet build OfficeIMO.Examples/OfficeIMO.Examples.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0
+
+      - name: Generate Visio showcase and desktop previews
+        run: dotnet OfficeIMO.Examples/bin/Release/net8.0/OfficeIMO.Examples.dll --visio-showcase --visio-preview
+
+      - name: Validate showcase summary
+        shell: pwsh
+        run: ./.github/scripts/Assert-VisioShowcaseSummary.ps1 -ShowcasePath "${{ env.SHOWCASE_PATH }}" -RequirePreviewsPerDiagram -RequireProofsPerDiagram -RequireDesktopPreviewFormatsPerDiagram
+
+      - name: Upload Visio desktop showcase artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: officeimo-visio-showcase-desktop-preview
+          if-no-files-found: error
+          path: |
+            ${{ env.SHOWCASE_PATH }}/showcase-summary.md
+            ${{ env.SHOWCASE_PATH }}/showcase-summary.json
+            ${{ env.SHOWCASE_PATH }}/showcase-gallery.html
+            ${{ env.SHOWCASE_PATH }}/**/*.vsdx
+            ${{ env.SHOWCASE_PATH }}/Preview/**
+            ${{ env.SHOWCASE_PATH }}/Structural Proof/**

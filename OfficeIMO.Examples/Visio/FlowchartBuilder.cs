@@ -9,8 +9,9 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Flowchart builder");
             string filePath = Path.Combine(folderPath, "Flowchart Builder.vsdx");
 
-            VisioDocument.Create(filePath)
+            VisioDocument document = VisioDocument.Create(filePath)
                 .Flowchart("Property buying Flowchart", flow => flow
+                    .PageSize(9.5, 15.5)
                     .Layout(VisioFlowchartLayout.TwoColumnContinuation)
                     .RouteBranches(laneSpacing: 0.5)
                     .Start("start", "Start with an agent\nyou trust")
@@ -28,8 +29,9 @@ namespace OfficeIMO.Examples.Visio {
                     .Step("closing", "Select/Contact closing\nattorney for title exam\nand title insurance")
                     .Step("inspection", "Schedule inspection\nand survey")
                     .End("close", "Close on the\nproperty")
-                    .Branch("agreement", "No", "market"))
-                .Save();
+                    .Branch("agreement", "No", "market"));
+            document.Pages[0].FitToContent(0.7, 0.55);
+            document.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });
