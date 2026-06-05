@@ -104,7 +104,7 @@ namespace OfficeIMO.Visio {
             builder.AppendLine("    </nav>");
             builder.AppendLine("  </header>");
             builder.AppendLine("  <main>");
-            AppendEvidenceCoverage(builder, summary.EvidenceTotals);
+            AppendEvidenceCoverage(builder, summary.EvidenceTotals, summary.Diagrams);
             AppendProofTotals(builder, summary.ProofTotals);
             AppendReviewIndex(builder, summary.Diagrams);
             AppendStencilCoverage(builder, summary.StencilCatalogCoverage);
@@ -161,7 +161,7 @@ namespace OfficeIMO.Visio {
             builder.AppendLine("    </table>");
         }
 
-        private static void AppendEvidenceCoverage(StringBuilder builder, VisioShowcaseEvidenceTotals totals) {
+        private static void AppendEvidenceCoverage(StringBuilder builder, VisioShowcaseEvidenceTotals totals, IReadOnlyList<VisioShowcaseDiagram> diagrams) {
             AppendSectionHeading(builder, "evidence-coverage", "Evidence Coverage");
             builder.AppendLine("    <table class=\"evidence-coverage\">");
             builder.AppendLine("      <thead><tr><th>Evidence</th><th>Diagrams</th><th>Missing</th></tr></thead>");
@@ -169,16 +169,28 @@ namespace OfficeIMO.Visio {
             AppendEvidenceCoverageRow(builder, "Native SVG preview", totals.NativeSvgPreviewDiagramCount, totals.DiagramCount, totals.DiagramsMissingNativeSvgPreview);
             AppendEvidenceCoverageRow(builder, "Native PNG preview", totals.NativePngPreviewDiagramCount, totals.DiagramCount, totals.DiagramsMissingNativePngPreview);
             AppendEvidenceCoverageRow(builder, "Complete native preview", totals.CompleteNativePreviewDiagramCount, totals.DiagramCount, totals.DiagramsMissingCompleteNativePreview);
+            AppendEvidenceCoverageRow(builder, "Desktop SVG preview", totals.DesktopSvgPreviewDiagramCount, totals.DiagramCount, totals.DiagramsMissingDesktopSvgPreview);
+            AppendEvidenceCoverageRow(builder, "Desktop PNG preview", totals.DesktopPngPreviewDiagramCount, totals.DiagramCount, totals.DiagramsMissingDesktopPngPreview);
+            AppendEvidenceCoverageRow(builder, "Complete desktop preview", totals.CompleteDesktopPreviewDiagramCount, totals.DiagramCount, totals.DiagramsMissingCompleteDesktopPreview);
             AppendEvidenceCoverageRow(builder, "Inspection proof", totals.InspectionProofDiagramCount, totals.DiagramCount, totals.DiagramsMissingInspectionProof);
             AppendEvidenceCoverageRow(builder, "Stencil-profile proof", totals.StencilProfileProofDiagramCount, totals.DiagramCount, totals.DiagramsMissingStencilProfileProof);
             AppendEvidenceCoverageRow(builder, "Visual-quality proof", totals.VisualQualityProofDiagramCount, totals.DiagramCount, totals.DiagramsMissingVisualQualityProof);
-            AppendEvidenceCoverageRow(builder, "Clean visual quality", totals.CleanVisualQualityDiagramCount, totals.DiagramCount, totals.DiagramsWithVisualQualityIssues);
+            AppendEvidenceCoverageRow(builder, "Clean visual quality", totals.CleanVisualQualityDiagramCount, totals.DiagramCount, GetUncleanVisualQualityDiagramNames(diagrams));
             AppendEvidenceCoverageRow(builder, "Complete structural proof", totals.CompleteStructuralProofDiagramCount, totals.DiagramCount, totals.DiagramsMissingCompleteStructuralProof);
             AppendEvidenceCoverageRow(builder, "Complete review proof", totals.CompleteReviewProofDiagramCount, totals.DiagramCount, totals.DiagramsMissingCompleteReviewProof);
             AppendEvidenceCoverageRow(builder, "Complete native evidence", totals.CompleteNativeEvidenceDiagramCount, totals.DiagramCount, totals.DiagramsMissingCompleteNativeEvidence);
+            AppendEvidenceCoverageRow(builder, "Complete desktop evidence", totals.CompleteDesktopEvidenceDiagramCount, totals.DiagramCount, totals.DiagramsMissingCompleteDesktopEvidence);
             AppendEvidenceCoverageRow(builder, "Complete preview evidence", totals.CompletePreviewEvidenceDiagramCount, totals.DiagramCount, totals.DiagramsMissingCompletePreviewEvidence);
             builder.AppendLine("      </tbody>");
             builder.AppendLine("    </table>");
+        }
+
+        private static IReadOnlyList<string> GetUncleanVisualQualityDiagramNames(IReadOnlyList<VisioShowcaseDiagram> diagrams) {
+            return diagrams
+                .Where(diagram => diagram.VisualQualitySummary.HasProof && !diagram.VisualQualitySummary.IsClean)
+                .Select(diagram => diagram.Name)
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToArray();
         }
 
         private static void AppendEvidenceCoverageRow(
