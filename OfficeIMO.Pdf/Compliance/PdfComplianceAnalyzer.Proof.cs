@@ -51,7 +51,7 @@ public static partial class PdfComplianceAnalyzer {
         return snapshot.ToArray();
     }
 
-    private static IReadOnlyList<PdfExternalValidatorKind> GetRequiredExternalValidators(PdfComplianceProfile profile) {
+    private static System.Collections.ObjectModel.ReadOnlyCollection<PdfExternalValidatorKind> GetRequiredExternalValidators(PdfComplianceProfile profile) {
         Guard.ComplianceProfile(profile, nameof(profile));
 
         var validators = new List<PdfExternalValidatorKind>();

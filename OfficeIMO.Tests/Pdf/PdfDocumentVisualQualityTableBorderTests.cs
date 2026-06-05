@@ -306,6 +306,39 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void Table_DrawsHeaderRulesBeforeHeaderText() {
+        var style = TableStyles.Minimal();
+        style.HeaderFill = PdfColor.FromRgb(15, 23, 42);
+        style.HeaderTextColor = PdfColor.White;
+        style.BorderColor = PdfColor.FromRgb(238, 51, 68);
+        style.BorderWidth = 1.1;
+        style.HeaderSeparatorColor = PdfColor.FromRgb(238, 51, 68);
+        style.HeaderSeparatorWidth = 1.1;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 320,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                CompressContentStreams = false
+            })
+            .Table(new[] {
+                new[] { "HeaderGlyphClearance", "Value" }
+            }, style: style)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+        int borderColor = content.IndexOf("0.933 0.2 0.267 RG", StringComparison.Ordinal);
+        int firstTextObject = content.IndexOf("BT\n", StringComparison.Ordinal);
+
+        Assert.True(borderColor >= 0, "Expected the configured header rule color in the content stream.");
+        Assert.True(firstTextObject >= 0, "Expected table header text in the content stream.");
+        Assert.True(borderColor < firstTextObject, "Table header rules should be painted before text so strokes cannot cut through glyphs.");
+    }
+
+    [Fact]
     public void RowColumnTable_RendersConfiguredRowSeparatorsWithoutCellBorderDictionary() {
         var style = TableStyles.Minimal();
         style.BorderColor = null;

@@ -104,7 +104,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 FooterAlign = PdfAlign.Right,
                 ShowPageNumbers = true,
                 CreateOutlineFromHeadings = true
-            })
+            }.UseOfficeFontFamily("Arial"))
             .Meta(
                 title: "OfficeIMO.Pdf Showcase Dashboard",
                 author: "OfficeIMO",
