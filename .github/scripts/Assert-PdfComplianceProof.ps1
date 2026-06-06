@@ -129,10 +129,10 @@ foreach ($expectedProfile in $expectedProfiles) {
 
 $productProofProfiles = @($proof.productProofContract.profiles)
 $productProofFileProfiles = @($productProofContractFile.profiles)
-Assert-Condition -Condition ($productProofProfiles.Count -eq 3) -Message "Expected 3 product proof contract rows in proof.json, got $($productProofProfiles.Count)."
-Assert-Condition -Condition ($productProofFileProfiles.Count -eq 3) -Message "Expected 3 product proof contract rows in officeimo-profile-proof-contract.json, got $($productProofFileProfiles.Count)."
+Assert-Condition -Condition ($productProofProfiles.Count -eq 4) -Message "Expected 4 product proof contract rows in proof.json, got $($productProofProfiles.Count)."
+Assert-Condition -Condition ($productProofFileProfiles.Count -eq 4) -Message "Expected 4 product proof contract rows in officeimo-profile-proof-contract.json, got $($productProofFileProfiles.Count)."
 
-$expectedProductProfiles = @('PdfA3B', 'PdfUa1', 'FacturX')
+$expectedProductProfiles = @('PdfA3B', 'PdfUa1', 'FacturX', 'Zugferd')
 foreach ($expectedProductProfile in $expectedProductProfiles) {
     $entry = @($productProofProfiles | Where-Object { $_.profile -eq $expectedProductProfile })
     $fileEntry = @($productProofFileProfiles | Where-Object { $_.profile -eq $expectedProductProfile })

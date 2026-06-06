@@ -204,14 +204,22 @@ $outputPath = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 $resolvedOutputPath = (Resolve-Path -LiteralPath $outputPath).Path
 
-$generatedProofFileNames = @(
+$generatedProofPdfFileNames = @(
     'officeimo-pdfa3-groundwork.pdf',
     'officeimo-einvoice-groundwork.pdf',
-    'officeimo-pdfua-groundwork.pdf',
+    'officeimo-pdfua-groundwork.pdf'
+)
+
+$generatedProofDiagnosticFileNames = @(
     'verapdf-pdfa3-groundwork.txt',
     'verapdf-einvoice-groundwork.txt',
     'mustang-einvoice-groundwork.txt',
-    'pdfua-groundwork.txt',
+    'pdfua-groundwork.txt'
+)
+
+$generatedProofFileNames = @(
+    $generatedProofPdfFileNames
+    $generatedProofDiagnosticFileNames
     'officeimo-profile-proof-contract.json',
     'index.md',
     'proof.json'
@@ -321,8 +329,22 @@ $commit = (& git -C $repoRoot rev-parse --short HEAD).Trim()
 $statusLines = @(& git -C $repoRoot status --short)
 $status = ($statusLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join [Environment]::NewLine
 $generatedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)
-$pdfFiles = @(Get-ChildItem -LiteralPath $resolvedOutputPath -File -Filter '*.pdf' | Sort-Object Name)
-$diagnosticFiles = @(Get-ChildItem -LiteralPath $resolvedOutputPath -File -Filter '*.txt' | Sort-Object Name)
+$pdfFiles = @(
+    foreach ($fileName in $generatedProofPdfFileNames) {
+        $path = Join-Path $resolvedOutputPath $fileName
+        if (Test-Path -LiteralPath $path) {
+            Get-Item -LiteralPath $path
+        }
+    }
+) | Sort-Object Name
+$diagnosticFiles = @(
+    foreach ($fileName in $generatedProofDiagnosticFileNames) {
+        $path = Join-Path $resolvedOutputPath $fileName
+        if (Test-Path -LiteralPath $path) {
+            Get-Item -LiteralPath $path
+        }
+    }
+) | Sort-Object Name
 $productProofContractPath = Join-Path $resolvedOutputPath 'officeimo-profile-proof-contract.json'
 $indexPath = Join-Path $resolvedOutputPath 'index.md'
 $jsonPath = Join-Path $resolvedOutputPath 'proof.json'

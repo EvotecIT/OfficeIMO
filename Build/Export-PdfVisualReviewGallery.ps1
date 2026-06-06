@@ -26,6 +26,8 @@ $generatedReviewFileNames = @(
     'native-word-report.pdf',
     'native-word-daily-layout.pdf',
     'native-word-table-cell-picture-control.pdf',
+    'native-powerpoint-slide.pdf',
+    'native-powerpoint-dense-layout.pdf',
     'native-excel-daily-workbook.pdf',
     'markdown-technical-document.pdf',
     'markdown-theme-gallery-plain.pdf',

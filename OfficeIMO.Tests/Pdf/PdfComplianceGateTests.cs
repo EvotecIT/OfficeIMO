@@ -188,10 +188,14 @@ public class PdfComplianceGateTests {
             Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
             Assert.Equal("NoExternalValidationInjected", root.GetProperty("externalEvidenceMode").GetString());
             JsonElement profiles = root.GetProperty("profiles");
-            Assert.Equal(3, profiles.GetArrayLength());
+            Assert.Equal(4, profiles.GetArrayLength());
             Assert.Contains(profiles.EnumerateArray(), profile =>
                 string.Equals(profile.GetProperty("profile").GetString(), nameof(PdfComplianceProfile.PdfA3B), StringComparison.Ordinal) &&
                 profile.GetProperty("requiredExternalValidators").EnumerateArray().Any(validator => string.Equals(validator.GetString(), nameof(PdfExternalValidatorKind.VeraPdf), StringComparison.Ordinal)) &&
+                profile.GetProperty("canClaimConformance").GetBoolean() == false);
+            Assert.Contains(profiles.EnumerateArray(), profile =>
+                string.Equals(profile.GetProperty("profile").GetString(), nameof(PdfComplianceProfile.Zugferd), StringComparison.Ordinal) &&
+                profile.GetProperty("requiredExternalValidators").EnumerateArray().Any(validator => string.Equals(validator.GetString(), nameof(PdfExternalValidatorKind.Mustang), StringComparison.Ordinal)) &&
                 profile.GetProperty("canClaimConformance").GetBoolean() == false);
         } finally {
             Environment.SetEnvironmentVariable(ProofOutputEnv, string.IsNullOrEmpty(previousOutput) ? null : previousOutput);
@@ -215,7 +219,24 @@ public class PdfComplianceGateTests {
     }
 
     private static byte[] CreateEinvoiceGroundworkFixture() {
-        byte[] invoiceXml = Encoding.UTF8.GetBytes(
+        byte[] invoiceXml = CreateEinvoiceGroundworkXml();
+        return PdfDocument.Create(new PdfOptions {
+                FileVersion = PdfFileVersion.Pdf17,
+                IncludeStandardFontToUnicodeMaps = true
+            })
+            .PdfAIdentification(3, "B")
+            .ElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .Meta(title: "OfficeIMO E-Invoice Groundwork", author: "OfficeIMO")
+            .Language("en-US")
+            .SrgbOutputIntent()
+            .AttachFile("factur-x.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "EN 16931 XML payload placeholder")
+            .H1("E-Invoice Groundwork")
+            .Paragraph(p => p.Text("This fixture intentionally exercises associated-file output without claiming Factur-X or ZUGFeRD conformance."))
+            .ToBytes();
+    }
+
+    private static byte[] CreateEinvoiceGroundworkXml() {
+        return Encoding.UTF8.GetBytes(
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\" xmlns:ram=\"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100\" xmlns:udt=\"urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100\">" +
             "<rsm:ExchangedDocumentContext>" +
@@ -288,20 +309,6 @@ public class PdfComplianceGateTests {
             "</ram:ApplicableHeaderTradeSettlement>" +
             "</rsm:SupplyChainTradeTransaction>" +
             "</rsm:CrossIndustryInvoice>");
-
-        return PdfDocument.Create(new PdfOptions {
-                FileVersion = PdfFileVersion.Pdf17,
-                IncludeStandardFontToUnicodeMaps = true
-            })
-            .PdfAIdentification(3, "B")
-            .ElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
-            .Meta(title: "OfficeIMO E-Invoice Groundwork", author: "OfficeIMO")
-            .Language("en-US")
-            .SrgbOutputIntent()
-            .AttachFile("factur-x.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "EN 16931 XML payload placeholder")
-            .H1("E-Invoice Groundwork")
-            .Paragraph(p => p.Text("This fixture intentionally exercises associated-file output without claiming Factur-X or ZUGFeRD conformance."))
-            .ToBytes();
     }
 
     private static byte[] CreatePdfUaGroundworkFixture() {
@@ -335,7 +342,8 @@ public class PdfComplianceGateTests {
             Profiles = new[] {
                 CreateProofContractRow(PdfComplianceProfile.PdfA3B, CreatePdfA3GroundworkOptions(), Array.Empty<PdfStandardFont>()),
                 CreateProofContractRow(PdfComplianceProfile.PdfUa1, CreatePdfUaGroundworkOptions(), Array.Empty<PdfStandardFont>()),
-                CreateProofContractRow(PdfComplianceProfile.FacturX, CreateEinvoiceGroundworkOptions(), Array.Empty<PdfStandardFont>())
+                CreateProofContractRow(PdfComplianceProfile.FacturX, CreateEinvoiceGroundworkOptions(), Array.Empty<PdfStandardFont>()),
+                CreateProofContractRow(PdfComplianceProfile.Zugferd, CreateEinvoiceGroundworkOptions(), Array.Empty<PdfStandardFont>())
             }
         };
         string json = JsonSerializer.Serialize(contract, new JsonSerializerOptions {
@@ -391,7 +399,7 @@ public class PdfComplianceGateTests {
             .SetPdfAIdentification(3, "B")
             .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
             .SetSrgbOutputIntent()
-            .AddEmbeddedFile("factur-x.xml", Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\" />"), "application/xml", PdfAssociatedFileRelationship.Data, "EN 16931 XML payload placeholder");
+            .AddEmbeddedFile("factur-x.xml", CreateEinvoiceGroundworkXml(), "application/xml", PdfAssociatedFileRelationship.Data, "EN 16931 XML payload placeholder");
     }
 
     private static void WriteProofPdf(string fileName, byte[] bytes) {
