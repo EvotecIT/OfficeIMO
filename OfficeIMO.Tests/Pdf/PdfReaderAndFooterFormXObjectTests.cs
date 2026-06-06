@@ -112,6 +112,29 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfLogicalDocument_Load_DoesNotExposeUnusedImageResourceAliases() {
+        byte[] bytes = BuildPdfWithImageResourceAlias();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        PdfLogicalImage image = Assert.Single(logical.Images);
+        Assert.Equal("ImUsed", image.ResourceName);
+        Assert.True(image.HasPlacements);
+        Assert.All(image.Placements, placement => Assert.Equal("ImUsed", placement.ResourceName));
+    }
+
+    [Fact]
+    public void PdfLogicalDocument_Load_DeduplicatesImagesDiscoveredThroughRepeatedForms() {
+        byte[] bytes = BuildPdfWithRepeatedFormImageResource();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        PdfLogicalImage image = Assert.Single(logical.Images);
+        Assert.Equal("ImShared", image.ResourceName);
+        Assert.Equal(2, image.Placements.Count);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
         byte[] bytes = BuildPdfWithScaledFormMatrix();
 

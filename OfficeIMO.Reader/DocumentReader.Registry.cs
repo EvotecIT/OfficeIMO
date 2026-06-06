@@ -57,6 +57,28 @@ public static partial class DocumentReader {
         };
     }
 
+    private static ReaderHandlerCapability? CloneCapabilityWithRemainingExtensions(ReaderHandlerCapability capability, HashSet<string>? overriddenExtensions) {
+        ReaderHandlerCapability clone = CloneCapability(capability);
+        if (overriddenExtensions is null || overriddenExtensions.Count == 0) {
+            return clone;
+        }
+
+        var extensions = new List<string>(clone.Extensions.Count);
+        for (int i = 0; i < clone.Extensions.Count; i++) {
+            string extension = clone.Extensions[i];
+            if (!overriddenExtensions.Contains(extension)) {
+                extensions.Add(extension);
+            }
+        }
+
+        if (extensions.Count == 0) {
+            return null;
+        }
+
+        clone.Extensions = extensions.AsReadOnly();
+        return clone;
+    }
+
     private static ReaderHandlerRegistrarDescriptor CloneRegistrarDescriptor(ReaderHandlerRegistrarDescriptor descriptor) {
         return new ReaderHandlerRegistrarDescriptor {
             HandlerId = descriptor.HandlerId,

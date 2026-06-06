@@ -151,8 +151,9 @@ public static partial class PdfHtmlConverter {
             AppendMetadataSection(builder, document);
         }
 
-        for (int i = 0; i < document.Pages.Count; i++) {
-            PdfCore.PdfLogicalPage page = document.Pages[i];
+        IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
+        for (int i = 0; i < pages.Count; i++) {
+            PdfCore.PdfLogicalPage page = pages[i];
             if (options.IncludePageContainers) {
                 builder.Append("<section class=\"pdf-page\" data-page-number=\"");
                 builder.Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
@@ -183,8 +184,9 @@ public static partial class PdfHtmlConverter {
             AppendPositionedStyles(builder);
         }
 
-        for (int i = 0; i < document.Pages.Count; i++) {
-            AppendPositionedPage(builder, document.Pages[i], options);
+        IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
+        for (int i = 0; i < pages.Count; i++) {
+            AppendPositionedPage(builder, pages[i], options);
         }
 
         if (options.EmitDocumentShell) {
@@ -193,6 +195,57 @@ public static partial class PdfHtmlConverter {
         }
 
         return builder.ToString().TrimEnd();
+    }
+
+    private static IReadOnlyList<PdfCore.PdfLogicalPage> GetRenderPages(PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options) {
+        PdfCore.PdfPageRange[] ranges = CopyPageRanges(options);
+        if (ranges.Length == 0) {
+            return document.Pages;
+        }
+
+        int maxSourcePageNumber = 0;
+        for (int i = 0; i < document.Pages.Count; i++) {
+            maxSourcePageNumber = Math.Max(maxSourcePageNumber, document.Pages[i].PageNumber);
+        }
+
+        if (maxSourcePageNumber == 0) {
+            return Array.Empty<PdfCore.PdfLogicalPage>();
+        }
+
+        int[] pageNumbers = ExpandPageRanges(ranges, maxSourcePageNumber);
+        var pages = new List<PdfCore.PdfLogicalPage>(pageNumbers.Length);
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            IReadOnlyList<PdfCore.PdfLogicalPage> sourcePages = document.GetPages(pageNumbers[i]);
+            for (int sourceIndex = 0; sourceIndex < sourcePages.Count; sourceIndex++) {
+                pages.Add(sourcePages[sourceIndex]);
+            }
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    private static int[] ExpandPageRanges(PdfCore.PdfPageRange[] pageRanges, int pageCount) {
+        if (pageRanges.Length == 0) {
+            throw new ArgumentException("At least one page range must be specified.", nameof(PdfHtmlSaveOptions.PageRanges));
+        }
+
+        var pages = new List<int>();
+        for (int i = 0; i < pageRanges.Length; i++) {
+            PdfCore.PdfPageRange range = pageRanges[i];
+            if (range.FirstPage < 1 || range.LastPage < range.FirstPage) {
+                throw new ArgumentOutOfRangeException(nameof(PdfHtmlSaveOptions.PageRanges), "Page ranges must be inclusive one-based ranges.");
+            }
+
+            if (range.LastPage > pageCount) {
+                throw new ArgumentOutOfRangeException(nameof(PdfHtmlSaveOptions.PageRanges), "Page range cannot exceed the document page count.");
+            }
+
+            for (int pageNumber = range.FirstPage; pageNumber <= range.LastPage; pageNumber++) {
+                pages.Add(pageNumber);
+            }
+        }
+
+        return pages.ToArray();
     }
 
     private static void AppendDocumentStart(StringBuilder builder, PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options, bool positioned) {

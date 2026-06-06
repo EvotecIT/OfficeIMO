@@ -261,6 +261,49 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtml_PageRanges_FilterAlreadyLoadedLogicalDocument() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Paragraph(paragraph => paragraph.Text("First logical page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second logical page"))
+            .ToBytes();
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            PageRanges = new[] {
+                PdfCore.PdfPageRange.From(2, 2)
+            }
+        };
+
+        string html = logical.ToHtml(options);
+
+        Assert.DoesNotContain("First logical page", html, StringComparison.Ordinal);
+        Assert.Contains("Second logical page", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_AccountsForRotatedPages() {
+        byte[] pdf = CreateRotatedLinkAnnotationPdf(90, "https://example.com/rotated");
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\" style=\"width:220pt;height:320pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("style=\"left:38pt;top:40pt;width:22pt;height:140pt\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://example.com/rotated\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pdf_ToHtml_LinkAnnotations_RenderUnsafeUriAsInertText() {
         const string unsafeUri = "javascript:alert(1)";
         byte[] pdf = CreateLinkAnnotationPdf(unsafeUri);
@@ -341,6 +384,30 @@ public sealed class HtmlPdfTests {
             "endobj",
             "4 0 obj",
             $"<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Unsafe link) /A << /S /URI /URI ({escapedUri}) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateRotatedLinkAnnotationPdf(int rotationDegrees, string uri) {
+        string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Rotate {rotationDegrees.ToString(System.Globalization.CultureInfo.InvariantCulture)} /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Rotated link) /A << /S /URI /URI ({escapedUri}) >> >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R >>",

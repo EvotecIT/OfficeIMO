@@ -212,6 +212,11 @@ public sealed class ReaderPdfModularTests {
                 handler.Id == DocumentReaderPdfRegistrationExtensions.HandlerId &&
                 handler.Kind == ReaderInputKind.Pdf &&
                 handler.Extensions.Contains(".pdf"));
+            Assert.Equal(1, result.Manifest.Handlers.Count(handler =>
+                string.Equals(handler.Id, DocumentReaderPdfRegistrationExtensions.HandlerId, StringComparison.Ordinal)));
+            Assert.DoesNotContain(result.Manifest.Handlers, handler =>
+                handler.IsBuiltIn &&
+                handler.Extensions.Contains(".pdf", StringComparer.OrdinalIgnoreCase));
             Assert.Contains(DocumentReaderPdfRegistrationExtensions.HandlerId, result.ManifestJson, StringComparison.OrdinalIgnoreCase);
         } finally {
             DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();

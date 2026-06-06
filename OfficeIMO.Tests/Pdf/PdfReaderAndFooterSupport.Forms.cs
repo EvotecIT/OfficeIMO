@@ -403,6 +403,100 @@ public partial class PdfReaderAndFooterRegressionTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildPdfWithImageResourceAlias() {
+        const string pageContent = "q\n10 0 0 10 20 30 cm\n/ImUsed Do\nQ\n";
+        const string imageBytes = "abc";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int imageLength = Encoding.ASCII.GetByteCount(imageBytes);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 4 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /XObject << /ImUsed 6 0 R /ImAlias 6 0 R >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {imageLength} >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithRepeatedFormImageResource() {
+        const string pageContent = "q\n1 0 0 1 20 30 cm\n/FxA Do\nQ\nq\n1 0 0 1 120 30 cm\n/FxB Do\nQ\n";
+        const string formContent = "q\n10 0 0 10 0 0 cm\n/ImShared Do\nQ\n";
+        const string imageBytes = "abc";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int formStreamLength = Encoding.ASCII.GetByteCount(formContent);
+        int imageLength = Encoding.ASCII.GetByteCount(imageBytes);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 4 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /XObject << /FxA 6 0 R /FxB 7 0 R >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImShared 8 0 R >> >> /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImShared 8 0 R >> >> /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "8 0 obj",
+            $"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {imageLength} >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildPdfWithScaledFormMatrix() {
         const string pageContent = "q\n2 0 0 2 10 20 cm\n/Fx Do\nQ\n";
         const string formContent = "BT\n/F1 12 Tf\n3 4 Td\n(Scaled form) Tj\nET\n";

@@ -187,11 +187,11 @@ internal static class ResourceResolver {
             }
         }
 
-        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>(), placedObjectNumbers, placedResourceNames);
+        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>(), new HashSet<string>(System.StringComparer.Ordinal), placedObjectNumbers, placedResourceNames);
         return result;
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, HashSet<string> addedImageKeys, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
         if (!resources.Items.TryGetValue("XObject", out var xoObj)) return;
         var xo = ResolveDict(xoObj, objects);
         if (xo is null) return;
@@ -218,6 +218,10 @@ internal static class ResourceResolver {
                     continue;
                 }
 
+                if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber))) {
+                    continue;
+                }
+
                 result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, stream, objects));
                 continue;
             }
@@ -237,7 +241,7 @@ internal static class ResourceResolver {
                 }
 
                 formResources ??= resources;
-                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, placedObjectNumbers, placedResourceNames);
+                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, addedImageKeys, placedObjectNumbers, placedResourceNames);
             } finally {
                 activeForms.Remove(stream);
             }
@@ -250,10 +254,18 @@ internal static class ResourceResolver {
         }
 
         if (objectNumber > 0 && placedObjectNumbers?.Contains(objectNumber) == true) {
-            return true;
+            return placedResourceNames is null || placedResourceNames.Count == 0 || placedResourceNames.Contains(resourceName);
         }
 
-        return objectNumber == 0 && placedResourceNames?.Contains(resourceName) == true;
+        return placedResourceNames?.Contains(resourceName) == true;
+    }
+
+    private static string BuildImageResourceKey(int pageNumber, string resourceName, int objectNumber) {
+        return pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            "|" +
+            resourceName +
+            "|" +
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {
