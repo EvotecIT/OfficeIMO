@@ -205,7 +205,7 @@ public static partial class DocumentReader {
     public static IReadOnlyList<ReaderHandlerCapability> GetCapabilities(bool includeBuiltIn = true, bool includeCustom = true) {
         var list = new List<ReaderHandlerCapability>();
         var customCapabilities = new List<ReaderHandlerCapability>();
-        HashSet<string>? overriddenBuiltInExtensions = null;
+        Dictionary<string, ExtensionOverrideCoverage>? overriddenBuiltInExtensions = null;
 
         if (includeCustom) {
             lock (HandlerRegistrySync) {
@@ -216,8 +216,9 @@ public static partial class DocumentReader {
                         for (int extensionIndex = 0; extensionIndex < capability.Extensions.Count; extensionIndex++) {
                             string extension = capability.Extensions[extensionIndex];
                             if (BuiltInExtensions.Contains(extension)) {
-                                overriddenBuiltInExtensions ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                                overriddenBuiltInExtensions.Add(extension);
+                                overriddenBuiltInExtensions ??= new Dictionary<string, ExtensionOverrideCoverage>(StringComparer.OrdinalIgnoreCase);
+                                overriddenBuiltInExtensions.TryGetValue(extension, out ExtensionOverrideCoverage coverage);
+                                overriddenBuiltInExtensions[extension] = coverage.Add(capability.SupportsPath, capability.SupportsStream);
                             }
                         }
                     }
@@ -227,7 +228,7 @@ public static partial class DocumentReader {
 
         if (includeBuiltIn) {
             for (int i = 0; i < BuiltInCapabilities.Length; i++) {
-                ReaderHandlerCapability? capability = CloneCapabilityWithRemainingExtensions(BuiltInCapabilities[i], overriddenBuiltInExtensions);
+                ReaderHandlerCapability? capability = CloneCapabilityWithRemainingSupport(BuiltInCapabilities[i], overriddenBuiltInExtensions);
                 if (capability is not null) {
                     list.Add(capability);
                 }

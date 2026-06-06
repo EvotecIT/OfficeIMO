@@ -147,6 +147,18 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetImages_DoesNotMatchSiblingImagesByNameOnly() {
+        PdfReadPage page = CreatePdfReadPageWithDirectPageAndFormImageNameCollision();
+
+        IReadOnlyList<PdfImagePlacement> placements = page.GetImagePlacements();
+        IReadOnlyList<PdfExtractedImage> images = GetImagesWithPlacements(page, placements);
+
+        PdfExtractedImage image = Assert.Single(images);
+        Assert.Single(placements);
+        Assert.Equal("form", Encoding.ASCII.GetString(image.Bytes));
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
         byte[] bytes = BuildPdfWithScaledFormMatrix();
 

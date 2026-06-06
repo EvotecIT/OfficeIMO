@@ -57,17 +57,45 @@ public static partial class DocumentReader {
         };
     }
 
-    private static ReaderHandlerCapability? CloneCapabilityWithRemainingExtensions(ReaderHandlerCapability capability, HashSet<string>? overriddenExtensions) {
+    private readonly struct ExtensionOverrideCoverage {
+        public ExtensionOverrideCoverage(bool supportsPath, bool supportsStream) {
+            SupportsPath = supportsPath;
+            SupportsStream = supportsStream;
+        }
+
+        public bool SupportsPath { get; }
+
+        public bool SupportsStream { get; }
+
+        public ExtensionOverrideCoverage Add(bool supportsPath, bool supportsStream) {
+            return new ExtensionOverrideCoverage(SupportsPath || supportsPath, SupportsStream || supportsStream);
+        }
+    }
+
+    private static ReaderHandlerCapability? CloneCapabilityWithRemainingSupport(ReaderHandlerCapability capability, IReadOnlyDictionary<string, ExtensionOverrideCoverage>? overriddenExtensions) {
         ReaderHandlerCapability clone = CloneCapability(capability);
         if (overriddenExtensions is null || overriddenExtensions.Count == 0) {
             return clone;
         }
 
         var extensions = new List<string>(clone.Extensions.Count);
+        bool supportsPath = false;
+        bool supportsStream = false;
         for (int i = 0; i < clone.Extensions.Count; i++) {
             string extension = clone.Extensions[i];
-            if (!overriddenExtensions.Contains(extension)) {
+            if (!overriddenExtensions.TryGetValue(extension, out ExtensionOverrideCoverage coverage)) {
                 extensions.Add(extension);
+                supportsPath |= clone.SupportsPath;
+                supportsStream |= clone.SupportsStream;
+                continue;
+            }
+
+            bool extensionSupportsPath = clone.SupportsPath && !coverage.SupportsPath;
+            bool extensionSupportsStream = clone.SupportsStream && !coverage.SupportsStream;
+            if (extensionSupportsPath || extensionSupportsStream) {
+                extensions.Add(extension);
+                supportsPath |= extensionSupportsPath;
+                supportsStream |= extensionSupportsStream;
             }
         }
 
@@ -76,6 +104,8 @@ public static partial class DocumentReader {
         }
 
         clone.Extensions = extensions.AsReadOnly();
+        clone.SupportsPath = supportsPath;
+        clone.SupportsStream = supportsStream;
         return clone;
     }
 

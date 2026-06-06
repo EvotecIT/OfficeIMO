@@ -252,7 +252,7 @@ public static partial class PdfHtmlConverter {
                 case 90:
                     return new PositionedPoint(PageHeight - y, x);
                 case 180:
-                    return new PositionedPoint(PageWidth - x, y);
+                    return new PositionedPoint(PageWidth - x, PageHeight - y);
                 case 270:
                     return new PositionedPoint(y, PageWidth - x);
                 default:
@@ -265,7 +265,7 @@ public static partial class PdfHtmlConverter {
                 case 90:
                     return new PositionedBox(PageHeight - bottom - height, left, height, width);
                 case 180:
-                    return new PositionedBox(PageWidth - left - width, bottom, width, height);
+                    return new PositionedBox(PageWidth - left - width, PageHeight - bottom - height, width, height);
                 case 270:
                     return new PositionedBox(bottom, PageWidth - left - width, height, width);
                 default:

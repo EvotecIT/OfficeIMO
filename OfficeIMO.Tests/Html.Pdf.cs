@@ -330,6 +330,21 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_FlipsCoordinatesForRotated180Pages() {
+        byte[] pdf = CreateRotatedLinkAnnotationPdf(180, "https://example.com/rotated-180");
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\" style=\"width:320pt;height:220pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("style=\"left:140pt;top:38pt;width:140pt;height:22pt\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://example.com/rotated-180\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pdf_ToHtml_LinkAnnotations_RenderUnsafeUriAsInertText() {
         const string unsafeUri = "javascript:alert(1)";
         byte[] pdf = CreateLinkAnnotationPdf(unsafeUri);

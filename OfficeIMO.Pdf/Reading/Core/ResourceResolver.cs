@@ -170,28 +170,28 @@ internal static class ResourceResolver {
         var result = new List<PdfExtractedImage>();
         var res = GetInheritedDictionary(page, "Resources", objects);
         if (res is null) return result;
-        HashSet<int>? placedObjectNumbers = null;
-        HashSet<string>? placedResourceNames = null;
+        HashSet<string>? placedImageKeys = null;
+        HashSet<string>? placedResourceNamesWithoutIdentity = null;
         if (imagePlacements is not null) {
-            placedObjectNumbers = new HashSet<int>();
-            placedResourceNames = new HashSet<string>(System.StringComparer.Ordinal);
+            placedImageKeys = new HashSet<string>(System.StringComparer.Ordinal);
+            placedResourceNamesWithoutIdentity = new HashSet<string>(System.StringComparer.Ordinal);
             for (int i = 0; i < imagePlacements.Count; i++) {
                 PdfImagePlacement placement = imagePlacements[i];
-                if (placement.ObjectNumber > 0) {
-                    placedObjectNumbers.Add(placement.ObjectNumber);
-                }
-
                 if (!string.IsNullOrEmpty(placement.ResourceName)) {
-                    placedResourceNames.Add(placement.ResourceName);
+                    if (placement.ObjectNumber > 0 || placement.DirectStreamIdentity != 0) {
+                        placedImageKeys.Add(BuildImagePlacementKey(placement.ResourceName, placement.ObjectNumber, placement.DirectStreamIdentity));
+                    } else {
+                        placedResourceNamesWithoutIdentity.Add(placement.ResourceName);
+                    }
                 }
             }
         }
 
-        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>(), new HashSet<string>(System.StringComparer.Ordinal), placedObjectNumbers, placedResourceNames);
+        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>(), new HashSet<string>(System.StringComparer.Ordinal), placedImageKeys, placedResourceNamesWithoutIdentity);
         return result;
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, HashSet<string> addedImageKeys, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, HashSet<string> addedImageKeys, HashSet<string>? placedImageKeys, HashSet<string>? placedResourceNamesWithoutIdentity) {
         if (!resources.Items.TryGetValue("XObject", out var xoObj)) return;
         var xo = ResolveDict(xoObj, objects);
         if (xo is null) return;
@@ -217,7 +217,7 @@ internal static class ResourceResolver {
                 int directStreamIdentity = objectNumber == 0
                     ? System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(stream)
                     : 0;
-                if (!IsPlacedImage(kv.Key, objectNumber, placedObjectNumbers, placedResourceNames)) {
+                if (!IsPlacedImage(kv.Key, objectNumber, directStreamIdentity, placedImageKeys, placedResourceNamesWithoutIdentity)) {
                     continue;
                 }
 
@@ -244,23 +244,31 @@ internal static class ResourceResolver {
                 }
 
                 formResources ??= resources;
-                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, addedImageKeys, placedObjectNumbers, placedResourceNames);
+                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, addedImageKeys, placedImageKeys, placedResourceNamesWithoutIdentity);
             } finally {
                 activeForms.Remove(stream);
             }
         }
     }
 
-    private static bool IsPlacedImage(string resourceName, int objectNumber, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
-        if (placedObjectNumbers is null && placedResourceNames is null) {
+    private static bool IsPlacedImage(string resourceName, int objectNumber, int directStreamIdentity, HashSet<string>? placedImageKeys, HashSet<string>? placedResourceNamesWithoutIdentity) {
+        if (placedImageKeys is null && placedResourceNamesWithoutIdentity is null) {
             return true;
         }
 
-        if (objectNumber > 0 && placedObjectNumbers?.Contains(objectNumber) == true) {
-            return placedResourceNames is null || placedResourceNames.Count == 0 || placedResourceNames.Contains(resourceName);
+        if (objectNumber > 0 || directStreamIdentity != 0) {
+            return placedImageKeys?.Contains(BuildImagePlacementKey(resourceName, objectNumber, directStreamIdentity)) == true;
         }
 
-        return placedResourceNames?.Contains(resourceName) == true;
+        return placedResourceNamesWithoutIdentity?.Contains(resourceName) == true;
+    }
+
+    private static string BuildImagePlacementKey(string resourceName, int objectNumber, int directStreamIdentity) {
+        return resourceName +
+            "|" +
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            "|" +
+            directStreamIdentity.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string BuildImageResourceKey(int pageNumber, string resourceName, int objectNumber, int directStreamIdentity) {

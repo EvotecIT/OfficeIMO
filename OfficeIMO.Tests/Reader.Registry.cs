@@ -167,6 +167,37 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_GetCapabilities_PreservesBuiltInDirectionsForPartialOverrides() {
+        const string handlerId = "officeimo.tests.custom.pdf.stream";
+
+        DocumentReader.UnregisterHandler(handlerId);
+        DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
+        try {
+            DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+                Id = handlerId,
+                DisplayName = "PDF Stream Override",
+                Extensions = new[] { ".pdf" },
+                Kind = ReaderInputKind.Pdf,
+                ReadStream = (stream, sourceName, options, ct) => Array.Empty<ReaderChunk>()
+            }, replaceExisting: true);
+
+            var capabilities = DocumentReader.GetCapabilities();
+
+            var builtInPdf = Assert.Single(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.pdf");
+            Assert.Contains(".pdf", builtInPdf.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.True(builtInPdf.SupportsPath);
+            Assert.False(builtInPdf.SupportsStream);
+
+            var customPdf = Assert.Single(capabilities, c => c.Id == handlerId);
+            Assert.False(customPdf.SupportsPath);
+            Assert.True(customPdf.SupportsStream);
+        } finally {
+            DocumentReader.UnregisterHandler(handlerId);
+            DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ModularRegistrationHelpers_RegisterAndUnregister() {
         try {
             DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
