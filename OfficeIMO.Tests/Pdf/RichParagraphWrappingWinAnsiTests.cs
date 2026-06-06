@@ -65,6 +65,56 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void TextDiagnostics_ReportsUnsupportedGlyphAsSharedConversionWarning() {
+            var diagnostic = Assert.Single(PdfTextDiagnostics.AnalyzeWinAnsiText("Snowman \u2603", "paragraph"));
+
+            Assert.Equal("paragraph", diagnostic.Source);
+            Assert.Equal(8, diagnostic.Index);
+            Assert.Equal("U+2603", diagnostic.CodePoint);
+            Assert.Equal("\u2603", diagnostic.Text);
+            Assert.False(diagnostic.IsControlCharacter);
+            Assert.Equal("unsupported-text-glyph", diagnostic.Code);
+            Assert.Contains("Embedded Unicode fonts", diagnostic.Message, StringComparison.Ordinal);
+
+            PdfConversionWarning warning = diagnostic.ToConversionWarning("OfficeIMO.Tests");
+
+            Assert.Equal("OfficeIMO.Tests", warning.Converter);
+            Assert.Equal("unsupported-text-glyph", warning.Code);
+            Assert.Equal(PdfConversionWarningSeverity.Error, warning.Severity);
+            Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
+            Assert.Equal("U+2603", warning.Details["codePoint"]);
+            Assert.Equal("8", warning.Details["index"]);
+        }
+
+        [Fact]
+        public void TextDiagnostics_ReportsControlCharactersButIgnoresExplicitTextRunLayoutControls() {
+            var literalDiagnostic = Assert.Single(PdfTextDiagnostics.AnalyzeWinAnsiText("Alpha\tBeta", "literal"));
+
+            Assert.True(literalDiagnostic.IsControlCharacter);
+            Assert.Equal("unsupported-control-character", literalDiagnostic.Code);
+            Assert.Equal("U+0009", literalDiagnostic.CodePoint);
+            Assert.Equal(string.Empty, literalDiagnostic.Text);
+
+            IReadOnlyList<PdfTextEncodingDiagnostic> runDiagnostics = PdfTextDiagnostics.AnalyzeWinAnsiTextRuns(
+                new[] {
+                    TextRun.Normal("Alpha"),
+                    TextRun.Tab(PdfTabLeaderStyle.Dots),
+                    TextRun.LineBreak(),
+                    TextRun.Normal("Beta")
+                },
+                "runs");
+
+            Assert.Empty(runDiagnostics);
+        }
+
+        [Fact]
+        public void TextDiagnostics_AllowsSupportedWindows1252Text() {
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeWinAnsiText("Invoice \u20AC \u2022 r\u00E9sum\u00E9", "paragraph");
+
+            Assert.Empty(diagnostics);
+        }
+
+        [Fact]
         public void TextRun_TabLeaderRequiresExplicitTabRun() {
             var invalidLeaderException = Assert.Throws<ArgumentException>(() =>
                 new TextRun("Alpha", tabLeader: PdfTabLeaderStyle.Dots));

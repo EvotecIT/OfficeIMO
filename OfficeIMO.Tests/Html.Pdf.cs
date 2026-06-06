@@ -118,6 +118,40 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlPdf_ProfileContracts_CoverSupportedProfiles() {
+        HtmlPdfProfileContract semantic = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Semantic);
+        HtmlPdfProfileContract document = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Document);
+
+        Assert.Equal(2, HtmlPdfProfileContracts.All.Count);
+        Assert.Equal("html-pdf-semantic", semantic.Id);
+        Assert.Contains("Markdown", semantic.Pipeline, StringComparison.Ordinal);
+        Assert.Contains("semantic HTML", semantic.IntendedUse, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Not a browser renderer", semantic.UnsupportedScope, StringComparison.Ordinal);
+        Assert.Equal("html-pdf-document", document.Id);
+        Assert.Contains("WordDocument", document.Pipeline, StringComparison.Ordinal);
+        Assert.Contains("print-oriented HTML", document.IntendedUse, StringComparison.Ordinal);
+        Assert.Contains("Word HTML", document.UnsupportedScope, StringComparison.Ordinal);
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlPdfProfileContracts.Get((HtmlPdfProfile)99));
+    }
+
+    [Fact]
+    public void PdfHtml_ProfileContracts_CoverSupportedProfiles() {
+        PdfHtmlProfileContract semantic = PdfHtmlProfileContracts.Get(PdfHtmlProfile.Semantic);
+        PdfHtmlProfileContract positioned = PdfHtmlProfileContracts.Get(PdfHtmlProfile.PositionedReview);
+
+        Assert.Equal(2, PdfHtmlProfileContracts.All.Count);
+        Assert.Equal("pdf-html-semantic", semantic.Id);
+        Assert.Contains("logical model", semantic.Pipeline, StringComparison.Ordinal);
+        Assert.Contains("Search", semantic.IntendedUse, StringComparison.Ordinal);
+        Assert.Contains("OCR", semantic.UnsupportedScope, StringComparison.Ordinal);
+        Assert.Equal("pdf-html-positioned-review", positioned.Id);
+        Assert.Contains("positioned review hints", positioned.Pipeline, StringComparison.Ordinal);
+        Assert.Contains("browser", positioned.IntendedUse, StringComparison.Ordinal);
+        Assert.Contains("not a full PDF renderer", positioned.UnsupportedScope, StringComparison.Ordinal);
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfHtmlProfileContracts.Get((PdfHtmlProfile)99));
+    }
+
+    [Fact]
     public void Pdf_ToHtml_SemanticProfile_ExportsLogicalStructure() {
         byte[] pdf = CreateLogicalSamplePdf();
         var options = new PdfHtmlSaveOptions {

@@ -4,7 +4,17 @@
 
 This gallery is the manual review companion for the Poppler raster baseline suite. It points reviewers to actual generated PDFs, not screenshots, and explains what each artifact is meant to prove visually.
 
-Generated artifacts live under:
+Generate the current artifact pack with:
+
+```powershell
+Build/Export-PdfVisualReviewGallery.ps1 -OutputDirectory artifacts/pdf-visual-review -Framework net8.0
+```
+
+Add `-RequireRasterizer` when the run must fail if Poppler `pdftoppm` is not
+available. The script writes PDFs plus an `index.md` file that records the
+commit, output directory, command, and generated file list.
+
+The original manual review artifacts for this snapshot lived under:
 
 `C:\Support\GitHub\OfficeIMO-pdf-implementation-review-20260605\artifacts\pdf-visual-review`
 
