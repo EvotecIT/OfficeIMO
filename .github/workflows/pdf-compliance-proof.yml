@@ -109,42 +109,42 @@ jobs:
           MUSTANG_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_path || '' }}
           MUSTANG_ARGS: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_args || '' }}
         run: |
-          $arguments = @(
-            '-OutputDirectory', '${{ env.PROOF_PATH }}',
-            '-Configuration', '${{ env.BUILD_CONFIGURATION }}',
-            '-Framework', 'net8.0',
-            '-NoRestore'
-          )
+          $parameters = @{
+            OutputDirectory = '${{ env.PROOF_PATH }}'
+            Configuration = '${{ env.BUILD_CONFIGURATION }}'
+            Framework = 'net8.0'
+            NoRestore = $true
+          }
 
           if ($env:REQUIRE_VALIDATORS -eq 'true') {
-            $arguments += '-RequireValidators'
+            $parameters.RequireValidators = $true
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:VERAPDF_PATH)) {
-            $arguments += @('-VeraPdfPath', $env:VERAPDF_PATH)
+            $parameters.VeraPdfPath = $env:VERAPDF_PATH
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:VERAPDF_ARGS)) {
-            $arguments += @('-VeraPdfArgs', $env:VERAPDF_ARGS)
+            $parameters.VeraPdfArgs = $env:VERAPDF_ARGS
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_PATH)) {
-            $arguments += @('-PdfUaValidatorPath', $env:PDFUA_VALIDATOR_PATH)
+            $parameters.PdfUaValidatorPath = $env:PDFUA_VALIDATOR_PATH
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_ARGS)) {
-            $arguments += @('-PdfUaValidatorArgs', $env:PDFUA_VALIDATOR_ARGS)
+            $parameters.PdfUaValidatorArgs = $env:PDFUA_VALIDATOR_ARGS
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:MUSTANG_PATH)) {
-            $arguments += @('-MustangPath', $env:MUSTANG_PATH)
+            $parameters.MustangPath = $env:MUSTANG_PATH
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:MUSTANG_ARGS)) {
-            $arguments += @('-MustangArgs', $env:MUSTANG_ARGS)
+            $parameters.MustangArgs = $env:MUSTANG_ARGS
           }
 
-          ./Build/Export-PdfComplianceProof.ps1 @arguments
+          ./Build/Export-PdfComplianceProof.ps1 @parameters
 
       - name: Validate proof bundle
         shell: pwsh
