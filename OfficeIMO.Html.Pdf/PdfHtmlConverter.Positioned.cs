@@ -128,7 +128,7 @@ public static partial class PdfHtmlConverter {
             }
 
             for (int placementIndex = 0; placementIndex < image.Placements.Count; placementIndex++) {
-                AppendPositionedImagePlaceholder(builder, page, image, image.Placements[placementIndex], placementIndex);
+                AppendPositionedImagePlaceholder(builder, page, image, image.Placements[placementIndex], placementIndex, options);
             }
         }
 
@@ -139,13 +139,13 @@ public static partial class PdfHtmlConverter {
         AddWarning(options, "ImagePlaceholder", "Some images are represented as page-scoped placeholders because no placement invocation was detected.");
         builder.AppendLine("<div class=\"pdf-image-placeholder\" style=\"position:absolute;left:0;bottom:0;\">");
         for (int i = 0; i < unplaced.Count; i++) {
-            builder.Append(RenderImagePlaceholder(unplaced[i]));
+            builder.Append(RenderImageFigure(unplaced[i], options));
         }
 
         builder.AppendLine("</div>");
     }
 
-    private static void AppendPositionedImagePlaceholder(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement placement, int placementIndex) {
+    private static void AppendPositionedImagePlaceholder(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfCore.PdfLogicalImage image, PdfCore.PdfImagePlacement placement, int placementIndex, PdfHtmlSaveOptions options) {
         builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
         builder.Append(HtmlAttribute(image.ResourceName));
         builder.Append("\" data-page-number=\"");
@@ -163,18 +163,28 @@ public static partial class PdfHtmlConverter {
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, placement.Height)));
         builder.Append(";\">");
-        builder.Append("<figcaption>Image: ");
-        builder.Append(HtmlText(image.ResourceName));
-        builder.Append(" (");
-        builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
-        builder.Append('x');
-        builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
-        if (!string.IsNullOrWhiteSpace(image.MimeType)) {
-            builder.Append(", ");
-            builder.Append(HtmlText(image.MimeType!));
+        if (TryBuildEmbeddedImageDataUri(image, options, out string? source)) {
+            builder.Append("<img src=\"");
+            builder.Append(HtmlAttribute(source!));
+            builder.Append("\" alt=\"");
+            builder.Append(HtmlAttribute("Image: " + image.ResourceName));
+            builder.Append("\" style=\"width:100%;height:100%;object-fit:contain;display:block;\">");
+        } else {
+            builder.Append("<figcaption>Image: ");
+            builder.Append(HtmlText(image.ResourceName));
+            builder.Append(" (");
+            builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
+            builder.Append('x');
+            builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
+            if (!string.IsNullOrWhiteSpace(image.MimeType)) {
+                builder.Append(", ");
+                builder.Append(HtmlText(image.MimeType!));
+            }
+
+            builder.Append(")</figcaption>");
         }
 
-        builder.Append(")</figcaption></figure>");
+        builder.Append("</figure>");
         builder.AppendLine();
     }
 

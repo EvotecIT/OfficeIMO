@@ -32,6 +32,12 @@ html.SaveAsPdf("quarterly-update.pdf", new HtmlPdfSaveOptions {
 ```csharp
 using OfficeIMO.Html.Pdf;
 
+byte[] documentPdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateDocumentProfile());
+```
+
+```csharp
+using OfficeIMO.Html.Pdf;
+
 string html = PdfHtmlConverter.ToHtml("quarterly-update.pdf", new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.Semantic
 });
@@ -43,7 +49,8 @@ using OfficeIMO.Html.Pdf;
 PdfHtmlConverter.SaveAsHtml("quarterly-update.pdf", "quarterly-update-review.html", new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.PositionedReview,
     IncludeLinkAnnotations = true,
-    IncludeFormWidgets = true
+    IncludeFormWidgets = true,
+    ImageExportMode = PdfHtmlImageExportMode.EmbeddedDataUri
 });
 ```
 
@@ -60,13 +67,19 @@ string reviewHtml = PdfHtmlConverter.ToHtml(pdf, new PdfHtmlSaveOptions {
 Use the semantic profile for articles, documentation, simple reports, and
 HTML that should become structured text. Use the document profile when the
 existing Word HTML converter is a better source model for the HTML being
-processed.
+processed. `HtmlPdfSaveOptions.CreateDocumentProfile()` is the practical
+HTML-to-PDF preset for local/trusted print HTML with CSS, images, links,
+tables, and page-break hints; `CreateTrustedDocumentProfile()` also enables
+the trusted Word HTML stylesheet behavior.
 
 Use PDF semantic HTML for search, indexing, export, and review workflows where
 clean structure matters. Use positioned review HTML when callers need a
 page-oriented view of extracted PDF text/table/link/form/image geometry.
 Positioned image placeholders include CSS coordinates for browser review and a
-`data-matrix` attribute with the original PDF image transform for diagnostics.
+`data-matrix` attribute with the original PDF image transform for diagnostics,
+and complete extracted image files are embedded as `data:image/...;base64,...`
+URIs by default. Set `ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly`
+when callers need lightweight review HTML without embedded image bytes.
 Images whose drawing invocation cannot be matched are still emitted as
 page-scoped placeholders with a conversion warning instead of being silently
 dropped.

@@ -33,9 +33,19 @@ public sealed class PdfHtmlSaveOptions {
     public bool IncludePageContainers { get; set; } = true;
 
     /// <summary>
-    /// Emit readable image placeholders for image XObjects discovered in the logical model.
+    /// Emit readable image output for image XObjects discovered in the logical model.
     /// </summary>
     public bool IncludeImagePlaceholders { get; set; } = true;
+
+    /// <summary>
+    /// Controls whether images are emitted as placeholders or embedded data URI image elements when extracted bytes are available.
+    /// </summary>
+    public PdfHtmlImageExportMode ImageExportMode { get; set; } = PdfHtmlImageExportMode.EmbeddedDataUri;
+
+    /// <summary>
+    /// Maximum extracted image byte length that may be embedded into generated HTML. Set to null to disable this guard.
+    /// </summary>
+    public long? MaxEmbeddedImageBytes { get; set; } = 10L * 1024L * 1024L;
 
     /// <summary>
     /// Emit link annotation placeholders. Semantic output emits a links section; positioned output emits positioned link frames.

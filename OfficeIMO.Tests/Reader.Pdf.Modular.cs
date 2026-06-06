@@ -140,6 +140,32 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_BootstrapFromAssembly_RegistersPdfHandlerAndManifest() {
+        try {
+            DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
+
+            var result = DocumentReader.BootstrapHostFromAssemblies(
+                new[] { typeof(DocumentReaderPdfRegistrationExtensions).Assembly },
+                new ReaderHostBootstrapOptions {
+                    ReplaceExistingHandlers = true,
+                    IncludeBuiltInCapabilities = true,
+                    IncludeCustomCapabilities = true,
+                    IndentedManifestJson = false
+                });
+
+            Assert.NotNull(result);
+            Assert.Contains(result.RegisteredHandlers, handler => handler.HandlerId == DocumentReaderPdfRegistrationExtensions.HandlerId);
+            Assert.Contains(result.Manifest.Handlers, handler =>
+                handler.Id == DocumentReaderPdfRegistrationExtensions.HandlerId &&
+                handler.Kind == ReaderInputKind.Pdf &&
+                handler.Extensions.Contains(".pdf"));
+            Assert.Contains(DocumentReaderPdfRegistrationExtensions.HandlerId, result.ManifestJson, StringComparison.OrdinalIgnoreCase);
+        } finally {
+            DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_NonSeekable_EnforcesMaxInputBytes() {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new NonSeekableReadStream(pdf);

@@ -11,6 +11,34 @@ namespace OfficeIMO.Html.Pdf;
 /// </summary>
 public sealed class HtmlPdfSaveOptions {
     /// <summary>
+    /// Creates the default semantic HTML to PDF profile backed by OfficeIMO.Markdown.Html and OfficeIMO.Markdown.Pdf.
+    /// </summary>
+    public static HtmlPdfSaveOptions CreateSemanticProfile() => new HtmlPdfSaveOptions {
+        Profile = HtmlPdfProfile.Semantic,
+        MarkdownHtmlOptions = MarkdownHtml.HtmlToMarkdownOptions.CreateOfficeIMOProfile(),
+        MarkdownPdfOptions = new MarkdownPdf.MarkdownPdfSaveOptions()
+    };
+
+    /// <summary>
+    /// Creates a document-oriented HTML to PDF profile backed by OfficeIMO.Word.Html and OfficeIMO.Word.Pdf.
+    /// This path is the preferred adapter profile for practical print HTML with CSS, links, tables, images, and page-break hints.
+    /// </summary>
+    public static HtmlPdfSaveOptions CreateDocumentProfile() => new HtmlPdfSaveOptions {
+        Profile = HtmlPdfProfile.Document,
+        WordHtmlOptions = WordHtml.HtmlToWordOptions.CreateOfficeIMOProfile(),
+        WordPdfOptions = new WordPdf.PdfSaveOptions()
+    };
+
+    /// <summary>
+    /// Creates a document-oriented profile that allows stylesheet links declared by trusted HTML documents.
+    /// </summary>
+    public static HtmlPdfSaveOptions CreateTrustedDocumentProfile() => new HtmlPdfSaveOptions {
+        Profile = HtmlPdfProfile.Document,
+        WordHtmlOptions = WordHtml.HtmlToWordOptions.CreateTrustedDocumentProfile(),
+        WordPdfOptions = new WordPdf.PdfSaveOptions()
+    };
+
+    /// <summary>
     /// Internal conversion path used before rendering through <see cref="PdfCore.PdfDocument"/>.
     /// Defaults to the semantic Markdown-backed path.
     /// </summary>

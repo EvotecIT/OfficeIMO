@@ -338,7 +338,7 @@ public static partial class PdfHtmlConverter {
         if (options.IncludeImagePlaceholders) {
             for (int i = 0; i < page.Images.Count; i++) {
                 PdfCore.PdfLogicalImage image = page.Images[i];
-                items.Add(new HtmlItem(null, 0D, sequence++, RenderImagePlaceholder(image)));
+                items.Add(new HtmlItem(null, 0D, sequence++, RenderImageFigure(image, options)));
             }
         }
 
@@ -406,13 +406,26 @@ public static partial class PdfHtmlConverter {
         }
     }
 
-    private static string RenderImagePlaceholder(PdfCore.PdfLogicalImage image) {
+    private static string RenderImageFigure(PdfCore.PdfLogicalImage image, PdfHtmlSaveOptions options) {
         var builder = new StringBuilder();
         builder.Append("<figure class=\"pdf-image-placeholder\" data-resource=\"");
         builder.Append(HtmlAttribute(image.ResourceName));
         builder.Append("\" data-page-number=\"");
         builder.Append(image.PageNumber.ToString(CultureInfo.InvariantCulture));
-        builder.Append("\"><figcaption>Image: ");
+        builder.Append("\">");
+        if (TryBuildEmbeddedImageDataUri(image, options, out string? source)) {
+            builder.Append("<img src=\"");
+            builder.Append(HtmlAttribute(source!));
+            builder.Append("\" alt=\"");
+            builder.Append(HtmlAttribute("Image: " + image.ResourceName));
+            builder.Append("\" width=\"");
+            builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
+            builder.Append("\" height=\"");
+            builder.Append(image.Height.ToString(CultureInfo.InvariantCulture));
+            builder.Append("\">");
+        }
+
+        builder.Append("<figcaption>Image: ");
         builder.Append(HtmlText(image.ResourceName));
         builder.Append(" (");
         builder.Append(image.Width.ToString(CultureInfo.InvariantCulture));
@@ -425,6 +438,27 @@ public static partial class PdfHtmlConverter {
 
         builder.Append(")</figcaption></figure>");
         return builder.ToString();
+    }
+
+    private static bool TryBuildEmbeddedImageDataUri(PdfCore.PdfLogicalImage image, PdfHtmlSaveOptions options, out string? source) {
+        source = null;
+        if (options.ImageExportMode != PdfHtmlImageExportMode.EmbeddedDataUri) {
+            return false;
+        }
+
+        PdfCore.PdfExtractedImage sourceImage = image.SourceImage;
+        if (!sourceImage.IsImageFile || string.IsNullOrWhiteSpace(sourceImage.MimeType)) {
+            AddWarning(options, "ImageDataUnavailable", "An extracted PDF image was represented as a placeholder because it is not available as a complete image file.");
+            return false;
+        }
+
+        if (options.MaxEmbeddedImageBytes.HasValue && sourceImage.Bytes.LongLength > options.MaxEmbeddedImageBytes.Value) {
+            AddWarning(options, "ImageDataTooLarge", "An extracted PDF image was represented as a placeholder because it exceeds MaxEmbeddedImageBytes.");
+            return false;
+        }
+
+        source = "data:" + sourceImage.MimeType + ";base64," + Convert.ToBase64String(sourceImage.Bytes);
+        return true;
     }
 
     private static void AppendUnmatchedTextBlocks(PdfCore.PdfLogicalPage page, List<HtmlItem> items, ref int sequence) {
