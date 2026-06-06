@@ -6,6 +6,7 @@ on:
       - master
     paths:
       - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.Drawing/**'
       - 'OfficeIMO.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Tests/Pdf/PdfExternalValidator.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
@@ -17,6 +18,7 @@ on:
       - master
     paths:
       - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.Drawing/**'
       - 'OfficeIMO.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Tests/Pdf/PdfExternalValidator.cs'
       - 'Build/Export-PdfComplianceProof.ps1'

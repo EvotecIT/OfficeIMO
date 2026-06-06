@@ -74,7 +74,7 @@ foreach ($expectedName in $expectedPdfNames) {
 }
 
 $validatorDiagnostics = @($proof.validatorDiagnostics)
-Assert-Condition -Condition ($validatorDiagnostics.Count -ge 3) -Message "Expected at least 3 validator diagnostics, got $($validatorDiagnostics.Count)."
+Assert-Condition -Condition ($validatorDiagnostics.Count -ge 4) -Message "Expected at least 4 validator diagnostics, got $($validatorDiagnostics.Count)."
 
 $requiredValidatorKinds = @('VeraPdf', 'PdfUaValidator', 'Mustang')
 foreach ($validatorKind in $requiredValidatorKinds) {
@@ -100,11 +100,12 @@ foreach ($entry in $validatorDiagnostics) {
 }
 
 $profileProofs = @($proof.profileProofs)
-Assert-Condition -Condition ($profileProofs.Count -eq 3) -Message "Expected 3 profile proof rows, got $($profileProofs.Count)."
+Assert-Condition -Condition ($profileProofs.Count -eq 4) -Message "Expected 4 profile proof rows, got $($profileProofs.Count)."
 
 $expectedProfiles = @(
     'pdfa-3b-groundwork',
     'pdfua-1-groundwork',
+    'einvoice-pdfa3-groundwork',
     'einvoice-groundwork'
 )
 

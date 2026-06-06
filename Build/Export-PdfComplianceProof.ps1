@@ -131,6 +131,7 @@ function Get-ProofProfileRows {
             displayName = 'PDF/A-3b groundwork'
             fixtureFile = 'officeimo-pdfa3-groundwork.pdf'
             validatorKind = 'VeraPdf'
+            validatorDiagnosticFileName = 'verapdf-pdfa3-groundwork.txt'
             readinessRequirementId = 'verapdf-validation'
             formalClaimStatus = 'BlockedUntilFormalPdfAProfileGeneration'
             nextAction = 'Implement profile-specific PDF/A generation and flip the veraPDF gate only after validator success is intentional.'
@@ -140,15 +141,27 @@ function Get-ProofProfileRows {
             displayName = 'PDF/UA-1 groundwork'
             fixtureFile = 'officeimo-pdfua-groundwork.pdf'
             validatorKind = 'PdfUaValidator'
+            validatorDiagnosticFileName = 'pdfua-groundwork.txt'
             readinessRequirementId = 'pdfua-validation'
             formalClaimStatus = 'BlockedUntilFormalPdfUaProfileGeneration'
             nextAction = 'Implement full tagged structure, reading order, alternate text, font mapping, and flip the PDF/UA validator gate only after validator success is intentional.'
+        },
+        [ordered] @{
+            profileId = 'einvoice-pdfa3-groundwork'
+            displayName = 'Factur-X/ZUGFeRD PDF/A-3 groundwork'
+            fixtureFile = 'officeimo-einvoice-groundwork.pdf'
+            validatorKind = 'VeraPdf'
+            validatorDiagnosticFileName = 'verapdf-einvoice-groundwork.txt'
+            readinessRequirementId = 'einvoice-verapdf-validation'
+            formalClaimStatus = 'BlockedUntilFormalEinvoiceProfileGeneration'
+            nextAction = 'Validate the actual e-invoice PDF/A-3 carrier with veraPDF before any Factur-X/ZUGFeRD claim.'
         },
         [ordered] @{
             profileId = 'einvoice-groundwork'
             displayName = 'Factur-X/ZUGFeRD groundwork'
             fixtureFile = 'officeimo-einvoice-groundwork.pdf'
             validatorKind = 'Mustang'
+            validatorDiagnosticFileName = 'mustang-einvoice-groundwork.txt'
             readinessRequirementId = 'einvoice-mustang-validation'
             formalClaimStatus = 'BlockedUntilFormalEinvoiceProfileGeneration'
             nextAction = 'Implement profile-specific XML, XMP, PDF/A-3 output, and flip the Mustang gate only after validator success is intentional.'
@@ -158,7 +171,7 @@ function Get-ProofProfileRows {
     $rows = @()
     foreach ($definition in $definitions) {
         $fixture = @($PdfRows | Where-Object { $_.file -eq $definition.fixtureFile }) | Select-Object -First 1
-        $diagnostic = @($DiagnosticRows | Where-Object { $_.validatorKind -eq $definition.validatorKind }) | Select-Object -First 1
+        $diagnostic = @($DiagnosticRows | Where-Object { $_.file -eq $definition.validatorDiagnosticFileName }) | Select-Object -First 1
 
         $rows += [ordered] @{
             profileId = $definition.profileId
@@ -196,6 +209,7 @@ $generatedProofFileNames = @(
     'officeimo-einvoice-groundwork.pdf',
     'officeimo-pdfua-groundwork.pdf',
     'verapdf-pdfa3-groundwork.txt',
+    'verapdf-einvoice-groundwork.txt',
     'mustang-einvoice-groundwork.txt',
     'pdfua-groundwork.txt',
     'officeimo-profile-proof-contract.json',
@@ -212,10 +226,13 @@ foreach ($fileName in $generatedProofFileNames) {
 
 $previousProofOutput = $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT
 $previousRequireValidators = $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS
+$previousVeraPdfExecutable = $env:OFFICEIMO_VERAPDF
 $previousVeraPdfPath = $env:OFFICEIMO_VERAPDF_PATH
 $previousVeraPdfArgs = $env:OFFICEIMO_VERAPDF_ARGS
+$previousPdfUaValidatorExecutable = $env:OFFICEIMO_PDFUA_VALIDATOR
 $previousPdfUaValidatorPath = $env:OFFICEIMO_PDFUA_VALIDATOR_PATH
 $previousPdfUaValidatorArgs = $env:OFFICEIMO_PDFUA_VALIDATOR_ARGS
+$previousMustangExecutable = $env:OFFICEIMO_MUSTANG
 $previousMustangPath = $env:OFFICEIMO_MUSTANG_PATH
 $previousMustangArgs = $env:OFFICEIMO_MUSTANG_ARGS
 $validatorConfiguration = $null
@@ -230,6 +247,7 @@ try {
     }
 
     if (-not [string]::IsNullOrWhiteSpace($VeraPdfPath)) {
+        $env:OFFICEIMO_VERAPDF = $VeraPdfPath
         $env:OFFICEIMO_VERAPDF_PATH = $VeraPdfPath
     }
 
@@ -238,6 +256,7 @@ try {
     }
 
     if (-not [string]::IsNullOrWhiteSpace($PdfUaValidatorPath)) {
+        $env:OFFICEIMO_PDFUA_VALIDATOR = $PdfUaValidatorPath
         $env:OFFICEIMO_PDFUA_VALIDATOR_PATH = $PdfUaValidatorPath
     }
 
@@ -246,6 +265,7 @@ try {
     }
 
     if (-not [string]::IsNullOrWhiteSpace($MustangPath)) {
+        $env:OFFICEIMO_MUSTANG = $MustangPath
         $env:OFFICEIMO_MUSTANG_PATH = $MustangPath
     }
 
@@ -286,10 +306,13 @@ try {
 } finally {
     $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT = $previousProofOutput
     $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS = $previousRequireValidators
+    $env:OFFICEIMO_VERAPDF = $previousVeraPdfExecutable
     $env:OFFICEIMO_VERAPDF_PATH = $previousVeraPdfPath
     $env:OFFICEIMO_VERAPDF_ARGS = $previousVeraPdfArgs
+    $env:OFFICEIMO_PDFUA_VALIDATOR = $previousPdfUaValidatorExecutable
     $env:OFFICEIMO_PDFUA_VALIDATOR_PATH = $previousPdfUaValidatorPath
     $env:OFFICEIMO_PDFUA_VALIDATOR_ARGS = $previousPdfUaValidatorArgs
+    $env:OFFICEIMO_MUSTANG = $previousMustangExecutable
     $env:OFFICEIMO_MUSTANG_PATH = $previousMustangPath
     $env:OFFICEIMO_MUSTANG_ARGS = $previousMustangArgs
 }

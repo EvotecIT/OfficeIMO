@@ -70,6 +70,24 @@ public class PdfComplianceGateTests {
     }
 
     [Fact]
+    public void VeraPdfGate_RejectsEinvoiceGroundworkFixtureUntilFacturXProfileGenerationExists() {
+        byte[] fixture = CreateEinvoiceGroundworkFixture();
+        WriteProofPdf("officeimo-einvoice-groundwork.pdf", fixture);
+        PdfExternalValidator validator = PdfExternalValidator.VeraPdf();
+        if (!validator.IsAvailable) {
+            WriteProofText("verapdf-einvoice-groundwork.txt", validator.GetNotConfiguredText());
+            PdfExternalValidator.SkipUnlessRequired(validator);
+            return;
+        }
+
+        PdfExternalProcessResult result = validator.Run(fixture, "officeimo-einvoice-groundwork.pdf");
+        WriteProofText("verapdf-einvoice-groundwork.txt", result.GetDiagnosticText());
+
+        Assert.False(result.ExitCode == 0, "The e-invoice groundwork fixture unexpectedly passed veraPDF. Enable Factur-X/ZUGFeRD profile output only after the actual e-invoice PDF/A-3 carrier is intentionally implemented and validated." + Environment.NewLine + result.GetDiagnosticText());
+        Assert.NotEmpty(result.GetDiagnosticText());
+    }
+
+    [Fact]
     public void PdfUaGroundworkFixture_ContainsCurrentAccessibilityPrimitivesWithoutEnablingFormalProfile() {
         byte[] bytes = CreatePdfUaGroundworkFixture();
         WriteProofPdf("officeimo-pdfua-groundwork.pdf", bytes);
@@ -134,6 +152,7 @@ public class PdfComplianceGateTests {
             WriteProofPdf("officeimo-pdfua-groundwork.pdf", CreatePdfUaGroundworkFixture());
             WriteProfileProofContract();
             WriteProofText("verapdf-pdfa3-groundwork.txt", "validator diagnostic");
+            WriteProofText("verapdf-einvoice-groundwork.txt", "validator diagnostic");
             WriteProofText("pdfua-groundwork.txt", "validator diagnostic");
 
             Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfa3-groundwork.pdf")));
@@ -141,6 +160,7 @@ public class PdfComplianceGateTests {
             Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfua-groundwork.pdf")));
             Assert.True(File.Exists(Path.Combine(directory, "officeimo-profile-proof-contract.json")));
             Assert.True(File.Exists(Path.Combine(directory, "verapdf-pdfa3-groundwork.txt")));
+            Assert.True(File.Exists(Path.Combine(directory, "verapdf-einvoice-groundwork.txt")));
             Assert.True(File.Exists(Path.Combine(directory, "pdfua-groundwork.txt")));
             Assert.True(new FileInfo(Path.Combine(directory, "officeimo-pdfa3-groundwork.pdf")).Length > 0);
             Assert.True(new FileInfo(Path.Combine(directory, "officeimo-einvoice-groundwork.pdf")).Length > 0);

@@ -18,11 +18,50 @@ $outputPath = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 $resolvedOutputPath = (Resolve-Path -LiteralPath $outputPath).Path
 
-Get-ChildItem -LiteralPath $resolvedOutputPath -File -Filter '*.pdf' | Remove-Item -Force
-$indexPath = Join-Path $resolvedOutputPath 'index.md'
-if (Test-Path -LiteralPath $indexPath) {
-    Remove-Item -LiteralPath $indexPath -Force
+$generatedReviewFileNames = @(
+    'professional-report.pdf',
+    'line-items-two-page.pdf',
+    'headers-footers.pdf',
+    'flow-dsl.pdf',
+    'native-word-report.pdf',
+    'native-word-daily-layout.pdf',
+    'native-word-table-cell-picture-control.pdf',
+    'native-excel-daily-workbook.pdf',
+    'markdown-technical-document.pdf',
+    'markdown-theme-gallery-plain.pdf',
+    'markdown-theme-gallery-word-like.pdf',
+    'markdown-theme-gallery-technical-document.pdf',
+    'markdown-theme-gallery-github-like.pdf',
+    'markdown-theme-gallery-compact.pdf',
+    'markdown-theme-gallery-report.pdf',
+    'hello-world.pdf',
+    'core-layout.pdf',
+    'style-cheatsheet.pdf',
+    'links-rules.pdf',
+    'lists-tables.pdf',
+    'table-style-gallery.pdf',
+    'default-styles.pdf',
+    'styled-runs.pdf',
+    'tabs-leaders.pdf',
+    'drawing-gallery.pdf',
+    'watermark.pdf',
+    'image-watermark.pdf',
+    'page-border.pdf',
+    'background-image.pdf',
+    'background-shapes.pdf',
+    'row-columns.pdf',
+    'showcase-dashboard.pdf',
+    'index.md'
+)
+
+foreach ($fileName in $generatedReviewFileNames) {
+    $path = Join-Path $resolvedOutputPath $fileName
+    if (Test-Path -LiteralPath $path) {
+        Remove-Item -LiteralPath $path -Force
+    }
 }
+
+$indexPath = Join-Path $resolvedOutputPath 'index.md'
 
 $previousReviewOutput = $env:OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT
 $previousRequireRasterizer = $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER
@@ -31,6 +70,8 @@ try {
     $env:OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT = $resolvedOutputPath
     if ($RequireRasterizer) {
         $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER = '1'
+    } else {
+        $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER = $null
     }
 
     $testArgs = @(
@@ -65,7 +106,16 @@ $commit = (& git -C $repoRoot rev-parse --short HEAD).Trim()
 $statusLines = @(& git -C $repoRoot status --short)
 $status = ($statusLines | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join [Environment]::NewLine
 $generatedAt = [DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ', [Globalization.CultureInfo]::InvariantCulture)
-$pdfFiles = Get-ChildItem -LiteralPath $resolvedOutputPath -File -Filter '*.pdf' | Sort-Object Name
+$pdfFiles = @(
+    foreach ($fileName in $generatedReviewFileNames) {
+        if ($fileName -like '*.pdf') {
+            $path = Join-Path $resolvedOutputPath $fileName
+            if (Test-Path -LiteralPath $path) {
+                Get-Item -LiteralPath $path
+            }
+        }
+    }
+) | Sort-Object Name
 if ($pdfFiles.Count -eq 0) {
     throw "No PDF files were generated in $resolvedOutputPath. Check the dotnet test filter and OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT wiring."
 }
