@@ -179,6 +179,8 @@ public static partial class PdfHtmlConverter {
         AppendDocumentStart(builder, document, options, positioned: true);
         if (options.EmitDocumentShell) {
             builder.AppendLine("<body>");
+        } else {
+            AppendPositionedStyles(builder);
         }
 
         for (int i = 0; i < document.Pages.Count; i++) {
@@ -223,19 +225,23 @@ public static partial class PdfHtmlConverter {
         }
 
         if (positioned) {
-            builder.AppendLine("<style>");
-            builder.AppendLine(".pdf-page{position:relative;margin:1rem auto;border:1px solid #cbd5e1;background:#fff;box-sizing:border-box;overflow:hidden;}");
-            builder.AppendLine(".pdf-text{position:absolute;white-space:pre;line-height:1.2;font-family:Arial,sans-serif;font-size:10pt;}");
-            builder.AppendLine(".pdf-heading{font-weight:700;}");
-            builder.AppendLine(".pdf-list-item{padding-left:0.5rem;}");
-            builder.AppendLine(".pdf-table{position:absolute;border-collapse:collapse;font-family:Arial,sans-serif;font-size:10pt;}");
-            builder.AppendLine(".pdf-table td,.pdf-table th{border:1px solid #cbd5e1;padding:2pt 4pt;}");
-            builder.AppendLine(".pdf-link,.pdf-form-widget{position:absolute;border:1px dashed #2563eb;background:rgba(37,99,235,.08);font-size:8pt;overflow:hidden;}");
-            builder.AppendLine(".pdf-image-placeholder{font:8pt Arial,sans-serif;color:#475569;border:1px dashed #64748b;background:rgba(100,116,139,.08);box-sizing:border-box;overflow:hidden;}");
-            builder.AppendLine("</style>");
+            AppendPositionedStyles(builder);
         }
 
         builder.AppendLine("</head>");
+    }
+
+    private static void AppendPositionedStyles(StringBuilder builder) {
+        builder.AppendLine("<style>");
+        builder.AppendLine(".pdf-page{position:relative;margin:1rem auto;border:1px solid #cbd5e1;background:#fff;box-sizing:border-box;overflow:hidden;}");
+        builder.AppendLine(".pdf-text{position:absolute;white-space:pre;line-height:1.2;font-family:Arial,sans-serif;font-size:10pt;}");
+        builder.AppendLine(".pdf-heading{font-weight:700;}");
+        builder.AppendLine(".pdf-list-item{padding-left:0.5rem;}");
+        builder.AppendLine(".pdf-table{position:absolute;border-collapse:collapse;font-family:Arial,sans-serif;font-size:10pt;}");
+        builder.AppendLine(".pdf-table td,.pdf-table th{border:1px solid #cbd5e1;padding:2pt 4pt;}");
+        builder.AppendLine(".pdf-link,.pdf-form-widget{position:absolute;border:1px dashed #2563eb;background:rgba(37,99,235,.08);font-size:8pt;overflow:hidden;}");
+        builder.AppendLine(".pdf-image-placeholder{font:8pt Arial,sans-serif;color:#475569;border:1px dashed #64748b;background:rgba(100,116,139,.08);box-sizing:border-box;overflow:hidden;}");
+        builder.AppendLine("</style>");
     }
 
     private static void AppendMeta(StringBuilder builder, string name, string? value) {
@@ -351,9 +357,15 @@ public static partial class PdfHtmlConverter {
                 }
 
                 string label = !string.IsNullOrWhiteSpace(link.Contents) ? link.Contents! : target;
-                string html = link.Uri is not null
-                    ? "<p class=\"pdf-link\"><a href=\"" + HtmlAttribute(link.Uri) + "\">" + HtmlText(label) + "</a></p>"
-                    : "<p class=\"pdf-link\" data-destination=\"" + HtmlAttribute(target) + "\">" + HtmlText(label) + "</p>";
+                string html;
+                if (link.Uri is not null) {
+                    html = IsSafeLinkUri(link.Uri)
+                        ? "<p class=\"pdf-link\"><a href=\"" + HtmlAttribute(link.Uri) + "\">" + HtmlText(label) + "</a></p>"
+                        : "<p class=\"pdf-link\" data-unsafe-href=\"" + HtmlAttribute(link.Uri) + "\">" + HtmlText(label) + "</p>";
+                } else {
+                    html = "<p class=\"pdf-link\" data-destination=\"" + HtmlAttribute(target) + "\">" + HtmlText(label) + "</p>";
+                }
+
                 items.Add(new HtmlItem(link.Y2, link.X1, sequence++, html));
             }
         }
@@ -662,6 +674,16 @@ public static partial class PdfHtmlConverter {
 
     private static string HtmlAttribute(string value) {
         return System.Net.WebUtility.HtmlEncode(value ?? string.Empty).Replace("\"", "&quot;");
+    }
+
+    private static bool IsSafeLinkUri(string uri) {
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out Uri? parsed)) {
+            return false;
+        }
+
+        return string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(parsed.Scheme, Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddWarning(PdfHtmlSaveOptions options, string code, string message) {

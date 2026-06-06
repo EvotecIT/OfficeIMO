@@ -99,8 +99,12 @@ public static partial class PdfHtmlConverter {
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, link.Height)));
         builder.Append("\"");
-        if (link.Uri is not null) {
+        if (link.Uri is not null && IsSafeLinkUri(link.Uri)) {
             builder.Append(" href=\"");
+            builder.Append(HtmlAttribute(link.Uri));
+            builder.Append('"');
+        } else if (link.Uri is not null) {
+            builder.Append(" data-unsafe-href=\"");
             builder.Append(HtmlAttribute(link.Uri));
             builder.Append('"');
         } else {

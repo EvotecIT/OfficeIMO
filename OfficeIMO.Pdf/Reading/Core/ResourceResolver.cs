@@ -166,15 +166,32 @@ internal static class ResourceResolver {
         return result;
     }
 
-    public static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForPage(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects, int pageNumber) {
+    public static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForPage(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements = null) {
         var result = new List<PdfExtractedImage>();
         var res = GetInheritedDictionary(page, "Resources", objects);
         if (res is null) return result;
-        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>());
+        HashSet<int>? placedObjectNumbers = null;
+        HashSet<string>? placedResourceNames = null;
+        if (imagePlacements is not null) {
+            placedObjectNumbers = new HashSet<int>();
+            placedResourceNames = new HashSet<string>(System.StringComparer.Ordinal);
+            for (int i = 0; i < imagePlacements.Count; i++) {
+                PdfImagePlacement placement = imagePlacements[i];
+                if (placement.ObjectNumber > 0) {
+                    placedObjectNumbers.Add(placement.ObjectNumber);
+                }
+
+                if (!string.IsNullOrEmpty(placement.ResourceName)) {
+                    placedResourceNames.Add(placement.ResourceName);
+                }
+            }
+        }
+
+        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>(), insideForm: false, placedObjectNumbers, placedResourceNames);
         return result;
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, bool insideForm, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
         if (!resources.Items.TryGetValue("XObject", out var xoObj)) return;
         var xo = ResolveDict(xoObj, objects);
         if (xo is null) return;
@@ -197,6 +214,10 @@ internal static class ResourceResolver {
 
             var subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
             if (string.Equals(subtype, "Image", System.StringComparison.Ordinal)) {
+                if (insideForm && !IsPlacedFormImage(kv.Key, objectNumber, placedObjectNumbers, placedResourceNames)) {
+                    continue;
+                }
+
                 result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, stream, objects));
                 continue;
             }
@@ -216,11 +237,23 @@ internal static class ResourceResolver {
                 }
 
                 formResources ??= resources;
-                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms);
+                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, insideForm: true, placedObjectNumbers, placedResourceNames);
             } finally {
                 activeForms.Remove(stream);
             }
         }
+    }
+
+    private static bool IsPlacedFormImage(string resourceName, int objectNumber, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
+        if (placedObjectNumbers is null && placedResourceNames is null) {
+            return true;
+        }
+
+        if (objectNumber > 0 && placedObjectNumbers?.Contains(objectNumber) == true) {
+            return true;
+        }
+
+        return objectNumber == 0 && placedResourceNames?.Contains(resourceName) == true;
     }
 
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {

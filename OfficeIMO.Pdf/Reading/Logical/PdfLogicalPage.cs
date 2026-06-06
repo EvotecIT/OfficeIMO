@@ -162,7 +162,7 @@ public sealed class PdfLogicalPage {
         }
 
         IReadOnlyList<PdfImagePlacement> imagePlacements = page.GetImagePlacements(pageNumber);
-        foreach (var image in page.GetImages(pageNumber)) {
+        foreach (var image in page.GetImages(pageNumber, imagePlacements)) {
             var logicalImage = new PdfLogicalImage(image, MatchImagePlacements(image, imagePlacements));
             images.Add(logicalImage);
             elements.Add(logicalImage);

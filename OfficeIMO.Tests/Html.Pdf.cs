@@ -160,6 +160,23 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtml_PositionedReviewFragment_IncludesPositioningCss() {
+        byte[] pdf = CreateLogicalSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            EmitDocumentShell = false
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.DoesNotContain("<!doctype html>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<style>", html, StringComparison.Ordinal);
+        Assert.Contains(".pdf-page{position:relative", html, StringComparison.Ordinal);
+        Assert.Contains(".pdf-text{position:absolute", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_ExportsPositionedImagePlaceholders() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 320,
@@ -244,6 +261,28 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtml_LinkAnnotations_RenderUnsafeUriAsInertText() {
+        const string unsafeUri = "javascript:alert(1)";
+        byte[] pdf = CreateLinkAnnotationPdf(unsafeUri);
+        var semanticOptions = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            IncludeLinkAnnotations = true
+        };
+        var positionedOptions = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        string semanticHtml = PdfHtmlConverter.ToHtml(pdf, semanticOptions);
+        string positionedHtml = PdfHtmlConverter.ToHtml(pdf, positionedOptions);
+
+        Assert.DoesNotContain("<a href=\"javascript:", semanticHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", semanticHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<a href=\"javascript:", positionedHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", positionedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_BaselineArtifacts_ExposeStableRoundTripShape() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.Pdf." + Guid.NewGuid().ToString("N"));
         string pdfPath = Path.Combine(directory, "practical-html.pdf");
@@ -285,6 +324,30 @@ public sealed class HtmlPdfTests {
             })
             .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
             .ToBytes();
+    }
+
+    private static byte[] CreateLinkAnnotationPdf(string uri) {
+        string escapedUri = uri.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("(", "\\(", StringComparison.Ordinal).Replace(")", "\\)", StringComparison.Ordinal);
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Unsafe link) /A << /S /URI /URI ({escapedUri}) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] CreateLogicalSamplePdf() {

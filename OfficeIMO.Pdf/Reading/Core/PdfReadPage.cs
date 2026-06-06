@@ -150,7 +150,11 @@ public sealed class PdfReadPage {
     public IReadOnlyList<PdfExtractedImage> GetImages() => GetImages(0);
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber) {
-        return ResourceResolver.GetImageXObjectsForPage(_pageDict, _objects, pageNumber);
+        return GetImages(pageNumber, null);
+    }
+
+    internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
+        return ResourceResolver.GetImageXObjectsForPage(_pageDict, _objects, pageNumber, imagePlacements);
     }
 
     /// <summary>Extracts image XObject placement invocations from this page.</summary>

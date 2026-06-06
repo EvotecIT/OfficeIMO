@@ -94,6 +94,15 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfLogicalDocument_Load_DoesNotExposeImagesFromUnusedFormXObjects() {
+        byte[] bytes = BuildPdfWithUnusedFormXObjectImage();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        Assert.Empty(logical.Images);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
         byte[] bytes = BuildPdfWithScaledFormMatrix();
 

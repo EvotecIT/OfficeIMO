@@ -315,6 +315,54 @@ public partial class PdfReaderAndFooterRegressionTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildPdfWithUnusedFormXObjectImage() {
+        const string pageContent = "q\nQ\n";
+        const string formContent = "q\n10 0 0 10 0 0 cm\n/ImUnused Do\nQ\n";
+        const string imageBytes = "abc";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int formStreamLength = Encoding.ASCII.GetByteCount(formContent);
+        int imageLength = Encoding.ASCII.GetByteCount(imageBytes);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 4 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /XObject << /FxUnused 6 0 R >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImUnused 7 0 R >> >> /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            $"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {imageLength} >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildPdfWithScaledFormMatrix() {
         const string pageContent = "q\n2 0 0 2 10 20 cm\n/Fx Do\nQ\n";
         const string formContent = "BT\n/F1 12 Tf\n3 4 Td\n(Scaled form) Tj\nET\n";
