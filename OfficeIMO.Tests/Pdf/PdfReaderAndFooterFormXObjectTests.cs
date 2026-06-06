@@ -80,6 +80,20 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfLogicalDocument_Load_ReadsImagesReferencedByFormXObjects() {
+        byte[] bytes = BuildPdfWithFormXObjectImage();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        PdfLogicalImage image = Assert.Single(logical.Images);
+        PdfImagePlacement placement = Assert.Single(image.Placements);
+        Assert.Equal("ImNested", image.ResourceName);
+        Assert.Equal("ImNested", placement.ResourceName);
+        Assert.Equal(7, image.SourceImage.ObjectNumber);
+        Assert.Equal(7, placement.ObjectNumber);
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
         byte[] bytes = BuildPdfWithScaledFormMatrix();
 

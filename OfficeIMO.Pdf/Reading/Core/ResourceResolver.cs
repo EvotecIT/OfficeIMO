@@ -170,9 +170,14 @@ internal static class ResourceResolver {
         var result = new List<PdfExtractedImage>();
         var res = GetInheritedDictionary(page, "Resources", objects);
         if (res is null) return result;
-        if (!res.Items.TryGetValue("XObject", out var xoObj)) return result;
+        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>());
+        return result;
+    }
+
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms) {
+        if (!resources.Items.TryGetValue("XObject", out var xoObj)) return;
         var xo = ResolveDict(xoObj, objects);
-        if (xo is null) return result;
+        if (xo is null) return;
 
         foreach (var kv in xo.Items) {
             int objectNumber = 0;
@@ -191,14 +196,31 @@ internal static class ResourceResolver {
             }
 
             var subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
-            if (!string.Equals(subtype, "Image", System.StringComparison.Ordinal)) {
+            if (string.Equals(subtype, "Image", System.StringComparison.Ordinal)) {
+                result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, stream, objects));
                 continue;
             }
 
-            result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, stream, objects));
-        }
+            if (!string.Equals(subtype, "Form", System.StringComparison.Ordinal)) {
+                continue;
+            }
 
-        return result;
+            if (!activeForms.Add(stream)) {
+                continue;
+            }
+
+            try {
+                PdfDictionary? formResources = null;
+                if (stream.Dictionary.Items.TryGetValue("Resources", out var formResourcesObj)) {
+                    formResources = ResolveDict(formResourcesObj, objects);
+                }
+
+                formResources ??= resources;
+                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms);
+            } finally {
+                activeForms.Remove(stream);
+            }
+        }
     }
 
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {

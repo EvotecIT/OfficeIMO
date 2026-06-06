@@ -13,7 +13,7 @@ public static class DocumentReaderPdfRegistrationExtensions {
     /// Registers PDF ingestion into <see cref="DocumentReader"/> for <c>.pdf</c> files and streams.
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterPdfHandler(ReaderPdfOptions? pdfOptions = null, bool replaceExisting = false) {
+    public static void RegisterPdfHandler(ReaderPdfOptions? pdfOptions = null, bool replaceExisting = true) {
         var registeredOptions = ReaderPdfOptionsCloner.CloneNullable(pdfOptions);
 
         DocumentReader.RegisterHandler(new ReaderHandlerRegistration {

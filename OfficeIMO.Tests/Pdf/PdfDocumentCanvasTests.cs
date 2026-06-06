@@ -265,6 +265,46 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasDiagnosticOverloads_PreservePreviousClrSignatures() {
+        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.TextBox), new[] {
+            typeof(string),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(PdfCanvasTextBoxStyle),
+            typeof(double)
+        }));
+        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.TextBox), new[] {
+            typeof(IEnumerable<TextRun>),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(PdfCanvasTextBoxStyle),
+            typeof(double)
+        }));
+        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.Table), new[] {
+            typeof(IEnumerable<string[]>),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(PdfTableStyle),
+            typeof(double)
+        }));
+        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.Table), new[] {
+            typeof(IEnumerable<PdfTableCell[]>),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(PdfTableStyle),
+            typeof(double)
+        }));
+    }
+
+    [Fact]
     public void CanvasTextBox_ReportsClippedContentDuringRender() {
         PdfLayoutDiagnostic? diagnostic = null;
         PdfDocument document = PdfDocument.Create(new PdfOptions {
@@ -289,6 +329,7 @@ public class PdfDocumentCanvasTests {
                     PaddingX = 0D,
                     PaddingY = 0D
                 },
+                rotationAngle: 0D,
                 diagnosticHandler: item => diagnostic = item));
 
         Assert.Null(diagnostic);
@@ -481,6 +522,7 @@ public class PdfDocumentCanvasTests {
                         [(0, 0)] = new PdfCellPadding { Left = 2D, Right = 2D, Top = 2D, Bottom = 2D }
                     }
                 },
+                rotationAngle: 0D,
                 diagnosticHandler: diagnostics.Add));
 
         Assert.Empty(diagnostics);

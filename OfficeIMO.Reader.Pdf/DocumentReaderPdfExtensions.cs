@@ -42,9 +42,10 @@ public static class DocumentReaderPdfExtensions {
 
         var parseStream = ReaderInputLimits.EnsureSeekableReadStream(pdfStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsParseStream);
         try {
-            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes);
+            long parseStartPosition = parseStream.CanSeek ? parseStream.Position : 0L;
+            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, parseStartPosition);
             if (parseStream.CanSeek) {
-                parseStream.Position = 0;
+                parseStream.Position = parseStartPosition;
             }
 
             PdfLogicalDocument document = LoadDocument(parseStream, effectivePdfOptions);
@@ -97,9 +98,12 @@ public static class DocumentReaderPdfExtensions {
             cancellationToken.ThrowIfCancellationRequested();
 
             PdfLogicalPage page = document.Pages[pageIndex];
+            string pageOccurrence = pageIndex.ToString("D4", CultureInfo.InvariantCulture);
+            string pageAnchor = "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
+            string idPrefix = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string markdown = page.ToMarkdown(markdownOptions);
             var pageTables = BuildTables(page.Tables, readerOptions);
-            foreach (var chunk in BuildChunksFromText(markdown, source, readerOptions, page.PageNumber, pageIndex, "page", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture), pageTables, "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture), maxChars, cancellationToken)) {
+            foreach (var chunk in BuildChunksFromText(markdown, source, readerOptions, page.PageNumber, pageIndex, "page", pageAnchor, pageTables, idPrefix, maxChars, cancellationToken)) {
                 chunk.Location.BlockIndex = emittedIndex++;
                 yield return chunk;
             }
@@ -295,17 +299,17 @@ public static class DocumentReaderPdfExtensions {
         };
     }
 
-    private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash) {
+    private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash, long startPosition) {
         try {
             if (stream.CanSeek) {
-                source.LengthBytes = stream.Length;
+                source.LengthBytes = Math.Max(0L, stream.Length - startPosition);
             }
         } catch {
             // Best-effort metadata.
         }
 
         if (computeHash) {
-            source.SourceHash ??= TryComputeStreamSha256(stream);
+            source.SourceHash ??= TryComputeStreamSha256(stream, startPosition);
         }
     }
 
@@ -324,7 +328,7 @@ public static class DocumentReaderPdfExtensions {
         }
     }
 
-    private static string? TryComputeStreamSha256(Stream stream) {
+    private static string? TryComputeStreamSha256(Stream stream, long startPosition) {
         if (stream == null || !stream.CanSeek) return null;
 
         long position;
@@ -335,7 +339,7 @@ public static class DocumentReaderPdfExtensions {
         }
 
         try {
-            stream.Position = 0;
+            stream.Position = startPosition;
             var hash = ComputeSha256Hex(stream);
             stream.Position = position;
             return hash;

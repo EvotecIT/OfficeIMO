@@ -51,6 +51,41 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_UsesCurrentSeekableStreamPosition() {
+        byte[] pdf = BuildTwoPagePdf();
+        byte[] prefix = Encoding.ASCII.GetBytes("not-a-pdf-prefix");
+        using var stream = new MemoryStream(prefix.Concat(pdf).ToArray(), writable: false);
+        stream.Position = prefix.Length;
+
+        var chunks = DocumentReaderPdfExtensions.ReadPdf(stream, sourceName: "embedded.pdf").ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.Contains(chunks, c => (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
+        Assert.Contains(chunks, c => (c.Markdown ?? c.Text).Contains("Reader PDF page two", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_DuplicatePageRangeSelectionsEmitUniqueChunkIds() {
+        byte[] pdf = BuildTwoPagePdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "duplicate-ranges.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] {
+                    PdfPageRange.From(1, 1),
+                    PdfPageRange.From(1, 1)
+                }
+            }).ToList();
+
+        Assert.Equal(2, chunks.Count);
+        Assert.All(chunks, chunk => Assert.Equal(1, chunk.Location.Page));
+        Assert.Equal(chunks.Count, chunks.Select(chunk => chunk.Id).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(chunks.Count, chunks.Select(chunk => chunk.Location.BlockAnchor).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesDetectedTables() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
@@ -123,7 +158,7 @@ public sealed class ReaderPdfModularTests {
     [Fact]
     public void DocumentReaderPdf_Registration_DispatchesPdfStream() {
         try {
-            DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler(replaceExisting: true);
+            DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
 
             byte[] pdf = BuildTwoPagePdf();
             using var stream = new MemoryStream(pdf, writable: false);
