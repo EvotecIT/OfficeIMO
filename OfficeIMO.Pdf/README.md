@@ -5,7 +5,7 @@ OfficeIMO.Pdf - Dependency-Free PDF Engine
 
 The long-term direction is larger than a small PDF writer: this package should become the engine that PSWriteOffice can expose for PSWritePDF-style workflows, while PSWritePDF can eventually be archived with migration guidance.
 
-Roadmap: [Docs/officeimo.pdf.roadmap.md](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.pdf.roadmap.md)
+Current state: [Docs/officeimo.pdf.current-state.md](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.pdf.current-state.md)
 
 Goals
 -----
@@ -252,12 +252,12 @@ The package now has tests that protect the dependency-free promise and start gua
 - `PdfDocumentVisualBaselineTests` keeps representative and professional report geometry snapshots for headings, paragraphs, rich text, panels, bullets, tables, images, PNG alpha soft masks, clipping, axial shading, and vector drawing content-stream signals.
 - `PdfDocumentRasterVisualBaselineTests` can render the professional report, a two-page line-item statement fixture, a Word-like table style gallery with compact Accent1-6 swatches, a landscape showcase dashboard, a native Word-to-first-party-PDF report fixture, a native Word daily-layout fixture covering TOC, margins, columns, separator lines, fonts, colors, lists, links, images, headers/footers, and a table inside the column flow, a native Word table-cell picture-control fixture, a native Excel daily-workbook fixture covering worksheet headers/footers, margins/orientation, merged cells, number formats, explicit row/column sizing, hidden row/column filtering, internal/external hyperlinks, and worksheet/header images, Markdown technical-document output, a Markdown visual theme gallery for every built-in Markdown PDF theme, plus compact hello-world, core-layout, style-cheatsheet, styled-runs, drawing-gallery, row-columns, links-rules, lists-tables, default-styles, three-page flow-dsl, and two-page headers-footers scenarios through Poppler `pdftoppm`, then compare page PNGs against approved baselines. On mismatch it writes expected, actual, and diff PNG artifacts under `%TEMP%\OfficeIMO.PdfRaster`. Set `OFFICEIMO_REQUIRE_PDF_RASTERIZER=1` to make missing Poppler fail the test lane, `OFFICEIMO_UPDATE_PDF_RASTER_BASELINE=1` to refresh approved PNGs, `OFFICEIMO_PDF_RASTER_PIXEL_TOLERANCE` to allow small per-channel deltas, and `OFFICEIMO_PDF_RASTER_ALLOWED_DIFF_PIXELS` to allow a limited changed-pixel count.
 
-Near-term work should keep adding small visual gates before broad feature growth. The roadmap tracks the intended sequence.
+Near-term work should keep adding small visual gates before broad feature growth. The current-state document tracks the intended sequence.
 
-Support Matrix
---------------
+Current State
+-------------
 
-The current create/read/manipulate/export coverage is tracked in [Docs/officeimo.pdf.support-matrix.md](../Docs/officeimo.pdf.support-matrix.md).
+The current areas, known gaps, guardrails, and next PDF focus are tracked in [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md).
 
 Examples
 --------

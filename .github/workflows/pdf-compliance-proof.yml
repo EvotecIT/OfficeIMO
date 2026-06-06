@@ -10,7 +10,6 @@ on:
       - 'OfficeIMO.Tests/Pdf/PdfExternalValidator.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Docs/officeimo.pdf*.md'
-      - 'Docs/reviews/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
       - '.github/workflows/pdf-compliance-proof.yml'
   push:
@@ -22,7 +21,6 @@ on:
       - 'OfficeIMO.Tests/Pdf/PdfExternalValidator.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Docs/officeimo.pdf*.md'
-      - 'Docs/reviews/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
       - '.github/workflows/pdf-compliance-proof.yml'
   workflow_dispatch:
