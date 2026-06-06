@@ -15,6 +15,14 @@ public static class PdfImageExtractor {
     }
 
     /// <summary>
+    /// Extracts image XObject placement invocations from all pages in page order.
+    /// </summary>
+    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacements(byte[] pdf) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractImagePlacements(PdfReadDocument.Load(pdf));
+    }
+
+    /// <summary>
     /// Extracts image XObjects from all pages in page order.
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImages(string path) {
@@ -23,11 +31,27 @@ public static class PdfImageExtractor {
     }
 
     /// <summary>
+    /// Extracts image XObject placement invocations from all pages in page order.
+    /// </summary>
+    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacements(string path) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractImagePlacements(PdfReadDocument.Load(path));
+    }
+
+    /// <summary>
     /// Extracts image XObjects from the supplied inclusive one-based page ranges in caller order.
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImagesByPageRanges(string path, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         return ExtractImagesByPageRanges(PdfReadDocument.Load(path), pageRanges);
+    }
+
+    /// <summary>
+    /// Extracts image XObject placement invocations from the supplied inclusive one-based page ranges in caller order.
+    /// </summary>
+    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacementsByPageRanges(string path, params PdfPageRange[] pageRanges) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        return ExtractImagePlacementsByPageRanges(PdfReadDocument.Load(path), pageRanges);
     }
 
     /// <summary>
@@ -43,6 +67,18 @@ public static class PdfImageExtractor {
     }
 
     /// <summary>
+    /// Extracts image XObject placement invocations from all pages in page order from the current position of a readable stream.
+    /// </summary>
+    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacements(Stream stream) {
+        Guard.NotNull(stream, nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return ExtractImagePlacements(buffer.ToArray());
+    }
+
+    /// <summary>
     /// Extracts image XObjects from the supplied inclusive one-based page ranges from the current position of a readable stream.
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImagesByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
@@ -52,6 +88,18 @@ public static class PdfImageExtractor {
         using var buffer = new MemoryStream();
         stream.CopyTo(buffer);
         return ExtractImagesByPageRanges(buffer.ToArray(), pageRanges);
+    }
+
+    /// <summary>
+    /// Extracts image XObject placement invocations from the supplied inclusive one-based page ranges from the current position of a readable stream.
+    /// </summary>
+    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacementsByPageRanges(Stream stream, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(stream, nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+
+        using var buffer = new MemoryStream();
+        stream.CopyTo(buffer);
+        return ExtractImagePlacementsByPageRanges(buffer.ToArray(), pageRanges);
     }
 
     /// <summary>
@@ -186,11 +234,33 @@ public static class PdfImageExtractor {
     }
 
     /// <summary>
+    /// Extracts image XObject placement invocations from all pages in page order.
+    /// </summary>
+    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacements(PdfReadDocument document) {
+        Guard.NotNull(document, nameof(document));
+
+        var placements = new List<PdfImagePlacement>();
+        for (int i = 0; i < document.Pages.Count; i++) {
+            placements.AddRange(document.Pages[i].GetImagePlacements(i + 1));
+        }
+
+        return placements;
+    }
+
+    /// <summary>
     /// Extracts image XObjects from the supplied inclusive one-based page ranges in caller order.
     /// </summary>
     public static IReadOnlyList<PdfExtractedImage> ExtractImagesByPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
         Guard.NotNull(pdf, nameof(pdf));
         return ExtractImagesByPageRanges(PdfReadDocument.Load(pdf), pageRanges);
+    }
+
+    /// <summary>
+    /// Extracts image XObject placement invocations from the supplied inclusive one-based page ranges in caller order.
+    /// </summary>
+    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacementsByPageRanges(byte[] pdf, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(pdf, nameof(pdf));
+        return ExtractImagePlacementsByPageRanges(PdfReadDocument.Load(pdf), pageRanges);
     }
 
     /// <summary>
@@ -206,6 +276,21 @@ public static class PdfImageExtractor {
         }
 
         return images;
+    }
+
+    /// <summary>
+    /// Extracts image XObject placement invocations from the supplied inclusive one-based page ranges in caller order.
+    /// </summary>
+    public static IReadOnlyList<PdfImagePlacement> ExtractImagePlacementsByPageRanges(PdfReadDocument document, params PdfPageRange[] pageRanges) {
+        Guard.NotNull(document, nameof(document));
+        int[] pageNumbers = PdfPageRange.ExpandMany(pageRanges, document.Pages.Count, nameof(pageRanges));
+        var placements = new List<PdfImagePlacement>();
+        for (int i = 0; i < pageNumbers.Length; i++) {
+            int pageNumber = pageNumbers[i];
+            placements.AddRange(document.Pages[pageNumber - 1].GetImagePlacements(pageNumber));
+        }
+
+        return placements;
     }
 
 }

@@ -1,6 +1,7 @@
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Pdf;
 using PdfCore = OfficeIMO.Pdf;
@@ -117,6 +118,31 @@ public sealed class HtmlPdfTests {
         Assert.Contains("class=\"pdf-text pdf-heading\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:", html, StringComparison.Ordinal);
         Assert.Contains("Logical Heading", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_ExportsPositionedImagePlaceholders() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .ToBytes();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
+        Assert.Contains("style=\"position:absolute;left:40pt;top:50pt;width:60pt;height:30pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-matrix=\"60 0 0 30 40 140\"", html, StringComparison.Ordinal);
+        Assert.False(options.ConversionReport.HasWarnings);
     }
 
     [Fact]

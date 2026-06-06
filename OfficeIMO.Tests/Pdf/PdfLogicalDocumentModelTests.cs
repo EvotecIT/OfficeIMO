@@ -88,6 +88,13 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal(1, image.Width);
         Assert.Equal(1, image.Height);
         Assert.Equal("image/png", image.MimeType);
+        PdfImagePlacement placement = Assert.Single(image.Placements);
+        Assert.True(image.HasPlacements);
+        Assert.Equal(1, placement.PageNumber);
+        Assert.Equal(image.ResourceName, placement.ResourceName);
+        Assert.True(placement.Width > 0);
+        Assert.True(placement.Height > 0);
+        Assert.True(placement.IsAxisAligned);
         Assert.Same(image, Assert.Single(logical.Images));
 
         Assert.True(logical.HasElementKind(PdfLogicalElementKind.Table));

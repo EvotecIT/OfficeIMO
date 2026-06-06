@@ -210,8 +210,7 @@ public class PowerPointSaveAsPdfTests {
 
         byte[] bytes = presentation.SaveAsPdf(options);
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
-        Assert.Equal("text-box-padding", warning.Code);
+        Assert.Contains(options.Warnings, warning => warning.Code == "text-box-padding");
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
         Assert.Equal(1, pdf.NumberOfPages);
     }

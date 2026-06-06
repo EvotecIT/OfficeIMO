@@ -4,8 +4,13 @@ namespace OfficeIMO.Pdf;
 /// Image XObject entry in the logical page model.
 /// </summary>
 public sealed class PdfLogicalImage : IPdfLogicalElement {
-    internal PdfLogicalImage(PdfExtractedImage image) {
+    internal PdfLogicalImage(PdfExtractedImage image)
+        : this(image, Array.Empty<PdfImagePlacement>()) {
+    }
+
+    internal PdfLogicalImage(PdfExtractedImage image, IReadOnlyList<PdfImagePlacement> placements) {
         SourceImage = image;
+        Placements = placements ?? Array.Empty<PdfImagePlacement>();
     }
 
     /// <inheritdoc />
@@ -16,6 +21,12 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
 
     /// <summary>Underlying extracted image payload and metadata.</summary>
     public PdfExtractedImage SourceImage { get; }
+
+    /// <summary>Placement invocations for this image resource on the page.</summary>
+    public IReadOnlyList<PdfImagePlacement> Placements { get; }
+
+    /// <summary>True when at least one placement invocation was detected for this image.</summary>
+    public bool HasPlacements => Placements.Count > 0;
 
     /// <summary>PDF image resource name.</summary>
     public string ResourceName => SourceImage.ResourceName;
