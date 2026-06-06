@@ -1,0 +1,537 @@
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.Markdown.Html;
+using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Tests.Pdf;
+using OfficeIMO.Word.Html;
+using OfficeIMO.Word.Pdf;
+using PdfCore = OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests;
+
+public sealed class HtmlPdfTests {
+    [Fact]
+    public void Html_SaveAsPdf_SemanticProfile_ExportsThroughMarkdownPipeline() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Semantic
+        };
+
+        byte[] pdf = """
+<article>
+  <h1>HTML Report</h1>
+  <p><strong>OfficeIMO</strong> turns semantic HTML into PDF.</p>
+  <ul><li>Markdown bridge</li><li>Shared PDF engine</li></ul>
+</article>
+""".SaveAsPdf(options);
+
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.True(pdf.Length > 0);
+        Assert.Contains("HTML Report", text);
+        Assert.Contains("Markdown bridge", text);
+        Assert.False(options.ConversionReport.HasWarnings);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_SemanticProfile_ForwardsMarkdownPdfWarningsToSharedReport() {
+        var markdownOptions = new MarkdownPdfSaveOptions();
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Semantic,
+            MarkdownHtmlOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile(),
+            MarkdownPdfOptions = markdownOptions
+        };
+
+        byte[] pdf = """
+<h1>Remote Asset</h1>
+<p><img src="https://example.com/logo.png" alt="OfficeIMO logo"></p>
+""".SaveAsPdf(options);
+
+        Assert.True(pdf.Length > 0);
+        Assert.Single(markdownOptions.Warnings);
+        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings);
+        Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
+        Assert.Equal("UnsupportedImage", warning.Code);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_DocumentProfile_ExportsThroughWordPipeline() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Document,
+            WordHtmlOptions = HtmlToWordOptions.CreateOfficeIMOProfile(),
+            WordPdfOptions = new PdfSaveOptions()
+        };
+
+        byte[] pdf = """
+<html>
+  <body>
+    <h1>Document HTML</h1>
+    <p>Rendered through the Word HTML bridge.</p>
+    <table><tr><th>Area</th><th>Status</th></tr><tr><td>HTML</td><td>PDF</td></tr></table>
+  </body>
+</html>
+""".SaveAsPdf(options);
+
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.True(pdf.Length > 0);
+        Assert.Contains("Document HTML", text);
+        Assert.Contains("Word HTML bridge", text);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_DocumentProfilePreset_PreservesPracticalHtmlFeatures() {
+        string linkUri = "https://example.com/report";
+        string html = CreatePracticalHtmlSample(linkUri);
+        var options = HtmlPdfSaveOptions.CreateDocumentProfile();
+
+        byte[] pdf = html.SaveAsPdf(options);
+
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.True(pdf.Length > 0);
+        Assert.True(logical.PageCount >= 2);
+        Assert.Contains("Practical HTML", text, StringComparison.Ordinal);
+        Assert.Contains("Table marker", text, StringComparison.Ordinal);
+        Assert.Contains("Second page marker", text, StringComparison.Ordinal);
+        Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
+        Assert.Contains(logical.GetLinksByUri(linkUri), link => link.Contents == "Report link");
+    }
+
+    [Fact]
+    public void HtmlPdfSaveOptions_ProfileFactories_SelectExpectedPipelines() {
+        HtmlPdfSaveOptions semantic = HtmlPdfSaveOptions.CreateSemanticProfile();
+        HtmlPdfSaveOptions document = HtmlPdfSaveOptions.CreateDocumentProfile();
+        HtmlPdfSaveOptions trustedDocument = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
+
+        Assert.Equal(HtmlPdfProfile.Semantic, semantic.Profile);
+        Assert.NotNull(semantic.MarkdownHtmlOptions);
+        Assert.NotNull(semantic.MarkdownPdfOptions);
+        Assert.Equal(HtmlPdfProfile.Document, document.Profile);
+        Assert.NotNull(document.WordHtmlOptions);
+        Assert.NotNull(document.WordPdfOptions);
+        Assert.Equal(HtmlPdfProfile.Document, trustedDocument.Profile);
+        Assert.NotNull(trustedDocument.WordHtmlOptions);
+        Assert.NotNull(trustedDocument.WordPdfOptions);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_SemanticProfile_ExportsLogicalStructure() {
+        byte[] pdf = CreateLogicalSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("<title>Logical PDF sample</title>", html, StringComparison.Ordinal);
+        Assert.Contains("<h1>Logical Heading</h1>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Logical readback marker.</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<ul data-pdf-list-level=\"1\"><li>Detected logical bullet</li></ul>", html, StringComparison.Ordinal);
+        Assert.Contains("<table>", html, StringComparison.Ordinal);
+        Assert.Contains("<th>Code</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<td>A-100</td>", html, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(html, "A-100"));
+        Assert.False(options.ConversionReport.HasWarnings);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_ExportsPageGeometryAndTextBlocks() {
+        byte[] pdf = CreateLogicalSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        string html = PdfHtmlConverter.ToHtml(PdfCore.PdfReadDocument.Load(pdf), options);
+
+        Assert.Contains(".pdf-page{position:relative", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\" style=\"width:420pt;height:360pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-text pdf-heading\"", html, StringComparison.Ordinal);
+        Assert.Contains("style=\"left:", html, StringComparison.Ordinal);
+        Assert.Contains("Logical Heading", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PositionedReviewFragment_IncludesPositioningCss() {
+        byte[] pdf = CreateLogicalSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            EmitDocumentShell = false
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.DoesNotContain("<!doctype html>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<style>", html, StringComparison.Ordinal);
+        Assert.Contains(".pdf-page{position:relative", html, StringComparison.Ordinal);
+        Assert.Contains(".pdf-text{position:absolute", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_ExportsPositionedImagePlaceholders() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .ToBytes();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
+        Assert.Contains("style=\"position:absolute;left:40pt;top:50pt;width:60pt;height:30pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-matrix=\"60 0 0 30 40 140\"", html, StringComparison.Ordinal);
+        Assert.Contains("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
+        Assert.False(options.ConversionReport.HasWarnings);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_CanForceImagePlaceholders() {
+        byte[] pdf = CreateImageSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
+        Assert.Contains("<figcaption>Image:", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
+        Assert.False(options.ConversionReport.HasWarnings);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_SemanticProfile_EmbedsExtractedImageData() {
+        byte[] pdf = CreateImageSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("<figure class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
+        Assert.Contains("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
+        Assert.Contains("<figcaption>Image:", html, StringComparison.Ordinal);
+        Assert.False(options.ConversionReport.HasWarnings);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PageRanges_ExportsSelectedPagesThroughSameBridgePackage() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Paragraph(paragraph => paragraph.Text("First PDF page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second PDF page"))
+            .ToBytes();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            PageRanges = new[] {
+                PdfCore.PdfPageRange.From(2, 2)
+            }
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.DoesNotContain("First PDF page", html, StringComparison.Ordinal);
+        Assert.Contains("Second PDF page", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PageRanges_DoesNotReapplyRangesAfterLoadingSelection() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Paragraph(paragraph => paragraph.Text("Duplicated selected page"))
+            .ToBytes();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            PageRanges = new[] {
+                PdfCore.PdfPageRange.From(1, 1),
+                PdfCore.PdfPageRange.From(1, 1)
+            }
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Equal(2, CountOrdinal(html, "<section class=\"pdf-page\""));
+        Assert.Equal(2, CountOrdinal(html, "Duplicated selected page"));
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PageRanges_FilterAlreadyLoadedLogicalDocument() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Paragraph(paragraph => paragraph.Text("First logical page"))
+            .PageBreak()
+            .Paragraph(paragraph => paragraph.Text("Second logical page"))
+            .ToBytes();
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            PageRanges = new[] {
+                PdfCore.PdfPageRange.From(2, 2)
+            }
+        };
+
+        string html = logical.ToHtml(options);
+
+        Assert.DoesNotContain("First logical page", html, StringComparison.Ordinal);
+        Assert.Contains("Second logical page", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_AccountsForRotatedPages() {
+        byte[] pdf = CreateRotatedLinkAnnotationPdf(90, "https://example.com/rotated");
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\" style=\"width:220pt;height:320pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("style=\"left:38pt;top:40pt;width:22pt;height:140pt\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://example.com/rotated\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_PositionedReviewProfile_FlipsCoordinatesForRotated180Pages() {
+        byte[] pdf = CreateRotatedLinkAnnotationPdf(180, "https://example.com/rotated-180");
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\" style=\"width:320pt;height:220pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("style=\"left:140pt;top:38pt;width:140pt;height:22pt\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://example.com/rotated-180\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtml_LinkAnnotations_RenderUnsafeUriAsInertText() {
+        const string unsafeUri = "javascript:alert(1)";
+        byte[] pdf = CreateLinkAnnotationPdf(unsafeUri);
+        var semanticOptions = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            IncludeLinkAnnotations = true
+        };
+        var positionedOptions = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        string semanticHtml = PdfHtmlConverter.ToHtml(pdf, semanticOptions);
+        string positionedHtml = PdfHtmlConverter.ToHtml(pdf, positionedOptions);
+
+        Assert.DoesNotContain("<a href=\"javascript:", semanticHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", semanticHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<a href=\"javascript:", positionedHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", positionedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_BaselineArtifacts_ExposeStableRoundTripShape() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.Pdf." + Guid.NewGuid().ToString("N"));
+        string pdfPath = Path.Combine(directory, "practical-html.pdf");
+        string htmlPath = Path.Combine(directory, "practical-html-review.html");
+        string linkUri = "https://example.com/artifact";
+        Directory.CreateDirectory(directory);
+
+        try {
+            CreatePracticalHtmlSample(linkUri).SaveAsPdf(pdfPath, HtmlPdfSaveOptions.CreateDocumentProfile());
+            PdfHtmlConverter.SaveAsHtml(pdfPath, htmlPath, new PdfHtmlSaveOptions {
+                Profile = PdfHtmlProfile.PositionedReview,
+                IncludeLinkAnnotations = true
+            });
+
+            byte[] pdf = File.ReadAllBytes(pdfPath);
+            string html = File.ReadAllText(htmlPath);
+
+            Assert.True(new FileInfo(pdfPath).Length > 0);
+            Assert.True(new FileInfo(htmlPath).Length > 0);
+            Assert.True(PdfCore.PdfInspector.Inspect(pdf).PageCount >= 2);
+            Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", html, StringComparison.Ordinal);
+            Assert.Contains("class=\"pdf-link\"", html, StringComparison.Ordinal);
+            Assert.Contains("href=\"" + linkUri + "\"", html, StringComparison.Ordinal);
+            Assert.Contains("data:image/png;base64,", html, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    private static byte[] CreateImageSamplePdf() {
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Canvas(canvas => canvas.Image(PdfPngTestImages.CreateRgbPng(1, 1), 40, 50, 60, 30))
+            .ToBytes();
+    }
+
+    private static byte[] CreateLinkAnnotationPdf(string uri) {
+        string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Unsafe link) /A << /S /URI /URI ({escapedUri}) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static int CountOrdinal(string value, string search) {
+        int count = 0;
+        int index = 0;
+        while (true) {
+            index = value.IndexOf(search, index, StringComparison.Ordinal);
+            if (index < 0) {
+                return count;
+            }
+
+            count++;
+            index += search.Length;
+        }
+    }
+
+    private static byte[] CreateRotatedLinkAnnotationPdf(int rotationDegrees, string uri) {
+        string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Rotate {rotationDegrees.ToString(System.Globalization.CultureInfo.InvariantCulture)} /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Rotated link) /A << /S /URI /URI ({escapedUri}) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateLogicalSamplePdf() {
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Meta(title: "Logical PDF sample", author: "OfficeIMO")
+            .H1("Logical Heading")
+            .Paragraph(paragraph => paragraph.Text("Logical readback marker."))
+            .Bullets(new[] { "Detected logical bullet" })
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "A-100", "Alpha", "2" },
+                new[] { "B-200", "Beta", "14" }
+            }, style: new PdfCore.PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+    }
+
+    private static string CreatePracticalHtmlSample(string linkUri) {
+        string pixel = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(1, 1));
+        return $$"""
+<html>
+<head>
+  <style>
+    table { border-collapse: collapse; }
+    td, th { border: 1px solid #444; padding: 4px; }
+    .page-two { break-before: page; }
+  </style>
+</head>
+<body>
+  <h1>Practical HTML</h1>
+  <p><a href="{{linkUri}}">Report link</a></p>
+  <p><img src="data:image/png;base64,{{pixel}}" alt="Embedded pixel" width="24" height="24"></p>
+  <table>
+    <tr><th>Area</th><th>Status</th></tr>
+    <tr><td>Table marker</td><td>Ready</td></tr>
+  </table>
+  <section class="page-two"><h2>Second page marker</h2><p>Page break proof.</p></section>
+</body>
+</html>
+""";
+    }
+
+    private static int CountOccurrences(string text, string value) {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
+    }
+}

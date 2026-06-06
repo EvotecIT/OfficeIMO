@@ -16,6 +16,12 @@ namespace OfficeIMO.Excel.Pdf {
         public List<ExcelPdfExportWarning> Warnings { get; } = new List<ExcelPdfExportWarning>();
 
         /// <summary>
+        /// Shared conversion report populated alongside <see cref="Warnings"/> for wrapper-friendly diagnostics.
+        /// The report is cleared at the start of each export.
+        /// </summary>
+        public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
+
+        /// <summary>
         /// PDF creation options passed to the first-party PDF engine. The options are cloned before export.
         /// </summary>
         public PdfCore.PdfOptions? PdfOptions { get; set; }
@@ -167,5 +173,10 @@ namespace OfficeIMO.Excel.Pdf {
         /// Text used for empty worksheet cells in the exported PDF table. Defaults to an empty string.
         /// </summary>
         public string EmptyCellText { get; set; } = string.Empty;
+
+        internal void ResetExportState() {
+            Warnings.Clear();
+            ConversionReport.Clear();
+        }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -264,6 +265,88 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasDiagnosticOverloads_PreservePreviousClrSignatures() {
+        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.TextBox), new[] {
+            typeof(string),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(PdfCanvasTextBoxStyle),
+            typeof(double)
+        }));
+        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.TextBox), new[] {
+            typeof(IEnumerable<TextRun>),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(PdfCanvasTextBoxStyle),
+            typeof(double)
+        }));
+        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.Table), new[] {
+            typeof(IEnumerable<string[]>),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(PdfTableStyle),
+            typeof(double)
+        }));
+        Assert.NotNull(typeof(PdfPageCanvas).GetMethod(nameof(PdfPageCanvas.Table), new[] {
+            typeof(IEnumerable<PdfTableCell[]>),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(double),
+            typeof(PdfTableStyle),
+            typeof(double)
+        }));
+    }
+
+    [Fact]
+    public void CanvasTextBox_ReportsClippedContentDuringRender() {
+        PdfLayoutDiagnostic? diagnostic = null;
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+                PageWidth = 180,
+                PageHeight = 120,
+                MarginLeft = 0,
+                MarginRight = 0,
+                MarginTop = 0,
+                MarginBottom = 0,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.TextBox(
+                "One two three four five six seven eight nine ten eleven twelve",
+                20,
+                20,
+                80,
+                18,
+                new PdfCanvasTextBoxStyle {
+                    Background = null,
+                    BorderColor = null,
+                    FontSize = 12D,
+                    PaddingX = 0D,
+                    PaddingY = 0D
+                },
+                rotationAngle: 0D,
+                diagnosticHandler: item => diagnostic = item));
+
+        Assert.Null(diagnostic);
+
+        document.ToBytes();
+
+        Assert.NotNull(diagnostic);
+        Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, diagnostic!.Kind);
+        Assert.Equal("PdfCanvasTextBox", diagnostic.Source);
+        Assert.True(diagnostic.HasBounds);
+        Assert.Equal(20D, diagnostic.X);
+        Assert.Equal(20D, diagnostic.Y);
+        Assert.Equal(80D, diagnostic.Width);
+        Assert.Equal(18D, diagnostic.Height);
+    }
+
+    [Fact]
     public void CanvasTextBox_WithAsymmetricPadding_UsesIndividualEdges() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 260,
@@ -408,6 +491,52 @@ public class PdfDocumentCanvasTests {
         Assert.Contains("Name", text, StringComparison.Ordinal);
         Assert.Contains("OfficeIMO", text, StringComparison.Ordinal);
         Assert.Contains("99", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CanvasTable_ReportsClippedCellContentDuringRender() {
+        var diagnostics = new List<PdfLayoutDiagnostic>();
+        PdfDocument document = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 140,
+                MarginLeft = 0,
+                MarginRight = 0,
+                MarginTop = 0,
+                MarginBottom = 0,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Table(
+                new[] {
+                    new[] {
+                        PdfTableCell.TextCell("One two three four five six seven eight nine ten eleven twelve")
+                    }
+                },
+                20,
+                20,
+                80,
+                22,
+                new PdfTableStyle {
+                    RowMinHeights = new List<double?> { 22D },
+                    ColumnWidthPoints = new List<double?> { 80D },
+                    CellPaddings = new Dictionary<(int Row, int Column), PdfCellPadding> {
+                        [(0, 0)] = new PdfCellPadding { Left = 2D, Right = 2D, Top = 2D, Bottom = 2D }
+                    }
+                },
+                rotationAngle: 0D,
+                diagnosticHandler: diagnostics.Add));
+
+        Assert.Empty(diagnostics);
+
+        document.ToBytes();
+
+        PdfLayoutDiagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal(PdfLayoutDiagnosticKind.ClippedContent, diagnostic.Kind);
+        Assert.Equal("PdfCanvasTableCell", diagnostic.Source);
+        Assert.True(diagnostic.HasBounds);
+        Assert.Equal(20D, diagnostic.X);
+        Assert.Equal(20D, diagnostic.Y);
+        Assert.Equal(80D, diagnostic.Width);
+        Assert.Equal(22D, diagnostic.Height);
     }
 
     [Fact]

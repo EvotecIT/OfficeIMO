@@ -80,6 +80,85 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfLogicalDocument_Load_ReadsImagesReferencedByFormXObjects() {
+        byte[] bytes = BuildPdfWithFormXObjectImage();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        PdfLogicalImage image = Assert.Single(logical.Images);
+        PdfImagePlacement placement = Assert.Single(image.Placements);
+        Assert.Equal("ImNested", image.ResourceName);
+        Assert.Equal("ImNested", placement.ResourceName);
+        Assert.Equal(7, image.SourceImage.ObjectNumber);
+        Assert.Equal(7, placement.ObjectNumber);
+    }
+
+    [Fact]
+    public void PdfLogicalDocument_Load_DoesNotExposeImagesFromUnusedFormXObjects() {
+        byte[] bytes = BuildPdfWithUnusedFormXObjectImage();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        Assert.Empty(logical.Images);
+    }
+
+    [Fact]
+    public void PdfLogicalDocument_Load_DoesNotExposeImagesFromUnusedPageResources() {
+        byte[] bytes = BuildPdfWithUnusedPageImageResource();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        Assert.Empty(logical.Images);
+    }
+
+    [Fact]
+    public void PdfLogicalDocument_Load_DoesNotExposeUnusedImageResourceAliases() {
+        byte[] bytes = BuildPdfWithImageResourceAlias();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        PdfLogicalImage image = Assert.Single(logical.Images);
+        Assert.Equal("ImUsed", image.ResourceName);
+        Assert.True(image.HasPlacements);
+        Assert.All(image.Placements, placement => Assert.Equal("ImUsed", placement.ResourceName));
+    }
+
+    [Fact]
+    public void PdfLogicalDocument_Load_DeduplicatesImagesDiscoveredThroughRepeatedForms() {
+        byte[] bytes = BuildPdfWithRepeatedFormImageResource();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(bytes);
+
+        PdfLogicalImage image = Assert.Single(logical.Images);
+        Assert.Equal("ImShared", image.ResourceName);
+        Assert.Equal(2, image.Placements.Count);
+    }
+
+    [Fact]
+    public void PdfReadPage_GetImages_PreservesDistinctDirectImagesInFormResources() {
+        PdfReadPage page = CreatePdfReadPageWithDistinctDirectFormImages();
+
+        IReadOnlyList<PdfImagePlacement> placements = page.GetImagePlacements();
+        IReadOnlyList<PdfExtractedImage> images = GetImagesWithPlacements(page, placements);
+
+        Assert.Equal(2, placements.Count);
+        Assert.Equal(2, images.Count);
+        Assert.Equal(new[] { "aaa", "bbb" }, images.Select(image => Encoding.ASCII.GetString(image.Bytes)).OrderBy(value => value, StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
+    public void PdfReadPage_GetImages_DoesNotMatchSiblingImagesByNameOnly() {
+        PdfReadPage page = CreatePdfReadPageWithDirectPageAndFormImageNameCollision();
+
+        IReadOnlyList<PdfImagePlacement> placements = page.GetImagePlacements();
+        IReadOnlyList<PdfExtractedImage> images = GetImagesWithPlacements(page, placements);
+
+        PdfExtractedImage image = Assert.Single(images);
+        Assert.Single(placements);
+        Assert.Equal("form", Encoding.ASCII.GetString(image.Bytes));
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
         byte[] bytes = BuildPdfWithScaledFormMatrix();
 
@@ -89,6 +168,17 @@ public partial class PdfReaderAndFooterRegressionTests {
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Scaled form");
         Assert.Equal(26, span.X, 3);
         Assert.Equal(42, span.Y, 3);
+    }
+
+    private static IReadOnlyList<PdfExtractedImage> GetImagesWithPlacements(PdfReadPage page, IReadOnlyList<PdfImagePlacement> placements) {
+        MethodInfo? method = typeof(PdfReadPage).GetMethod(
+            "GetImages",
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            new[] { typeof(int), typeof(IReadOnlyList<PdfImagePlacement>) },
+            modifiers: null);
+
+        return Assert.IsAssignableFrom<IReadOnlyList<PdfExtractedImage>>(method!.Invoke(page, new object[] { 0, placements })!);
     }
 
     [Fact]

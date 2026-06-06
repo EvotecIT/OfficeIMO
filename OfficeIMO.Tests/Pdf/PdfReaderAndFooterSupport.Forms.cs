@@ -267,6 +267,236 @@ public partial class PdfReaderAndFooterRegressionTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildPdfWithFormXObjectImage() {
+        const string pageContent = "q\n1 0 0 1 100 200 cm\n/Fx Do\nQ\n";
+        const string formContent = "q\n10 0 0 10 0 0 cm\n/ImNested Do\nQ\n";
+        const string imageBytes = "abc";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int formStreamLength = Encoding.ASCII.GetByteCount(formContent);
+        int imageLength = Encoding.ASCII.GetByteCount(imageBytes);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 4 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /XObject << /Fx 6 0 R >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImNested 7 0 R >> >> /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            $"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {imageLength} >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithUnusedFormXObjectImage() {
+        const string pageContent = "q\nQ\n";
+        const string formContent = "q\n10 0 0 10 0 0 cm\n/ImUnused Do\nQ\n";
+        const string imageBytes = "abc";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int formStreamLength = Encoding.ASCII.GetByteCount(formContent);
+        int imageLength = Encoding.ASCII.GetByteCount(imageBytes);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 4 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /XObject << /FxUnused 6 0 R >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImUnused 7 0 R >> >> /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            $"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {imageLength} >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithUnusedPageImageResource() {
+        const string pageContent = "q\nQ\n";
+        const string imageBytes = "abc";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int imageLength = Encoding.ASCII.GetByteCount(imageBytes);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 4 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /XObject << /ImUnused 6 0 R >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {imageLength} >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithImageResourceAlias() {
+        const string pageContent = "q\n10 0 0 10 20 30 cm\n/ImUsed Do\nQ\n";
+        const string imageBytes = "abc";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int imageLength = Encoding.ASCII.GetByteCount(imageBytes);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 4 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /XObject << /ImUsed 6 0 R /ImAlias 6 0 R >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {imageLength} >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithRepeatedFormImageResource() {
+        const string pageContent = "q\n1 0 0 1 20 30 cm\n/FxA Do\nQ\nq\n1 0 0 1 120 30 cm\n/FxB Do\nQ\n";
+        const string formContent = "q\n10 0 0 10 0 0 cm\n/ImShared Do\nQ\n";
+        const string imageBytes = "abc";
+        int pageStreamLength = Encoding.ASCII.GetByteCount(pageContent);
+        int formStreamLength = Encoding.ASCII.GetByteCount(formContent);
+        int imageLength = Encoding.ASCII.GetByteCount(imageBytes);
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] /Resources 4 0 R >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /XObject << /FxA 6 0 R /FxB 7 0 R >> >>",
+            "endobj",
+            "5 0 obj",
+            $"<< /Length {pageStreamLength} >>",
+            "stream",
+            pageContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImShared 8 0 R >> >> /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            $"<< /Type /XObject /Subtype /Form /BBox [0 0 20 20] /Resources << /XObject << /ImShared 8 0 R >> >> /Length {formStreamLength} >>",
+            "stream",
+            formContent.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "8 0 obj",
+            $"<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {imageLength} >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildPdfWithScaledFormMatrix() {
         const string pageContent = "q\n2 0 0 2 10 20 cm\n/Fx Do\nQ\n";
         const string formContent = "BT\n/F1 12 Tf\n3 4 Td\n(Scaled form) Tj\nET\n";
@@ -388,6 +618,81 @@ public partial class PdfReaderAndFooterRegressionTests {
             modifiers: null);
 
         return Assert.IsType<PdfReadPage>(ctor!.Invoke(new object[] { 1, pageDict, state.Objects }));
+    }
+
+    private static PdfReadPage CreatePdfReadPageWithDistinctDirectFormImages() {
+        var xObjects = new PdfDictionary();
+        var resources = new PdfDictionary();
+        resources.Items["XObject"] = xObjects;
+
+        xObjects.Items["FxA"] = CreateDirectImageForm("aaa");
+        xObjects.Items["FxB"] = CreateDirectImageForm("bbb");
+
+        var pageDict = new PdfDictionary();
+        pageDict.Items["Type"] = new PdfName("Page");
+        pageDict.Items["Resources"] = resources;
+
+        var contents = new PdfArray();
+        contents.Items.Add(new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("/FxA Do /FxB Do")));
+        pageDict.Items["Contents"] = contents;
+
+        var ctor = typeof(PdfReadPage).GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            new[] { typeof(int), typeof(PdfDictionary), typeof(Dictionary<int, PdfIndirectObject>) },
+            modifiers: null);
+
+        return Assert.IsType<PdfReadPage>(ctor!.Invoke(new object[] { 1, pageDict, new Dictionary<int, PdfIndirectObject>() }));
+    }
+
+    private static PdfReadPage CreatePdfReadPageWithDirectPageAndFormImageNameCollision() {
+        var xObjects = new PdfDictionary();
+        var resources = new PdfDictionary();
+        resources.Items["XObject"] = xObjects;
+
+        xObjects.Items["Im1"] = CreateDirectImage("page");
+        xObjects.Items["Fx"] = CreateDirectImageForm("form");
+
+        var pageDict = new PdfDictionary();
+        pageDict.Items["Type"] = new PdfName("Page");
+        pageDict.Items["Resources"] = resources;
+
+        var contents = new PdfArray();
+        contents.Items.Add(new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("/Fx Do")));
+        pageDict.Items["Contents"] = contents;
+
+        var ctor = typeof(PdfReadPage).GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            new[] { typeof(int), typeof(PdfDictionary), typeof(Dictionary<int, PdfIndirectObject>) },
+            modifiers: null);
+
+        return Assert.IsType<PdfReadPage>(ctor!.Invoke(new object[] { 1, pageDict, new Dictionary<int, PdfIndirectObject>() }));
+    }
+
+    private static PdfStream CreateDirectImage(string imageBytes) {
+        var imageDictionary = new PdfDictionary();
+        imageDictionary.Items["Subtype"] = new PdfName("Image");
+        imageDictionary.Items["Width"] = new PdfNumber(1);
+        imageDictionary.Items["Height"] = new PdfNumber(1);
+        imageDictionary.Items["ColorSpace"] = new PdfName("DeviceRGB");
+        imageDictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+
+        return new PdfStream(imageDictionary, Encoding.ASCII.GetBytes(imageBytes));
+    }
+
+    private static PdfStream CreateDirectImageForm(string imageBytes) {
+        var formXObjects = new PdfDictionary();
+        formXObjects.Items["Im1"] = CreateDirectImage(imageBytes);
+
+        var formResources = new PdfDictionary();
+        formResources.Items["XObject"] = formXObjects;
+
+        var formDictionary = new PdfDictionary();
+        formDictionary.Items["Subtype"] = new PdfName("Form");
+        formDictionary.Items["Resources"] = formResources;
+
+        return new PdfStream(formDictionary, Encoding.ASCII.GetBytes("/Im1 Do"));
     }
 
     private static (PdfDictionary Resources, Dictionary<int, PdfIndirectObject> Objects) BuildDirectFormCycleState() {

@@ -26,4 +26,10 @@ public sealed class MarkdownPdfExportWarning {
             ? Code + ": " + Message
             : Code + " [" + Source + "]: " + Message;
     }
+
+    /// <summary>
+    /// Converts this Markdown-specific warning to the shared PDF conversion warning contract.
+    /// </summary>
+    public OfficeIMO.Pdf.PdfConversionWarning ToConversionWarning() =>
+        new OfficeIMO.Pdf.PdfConversionWarning("OfficeIMO.Markdown.Pdf", Code, Source, Message);
 }

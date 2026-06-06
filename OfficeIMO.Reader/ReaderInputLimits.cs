@@ -46,6 +46,25 @@ public static class ReaderInputLimits {
     }
 
     /// <summary>
+    /// Enforces <paramref name="maxBytes"/> against the unread portion of a seekable stream.
+    /// </summary>
+    public static void EnforceSeekableStreamRemainingSize(Stream stream, long? maxBytes) {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!maxBytes.HasValue) return;
+        if (!stream.CanSeek) return;
+
+        try {
+            long remainingBytes = Math.Max(0L, stream.Length - stream.Position);
+            if (remainingBytes > maxBytes.Value) {
+                throw new IOException(
+                    $"Input exceeds MaxInputBytes ({remainingBytes.ToString(CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
+            }
+        } catch (NotSupportedException) {
+            // ignore
+        }
+    }
+
+    /// <summary>
     /// Ensures a seekable stream for parsers that require rewind/index operations.
     /// Non-seekable inputs are snapshotted into memory with <paramref name="maxInputBytes"/> enforcement.
     /// </summary>

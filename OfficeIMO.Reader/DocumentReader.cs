@@ -204,17 +204,39 @@ public static partial class DocumentReader {
     /// </summary>
     public static IReadOnlyList<ReaderHandlerCapability> GetCapabilities(bool includeBuiltIn = true, bool includeCustom = true) {
         var list = new List<ReaderHandlerCapability>();
-
-        if (includeBuiltIn) {
-            list.AddRange(BuiltInCapabilities.Select(CloneCapability));
-        }
+        var customCapabilities = new List<ReaderHandlerCapability>();
+        Dictionary<string, ExtensionOverrideCoverage>? overriddenBuiltInExtensions = null;
 
         if (includeCustom) {
             lock (HandlerRegistrySync) {
                 foreach (var custom in CustomHandlersById.Values.OrderBy(static c => c.Id, StringComparer.Ordinal)) {
-                    list.Add(custom.ToCapability());
+                    ReaderHandlerCapability capability = custom.ToCapability();
+                    customCapabilities.Add(capability);
+                    if (includeBuiltIn) {
+                        for (int extensionIndex = 0; extensionIndex < capability.Extensions.Count; extensionIndex++) {
+                            string extension = capability.Extensions[extensionIndex];
+                            if (BuiltInExtensions.Contains(extension)) {
+                                overriddenBuiltInExtensions ??= new Dictionary<string, ExtensionOverrideCoverage>(StringComparer.OrdinalIgnoreCase);
+                                overriddenBuiltInExtensions.TryGetValue(extension, out ExtensionOverrideCoverage coverage);
+                                overriddenBuiltInExtensions[extension] = coverage.Add(capability.SupportsPath, capability.SupportsStream);
+                            }
+                        }
+                    }
                 }
             }
+        }
+
+        if (includeBuiltIn) {
+            for (int i = 0; i < BuiltInCapabilities.Length; i++) {
+                ReaderHandlerCapability? capability = CloneCapabilityWithRemainingSupport(BuiltInCapabilities[i], overriddenBuiltInExtensions);
+                if (capability is not null) {
+                    list.Add(capability);
+                }
+            }
+        }
+
+        if (includeCustom) {
+            list.AddRange(customCapabilities);
         }
 
         return list

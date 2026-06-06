@@ -9,6 +9,20 @@ namespace OfficeIMO.Word.Pdf {
     /// </summary>
     public static partial class WordPdfConverterExtensions {
         /// <summary>
+        /// Converts the specified <see cref="WordDocument"/> to a first-party OfficeIMO PDF document model.
+        /// </summary>
+        /// <param name="document">The document to convert.</param>
+        /// <param name="options">Optional PDF configuration.</param>
+        /// <returns>The generated first-party PDF document model.</returns>
+        public static PdfCore.PdfDocument ToPdfDocument(this WordDocument document, PdfSaveOptions? options = null) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            return CreateOfficeIMOPdfDocument(document, options);
+        }
+
+        /// <summary>
         /// Saves the specified <see cref="WordDocument"/> as a PDF at the given <paramref name="path"/>.
         /// </summary>
         /// <param name="document">The document to convert.</param>
@@ -33,7 +47,7 @@ namespace OfficeIMO.Word.Pdf {
                 Directory.CreateDirectory(directory);
             }
 
-            CreateOfficeIMOPdfDocument(document, options).Save(fullPath);
+            document.ToPdfDocument(options).Save(fullPath);
         }
 
         /// <summary>
@@ -45,7 +59,7 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                return CreateOfficeIMOPdfDocument(document, options).TrySave(path);
+                return document.ToPdfDocument(options).TrySave(path);
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -70,7 +84,7 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
-            CreateOfficeIMOPdfDocument(document, options).Save(stream);
+            document.ToPdfDocument(options).Save(stream);
             if (stream.CanSeek) {
                 stream.Position = 0;
             }
@@ -85,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                PdfCore.PdfSaveResult result = CreateOfficeIMOPdfDocument(document, options).TrySave(stream);
+                PdfCore.PdfSaveResult result = document.ToPdfDocument(options).TrySave(stream);
                 if (result.Succeeded && stream != null && stream.CanSeek) {
                     stream.Position = 0;
                 }
@@ -107,7 +121,7 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentNullException(nameof(document));
             }
 
-            return CreateOfficeIMOPdfDocument(document, options).ToBytes();
+            return document.ToPdfDocument(options).ToBytes();
         }
 
         /// <summary>
@@ -124,7 +138,7 @@ namespace OfficeIMO.Word.Pdf {
 
             cancellationToken.ThrowIfCancellationRequested();
             using (MemoryStream stream = new MemoryStream()) {
-                await CreateOfficeIMOPdfDocument(document, options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+                await document.ToPdfDocument(options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
                 return stream.ToArray();
             }
         }
@@ -157,7 +171,7 @@ namespace OfficeIMO.Word.Pdf {
                 Directory.CreateDirectory(directory);
             }
 
-            await CreateOfficeIMOPdfDocument(document, options).SaveAsync(fullPath, cancellationToken).ConfigureAwait(false);
+            await document.ToPdfDocument(options).SaveAsync(fullPath, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -169,7 +183,7 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                return await CreateOfficeIMOPdfDocument(document, options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+                return await document.ToPdfDocument(options).TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
             } catch (Exception ex) {
                 return PdfCore.PdfSaveResult.FromFailure(path, ex);
             }
@@ -198,7 +212,7 @@ namespace OfficeIMO.Word.Pdf {
                 throw new ArgumentException("Stream must be writable.", nameof(stream));
             }
 
-            await CreateOfficeIMOPdfDocument(document, options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            await document.ToPdfDocument(options).SaveAsync(stream, cancellationToken).ConfigureAwait(false);
             if (stream.CanSeek) {
                 stream.Position = 0;
             }
@@ -213,7 +227,7 @@ namespace OfficeIMO.Word.Pdf {
                     throw new ArgumentNullException(nameof(document));
                 }
 
-                PdfCore.PdfSaveResult result = await CreateOfficeIMOPdfDocument(document, options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+                PdfCore.PdfSaveResult result = await document.ToPdfDocument(options).TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
                 if (result.Succeeded && stream != null && stream.CanSeek) {
                     stream.Position = 0;
                 }

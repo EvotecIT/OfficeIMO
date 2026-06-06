@@ -150,7 +150,33 @@ public sealed class PdfReadPage {
     public IReadOnlyList<PdfExtractedImage> GetImages() => GetImages(0);
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber) {
-        return ResourceResolver.GetImageXObjectsForPage(_pageDict, _objects, pageNumber);
+        return GetImages(pageNumber, null);
+    }
+
+    internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
+        return ResourceResolver.GetImageXObjectsForPage(_pageDict, _objects, pageNumber, imagePlacements);
+    }
+
+    /// <summary>Extracts image XObject placement invocations from this page.</summary>
+    public IReadOnlyList<PdfImagePlacement> GetImagePlacements() => GetImagePlacements(0);
+
+    internal IReadOnlyList<PdfImagePlacement> GetImagePlacements(int pageNumber) {
+        var placements = new List<PdfImagePlacement>();
+        var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
+        var activeForms = new HashSet<PdfStream>();
+
+        string content = GetContentStreamContent();
+        if (content.Length > 0) {
+            CollectImagePlacementsAndForms(
+                content,
+                pageResources,
+                pageNumber,
+                Matrix2D.Identity,
+                placements,
+                activeForms);
+        }
+
+        return placements.Count == 0 ? Array.Empty<PdfImagePlacement>() : placements.AsReadOnly();
     }
 
     internal List<string> GetUnsupportedContentStreamFilters() {
@@ -252,6 +278,40 @@ public sealed class PdfReadPage {
         }
     }
 
+    private void CollectImagePlacementsAndForms(
+        string content,
+        PdfDictionary? resources,
+        int pageNumber,
+        Matrix2D baseTransform,
+        List<PdfImagePlacement> placements,
+        HashSet<PdfStream> activeForms) {
+        foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
+            Matrix2D invocationTransform = Matrix2D.Multiply(baseTransform, invocation.Transform);
+            if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
+                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform));
+                continue;
+            }
+
+            if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
+                continue;
+            }
+
+            if (!activeForms.Add(formStream)) {
+                continue;
+            }
+
+            try {
+                var formDict = formStream.Dictionary;
+                var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
+                Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formDict);
+                string formContent = PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream));
+                CollectImagePlacementsAndForms(formContent, formResources, pageNumber, formTransform, placements, activeForms);
+            } finally {
+                activeForms.Remove(formStream);
+            }
+        }
+    }
+
     private bool TryGetFormStream(PdfDictionary? resources, string name, out PdfStream formStream) {
         if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) {
             formStream = null!;
@@ -280,6 +340,60 @@ public sealed class PdfReadPage {
 
         formStream = null!;
         return false;
+    }
+
+    private bool TryGetImageXObject(PdfDictionary? resources, string name, out int objectNumber, out int directStreamIdentity) {
+        objectNumber = 0;
+        directStreamIdentity = 0;
+        if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) {
+            return false;
+        }
+
+        var xoDict = ResolveDictionary(xoObj);
+        if (xoDict is null || !xoDict.Items.TryGetValue(name, out var imageObj)) {
+            return false;
+        }
+
+        PdfStream? stream = null;
+        if (imageObj is PdfReference imageRef &&
+            PdfObjectLookup.TryGet(_objects, imageRef, out var indirectImage) &&
+            indirectImage.Value is PdfStream referencedStream) {
+            objectNumber = imageRef.ObjectNumber;
+            stream = referencedStream;
+        } else if (imageObj is PdfStream directStream) {
+            stream = directStream;
+            directStreamIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(directStream);
+        }
+
+        return stream is not null &&
+            string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal);
+    }
+
+    private static PdfImagePlacement BuildImagePlacement(int pageNumber, string resourceName, int objectNumber, int directStreamIdentity, Matrix2D transform) {
+        var p0 = transform.Transform(0D, 0D);
+        var p1 = transform.Transform(1D, 0D);
+        var p2 = transform.Transform(0D, 1D);
+        var p3 = transform.Transform(1D, 1D);
+        double left = Math.Min(Math.Min(p0.X, p1.X), Math.Min(p2.X, p3.X));
+        double right = Math.Max(Math.Max(p0.X, p1.X), Math.Max(p2.X, p3.X));
+        double bottom = Math.Min(Math.Min(p0.Y, p1.Y), Math.Min(p2.Y, p3.Y));
+        double top = Math.Max(Math.Max(p0.Y, p1.Y), Math.Max(p2.Y, p3.Y));
+
+        return new PdfImagePlacement(
+            pageNumber,
+            resourceName,
+            objectNumber,
+            directStreamIdentity,
+            transform.A,
+            transform.B,
+            transform.C,
+            transform.D,
+            transform.E,
+            transform.F,
+            left,
+            bottom,
+            Math.Max(0D, right - left),
+            Math.Max(0D, top - bottom));
     }
 
     private string? GetMarkedContentActualText(PdfDictionary? resources, string propertyName) {

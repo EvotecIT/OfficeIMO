@@ -52,12 +52,32 @@ public sealed class PdfPageCanvas {
 
     /// <summary>Adds a styled fixed-position text box using top-left page coordinates.</summary>
     public PdfPageCanvas TextBox(string text, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D) {
+        return TextBox(text, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
+    }
+
+    /// <summary>Adds a styled fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
+    public PdfPageCanvas TextBox(string text, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+        return TextBox(text, x, y, width, height, style, 0D, diagnosticHandler);
+    }
+
+    /// <summary>Adds a styled fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
+    public PdfPageCanvas TextBox(string text, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         Guard.NotNull(text, nameof(text));
-        return TextBox(new[] { TextRun.Normal(text) }, x, y, width, height, style, rotationAngle);
+        return TextBox(new[] { TextRun.Normal(text) }, x, y, width, height, style, rotationAngle, diagnosticHandler);
     }
 
     /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates.</summary>
     public PdfPageCanvas TextBox(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style = null, double rotationAngle = 0D) {
+        return TextBox(runs, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
+    }
+
+    /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
+    public PdfPageCanvas TextBox(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+        return TextBox(runs, x, y, width, height, style, 0D, diagnosticHandler);
+    }
+
+    /// <summary>Adds styled rich text inside a fixed-position text box using top-left page coordinates and reports layout diagnostics during rendering.</summary>
+    public PdfPageCanvas TextBox(IEnumerable<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         Guard.NotNull(runs, nameof(runs));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
@@ -73,7 +93,7 @@ public sealed class PdfPageCanvas {
             throw new ArgumentException("Canvas text box requires at least one text run.", nameof(runs));
         }
 
-        _items.Add(new PdfCanvasTextBoxItem(ApplyTextBoxDefaults(snapshot, textBoxStyle), x, y, width, height, textBoxStyle, rotationAngle));
+        _items.Add(new PdfCanvasTextBoxItem(ApplyTextBoxDefaults(snapshot, textBoxStyle), x, y, width, height, textBoxStyle, rotationAngle, diagnosticHandler));
         return this;
     }
 
@@ -128,25 +148,45 @@ public sealed class PdfPageCanvas {
 
     /// <summary>Adds a fixed-position table inside a page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null, double rotationAngle = 0D) {
+        return Table(rows, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
+    }
+
+    /// <summary>Adds a fixed-position table inside a page rectangle using top-left page coordinates and reports layout diagnostics during rendering.</summary>
+    public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+        return Table(rows, x, y, width, height, style, 0D, diagnosticHandler);
+    }
+
+    /// <summary>Adds a fixed-position table inside a page rectangle using top-left page coordinates and reports layout diagnostics during rendering.</summary>
+    public PdfPageCanvas Table(IEnumerable<string[]> rows, double x, double y, double width, double height, PdfTableStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         Guard.NotNull(rows, nameof(rows));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas table rotation angle must be finite.");
-        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle));
+        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle, diagnosticHandler));
         return this;
     }
 
     /// <summary>Adds a fixed-position rich table inside a page rectangle using top-left page coordinates.</summary>
     public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style = null, double rotationAngle = 0D) {
+        return Table(rows, x, y, width, height, style, rotationAngle, diagnosticHandler: null);
+    }
+
+    /// <summary>Adds a fixed-position rich table inside a page rectangle using top-left page coordinates and reports layout diagnostics during rendering.</summary>
+    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
+        return Table(rows, x, y, width, height, style, 0D, diagnosticHandler);
+    }
+
+    /// <summary>Adds a fixed-position rich table inside a page rectangle using top-left page coordinates and reports layout diagnostics during rendering.</summary>
+    public PdfPageCanvas Table(IEnumerable<PdfTableCell[]> rows, double x, double y, double width, double height, PdfTableStyle? style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler) {
         Guard.NotNull(rows, nameof(rows));
         ValidateCanvasCoordinate(x, nameof(x));
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas table rotation angle must be finite.");
-        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle));
+        _items.Add(new PdfCanvasTableItem(new TableBlock(rows, PdfAlign.Left, style), x, y, width, height, rotationAngle, diagnosticHandler));
         return this;
     }
 
@@ -277,13 +317,14 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {
-    public PdfCanvasTextBoxItem(IReadOnlyList<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle style, double rotationAngle)
+    public PdfCanvasTextBoxItem(IReadOnlyList<TextRun> runs, double x, double y, double width, double height, PdfCanvasTextBoxStyle style, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler)
         : base(x, y) {
         Runs = runs;
         Width = width;
         Height = height;
         Style = style.Clone();
         RotationAngle = rotationAngle;
+        DiagnosticHandler = diagnosticHandler;
     }
 
     public IReadOnlyList<TextRun> Runs { get; }
@@ -291,6 +332,7 @@ internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {
     public double Height { get; }
     public PdfCanvasTextBoxStyle Style { get; }
     public double RotationAngle { get; }
+    public Action<PdfLayoutDiagnostic>? DiagnosticHandler { get; }
 }
 
 internal sealed class PdfCanvasShapeItem : PdfCanvasItem {
@@ -335,18 +377,20 @@ internal sealed class PdfCanvasImageItem : PdfCanvasItem {
 }
 
 internal sealed class PdfCanvasTableItem : PdfCanvasItem {
-    public PdfCanvasTableItem(TableBlock block, double x, double y, double width, double height, double rotationAngle)
+    public PdfCanvasTableItem(TableBlock block, double x, double y, double width, double height, double rotationAngle, Action<PdfLayoutDiagnostic>? diagnosticHandler)
         : base(x, y) {
         Block = block;
         Width = width;
         Height = height;
         RotationAngle = rotationAngle;
+        DiagnosticHandler = diagnosticHandler;
     }
 
     public TableBlock Block { get; }
     public double Width { get; }
     public double Height { get; }
     public double RotationAngle { get; }
+    public Action<PdfLayoutDiagnostic>? DiagnosticHandler { get; }
 }
 
 internal sealed class PdfCanvasClipItem : PdfCanvasItem {

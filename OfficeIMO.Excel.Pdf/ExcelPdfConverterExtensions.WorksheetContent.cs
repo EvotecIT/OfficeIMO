@@ -158,7 +158,9 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static void AddWarning(ExcelPdfSaveOptions options, string sheetName, string feature, string message) {
-            options.Warnings.Add(new ExcelPdfExportWarning(sheetName, feature, message));
+            var warning = new ExcelPdfExportWarning(sheetName, feature, message);
+            options.Warnings.Add(warning);
+            options.ConversionReport.Add(warning.ToConversionWarning());
         }
 
         private static bool IsPdfSupportedImageContentType(string contentType) {

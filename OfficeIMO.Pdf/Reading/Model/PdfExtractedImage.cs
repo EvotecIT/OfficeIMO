@@ -16,7 +16,8 @@ public sealed class PdfExtractedImage {
         byte[] bytes,
         string? fileExtension,
         string? mimeType,
-        bool isImageFile) {
+        bool isImageFile,
+        int directStreamIdentity = 0) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -29,6 +30,7 @@ public sealed class PdfExtractedImage {
         FileExtension = fileExtension;
         MimeType = mimeType;
         IsImageFile = isImageFile;
+        DirectStreamIdentity = directStreamIdentity;
     }
 
     /// <summary>One-based page number containing the image resource.</summary>
@@ -39,6 +41,9 @@ public sealed class PdfExtractedImage {
 
     /// <summary>PDF object number for the image stream, or 0 when the image is direct.</summary>
     public int ObjectNumber { get; }
+
+    /// <summary>Runtime identity for a direct image stream, or 0 when the image is indirect.</summary>
+    internal int DirectStreamIdentity { get; }
 
     /// <summary>Image width in pixels.</summary>
     public int Width { get; }

@@ -161,8 +161,9 @@ public sealed class PdfLogicalPage {
             elements.Add(logicalTable);
         }
 
-        foreach (var image in page.GetImages(pageNumber)) {
-            var logicalImage = new PdfLogicalImage(image);
+        IReadOnlyList<PdfImagePlacement> imagePlacements = page.GetImagePlacements(pageNumber);
+        foreach (var image in page.GetImages(pageNumber, imagePlacements)) {
+            var logicalImage = new PdfLogicalImage(image, MatchImagePlacements(image, imagePlacements));
             images.Add(logicalImage);
             elements.Add(logicalImage);
         }
@@ -325,5 +326,24 @@ public sealed class PdfLogicalPage {
         return index > 0 &&
             index < trimmed.Length &&
             (trimmed[index] == '.' || trimmed[index] == ')');
+    }
+
+    private static IReadOnlyList<PdfImagePlacement> MatchImagePlacements(PdfExtractedImage image, IReadOnlyList<PdfImagePlacement> placements) {
+        if (placements.Count == 0) {
+            return Array.Empty<PdfImagePlacement>();
+        }
+
+        var result = new List<PdfImagePlacement>();
+        for (int i = 0; i < placements.Count; i++) {
+            PdfImagePlacement placement = placements[i];
+            if (placement.PageNumber == image.PageNumber &&
+                placement.ObjectNumber == image.ObjectNumber &&
+                (image.ObjectNumber > 0 || placement.DirectStreamIdentity == image.DirectStreamIdentity) &&
+                string.Equals(placement.ResourceName, image.ResourceName, StringComparison.Ordinal)) {
+                result.Add(placement);
+            }
+        }
+
+        return result.Count == 0 ? Array.Empty<PdfImagePlacement>() : result.AsReadOnly();
     }
 }
