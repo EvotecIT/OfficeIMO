@@ -261,6 +261,32 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtml_PageRanges_DoesNotReapplyRangesAfterLoadingSelection() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .Paragraph(paragraph => paragraph.Text("Duplicated selected page"))
+            .ToBytes();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            PageRanges = new[] {
+                PdfCore.PdfPageRange.From(1, 1),
+                PdfCore.PdfPageRange.From(1, 1)
+            }
+        };
+
+        string html = PdfHtmlConverter.ToHtml(pdf, options);
+
+        Assert.Equal(2, CountOrdinal(html, "<section class=\"pdf-page\""));
+        Assert.Equal(2, CountOrdinal(html, "Duplicated selected page"));
+    }
+
+    [Fact]
     public void Pdf_ToHtml_PageRanges_FilterAlreadyLoadedLogicalDocument() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 320,
@@ -391,6 +417,20 @@ public sealed class HtmlPdfTests {
         }) + "\n";
 
         return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static int CountOrdinal(string value, string search) {
+        int count = 0;
+        int index = 0;
+        while (true) {
+            index = value.IndexOf(search, index, StringComparison.Ordinal);
+            if (index < 0) {
+                return count;
+            }
+
+            count++;
+            index += search.Length;
+        }
     }
 
     private static byte[] CreateRotatedLinkAnnotationPdf(int rotationDegrees, string uri) {

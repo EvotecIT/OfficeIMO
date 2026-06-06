@@ -135,7 +135,9 @@ public static class PdfLogicalMarkdownExtensions {
 
                 string label = !string.IsNullOrWhiteSpace(link.Contents) ? link.Contents! : target;
                 string markdown = link.Uri is not null
-                    ? "[Link: " + EscapeInline(label) + "](" + EscapeLinkTarget(link.Uri) + ")"
+                    ? IsSafeLinkUri(link.Uri)
+                        ? "[Link: " + EscapeInline(label) + "](" + EscapeLinkTarget(link.Uri) + ")"
+                        : "[Link: " + EscapeInline(label) + " -> " + EscapeInline(link.Uri) + "]"
                     : "[Link: " + EscapeInline(label) + " -> " + EscapeInline(target) + "]";
                 items.Add(new MarkdownItem(link.Y2, link.X1, sequence++, markdown));
             }
@@ -440,6 +442,16 @@ public static class PdfLogicalMarkdownExtensions {
 
     private static string EscapeLinkTarget(string uri) {
         return uri.Replace(")", "%29");
+    }
+
+    private static bool IsSafeLinkUri(string uri) {
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out Uri? parsed)) {
+            return false;
+        }
+
+        return string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(parsed.Scheme, Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase);
     }
 
     private static void EscapeLinePrefix(StringBuilder builder) {

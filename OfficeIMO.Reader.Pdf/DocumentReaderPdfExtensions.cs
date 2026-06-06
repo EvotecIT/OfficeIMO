@@ -20,7 +20,7 @@ public static class DocumentReaderPdfExtensions {
         var source = BuildSourceMetadataFromPath(pdfPath, effectiveReaderOptions.ComputeHashes);
 
         PdfLogicalDocument document = LoadDocument(pdfPath, effectivePdfOptions);
-        foreach (var chunk in ReadPdf(document, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken)) {
+        foreach (var chunk in ReadPdf(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
             yield return chunk;
         }
     }
@@ -57,7 +57,7 @@ public static class DocumentReaderPdfExtensions {
             }
 
             PdfLogicalDocument document = LoadDocument(parseStream, effectivePdfOptions);
-            foreach (var chunk in ReadPdf(document, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken)) {
+            foreach (var chunk in ReadPdf(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: false, cancellationToken)) {
                 yield return chunk;
             }
         } finally {
@@ -82,19 +82,20 @@ public static class DocumentReaderPdfExtensions {
             SourceId = BuildSourceId(logicalSourceName)
         };
 
-        foreach (var chunk in ReadPdf(document, source, effectiveReaderOptions, effectivePdfOptions, cancellationToken)) {
+        foreach (var chunk in ReadPdf(document, source, effectiveReaderOptions, effectivePdfOptions, applyPageRanges: true, cancellationToken)) {
             yield return chunk;
         }
     }
 
-    private static IEnumerable<ReaderChunk> ReadPdf(PdfLogicalDocument document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, CancellationToken cancellationToken) {
+    private static IEnumerable<ReaderChunk> ReadPdf(PdfLogicalDocument document, SourceMetadata source, ReaderOptions readerOptions, ReaderPdfOptions pdfOptions, bool applyPageRanges, CancellationToken cancellationToken) {
         int maxChars = readerOptions.MaxChars > 0 ? readerOptions.MaxChars : 8_000;
         var markdownOptions = ReaderPdfOptions.CloneMarkdownOptions(pdfOptions.MarkdownOptions) ?? ReaderPdfOptions.CreateOfficeIMOProfile().MarkdownOptions!;
         markdownOptions.IncludePageSeparators = false;
+        IReadOnlyList<PdfLogicalPage> pages = applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages;
 
         if (!pdfOptions.ChunkByPage) {
-            string markdown = document.ToMarkdown(markdownOptions);
-            foreach (var chunk in BuildChunksFromText(markdown, source, readerOptions, page: null, sourceBlockIndex: 0, blockKind: "document", blockAnchor: "document", tables: BuildTables(document.Tables, readerOptions), idPrefix: "pdf-document", maxChars: maxChars, cancellationToken: cancellationToken)) {
+            string markdown = BuildMarkdown(pages, markdownOptions);
+            foreach (var chunk in BuildChunksFromText(markdown, source, readerOptions, page: null, sourceBlockIndex: 0, blockKind: "document", blockAnchor: "document", tables: BuildTables(GetTables(pages), readerOptions), idPrefix: "pdf-document", maxChars: maxChars, cancellationToken: cancellationToken)) {
                 yield return chunk;
             }
 
@@ -102,10 +103,10 @@ public static class DocumentReaderPdfExtensions {
         }
 
         int emittedIndex = 0;
-        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
 
-            PdfLogicalPage page = document.Pages[pageIndex];
+            PdfLogicalPage page = pages[pageIndex];
             string pageOccurrence = pageIndex.ToString("D4", CultureInfo.InvariantCulture);
             string pageAnchor = "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string idPrefix = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
@@ -131,6 +132,60 @@ public static class DocumentReaderPdfExtensions {
                 Warnings = new[] { warning }
             }, source, readerOptions.ComputeHashes);
         }
+    }
+
+    private static IReadOnlyList<PdfLogicalPage> GetReaderPages(PdfLogicalDocument document, ReaderPdfOptions options) {
+        IReadOnlyList<PdfPageRange>? ranges = options.PageRanges;
+        if (ranges == null || ranges.Count == 0) {
+            return document.Pages;
+        }
+
+        int maxSourcePageNumber = 0;
+        for (int i = 0; i < document.Pages.Count; i++) {
+            maxSourcePageNumber = Math.Max(maxSourcePageNumber, document.Pages[i].PageNumber);
+        }
+
+        if (maxSourcePageNumber == 0) {
+            return Array.Empty<PdfLogicalPage>();
+        }
+
+        var pages = new List<PdfLogicalPage>();
+        for (int rangeIndex = 0; rangeIndex < ranges.Count; rangeIndex++) {
+            PdfPageRange range = ranges[rangeIndex];
+            if (range.FirstPage < 1 || range.LastPage < range.FirstPage) {
+                throw new ArgumentOutOfRangeException(nameof(ReaderPdfOptions.PageRanges), "Page ranges must be inclusive one-based ranges.");
+            }
+
+            if (range.LastPage > maxSourcePageNumber) {
+                throw new ArgumentOutOfRangeException(nameof(ReaderPdfOptions.PageRanges), "Page range cannot exceed the document page count.");
+            }
+
+            for (int pageNumber = range.FirstPage; pageNumber <= range.LastPage; pageNumber++) {
+                IReadOnlyList<PdfLogicalPage> sourcePages = document.GetPages(pageNumber);
+                for (int sourceIndex = 0; sourceIndex < sourcePages.Count; sourceIndex++) {
+                    pages.Add(sourcePages[sourceIndex]);
+                }
+            }
+        }
+
+        return pages.AsReadOnly();
+    }
+
+    private static string BuildMarkdown(IReadOnlyList<PdfLogicalPage> pages, PdfLogicalMarkdownOptions markdownOptions) {
+        if (pages.Count == 0) {
+            return string.Empty;
+        }
+
+        return string.Join(Environment.NewLine + Environment.NewLine, pages.Select(page => page.ToMarkdown(markdownOptions)).Where(text => !string.IsNullOrWhiteSpace(text)));
+    }
+
+    private static IReadOnlyList<PdfLogicalTable> GetTables(IReadOnlyList<PdfLogicalPage> pages) {
+        var tables = new List<PdfLogicalTable>();
+        for (int i = 0; i < pages.Count; i++) {
+            tables.AddRange(pages[i].Tables);
+        }
+
+        return tables.Count == 0 ? Array.Empty<PdfLogicalTable>() : tables.AsReadOnly();
     }
 
     private static IEnumerable<ReaderChunk> BuildChunksFromText(string markdown, SourceMetadata source, ReaderOptions readerOptions, int? page, int sourceBlockIndex, string blockKind, string blockAnchor, IReadOnlyList<ReaderTable>? tables, string idPrefix, int maxChars, CancellationToken cancellationToken) {

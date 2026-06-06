@@ -3,6 +3,7 @@ using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Text;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Zip;
@@ -19,19 +20,24 @@ public sealed class ReaderRegistryNonParallelCollection;
 public sealed class ReaderRegistryTests {
     [Fact]
     public void DocumentReader_GetCapabilities_IncludesBuiltInHandlers() {
-        var capabilities = DocumentReader.GetCapabilities();
+        try {
+            DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
+            var capabilities = DocumentReader.GetCapabilities();
 
-        Assert.NotEmpty(capabilities);
-        Assert.All(capabilities, capability => {
-            Assert.Equal(ReaderCapabilitySchema.Id, capability.SchemaId);
-            Assert.Equal(ReaderCapabilitySchema.Version, capability.SchemaVersion);
-        });
-        Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.word");
-        Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.excel");
-        Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.powerpoint");
-        Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.markdown");
-        Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.pdf");
-        Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.text");
+            Assert.NotEmpty(capabilities);
+            Assert.All(capabilities, capability => {
+                Assert.Equal(ReaderCapabilitySchema.Id, capability.SchemaId);
+                Assert.Equal(ReaderCapabilitySchema.Version, capability.SchemaVersion);
+            });
+            Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.word");
+            Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.excel");
+            Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.powerpoint");
+            Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.markdown");
+            Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.pdf");
+            Assert.Contains(capabilities, c => c.IsBuiltIn && c.Id == "officeimo.reader.text");
+        } finally {
+            DocumentReaderPdfRegistrationExtensions.UnregisterPdfHandler();
+        }
     }
 
     [Fact]

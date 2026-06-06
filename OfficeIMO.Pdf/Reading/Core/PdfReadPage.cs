@@ -287,8 +287,8 @@ public sealed class PdfReadPage {
         HashSet<PdfStream> activeForms) {
         foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
             Matrix2D invocationTransform = Matrix2D.Multiply(baseTransform, invocation.Transform);
-            if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber)) {
-                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, invocationTransform));
+            if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
+                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform));
                 continue;
             }
 
@@ -342,8 +342,9 @@ public sealed class PdfReadPage {
         return false;
     }
 
-    private bool TryGetImageXObject(PdfDictionary? resources, string name, out int objectNumber) {
+    private bool TryGetImageXObject(PdfDictionary? resources, string name, out int objectNumber, out int directStreamIdentity) {
         objectNumber = 0;
+        directStreamIdentity = 0;
         if (resources is null || !resources.Items.TryGetValue("XObject", out var xoObj)) {
             return false;
         }
@@ -361,13 +362,14 @@ public sealed class PdfReadPage {
             stream = referencedStream;
         } else if (imageObj is PdfStream directStream) {
             stream = directStream;
+            directStreamIdentity = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(directStream);
         }
 
         return stream is not null &&
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal);
     }
 
-    private static PdfImagePlacement BuildImagePlacement(int pageNumber, string resourceName, int objectNumber, Matrix2D transform) {
+    private static PdfImagePlacement BuildImagePlacement(int pageNumber, string resourceName, int objectNumber, int directStreamIdentity, Matrix2D transform) {
         var p0 = transform.Transform(0D, 0D);
         var p1 = transform.Transform(1D, 0D);
         var p2 = transform.Transform(0D, 1D);
@@ -381,6 +383,7 @@ public sealed class PdfReadPage {
             pageNumber,
             resourceName,
             objectNumber,
+            directStreamIdentity,
             transform.A,
             transform.B,
             transform.C,

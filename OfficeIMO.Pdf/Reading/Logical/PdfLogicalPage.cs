@@ -338,6 +338,7 @@ public sealed class PdfLogicalPage {
             PdfImagePlacement placement = placements[i];
             if (placement.PageNumber == image.PageNumber &&
                 placement.ObjectNumber == image.ObjectNumber &&
+                (image.ObjectNumber > 0 || placement.DirectStreamIdentity == image.DirectStreamIdentity) &&
                 string.Equals(placement.ResourceName, image.ResourceName, StringComparison.Ordinal)) {
                 result.Add(placement);
             }

@@ -8,6 +8,7 @@ public sealed class PdfImagePlacement {
         int pageNumber,
         string resourceName,
         int objectNumber,
+        int directStreamIdentity,
         double a,
         double b,
         double c,
@@ -21,6 +22,7 @@ public sealed class PdfImagePlacement {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
+        DirectStreamIdentity = directStreamIdentity;
         A = a;
         B = b;
         C = c;
@@ -41,6 +43,9 @@ public sealed class PdfImagePlacement {
 
     /// <summary>PDF object number for the image stream, or 0 when the image is direct.</summary>
     public int ObjectNumber { get; }
+
+    /// <summary>Runtime identity for a direct image stream, or 0 when the image is indirect.</summary>
+    internal int DirectStreamIdentity { get; }
 
     /// <summary>Current transformation matrix A component at the image invocation.</summary>
     public double A { get; }

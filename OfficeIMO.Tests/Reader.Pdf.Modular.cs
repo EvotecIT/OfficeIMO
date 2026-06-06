@@ -51,6 +51,23 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfLogicalDocument_CanSelectPageRanges() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPagePdf());
+
+        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+            logical,
+            sourceName: "logical-ranges.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] { PdfPageRange.From(2, 2) }
+            }).ToList();
+
+        var chunk = Assert.Single(chunks);
+        Assert.Equal(2, chunk.Location.Page);
+        Assert.Contains("Reader PDF page two", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reader PDF page one", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_UsesCurrentSeekableStreamPosition() {
         byte[] pdf = BuildTwoPagePdf();
         byte[] prefix = Encoding.ASCII.GetBytes("not-a-pdf-prefix");
@@ -101,6 +118,21 @@ public sealed class ReaderPdfModularTests {
         Assert.All(chunks, chunk => Assert.Equal(1, chunk.Location.Page));
         Assert.Equal(chunks.Count, chunks.Select(chunk => chunk.Id).Distinct(StringComparer.Ordinal).Count());
         Assert.Equal(chunks.Count, chunks.Select(chunk => chunk.Location.BlockAnchor).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_RendersUnsafeUriLinksAsInertMarkdown() {
+        byte[] pdf = CreateLinkAnnotationPdf("javascript:alert(1)");
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        var chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "unsafe-link.pdf",
+            pdfOptions: ReaderPdfOptions.CreateOfficeIMOProfile()).ToList());
+
+        string markdown = chunk.Markdown ?? chunk.Text;
+        Assert.DoesNotContain("](javascript:", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Link: Unsafe link -> javascript:alert(1)", markdown, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -277,5 +309,29 @@ public sealed class ReaderPdfModularTests {
             .H1("Reader PDF page two")
             .Paragraph(p => p.Text("Second page body."))
             .ToBytes();
+    }
+
+    private static byte[] CreateLinkAnnotationPdf(string uri) {
+        string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Unsafe link) /A << /S /URI /URI ({escapedUri}) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 }

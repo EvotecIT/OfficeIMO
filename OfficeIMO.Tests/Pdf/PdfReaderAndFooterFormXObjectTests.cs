@@ -135,6 +135,18 @@ public partial class PdfReaderAndFooterRegressionTests {
     }
 
     [Fact]
+    public void PdfReadPage_GetImages_PreservesDistinctDirectImagesInFormResources() {
+        PdfReadPage page = CreatePdfReadPageWithDistinctDirectFormImages();
+
+        IReadOnlyList<PdfImagePlacement> placements = page.GetImagePlacements();
+        IReadOnlyList<PdfExtractedImage> images = GetImagesWithPlacements(page, placements);
+
+        Assert.Equal(2, placements.Count);
+        Assert.Equal(2, images.Count);
+        Assert.Equal(new[] { "aaa", "bbb" }, images.Select(image => Encoding.ASCII.GetString(image.Bytes)).OrderBy(value => value, StringComparer.Ordinal).ToArray());
+    }
+
+    [Fact]
     public void PdfReadPage_GetTextSpans_AppliesScaledFormTransformsInOrder() {
         byte[] bytes = BuildPdfWithScaledFormMatrix();
 
@@ -144,6 +156,17 @@ public partial class PdfReaderAndFooterRegressionTests {
         var span = Assert.Single(doc.Pages[0].GetTextSpans(), s => s.Text == "Scaled form");
         Assert.Equal(26, span.X, 3);
         Assert.Equal(42, span.Y, 3);
+    }
+
+    private static IReadOnlyList<PdfExtractedImage> GetImagesWithPlacements(PdfReadPage page, IReadOnlyList<PdfImagePlacement> placements) {
+        MethodInfo? method = typeof(PdfReadPage).GetMethod(
+            "GetImages",
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            new[] { typeof(int), typeof(IReadOnlyList<PdfImagePlacement>) },
+            modifiers: null);
+
+        return Assert.IsAssignableFrom<IReadOnlyList<PdfExtractedImage>>(method!.Invoke(page, new object[] { 0, placements })!);
     }
 
     [Fact]

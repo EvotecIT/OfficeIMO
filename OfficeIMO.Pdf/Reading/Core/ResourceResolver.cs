@@ -214,15 +214,18 @@ internal static class ResourceResolver {
 
             var subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
             if (string.Equals(subtype, "Image", System.StringComparison.Ordinal)) {
+                int directStreamIdentity = objectNumber == 0
+                    ? System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(stream)
+                    : 0;
                 if (!IsPlacedImage(kv.Key, objectNumber, placedObjectNumbers, placedResourceNames)) {
                     continue;
                 }
 
-                if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber))) {
+                if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber, directStreamIdentity))) {
                     continue;
                 }
 
-                result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, stream, objects));
+                result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects));
                 continue;
             }
 
@@ -260,12 +263,14 @@ internal static class ResourceResolver {
         return placedResourceNames?.Contains(resourceName) == true;
     }
 
-    private static string BuildImageResourceKey(int pageNumber, string resourceName, int objectNumber) {
+    private static string BuildImageResourceKey(int pageNumber, string resourceName, int objectNumber, int directStreamIdentity) {
         return pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
             "|" +
             resourceName +
             "|" +
-            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            "|" +
+            directStreamIdentity.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {
@@ -683,6 +688,7 @@ internal static class ResourceResolver {
         int pageNumber,
         string resourceName,
         int objectNumber,
+        int directStreamIdentity,
         PdfStream stream,
         Dictionary<int, PdfIndirectObject> objects) {
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
@@ -720,7 +726,8 @@ internal static class ResourceResolver {
             bytes,
             extension,
             mimeType,
-            isImageFile);
+            isImageFile,
+            directStreamIdentity);
     }
 
     private static string GetFilterName(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {

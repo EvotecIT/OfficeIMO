@@ -18,7 +18,7 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return LoadLogical(pdf, options).ToHtml(options);
+        return RenderLogicalDocument(LoadLogical(pdf, options), options, applyPageRanges: false);
     }
 
     /// <summary>
@@ -31,7 +31,7 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return LoadLogical(path, options).ToHtml(options);
+        return RenderLogicalDocument(LoadLogical(path, options), options, applyPageRanges: false);
     }
 
     /// <summary>
@@ -44,7 +44,7 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return LoadLogical(stream, options).ToHtml(options);
+        return RenderLogicalDocument(LoadLogical(stream, options), options, applyPageRanges: false);
     }
 
     /// <summary>
@@ -78,7 +78,7 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return LoadLogical(document, options).ToHtml(options);
+        return RenderLogicalDocument(LoadLogical(document, options), options, applyPageRanges: false);
     }
 
     /// <summary>
@@ -91,9 +91,16 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
+        return RenderLogicalDocument(document, options, applyPageRanges: true);
+    }
+
+    private static string RenderLogicalDocument(PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options, bool applyPageRanges) {
+        IReadOnlyList<PdfCore.PdfLogicalPage> pages = applyPageRanges
+            ? GetRenderPages(document, options)
+            : document.Pages;
         return options.Profile switch {
-            PdfHtmlProfile.Semantic => RenderSemanticDocument(document, options),
-            PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, options),
+            PdfHtmlProfile.Semantic => RenderSemanticDocument(document, pages, options),
+            PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
             _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
         };
     }
@@ -140,7 +147,7 @@ public static partial class PdfHtmlConverter {
         return copy;
     }
 
-    private static string RenderSemanticDocument(PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options) {
+    private static string RenderSemanticDocument(PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
         var builder = new StringBuilder();
         AppendDocumentStart(builder, document, options, positioned: false);
         if (options.EmitDocumentShell) {
@@ -151,7 +158,6 @@ public static partial class PdfHtmlConverter {
             AppendMetadataSection(builder, document);
         }
 
-        IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
         for (int i = 0; i < pages.Count; i++) {
             PdfCore.PdfLogicalPage page = pages[i];
             if (options.IncludePageContainers) {
@@ -175,7 +181,7 @@ public static partial class PdfHtmlConverter {
         return builder.ToString().TrimEnd();
     }
 
-    private static string RenderPositionedReviewDocument(PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options) {
+    private static string RenderPositionedReviewDocument(PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
         var builder = new StringBuilder();
         AppendDocumentStart(builder, document, options, positioned: true);
         if (options.EmitDocumentShell) {
@@ -184,7 +190,6 @@ public static partial class PdfHtmlConverter {
             AppendPositionedStyles(builder);
         }
 
-        IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
         for (int i = 0; i < pages.Count; i++) {
             AppendPositionedPage(builder, pages[i], options);
         }

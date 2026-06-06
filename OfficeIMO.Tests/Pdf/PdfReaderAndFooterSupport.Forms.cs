@@ -620,6 +620,52 @@ public partial class PdfReaderAndFooterRegressionTests {
         return Assert.IsType<PdfReadPage>(ctor!.Invoke(new object[] { 1, pageDict, state.Objects }));
     }
 
+    private static PdfReadPage CreatePdfReadPageWithDistinctDirectFormImages() {
+        var xObjects = new PdfDictionary();
+        var resources = new PdfDictionary();
+        resources.Items["XObject"] = xObjects;
+
+        xObjects.Items["FxA"] = CreateDirectImageForm("aaa");
+        xObjects.Items["FxB"] = CreateDirectImageForm("bbb");
+
+        var pageDict = new PdfDictionary();
+        pageDict.Items["Type"] = new PdfName("Page");
+        pageDict.Items["Resources"] = resources;
+
+        var contents = new PdfArray();
+        contents.Items.Add(new PdfStream(new PdfDictionary(), Encoding.ASCII.GetBytes("/FxA Do /FxB Do")));
+        pageDict.Items["Contents"] = contents;
+
+        var ctor = typeof(PdfReadPage).GetConstructor(
+            BindingFlags.Instance | BindingFlags.NonPublic,
+            binder: null,
+            new[] { typeof(int), typeof(PdfDictionary), typeof(Dictionary<int, PdfIndirectObject>) },
+            modifiers: null);
+
+        return Assert.IsType<PdfReadPage>(ctor!.Invoke(new object[] { 1, pageDict, new Dictionary<int, PdfIndirectObject>() }));
+    }
+
+    private static PdfStream CreateDirectImageForm(string imageBytes) {
+        var imageDictionary = new PdfDictionary();
+        imageDictionary.Items["Subtype"] = new PdfName("Image");
+        imageDictionary.Items["Width"] = new PdfNumber(1);
+        imageDictionary.Items["Height"] = new PdfNumber(1);
+        imageDictionary.Items["ColorSpace"] = new PdfName("DeviceRGB");
+        imageDictionary.Items["BitsPerComponent"] = new PdfNumber(8);
+
+        var formXObjects = new PdfDictionary();
+        formXObjects.Items["Im1"] = new PdfStream(imageDictionary, Encoding.ASCII.GetBytes(imageBytes));
+
+        var formResources = new PdfDictionary();
+        formResources.Items["XObject"] = formXObjects;
+
+        var formDictionary = new PdfDictionary();
+        formDictionary.Items["Subtype"] = new PdfName("Form");
+        formDictionary.Items["Resources"] = formResources;
+
+        return new PdfStream(formDictionary, Encoding.ASCII.GetBytes("/Im1 Do"));
+    }
+
     private static (PdfDictionary Resources, Dictionary<int, PdfIndirectObject> Objects) BuildDirectFormCycleState() {
         var xObjects = new PdfDictionary();
         var resources = new PdfDictionary();
