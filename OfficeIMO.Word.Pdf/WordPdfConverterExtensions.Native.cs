@@ -90,7 +90,7 @@ namespace OfficeIMO.Word.Pdf {
         };
 
         private static PdfCore.PdfDocument CreateOfficeIMOPdfDocument(WordDocument document, PdfSaveOptions? options) {
-            options?.Warnings.Clear();
+            options?.ResetExportState();
 
             BuiltinDocumentProperties properties = document.BuiltinDocumentProperties;
             PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(CreateNativeOptions(document, options))

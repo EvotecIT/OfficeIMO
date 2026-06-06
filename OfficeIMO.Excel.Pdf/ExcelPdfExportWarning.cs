@@ -29,5 +29,26 @@ namespace OfficeIMO.Excel.Pdf {
                 ? SheetName + ": " + Message
                 : SheetName + " [" + Feature + "]: " + Message;
         }
+
+        /// <summary>
+        /// Converts this Excel-specific warning to the shared PDF conversion warning contract.
+        /// </summary>
+        public OfficeIMO.Pdf.PdfConversionWarning ToConversionWarning() {
+            var details = new Dictionary<string, string>();
+            if (!string.IsNullOrWhiteSpace(SheetName)) {
+                details["SheetName"] = SheetName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(Feature)) {
+                details["Feature"] = Feature;
+            }
+
+            return new OfficeIMO.Pdf.PdfConversionWarning(
+                "OfficeIMO.Excel.Pdf",
+                string.IsNullOrWhiteSpace(Feature) ? "ExcelPdfWarning" : Feature,
+                SheetName,
+                Message,
+                details: details);
+        }
     }
 }

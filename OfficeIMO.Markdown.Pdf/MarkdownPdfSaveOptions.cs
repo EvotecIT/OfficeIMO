@@ -126,7 +126,14 @@ public sealed class MarkdownPdfSaveOptions {
     /// <summary>Warnings recorded during the latest export.</summary>
     public IList<MarkdownPdfExportWarning> Warnings { get; } = new List<MarkdownPdfExportWarning>();
 
+    /// <summary>
+    /// Shared conversion report populated alongside <see cref="Warnings"/> for wrapper-friendly diagnostics.
+    /// The report is cleared at the start of each export.
+    /// </summary>
+    public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
+
     internal void ResetExportState() {
         Warnings.Clear();
+        ConversionReport.Clear();
     }
 }

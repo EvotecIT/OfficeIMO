@@ -136,6 +136,9 @@ public class PowerPointSaveAsPdfTests {
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
         Assert.Equal("PowerPointTextBox", warning.LayoutDiagnostic.Source);
         Assert.True(warning.LayoutDiagnostic.HasBounds);
+        PdfCore.PdfConversionWarning sharedWarning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "text-box-overflow");
+        Assert.Equal("OfficeIMO.PowerPoint.Pdf", sharedWarning.Converter);
+        Assert.Equal(warning.LayoutDiagnostic, sharedWarning.LayoutDiagnostic);
     }
 
     [Fact]
@@ -1205,6 +1208,9 @@ public class PowerPointSaveAsPdfTests {
         Assert.Equal(PdfCore.PdfLayoutDiagnosticKind.ClippedContent, warning.LayoutDiagnostic!.Kind);
         Assert.Equal("PowerPointTableCell", warning.LayoutDiagnostic.Source);
         Assert.True(warning.LayoutDiagnostic.HasBounds);
+        PdfCore.PdfConversionWarning sharedWarning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "table-cell-overflow");
+        Assert.Equal("OfficeIMO.PowerPoint.Pdf", sharedWarning.Converter);
+        Assert.Equal(warning.LayoutDiagnostic, sharedWarning.LayoutDiagnostic);
     }
 
     [Fact]

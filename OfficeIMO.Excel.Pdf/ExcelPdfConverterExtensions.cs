@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             options ??= new ExcelPdfSaveOptions();
-            options.Warnings.Clear();
+            options.ResetExportState();
             PdfCore.PdfOptions pdfOptions = CreatePdfOptions(options, out bool preserveConfiguredFontSlots);
             PdfCore.PdfStandardFont defaultFontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont);
             using ExcelDocumentReader reader = document.CreateReader();

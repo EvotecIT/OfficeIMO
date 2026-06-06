@@ -488,7 +488,27 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         IReadOnlyList<PdfCore.TextRun> runs = CreateTextRuns(textBox, slideNumber, options);
-        canvas.TextBox(runs, x, y, width, height, style, textBox.Rotation ?? 0D);
+        bool reportedOverflow = false;
+        canvas.TextBox(runs, x, y, width, height, style, textBox.Rotation ?? 0D, diagnostic => {
+            if (reportedOverflow || diagnostic.Kind != PdfCore.PdfLayoutDiagnosticKind.ClippedContent) {
+                return;
+            }
+
+            reportedOverflow = true;
+            AddWarning(
+                options,
+                slideNumber,
+                "text-box-overflow",
+                "Clipped PowerPoint text box content because the PDF text box render pass found more text than fits the mapped text area.",
+                new PdfCore.PdfLayoutDiagnostic(
+                    PdfCore.PdfLayoutDiagnosticKind.ClippedContent,
+                    "PowerPointTextBox",
+                    diagnostic.Message,
+                    x,
+                    y,
+                    width,
+                    height));
+        });
     }
 
     private static bool ShouldRenderParagraphsIndividually(PptCore.PowerPointTextBox textBox) {
@@ -544,32 +564,44 @@ public static partial class PowerPointPdfConverterExtensions {
 
         double cursorY = textY + offsetY;
         int renderedParagraphs = 0;
-        bool clipped = totalHeight > textHeight;
-        for (int index = 0; index < paragraphRuns.Count && cursorY < textY + textHeight; index++) {
-            PptCore.PowerPointParagraph paragraph = textBox.Paragraphs.Count > index ? textBox.Paragraphs[index] : textBox.Paragraphs.Last();
-            double availableHeight = textY + textHeight - cursorY;
-            double paragraphHeight = Math.Min(paragraphHeights[index], availableHeight);
-            clipped |= paragraphHeight + 0.01D < paragraphHeights[index];
-            var paragraphStyle = CreateTransparentParagraphStyle(style, paragraph);
-            canvas.TextBox(paragraphRuns[index], textX, cursorY, textWidth, Math.Max(1D, paragraphHeight), paragraphStyle);
-            cursorY += paragraphHeight;
-            renderedParagraphs++;
-        }
+        bool reportedOverflow = false;
+        Action<PdfCore.PdfLayoutDiagnostic?> reportOverflow = diagnostic => {
+            if (reportedOverflow) {
+                return;
+            }
 
-        if (clipped || renderedParagraphs < paragraphRuns.Count) {
+            reportedOverflow = true;
             AddWarning(
                 options,
                 slideNumber,
                 "text-box-overflow",
-                "Clipped PowerPoint text box content because the mapped PDF text area was too small for all paragraphs.",
+                "Clipped PowerPoint text box content because the PDF text box render pass found more text than fits the mapped text area.",
                 new PdfCore.PdfLayoutDiagnostic(
                     PdfCore.PdfLayoutDiagnosticKind.ClippedContent,
                     "PowerPointTextBox",
-                    "The mapped PDF text area was too small for all PowerPoint paragraphs.",
+                    diagnostic?.Message ?? "The mapped PDF text area was too small for all PowerPoint paragraphs.",
                     x,
                     y,
                     width,
                     height));
+        };
+
+        for (int index = 0; index < paragraphRuns.Count && cursorY < textY + textHeight; index++) {
+            PptCore.PowerPointParagraph paragraph = textBox.Paragraphs.Count > index ? textBox.Paragraphs[index] : textBox.Paragraphs.Last();
+            double availableHeight = textY + textHeight - cursorY;
+            double paragraphHeight = Math.Min(paragraphHeights[index], availableHeight);
+            var paragraphStyle = CreateTransparentParagraphStyle(style, paragraph);
+            canvas.TextBox(paragraphRuns[index], textX, cursorY, textWidth, Math.Max(1D, paragraphHeight), paragraphStyle, diagnosticHandler: diagnostic => {
+                if (diagnostic.Kind == PdfCore.PdfLayoutDiagnosticKind.ClippedContent) {
+                    reportOverflow(diagnostic);
+                }
+            });
+            cursorY += paragraphHeight;
+            renderedParagraphs++;
+        }
+
+        if (renderedParagraphs < paragraphRuns.Count) {
+            reportOverflow(null);
         }
     }
 
@@ -867,9 +899,28 @@ public static partial class PowerPointPdfConverterExtensions {
         }
 
         PdfCore.PdfTableStyle style = CreateTableStyle(table);
-        AddPowerPointTableLayoutDiagnostics(options, slideNumber, table, x, y, width, height);
+        bool reportedCellOverflow = false;
         try {
-            canvas.Table(rows, x, y, width, height, style, table.Rotation ?? 0D);
+            canvas.Table(rows, x, y, width, height, style, table.Rotation ?? 0D, diagnostic => {
+                if (reportedCellOverflow || diagnostic.Kind != PdfCore.PdfLayoutDiagnosticKind.ClippedContent) {
+                    return;
+                }
+
+                reportedCellOverflow = true;
+                AddWarning(
+                    options,
+                    slideNumber,
+                    "table-cell-overflow",
+                    "PowerPoint table cell text was clipped because the PDF table render pass found more text than fits a mapped cell.",
+                    new PdfCore.PdfLayoutDiagnostic(
+                        PdfCore.PdfLayoutDiagnosticKind.ClippedContent,
+                        "PowerPointTableCell",
+                        diagnostic.Message,
+                        diagnostic.X ?? x,
+                        diagnostic.Y ?? y,
+                        diagnostic.Width ?? width,
+                        diagnostic.Height ?? height));
+            });
         } catch (Exception ex) {
             AddLayoutWarning(
                 options,
@@ -1321,10 +1372,14 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static void AddWarning(PowerPointPdfSaveOptions options, int slideNumber, string code, string message) {
-        options.Warnings.Add(new PowerPointPdfExportWarning(slideNumber, code, message));
+        var warning = new PowerPointPdfExportWarning(slideNumber, code, message);
+        options.Warnings.Add(warning);
+        options.ConversionReport.Add(warning.ToConversionWarning());
     }
 
     private static void AddWarning(PowerPointPdfSaveOptions options, int slideNumber, string code, string message, PdfCore.PdfLayoutDiagnostic layoutDiagnostic) {
-        options.Warnings.Add(new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic));
+        var warning = new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic);
+        options.Warnings.Add(warning);
+        options.ConversionReport.Add(warning.ToConversionWarning());
     }
 }

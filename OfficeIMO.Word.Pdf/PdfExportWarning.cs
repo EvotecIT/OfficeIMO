@@ -34,5 +34,11 @@ namespace OfficeIMO.Word.Pdf {
         /// Returns a readable representation of the warning.
         /// </summary>
         public override string ToString() => Code + ": " + Message;
+
+        /// <summary>
+        /// Converts this Word-specific warning to the shared PDF conversion warning contract.
+        /// </summary>
+        public OfficeIMO.Pdf.PdfConversionWarning ToConversionWarning() =>
+            new OfficeIMO.Pdf.PdfConversionWarning("OfficeIMO.Word.Pdf", Code, Source, Message);
     }
 }

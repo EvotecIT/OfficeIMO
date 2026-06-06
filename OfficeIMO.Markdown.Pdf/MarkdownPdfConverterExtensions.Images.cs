@@ -236,6 +236,8 @@ public static partial class MarkdownPdfConverterExtensions {
 
 
     private static void AddWarning(MarkdownPdfSaveOptions options, string code, string source, string message) {
-        options.Warnings.Add(new MarkdownPdfExportWarning(code, source, message));
+        var warning = new MarkdownPdfExportWarning(code, source, message);
+        options.Warnings.Add(warning);
+        options.ConversionReport.Add(warning.ToConversionWarning());
     }
 }

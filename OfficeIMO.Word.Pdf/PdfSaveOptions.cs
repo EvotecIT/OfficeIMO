@@ -68,6 +68,12 @@ namespace OfficeIMO.Word.Pdf {
         public List<PdfExportWarning> Warnings { get; } = new List<PdfExportWarning>();
 
         /// <summary>
+        /// Shared conversion report populated alongside <see cref="Warnings"/> for wrapper-friendly diagnostics.
+        /// The report is cleared at the start of each export.
+        /// </summary>
+        public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
+
+        /// <summary>
         /// Determines whether page numbers are rendered in the PDF footer. Defaults to true.
         /// </summary>
         public bool IncludePageNumbers { get; set; } = true;
@@ -82,5 +88,10 @@ namespace OfficeIMO.Word.Pdf {
         /// Defaults to false to preserve strict fidelity.
         /// </summary>
         public bool DefaultTableBorders { get; set; } = false;
+
+        internal void ResetExportState() {
+            Warnings.Clear();
+            ConversionReport.Clear();
+        }
     }
 }

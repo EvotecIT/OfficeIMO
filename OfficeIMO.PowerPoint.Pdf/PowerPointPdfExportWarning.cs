@@ -32,4 +32,21 @@ public sealed class PowerPointPdfExportWarning {
 
     /// <summary>Reusable layout or visual fidelity diagnostic, when the warning maps to one.</summary>
     public PdfCore.PdfLayoutDiagnostic? LayoutDiagnostic { get; }
+
+    /// <summary>
+    /// Converts this PowerPoint-specific warning to the shared PDF conversion warning contract.
+    /// </summary>
+    public PdfCore.PdfConversionWarning ToConversionWarning() {
+        var details = new Dictionary<string, string> {
+            ["SlideNumber"] = SlideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+
+        return new PdfCore.PdfConversionWarning(
+            "OfficeIMO.PowerPoint.Pdf",
+            Code,
+            "Slide " + SlideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Message,
+            layoutDiagnostic: LayoutDiagnostic,
+            details: details);
+    }
 }

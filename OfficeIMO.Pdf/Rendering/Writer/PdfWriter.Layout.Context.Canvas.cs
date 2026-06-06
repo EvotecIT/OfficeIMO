@@ -113,6 +113,17 @@ internal static partial class PdfWriter {
             var wrap = WrapRichRunsCore(item.Runs, textWidth, size, baseFont, leading, null, DefaultParagraphTabStopWidth, currentOpts);
             if (wrap.Lines.Count > 0) {
                 double textContentHeight = MeasureRichLinesHeight(wrap.LineHeights, wrap.Lines.Count, leading);
+                if (textContentHeight > textHeight + 0.01D) {
+                    item.DiagnosticHandler?.Invoke(new PdfLayoutDiagnostic(
+                        PdfLayoutDiagnosticKind.ClippedContent,
+                        "PdfCanvasTextBox",
+                        "The PDF text box render pass clipped text because wrapped content exceeded the available text area.",
+                        item.X,
+                        item.Y,
+                        item.Width,
+                        item.Height));
+                }
+
                 double verticalOffset = GetCanvasTextBoxVerticalOffset(style.VerticalAlign, textHeight, textContentHeight);
                 var annotations = rotated ? new System.Collections.Generic.List<LinkAnnotation>() : currentPage!.Annotations;
                 int? markedContentId = RegisterTextStructureElement("P");

@@ -55,7 +55,7 @@ internal static partial class PdfWriter {
                     double cellBottom = rowTop - cellHeight;
 
                     DrawCanvasTableCellBackground(style, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, cellBottom, cellWidth, cellHeight);
-                    RenderCanvasTableCellText(style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, rowTop, cellBottom, cellWidth, cellHeight, headerRowCount, footerStart);
+                    RenderCanvasTableCellText(item, style, cell, rowIndex, cell.Column, rowIsHeader, rowIsFooter, cellX, rowTop, cellBottom, cellWidth, cellHeight, headerRowCount, footerStart, item.Y + GetTableRowsHeight(rowHeights, 0, rowIndex, rowGap));
                     DrawCanvasTableCellBorder(style, rowIndex, cell.Column, cellX, cellBottom, cellWidth, cellHeight);
                 }
             }
@@ -196,7 +196,7 @@ internal static partial class PdfWriter {
             }
         }
 
-        private void RenderCanvasTableCellText(PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, int headerRowCount, int footerStart) {
+        private void RenderCanvasTableCellText(PdfCanvasTableItem item, PdfTableStyle style, TableCellLayout cell, int rowIndex, int columnIndex, bool rowIsHeader, bool rowIsFooter, double cellX, double cellTop, double cellBottom, double cellWidth, double cellHeight, int headerRowCount, int footerStart, double cellYFromTop) {
             double fontSize = GetTableRowFontSize(style, rowIndex, headerRowCount, footerStart, currentOpts.DefaultFontSize);
             double leading = GetTableLeading(style, fontSize);
             bool rowUsesBold = GetTableRowBold(style, rowIndex, headerRowCount, footerStart);
@@ -210,6 +210,17 @@ internal static partial class PdfWriter {
             var lines = CreateTableCellTextLayout(cell, innerWidth, cellFont, fontSize, leading, currentOpts);
             int lineCount = Math.Max(1, lines.LineCount);
             double contentHeight = MeasureTableCellContentHeight(cell, lines, 0, lineCount, leading, innerWidth);
+            if (contentHeight > availableHeight + 0.01D) {
+                item.DiagnosticHandler?.Invoke(new PdfLayoutDiagnostic(
+                    PdfLayoutDiagnosticKind.ClippedContent,
+                    "PdfCanvasTableCell",
+                    "The PDF table render pass clipped cell text because wrapped content exceeded the available cell area.",
+                    cellX,
+                    cellYFromTop,
+                    cellWidth,
+                    cellHeight));
+            }
+
             double verticalOffset = 0D;
             PdfCellVerticalAlign verticalAlign = GetTableCellVerticalAlignment(style, rowIndex, columnIndex);
             if (availableHeight > contentHeight) {

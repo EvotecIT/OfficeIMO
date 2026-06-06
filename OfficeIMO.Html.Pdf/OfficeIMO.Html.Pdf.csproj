@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Bidirectional HTML/PDF converter for OfficeIMO - Thin adapter over OfficeIMO.Markdown.Html, OfficeIMO.Word.Html, and the first-party OfficeIMO.Pdf logical/read/render engines.</Description>
+    <PackageId>OfficeIMO.Html.Pdf</PackageId>
+    <AssemblyName>OfficeIMO.Html.Pdf</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Html.Pdf</AssemblyTitle>
+    <VersionPrefix>1.0.0</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageTags>html;pdf;converter;officeimo-pdf</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="README.md">
+      <Pack>True</Pack>
+      <PackagePath>README.md</PackagePath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Markdown.Html\OfficeIMO.Markdown.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Markdown.Pdf\OfficeIMO.Markdown.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Html\OfficeIMO.Word.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.IO" />
+    <Using Include="System.Text" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Tests" />
+  </ItemGroup>
+</Project>
