@@ -57,6 +57,24 @@ PdfHtmlConverter.SaveAsHtml("quarterly-update.pdf", "quarterly-update-review.htm
 ```csharp
 using OfficeIMO.Html.Pdf;
 
+HtmlPdfProfileContract contract = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Semantic);
+
+Console.WriteLine(contract.Id);
+Console.WriteLine(contract.FidelityContract);
+```
+
+```csharp
+using OfficeIMO.Html.Pdf;
+
+PdfHtmlProfileContract contract = PdfHtmlProfileContracts.Get(PdfHtmlProfile.PositionedReview);
+
+Console.WriteLine(contract.Id);
+Console.WriteLine(contract.UnsupportedScope);
+```
+
+```csharp
+using OfficeIMO.Html.Pdf;
+
 byte[] pdf = File.ReadAllBytes("quarterly-update.pdf");
 string reviewHtml = PdfHtmlConverter.ToHtml(pdf, new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.PositionedReview,
@@ -83,3 +101,10 @@ when callers need lightweight review HTML without embedded image bytes.
 Images whose drawing invocation cannot be matched are still emitted as
 page-scoped placeholders with a conversion warning instead of being silently
 dropped.
+
+`HtmlPdfProfileContracts.All` and `PdfHtmlProfileContracts.All` expose stable
+profile identifiers, pipeline descriptions, intended use, fidelity guarantees,
+and unsupported scope for wrappers, manifests, UI selectors, and product docs.
+They are deliberately descriptive contracts rather than renderer switches:
+callers still choose behavior through `HtmlPdfSaveOptions.Profile` and
+`PdfHtmlSaveOptions.Profile`.

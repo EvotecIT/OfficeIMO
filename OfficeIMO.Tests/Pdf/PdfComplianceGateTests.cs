@@ -1,19 +1,24 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text;
+using System.Text.Json;
 using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfComplianceGateTests {
+    private const string ProofOutputEnv = "OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT";
+    private static readonly PdfStandardFont[] GeneratedGroundworkFonts = {
+        PdfStandardFont.Helvetica,
+        PdfStandardFont.HelveticaBold
+    };
+
     [Fact]
     public void PdfA3GroundworkFixture_ContainsCurrentArchivalPrimitivesWithoutEnablingFormalProfile() {
         byte[] bytes = CreatePdfA3GroundworkFixture();
+        WriteProofPdf("officeimo-pdfa3-groundwork.pdf", bytes);
+        WriteProfileProofContract();
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
 
@@ -34,13 +39,17 @@ public class PdfComplianceGateTests {
 
     [Fact]
     public void VeraPdfGate_RejectsGroundworkFixtureUntilFormalPdfA3BGenerationExists() {
+        byte[] fixture = CreatePdfA3GroundworkFixture();
+        WriteProofPdf("officeimo-pdfa3-groundwork.pdf", fixture);
         PdfExternalValidator validator = PdfExternalValidator.VeraPdf();
         if (!validator.IsAvailable) {
+            WriteProofText("verapdf-pdfa3-groundwork.txt", validator.GetNotConfiguredText());
             PdfExternalValidator.SkipUnlessRequired(validator);
             return;
         }
 
-        PdfExternalValidationResult result = validator.Run(CreatePdfA3GroundworkFixture(), "officeimo-pdfa3-groundwork.pdf");
+        PdfExternalProcessResult result = validator.Run(fixture, "officeimo-pdfa3-groundwork.pdf");
+        WriteProofText("verapdf-pdfa3-groundwork.txt", result.GetDiagnosticText());
 
         Assert.False(result.ExitCode == 0, "The PDF/A-3b groundwork fixture unexpectedly passed veraPDF. Enable the formal OfficeIMO.Pdf profile only after the compliance profile itself is implemented and the validator fixture is intentionally flipped to expect success." + Environment.NewLine + result.GetDiagnosticText());
         Assert.NotEmpty(result.GetDiagnosticText());
@@ -48,20 +57,79 @@ public class PdfComplianceGateTests {
 
     [Fact]
     public void MustangGate_RejectsEinvoiceGroundworkFixtureUntilFacturXProfileGenerationExists() {
+        byte[] fixture = CreateEinvoiceGroundworkFixture();
+        WriteProofPdf("officeimo-einvoice-groundwork.pdf", fixture);
         PdfExternalValidator validator = PdfExternalValidator.Mustang();
         if (!validator.IsAvailable) {
+            WriteProofText("mustang-einvoice-groundwork.txt", validator.GetNotConfiguredText());
             PdfExternalValidator.SkipUnlessRequired(validator);
             return;
         }
 
-        PdfExternalValidationResult result = validator.Run(CreateEinvoiceGroundworkFixture(), "officeimo-einvoice-groundwork.pdf");
+        PdfExternalProcessResult result = validator.Run(fixture, "officeimo-einvoice-groundwork.pdf");
+        WriteProofText("mustang-einvoice-groundwork.txt", result.GetDiagnosticText());
 
         Assert.False(result.ExitCode == 0, "The e-invoice groundwork fixture unexpectedly passed Mustang validation. Enable Factur-X/ZUGFeRD profile output only after profile-specific XML, XMP, PDF/A-3, and validator evidence are intentionally implemented." + Environment.NewLine + result.GetDiagnosticText());
         Assert.NotEmpty(result.GetDiagnosticText());
     }
 
+    [Fact]
+    public void VeraPdfGate_RejectsEinvoiceGroundworkFixtureUntilFacturXProfileGenerationExists() {
+        byte[] fixture = CreateEinvoiceGroundworkFixture();
+        WriteProofPdf("officeimo-einvoice-groundwork.pdf", fixture);
+        PdfExternalValidator validator = PdfExternalValidator.VeraPdf();
+        if (!validator.IsAvailable) {
+            WriteProofText("verapdf-einvoice-groundwork.txt", validator.GetNotConfiguredText());
+            PdfExternalValidator.SkipUnlessRequired(validator);
+            return;
+        }
+
+        PdfExternalProcessResult result = validator.Run(fixture, "officeimo-einvoice-groundwork.pdf");
+        WriteProofText("verapdf-einvoice-groundwork.txt", result.GetDiagnosticText());
+
+        Assert.False(result.ExitCode == 0, "The e-invoice groundwork fixture unexpectedly passed veraPDF. Enable Factur-X/ZUGFeRD profile output only after the actual e-invoice PDF/A-3 carrier is intentionally implemented and validated." + Environment.NewLine + result.GetDiagnosticText());
+        Assert.NotEmpty(result.GetDiagnosticText());
+    }
+
+    [Fact]
+    public void PdfUaGroundworkFixture_ContainsCurrentAccessibilityPrimitivesWithoutEnablingFormalProfile() {
+        byte[] bytes = CreatePdfUaGroundworkFixture();
+        WriteProofPdf("officeimo-pdfua-groundwork.pdf", bytes);
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+
+        Assert.Equal("1.7", info.HeaderVersion);
+        Assert.True(info.HasXmpMetadata);
+        Assert.True(info.HasTaggedContent);
+        Assert.Equal("en-US", info.CatalogLanguage);
+        Assert.Contains("pdfuaid:part", raw, StringComparison.Ordinal);
+        Assert.Contains("/ViewerPreferences", raw, StringComparison.Ordinal);
+        Assert.Contains("/DisplayDocTitle true", raw, StringComparison.Ordinal);
+        Assert.Contains("/MarkInfo << /Marked true >>", raw, StringComparison.Ordinal);
+        Assert.Contains("/StructTreeRoot", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfUaValidatorGate_RejectsGroundworkFixtureUntilFormalPdfUaGenerationExists() {
+        byte[] fixture = CreatePdfUaGroundworkFixture();
+        WriteProofPdf("officeimo-pdfua-groundwork.pdf", fixture);
+        PdfExternalValidator validator = PdfExternalValidator.PdfUa();
+        if (!validator.IsAvailable) {
+            WriteProofText("pdfua-groundwork.txt", validator.GetNotConfiguredText());
+            PdfExternalValidator.SkipUnlessRequired(validator);
+            return;
+        }
+
+        PdfExternalProcessResult result = validator.Run(fixture, "officeimo-pdfua-groundwork.pdf");
+        WriteProofText("pdfua-groundwork.txt", result.GetDiagnosticText());
+
+        Assert.False(result.ExitCode == 0, "The PDF/UA groundwork fixture unexpectedly passed the configured PDF/UA validator. Enable the formal OfficeIMO.Pdf profile only after tagged structure, reading order, alternate text, font mapping, and validator evidence are intentionally implemented." + Environment.NewLine + result.GetDiagnosticText());
+        Assert.NotEmpty(result.GetDiagnosticText());
+    }
+
     [Theory]
     [InlineData(PdfComplianceProfile.PdfA3B, "veraPDF validation fixtures in the build lane")]
+    [InlineData(PdfComplianceProfile.PdfUa1, "PDF/UA identification XMP")]
     [InlineData(PdfComplianceProfile.FacturX, "Mustang validation fixtures in the build lane")]
     [InlineData(PdfComplianceProfile.Zugferd, "Mustang validation fixtures in the build lane")]
     public void FormalProfiles_StillFailClosedUntilValidatorBackedGenerationExists(PdfComplianceProfile profile, string expectedRequirement) {
@@ -74,6 +142,69 @@ public class PdfComplianceGateTests {
 
         Assert.Contains("cannot yet generate certified", exception.Message, StringComparison.Ordinal);
         Assert.Contains(expectedRequirement, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProofOutputHook_WritesGroundworkFixturesWhenConfigured() {
+        string previousOutput = Environment.GetEnvironmentVariable(ProofOutputEnv) ?? string.Empty;
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.PdfComplianceProof", Guid.NewGuid().ToString("N"));
+        try {
+            Environment.SetEnvironmentVariable(ProofOutputEnv, directory);
+
+            WriteProofPdf("officeimo-pdfa3-groundwork.pdf", CreatePdfA3GroundworkFixture());
+            WriteProofPdf("officeimo-einvoice-groundwork.pdf", CreateEinvoiceGroundworkFixture());
+            WriteProofPdf("officeimo-pdfua-groundwork.pdf", CreatePdfUaGroundworkFixture());
+            WriteProfileProofContract();
+            WriteProofText("verapdf-pdfa3-groundwork.txt", "validator diagnostic");
+            WriteProofText("verapdf-einvoice-groundwork.txt", "validator diagnostic");
+            WriteProofText("pdfua-groundwork.txt", "validator diagnostic");
+
+            Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfa3-groundwork.pdf")));
+            Assert.True(File.Exists(Path.Combine(directory, "officeimo-einvoice-groundwork.pdf")));
+            Assert.True(File.Exists(Path.Combine(directory, "officeimo-pdfua-groundwork.pdf")));
+            Assert.True(File.Exists(Path.Combine(directory, "officeimo-profile-proof-contract.json")));
+            Assert.True(File.Exists(Path.Combine(directory, "verapdf-pdfa3-groundwork.txt")));
+            Assert.True(File.Exists(Path.Combine(directory, "verapdf-einvoice-groundwork.txt")));
+            Assert.True(File.Exists(Path.Combine(directory, "pdfua-groundwork.txt")));
+            Assert.True(new FileInfo(Path.Combine(directory, "officeimo-pdfa3-groundwork.pdf")).Length > 0);
+            Assert.True(new FileInfo(Path.Combine(directory, "officeimo-einvoice-groundwork.pdf")).Length > 0);
+            Assert.True(new FileInfo(Path.Combine(directory, "officeimo-pdfua-groundwork.pdf")).Length > 0);
+        } finally {
+            Environment.SetEnvironmentVariable(ProofOutputEnv, string.IsNullOrEmpty(previousOutput) ? null : previousOutput);
+            TryDeleteDirectory(directory);
+        }
+    }
+
+    [Fact]
+    public void ProofOutputHook_WritesProductProofContractWhenConfigured() {
+        string previousOutput = Environment.GetEnvironmentVariable(ProofOutputEnv) ?? string.Empty;
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.PdfComplianceProof", Guid.NewGuid().ToString("N"));
+        try {
+            Environment.SetEnvironmentVariable(ProofOutputEnv, directory);
+
+            WriteProfileProofContract();
+
+            string path = Path.Combine(directory, "officeimo-profile-proof-contract.json");
+            Assert.True(File.Exists(path));
+
+            using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
+            JsonElement root = document.RootElement;
+            Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal("NoExternalValidationInjected", root.GetProperty("externalEvidenceMode").GetString());
+            JsonElement profiles = root.GetProperty("profiles");
+            Assert.Equal(4, profiles.GetArrayLength());
+            Assert.Contains(profiles.EnumerateArray(), profile =>
+                string.Equals(profile.GetProperty("profile").GetString(), nameof(PdfComplianceProfile.PdfA3B), StringComparison.Ordinal) &&
+                profile.GetProperty("requiredExternalValidators").EnumerateArray().Any(validator => string.Equals(validator.GetString(), nameof(PdfExternalValidatorKind.VeraPdf), StringComparison.Ordinal)) &&
+                profile.GetProperty("canClaimConformance").GetBoolean() == false);
+            Assert.Contains(profiles.EnumerateArray(), profile =>
+                string.Equals(profile.GetProperty("profile").GetString(), nameof(PdfComplianceProfile.Zugferd), StringComparison.Ordinal) &&
+                profile.GetProperty("requiredExternalValidators").EnumerateArray().Any(validator => string.Equals(validator.GetString(), nameof(PdfExternalValidatorKind.Mustang), StringComparison.Ordinal)) &&
+                profile.GetProperty("canClaimConformance").GetBoolean() == false);
+        } finally {
+            Environment.SetEnvironmentVariable(ProofOutputEnv, string.IsNullOrEmpty(previousOutput) ? null : previousOutput);
+            TryDeleteDirectory(directory);
+        }
     }
 
     private static byte[] CreatePdfA3GroundworkFixture() {
@@ -92,7 +223,24 @@ public class PdfComplianceGateTests {
     }
 
     private static byte[] CreateEinvoiceGroundworkFixture() {
-        byte[] invoiceXml = Encoding.UTF8.GetBytes(
+        byte[] invoiceXml = CreateEinvoiceGroundworkXml();
+        return PdfDocument.Create(new PdfOptions {
+                FileVersion = PdfFileVersion.Pdf17,
+                IncludeStandardFontToUnicodeMaps = true
+            })
+            .PdfAIdentification(3, "B")
+            .ElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .Meta(title: "OfficeIMO E-Invoice Groundwork", author: "OfficeIMO")
+            .Language("en-US")
+            .SrgbOutputIntent()
+            .AttachFile("factur-x.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "EN 16931 XML payload placeholder")
+            .H1("E-Invoice Groundwork")
+            .Paragraph(p => p.Text("This fixture intentionally exercises associated-file output without claiming Factur-X or ZUGFeRD conformance."))
+            .ToBytes();
+    }
+
+    private static byte[] CreateEinvoiceGroundworkXml() {
+        return Encoding.UTF8.GetBytes(
             "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
             "<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\" xmlns:ram=\"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100\" xmlns:udt=\"urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100\">" +
             "<rsm:ExchangedDocumentContext>" +
@@ -165,250 +313,163 @@ public class PdfComplianceGateTests {
             "</ram:ApplicableHeaderTradeSettlement>" +
             "</rsm:SupplyChainTradeTransaction>" +
             "</rsm:CrossIndustryInvoice>");
+    }
 
+    private static byte[] CreatePdfUaGroundworkFixture() {
         return PdfDocument.Create(new PdfOptions {
                 FileVersion = PdfFileVersion.Pdf17,
                 IncludeStandardFontToUnicodeMaps = true
             })
-            .PdfAIdentification(3, "B")
-            .ElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
-            .Meta(title: "OfficeIMO E-Invoice Groundwork", author: "OfficeIMO")
-            .Language("en-US")
-            .SrgbOutputIntent()
-            .AttachFile("factur-x.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "EN 16931 XML payload placeholder")
-            .H1("E-Invoice Groundwork")
-            .Paragraph(p => p.Text("This fixture intentionally exercises associated-file output without claiming Factur-X or ZUGFeRD conformance."))
+            .ConfigurePdfUaGroundwork("en-US")
+            .Meta(title: "OfficeIMO PDF/UA Groundwork", author: "OfficeIMO")
+            .H1("Accessibility Groundwork")
+            .Paragraph(p => p.Text("This fixture intentionally contains PDF/UA primitives but does not claim PDF/UA conformance."))
+            .Image(CreateOnePixelPng(), 12, 12, alternativeText: "Decorative sample pixel")
             .ToBytes();
     }
 
-    private sealed class PdfExternalValidator {
-        private const string RequireEnv = "OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS";
-        private readonly string[] _arguments;
+    private static byte[] CreateOnePixelPng() {
+        return Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=");
+    }
 
-        private PdfExternalValidator(string name, string? executablePath, string[] arguments, bool autoDetected) {
-            Name = name;
-            ExecutablePath = executablePath;
-            _arguments = arguments;
-            AutoDetected = autoDetected;
+    private static void WriteProfileProofContract() {
+        string? outputDirectory = GetProofOutputDirectory();
+        if (outputDirectory == null) {
+            return;
         }
 
-        internal string Name { get; }
+        Directory.CreateDirectory(outputDirectory);
+        var contract = new ProfileProofContract {
+            SchemaVersion = 2,
+            GeneratedBy = nameof(PdfComplianceAnalyzer) + "." + nameof(PdfComplianceAnalyzer.AssessProof),
+            ExternalEvidenceMode = "NoExternalValidationInjected",
+            Profiles = new[] {
+                CreateProofContractRow(PdfComplianceProfile.PdfA3B, CreatePdfA3GroundworkOptions(), GeneratedGroundworkFonts),
+                CreateProofContractRow(PdfComplianceProfile.PdfUa1, CreatePdfUaGroundworkOptions(), GeneratedGroundworkFonts),
+                CreateProofContractRow(PdfComplianceProfile.FacturX, CreateEinvoiceGroundworkOptions(), GeneratedGroundworkFonts),
+                CreateProofContractRow(PdfComplianceProfile.Zugferd, CreateEinvoiceGroundworkOptions(), GeneratedGroundworkFonts)
+            }
+        };
+        string json = JsonSerializer.Serialize(contract, new JsonSerializerOptions {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        });
+        File.WriteAllText(Path.Combine(outputDirectory, "officeimo-profile-proof-contract.json"), json, Encoding.UTF8);
+    }
 
-        internal string? ExecutablePath { get; }
+    private static ProfileProofContractRow CreateProofContractRow(PdfComplianceProfile profile, PdfOptions options, IEnumerable<PdfStandardFont> generatedStandardFonts) {
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            profile,
+            options,
+            externalValidations: Array.Empty<PdfExternalValidationResult>(),
+            generatedStandardFonts: generatedStandardFonts);
 
-        internal bool AutoDetected { get; }
+        return new ProfileProofContractRow {
+            Profile = proof.Profile.ToString(),
+            DisplayName = proof.DisplayName,
+            IsInternallyReady = proof.IsInternallyReady,
+            HasRequiredExternalValidation = proof.HasRequiredExternalValidation,
+            CanClaimConformance = proof.CanClaimConformance,
+            RequiredExternalValidators = proof.RequiredExternalValidators.Select(validator => validator.ToString()).ToArray(),
+            MissingExternalValidators = proof.MissingExternalValidators.Select(validator => validator.ToString()).ToArray(),
+            FailedExternalValidationCount = proof.FailedExternalValidations.Count,
+            MissingRequirementIds = proof.Readiness.MissingRequirements.Select(requirement => requirement.Id).ToArray(),
+            UnsupportedRequirementIds = proof.Readiness.UnsupportedRequirements.Select(requirement => requirement.Id).ToArray()
+        };
+    }
 
-        internal bool IsAvailable => !string.IsNullOrWhiteSpace(ExecutablePath);
+    private static PdfOptions CreatePdfA3GroundworkOptions() {
+        return new PdfOptions {
+            FileVersion = PdfFileVersion.Pdf17,
+            IncludeStandardFontToUnicodeMaps = true
+        }
+            .SetPdfAIdentification(3, "B")
+            .SetSrgbOutputIntent();
+    }
 
-        internal static PdfExternalValidator VeraPdf() {
-            string? explicitPath = FirstNonEmpty(
-                Environment.GetEnvironmentVariable("OFFICEIMO_VERAPDF"),
-                Environment.GetEnvironmentVariable("OFFICEIMO_VERAPDF_PATH"));
-            string? path = explicitPath ?? FindOnPath("verapdf", "verapdf.bat", "verapdf.exe");
-            string[] args = GetConfiguredArgs("OFFICEIMO_VERAPDF_ARGS", "-f", "3b", "{pdf}");
-            return new PdfExternalValidator("veraPDF", path, args, explicitPath == null && path != null);
+    private static PdfOptions CreatePdfUaGroundworkOptions() {
+        return new PdfOptions {
+                FileVersion = PdfFileVersion.Pdf17,
+                IncludeStandardFontToUnicodeMaps = true
+            }
+            .ConfigurePdfUaGroundwork("en-US");
+    }
+
+    private static PdfOptions CreateEinvoiceGroundworkOptions() {
+        return new PdfOptions {
+            FileVersion = PdfFileVersion.Pdf17,
+            IncludeStandardFontToUnicodeMaps = true
+        }
+            .SetPdfAIdentification(3, "B")
+            .SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("EN 16931"))
+            .SetSrgbOutputIntent()
+            .AddEmbeddedFile("factur-x.xml", CreateEinvoiceGroundworkXml(), "application/xml", PdfAssociatedFileRelationship.Data, "EN 16931 XML payload placeholder");
+    }
+
+    private static void WriteProofPdf(string fileName, byte[] bytes) {
+        string? outputDirectory = GetProofOutputDirectory();
+        if (outputDirectory == null) {
+            return;
         }
 
-        internal static PdfExternalValidator Mustang() {
-            string? explicitPath = FirstNonEmpty(
-                Environment.GetEnvironmentVariable("OFFICEIMO_MUSTANG"),
-                Environment.GetEnvironmentVariable("OFFICEIMO_MUSTANG_PATH"));
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, fileName), bytes);
+    }
 
-            string? path = explicitPath ?? FindOnPath("mustangproject", "mustangproject.bat", "mustangproject.exe", "mustang", "mustang.bat", "mustang.exe");
-            string[] args = GetConfiguredArgs("OFFICEIMO_MUSTANG_ARGS", "--action", "validate", "--source", "{pdf}");
-            if (path != null && string.Equals(Path.GetExtension(path), ".jar", StringComparison.OrdinalIgnoreCase)) {
-                args = new[] { "-jar", path }.Concat(args).ToArray();
-                path = FindOnPath("java", "java.exe");
-            }
-
-            return new PdfExternalValidator("Mustang", path, args, explicitPath == null && path != null);
+    private static void WriteProofText(string fileName, string text) {
+        string? outputDirectory = GetProofOutputDirectory();
+        if (outputDirectory == null) {
+            return;
         }
 
-        internal static void SkipUnlessRequired(PdfExternalValidator validator) {
-            if (IsRequired()) {
-                throw new InvalidOperationException(
-                    validator.Name + " compliance validation was required, but the validator was not found. Set OFFICEIMO_VERAPDF, OFFICEIMO_VERAPDF_PATH, OFFICEIMO_MUSTANG, or OFFICEIMO_MUSTANG_PATH as appropriate, or add the tool to PATH.");
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllText(Path.Combine(outputDirectory, fileName), text, Encoding.UTF8);
+    }
+
+    private static string? GetProofOutputDirectory() {
+        string? outputDirectory = Environment.GetEnvironmentVariable(ProofOutputEnv);
+        return string.IsNullOrWhiteSpace(outputDirectory) ? null : outputDirectory;
+    }
+
+    private static void TryDeleteDirectory(string path) {
+        try {
+            if (Directory.Exists(path)) {
+                Directory.Delete(path, recursive: true);
             }
-        }
-
-        internal PdfExternalValidationResult Run(byte[] pdfBytes, string fileName) {
-            if (!IsAvailable) {
-                throw new InvalidOperationException(Name + " validator is not configured.");
-            }
-
-            string workDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.PdfCompliance", Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(workDir);
-            string pdfPath = Path.Combine(workDir, fileName);
-            try {
-                File.WriteAllBytes(pdfPath, pdfBytes);
-                string arguments = string.Join(" ", _arguments.Select(argument => QuoteArgument(argument.Replace("{pdf}", pdfPath))));
-                var startInfo = new ProcessStartInfo {
-                    FileName = ExecutablePath!,
-                    Arguments = arguments,
-                    WorkingDirectory = workDir,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true
-                };
-
-                using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start " + Name + " validator.");
-                string output = process.StandardOutput.ReadToEnd();
-                string error = process.StandardError.ReadToEnd();
-                if (!process.WaitForExit(60000)) {
-                    try {
-                        process.Kill();
-                    } catch (InvalidOperationException) {
-                    }
-
-                    throw new TimeoutException(Name + " validation did not finish within 60 seconds.");
-                }
-
-                return new PdfExternalValidationResult(Name, ExecutablePath!, arguments, process.ExitCode, output, error, AutoDetected);
-            } finally {
-                TryDeleteDirectory(workDir);
-            }
-        }
-
-        private static bool IsRequired() =>
-            string.Equals(Environment.GetEnvironmentVariable(RequireEnv), "1", StringComparison.Ordinal);
-
-        private static string[] GetConfiguredArgs(string envName, params string[] defaultArgs) {
-            string? raw = Environment.GetEnvironmentVariable(envName);
-            return string.IsNullOrWhiteSpace(raw)
-                ? defaultArgs
-                : SplitCommandLine(raw!);
-        }
-
-        private static string? FirstNonEmpty(params string?[] values) {
-            foreach (string? value in values) {
-                if (!string.IsNullOrWhiteSpace(value)) {
-                    return value;
-                }
-            }
-
-            return null;
-        }
-
-        private static string? FindOnPath(params string[] names) {
-            string? path = Environment.GetEnvironmentVariable("PATH");
-            if (string.IsNullOrWhiteSpace(path)) {
-                return null;
-            }
-
-            foreach (string directory in path.Split(Path.PathSeparator)) {
-                if (string.IsNullOrWhiteSpace(directory)) {
-                    continue;
-                }
-
-                foreach (string name in names) {
-                    string candidate = Path.Combine(directory, name);
-                    if (File.Exists(candidate)) {
-                        return candidate;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        private static string[] SplitCommandLine(string value) {
-            var args = new List<string>();
-            var current = new StringBuilder();
-            bool inQuotes = false;
-
-            foreach (char c in value) {
-                if (c == '"') {
-                    inQuotes = !inQuotes;
-                    continue;
-                }
-
-                if (char.IsWhiteSpace(c) && !inQuotes) {
-                    if (current.Length > 0) {
-                        args.Add(current.ToString());
-                        current.Clear();
-                    }
-
-                    continue;
-                }
-
-                current.Append(c);
-            }
-
-            if (current.Length > 0) {
-                args.Add(current.ToString());
-            }
-
-            return args.ToArray();
-        }
-
-        private static string QuoteArgument(string argument) {
-            if (argument.Length == 0) {
-                return "\"\"";
-            }
-
-            if (argument.IndexOfAny(new[] { ' ', '\t', '"' }) < 0) {
-                return argument;
-            }
-
-            return "\"" + argument.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-        }
-
-        private static void TryDeleteDirectory(string path) {
-            try {
-                if (Directory.Exists(path)) {
-                    Directory.Delete(path, recursive: true);
-                }
-            } catch (IOException) {
-            } catch (UnauthorizedAccessException) {
-            }
+        } catch (IOException) {
+        } catch (UnauthorizedAccessException) {
         }
     }
 
-    private sealed class PdfExternalValidationResult {
-        internal PdfExternalValidationResult(string validatorName, string executablePath, string arguments, int exitCode, string output, string error, bool autoDetected) {
-            ValidatorName = validatorName;
-            ExecutablePath = executablePath;
-            Arguments = arguments;
-            ExitCode = exitCode;
-            Output = output;
-            Error = error;
-            AutoDetected = autoDetected;
-        }
+    private sealed class ProfileProofContract {
+        public int SchemaVersion { get; set; }
 
-        internal string ValidatorName { get; }
+        public string GeneratedBy { get; set; } = string.Empty;
 
-        internal string ExecutablePath { get; }
+        public string ExternalEvidenceMode { get; set; } = string.Empty;
 
-        internal string Arguments { get; }
+        public ProfileProofContractRow[] Profiles { get; set; } = Array.Empty<ProfileProofContractRow>();
+    }
 
-        internal int ExitCode { get; }
+    private sealed class ProfileProofContractRow {
+        public string Profile { get; set; } = string.Empty;
 
-        internal string Output { get; }
+        public string DisplayName { get; set; } = string.Empty;
 
-        internal string Error { get; }
+        public bool IsInternallyReady { get; set; }
 
-        internal bool AutoDetected { get; }
+        public bool HasRequiredExternalValidation { get; set; }
 
-        internal string GetDiagnosticText() {
-            var sb = new StringBuilder();
-            sb.Append(ValidatorName)
-                .Append(" exited with code ")
-                .Append(ExitCode.ToString(CultureInfo.InvariantCulture))
-                .Append(" using ")
-                .Append(ExecutablePath)
-                .Append(' ')
-                .Append(Arguments)
-                .AppendLine();
-            if (!string.IsNullOrWhiteSpace(Output)) {
-                sb.AppendLine(Output.Trim());
-            }
+        public bool CanClaimConformance { get; set; }
 
-            if (!string.IsNullOrWhiteSpace(Error)) {
-                sb.AppendLine(Error.Trim());
-            }
+        public string[] RequiredExternalValidators { get; set; } = Array.Empty<string>();
 
-            return sb.ToString();
-        }
+        public string[] MissingExternalValidators { get; set; } = Array.Empty<string>();
+
+        public int FailedExternalValidationCount { get; set; }
+
+        public string[] MissingRequirementIds { get; set; } = Array.Empty<string>();
+
+        public string[] UnsupportedRequirementIds { get; set; } = Array.Empty<string>();
     }
 }

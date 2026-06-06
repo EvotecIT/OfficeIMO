@@ -1,0 +1,219 @@
+name: PDF Compliance Proof
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Tests/Pdf/PdfCompliance*.cs'
+      - 'OfficeIMO.Tests/Pdf/PdfExternalValidator.cs'
+      - 'Build/Export-PdfComplianceProof.ps1'
+      - 'Docs/officeimo.pdf*.md'
+      - '.github/scripts/Assert-PdfComplianceProof.ps1'
+      - '.github/workflows/pdf-compliance-proof.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Tests/Pdf/PdfCompliance*.cs'
+      - 'OfficeIMO.Tests/Pdf/PdfExternalValidator.cs'
+      - 'Build/Export-PdfComplianceProof.ps1'
+      - 'Docs/officeimo.pdf*.md'
+      - '.github/scripts/Assert-PdfComplianceProof.ps1'
+      - '.github/workflows/pdf-compliance-proof.yml'
+  workflow_dispatch:
+    inputs:
+      require_validators:
+        description: 'Fail if veraPDF, PDF/UA validator, or Mustang are unavailable'
+        required: false
+        default: false
+        type: boolean
+      verapdf_path:
+        description: 'Optional veraPDF executable path'
+        required: false
+        default: ''
+        type: string
+      verapdf_args:
+        description: 'Optional veraPDF arguments; use {pdf} for the fixture path'
+        required: false
+        default: ''
+        type: string
+      pdfua_validator_path:
+        description: 'Optional PDF/UA validator executable path'
+        required: false
+        default: ''
+        type: string
+      pdfua_validator_args:
+        description: 'Optional PDF/UA validator arguments; use {pdf} for the fixture path'
+        required: false
+        default: ''
+        type: string
+      mustang_path:
+        description: 'Optional Mustang executable or jar path'
+        required: false
+        default: ''
+        type: string
+      mustang_args:
+        description: 'Optional Mustang arguments; use {pdf} for the fixture path'
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: |
+    8.0.418
+    10.0.103
+  BUILD_CONFIGURATION: Release
+  PROOF_PATH: artifacts/pdf-compliance-proof
+
+jobs:
+  pdf-compliance-proof:
+    name: Generate proof bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore OfficeIMO.sln
+
+      - name: Generate PDF compliance proof
+        shell: pwsh
+        env:
+          REQUIRE_VALIDATORS: ${{ github.event_name == 'workflow_dispatch' && inputs.require_validators || false }}
+          VERAPDF_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.verapdf_path || '' }}
+          VERAPDF_ARGS: ${{ github.event_name == 'workflow_dispatch' && inputs.verapdf_args || '' }}
+          PDFUA_VALIDATOR_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.pdfua_validator_path || '' }}
+          PDFUA_VALIDATOR_ARGS: ${{ github.event_name == 'workflow_dispatch' && inputs.pdfua_validator_args || '' }}
+          MUSTANG_PATH: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_path || '' }}
+          MUSTANG_ARGS: ${{ github.event_name == 'workflow_dispatch' && inputs.mustang_args || '' }}
+        run: |
+          $parameters = @{
+            OutputDirectory = '${{ env.PROOF_PATH }}'
+            Configuration = '${{ env.BUILD_CONFIGURATION }}'
+            Framework = 'net8.0'
+            NoRestore = $true
+          }
+
+          if ($env:REQUIRE_VALIDATORS -eq 'true') {
+            $parameters.RequireValidators = $true
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:VERAPDF_PATH)) {
+            $parameters.VeraPdfPath = $env:VERAPDF_PATH
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:VERAPDF_ARGS)) {
+            $parameters.VeraPdfArgs = $env:VERAPDF_ARGS
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_PATH)) {
+            $parameters.PdfUaValidatorPath = $env:PDFUA_VALIDATOR_PATH
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_ARGS)) {
+            $parameters.PdfUaValidatorArgs = $env:PDFUA_VALIDATOR_ARGS
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:MUSTANG_PATH)) {
+            $parameters.MustangPath = $env:MUSTANG_PATH
+          }
+
+          if (-not [string]::IsNullOrWhiteSpace($env:MUSTANG_ARGS)) {
+            $parameters.MustangArgs = $env:MUSTANG_ARGS
+          }
+
+          ./Build/Export-PdfComplianceProof.ps1 @parameters
+
+      - name: Validate proof bundle
+        shell: pwsh
+        run: ./.github/scripts/Assert-PdfComplianceProof.ps1 -ProofPath '${{ env.PROOF_PATH }}'
+
+      - name: Summarize proof bundle
+        shell: pwsh
+        run: |
+          $proof = Get-Content -LiteralPath '${{ env.PROOF_PATH }}/proof.json' -Raw | ConvertFrom-Json
+          $lines = [System.Collections.Generic.List[string]]::new()
+          $lines.Add('## PDF Compliance Proof')
+          $lines.Add('')
+          $lines.Add("- Commit: ``$($proof.commit)``")
+          $lines.Add("- Test exit code: ``$($proof.testExitCode)``")
+          $lines.Add("- Strict validator mode: ``$($proof.strictValidatorMode)``")
+          $lines.Add("- veraPDF configured: ``$($proof.validatorConfiguration.veraPdfExecutableConfigured)``")
+          $lines.Add("- PDF/UA validator configured: ``$($proof.validatorConfiguration.pdfUaValidatorExecutableConfigured)``")
+          $lines.Add("- Mustang configured: ``$($proof.validatorConfiguration.mustangExecutableConfigured)``")
+          $lines.Add('')
+          $lines.Add('### PDF Fixtures')
+          $lines.Add('')
+          $lines.Add('| File | Size | SHA-256 |')
+          $lines.Add('| --- | ---: | --- |')
+          foreach ($fixture in @($proof.pdfFixtures)) {
+            $lines.Add("| $($fixture.file) | $($fixture.sizeBytes) bytes | ``$($fixture.sha256)`` |")
+          }
+          $lines.Add('')
+          $lines.Add('### Validators')
+          $lines.Add('')
+          $lines.Add('| Validator | Profile | Status | Expected | Match | Diagnostic |')
+          $lines.Add('| --- | --- | --- | --- | --- | --- |')
+          foreach ($validator in @($proof.validatorDiagnostics)) {
+            $lines.Add("| $($validator.validatorKind) | $($validator.profile) | $($validator.status) | $($validator.expectedStatus) | $($validator.matchesExpectedStatus) | $($validator.file) |")
+          }
+          $lines.Add('')
+          $lines.Add('### Profile Proof Matrix')
+          $lines.Add('')
+          $lines.Add('| Profile | Fixture | Validator | Status | Expected | Match | Claim |')
+          $lines.Add('| --- | --- | --- | --- | --- | --- | --- |')
+          foreach ($profile in @($proof.profileProofs)) {
+            $lines.Add("| $($profile.displayName) | $($profile.fixtureFile) | $($profile.validatorKind) | $($profile.status) | $($profile.expectedStatus) | $($profile.matchesExpectedStatus) | $($profile.canClaimConformance) |")
+          }
+          $lines.Add('')
+          $lines.Add('### Product Proof Contract')
+          $lines.Add('')
+          $lines.Add("- External evidence mode: ``$($proof.productProofContract.externalEvidenceMode)``")
+          $lines.Add('')
+          $lines.Add('| Profile | Internal Ready | External Validation | Claim | Missing Validators |')
+          $lines.Add('| --- | --- | --- | --- | --- |')
+          foreach ($profile in @($proof.productProofContract.profiles)) {
+            $missingValidators = (@($profile.missingExternalValidators) -join ', ')
+            if ([string]::IsNullOrWhiteSpace($missingValidators)) {
+              $missingValidators = 'none'
+            }
+
+            $lines.Add("| $($profile.displayName) | $($profile.isInternallyReady) | $($profile.hasRequiredExternalValidation) | $($profile.canClaimConformance) | $missingValidators |")
+          }
+          $lines | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload PDF compliance proof
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: officeimo-pdf-compliance-proof
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ env.PROOF_PATH }}/index.md
+            ${{ env.PROOF_PATH }}/proof.json
+            ${{ env.PROOF_PATH }}/officeimo-profile-proof-contract.json
+            ${{ env.PROOF_PATH }}/*.pdf
+            ${{ env.PROOF_PATH }}/*.txt

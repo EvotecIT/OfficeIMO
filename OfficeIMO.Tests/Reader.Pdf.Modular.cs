@@ -293,6 +293,19 @@ public sealed class ReaderPdfModularTests {
         Assert.True(options.MarkdownOptions.IncludeLinkAnnotations);
     }
 
+    [Fact]
+    public void ReaderPdf_ProfileContract_DescribesRegisteredHandlerAndChunkShape() {
+        ReaderPdfProfileContract contract = ReaderPdfProfileContracts.OfficeIMO;
+
+        Assert.Equal(DocumentReaderPdfRegistrationExtensions.HandlerId, contract.Id);
+        Assert.Contains("OfficeIMO.Pdf logical model", contract.Pipeline, StringComparison.Ordinal);
+        Assert.Contains("page-aware locations", contract.OutputContract, StringComparison.Ordinal);
+        Assert.Contains("MaxChars", contract.OutputContract, StringComparison.Ordinal);
+        Assert.Contains("Reader input limits", contract.SafetyContract, StringComparison.Ordinal);
+        Assert.Contains("unsafe links", contract.SafetyContract, StringComparison.Ordinal);
+        Assert.Contains("scanned PDFs require OCR", contract.UnsupportedScope, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildTwoPagePdf() {
         return PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,

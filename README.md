@@ -85,7 +85,7 @@ Most packages are MIT licensed. `OfficeIMO.Visio` is a special case: the project
 
 - [OfficeIMO.Examples](OfficeIMO.Examples/README.md)
 - [OfficeIMO.Excel.Benchmarks](OfficeIMO.Excel.Benchmarks/README.md)
-- [Docs/officeimo.pdf.roadmap.md](Docs/officeimo.pdf.roadmap.md)
+- [Docs/officeimo.pdf.current-state.md](Docs/officeimo.pdf.current-state.md)
 - [Docs/officeimo.excel.release-checklist.md](Docs/officeimo.excel.release-checklist.md)
 - [Docs/officeimo.markdown.release-checklist.md](Docs/officeimo.markdown.release-checklist.md)
 - [CHANGELOG.MD](CHANGELOG.MD)
