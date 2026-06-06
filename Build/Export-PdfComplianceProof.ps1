@@ -101,6 +101,21 @@ function Get-ExpectedValidatorStatus {
     return 'NotRun'
 }
 
+function Test-AnyCommandAvailable {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]] $CommandNames
+    )
+
+    foreach ($commandName in $CommandNames) {
+        if (Get-Command -Name $commandName -ErrorAction SilentlyContinue) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
 function Get-ProofProfileRows {
     param(
         [Parameter(Mandatory = $true)]
@@ -222,11 +237,11 @@ try {
     }
 
     $validatorConfiguration = [ordered] @{
-        veraPdfExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_PATH)
+        veraPdfExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_PATH) -or (Test-AnyCommandAvailable -CommandNames @('verapdf', 'verapdf.bat', 'verapdf.exe'))
         veraPdfArgsConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_ARGS)
-        pdfUaValidatorExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFUA_VALIDATOR) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFUA_VALIDATOR_PATH)
+        pdfUaValidatorExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFUA_VALIDATOR) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFUA_VALIDATOR_PATH) -or (Test-AnyCommandAvailable -CommandNames @('pdfua-validator', 'pdfua-validator.bat', 'pdfua-validator.exe'))
         pdfUaValidatorArgsConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_PDFUA_VALIDATOR_ARGS)
-        mustangExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG_PATH)
+        mustangExecutableConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG) -or -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG_PATH) -or (Test-AnyCommandAvailable -CommandNames @('mustangproject', 'mustangproject.bat', 'mustangproject.exe', 'mustang', 'mustang.bat', 'mustang.exe'))
         mustangArgsConfigured = -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG_ARGS)
     }
 

@@ -97,9 +97,28 @@ internal sealed class PdfExternalValidator {
                 CreateNoWindow = true
             };
 
-            using Process process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start " + Name + " validator.");
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
+            var outputBuilder = new StringBuilder();
+            var errorBuilder = new StringBuilder();
+            using var process = new Process {
+                StartInfo = startInfo
+            };
+            process.OutputDataReceived += (_, e) => {
+                if (e.Data != null) {
+                    outputBuilder.AppendLine(e.Data);
+                }
+            };
+            process.ErrorDataReceived += (_, e) => {
+                if (e.Data != null) {
+                    errorBuilder.AppendLine(e.Data);
+                }
+            };
+
+            if (!process.Start()) {
+                throw new InvalidOperationException("Failed to start " + Name + " validator.");
+            }
+
+            process.BeginOutputReadLine();
+            process.BeginErrorReadLine();
             if (!process.WaitForExit(60000)) {
                 try {
                     process.Kill();
@@ -109,6 +128,9 @@ internal sealed class PdfExternalValidator {
                 throw new TimeoutException(Name + " validation did not finish within 60 seconds.");
             }
 
+            process.WaitForExit();
+            string output = outputBuilder.ToString();
+            string error = errorBuilder.ToString();
             return new PdfExternalProcessResult(Name, ExecutablePath!, arguments, process.ExitCode, output, error, AutoDetected);
         } finally {
             TryDeleteDirectory(workDir);
@@ -196,7 +218,36 @@ internal sealed class PdfExternalValidator {
             return argument;
         }
 
-        return "\"" + argument.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+        var builder = new StringBuilder(argument.Length + 2);
+        builder.Append('"');
+        int backslashCount = 0;
+        foreach (char c in argument) {
+            if (c == '\\') {
+                backslashCount++;
+                continue;
+            }
+
+            if (c == '"') {
+                builder.Append('\\', (backslashCount * 2) + 1);
+                builder.Append('"');
+                backslashCount = 0;
+                continue;
+            }
+
+            if (backslashCount > 0) {
+                builder.Append('\\', backslashCount);
+                backslashCount = 0;
+            }
+
+            builder.Append(c);
+        }
+
+        if (backslashCount > 0) {
+            builder.Append('\\', backslashCount * 2);
+        }
+
+        builder.Append('"');
+        return builder.ToString();
     }
 
     private static void TryDeleteDirectory(string path) {
