@@ -59,7 +59,10 @@ function Get-ValidatorProfileFromFileName {
 function Get-ValidatorStatusFromText {
     param(
         [Parameter(Mandatory = $true)]
-        [string] $Text
+        [string] $Text,
+
+        [Parameter(Mandatory = $true)]
+        [string] $ValidatorKind
     )
 
     if ($Text -match 'was not configured') {
@@ -71,10 +74,45 @@ function Get-ValidatorStatusFromText {
     }
 
     if ($Text -match 'exited with code\s+\d+\b') {
-        return 'Failed'
+        if (Test-ValidatorDiagnosticFailureEvidence -Text $Text -ValidatorKind $ValidatorKind) {
+            return 'Failed'
+        }
+
+        return 'Error'
     }
 
     return 'Error'
+}
+
+function Test-ValidatorDiagnosticFailureEvidence {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Text,
+
+        [Parameter(Mandatory = $true)]
+        [string] $ValidatorKind
+    )
+
+    switch ($ValidatorKind) {
+        'VeraPdf' {
+            return $Text -match '(?i)isCompliant\s*=\s*["'']?false' -or
+                $Text -match '(?i)\bnot\s+compliant\b' -or
+                $Text -match '(?i)\bvalidation\s+failed\b'
+        }
+        'PdfUaValidator' {
+            return $Text -match '(?i)\bpdf/ua\b.*\b(fail|failed|not\s+compliant|violation)' -or
+                $Text -match '(?i)\bvalidation\s+failed\b' -or
+                $Text -match '(?i)\bviolations?\b'
+        }
+        'Mustang' {
+            return $Text -match '(?i)\bvalidation\s+(failed|result\s*:\s*invalid)\b' -or
+                $Text -match '(?i)\bnot\s+(a\s+)?valid\b' -or
+                $Text -match '(?i)\bnon-?compliant\b'
+        }
+        default {
+            return $false
+        }
+    }
 }
 
 function Get-ExpectedValidatorStatus {
@@ -453,7 +491,7 @@ if ($diagnosticFiles.Count -eq 0) {
         $diagnosticText = Get-Content -LiteralPath $file.FullName -Raw
         $validatorKind = Get-ValidatorKindFromFileName -FileName $file.Name
         $profile = Get-ValidatorProfileFromFileName -FileName $file.Name
-        $validatorStatus = Get-ValidatorStatusFromText -Text $diagnosticText
+        $validatorStatus = Get-ValidatorStatusFromText -Text $diagnosticText -ValidatorKind $validatorKind
         $expectedStatus = Get-ExpectedValidatorStatus -ValidatorKind $validatorKind -ValidatorConfiguration $validatorConfiguration
         $matchesExpectedStatus = $validatorStatus -eq $expectedStatus
         $name = $file.Name.Replace('|', '\|')

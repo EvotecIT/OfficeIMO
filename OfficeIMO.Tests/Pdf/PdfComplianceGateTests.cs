@@ -9,6 +9,10 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfComplianceGateTests {
     private const string ProofOutputEnv = "OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT";
+    private static readonly PdfStandardFont[] GeneratedGroundworkFonts = {
+        PdfStandardFont.Helvetica,
+        PdfStandardFont.HelveticaBold
+    };
 
     [Fact]
     public void PdfA3GroundworkFixture_ContainsCurrentArchivalPrimitivesWithoutEnablingFormalProfile() {
@@ -340,10 +344,10 @@ public class PdfComplianceGateTests {
             GeneratedBy = nameof(PdfComplianceAnalyzer) + "." + nameof(PdfComplianceAnalyzer.AssessProof),
             ExternalEvidenceMode = "NoExternalValidationInjected",
             Profiles = new[] {
-                CreateProofContractRow(PdfComplianceProfile.PdfA3B, CreatePdfA3GroundworkOptions(), Array.Empty<PdfStandardFont>()),
-                CreateProofContractRow(PdfComplianceProfile.PdfUa1, CreatePdfUaGroundworkOptions(), Array.Empty<PdfStandardFont>()),
-                CreateProofContractRow(PdfComplianceProfile.FacturX, CreateEinvoiceGroundworkOptions(), Array.Empty<PdfStandardFont>()),
-                CreateProofContractRow(PdfComplianceProfile.Zugferd, CreateEinvoiceGroundworkOptions(), Array.Empty<PdfStandardFont>())
+                CreateProofContractRow(PdfComplianceProfile.PdfA3B, CreatePdfA3GroundworkOptions(), GeneratedGroundworkFonts),
+                CreateProofContractRow(PdfComplianceProfile.PdfUa1, CreatePdfUaGroundworkOptions(), GeneratedGroundworkFonts),
+                CreateProofContractRow(PdfComplianceProfile.FacturX, CreateEinvoiceGroundworkOptions(), GeneratedGroundworkFonts),
+                CreateProofContractRow(PdfComplianceProfile.Zugferd, CreateEinvoiceGroundworkOptions(), GeneratedGroundworkFonts)
             }
         };
         string json = JsonSerializer.Serialize(contract, new JsonSerializerOptions {

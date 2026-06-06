@@ -87,13 +87,17 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void TextDiagnostics_ReportsControlCharactersButIgnoresExplicitTextRunLayoutControls() {
-            var literalDiagnostic = Assert.Single(PdfTextDiagnostics.AnalyzeWinAnsiText("Alpha\tBeta", "literal"));
+        public void TextDiagnostics_ReportsControlCharactersButIgnoresLayoutControls() {
+            IReadOnlyList<PdfTextEncodingDiagnostic> literalTabDiagnostics = PdfTextDiagnostics.AnalyzeWinAnsiText("Alpha\tBeta", "literal");
 
-            Assert.True(literalDiagnostic.IsControlCharacter);
-            Assert.Equal("unsupported-control-character", literalDiagnostic.Code);
-            Assert.Equal("U+0009", literalDiagnostic.CodePoint);
-            Assert.Equal(string.Empty, literalDiagnostic.Text);
+            Assert.Empty(literalTabDiagnostics);
+
+            var controlDiagnostic = Assert.Single(PdfTextDiagnostics.AnalyzeWinAnsiText("Alpha\u0001Beta", "literal"));
+
+            Assert.True(controlDiagnostic.IsControlCharacter);
+            Assert.Equal("unsupported-control-character", controlDiagnostic.Code);
+            Assert.Equal("U+0001", controlDiagnostic.CodePoint);
+            Assert.Equal(string.Empty, controlDiagnostic.Text);
 
             IReadOnlyList<PdfTextEncodingDiagnostic> runDiagnostics = PdfTextDiagnostics.AnalyzeWinAnsiTextRuns(
                 new[] {

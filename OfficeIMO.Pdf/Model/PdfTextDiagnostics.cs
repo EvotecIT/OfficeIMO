@@ -19,13 +19,7 @@ public static class PdfTextDiagnostics {
         int index = 0;
         while (index < text.Length) {
             char ch = text[index];
-            if (ch == '\n' || ch == '\r') {
-                index++;
-                continue;
-            }
-
-            if (ch == '\t') {
-                diagnostics.Add(CreateDiagnostic(text, index, source));
+            if (ch == '\n' || ch == '\r' || ch == '\t') {
                 index++;
                 continue;
             }
