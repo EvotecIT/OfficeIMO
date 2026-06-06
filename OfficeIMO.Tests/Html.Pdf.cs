@@ -327,7 +327,7 @@ public sealed class HtmlPdfTests {
     }
 
     private static byte[] CreateLinkAnnotationPdf(string uri) {
-        string escapedUri = uri.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("(", "\\(", StringComparison.Ordinal).Replace(")", "\\)", StringComparison.Ordinal);
+        string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
             "1 0 obj",
