@@ -40,7 +40,15 @@ public static class DocumentReaderPdfExtensions {
             SourceId = BuildSourceId(logicalSourceName)
         };
 
-        var parseStream = ReaderInputLimits.EnsureSeekableReadStream(pdfStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out var ownsParseStream);
+        Stream parseStream;
+        bool ownsParseStream;
+        if (pdfStream.CanSeek) {
+            ReaderInputLimits.EnforceSeekableStreamRemainingSize(pdfStream, effectiveReaderOptions.MaxInputBytes);
+            parseStream = ReaderInputLimits.EnsureSeekableReadStream(pdfStream, null, cancellationToken, out ownsParseStream);
+        } else {
+            parseStream = ReaderInputLimits.EnsureSeekableReadStream(pdfStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out ownsParseStream);
+        }
+
         try {
             long parseStartPosition = parseStream.CanSeek ? parseStream.Position : 0L;
             UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, parseStartPosition);

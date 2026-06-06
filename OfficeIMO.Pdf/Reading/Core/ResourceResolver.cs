@@ -187,11 +187,11 @@ internal static class ResourceResolver {
             }
         }
 
-        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>(), insideForm: false, placedObjectNumbers, placedResourceNames);
+        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>(), placedObjectNumbers, placedResourceNames);
         return result;
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, bool insideForm, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
         if (!resources.Items.TryGetValue("XObject", out var xoObj)) return;
         var xo = ResolveDict(xoObj, objects);
         if (xo is null) return;
@@ -214,7 +214,7 @@ internal static class ResourceResolver {
 
             var subtype = stream.Dictionary.Get<PdfName>("Subtype")?.Name;
             if (string.Equals(subtype, "Image", System.StringComparison.Ordinal)) {
-                if (insideForm && !IsPlacedFormImage(kv.Key, objectNumber, placedObjectNumbers, placedResourceNames)) {
+                if (!IsPlacedImage(kv.Key, objectNumber, placedObjectNumbers, placedResourceNames)) {
                     continue;
                 }
 
@@ -237,14 +237,14 @@ internal static class ResourceResolver {
                 }
 
                 formResources ??= resources;
-                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, insideForm: true, placedObjectNumbers, placedResourceNames);
+                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, placedObjectNumbers, placedResourceNames);
             } finally {
                 activeForms.Remove(stream);
             }
         }
     }
 
-    private static bool IsPlacedFormImage(string resourceName, int objectNumber, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
+    private static bool IsPlacedImage(string resourceName, int objectNumber, HashSet<int>? placedObjectNumbers, HashSet<string>? placedResourceNames) {
         if (placedObjectNumbers is null && placedResourceNames is null) {
             return true;
         }

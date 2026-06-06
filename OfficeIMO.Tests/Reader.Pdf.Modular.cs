@@ -65,6 +65,24 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_MaxInputBytesUsesCurrentSeekableStreamPosition() {
+        byte[] pdf = BuildTwoPagePdf();
+        byte[] prefix = Encoding.ASCII.GetBytes("not-a-pdf-prefix-that-is-longer-than-the-limit");
+        using var stream = new MemoryStream(prefix.Concat(pdf).ToArray(), writable: false);
+        stream.Position = prefix.Length;
+
+        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "embedded-limited.pdf",
+            readerOptions: new ReaderOptions { MaxInputBytes = pdf.Length }).ToList();
+
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, c => Assert.Equal(pdf.Length, c.SourceLengthBytes));
+        Assert.Contains(chunks, c => (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
+        Assert.Contains(chunks, c => (c.Markdown ?? c.Text).Contains("Reader PDF page two", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_DuplicatePageRangeSelectionsEmitUniqueChunkIds() {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
