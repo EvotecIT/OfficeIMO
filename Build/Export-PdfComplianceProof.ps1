@@ -191,9 +191,24 @@ $outputPath = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 $resolvedOutputPath = (Resolve-Path -LiteralPath $outputPath).Path
 
-Get-ChildItem -LiteralPath $resolvedOutputPath -File |
-    Where-Object { $_.Extension -in '.pdf', '.txt', '.md', '.json' } |
-    Remove-Item -Force
+$generatedProofFileNames = @(
+    'officeimo-pdfa3-groundwork.pdf',
+    'officeimo-einvoice-groundwork.pdf',
+    'officeimo-pdfua-groundwork.pdf',
+    'verapdf-pdfa3-groundwork.txt',
+    'mustang-einvoice-groundwork.txt',
+    'pdfua-groundwork.txt',
+    'officeimo-profile-proof-contract.json',
+    'index.md',
+    'proof.json'
+)
+
+foreach ($fileName in $generatedProofFileNames) {
+    $path = Join-Path $resolvedOutputPath $fileName
+    if (Test-Path -LiteralPath $path) {
+        Remove-Item -LiteralPath $path -Force
+    }
+}
 
 $previousProofOutput = $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT
 $previousRequireValidators = $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS
@@ -210,6 +225,8 @@ try {
     $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_OUTPUT = $resolvedOutputPath
     if ($RequireValidators) {
         $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS = '1'
+    } else {
+        $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS = $null
     }
 
     if (-not [string]::IsNullOrWhiteSpace($VeraPdfPath)) {
