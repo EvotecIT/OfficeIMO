@@ -50,7 +50,7 @@ public static partial class PdfAnnotationFlattener {
         objects[appearanceObjectNumber] = new PdfIndirectObject(
             appearanceObjectNumber,
             0,
-            CreateSyntheticAppearanceStream(width, height, content, needsHelvetica));
+            CreateSyntheticAppearanceStream(width, height, content, needsHelvetica, string.Equals(subtype, "Highlight", StringComparison.Ordinal)));
         return new PdfReference(appearanceObjectNumber, 0);
     }
 
@@ -331,7 +331,7 @@ public static partial class PdfAnnotationFlattener {
         return value > max ? max : value;
     }
 
-    private static PdfStream CreateSyntheticAppearanceStream(double width, double height, string content, bool needsHelvetica) {
+    private static PdfStream CreateSyntheticAppearanceStream(double width, double height, string content, bool needsHelvetica, bool usesHighlightBlendMode) {
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");
         dictionary.Items["Subtype"] = new PdfName("Form");
@@ -342,23 +342,37 @@ public static partial class PdfAnnotationFlattener {
         bbox.Items.Add(new PdfNumber(height));
         dictionary.Items["BBox"] = bbox;
 
-        if (needsHelvetica) {
-            dictionary.Items["Resources"] = CreateSyntheticHelveticaResources();
+        if (needsHelvetica || usesHighlightBlendMode) {
+            dictionary.Items["Resources"] = CreateSyntheticAppearanceResources(needsHelvetica, usesHighlightBlendMode);
         }
 
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static PdfDictionary CreateSyntheticHelveticaResources() {
+    private static PdfDictionary CreateSyntheticAppearanceResources(bool needsHelvetica, bool usesHighlightBlendMode) {
         var resources = new PdfDictionary();
-        var fonts = new PdfDictionary();
-        var helvetica = new PdfDictionary();
-        helvetica.Items["Type"] = new PdfName("Font");
-        helvetica.Items["Subtype"] = new PdfName("Type1");
-        helvetica.Items["BaseFont"] = new PdfName("Helvetica");
-        helvetica.Items["Encoding"] = new PdfName("WinAnsiEncoding");
-        fonts.Items["Helv"] = helvetica;
-        resources.Items["Font"] = fonts;
+        if (needsHelvetica) {
+            var fonts = new PdfDictionary();
+            var helvetica = new PdfDictionary();
+            helvetica.Items["Type"] = new PdfName("Font");
+            helvetica.Items["Subtype"] = new PdfName("Type1");
+            helvetica.Items["BaseFont"] = new PdfName("Helvetica");
+            helvetica.Items["Encoding"] = new PdfName("WinAnsiEncoding");
+            fonts.Items["Helv"] = helvetica;
+            resources.Items["Font"] = fonts;
+        }
+
+        if (usesHighlightBlendMode) {
+            var extGStates = new PdfDictionary();
+            var highlightState = new PdfDictionary();
+            highlightState.Items["Type"] = new PdfName("ExtGState");
+            highlightState.Items["BM"] = new PdfName("Multiply");
+            highlightState.Items["CA"] = new PdfNumber(0.35D);
+            highlightState.Items["ca"] = new PdfNumber(0.35D);
+            extGStates.Items["OfficeIMOHighlightGs"] = highlightState;
+            resources.Items["ExtGState"] = extGStates;
+        }
+
         return resources;
     }
 

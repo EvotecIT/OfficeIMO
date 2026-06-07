@@ -176,7 +176,11 @@ public partial class PdfInspectorTests {
         string xmp = "<?xpacket begin=\"\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>" +
             "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">" +
             "<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">" +
-            "<rdf:Description xmlns:a=\"http://www.aiim.org/pdfa/ns/id/\" xmlns:u=\"http://www.aiim.org/pdfua/ns/id/\" xmlns:invoice=\"urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#\">" +
+            "<rdf:Description xmlns:m=\"http://purl.org/dc/elements/1.1/\" xmlns:a=\"http://www.aiim.org/pdfa/ns/id/\" xmlns:u=\"http://www.aiim.org/pdfua/ns/id/\" xmlns:invoice=\"urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#\">" +
+            "<m:title><rdf:Alt><rdf:li xml:lang=\"x-default\">Prefix-free title</rdf:li></rdf:Alt></m:title>" +
+            "<m:creator><rdf:Seq><rdf:li>Prefix-free creator</rdf:li></rdf:Seq></m:creator>" +
+            "<m:description><rdf:Alt><rdf:li xml:lang=\"x-default\">Prefix-free description</rdf:li></rdf:Alt></m:description>" +
+            "<m:subject><rdf:Bag><rdf:li>one</rdf:li><rdf:li>two</rdf:li></rdf:Bag></m:subject>" +
             "<a:part>3</a:part><a:conformance>B</a:conformance><u:part>1</u:part>" +
             "<invoice:DocumentType>INVOICE</invoice:DocumentType><invoice:DocumentFileName>factur-x.xml</invoice:DocumentFileName><invoice:Version>1.0</invoice:Version><invoice:ConformanceLevel>BASIC</invoice:ConformanceLevel>" +
             "</rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end=\"w\"?>";

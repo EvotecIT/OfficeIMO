@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static class PdfViewerPreferenceDictionaryBuilder {
-    internal static string BuildGeneratedViewerPreferencesDictionary(PdfViewerPreferencesOptions preferences) {
+    internal static string BuildGeneratedViewerPreferencesDictionary(PdfViewerPreferencesOptions preferences, int? pageCount = null) {
         Guard.NotNull(preferences, nameof(preferences));
         if (!preferences.HasAny) {
             throw new ArgumentException("At least one PDF viewer preference must be configured.", nameof(preferences));
@@ -53,6 +53,7 @@ internal static class PdfViewerPreferenceDictionaryBuilder {
         }
 
         if (preferences.PrintPageRanges.Count > 0) {
+            ValidatePrintPageRanges(preferences.PrintPageRanges, pageCount);
             AppendPrintPageRangeEntry(sb, preferences.PrintPageRanges);
         }
 
@@ -150,5 +151,25 @@ internal static class PdfViewerPreferenceDictionaryBuilder {
         }
 
         sb.Append(']');
+    }
+
+    private static void ValidatePrintPageRanges(IReadOnlyList<PdfPrintPageRange> ranges, int? pageCount) {
+        if (!pageCount.HasValue) {
+            return;
+        }
+
+        if (pageCount.Value <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageCount), pageCount.Value, "PDF viewer preference print page ranges require at least one generated page.");
+        }
+
+        for (int i = 0; i < ranges.Count; i++) {
+            PdfPrintPageRange range = ranges[i];
+            if (range.EndPageNumber > pageCount.Value) {
+                throw new ArgumentOutOfRangeException(
+                    nameof(ranges),
+                    range,
+                    "PDF viewer preference print page range cannot exceed the generated document page count.");
+            }
+        }
     }
 }

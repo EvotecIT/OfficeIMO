@@ -49,16 +49,14 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildAppearanceStreamDictionary(double width, double height, int contentLength, int helveticaFontId = 0) {
+    internal static string BuildAppearanceStreamDictionary(double width, double height, int contentLength, int helveticaFontId = 0, bool usesHighlightBlendMode = false) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         if (contentLength < 0) {
             throw new ArgumentOutOfRangeException(nameof(contentLength), "PDF annotation appearance stream length cannot be negative.");
         }
 
-        string resources = helveticaFontId > 0
-            ? " /Resources << /Font << /Helv " + PdfSyntaxEscaper.IndirectReference(helveticaFontId) + " >> >>"
-            : string.Empty;
+        string resources = BuildAppearanceStreamResources(helveticaFontId, usesHighlightBlendMode);
         return "<< /Type /XObject /Subtype /Form /BBox [0 0 " +
             FormatCoordinate(width) +
             " " +
@@ -68,6 +66,27 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " /Length " +
             contentLength.ToString(CultureInfo.InvariantCulture) +
             " >>";
+    }
+
+    private static string BuildAppearanceStreamResources(int helveticaFontId, bool usesHighlightBlendMode) {
+        if (helveticaFontId <= 0 && !usesHighlightBlendMode) {
+            return string.Empty;
+        }
+
+        var sb = new StringBuilder();
+        sb.Append(" /Resources <<");
+        if (helveticaFontId > 0) {
+            sb.Append(" /Font << /Helv ")
+                .Append(PdfSyntaxEscaper.IndirectReference(helveticaFontId))
+                .Append(" >>");
+        }
+
+        if (usesHighlightBlendMode) {
+            sb.Append(" /ExtGState << /OfficeIMOHighlightGs << /Type /ExtGState /BM /Multiply /CA 0.35 /ca 0.35 >> >>");
+        }
+
+        sb.Append(" >>");
+        return sb.ToString();
     }
 
     internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null) {

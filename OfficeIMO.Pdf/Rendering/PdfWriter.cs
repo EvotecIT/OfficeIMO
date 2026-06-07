@@ -378,7 +378,7 @@ internal static partial class PdfWriter {
                     double appearanceHeight = annotation.Y2 - annotation.Y1;
                     string appearanceContent = PdfAnnotationDictionaryBuilder.BuildHighlightAppearanceContent(appearanceWidth, appearanceHeight, annotation.Color);
                     byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
-                    string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceBytes.Length);
+                    string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceBytes.Length, usesHighlightBlendMode: true);
                     int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
                     string annot = PdfAnnotationDictionaryBuilder.BuildHighlightAnnotation(
                         annotation.X1,
@@ -558,7 +558,7 @@ internal static partial class PdfWriter {
         int viewerPreferencesId = 0;
         PdfViewerPreferencesOptions? viewerPreferences = opts.ViewerPreferencesSnapshot;
         if (viewerPreferences != null && viewerPreferences.HasAny) {
-            viewerPreferencesId = AddObject(objects, PdfViewerPreferenceDictionaryBuilder.BuildGeneratedViewerPreferencesDictionary(viewerPreferences));
+            viewerPreferencesId = AddObject(objects, PdfViewerPreferenceDictionaryBuilder.BuildGeneratedViewerPreferencesDictionary(viewerPreferences, layout.Pages.Count));
         }
 
         string? openAction = null;

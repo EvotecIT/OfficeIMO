@@ -207,6 +207,10 @@ public partial class PdfInspectorTests {
         Assert.True(info.HasReadableXmpMetadata);
         PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
         Assert.True(xmp.IsWellFormedXml);
+        Assert.Equal("Prefix-free title", xmp.Title);
+        Assert.Equal("Prefix-free creator", xmp.Creator);
+        Assert.Equal("Prefix-free description", xmp.Description);
+        Assert.Equal(new[] { "one", "two" }, xmp.Subjects);
         Assert.True(xmp.HasPdfAIdentification);
         Assert.Equal(3, xmp.PdfAPart);
         Assert.Equal("B", xmp.PdfAConformance);

@@ -59,6 +59,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/IC [0.95 0.98 1]", pdf, StringComparison.Ordinal);
         Assert.Contains("/QuadPoints [", pdf, StringComparison.Ordinal);
         Assert.Equal(4, CountOccurrences(pdf, "/AP << /N "));
+        Assert.Equal(2, CountOccurrences(pdf, "/OfficeIMOHighlightGs gs"));
+        Assert.Equal(2, CountOccurrences(pdf, "/BM /Multiply"));
+        Assert.Equal(2, CountOccurrences(pdf, "/ca 0.35"));
         Assert.True(CountOccurrences(pdf, "BT /Helv") >= 4);
         Assert.Contains("/Subtype /Form /BBox [0 0 140 44]", pdf, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Form /BBox [0 0 120 12]", pdf, StringComparison.Ordinal);
@@ -108,6 +111,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Ann2 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Form /BBox [0 0 140 44]", pdf, StringComparison.Ordinal);
         Assert.Contains("BT /Helv", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOHighlightGs gs", pdf, StringComparison.Ordinal);
+        Assert.Contains("/BM /Multiply", pdf, StringComparison.Ordinal);
+        Assert.Contains("/ca 0.35", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0.9 0.1 rg 0 0 120 14 re f", pdf, StringComparison.Ordinal);
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
@@ -149,6 +155,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot2 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("BT /Helv", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOHighlightGs gs", pdf, StringComparison.Ordinal);
+        Assert.Contains("/BM /Multiply", pdf, StringComparison.Ordinal);
+        Assert.Contains("/ca 0.35", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0.9 0.1 rg 0 0 120 14 re f", pdf, StringComparison.Ordinal);
 
         using var input = new MemoryStream(annotated);
@@ -205,6 +214,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("0.95 0.98 1 rg 0 0 150 44 re f", pdf, StringComparison.Ordinal);
         Assert.Contains("0.2 0.4 0.8 RG 1 w", pdf, StringComparison.Ordinal);
         Assert.Contains("BT /Helv 12 Tf 0.1 0.2 0.3 rg", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOHighlightGs gs", pdf, StringComparison.Ordinal);
+        Assert.Contains("/BM /Multiply", pdf, StringComparison.Ordinal);
+        Assert.Contains("/ca 0.35", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0.9 0.1 rg 0 0 120 14 re f", pdf, StringComparison.Ordinal);
     }
 
@@ -223,6 +235,9 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.DoesNotContain("/Annots [", pdf, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Highlight", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOHighlightGs gs", pdf, StringComparison.Ordinal);
+        Assert.Contains("/BM /Multiply", pdf, StringComparison.Ordinal);
+        Assert.Contains("/ca 0.35", pdf, StringComparison.Ordinal);
         Assert.Contains("1 0.8 0.1 rg", pdf, StringComparison.Ordinal);
         Assert.Contains("10 20 m 70 20 l 70 12 l 10 12 l h f", pdf, StringComparison.Ordinal);
         Assert.Contains("80 10 m 130 10 l 130 2 l 80 2 l h f", pdf, StringComparison.Ordinal);

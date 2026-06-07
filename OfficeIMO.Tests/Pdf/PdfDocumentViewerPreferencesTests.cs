@@ -122,4 +122,15 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfPrintPageRange(3, 2));
         Assert.Throws<ArgumentNullException>(() => new PdfViewerPreferencesOptions().AddPrintPageRange(null!));
     }
+
+    [Fact]
+    public void ViewerPreferences_RejectPrintPageRangeBeyondGeneratedPageCount() {
+        var options = new PdfOptions {
+            ViewerPreferences = new PdfViewerPreferencesOptions().AddPrintPageRange(2, 2)
+        };
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create(options)
+            .Paragraph(p => p.Text("Only one generated page."))
+            .ToBytes());
+    }
 }

@@ -4,6 +4,7 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
+    private const string DublinCoreNamespaceUri = "http://purl.org/dc/elements/1.1/";
     private const string PdfAIdentificationNamespaceUri = "http://www.aiim.org/pdfa/ns/id/";
 
     /// <summary>Catalog XMP metadata stream discovered from /Metadata.</summary>
@@ -88,7 +89,7 @@ public sealed partial class PdfReadDocument {
     }
 
     private static string? ReadAltText(XDocument document, string localName) {
-        XElement? element = FindElement(document, localName, "dc");
+        XElement? element = FindElementByNamespace(document, localName, DublinCoreNamespaceUri);
         if (element is null) {
             return null;
         }
@@ -107,7 +108,7 @@ public sealed partial class PdfReadDocument {
     }
 
     private static IReadOnlyList<string> ReadCollectionText(XDocument document, string localName) {
-        XElement? element = FindElement(document, localName, "dc");
+        XElement? element = FindElementByNamespace(document, localName, DublinCoreNamespaceUri);
         if (element is null) {
             return Array.Empty<string>();
         }
@@ -127,24 +128,8 @@ public sealed partial class PdfReadDocument {
         return NormalizeXmlText(document.Descendants().FirstOrDefault(e => e.Name.LocalName == localName)?.Value);
     }
 
-    private static string? ReadPrefixedElementText(XDocument document, string localName, string prefix) {
-        XElement? element = document.Descendants().FirstOrDefault(e =>
-            e.Name.LocalName == localName &&
-            string.Equals(e.GetPrefixOfNamespace(e.Name.Namespace), prefix, StringComparison.Ordinal));
-        return NormalizeXmlText(element?.Value);
-    }
-
-    private static int? ReadIntegerElement(XDocument document, string localName, string prefix) {
-        string? value = ReadPrefixedElementText(document, localName, prefix);
-        return int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int result)
-            ? result
-            : null;
-    }
-
     private static string? ReadElementTextByNamespace(XDocument document, string localName, string namespaceUri) {
-        XElement? element = document.Descendants().FirstOrDefault(e =>
-            e.Name.LocalName == localName &&
-            string.Equals(e.Name.NamespaceName, namespaceUri, StringComparison.Ordinal));
+        XElement? element = FindElementByNamespace(document, localName, namespaceUri);
         return NormalizeXmlText(element?.Value);
     }
 
@@ -155,10 +140,10 @@ public sealed partial class PdfReadDocument {
             : null;
     }
 
-    private static XElement? FindElement(XDocument document, string localName, string prefix) {
+    private static XElement? FindElementByNamespace(XDocument document, string localName, string namespaceUri) {
         return document.Descendants().FirstOrDefault(e =>
             e.Name.LocalName == localName &&
-            string.Equals(e.GetPrefixOfNamespace(e.Name.Namespace), prefix, StringComparison.Ordinal));
+            string.Equals(e.Name.NamespaceName, namespaceUri, StringComparison.Ordinal));
     }
 
     private static string? NormalizeXmlText(string? value) {

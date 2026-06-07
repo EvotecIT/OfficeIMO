@@ -137,6 +137,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         Guard.Positive(height, nameof(height));
         PdfColor resolvedColor = color ?? new PdfColor(1D, 0.92D, 0.2D);
         return "q\n" +
+            "/OfficeIMOHighlightGs gs\n" +
             FormatColor(resolvedColor) + " rg 0 0 " + FormatCoordinate(width) + " " + FormatCoordinate(height) + " re f\n" +
             "Q\n";
     }
@@ -152,6 +153,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         PdfColor resolvedColor = color ?? new PdfColor(1D, 0.92D, 0.2D);
         var builder = new StringBuilder();
         builder.Append("q\n")
+            .Append("/OfficeIMOHighlightGs gs\n")
             .Append(FormatColor(resolvedColor))
             .Append(" rg\n");
 

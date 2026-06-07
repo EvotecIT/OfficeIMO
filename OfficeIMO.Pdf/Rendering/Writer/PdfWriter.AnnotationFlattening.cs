@@ -43,7 +43,7 @@ internal static partial class PdfWriter {
             double height = annotation.Y2 - annotation.Y1;
             string appearanceContent = PdfAnnotationDictionaryBuilder.BuildHighlightAppearanceContent(width, height, annotation.Color);
             byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
-            string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(width, height, appearanceBytes.Length);
+            string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(width, height, appearanceBytes.Length, usesHighlightBlendMode: true);
             int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
             string resourceName = NextFlattenedAnnotationXObjectName(xobjects);
             xobjects.Add((resourceName, appearanceId));
