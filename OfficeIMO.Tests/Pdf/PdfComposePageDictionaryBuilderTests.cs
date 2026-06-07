@@ -425,11 +425,11 @@ namespace OfficeIMO.Tests.Pdf {
                 PdfAnnotationDictionaryBuilder.BuildGoToNamedDestinationLinkAnnotation(10, 20.5, 110, 44.25, "Intro", structParentIndex: 8));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Text /Rect [10 20.5 26 36.5] /Contents (Review \\(layout\\)) /Name /Key /C [1 0 0] /Open true >>\n",
+                "<< /Type /Annot /Subtype /Text /Rect [10 20.5 26 36.5] /Contents <52657669657720286C61796F757429> /Name /Key /C [1 0 0] /Open true >>\n",
                 PdfAnnotationDictionaryBuilder.BuildTextAnnotation(10, 20.5, 26, 36.5, "Review (layout)", PdfTextAnnotationIcon.Key, new PdfColor(1D, 0D, 0D), open: true));
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /FreeText /Rect [10 20.5 110 44.25] /Contents (Reviewer note) /DA (/Helv 9.5 Tf 0 0 1 rg) /Border [0 0 0.75] /C [1 0 0] /IC [1 1 0.8] >>\n",
+                "<< /Type /Annot /Subtype /FreeText /Rect [10 20.5 110 44.25] /Contents <5265766965776572206E6F7465> /DA (/Helv 9.5 Tf 0 0 1 rg) /Border [0 0 0.75] /C [1 0 0] /IC [1 1 0.8] >>\n",
                 PdfAnnotationDictionaryBuilder.BuildFreeTextAnnotation(10, 20.5, 110, 44.25, "Reviewer note", 9.5, new PdfColor(0D, 0D, 1D), new PdfColor(1D, 0D, 0D), 0.75, new PdfColor(1D, 1D, 0.8D)));
             string freeTextAppearance = PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(
                 70,
@@ -448,7 +448,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains("1 1 0.8 rg 0 0 70 48 re f", freeTextAppearance, StringComparison.Ordinal);
 
             Assert.Equal(
-                "<< /Type /Annot /Subtype /Highlight /Rect [10 20.5 110 44.25] /Contents (Important) /C [1 0.9 0.1] /QuadPoints [10 44.25 110 44.25 10 20.5 110 20.5] >>\n",
+                "<< /Type /Annot /Subtype /Highlight /Rect [10 20.5 110 44.25] /Contents <496D706F7274616E74> /C [1 0.9 0.1] /QuadPoints [10 44.25 110 44.25 10 20.5 110 20.5] >>\n",
                 PdfAnnotationDictionaryBuilder.BuildHighlightAnnotation(10, 20.5, 110, 44.25, "Important", new PdfColor(1D, 0.9D, 0.1D)));
 
             Assert.Equal(

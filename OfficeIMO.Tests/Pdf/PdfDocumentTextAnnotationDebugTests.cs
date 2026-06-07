@@ -48,12 +48,12 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(2, CountOccurrences(pdf, "/Subtype /Highlight"));
         Assert.Contains("/Name /Key", pdf, StringComparison.Ordinal);
         Assert.Contains("/Name /Help", pdf, StringComparison.Ordinal);
-        Assert.Contains("/Contents (Review flow anchor)", pdf, StringComparison.Ordinal);
-        Assert.Contains("/Contents (Canvas note)", pdf, StringComparison.Ordinal);
-        Assert.Contains("/Contents (Flow free text wraps across several words for reviewers)", pdf, StringComparison.Ordinal);
-        Assert.Contains("/Contents (Canvas free text wraps as a right aligned reviewer callout)", pdf, StringComparison.Ordinal);
-        Assert.Contains("/Contents (Flow highlight)", pdf, StringComparison.Ordinal);
-        Assert.Contains("/Contents (Canvas highlight)", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Contents <52657669657720666C6F7720616E63686F72>", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Contents <43616E766173206E6F7465>", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Contents <466C6F7720667265652074657874207772617073206163726F7373207365766572616C20776F72647320666F7220726576696577657273>", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Contents <43616E76617320667265652074657874207772617073206173206120726967687420616C69676E65642072657669657765722063616C6C6F7574>", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Contents <466C6F7720686967686C69676874>", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Contents <43616E76617320686967686C69676874>", pdf, StringComparison.Ordinal);
         Assert.Contains("/C [1 0 0]", pdf, StringComparison.Ordinal);
         Assert.Contains("/C [0.2 0.4 0.8]", pdf, StringComparison.Ordinal);
         Assert.Contains("/IC [0.95 0.98 1]", pdf, StringComparison.Ordinal);
@@ -78,6 +78,26 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(2, info.GetAnnotationsBySubtype("Highlight").Count);
         Assert.All(info.GetAnnotationsBySubtype("FreeText"), annotation => Assert.True(annotation.HasNormalAppearance));
         Assert.All(info.GetAnnotationsBySubtype("Highlight"), annotation => Assert.True(annotation.HasNormalAppearance));
+    }
+
+    [Fact]
+    public void TextAnnotations_EncodeContentsAsPdfTextStrings() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TextAnnotation("Zażółć 漢字", width: 24, height: 24)
+            .FreeTextAnnotation("Komentarz 漢字", width: 140, height: 44)
+            .HighlightAnnotation("Ważne 漢字", width: 120, height: 14)
+            .ToBytes();
+
+        string pdf = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+
+        Assert.Contains("/Contents <FEFF", pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("Zażółć", pdf, StringComparison.Ordinal);
+        Assert.Contains(info.GetAnnotationsBySubtype("Text"), annotation => annotation.Contents == "Zażółć 漢字");
+        Assert.Contains(info.GetAnnotationsBySubtype("FreeText"), annotation => annotation.Contents == "Komentarz 漢字");
+        Assert.Contains(info.GetAnnotationsBySubtype("Highlight"), annotation => annotation.Contents == "Ważne 漢字");
     }
 
     [Fact]

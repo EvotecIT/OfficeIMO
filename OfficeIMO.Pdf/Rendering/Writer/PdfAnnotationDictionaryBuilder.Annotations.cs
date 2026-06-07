@@ -14,7 +14,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(x2) + " " +
             FormatCoordinate(y2) +
             "] /Contents " +
-            PdfSyntaxEscaper.LiteralString(contents) +
+            PdfSyntaxEscaper.TextString(contents) +
             " /Name /" +
             PdfSyntaxEscaper.Name(GetTextAnnotationIconName(icon)) +
             (color.HasValue ? " /C [" + FormatCoordinate(color.Value.R) + " " + FormatCoordinate(color.Value.G) + " " + FormatCoordinate(color.Value.B) + "]" : string.Empty) +
@@ -42,7 +42,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(x2) + " " +
             FormatCoordinate(y2) +
             "] /Contents " +
-            PdfSyntaxEscaper.LiteralString(contents) +
+            PdfSyntaxEscaper.TextString(contents) +
             " /DA " +
             PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf " + FormatColor(resolvedTextColor) + " rg") +
             " /Border [0 0 " +
@@ -65,7 +65,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(x2) + " " +
             FormatCoordinate(y2) +
             "] /Contents " +
-            PdfSyntaxEscaper.LiteralString(contents) +
+            PdfSyntaxEscaper.TextString(contents) +
             " /C [" +
             FormatColor(resolvedColor) +
             "] /QuadPoints [" +
@@ -123,6 +123,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         double baseline = height - padding - fontSize;
         for (int i = 0; i < lines.Count && baseline >= padding - fontSize * 0.25D; i++) {
             string line = lines[i];
+            if (!PdfWinAnsiEncoding.CanEncode(line, out _)) {
+                baseline -= effectiveLineHeight;
+                continue;
+            }
+
             double lineWidth = EstimateWinAnsiTextWidth(line, fontSize);
             double textX = ResolveFreeTextLineX(textAlign, padding, availableWidth, lineWidth);
             content += "BT /Helv " + FormatCoordinate(fontSize) + " Tf " + FormatColor(resolvedTextColor) + " rg " + FormatCoordinate(textX) + " " + FormatCoordinate(Math.Max(0D, baseline)) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(line) + " Tj ET\n";

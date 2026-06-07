@@ -110,6 +110,8 @@ internal static class PdfAcroFormDictionaryBuilder {
 
         if (effectiveStyle.IsMultiline) {
             content += BuildMultilineTextFieldAppearanceContent(height, displayValue, fontSize, effectiveStyle, effectiveAlignment, availableTextWidth);
+        } else if (effectiveStyle.IsComb && effectiveStyle.MaxLength.HasValue) {
+            content += BuildCombTextFieldAppearanceContent(width, height, displayValue, fontSize, effectiveStyle);
         } else {
             double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
             double measuredTextWidth = textWidth.HasValue ? textWidth.Value : PdfWriter.EstimateSimpleTextWidth(displayValue, PdfStandardFont.Helvetica, fontSize);
@@ -163,6 +165,42 @@ internal static class PdfAcroFormDictionaryBuilder {
 
         return content;
     }
+
+    private static string BuildCombTextFieldAppearanceContent(double width, double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle) {
+        int cellCount = effectiveStyle.MaxLength!.Value;
+        double cellWidth = width / cellCount;
+        double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
+        var content = new StringBuilder();
+        int glyphIndex = 0;
+        for (int valueIndex = 0; valueIndex < displayValue.Length && glyphIndex < cellCount; glyphIndex++) {
+            int scalarLength = GetScalarLength(displayValue, valueIndex);
+            string glyph = displayValue.Substring(valueIndex, scalarLength);
+            valueIndex += scalarLength;
+            double glyphWidth = PdfWriter.EstimateSimpleTextWidth(glyph, PdfStandardFont.Helvetica, fontSize);
+            double textX = glyphIndex * cellWidth + Math.Max(0D, (cellWidth - glyphWidth) / 2D);
+            string textHex = PdfSyntaxEscaper.WinAnsiHexString(glyph);
+            content.Append("BT /Helv ")
+                .Append(Format(fontSize))
+                .Append(" Tf ")
+                .Append(FormatColor(effectiveStyle.TextColor))
+                .Append(" rg ")
+                .Append(Format(textX))
+                .Append(' ')
+                .Append(Format(baseline))
+                .Append(" Td ")
+                .Append(textHex)
+                .Append(" Tj ET\n");
+        }
+
+        return content.ToString();
+    }
+
+    private static int GetScalarLength(string value, int index) =>
+        char.IsHighSurrogate(value[index]) &&
+        index + 1 < value.Length &&
+        char.IsLowSurrogate(value[index + 1])
+            ? 2
+            : 1;
 
     private static string[] SplitTextFieldAppearanceLines(string value) {
         return value

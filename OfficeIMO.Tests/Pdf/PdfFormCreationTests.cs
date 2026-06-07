@@ -473,6 +473,33 @@ public class PdfFormCreationTests {
     }
 
     [Fact]
+    public void GeneratedCombTextField_RendersAppearancePerCell() {
+        var style = new PdfFormFieldStyle {
+            IsComb = true,
+            MaxLength = 4
+        };
+
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .TextField("Comb.Code", value: "AB12", width: 80, height: 22, style: style)
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(pdf).FormFields);
+
+        Assert.True(field.IsComb);
+        Assert.Equal(4, field.MaxLength);
+        Assert.Contains("/Ff 16777216", raw, StringComparison.Ordinal);
+        Assert.Contains("/MaxLen 4", raw, StringComparison.Ordinal);
+        Assert.Contains("<41> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<42> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<31> Tj", raw, StringComparison.Ordinal);
+        Assert.Contains("<32> Tj", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<41423132> Tj", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GeneratedTextAndChoiceFields_EmitTextSpecificFlags() {
         var style = new PdfFormFieldStyle {
             IsMultiline = true,
