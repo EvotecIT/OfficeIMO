@@ -10,15 +10,15 @@ public sealed partial class PdfReadDocument {
 
         PdfObject? resolved = ResolveObject(openActionObject);
         if (resolved is PdfArray &&
-            TryReadDestination(resolved, out int? pageNumber, out double? destinationTop)) {
-            return new PdfDocumentOpenAction("Destination", pageNumber, destinationTop);
+            TryReadDestination(resolved, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight)) {
+            return new PdfDocumentOpenAction("Destination", pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
         }
 
         if (resolved is PdfDictionary dictionary &&
             dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
             dictionary.Items.TryGetValue("D", out var destination) &&
-            TryReadDestination(destination, out pageNumber, out destinationTop)) {
-            return new PdfDocumentOpenAction("GoTo", pageNumber, destinationTop);
+            TryReadDestination(destination, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight)) {
+            return new PdfDocumentOpenAction("GoTo", pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
         }
 
         return null;

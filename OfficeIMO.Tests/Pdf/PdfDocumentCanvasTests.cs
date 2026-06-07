@@ -661,6 +661,42 @@ public class PdfDocumentCanvasTests {
     }
 
     [Fact]
+    public void CanvasClip_ClipsVisualAnnotationsInsideFrame() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                CompressContentStreams = false
+            })
+            .Canvas(canvas => canvas.Clip(20, 20, 100, 80, clipped => clipped
+                .TextAnnotation("Clipped text annotation", 10, 10, 40, 30)
+                .TextAnnotation("Outside text annotation", 140, 20, 20, 20)
+                .FreeTextAnnotation("Clipped free text annotation", 30, 50, 160, 50)
+                .HighlightAnnotation("Clipped highlight annotation", 110, 90, 40, 20)))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfAnnotation text = Assert.Single(info.GetAnnotationsBySubtype("Text"));
+        PdfAnnotation freeText = Assert.Single(info.GetAnnotationsBySubtype("FreeText"));
+        PdfAnnotation highlight = Assert.Single(info.GetAnnotationsBySubtype("Highlight"));
+
+        Assert.Equal("Clipped text annotation", text.Contents);
+        AssertClose(20D, text.X1);
+        AssertClose(120D, text.Y1);
+        AssertClose(50D, text.X2);
+        AssertClose(140D, text.Y2);
+        Assert.Equal("Clipped free text annotation", freeText.Contents);
+        AssertClose(30D, freeText.X1);
+        AssertClose(60D, freeText.Y1);
+        AssertClose(120D, freeText.X2);
+        AssertClose(110D, freeText.Y2);
+        Assert.Equal("Clipped highlight annotation", highlight.Contents);
+        AssertClose(110D, highlight.X1);
+        AssertClose(60D, highlight.Y1);
+        AssertClose(120D, highlight.X2);
+        AssertClose(70D, highlight.Y2);
+    }
+
+    [Fact]
     public void CanvasClip_PreservesInlineImageClipPathInsideFrame() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 220,

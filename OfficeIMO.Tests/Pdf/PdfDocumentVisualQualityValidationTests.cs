@@ -242,7 +242,7 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create().Paragraph(p => p.Link("OfficeIMO", null!)));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Paragraph(p => p.Link("OfficeIMO", "relative/link")));
+            PdfDocument.Create().Paragraph(p => p.Link("OfficeIMO", "bad\u0001uri")));
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().Paragraph(p => p.Link("", "https://evotec.xyz")));
@@ -251,7 +251,7 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create().Paragraph(p => p.Link("OfficeIMO", "https://evotec.xyz", contents: " ")));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().H1("Linked heading", linkUri: "bookmark-only"));
+            PdfDocument.Create().H1("Linked heading", linkUri: "bad\u0001uri"));
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().H1("Linked heading", linkUri: "https://evotec.xyz", linkContents: " "));
@@ -267,7 +267,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] png = CreateMinimalRgbPng();
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Image(png, 24, 24, linkUri: "not-a-uri"));
+            PdfDocument.Create().Image(png, 24, 24, linkUri: "bad\u0001uri"));
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().Image(png, 24, 24, linkUri: "https://evotec.xyz", linkContents: " "));
@@ -277,7 +277,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var shape = OfficeShape.Rectangle(24, 12);
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Shape(shape, linkUri: "not-a-uri"));
+            PdfDocument.Create().Shape(shape, linkUri: "bad\u0001uri"));
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().Shape(shape, linkUri: "https://evotec.xyz", linkContents: " "));
@@ -286,7 +286,7 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create().Shape(shape, linkContents: "metadata without link"));
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Rectangle(24, 12, linkUri: "not-a-uri"));
+            PdfDocument.Create().Rectangle(24, 12, linkUri: "bad\u0001uri"));
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().Rectangle(24, 12, linkUri: "https://evotec.xyz", linkContents: " "));
@@ -297,7 +297,7 @@ public partial class PdfDocumentVisualQualityTests {
         var drawing = new OfficeDrawing(24, 12)
             .AddShape(OfficeShape.Rectangle(24, 12), 0, 0);
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Drawing(drawing, linkUri: "not-a-uri"));
+            PdfDocument.Create().Drawing(drawing, linkUri: "bad\u0001uri"));
 
         Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create().Drawing(drawing, linkUri: "https://evotec.xyz", linkContents: " "));
@@ -309,7 +309,7 @@ public partial class PdfDocumentVisualQualityTests {
             PdfDocument.Create().TableWithLinks(
                 new[] { new[] { "Name" }, new[] { "OfficeIMO" } },
                 new Dictionary<(int Row, int Col), string> {
-                    [(1, 0)] = "not-a-uri"
+                    [(1, 0)] = "bad\u0001uri"
                 }));
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>

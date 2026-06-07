@@ -22,7 +22,7 @@ internal sealed class HeadingBlock : IPdfBlock {
         }
 
         if (linkUri != null) {
-            Guard.AbsoluteUri(linkUri, nameof(linkUri));
+            Guard.UriAction(linkUri, nameof(linkUri));
         }
 
         if (linkDestinationName != null) {

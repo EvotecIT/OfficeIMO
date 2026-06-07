@@ -24,6 +24,8 @@ public sealed partial class PdfOptions {
             IncludeXmpMetadata = IncludeXmpMetadata,
             IncludePageLabels = IncludePageLabels,
             PageLabelPrefix = PageLabelPrefix,
+            _pageLabelRanges = ClonePageLabelRanges(_pageLabelRanges),
+            FlattenVisualAnnotations = FlattenVisualAnnotations,
             FileVersion = FileVersion,
             ComplianceProfile = ComplianceProfile,
             PdfAIdentification = _pdfAIdentification?.Clone(),
@@ -32,7 +34,12 @@ public sealed partial class PdfOptions {
             OutputIntent = _outputIntent?.Clone(),
             TaggedStructureMode = TaggedStructureMode,
             Language = Language,
+            CatalogPageMode = CatalogPageMode,
+            CatalogPageLayout = CatalogPageLayout,
+            OpenAction = _openAction?.Clone(),
             ViewerPreferences = _viewerPreferences?.Clone(),
+            CatalogUriBase = CatalogUriBase,
+            AcroFormDefaultTextAlignment = AcroFormDefaultTextAlignment,
             _embeddedFonts = CloneEmbeddedFonts(_embeddedFonts),
             _embeddedFiles = CloneEmbeddedFiles(_embeddedFiles),
             ShowHeader = ShowHeader,
@@ -67,8 +74,11 @@ public sealed partial class PdfOptions {
             DefaultDrawingStyle = _defaultDrawingStyle?.Clone(),
             DefaultRowStyle = _defaultRowStyle?.Clone(),
             CreateOutlineFromHeadings = CreateOutlineFromHeadings,
+            OutlineExpansionLevel = OutlineExpansionLevel,
             Debug = Debug is null ? null : new PdfDebugOptions {
                 ShowContentArea = Debug.ShowContentArea,
+                ShowFlowObjectBoxes = Debug.ShowFlowObjectBoxes,
+                ShowCanvasItemBoxes = Debug.ShowCanvasItemBoxes,
                 ShowTableBaselines = Debug.ShowTableBaselines,
                 ShowTableRowBoxes = Debug.ShowTableRowBoxes,
                 ShowTableColumnGuides = Debug.ShowTableColumnGuides
@@ -112,6 +122,19 @@ public sealed partial class PdfOptions {
         };
         clone._pageNumberStart = _pageNumberStart;
         clone._hasExplicitPageNumberStart = _hasExplicitPageNumberStart;
+        return clone;
+    }
+
+    private static System.Collections.Generic.List<PdfPageLabelRange>? ClonePageLabelRanges(System.Collections.Generic.IEnumerable<PdfPageLabelRange>? ranges) {
+        if (ranges == null) {
+            return null;
+        }
+
+        var clone = new System.Collections.Generic.List<PdfPageLabelRange>();
+        foreach (PdfPageLabelRange range in ranges) {
+            clone.Add(new PdfPageLabelRange(range.StartPageNumber, range.Style, range.StartNumber, range.Prefix));
+        }
+
         return clone;
     }
 

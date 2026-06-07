@@ -285,9 +285,10 @@ public static class PdfInspector {
     public static PdfDocumentProbe Probe(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
         return new PdfDocumentProbe(
             PdfSyntax.GetHeaderVersion(pdf),
-            PdfSyntax.HasEncryptionMarkers(pdf),
+            security.HasEncryption,
             PdfSyntax.HasSignatureMarkers(pdf),
             PdfSyntax.HasFormMarkers(pdf),
             PdfSyntax.HasAnnotationMarkers(pdf),
@@ -304,7 +305,8 @@ public static class PdfInspector {
             PdfSyntax.HasOutputIntentMarkers(pdf),
             PdfSyntax.HasEmbeddedFileMarkers(pdf),
             PdfSyntax.HasOptionalContentMarkers(pdf),
-            PdfSyntax.HasActiveContentMarkers(pdf));
+            PdfSyntax.HasActiveContentMarkers(pdf),
+            security);
     }
 
     /// <summary>
@@ -342,6 +344,24 @@ public static class PdfInspector {
         IReadOnlyList<PdfNamedDestination> namedDestinations = useDocumentWideObjects
             ? document.NamedDestinations
             : PdfPageRangeObjectFilter.FilterNamedDestinationsByPageNumbers(document.NamedDestinations, pageNumbers);
+        IReadOnlyList<PdfCatalogAction> catalogActions = useDocumentWideObjects
+            ? document.CatalogActions
+            : Array.Empty<PdfCatalogAction>();
+        IReadOnlyList<PdfAttachmentInfo> attachments = useDocumentWideObjects
+            ? document.Attachments
+            : Array.Empty<PdfAttachmentInfo>();
+        IReadOnlyList<PdfOutputIntentInfo> outputIntents = useDocumentWideObjects
+            ? document.OutputIntents
+            : Array.Empty<PdfOutputIntentInfo>();
+        PdfXmpMetadataInfo? xmpMetadata = useDocumentWideObjects
+            ? document.XmpMetadata
+            : null;
+        PdfTaggedContentInfo? taggedContent = useDocumentWideObjects
+            ? document.TaggedContent
+            : null;
+        PdfOptionalContentProperties? optionalContent = useDocumentWideObjects
+            ? document.OptionalContent
+            : null;
         PdfDocumentOpenAction? openAction = useDocumentWideObjects
             ? document.OpenAction
             : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(document.OpenAction, pageNumbers);
@@ -351,19 +371,37 @@ public static class PdfInspector {
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
             PdfReadPage page = document.Pages[pageNumber - 1];
+            PdfPageGeometry geometry = page.GetGeometry();
             var (width, height) = page.GetPageSize();
             int rotation = page.GetRotationDegrees();
             var pageLinks = page.GetLinkAnnotations();
             var links = new List<PdfLinkAnnotation>(pageLinks.Count);
             for (int j = 0; j < pageLinks.Count; j++) {
-                links.Add(pageLinks[j].WithPageNumber(pageNumber));
+                PdfLinkAnnotation link = pageLinks[j].WithPageNumber(pageNumber);
+                if (link.DestinationPageObjectNumber.HasValue) {
+                    link = link.WithDestinationPageNumber(document.GetPageNumberForObject(link.DestinationPageObjectNumber.Value));
+                }
+
+                links.Add(link);
+            }
+
+            var pageAnnotations = page.GetAnnotations();
+            var annotations = new List<PdfAnnotation>(pageAnnotations.Count);
+            for (int j = 0; j < pageAnnotations.Count; j++) {
+                annotations.Add(pageAnnotations[j].WithPageNumber(pageNumber));
+            }
+
+            var pageActions = page.GetPageActions();
+            var actions = new List<PdfPageAction>(pageActions.Count);
+            for (int j = 0; j < pageActions.Count; j++) {
+                actions.Add(pageActions[j].WithPageNumber(pageNumber));
             }
 
             widgetsByPage.TryGetValue(pageNumber, out IReadOnlyList<PdfFormWidget>? formWidgets);
-            pages.Add(new PdfPageInfo(pageNumber, width, height, rotation, links, formWidgets));
+            pages.Add(new PdfPageInfo(pageNumber, width, height, rotation, geometry, links, formWidgets, annotations, actions));
         }
 
-        return new PdfDocumentInfo(pages.AsReadOnly(), document.Metadata, outlines, pageLabels, namedDestinations, openAction, document.ViewerPreferences, formFields, document.AcroFormDefaultAppearance, document.AcroFormNeedAppearances, document.AcroFormSignatureFlags, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, probe.HasSignatures, probe.HasForms, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent);
+        return new PdfDocumentInfo(pages.AsReadOnly(), document.Metadata, outlines, pageLabels, namedDestinations, catalogActions, attachments, outputIntents, xmpMetadata, taggedContent, optionalContent, openAction, document.ViewerPreferences, formFields, document.AcroFormDefaultAppearance, document.AcroFormQuadding, document.AcroFormNeedAppearances, document.AcroFormSignatureFlags, probe.Security, probe.HeaderVersion, document.CatalogPageMode, document.CatalogPageLayout, document.CatalogVersion, document.CatalogLanguage, probe.HasSignatures, probe.HasForms, probe.HasAnnotations, probe.HasOutlines, probe.HasCatalogViewSettings, probe.HasPageLabels, probe.HasCatalogNameTrees, probe.HasNamedDestinations, probe.HasOpenActions, probe.HasViewerPreferences, probe.HasTaggedContent, probe.HasXmpMetadata, probe.HasCatalogUri, probe.HasOutputIntents, probe.HasEmbeddedFiles, probe.HasOptionalContent, probe.HasActiveContent);
     }
 
     private static Dictionary<int, IReadOnlyList<PdfFormWidget>> BuildFormWidgetsByPage(IReadOnlyList<PdfFormField> fields) {

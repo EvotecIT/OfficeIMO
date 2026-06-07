@@ -7,6 +7,7 @@ public static partial class PdfFormFiller {
     private const string UnsupportedFlattenWidgetMessage = "Only simple text, choice, and button AcroForm widgets with rectangles are supported for flattening by OfficeIMO.Pdf yet.";
     private const string UnsupportedFlattenAnnotationMessage = "Only simple text, choice, and button AcroForm widgets referenced from page annotations are supported for flattening by OfficeIMO.Pdf yet.";
     private static readonly char[] DefaultAppearanceSeparators = { ' ', '\t', '\r', '\n' };
+    private const int PasswordFlag = 8192;
     private const int RadioButtonFlag = 32768;
     private const int EditableChoiceFlag = 262144;
     private const int MultiSelectChoiceFlag = 2097152;

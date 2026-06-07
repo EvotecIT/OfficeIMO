@@ -15,7 +15,7 @@ internal sealed class DrawingBlock : IPdfBlock {
 
     public DrawingBlock(OfficeDrawing drawing, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNull(drawing, nameof(drawing));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         if (linkContents != null && linkUri == null) {
             throw new ArgumentException("Drawing link contents require a link URI.", nameof(linkContents));
         }

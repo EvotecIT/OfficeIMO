@@ -33,6 +33,38 @@ internal static class Guard {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void UriAction(string? value, string paramName) {
+        NotNullOrWhiteSpace(value, paramName);
+        if (!IsUriAction(value)) {
+            throw new System.ArgumentException($"Parameter '{paramName}' must be an absolute URI or a relative URI action target.", paramName);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void OptionalUriAction(string? value, string paramName) {
+        if (value is null)
+            return;
+
+        UriAction(value, paramName);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsUriAction(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return false;
+        }
+
+        string uriAction = value!;
+        for (int i = 0; i < uriAction.Length; i++) {
+            if (char.IsControl(uriAction[i])) {
+                return false;
+            }
+        }
+
+        return System.Uri.TryCreate(uriAction, System.UriKind.RelativeOrAbsolute, out _);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void NotNullOrEmpty(byte[]? value, string paramName) {
         if (value is null)
             throw new System.ArgumentNullException(paramName, $"Parameter '{paramName}' cannot be null.");
@@ -51,6 +83,13 @@ internal static class Guard {
     public static void NonNegative(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value < 0)
             throw new System.ArgumentOutOfRangeException(paramName, value, $"Parameter '{paramName}' must be a finite non-negative number.");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void PositiveInteger(int value, string paramName) {
+        if (value < 1) {
+            throw new System.ArgumentOutOfRangeException(paramName, value, $"Parameter '{paramName}' must be a positive integer.");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,6 +135,85 @@ internal static class Guard {
             value != PdfPageNumberStyle.LowerLetter &&
             value != PdfPageNumberStyle.UpperLetter) {
             throw new System.ArgumentException("PDF page number style must be Arabic, LowerRoman, UpperRoman, LowerLetter, or UpperLetter.", paramName);
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CatalogPageMode(PdfCatalogPageMode value, string paramName) {
+        if (value != PdfCatalogPageMode.UseNone &&
+            value != PdfCatalogPageMode.UseOutlines &&
+            value != PdfCatalogPageMode.UseThumbs &&
+            value != PdfCatalogPageMode.FullScreen &&
+            value != PdfCatalogPageMode.UseOC &&
+            value != PdfCatalogPageMode.UseAttachments) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF catalog page mode must be UseNone, UseOutlines, UseThumbs, FullScreen, UseOC, or UseAttachments.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void CatalogPageLayout(PdfCatalogPageLayout value, string paramName) {
+        if (value != PdfCatalogPageLayout.SinglePage &&
+            value != PdfCatalogPageLayout.OneColumn &&
+            value != PdfCatalogPageLayout.TwoColumnLeft &&
+            value != PdfCatalogPageLayout.TwoColumnRight &&
+            value != PdfCatalogPageLayout.TwoPageLeft &&
+            value != PdfCatalogPageLayout.TwoPageRight) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF catalog page layout must be SinglePage, OneColumn, TwoColumnLeft, TwoColumnRight, TwoPageLeft, or TwoPageRight.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void NonFullScreenPageMode(PdfNonFullScreenPageMode value, string paramName) {
+        if (value != PdfNonFullScreenPageMode.UseNone &&
+            value != PdfNonFullScreenPageMode.UseOutlines &&
+            value != PdfNonFullScreenPageMode.UseThumbs &&
+            value != PdfNonFullScreenPageMode.UseOC) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF non-full-screen page mode must be UseNone, UseOutlines, UseThumbs, or UseOC.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ViewerDirection(PdfViewerDirection value, string paramName) {
+        if (value != PdfViewerDirection.LeftToRight &&
+            value != PdfViewerDirection.RightToLeft) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF viewer direction must be LeftToRight or RightToLeft.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void PrintScaling(PdfPrintScaling value, string paramName) {
+        if (value != PdfPrintScaling.AppDefault &&
+            value != PdfPrintScaling.None) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF print scaling must be AppDefault or None.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void DuplexMode(PdfDuplexMode value, string paramName) {
+        if (value != PdfDuplexMode.Simplex &&
+            value != PdfDuplexMode.DuplexFlipShortEdge &&
+            value != PdfDuplexMode.DuplexFlipLongEdge) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF duplex mode must be Simplex, DuplexFlipShortEdge, or DuplexFlipLongEdge.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void FormFieldTextAlignment(PdfFormFieldTextAlignment value, string paramName) {
+        if (value != PdfFormFieldTextAlignment.Left &&
+            value != PdfFormFieldTextAlignment.Center &&
+            value != PdfFormFieldTextAlignment.Right) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF form field text alignment must be Left, Center, or Right.");
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void PageBoundaryBox(PdfPageBoundaryBox value, string paramName) {
+        if (value != PdfPageBoundaryBox.MediaBox &&
+            value != PdfPageBoundaryBox.CropBox &&
+            value != PdfPageBoundaryBox.BleedBox &&
+            value != PdfPageBoundaryBox.TrimBox &&
+            value != PdfPageBoundaryBox.ArtBox) {
+            throw new System.ArgumentOutOfRangeException(paramName, "PDF page boundary box must be MediaBox, CropBox, BleedBox, TrimBox, or ArtBox.");
         }
     }
 

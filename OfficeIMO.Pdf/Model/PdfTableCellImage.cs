@@ -11,7 +11,7 @@ public sealed class PdfTableCellImage {
         Guard.NotNullOrEmpty(data, nameof(data));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         if (linkContents != null && linkUri == null) {
             throw new ArgumentException("Table cell image link contents require a link URI.", nameof(linkContents));
         }
@@ -54,7 +54,7 @@ public sealed class PdfTableCellImage {
     /// <summary>Optional image style. When omitted, the table cell alignment is used.</summary>
     public PdfImageStyle? Style { get; }
 
-    /// <summary>Optional absolute URI linked from the image rectangle.</summary>
+    /// <summary>Optional absolute URI or catalog-base-relative URI linked from the image rectangle.</summary>
     public string? LinkUri { get; }
 
     /// <summary>Optional PDF annotation contents metadata for the image link.</summary>

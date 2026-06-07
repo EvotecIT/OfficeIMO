@@ -28,9 +28,6 @@ internal static class PdfOutlineDictionaryBuilder {
         int destinationPageId,
         double destinationTop) {
         Guard.NotNullOrWhiteSpace(title, nameof(title));
-        if (descendantCount < 0) {
-            throw new ArgumentOutOfRangeException(nameof(descendantCount), descendantCount, "PDF outline descendant count cannot be negative.");
-        }
 
         if (double.IsNaN(destinationTop) || double.IsInfinity(destinationTop)) {
             throw new ArgumentOutOfRangeException(nameof(destinationTop), destinationTop, "PDF outline destination coordinate must be finite.");

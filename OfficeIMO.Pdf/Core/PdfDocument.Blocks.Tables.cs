@@ -59,7 +59,7 @@ public sealed partial class PdfDocument {
                     throw new System.ArgumentOutOfRangeException(nameof(links), "Table link column index must refer to an existing cell in the target row.");
                 }
 
-                Guard.AbsoluteUri(kv.Value, nameof(links));
+                Guard.UriAction(kv.Value, nameof(links));
                 tb.AddLink(kv.Key, kv.Value);
             }
         }

@@ -11,16 +11,24 @@ public sealed partial class PdfReadDocument {
     private readonly Dictionary<string, PdfNamedDestination> _nameDestinations = new(StringComparer.Ordinal);
     private readonly Dictionary<string, PdfNamedDestination> _stringDestinations = new(StringComparer.Ordinal);
 
-    private PdfReadDocument(Dictionary<int, PdfIndirectObject> objects, string trailerRaw, PdfReadOptions? options) {
+    private PdfReadDocument(Dictionary<int, PdfIndirectObject> objects, string trailerRaw, PdfDocumentSecurityInfo security, PdfReadOptions? options) {
         _objects = objects; _trailerRaw = trailerRaw; _options = options ?? new PdfReadOptions();
+        Security = security;
         Pages = CollectPages();
         Metadata = ExtractMetadata();
         PageLabels = ExtractPageLabels();
         NamedDestinations = ExtractNamedDestinations();
+        CatalogActions = ExtractCatalogActions();
+        Attachments = ExtractAttachmentInfos();
+        OutputIntents = ExtractOutputIntents();
+        XmpMetadata = ExtractXmpMetadata();
+        TaggedContent = ExtractTaggedContent();
+        OptionalContent = ExtractOptionalContent();
         Outlines = ExtractOutlines();
         OpenAction = ExtractOpenAction();
         ViewerPreferences = ExtractViewerPreferences();
         AcroFormDefaultAppearance = ExtractAcroFormText("DA");
+        AcroFormQuadding = ExtractAcroFormInteger("Q");
         FormFields = ExtractFormFields();
         AcroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
         AcroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
@@ -45,6 +53,9 @@ public sealed partial class PdfReadDocument {
     /// <summary>Named destinations discovered from the document catalog.</summary>
     public IReadOnlyList<PdfNamedDestination> NamedDestinations { get; }
 
+    /// <summary>Catalog-level actions discovered from supported name trees.</summary>
+    public IReadOnlyList<PdfCatalogAction> CatalogActions { get; }
+
     /// <summary>Simple document open action discovered from the document catalog, when supported.</summary>
     public PdfDocumentOpenAction? OpenAction { get; }
 
@@ -56,6 +67,9 @@ public sealed partial class PdfReadDocument {
 
     /// <summary>AcroForm default appearance string from /DA, when present.</summary>
     public string? AcroFormDefaultAppearance { get; }
+
+    /// <summary>Raw AcroForm default /Q quadding value, when present.</summary>
+    public int? AcroFormQuadding { get; }
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
     public bool? AcroFormNeedAppearances { get; }
@@ -74,4 +88,7 @@ public sealed partial class PdfReadDocument {
 
     /// <summary>Catalog language tag, for example en-US or pl-PL, when present.</summary>
     public string? CatalogLanguage { get; }
+
+    /// <summary>Security, signature, and revision markers read from the source PDF bytes.</summary>
+    public PdfDocumentSecurityInfo Security { get; }
 }

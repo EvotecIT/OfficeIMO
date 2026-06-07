@@ -138,6 +138,10 @@ public sealed partial class PdfOptions {
         ValidateZoneString(_evenPageFooterCenterFormat, "footer");
         ValidateZoneString(_evenPageFooterRightFormat, "footer");
         ValidateOptionalLanguage(Language, nameof(Language));
+        ValidateOptionalCatalogUriBase(CatalogUriBase, nameof(CatalogUriBase));
+        if (AcroFormDefaultTextAlignment.HasValue) {
+            Guard.FormFieldTextAlignment(AcroFormDefaultTextAlignment.Value, nameof(AcroFormDefaultTextAlignment));
+        }
     }
 
     private static void ValidateZones(string? left, string? center, string? right, string paramName) {
@@ -173,6 +177,26 @@ public sealed partial class PdfOptions {
             if (char.IsControl(value[i])) {
                 throw new System.ArgumentException("PDF document language cannot contain control characters.", paramName);
             }
+        }
+    }
+
+    private static void ValidateOptionalCatalogUriBase(string? value, string paramName) {
+        if (value == null) {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(value)) {
+            throw new System.ArgumentException("PDF catalog URI base cannot be empty or whitespace.", paramName);
+        }
+
+        for (int i = 0; i < value.Length; i++) {
+            if (char.IsControl(value[i])) {
+                throw new System.ArgumentException("PDF catalog URI base cannot contain control characters.", paramName);
+            }
+        }
+
+        if (!System.Uri.TryCreate(value, System.UriKind.Absolute, out _)) {
+            throw new System.ArgumentException("PDF catalog URI base must be an absolute URI.", paramName);
         }
     }
 

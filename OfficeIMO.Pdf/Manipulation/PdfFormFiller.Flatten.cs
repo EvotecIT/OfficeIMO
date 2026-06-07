@@ -5,6 +5,7 @@ public static partial class PdfFormFiller {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject fieldObject,
         string? inheritedFieldType,
+        int inheritedFlags,
         string? inheritedDisplayValue,
         string? inheritedName,
         PdfArray? inheritedChoiceOptions,
@@ -31,6 +32,7 @@ public static partial class PdfFormFiller {
         string? partialName = TryReadText(objects, field, "T");
         string? fullName = CombineFieldName(inheritedName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
+        int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
         PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
         IReadOnlyList<string>? values = TryReadSimpleValues(objects, field, "V");
         string? value = values is { Count: > 0 } ? values[0] : inheritedDisplayValue;
@@ -60,7 +62,7 @@ public static partial class PdfFormFiller {
                 appearanceObjectNumber = appearanceReference!.ObjectNumber;
             } else {
                 appearanceObjectNumber = nextObjectNumber++;
-                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(appearanceValue ?? string.Empty, width, height));
+                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(appearanceValue ?? string.Empty, width, height, ReadWidgetAppearanceStyle(objects, field, fieldFlags)));
             }
 
             widgets[fieldObjectNumber.Value] = new FlattenWidgetState(fieldObjectNumber.Value, x, y, width, height, appearanceObjectNumber);
@@ -73,7 +75,7 @@ public static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, appearanceValue, fullName, choiceOptions, widgets, removableObjects, visited, ref nextObjectNumber);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, appearanceValue, fullName, choiceOptions, widgets, removableObjects, visited, ref nextObjectNumber);
         }
     }
 
@@ -136,25 +138,7 @@ public static partial class PdfFormFiller {
     }
 
     private static PdfDictionary EnsurePageXObjects(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page) {
-        PdfDictionary resources;
-        if (page.Items.TryGetValue("Resources", out var resourcesObject)) {
-            resources = ResolveDictionary(objects, resourcesObject) ?? throw new NotSupportedException("Indirect page resources must resolve to a dictionary before form flattening.");
-        } else {
-            resources = new PdfDictionary();
-            page.Items["Resources"] = resources;
-        }
-
-        if (resources.Items.TryGetValue("XObject", out var xObjectObject)) {
-            if (ResolveObject(objects, xObjectObject) is PdfDictionary existing) {
-                return existing;
-            }
-
-            throw new NotSupportedException("Page XObject resources must be a dictionary before form flattening.");
-        }
-
-        var xObjects = new PdfDictionary();
-        resources.Items["XObject"] = xObjects;
-        return xObjects;
+        return PdfPageResourceHelper.EnsurePageXObjects(objects, page, "form flattening");
     }
 
     private static string CreateUniqueXObjectName(PdfDictionary xObjects) {

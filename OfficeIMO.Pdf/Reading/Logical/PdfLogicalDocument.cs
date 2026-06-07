@@ -16,7 +16,7 @@ public enum PdfLogicalElementKind {
     Table,
     /// <summary>Image XObject referenced by the page.</summary>
     Image,
-    /// <summary>URI or named-destination link annotation on the page.</summary>
+    /// <summary>URI, named-destination, direct-destination, named-action, or remote GoTo link annotation on the page.</summary>
     LinkAnnotation,
     /// <summary>AcroForm widget annotation on the page.</summary>
     FormWidget
@@ -36,7 +36,7 @@ public interface IPdfLogicalElement {
 /// <summary>
 /// First-party logical read model for a parser-supported PDF.
 /// </summary>
-public sealed class PdfLogicalDocument {
+public sealed partial class PdfLogicalDocument {
     private const int AcroFormSignaturesExistFlag = 1;
     private const int AcroFormAppendOnlyFlag = 2;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalPage>>? _pagesBySourcePageNumber;
@@ -52,6 +52,9 @@ public sealed class PdfLogicalDocument {
     private IReadOnlyList<PdfLogicalLinkAnnotation>? _links;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByUri;
     private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByDestinationName;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByDestinationPageNumber;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByNamedAction;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>>? _linksByRemoteFile;
     private IReadOnlyList<PdfLogicalFormWidget>? _formWidgets;
     private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
     private IReadOnlyDictionary<PdfFormFieldKind, IReadOnlyList<PdfFormField>>? _formFieldsByKind;
@@ -66,12 +69,20 @@ public sealed class PdfLogicalDocument {
         IReadOnlyList<PdfOutlineItem> outlines,
         IReadOnlyList<PdfPageLabel> pageLabels,
         IReadOnlyList<PdfNamedDestination> namedDestinations,
+        IReadOnlyList<PdfCatalogAction> catalogActions,
+        IReadOnlyList<PdfAttachmentInfo> attachments,
+        IReadOnlyList<PdfOutputIntentInfo> outputIntents,
+        PdfXmpMetadataInfo? xmpMetadata,
+        PdfTaggedContentInfo? taggedContent,
+        PdfOptionalContentProperties? optionalContent,
         PdfDocumentOpenAction? openAction,
         PdfViewerPreferences? viewerPreferences,
         IReadOnlyList<PdfFormField> formFields,
         string? acroFormDefaultAppearance,
+        int? acroFormQuadding,
         bool? acroFormNeedAppearances,
         int? acroFormSignatureFlags,
+        PdfDocumentSecurityInfo security,
         string? catalogPageMode,
         string? catalogPageLayout,
         string? catalogVersion,
@@ -81,12 +92,20 @@ public sealed class PdfLogicalDocument {
         Outlines = outlines;
         PageLabels = pageLabels;
         NamedDestinations = namedDestinations;
+        CatalogActions = catalogActions;
+        Attachments = attachments;
+        OutputIntents = outputIntents;
+        XmpMetadata = xmpMetadata;
+        TaggedContent = taggedContent;
+        OptionalContent = optionalContent;
         OpenAction = openAction;
         ViewerPreferences = viewerPreferences;
         FormFields = formFields;
         AcroFormDefaultAppearance = acroFormDefaultAppearance;
+        AcroFormQuadding = acroFormQuadding;
         AcroFormNeedAppearances = acroFormNeedAppearances;
         AcroFormSignatureFlags = acroFormSignatureFlags;
+        Security = security;
         CatalogPageMode = catalogPageMode;
         CatalogPageLayout = catalogPageLayout;
         CatalogVersion = catalogVersion;
@@ -145,6 +164,15 @@ public sealed class PdfLogicalDocument {
 
     /// <summary>True when an AcroForm default appearance string was readable.</summary>
     public bool HasAcroFormDefaultAppearance => !string.IsNullOrEmpty(AcroFormDefaultAppearance);
+
+    /// <summary>Raw AcroForm default /Q quadding value, when present.</summary>
+    public int? AcroFormQuadding { get; }
+
+    /// <summary>True when an AcroForm default /Q quadding value was readable.</summary>
+    public bool HasAcroFormQuadding => AcroFormQuadding.HasValue;
+
+    /// <summary>Common AcroForm default text alignment inferred from /Q quadding.</summary>
+    public PdfFormFieldTextAlignment AcroFormTextAlignment => ToTextAlignment(AcroFormQuadding);
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
     public bool? AcroFormNeedAppearances { get; }
@@ -307,7 +335,7 @@ public sealed class PdfLogicalDocument {
         }
     }
 
-    /// <summary>All URI and named-destination link annotations flattened in page order.</summary>
+    /// <summary>All URI, named-destination, direct-destination, named-action, and remote GoTo link annotations flattened in page order.</summary>
     public IReadOnlyList<PdfLogicalLinkAnnotation> Links {
         get {
             if (_links is not null) {
@@ -324,7 +352,7 @@ public sealed class PdfLogicalDocument {
         }
     }
 
-    /// <summary>URI link annotations grouped by absolute URI.</summary>
+    /// <summary>URI link annotations grouped by URI action target.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByUri {
         get {
             if (_linksByUri is not null) {
@@ -379,6 +407,93 @@ public sealed class PdfLogicalDocument {
 
             _linksByDestinationName = ToReadOnlyLookup(grouped);
             return _linksByDestinationName;
+        }
+    }
+
+    /// <summary>Internal direct-destination link annotations grouped by one-based destination page number.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByDestinationPageNumber {
+        get {
+            if (_linksByDestinationPageNumber is not null) {
+                return _linksByDestinationPageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfLogicalLinkAnnotation>>();
+            IReadOnlyList<PdfLogicalLinkAnnotation> links = Links;
+            for (int i = 0; i < links.Count; i++) {
+                PdfLogicalLinkAnnotation link = links[i];
+                if (!link.DestinationPageNumber.HasValue) {
+                    continue;
+                }
+
+                int destinationPageNumber = link.DestinationPageNumber.Value;
+                if (!grouped.TryGetValue(destinationPageNumber, out List<PdfLogicalLinkAnnotation>? destinationLinks)) {
+                    destinationLinks = new List<PdfLogicalLinkAnnotation>();
+                    grouped.Add(destinationPageNumber, destinationLinks);
+                }
+
+                destinationLinks.Add(link);
+            }
+
+            _linksByDestinationPageNumber = ToReadOnlyLookup(grouped);
+            return _linksByDestinationPageNumber;
+        }
+    }
+
+    /// <summary>Named-action link annotations grouped by viewer action name.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByNamedAction {
+        get {
+            if (_linksByNamedAction is not null) {
+                return _linksByNamedAction;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLogicalLinkAnnotation>>(StringComparer.Ordinal);
+            IReadOnlyList<PdfLogicalLinkAnnotation> links = Links;
+            for (int i = 0; i < links.Count; i++) {
+                PdfLogicalLinkAnnotation link = links[i];
+                string? namedAction = link.NamedAction;
+                if (namedAction is null || namedAction.Length == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(namedAction, out List<PdfLogicalLinkAnnotation>? actionLinks)) {
+                    actionLinks = new List<PdfLogicalLinkAnnotation>();
+                    grouped.Add(namedAction, actionLinks);
+                }
+
+                actionLinks.Add(link);
+            }
+
+            _linksByNamedAction = ToReadOnlyLookup(grouped);
+            return _linksByNamedAction;
+        }
+    }
+
+    /// <summary>Remote GoTo link annotations grouped by target file.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLogicalLinkAnnotation>> LinksByRemoteFile {
+        get {
+            if (_linksByRemoteFile is not null) {
+                return _linksByRemoteFile;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLogicalLinkAnnotation>>(StringComparer.Ordinal);
+            IReadOnlyList<PdfLogicalLinkAnnotation> links = Links;
+            for (int i = 0; i < links.Count; i++) {
+                PdfLogicalLinkAnnotation link = links[i];
+                string? remoteFile = link.RemoteFile;
+                if (remoteFile is null || remoteFile.Length == 0) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(remoteFile, out List<PdfLogicalLinkAnnotation>? fileLinks)) {
+                    fileLinks = new List<PdfLogicalLinkAnnotation>();
+                    grouped.Add(remoteFile, fileLinks);
+                }
+
+                fileLinks.Add(link);
+            }
+
+            _linksByRemoteFile = ToReadOnlyLookup(grouped);
+            return _linksByRemoteFile;
         }
     }
 
@@ -504,7 +619,7 @@ public sealed class PdfLogicalDocument {
     /// <summary>True when simple viewer preferences were read from the catalog.</summary>
     public bool HasReadableViewerPreferences => ViewerPreferences is not null;
 
-    /// <summary>True when at least one URI or named-destination link annotation was placed on a logical page.</summary>
+    /// <summary>True when at least one URI, named-destination, direct-destination, named-action, or remote GoTo link annotation was placed on a logical page.</summary>
     public bool HasLinks => Links.Count > 0;
 
     /// <summary>True when at least one simple AcroForm field was read from the document catalog.</summary>
@@ -553,9 +668,9 @@ public sealed class PdfLogicalDocument {
             : Array.Empty<PdfFormField>();
     }
 
-    /// <summary>Returns logical URI link annotations for an absolute URI.</summary>
+    /// <summary>Returns logical URI link annotations for a URI action target.</summary>
     public IReadOnlyList<PdfLogicalLinkAnnotation> GetLinksByUri(string uri) {
-        Guard.AbsoluteUri(uri, nameof(uri));
+        Guard.UriAction(uri, nameof(uri));
         return LinksByUri.TryGetValue(uri, out IReadOnlyList<PdfLogicalLinkAnnotation>? links)
             ? links
             : Array.Empty<PdfLogicalLinkAnnotation>();
@@ -565,6 +680,33 @@ public sealed class PdfLogicalDocument {
     public IReadOnlyList<PdfLogicalLinkAnnotation> GetLinksByDestinationName(string destinationName) {
         Guard.NotNullOrWhiteSpace(destinationName, nameof(destinationName));
         return LinksByDestinationName.TryGetValue(destinationName, out IReadOnlyList<PdfLogicalLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLogicalLinkAnnotation>();
+    }
+
+    /// <summary>Returns logical internal direct-destination link annotations for a one-based destination page number.</summary>
+    public IReadOnlyList<PdfLogicalLinkAnnotation> GetLinksByDestinationPageNumber(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return LinksByDestinationPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLogicalLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLogicalLinkAnnotation>();
+    }
+
+    /// <summary>Returns logical named-action link annotations for a viewer action name.</summary>
+    public IReadOnlyList<PdfLogicalLinkAnnotation> GetLinksByNamedAction(string namedAction) {
+        Guard.NotNullOrWhiteSpace(namedAction, nameof(namedAction));
+        return LinksByNamedAction.TryGetValue(namedAction, out IReadOnlyList<PdfLogicalLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLogicalLinkAnnotation>();
+    }
+
+    /// <summary>Returns logical remote GoTo link annotations for a target file.</summary>
+    public IReadOnlyList<PdfLogicalLinkAnnotation> GetLinksByRemoteFile(string remoteFile) {
+        Guard.NotNullOrWhiteSpace(remoteFile, nameof(remoteFile));
+        return LinksByRemoteFile.TryGetValue(remoteFile, out IReadOnlyList<PdfLogicalLinkAnnotation>? links)
             ? links
             : Array.Empty<PdfLogicalLinkAnnotation>();
     }
@@ -791,6 +933,24 @@ public sealed class PdfLogicalDocument {
         IReadOnlyList<PdfNamedDestination> namedDestinations = useDocumentWideObjects
             ? document.NamedDestinations
             : PdfPageRangeObjectFilter.FilterNamedDestinationsByPageNumbers(document.NamedDestinations, pageNumbers);
+        IReadOnlyList<PdfCatalogAction> catalogActions = useDocumentWideObjects
+            ? document.CatalogActions
+            : Array.Empty<PdfCatalogAction>();
+        IReadOnlyList<PdfAttachmentInfo> attachments = useDocumentWideObjects
+            ? document.Attachments
+            : Array.Empty<PdfAttachmentInfo>();
+        IReadOnlyList<PdfOutputIntentInfo> outputIntents = useDocumentWideObjects
+            ? document.OutputIntents
+            : Array.Empty<PdfOutputIntentInfo>();
+        PdfXmpMetadataInfo? xmpMetadata = useDocumentWideObjects
+            ? document.XmpMetadata
+            : null;
+        PdfTaggedContentInfo? taggedContent = useDocumentWideObjects
+            ? document.TaggedContent
+            : null;
+        PdfOptionalContentProperties? optionalContent = useDocumentWideObjects
+            ? document.OptionalContent
+            : null;
         PdfDocumentOpenAction? openAction = useDocumentWideObjects
             ? document.OpenAction
             : PdfPageRangeObjectFilter.FilterOpenActionByPageNumbers(document.OpenAction, pageNumbers);
@@ -798,7 +958,7 @@ public sealed class PdfLogicalDocument {
         var pages = new List<PdfLogicalPage>(pageNumbers.Length);
         for (int i = 0; i < pageNumbers.Length; i++) {
             int pageNumber = pageNumbers[i];
-            pages.Add(PdfLogicalPage.From(document.Pages[pageNumber - 1], pageNumber, options, formFields));
+            pages.Add(PdfLogicalPage.From(document, document.Pages[pageNumber - 1], pageNumber, options, formFields));
         }
 
         return new PdfLogicalDocument(
@@ -807,15 +967,36 @@ public sealed class PdfLogicalDocument {
             outlines,
             pageLabels,
             namedDestinations,
+            catalogActions,
+            attachments,
+            outputIntents,
+            xmpMetadata,
+            taggedContent,
+            optionalContent,
             openAction,
             document.ViewerPreferences,
             formFields,
             document.AcroFormDefaultAppearance,
+            document.AcroFormQuadding,
             document.AcroFormNeedAppearances,
             document.AcroFormSignatureFlags,
+            document.Security,
             document.CatalogPageMode,
             document.CatalogPageLayout,
             document.CatalogVersion,
             document.CatalogLanguage);
+    }
+
+    private static PdfFormFieldTextAlignment ToTextAlignment(int? quadding) {
+        switch (quadding) {
+            case 0:
+                return PdfFormFieldTextAlignment.Left;
+            case 1:
+                return PdfFormFieldTextAlignment.Center;
+            case 2:
+                return PdfFormFieldTextAlignment.Right;
+            default:
+                return PdfFormFieldTextAlignment.Unknown;
+        }
     }
 }

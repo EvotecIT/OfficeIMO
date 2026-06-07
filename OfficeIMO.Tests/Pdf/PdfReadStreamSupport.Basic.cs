@@ -21,6 +21,35 @@ public partial class PdfReadStreamTests {
             .ToBytes();
     }
 
+    private static byte[] BuildGoToActionLinkAnnotationPdf(string destination = "[3 0 R /FitH 144]") {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [10 20 90 42] /Contents (Jump to top) /A << /S /GoTo /D " + destination + " >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildOutlinePdf() {
         return PdfDocument.Create(new PdfOptions { CreateOutlineFromHeadings = true })
             .H1("Executive summary")
@@ -61,6 +90,38 @@ public partial class PdfReadStreamTests {
             "endobj",
             "6 0 obj",
             "<< /Title (Chapter 1) /Parent 5 0 R /A << /S /GoTo /D [3 0 R /XYZ 0 200 0] >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildFitHorizontalOutlinePdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Outlines 5 0 R /PageMode /UseOutlines >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Outlines /First 6 0 R /Last 6 0 R /Count 1 >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Title (Fit horizontal) /Parent 5 0 R /Dest [3 0 R /FitH 144] >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",

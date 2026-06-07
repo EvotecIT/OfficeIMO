@@ -1,21 +1,21 @@
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
-    private (int? PageNumber, double? DestinationTop) GetOutlineDestination(PdfDictionary item) {
+    private (int? PageNumber, double? DestinationTop, PdfOpenActionDestinationMode? DestinationMode, double? DestinationLeft, double? DestinationBottom, double? DestinationRight) GetOutlineDestination(PdfDictionary item) {
         if (item.Items.TryGetValue("Dest", out var destObj) &&
-            TryReadDestinationOrNamedDestination(destObj, out int? pageNumber, out double? destinationTop)) {
-            return (pageNumber, destinationTop);
+            TryReadDestinationOrNamedDestination(destObj, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight)) {
+            return (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
         }
 
         if (item.Items.TryGetValue("A", out var actionObject) &&
             ResolveObject(actionObject) is PdfDictionary action &&
             action.Get<PdfName>("S")?.Name == "GoTo" &&
             action.Items.TryGetValue("D", out var actionDestination) &&
-            TryReadDestinationOrNamedDestination(actionDestination, out pageNumber, out destinationTop)) {
-            return (pageNumber, destinationTop);
+            TryReadDestinationOrNamedDestination(actionDestination, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight)) {
+            return (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
         }
 
-        return (null, null);
+        return (null, null, null, null, null, null);
     }
 
     private IReadOnlyList<PdfNamedDestination> ExtractNamedDestinations() {
@@ -116,16 +116,32 @@ public sealed partial class PdfReadDocument {
 
     private bool TryCreateNamedDestination(string name, PdfObject destinationObject, out PdfNamedDestination destination) {
         destination = null!;
-        if (string.IsNullOrEmpty(name) || !TryReadDestination(destinationObject, out int? pageNumber, out double? destinationTop)) {
+        if (string.IsNullOrEmpty(name) ||
+            !TryReadDestination(destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode, out double? destinationLeft, out double? destinationBottom, out double? destinationRight)) {
             return false;
         }
 
-        destination = new PdfNamedDestination(name, pageNumber, destinationTop);
+        destination = new PdfNamedDestination(name, pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
         return true;
     }
 
     private bool TryReadDestinationOrNamedDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop) {
-        if (TryReadDestination(destinationObject, out pageNumber, out destinationTop)) {
+        return TryReadDestinationOrNamedDestination(destinationObject, out pageNumber, out destinationTop, out _);
+    }
+
+    private bool TryReadDestinationOrNamedDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode) {
+        return TryReadDestinationOrNamedDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out _, out _, out _);
+    }
+
+    private bool TryReadDestinationOrNamedDestination(
+        PdfObject destinationObject,
+        out int? pageNumber,
+        out double? destinationTop,
+        out PdfOpenActionDestinationMode? destinationMode,
+        out double? destinationLeft,
+        out double? destinationBottom,
+        out double? destinationRight) {
+        if (TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight)) {
             return true;
         }
 
@@ -134,18 +150,45 @@ public sealed partial class PdfReadDocument {
             if (lookup.TryGetValue(name!, out var destination)) {
                 pageNumber = destination.PageNumber;
                 destinationTop = destination.DestinationTop;
+                destinationMode = destination.DestinationMode;
+                destinationLeft = destination.DestinationLeft;
+                destinationBottom = destination.DestinationBottom;
+                destinationRight = destination.DestinationRight;
                 return true;
             }
         }
 
         pageNumber = null;
         destinationTop = null;
+        destinationMode = null;
+        destinationLeft = null;
+        destinationBottom = null;
+        destinationRight = null;
         return false;
     }
 
     private bool TryReadDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop) {
+        return TryReadDestination(destinationObject, out pageNumber, out destinationTop, out _);
+    }
+
+    private bool TryReadDestination(PdfObject destinationObject, out int? pageNumber, out double? destinationTop, out PdfOpenActionDestinationMode? destinationMode) {
+        return TryReadDestination(destinationObject, out pageNumber, out destinationTop, out destinationMode, out _, out _, out _);
+    }
+
+    private bool TryReadDestination(
+        PdfObject destinationObject,
+        out int? pageNumber,
+        out double? destinationTop,
+        out PdfOpenActionDestinationMode? destinationMode,
+        out double? destinationLeft,
+        out double? destinationBottom,
+        out double? destinationRight) {
         pageNumber = null;
         destinationTop = null;
+        destinationMode = null;
+        destinationLeft = null;
+        destinationBottom = null;
+        destinationRight = null;
 
         PdfObject? resolved = ResolveObject(destinationObject);
         if (resolved is PdfDictionary dictionary &&
@@ -161,8 +204,81 @@ public sealed partial class PdfReadDocument {
             pageNumber = GetPageNumberForObject(pageRef.ObjectNumber);
         }
 
-        if (destination.Items.Count > 3 && ResolveObject(destination.Items[3]) is PdfNumber top) {
-            destinationTop = top.Value;
+        if (destination.Items.Count > 1 && ResolveObject(destination.Items[1]) is PdfName fitName) {
+            switch (fitName.Name) {
+                case "XYZ":
+                    destinationMode = PdfOpenActionDestinationMode.Xyz;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber xyzLeft) {
+                        destinationLeft = xyzLeft.Value;
+                    }
+
+                    if (destination.Items.Count > 3 && ResolveObject(destination.Items[3]) is PdfNumber xyzTop) {
+                        destinationTop = xyzTop.Value;
+                    }
+
+                    break;
+                case "Fit":
+                    destinationMode = PdfOpenActionDestinationMode.Fit;
+                    break;
+                case "FitH":
+                    destinationMode = PdfOpenActionDestinationMode.FitHorizontal;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber fitTop) {
+                        destinationTop = fitTop.Value;
+                    }
+
+                    break;
+                case "FitV":
+                    destinationMode = PdfOpenActionDestinationMode.FitVertical;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber fitLeft) {
+                        destinationLeft = fitLeft.Value;
+                    }
+
+                    break;
+                case "FitR":
+                    destinationMode = PdfOpenActionDestinationMode.FitRectangle;
+                    if (destination.Items.Count > 5) {
+                        if (ResolveObject(destination.Items[2]) is PdfNumber left) {
+                            destinationLeft = left.Value;
+                        }
+
+                        if (ResolveObject(destination.Items[3]) is PdfNumber bottom) {
+                            destinationBottom = bottom.Value;
+                        }
+
+                        if (ResolveObject(destination.Items[4]) is PdfNumber right) {
+                            destinationRight = right.Value;
+                        }
+
+                        if (ResolveObject(destination.Items[5]) is PdfNumber top) {
+                            destinationTop = top.Value;
+                        }
+                    }
+
+                    break;
+                case "FitB":
+                    destinationMode = PdfOpenActionDestinationMode.FitBoundingBox;
+                    break;
+                case "FitBH":
+                    destinationMode = PdfOpenActionDestinationMode.FitBoundingBoxHorizontal;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber fitBoundingTop) {
+                        destinationTop = fitBoundingTop.Value;
+                    }
+
+                    break;
+                case "FitBV":
+                    destinationMode = PdfOpenActionDestinationMode.FitBoundingBoxVertical;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber fitBoundingLeft) {
+                        destinationLeft = fitBoundingLeft.Value;
+                    }
+
+                    break;
+                default:
+                    if (destination.Items.Count > 3 && ResolveObject(destination.Items[3]) is PdfNumber fallbackTop) {
+                        destinationTop = fallbackTop.Value;
+                    }
+
+                    break;
+            }
         }
 
         return true;
@@ -174,7 +290,7 @@ public sealed partial class PdfReadDocument {
         String
     }
 
-    private int? GetPageNumberForObject(int objectNumber) {
+    internal int? GetPageNumberForObject(int objectNumber) {
         for (int i = 0; i < Pages.Count; i++) {
             if (Pages[i].ObjectNumber == objectNumber) {
                 return i + 1;

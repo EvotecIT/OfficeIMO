@@ -20,7 +20,7 @@ internal sealed class ImageBlock : IPdfBlock {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(info, nameof(info));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         if (linkContents != null && linkUri == null) {
             throw new ArgumentException("Image link contents require a link URI.", nameof(linkContents));
         }

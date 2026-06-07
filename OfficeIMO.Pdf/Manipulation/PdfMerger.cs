@@ -14,6 +14,13 @@ public static class PdfMerger {
     }
 
     /// <summary>
+    /// Merges all pages from the supplied PDFs into one new PDF, applying optional source preparation first.
+    /// </summary>
+    public static byte[] Merge(PdfMergeOptions options, params byte[][] pdfs) {
+        return Merge(options, (IEnumerable<byte[]>)pdfs);
+    }
+
+    /// <summary>
     /// Merges all pages from the supplied readable PDF streams into one new PDF.
     /// </summary>
     public static byte[] Merge(params Stream[] streams) {
@@ -24,11 +31,19 @@ public static class PdfMerger {
     /// Merges all pages from the supplied PDFs into one new PDF.
     /// </summary>
     public static byte[] Merge(IEnumerable<byte[]> pdfs) {
-        return MergeCore(pdfs, primarySourceIndex: 0);
+        return MergeCore(pdfs, primarySourceIndex: 0, options: null);
+    }
+
+    /// <summary>
+    /// Merges all pages from the supplied PDFs into one new PDF, applying optional source preparation first.
+    /// </summary>
+    public static byte[] Merge(PdfMergeOptions options, IEnumerable<byte[]> pdfs) {
+        Guard.NotNull(options, nameof(options));
+        return MergeCore(pdfs, primarySourceIndex: 0, options);
     }
 
     internal static byte[] MergeWithPrimarySource(int primarySourceIndex, params byte[][] pdfs) {
-        return MergeCore(pdfs, primarySourceIndex);
+        return MergeCore(pdfs, primarySourceIndex, options: null);
     }
 
     internal static byte[] MergePrimaryWithInsertedPages(byte[] primaryPdf, byte[] insertedPdf, int insertBeforePageNumber) {
@@ -78,7 +93,7 @@ public static class PdfMerger {
         return WriteMerged(importedSources, primarySourceIndex: 0, outputOrder);
     }
 
-    private static byte[] MergeCore(IEnumerable<byte[]> pdfs, int primarySourceIndex) {
+    private static byte[] MergeCore(IEnumerable<byte[]> pdfs, int primarySourceIndex, PdfMergeOptions? options) {
         Guard.NotNull(pdfs, nameof(pdfs));
 
         var sources = pdfs.ToArray();
@@ -98,6 +113,7 @@ public static class PdfMerger {
                 throw new ArgumentException("PDF input " + i.ToString(CultureInfo.InvariantCulture) + " cannot be null.", nameof(pdfs));
             }
 
+            source = PrepareMergeSource(source, options);
             importedSources.Add(ImportSource(source, i, null, mergedPageOffset, null));
             mergedPageOffset += importedSources[importedSources.Count - 1].PageObjectNumbers.Length;
         }
@@ -136,6 +152,37 @@ public static class PdfMerger {
     }
 
     /// <summary>
+    /// Merges all pages from the supplied readable PDF streams into one new PDF, applying optional source preparation first.
+    /// </summary>
+    public static byte[] Merge(PdfMergeOptions options, IEnumerable<Stream> streams) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(streams, nameof(streams));
+
+        var sources = streams.ToArray();
+        if (sources.Length == 0) {
+            throw new ArgumentException("At least one PDF stream must be supplied.", nameof(streams));
+        }
+
+        var pdfs = new byte[sources.Length][];
+        for (int i = 0; i < sources.Length; i++) {
+            Stream stream = sources[i];
+            if (stream is null) {
+                throw new ArgumentException("PDF stream input " + i.ToString(CultureInfo.InvariantCulture) + " cannot be null.", nameof(streams));
+            }
+
+            if (!stream.CanRead) {
+                throw new ArgumentException("PDF stream input " + i.ToString(CultureInfo.InvariantCulture) + " must be readable.", nameof(streams));
+            }
+
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            pdfs[i] = buffer.ToArray();
+        }
+
+        return Merge(options, (IEnumerable<byte[]>)pdfs);
+    }
+
+    /// <summary>
     /// Merges all pages from the supplied PDFs and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void Merge(IEnumerable<byte[]> pdfs, Stream outputStream) {
@@ -143,10 +190,24 @@ public static class PdfMerger {
     }
 
     /// <summary>
+    /// Merges all pages from the supplied PDFs and writes the result to <paramref name="outputStream"/>, applying optional source preparation first.
+    /// </summary>
+    public static void Merge(PdfMergeOptions options, IEnumerable<byte[]> pdfs, Stream outputStream) {
+        WriteOutput(outputStream, Merge(options, pdfs));
+    }
+
+    /// <summary>
     /// Merges all pages from the supplied readable PDF streams and writes the result to <paramref name="outputStream"/>.
     /// </summary>
     public static void Merge(IEnumerable<Stream> streams, Stream outputStream) {
         WriteOutput(outputStream, Merge(streams));
+    }
+
+    /// <summary>
+    /// Merges all pages from the supplied readable PDF streams and writes the result to <paramref name="outputStream"/>, applying optional source preparation first.
+    /// </summary>
+    public static void Merge(PdfMergeOptions options, IEnumerable<Stream> streams, Stream outputStream) {
+        WriteOutput(outputStream, Merge(options, streams));
     }
 
     /// <summary>
@@ -222,6 +283,41 @@ public static class PdfMerger {
         }
 
         return Merge(pdfs);
+    }
+
+    /// <summary>
+    /// Merges PDFs from file paths and returns the merged PDF bytes, applying optional source preparation first.
+    /// </summary>
+    public static byte[] MergeFilesToBytes(PdfMergeOptions options, IEnumerable<string> inputPaths) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(inputPaths, nameof(inputPaths));
+
+        var paths = inputPaths.ToArray();
+        if (paths.Length == 0) {
+            throw new ArgumentException("At least one input path must be supplied.", nameof(inputPaths));
+        }
+
+        var pdfs = new byte[paths.Length][];
+        for (int i = 0; i < paths.Length; i++) {
+            string inputPath = paths[i];
+            if (inputPath is null) {
+                throw new ArgumentException("Input path " + i.ToString(CultureInfo.InvariantCulture) + " cannot be null.", nameof(inputPaths));
+            }
+
+            if (string.IsNullOrWhiteSpace(inputPath)) {
+                throw new ArgumentException("Input path " + i.ToString(CultureInfo.InvariantCulture) + " cannot be empty or whitespace.", nameof(inputPaths));
+            }
+
+            pdfs[i] = File.ReadAllBytes(inputPath);
+        }
+
+        return Merge(options, (IEnumerable<byte[]>)pdfs);
+    }
+
+    private static byte[] PrepareMergeSource(byte[] source, PdfMergeOptions? options) {
+        return options?.FlattenVisualAnnotations == true
+            ? PdfAnnotationFlattener.FlattenVisualAnnotations(source)
+            : source;
     }
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {

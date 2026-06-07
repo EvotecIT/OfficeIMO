@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Represents a single page parsed from the PDF.
 /// Provides access to plain text and basic text spans based on content stream operators.
 /// </summary>
-public sealed class PdfReadPage {
+public sealed partial class PdfReadPage {
     private readonly PdfDictionary _pageDict;
     private readonly Dictionary<int, PdfIndirectObject> _objects;
 
@@ -75,7 +75,7 @@ public sealed class PdfReadPage {
         return spans;
     }
 
-    /// <summary>Reads simple URI and named-destination link annotations from this page.</summary>
+    /// <summary>Reads simple URI, named-destination, direct-destination, named-action, and remote GoTo link annotations from this page.</summary>
     public IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotations() {
         if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
             return Array.Empty<PdfLinkAnnotation>();
@@ -101,24 +101,74 @@ public sealed class PdfReadPage {
             if (action != null &&
                 action.Get<PdfName>("S")?.Name == "URI" &&
                 TryGetString(action.Items.TryGetValue("URI", out var uriObject) ? uriObject : null, out string? uri) &&
-                Uri.TryCreate(uri, UriKind.Absolute, out _)) {
+                Guard.IsUriAction(uri)) {
                 result.Add(new PdfLinkAnnotation(uri!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2));
                 continue;
             }
 
             if (action != null &&
                 action.Get<PdfName>("S")?.Name == "GoTo" &&
-                TryGetDestinationName(action.Items.TryGetValue("D", out var actionDestination) ? actionDestination : null, out string? actionDestinationName)) {
-                result.Add(new PdfLinkAnnotation(null, actionDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2));
+                TryReadLinkDestination(action.Items.TryGetValue("D", out var actionDestination) ? actionDestination : null, out string? actionDestinationName, out int? actionDestinationPageObjectNumber, out double? actionDestinationTop, out PdfOpenActionDestinationMode? actionDestinationMode, out double? actionDestinationLeft, out double? actionDestinationBottom, out double? actionDestinationRight)) {
+                result.Add(new PdfLinkAnnotation(null, actionDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: actionDestinationPageObjectNumber, destinationTop: actionDestinationTop, destinationMode: actionDestinationMode, destinationLeft: actionDestinationLeft, destinationBottom: actionDestinationBottom, destinationRight: actionDestinationRight));
                 continue;
             }
 
-            if (TryGetDestinationName(annotation.Items.TryGetValue("Dest", out var directDestination) ? directDestination : null, out string? directDestinationName)) {
-                result.Add(new PdfLinkAnnotation(null, directDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2));
+            if (action != null &&
+                action.Get<PdfName>("S")?.Name == "Named" &&
+                TryGetNameOrString(action.Items.TryGetValue("N", out var namedActionObject) ? namedActionObject : null, out string? namedAction)) {
+                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, namedAction: namedAction));
+                continue;
+            }
+
+            if (action != null &&
+                action.Get<PdfName>("S")?.Name == "GoToR" &&
+                TryReadFileSpecification(action.Items.TryGetValue("F", out var remoteFileObject) ? remoteFileObject : null, out string? remoteFile)) {
+                TryReadRemoteDestination(action.Items.TryGetValue("D", out var remoteDestinationObject) ? remoteDestinationObject : null, out string? remoteDestinationName, out int? remoteDestinationPageNumber, out double? remoteDestinationTop, out PdfOpenActionDestinationMode? remoteDestinationMode, out double? remoteDestinationLeft, out double? remoteDestinationBottom, out double? remoteDestinationRight);
+                result.Add(new PdfLinkAnnotation(null, null, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, remoteFile: remoteFile, remoteDestinationName: remoteDestinationName, remoteDestinationPageNumber: remoteDestinationPageNumber, remoteDestinationTop: remoteDestinationTop, remoteDestinationMode: remoteDestinationMode, remoteDestinationLeft: remoteDestinationLeft, remoteDestinationBottom: remoteDestinationBottom, remoteDestinationRight: remoteDestinationRight));
+                continue;
+            }
+
+            if (TryReadLinkDestination(annotation.Items.TryGetValue("Dest", out var directDestination) ? directDestination : null, out string? directDestinationName, out int? directDestinationPageObjectNumber, out double? directDestinationTop, out PdfOpenActionDestinationMode? directDestinationMode, out double? directDestinationLeft, out double? directDestinationBottom, out double? directDestinationRight)) {
+                result.Add(new PdfLinkAnnotation(null, directDestinationName, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, destinationPageObjectNumber: directDestinationPageObjectNumber, destinationTop: directDestinationTop, destinationMode: directDestinationMode, destinationLeft: directDestinationLeft, destinationBottom: directDestinationBottom, destinationRight: directDestinationRight));
             }
         }
 
         return result.AsReadOnly();
+    }
+
+    /// <summary>Reads generic annotation metadata from this page.</summary>
+    public IReadOnlyList<PdfAnnotation> GetAnnotations() {
+        if (!_pageDict.Items.TryGetValue("Annots", out var annotsObject)) {
+            return Array.Empty<PdfAnnotation>();
+        }
+
+        var annotations = ResolveArray(annotsObject);
+        if (annotations is null) {
+            return Array.Empty<PdfAnnotation>();
+        }
+
+        var result = new List<PdfAnnotation>();
+        foreach (var item in annotations.Items) {
+            int? objectNumber = item is PdfReference reference ? reference.ObjectNumber : null;
+            var annotation = ResolveDictionary(item);
+            string? subtype = annotation?.Get<PdfName>("Subtype")?.Name;
+            if (annotation is null ||
+                string.IsNullOrWhiteSpace(subtype) ||
+                !TryReadRectangle(annotation.Items.TryGetValue("Rect", out var rectObject) ? rectObject : null, out var rect)) {
+                continue;
+            }
+
+            TryGetString(annotation.Items.TryGetValue("Contents", out var contentsObject) ? contentsObject : null, out string? contents);
+            bool hasNormalAppearance = HasNormalAppearance(annotation);
+            annotation.Items.TryGetValue("A", out var actionObject);
+            annotation.Items.TryGetValue("AA", out var additionalActionsObject);
+            string? actionType = TryReadActionType(actionObject);
+            IReadOnlyList<PdfAnnotationAdditionalAction> additionalActions = ReadAdditionalActions(additionalActionsObject);
+            IReadOnlyList<PdfAnnotationChainedAction> chainedActions = ReadAnnotationChainedActions(actionObject, additionalActionsObject);
+            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions));
+        }
+
+        return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();
     }
 
     internal IReadOnlyList<int> GetAnnotationObjectNumbers(string subtypeName) {
@@ -536,6 +586,10 @@ public sealed class PdfReadPage {
     }
 
     private bool TryGetDestinationName(PdfObject? obj, out string? value) {
+        return TryGetNameOrString(obj, out value);
+    }
+
+    private bool TryGetNameOrString(PdfObject? obj, out string? value) {
         switch (ResolveObject(obj)) {
             case PdfStringObj text when !string.IsNullOrEmpty(text.Value):
                 value = text.Value;
@@ -547,6 +601,246 @@ public sealed class PdfReadPage {
                 value = null;
                 return false;
         }
+    }
+
+    private string? TryReadActionType(PdfObject? obj) {
+        var action = ResolveDictionary(obj);
+        string? actionType = action?.Get<PdfName>("S")?.Name;
+        return string.IsNullOrEmpty(actionType) ? null : actionType;
+    }
+
+    private IReadOnlyList<PdfAnnotationAdditionalAction> ReadAdditionalActions(PdfObject? obj) {
+        var additionalActions = ResolveDictionary(obj);
+        if (additionalActions is null || additionalActions.Items.Count == 0) {
+            return Array.Empty<PdfAnnotationAdditionalAction>();
+        }
+
+        var actions = new List<PdfAnnotationAdditionalAction>();
+        foreach (var item in additionalActions.Items) {
+            if (string.IsNullOrEmpty(item.Key)) {
+                continue;
+            }
+
+            string? actionType = TryReadActionType(item.Value);
+            if (!string.IsNullOrEmpty(actionType)) {
+                actions.Add(new PdfAnnotationAdditionalAction(item.Key, actionType!));
+            }
+        }
+
+        return actions.Count == 0 ? Array.Empty<PdfAnnotationAdditionalAction>() : actions.AsReadOnly();
+    }
+
+    private bool TryReadFileSpecification(PdfObject? obj, out string? file) {
+        PdfObject? resolved = ResolveObject(obj);
+        if (resolved is PdfStringObj text && !string.IsNullOrEmpty(text.Value)) {
+            file = text.Value;
+            return true;
+        }
+
+        if (resolved is PdfDictionary dictionary) {
+            if (TryGetString(dictionary.Items.TryGetValue("UF", out var unicodeFileObject) ? unicodeFileObject : null, out string? unicodeFile) &&
+                !string.IsNullOrEmpty(unicodeFile)) {
+                file = unicodeFile;
+                return true;
+            }
+
+            if (TryGetString(dictionary.Items.TryGetValue("F", out var fileObject) ? fileObject : null, out string? fallbackFile) &&
+                !string.IsNullOrEmpty(fallbackFile)) {
+                file = fallbackFile;
+                return true;
+            }
+        }
+
+        file = null;
+        return false;
+    }
+
+    private bool TryReadRemoteDestination(
+        PdfObject? obj,
+        out string? destinationName,
+        out int? destinationPageNumber,
+        out double? destinationTop,
+        out PdfOpenActionDestinationMode? destinationMode,
+        out double? destinationLeft,
+        out double? destinationBottom,
+        out double? destinationRight) {
+        if (TryGetDestinationName(obj, out destinationName)) {
+            destinationPageNumber = null;
+            destinationTop = null;
+            destinationMode = null;
+            destinationLeft = null;
+            destinationBottom = null;
+            destinationRight = null;
+            return true;
+        }
+
+        destinationName = null;
+        destinationPageNumber = null;
+        destinationTop = null;
+        destinationMode = null;
+        destinationLeft = null;
+        destinationBottom = null;
+        destinationRight = null;
+
+        PdfObject? resolved = ResolveObject(obj);
+        if (resolved is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("D", out var explicitDestination)) {
+            resolved = ResolveObject(explicitDestination);
+        }
+
+        if (resolved is not PdfArray destination || destination.Items.Count < 2) {
+            return false;
+        }
+
+        if (ResolveObject(destination.Items[0]) is PdfNumber pageIndex &&
+            pageIndex.Value >= 0 &&
+            pageIndex.Value < int.MaxValue &&
+            Math.Abs(pageIndex.Value - Math.Truncate(pageIndex.Value)) < double.Epsilon) {
+            destinationPageNumber = (int)pageIndex.Value + 1;
+        }
+
+        ReadDestinationCoordinates(destination, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight);
+        return destinationPageNumber.HasValue || destinationTop.HasValue || destinationMode.HasValue || destinationLeft.HasValue || destinationBottom.HasValue || destinationRight.HasValue;
+    }
+
+    private bool TryReadLinkDestination(
+        PdfObject? obj,
+        out string? destinationName,
+        out int? destinationPageObjectNumber,
+        out double? destinationTop,
+        out PdfOpenActionDestinationMode? destinationMode,
+        out double? destinationLeft,
+        out double? destinationBottom,
+        out double? destinationRight) {
+        if (TryGetDestinationName(obj, out destinationName)) {
+            destinationPageObjectNumber = null;
+            destinationTop = null;
+            destinationMode = null;
+            destinationLeft = null;
+            destinationBottom = null;
+            destinationRight = null;
+            return true;
+        }
+
+        destinationPageObjectNumber = null;
+        destinationTop = null;
+        destinationMode = null;
+        destinationLeft = null;
+        destinationBottom = null;
+        destinationRight = null;
+
+        PdfObject? resolved = ResolveObject(obj);
+        if (resolved is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("D", out var explicitDestination)) {
+            resolved = ResolveObject(explicitDestination);
+        }
+
+        if (resolved is not PdfArray destination || destination.Items.Count < 2) {
+            return false;
+        }
+
+        if (destination.Items[0] is PdfReference pageReference) {
+            destinationPageObjectNumber = pageReference.ObjectNumber;
+        }
+
+        ReadDestinationCoordinates(destination, out destinationTop, out destinationMode, out destinationLeft, out destinationBottom, out destinationRight);
+        return destinationPageObjectNumber.HasValue || destinationTop.HasValue || destinationMode.HasValue || destinationLeft.HasValue || destinationBottom.HasValue || destinationRight.HasValue;
+    }
+
+    private void ReadDestinationCoordinates(
+        PdfArray destination,
+        out double? destinationTop,
+        out PdfOpenActionDestinationMode? destinationMode,
+        out double? destinationLeft,
+        out double? destinationBottom,
+        out double? destinationRight) {
+        destinationTop = null;
+        destinationMode = null;
+        destinationLeft = null;
+        destinationBottom = null;
+        destinationRight = null;
+
+        if (ResolveObject(destination.Items[1]) is PdfName fitName) {
+            switch (fitName.Name) {
+                case "XYZ":
+                    destinationMode = PdfOpenActionDestinationMode.Xyz;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber xyzLeft) {
+                        destinationLeft = xyzLeft.Value;
+                    }
+
+                    if (destination.Items.Count > 3 && ResolveObject(destination.Items[3]) is PdfNumber xyzTop) {
+                        destinationTop = xyzTop.Value;
+                    }
+
+                    break;
+                case "Fit":
+                    destinationMode = PdfOpenActionDestinationMode.Fit;
+                    break;
+                case "FitH":
+                    destinationMode = PdfOpenActionDestinationMode.FitHorizontal;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber fitTop) {
+                        destinationTop = fitTop.Value;
+                    }
+
+                    break;
+                case "FitV":
+                    destinationMode = PdfOpenActionDestinationMode.FitVertical;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber fitLeft) {
+                        destinationLeft = fitLeft.Value;
+                    }
+
+                    break;
+                case "FitR":
+                    destinationMode = PdfOpenActionDestinationMode.FitRectangle;
+                    if (destination.Items.Count > 5) {
+                        if (ResolveObject(destination.Items[2]) is PdfNumber left) {
+                            destinationLeft = left.Value;
+                        }
+
+                        if (ResolveObject(destination.Items[3]) is PdfNumber bottom) {
+                            destinationBottom = bottom.Value;
+                        }
+
+                        if (ResolveObject(destination.Items[4]) is PdfNumber right) {
+                            destinationRight = right.Value;
+                        }
+
+                        if (ResolveObject(destination.Items[5]) is PdfNumber top) {
+                            destinationTop = top.Value;
+                        }
+                    }
+
+                    break;
+                case "FitB":
+                    destinationMode = PdfOpenActionDestinationMode.FitBoundingBox;
+                    break;
+                case "FitBH":
+                    destinationMode = PdfOpenActionDestinationMode.FitBoundingBoxHorizontal;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber fitBoundingTop) {
+                        destinationTop = fitBoundingTop.Value;
+                    }
+
+                    break;
+                case "FitBV":
+                    destinationMode = PdfOpenActionDestinationMode.FitBoundingBoxVertical;
+                    if (destination.Items.Count > 2 && ResolveObject(destination.Items[2]) is PdfNumber fitBoundingLeft) {
+                        destinationLeft = fitBoundingLeft.Value;
+                    }
+
+                    break;
+                default:
+                    if (destination.Items.Count > 3 && ResolveObject(destination.Items[3]) is PdfNumber fallbackTop) {
+                        destinationTop = fallbackTop.Value;
+                    }
+
+                    break;
+            }
+        }
+    }
+
+    private bool HasNormalAppearance(PdfDictionary annotation) {
+        var appearance = ResolveDictionary(annotation.Items.TryGetValue("AP", out var appearanceObject) ? appearanceObject : null);
+        return appearance != null && appearance.Items.ContainsKey("N");
     }
 
     private bool TryReadRectangle(PdfObject? obj, out (double X1, double Y1, double X2, double Y2) rect) {

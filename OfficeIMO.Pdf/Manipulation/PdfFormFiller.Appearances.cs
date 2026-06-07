@@ -107,10 +107,12 @@ public static partial class PdfFormFiller {
         return normalAppearances;
     }
 
-    private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, HashSet<int> visited, ref int nextObjectNumber) {
+    private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, int inheritedFlags, int? inheritedQuadding, HashSet<int> visited, ref int nextObjectNumber) {
+        int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
+        int? fieldQuadding = ReadFieldQuadding(objects, field, inheritedQuadding);
         if (IsWidget(field) && TryReadRect(field, out double width, out double height)) {
             int appearanceObjectNumber = nextObjectNumber++;
-            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(value, width, height, ReadWidgetAppearanceStyle(objects, field)));
+            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(value, width, height, ReadWidgetAppearanceStyle(objects, field, fieldFlags, fieldQuadding)));
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
@@ -129,7 +131,7 @@ public static partial class PdfFormFiller {
             }
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
-                SetTextWidgetAppearances(objects, kid, value, visited, ref nextObjectNumber);
+                SetTextWidgetAppearances(objects, kid, value, fieldFlags, fieldQuadding, visited, ref nextObjectNumber);
             }
         }
     }
@@ -155,8 +157,9 @@ public static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static PdfFormFieldStyle ReadWidgetAppearanceStyle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget) {
+    private static PdfFormFieldStyle ReadWidgetAppearanceStyle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, int fieldFlags = 0, int? inheritedQuadding = null) {
         var style = new PdfFormFieldStyle();
+        style.IsPassword = (fieldFlags & PasswordFlag) != 0;
         if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out var mkObject) ? mkObject : null) is PdfDictionary mk) {
             if (TryReadColor(objects, mk, "BG", out PdfColor backgroundColor)) {
                 style.BackgroundColor = backgroundColor;
@@ -171,7 +174,55 @@ public static partial class PdfFormFiller {
             style.TextColor = textColor;
         }
 
+        if (TryReadWidgetTextAlignment(objects, widget, inheritedQuadding, out PdfFormFieldTextAlignment textAlignment)) {
+            style.TextAlignment = textAlignment;
+        }
+
         return style;
+    }
+
+    private static int? ReadFieldQuadding(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int? inheritedQuadding) {
+        return TryReadQuadding(objects, field, out int quadding) ? quadding : inheritedQuadding;
+    }
+
+    private static bool TryReadWidgetTextAlignment(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, int? inheritedQuadding, out PdfFormFieldTextAlignment textAlignment) {
+        textAlignment = PdfFormFieldTextAlignment.Unknown;
+        int effectiveQuadding;
+        if (TryReadQuadding(objects, widget, out int quadding)) {
+            effectiveQuadding = quadding;
+        } else if (inheritedQuadding.HasValue) {
+            effectiveQuadding = inheritedQuadding.Value;
+        } else {
+            return false;
+        }
+
+        switch (effectiveQuadding) {
+            case 0:
+                textAlignment = PdfFormFieldTextAlignment.Left;
+                return true;
+            case 1:
+                textAlignment = PdfFormFieldTextAlignment.Center;
+                return true;
+            case 2:
+                textAlignment = PdfFormFieldTextAlignment.Right;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryReadQuadding(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, out int quadding) {
+        quadding = 0;
+        if (!field.Items.TryGetValue("Q", out var quaddingObject) ||
+            ResolveObject(objects, quaddingObject) is not PdfNumber quaddingNumber ||
+            quaddingNumber.Value < int.MinValue ||
+            quaddingNumber.Value > int.MaxValue ||
+            Math.Truncate(quaddingNumber.Value) != quaddingNumber.Value) {
+            return false;
+        }
+
+        quadding = (int)quaddingNumber.Value;
+        return true;
     }
 
     private static bool TryReadColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out PdfColor color) {

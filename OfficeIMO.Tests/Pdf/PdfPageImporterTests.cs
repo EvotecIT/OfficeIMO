@@ -39,6 +39,39 @@ public class PdfPageImporterTests {
     }
 
     [Fact]
+    public void AppendPages_WithFlattenVisualAnnotationsOption_FlattensImportedSourceMarkupOnly() {
+        byte[] target = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .Meta(title: "Target", author: "OfficeIMO")
+            .Paragraph(p => p.Text("Target page"))
+            .TextAnnotation("Target note")
+            .ToBytes();
+        byte[] source = BuildAnnotatedPdf("Source", "Annotated source page");
+
+        byte[] imported = PdfPageImporter.AppendPages(
+            new PdfPageImportOptions {
+                FlattenVisualAnnotations = true
+            },
+            target,
+            source);
+        string pdf = Encoding.ASCII.GetString(imported);
+        PdfDocumentInfo info = PdfInspector.Inspect(imported);
+
+        Assert.Equal(2, info.PageCount);
+        Assert.Equal(1, info.AnnotationCount);
+        Assert.Single(info.GetAnnotationsBySubtype("Text"));
+        Assert.DoesNotContain("/Subtype /FreeText", pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Highlight", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Text", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOAnnot2 Do", pdf, StringComparison.Ordinal);
+
+        string text = NormalizeExtractedText(PdfReadDocument.Load(imported).ExtractText());
+        AssertContainsInOrder(text, "Targetpage", "Annotatedsourcepage");
+    }
+
+    [Fact]
     public void PrependPages_ImportsAllSourcePagesWhenSelectionIsEmpty() {
         byte[] target = BuildPdf("Target", "Target first", "Target second");
         byte[] source = BuildPdf("Source", "Source first", "Source second");
@@ -477,6 +510,22 @@ public class PdfPageImporterTests {
         }
 
         return doc.ToBytes();
+    }
+
+    private static byte[] BuildAnnotatedPdf(string title, string pageText) {
+        return PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .Meta(title: title, author: "OfficeIMO")
+            .Paragraph(p => p.Text(pageText))
+            .FreeTextAnnotation(
+                "Import review note",
+                width: 150,
+                height: 44,
+                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
+                fillColor: new PdfColor(0.95D, 0.98D, 1D))
+            .HighlightAnnotation("Import highlight", width: 120, height: 14, color: new PdfColor(1D, 0.9D, 0.1D))
+            .ToBytes();
     }
 
     private static byte[] BuildTwoPageLabelPdf() {

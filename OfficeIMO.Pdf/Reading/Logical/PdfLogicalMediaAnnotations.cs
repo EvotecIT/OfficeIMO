@@ -59,17 +59,71 @@ public sealed class PdfLogicalLinkAnnotation : IPdfLogicalElement {
     /// <summary>Underlying parsed link annotation.</summary>
     public PdfLinkAnnotation SourceLink { get; }
 
-    /// <summary>Absolute URI opened by the link annotation, or null for an internal named-destination link.</summary>
+    /// <summary>URI action target opened by the link annotation, or null for an internal destination link.</summary>
     public string? Uri => SourceLink.Uri;
 
     /// <summary>Named destination opened by the link annotation, or null for a URI link.</summary>
     public string? DestinationName => SourceLink.DestinationName;
 
-    /// <summary>True when the link annotation opens an absolute URI.</summary>
+    /// <summary>Named viewer action opened by the link annotation, for example NextPage, or null for other link target kinds.</summary>
+    public string? NamedAction => SourceLink.NamedAction;
+
+    /// <summary>External PDF file targeted by a remote GoTo action, or null for other link target kinds.</summary>
+    public string? RemoteFile => SourceLink.RemoteFile;
+
+    /// <summary>Named destination in the external PDF targeted by a remote GoTo action, when present.</summary>
+    public string? RemoteDestinationName => SourceLink.RemoteDestinationName;
+
+    /// <summary>One-based destination page number in the external PDF targeted by a simple remote GoTo destination array, when present.</summary>
+    public int? RemoteDestinationPageNumber => SourceLink.RemoteDestinationPageNumber;
+
+    /// <summary>Top coordinate of the remote destination when present.</summary>
+    public double? RemoteDestinationTop => SourceLink.RemoteDestinationTop;
+
+    /// <summary>Left coordinate of the remote destination when present.</summary>
+    public double? RemoteDestinationLeft => SourceLink.RemoteDestinationLeft;
+
+    /// <summary>Bottom coordinate of the remote destination rectangle when present.</summary>
+    public double? RemoteDestinationBottom => SourceLink.RemoteDestinationBottom;
+
+    /// <summary>Right coordinate of the remote destination rectangle when present.</summary>
+    public double? RemoteDestinationRight => SourceLink.RemoteDestinationRight;
+
+    /// <summary>Viewer destination mode for the remote destination when present.</summary>
+    public PdfOpenActionDestinationMode? RemoteDestinationMode => SourceLink.RemoteDestinationMode;
+
+    /// <summary>One-based destination page number when the link targets a simple direct destination array.</summary>
+    public int? DestinationPageNumber => SourceLink.DestinationPageNumber;
+
+    /// <summary>Top coordinate of the destination when present.</summary>
+    public double? DestinationTop => SourceLink.DestinationTop;
+
+    /// <summary>Left coordinate of the destination when present.</summary>
+    public double? DestinationLeft => SourceLink.DestinationLeft;
+
+    /// <summary>Bottom coordinate of the destination rectangle when present.</summary>
+    public double? DestinationBottom => SourceLink.DestinationBottom;
+
+    /// <summary>Right coordinate of the destination rectangle when present.</summary>
+    public double? DestinationRight => SourceLink.DestinationRight;
+
+    /// <summary>Viewer destination mode when the link uses a supported destination array.</summary>
+    public PdfOpenActionDestinationMode? DestinationMode => SourceLink.DestinationMode;
+
+    /// <summary>True when the link annotation opens a URI action target.</summary>
     public bool IsUriLink => SourceLink.IsUriLink;
 
     /// <summary>True when the link annotation opens an internal named destination.</summary>
     public bool IsNamedDestinationLink => SourceLink.IsNamedDestinationLink;
+
+    /// <summary>True when the link annotation opens a named viewer action such as NextPage.</summary>
+    public bool IsNamedActionLink => SourceLink.IsNamedActionLink;
+
+    /// <summary>True when the link annotation opens a destination in another PDF file.</summary>
+    public bool IsRemoteGoToLink => SourceLink.IsRemoteGoToLink;
+
+    /// <summary>True when the link annotation opens an internal destination, either named or direct.</summary>
+    public bool IsInternalDestinationLink => SourceLink.IsInternalDestinationLink;
 
     /// <summary>Optional annotation contents metadata.</summary>
     public string? Contents => SourceLink.Contents;

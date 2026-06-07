@@ -23,6 +23,15 @@ internal static partial class PdfWriter {
                     case PdfCanvasImageItem image:
                         RenderCanvasImage(image);
                         break;
+                    case PdfCanvasTextAnnotationItem textAnnotation:
+                        RenderCanvasTextAnnotation(textAnnotation);
+                        break;
+                    case PdfCanvasFreeTextAnnotationItem freeTextAnnotation:
+                        RenderCanvasFreeTextAnnotation(freeTextAnnotation);
+                        break;
+                    case PdfCanvasHighlightAnnotationItem highlightAnnotation:
+                        RenderCanvasHighlightAnnotation(highlightAnnotation);
+                        break;
                     case PdfCanvasTableItem table:
                         RenderCanvasTable(table);
                         break;
@@ -66,6 +75,7 @@ internal static partial class PdfWriter {
                 markedContentId: markedContentId,
                 structurePage: currentPage);
             MarkRichFonts(item.Runs);
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
 
@@ -158,6 +168,7 @@ internal static partial class PdfWriter {
                     .RestoreState();
             }
 
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
 
@@ -191,6 +202,7 @@ internal static partial class PdfWriter {
             }
 
             RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, topY - block.Shape.Height, block.Shape.Width, block.Shape.Height, item.RotationAngle);
+            DrawDebugCanvasItemBox(item.X, topY - block.Shape.Height, block.Shape.Width, block.Shape.Height);
             pageDirty = true;
         }
 
@@ -256,6 +268,7 @@ internal static partial class PdfWriter {
             }
 
             RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
 
@@ -282,6 +295,7 @@ internal static partial class PdfWriter {
             int annotationStart = currentPage!.Annotations.Count;
             AddImageLinkAnnotation(block, imageStyle, pageImage, item.X, bottomY, block.Width, block.Height);
             RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, block.Width, block.Height, item.RotationAngle);
+            DrawDebugCanvasItemBox(item.X, bottomY, block.Width, block.Height);
             pageDirty = true;
         }
 
@@ -289,6 +303,9 @@ internal static partial class PdfWriter {
             ValidateCanvasBox(item.X, item.Y, item.Width, item.Height, "Canvas clip");
             double bottomY = currentOpts.PageHeight - item.Y - item.Height;
             int annotationStart = currentPage!.Annotations.Count;
+            int textAnnotationStart = currentPage.TextAnnotations.Count;
+            int freeTextAnnotationStart = currentPage.FreeTextAnnotations.Count;
+            int highlightAnnotationStart = currentPage.HighlightAnnotations.Count;
             int imageStart = currentPage.Images.Count;
             int formFieldStart = currentPage.FormFields.Count;
             new ContentStreamBuilder(sb)
@@ -305,10 +322,14 @@ internal static partial class PdfWriter {
             }
 
             ClipCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height);
+            ClipCanvasTextAnnotations(currentPage.TextAnnotations, textAnnotationStart, item.X, bottomY, item.Width, item.Height);
+            ClipCanvasFreeTextAnnotations(currentPage.FreeTextAnnotations, freeTextAnnotationStart, item.X, bottomY, item.Width, item.Height);
+            ClipCanvasHighlightAnnotations(currentPage.HighlightAnnotations, highlightAnnotationStart, item.X, bottomY, item.Width, item.Height);
             ClipCanvasPageImages(currentPage.Images, imageStart, item.X, bottomY, item.Width, item.Height);
             ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height);
             new ContentStreamBuilder(sb)
                 .RestoreState();
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
 
@@ -335,6 +356,69 @@ internal static partial class PdfWriter {
             double clipTop = clipBottomY + clipHeight;
             for (int i = annotations.Count - 1; i >= startIndex; i--) {
                 LinkAnnotation annotation = annotations[i];
+                double x1 = System.Math.Max(annotation.X1, clipX);
+                double y1 = System.Math.Max(annotation.Y1, clipBottomY);
+                double x2 = System.Math.Min(annotation.X2, clipRight);
+                double y2 = System.Math.Min(annotation.Y2, clipTop);
+                if (x2 <= x1 || y2 <= y1) {
+                    annotations.RemoveAt(i);
+                    continue;
+                }
+
+                annotation.X1 = x1;
+                annotation.Y1 = y1;
+                annotation.X2 = x2;
+                annotation.Y2 = y2;
+            }
+        }
+
+        private static void ClipCanvasTextAnnotations(System.Collections.Generic.List<TextAnnotation> annotations, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {
+            double clipRight = clipX + clipWidth;
+            double clipTop = clipBottomY + clipHeight;
+            for (int i = annotations.Count - 1; i >= startIndex; i--) {
+                TextAnnotation annotation = annotations[i];
+                double x1 = System.Math.Max(annotation.X1, clipX);
+                double y1 = System.Math.Max(annotation.Y1, clipBottomY);
+                double x2 = System.Math.Min(annotation.X2, clipRight);
+                double y2 = System.Math.Min(annotation.Y2, clipTop);
+                if (x2 <= x1 || y2 <= y1) {
+                    annotations.RemoveAt(i);
+                    continue;
+                }
+
+                annotation.X1 = x1;
+                annotation.Y1 = y1;
+                annotation.X2 = x2;
+                annotation.Y2 = y2;
+            }
+        }
+
+        private static void ClipCanvasFreeTextAnnotations(System.Collections.Generic.List<FreeTextAnnotation> annotations, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {
+            double clipRight = clipX + clipWidth;
+            double clipTop = clipBottomY + clipHeight;
+            for (int i = annotations.Count - 1; i >= startIndex; i--) {
+                FreeTextAnnotation annotation = annotations[i];
+                double x1 = System.Math.Max(annotation.X1, clipX);
+                double y1 = System.Math.Max(annotation.Y1, clipBottomY);
+                double x2 = System.Math.Min(annotation.X2, clipRight);
+                double y2 = System.Math.Min(annotation.Y2, clipTop);
+                if (x2 <= x1 || y2 <= y1) {
+                    annotations.RemoveAt(i);
+                    continue;
+                }
+
+                annotation.X1 = x1;
+                annotation.Y1 = y1;
+                annotation.X2 = x2;
+                annotation.Y2 = y2;
+            }
+        }
+
+        private static void ClipCanvasHighlightAnnotations(System.Collections.Generic.List<HighlightAnnotation> annotations, int startIndex, double clipX, double clipBottomY, double clipWidth, double clipHeight) {
+            double clipRight = clipX + clipWidth;
+            double clipTop = clipBottomY + clipHeight;
+            for (int i = annotations.Count - 1; i >= startIndex; i--) {
+                HighlightAnnotation annotation = annotations[i];
                 double x1 = System.Math.Max(annotation.X1, clipX);
                 double y1 = System.Math.Max(annotation.Y1, clipBottomY);
                 double x2 = System.Math.Min(annotation.X2, clipRight);

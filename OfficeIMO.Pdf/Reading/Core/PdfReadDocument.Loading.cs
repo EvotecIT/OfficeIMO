@@ -3,8 +3,9 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadDocument {
     /// <summary>Loads a PDF from bytes into a typed object model.</summary>
     public static PdfReadDocument Load(byte[] pdf, PdfReadOptions? options = null) {
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
         var (map, trailer) = PdfSyntax.ParseObjects(pdf);
-        return new PdfReadDocument(map, trailer, options);
+        return new PdfReadDocument(map, trailer, security, options);
     }
 
     /// <summary>Loads a PDF from a file path.</summary>

@@ -38,6 +38,9 @@ public partial class PdfInspectorTests {
         Assert.Single(info.LinkAnnotations);
         Assert.Equal(1, info.LinkUriCount);
         Assert.Equal(new[] { "https://evotec.xyz" }, info.LinkUris);
+        Assert.Same(info.LinkAnnotations[0], Assert.Single(info.LinkAnnotationsByUri["https://evotec.xyz"]));
+        Assert.Same(info.LinkAnnotations[0], Assert.Single(info.GetLinkAnnotationsByUri("https://evotec.xyz")));
+        Assert.Empty(info.GetLinkAnnotationsByUri("https://evotec.xyz/missing"));
         Assert.Single(info.Pages);
         Assert.Single(info.Pages[0].LinkAnnotations);
         Assert.All(info.LinkAnnotations, link => Assert.Equal(1, link.PageNumber));
@@ -271,6 +274,9 @@ public partial class PdfInspectorTests {
         Assert.Empty(info.LinkUris);
         Assert.Equal(1, info.LinkDestinationCount);
         Assert.Equal(new[] { "Details" }, info.LinkDestinationNames);
+        Assert.Same(link, Assert.Single(info.LinkAnnotationsByDestinationName["Details"]));
+        Assert.Same(link, Assert.Single(info.GetLinkAnnotationsByDestinationName("Details")));
+        Assert.Empty(info.GetLinkAnnotationsByDestinationName("Missing"));
         Assert.True(link.IsNamedDestinationLink);
         Assert.False(link.IsUriLink);
         Assert.Null(link.Uri);
@@ -279,6 +285,118 @@ public partial class PdfInspectorTests {
         Assert.Equal(1, link.PageNumber);
         Assert.True(link.Width > 0);
         Assert.True(link.Height > 0);
+    }
+
+    [Fact]
+    public void Inspect_SummarizesDirectDestinationLinkTargetPages() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildDirectDestinationLinkPdf());
+        PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+
+        Assert.True(info.HasLinkAnnotations);
+        Assert.Equal(1, info.LinkAnnotationCount);
+        Assert.Equal(0, info.LinkUriCount);
+        Assert.Empty(info.LinkUris);
+        Assert.Equal(0, info.LinkDestinationCount);
+        Assert.Empty(info.LinkDestinationNames);
+        Assert.Equal(1, info.LinkDestinationPageNumberCount);
+        Assert.Equal(new[] { 1 }, info.LinkDestinationPageNumbers);
+        Assert.Same(link, Assert.Single(info.LinkAnnotationsByDestinationPageNumber[1]));
+        Assert.Same(link, Assert.Single(info.GetLinkAnnotationsByDestinationPageNumber(1)));
+        Assert.Empty(info.GetLinkAnnotationsByDestinationPageNumber(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => info.GetLinkAnnotationsByDestinationPageNumber(0));
+        Assert.True(link.IsInternalDestinationLink);
+        Assert.False(link.IsUriLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Equal(1, link.DestinationPageNumber);
+        Assert.Equal(PdfOpenActionDestinationMode.FitRectangle, link.DestinationMode);
+        Assert.Equal(10D, link.DestinationLeft);
+        Assert.Equal(20D, link.DestinationBottom);
+        Assert.Equal(90D, link.DestinationRight);
+        Assert.Equal(144D, link.DestinationTop);
+    }
+
+    [Fact]
+    public void Inspect_ReadsNamedActionLinkAnnotations() {
+        byte[] bytes = BuildNamedActionLinkPdf();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+
+        Assert.True(info.HasLinkAnnotations);
+        Assert.Equal(1, info.LinkAnnotationCount);
+        Assert.Equal(0, info.LinkUriCount);
+        Assert.Empty(info.LinkUris);
+        Assert.Equal(0, info.LinkDestinationCount);
+        Assert.Empty(info.LinkDestinationNames);
+        Assert.Equal(0, info.LinkDestinationPageNumberCount);
+        Assert.Empty(info.LinkDestinationPageNumbers);
+        Assert.Equal(1, info.LinkNamedActionCount);
+        Assert.Equal(new[] { "NextPage" }, info.LinkNamedActions);
+        Assert.Same(link, Assert.Single(info.LinkAnnotationsByNamedAction["NextPage"]));
+        Assert.Same(link, Assert.Single(info.GetLinkAnnotationsByNamedAction("NextPage")));
+        Assert.Empty(info.GetLinkAnnotationsByNamedAction("PrevPage"));
+        Assert.True(link.IsNamedActionLink);
+        Assert.False(link.IsUriLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.False(link.IsInternalDestinationLink);
+        Assert.Null(link.Uri);
+        Assert.Null(link.DestinationName);
+        Assert.Null(link.DestinationPageNumber);
+        Assert.Equal("NextPage", link.NamedAction);
+        Assert.Equal("Next page action", link.Contents);
+        Assert.Equal(1, link.PageNumber);
+
+        PdfReadDocument document = PdfReadDocument.Load(bytes);
+        PdfLinkAnnotation pageLink = Assert.Single(document.Pages[0].GetLinkAnnotations());
+        Assert.True(pageLink.IsNamedActionLink);
+        Assert.Equal("NextPage", pageLink.NamedAction);
+    }
+
+    [Fact]
+    public void Inspect_ReadsRemoteGoToLinkAnnotations() {
+        byte[] bytes = BuildRemoteGoToLinkPdf();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+
+        Assert.True(info.HasLinkAnnotations);
+        Assert.Equal(1, info.LinkAnnotationCount);
+        Assert.Equal(0, info.LinkUriCount);
+        Assert.Empty(info.LinkUris);
+        Assert.Equal(0, info.LinkDestinationCount);
+        Assert.Empty(info.LinkDestinationNames);
+        Assert.Equal(0, info.LinkDestinationPageNumberCount);
+        Assert.Empty(info.LinkDestinationPageNumbers);
+        Assert.Equal(0, info.LinkNamedActionCount);
+        Assert.Empty(info.LinkNamedActions);
+        Assert.Equal(1, info.LinkRemoteFileCount);
+        Assert.Equal(new[] { "remote-report.pdf" }, info.LinkRemoteFiles);
+        Assert.Same(link, Assert.Single(info.LinkAnnotationsByRemoteFile["remote-report.pdf"]));
+        Assert.Same(link, Assert.Single(info.GetLinkAnnotationsByRemoteFile("remote-report.pdf")));
+        Assert.Empty(info.GetLinkAnnotationsByRemoteFile("missing.pdf"));
+        Assert.True(link.IsRemoteGoToLink);
+        Assert.False(link.IsUriLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.False(link.IsInternalDestinationLink);
+        Assert.False(link.IsNamedActionLink);
+        Assert.Null(link.Uri);
+        Assert.Null(link.DestinationName);
+        Assert.Null(link.DestinationPageNumber);
+        Assert.Null(link.NamedAction);
+        Assert.Equal("remote-report.pdf", link.RemoteFile);
+        Assert.Null(link.RemoteDestinationName);
+        Assert.Equal(2, link.RemoteDestinationPageNumber);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, link.RemoteDestinationMode);
+        Assert.Equal(144D, link.RemoteDestinationTop);
+        Assert.Equal("Remote report link", link.Contents);
+        Assert.Equal(1, link.PageNumber);
+
+        PdfReadDocument document = PdfReadDocument.Load(bytes);
+        PdfLinkAnnotation pageLink = Assert.Single(document.Pages[0].GetLinkAnnotations());
+        Assert.True(pageLink.IsRemoteGoToLink);
+        Assert.Equal("remote-report.pdf", pageLink.RemoteFile);
+        Assert.Equal(2, pageLink.RemoteDestinationPageNumber);
     }
 
 

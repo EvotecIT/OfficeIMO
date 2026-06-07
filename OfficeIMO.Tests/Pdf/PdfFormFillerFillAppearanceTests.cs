@@ -39,6 +39,23 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_GeneratesTextAppearanceWithInheritedQuadding() {
+        byte[] filled = PdfFormFiller.FillFields(BuildRightAlignedChildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Person.Name"] = "Right"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        System.Text.RegularExpressions.Match textPosition = System.Text.RegularExpressions.Regex.Match(
+            output,
+            @"(?<x>[0-9.]+) [0-9.]+ Td <5269676874> Tj");
+
+        Assert.Contains("<5269676874> Tj", output);
+        Assert.True(textPosition.Success);
+        Assert.True(double.Parse(textPosition.Groups["x"].Value, System.Globalization.CultureInfo.InvariantCulture) > 3D);
+        Assert.DoesNotContain(" 3 10.64 Td <5269676874> Tj", output);
+    }
+
+    [Fact]
     public void FillFields_PreservesUnicodeTextStringsWhenRewriting() {
         byte[] filled = PdfFormFiller.FillFields(BuildUnicodeFieldNameFormPdf(), new Dictionary<string, string> {
             ["名"] = "Visible value"

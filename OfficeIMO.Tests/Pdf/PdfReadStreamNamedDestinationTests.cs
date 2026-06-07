@@ -84,16 +84,94 @@ public partial class PdfReadStreamTests {
             PdfDocumentInfo info = PdfInspector.Inspect(output);
             AssertDestination(info, "Chapter1", chapter1Page, 200);
             if (containsSecondDestination) {
-                AssertDestination(info, "Chapter2", chapter2Page, null);
+                AssertDestination(info, "Chapter2", chapter2Page, null, PdfOpenActionDestinationMode.Fit);
             } else {
                 Assert.DoesNotContain(info.NamedDestinations, destination => destination.Name == "Chapter2");
             }
         }
 
-        static void AssertDestination(PdfDocumentInfo info, string name, int pageNumber, double? top) {
+        static void AssertDestination(PdfDocumentInfo info, string name, int pageNumber, double? top, PdfOpenActionDestinationMode? mode = PdfOpenActionDestinationMode.Xyz) {
             PdfNamedDestination destination = Assert.Single(info.NamedDestinations, item => item.Name == name);
             Assert.Equal(pageNumber, destination.PageNumber);
             Assert.Equal(top, destination.DestinationTop);
+            Assert.Equal(mode, destination.DestinationMode);
+        }
+    }
+
+    [Fact]
+    public void ReadApis_ResolveDirectGoToLinkAnnotationDestinations() {
+        byte[] linkedPdf = BuildGoToActionLinkAnnotationPdf();
+
+        PdfReadDocument document = PdfReadDocument.Load(new MemoryStream(linkedPdf));
+        PdfLinkAnnotation pageLink = Assert.Single(document.Pages[0].GetLinkAnnotations());
+        Assert.Null(pageLink.PageNumber);
+        Assert.Null(pageLink.DestinationPageNumber);
+        Assert.Null(pageLink.DestinationName);
+        Assert.Null(pageLink.Uri);
+        Assert.True(pageLink.IsInternalDestinationLink);
+        Assert.False(pageLink.IsNamedDestinationLink);
+        Assert.False(pageLink.IsUriLink);
+        Assert.Equal(144d, pageLink.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, pageLink.DestinationMode);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(linkedPdf);
+        PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Equal(1, link.DestinationPageNumber);
+        Assert.Null(link.DestinationName);
+        Assert.Null(link.Uri);
+        Assert.True(link.IsInternalDestinationLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.False(link.IsUriLink);
+        Assert.Equal("Jump to top", link.Contents);
+        Assert.Equal(144d, link.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, link.DestinationMode);
+    }
+
+    [Fact]
+    public void ReadApis_ResolveExtendedDirectGoToLinkAnnotationDestinations() {
+        AssertLinkDestination(
+            BuildGoToActionLinkAnnotationPdf("[3 0 R /FitV 24]"),
+            PdfOpenActionDestinationMode.FitVertical,
+            destinationLeft: 24D);
+
+        AssertLinkDestination(
+            BuildGoToActionLinkAnnotationPdf("[3 0 R /FitR 10 20 90 144]"),
+            PdfOpenActionDestinationMode.FitRectangle,
+            destinationLeft: 10D,
+            destinationBottom: 20D,
+            destinationRight: 90D,
+            destinationTop: 144D);
+
+        AssertLinkDestination(
+            BuildGoToActionLinkAnnotationPdf("[3 0 R /FitB]"),
+            PdfOpenActionDestinationMode.FitBoundingBox);
+
+        AssertLinkDestination(
+            BuildGoToActionLinkAnnotationPdf("[3 0 R /FitBH 155]"),
+            PdfOpenActionDestinationMode.FitBoundingBoxHorizontal,
+            destinationTop: 155D);
+
+        AssertLinkDestination(
+            BuildGoToActionLinkAnnotationPdf("[3 0 R /FitBV 33]"),
+            PdfOpenActionDestinationMode.FitBoundingBoxVertical,
+            destinationLeft: 33D);
+
+        static void AssertLinkDestination(
+            byte[] pdf,
+            PdfOpenActionDestinationMode expectedMode,
+            double? destinationLeft = null,
+            double? destinationBottom = null,
+            double? destinationRight = null,
+            double? destinationTop = null) {
+            PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+            PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+            Assert.Equal(1, link.DestinationPageNumber);
+            Assert.Equal(expectedMode, link.DestinationMode);
+            Assert.Equal(destinationLeft, link.DestinationLeft);
+            Assert.Equal(destinationBottom, link.DestinationBottom);
+            Assert.Equal(destinationRight, link.DestinationRight);
+            Assert.Equal(destinationTop, link.DestinationTop);
         }
     }
 

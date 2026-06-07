@@ -82,6 +82,10 @@ internal static partial class PdfWriter {
             }
 
             AddImageLinkAnnotation(ib, imageStyle, pageImage, xImg, y - imageBox.Height, imageBox.Width, imageBox.Height);
+            if (currentOpts.Debug?.ShowFlowObjectBoxes == true) {
+                pageImage.DebugBox = true;
+            }
+
             pageDirty = true;
             y -= imageBox.Height + imageStyle.SpacingAfter;
         }

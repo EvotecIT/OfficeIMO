@@ -92,6 +92,9 @@ internal static partial class PdfWriter {
             public int PageGroupId { get; set; }
             public string Content { get; set; } = string.Empty;
             public System.Collections.Generic.List<LinkAnnotation> Annotations { get; } = new();
+            public System.Collections.Generic.List<TextAnnotation> TextAnnotations { get; } = new();
+            public System.Collections.Generic.List<FreeTextAnnotation> FreeTextAnnotations { get; } = new();
+            public System.Collections.Generic.List<HighlightAnnotation> HighlightAnnotations { get; } = new();
             public System.Collections.Generic.List<FormFieldAnnotation> FormFields { get; } = new();
             public System.Collections.Generic.List<PageImage> Images { get; } = new();
             public System.Collections.Generic.List<PageGraphicsState> GraphicsStates { get; } = new();
@@ -120,6 +123,45 @@ internal static partial class PdfWriter {
         public int? StructParentIndex { get; set; }
         public int? StructElementIndex { get; set; }
         public PageImage? LinkedImage { get; set; }
+        public int ObjectId { get; set; }
+    }
+
+    private sealed class TextAnnotation {
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
+        public string Contents { get; set; } = string.Empty;
+        public PdfTextAnnotationIcon Icon { get; set; }
+        public PdfColor? Color { get; set; }
+        public bool Open { get; set; }
+        public int ObjectId { get; set; }
+    }
+
+    private sealed class FreeTextAnnotation {
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
+        public string Contents { get; set; } = string.Empty;
+        public double FontSize { get; set; }
+        public PdfColor TextColor { get; set; }
+        public PdfColor? BorderColor { get; set; }
+        public double BorderWidth { get; set; }
+        public PdfColor? FillColor { get; set; }
+        public PdfAlign TextAlign { get; set; }
+        public double Padding { get; set; }
+        public double? LineHeight { get; set; }
+        public int ObjectId { get; set; }
+    }
+
+    private sealed class HighlightAnnotation {
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
+        public string Contents { get; set; } = string.Empty;
+        public PdfColor Color { get; set; }
         public int ObjectId { get; set; }
     }
 
@@ -244,6 +286,7 @@ internal static partial class PdfWriter {
         public int? MarkedContentId { get; set; }
         public int? StructElementIndex { get; set; }
         public string? InlineDrawToken { get; set; }
+        public bool DebugBox { get; set; }
         public string Name { get; set; } = string.Empty;
         public int ObjectId { get; set; }
     }

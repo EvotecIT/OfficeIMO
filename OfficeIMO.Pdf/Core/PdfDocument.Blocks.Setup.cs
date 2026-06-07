@@ -6,19 +6,19 @@ public sealed partial class PdfDocument {
     /// <summary>Adds a level-1 heading.</summary>
     public PdfDocument H1(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         AddBlock(new HeadingBlock(1, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
     }
     /// <summary>Adds a level-2 heading.</summary>
     public PdfDocument H2(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         AddBlock(new HeadingBlock(2, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
     }
     /// <summary>Adds a level-3 heading.</summary>
     public PdfDocument H3(string text, PdfAlign align = PdfAlign.Left, PdfColor? color = null, string? linkUri = null, PdfHeadingStyle? style = null, string? linkContents = null, string? linkDestinationName = null) {
         Guard.NotNullOrWhiteSpace(text, nameof(text));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         AddBlock(new HeadingBlock(3, text, align, color, linkUri, style, linkContents, linkDestinationName)); return this;
     }
 
@@ -345,6 +345,36 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Sets or clears the generated catalog page mode.</summary>
+    public PdfDocument CatalogPageMode(PdfCatalogPageMode? pageMode) {
+        _options.SetCatalogPageMode(pageMode);
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated catalog page layout.</summary>
+    public PdfDocument CatalogPageLayout(PdfCatalogPageLayout? pageLayout) {
+        _options.SetCatalogPageLayout(pageLayout);
+        return this;
+    }
+
+    /// <summary>Sets generated catalog page mode and page layout viewer hints.</summary>
+    public PdfDocument CatalogView(PdfCatalogPageMode? pageMode = null, PdfCatalogPageLayout? pageLayout = null) {
+        _options.SetCatalogView(pageMode, pageLayout);
+        return this;
+    }
+
+    /// <summary>Sets the generated catalog open action to a page destination.</summary>
+    public PdfDocument OpenAction(
+        int pageNumber = 1,
+        double? destinationTop = null,
+        PdfOpenActionDestinationMode destinationMode = PdfOpenActionDestinationMode.Xyz,
+        double? destinationLeft = null,
+        double? destinationBottom = null,
+        double? destinationRight = null) {
+        _options.SetOpenAction(pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
+        return this;
+    }
+
     /// <summary>Enables generated catalog page labels that match the configured page-number style and start number.</summary>
     public PdfDocument PageLabels(string? prefix = null) {
         _options.SetPageLabels(true, prefix);
@@ -357,6 +387,12 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Adds a generated catalog page-label rule beginning at the specified one-based document page.</summary>
+    public PdfDocument PageLabelRange(int startPageNumber, PdfPageNumberStyle style, int startNumber = 1, string? prefix = null) {
+        _options.AddPageLabelRange(startPageNumber, style, startNumber, prefix);
+        return this;
+    }
+
     /// <summary>Sets or clears generated catalog viewer preferences.</summary>
     public PdfDocument ViewerPreferences(PdfViewerPreferencesOptions? preferences) {
         _options.SetViewerPreferences(preferences);
@@ -366,6 +402,18 @@ public sealed partial class PdfDocument {
     /// <summary>Configures generated catalog viewer preferences.</summary>
     public PdfDocument ViewerPreferences(System.Action<PdfViewerPreferencesOptions> configure) {
         _options.ConfigureViewerPreferences(configure);
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated catalog URI base used by viewers to resolve relative URI actions.</summary>
+    public PdfDocument CatalogUriBase(string? uriBase) {
+        _options.SetCatalogUriBase(uriBase);
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated AcroForm default text alignment emitted through /Q.</summary>
+    public PdfDocument AcroFormDefaultTextAlignment(PdfFormFieldTextAlignment? alignment) {
+        _options.SetAcroFormDefaultTextAlignment(alignment);
         return this;
     }
 

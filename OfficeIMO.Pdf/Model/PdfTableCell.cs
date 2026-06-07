@@ -60,7 +60,7 @@ public sealed class PdfTableCell {
     /// <summary>Number of logical rows covered by this cell.</summary>
     public int RowSpan { get; }
 
-    /// <summary>Optional absolute URI linked from this cell.</summary>
+    /// <summary>Optional absolute URI or catalog-base-relative URI linked from this cell.</summary>
     public string? LinkUri { get; }
 
     /// <summary>Optional PDF named destination linked from this cell.</summary>
@@ -131,7 +131,7 @@ public sealed class PdfTableCell {
             throw new System.ArgumentOutOfRangeException(nameof(rowSpan), "Table cell row span must be at least 1.");
         }
 
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
 
         if (linkUri != null && linkDestinationName != null) {
             throw new System.ArgumentException("A table cell link can target either a URI or a bookmark, not both.", nameof(linkDestinationName));

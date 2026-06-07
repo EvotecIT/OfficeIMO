@@ -112,6 +112,80 @@ public partial class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void Load_ExposesDirectDestinationLinkCoordinatesAsLogicalElements() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildDirectDestinationLinkPdf());
+
+        PdfLogicalLinkAnnotation link = Assert.Single(logical.Links);
+        PdfLinkAnnotation pageLink = Assert.Single(Assert.Single(logical.Pages).LinkAnnotations);
+        Assert.True(link.IsInternalDestinationLink);
+        Assert.False(link.IsUriLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Equal(1, link.DestinationPageNumber);
+        Assert.Equal(1, pageLink.DestinationPageNumber);
+        Assert.Equal(PdfOpenActionDestinationMode.FitRectangle, link.DestinationMode);
+        Assert.Equal(10D, link.DestinationLeft);
+        Assert.Equal(20D, link.DestinationBottom);
+        Assert.Equal(90D, link.DestinationRight);
+        Assert.Equal(144D, link.DestinationTop);
+        Assert.Equal("Direct destination link", link.Contents);
+        Assert.Same(link, Assert.Single(logical.LinksByDestinationPageNumber[1]));
+        Assert.Same(link, Assert.Single(logical.GetLinksByDestinationPageNumber(1)));
+        Assert.Empty(logical.GetLinksByDestinationPageNumber(2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => logical.GetLinksByDestinationPageNumber(0));
+    }
+
+    [Fact]
+    public void Load_ExposesNamedActionLinksAsLogicalElements() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildNamedActionLinkPdf());
+
+        PdfLogicalLinkAnnotation link = Assert.Single(logical.Links);
+        Assert.True(link.IsNamedActionLink);
+        Assert.False(link.IsUriLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.False(link.IsInternalDestinationLink);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Null(link.Uri);
+        Assert.Null(link.DestinationName);
+        Assert.Null(link.DestinationPageNumber);
+        Assert.Equal("NextPage", link.NamedAction);
+        Assert.Equal("Next page action", link.Contents);
+        Assert.Same(link, Assert.Single(logical.LinksByNamedAction["NextPage"]));
+        Assert.Same(link, Assert.Single(logical.GetLinksByNamedAction("NextPage")));
+        Assert.Empty(logical.GetLinksByNamedAction("PrevPage"));
+        Assert.True(link.Width > 0);
+        Assert.True(link.Height > 0);
+    }
+
+    [Fact]
+    public void Load_ExposesRemoteGoToLinksAsLogicalElements() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildRemoteGoToLinkPdf());
+
+        PdfLogicalLinkAnnotation link = Assert.Single(logical.Links);
+        Assert.True(link.IsRemoteGoToLink);
+        Assert.False(link.IsUriLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.False(link.IsInternalDestinationLink);
+        Assert.False(link.IsNamedActionLink);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Null(link.Uri);
+        Assert.Null(link.DestinationName);
+        Assert.Null(link.DestinationPageNumber);
+        Assert.Null(link.NamedAction);
+        Assert.Equal("remote-report.pdf", link.RemoteFile);
+        Assert.Null(link.RemoteDestinationName);
+        Assert.Equal(2, link.RemoteDestinationPageNumber);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, link.RemoteDestinationMode);
+        Assert.Equal(144D, link.RemoteDestinationTop);
+        Assert.Equal("Remote report link", link.Contents);
+        Assert.Same(link, Assert.Single(logical.LinksByRemoteFile["remote-report.pdf"]));
+        Assert.Same(link, Assert.Single(logical.GetLinksByRemoteFile("remote-report.pdf")));
+        Assert.Empty(logical.GetLinksByRemoteFile("missing.pdf"));
+        Assert.True(link.Width > 0);
+        Assert.True(link.Height > 0);
+    }
+
+    [Fact]
     public void Load_ExposesTableCellNamedDestinationLinksAsLogicalElements() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 360,

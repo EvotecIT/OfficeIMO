@@ -44,7 +44,7 @@ public sealed class TextRun {
     /// <param name="strike">Whether to render strikethrough.</param>
     /// <param name="fontSize">Optional run font size in points.</param>
     /// <param name="font">Optional standard PDF font for this run.</param>
-    /// <param name="linkUri">Optional absolute URI for link annotation.</param>
+    /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for link annotation.</param>
     /// <param name="linkContents">Optional link annotation contents; defaults to the run text when omitted.</param>
     /// <param name="baseline">Baseline placement for this run.</param>
     /// <param name="linkDestinationName">Optional named destination for an internal document link annotation.</param>
@@ -77,7 +77,7 @@ public sealed class TextRun {
 
         if (linkUri != null) {
             Guard.NotNullOrWhiteSpace(text, nameof(text));
-            Guard.AbsoluteUri(linkUri, nameof(linkUri));
+            Guard.UriAction(linkUri, nameof(linkUri));
         }
 
         if (linkDestinationName != null) {
@@ -130,7 +130,7 @@ public sealed class TextRun {
     public static TextRun Subscript(string text, PdfColor? color = null, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) => new TextRun(text, bold: false, underline: false, color: color, italic: false, strike: false, fontSize: fontSize, font: font, baseline: PdfTextBaseline.Subscript, backgroundColor: backgroundColor);
     /// <summary>Create a hyperlink run that points to a URI.</summary>
     /// <param name="text">Link text.</param>
-    /// <param name="uri">Absolute URI.</param>
+    /// <param name="uri">Absolute URI or catalog-base-relative URI.</param>
     /// <param name="color">Optional link color.</param>
     /// <param name="underline">Whether to underline the link text.</param>
     /// <param name="contents">Optional link annotation contents.</param>
@@ -139,7 +139,7 @@ public sealed class TextRun {
     /// <param name="backgroundColor">Optional run background color.</param>
     /// <param name="font">Optional standard font family for this run.</param>
     public static TextRun Link(string text, string uri, PdfColor? color = null, bool underline = true, string? contents = null, PdfTextBaseline baseline = PdfTextBaseline.Normal, double? fontSize = null, PdfColor? backgroundColor = null, PdfStandardFont? font = null) {
-        Guard.AbsoluteUri(uri, nameof(uri));
+        Guard.UriAction(uri, nameof(uri));
         return new TextRun(text, bold: false, underline: underline, color: color, italic: false, strike: false, fontSize: fontSize, font: font, linkUri: uri, linkContents: contents, baseline: baseline, backgroundColor: backgroundColor);
     }
     /// <summary>Create a hyperlink run that points to a document bookmark.</summary>

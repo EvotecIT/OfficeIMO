@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using OfficeIMO.Pdf;
@@ -202,4 +203,119 @@ public partial class PdfPageExtractorTests {
         Assert.Empty(second.LinkAnnotations);
         Assert.Equal(new[] { "Details" }, second.NamedDestinationNames);
     }
+
+    [Fact]
+    public void ExtractPages_DropsDirectGoToLinksWhenDestinationPageIsNotCopied() {
+        byte[] source = BuildTwoPageDirectGoToLinkAnnotationPdf();
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(extracted);
+        Assert.Single(info.Pages);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.Empty(info.Pages[0].LinkAnnotations);
+
+        string pdfText = Encoding.ASCII.GetString(extracted);
+        Assert.DoesNotContain("/S /GoTo", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain("/FitH", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractPages_DropsDirectGoToLinksFromDuplicatePagesWhenDestinationPageIsNotCopied() {
+        byte[] source = BuildTwoPageDirectGoToLinkAnnotationPdf();
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 1, 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(extracted);
+        Assert.Equal(2, info.PageCount);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.All(info.Pages, page => Assert.Empty(page.LinkAnnotations));
+
+        string pdfText = Encoding.ASCII.GetString(extracted);
+        Assert.DoesNotContain("/S /GoTo", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain("/FitH", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ExtractPages_PreservesDirectGoToLinksWhenDestinationPageIsCopied() {
+        byte[] source = BuildTwoPageDirectGoToLinkAnnotationPdf();
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 1, 2);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(extracted);
+        Assert.Equal(2, info.PageCount);
+        PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Equal(2, link.DestinationPageNumber);
+        Assert.Equal(144d, link.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, link.DestinationMode);
+        Assert.True(link.IsInternalDestinationLink);
+        Assert.False(link.IsNamedDestinationLink);
+        Assert.False(link.IsUriLink);
+    }
+
+    [Fact]
+    public void ExtractPages_PreservesIndirectDirectGoToLinksWhenDestinationPageIsCopied() {
+        byte[] source = BuildTwoPageDirectGoToLinkAnnotationPdf(indirectDestination: true);
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 1, 2);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(extracted);
+        Assert.Equal(2, info.PageCount);
+        PdfLinkAnnotation link = Assert.Single(info.LinkAnnotations);
+        Assert.Equal(1, link.PageNumber);
+        Assert.Equal(2, link.DestinationPageNumber);
+        Assert.Equal(144d, link.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, link.DestinationMode);
+    }
+
+    private static byte[] BuildTwoPageDirectGoToLinkAnnotationPdf(bool indirectDestination = false) {
+        string annotationDestination = indirectDestination ? "8 0 R" : "[5 0 R /FitH 144]";
+        var lines = new List<string> {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [7 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [10 20 90 42] /Contents (Jump to page two) /A << /S /GoTo /D " + annotationDestination + " >> >>",
+            "endobj"
+        };
+
+        if (indirectDestination) {
+            lines.AddRange(new[] {
+                "8 0 obj",
+                "[5 0 R /FitH 144]",
+                "endobj"
+            });
+        }
+
+        lines.Add("trailer");
+        lines.Add(indirectDestination ? "<< /Root 1 0 R /Size 9 >>" : "<< /Root 1 0 R /Size 8 >>");
+        lines.Add("%%EOF");
+
+        string pdf = string.Join("\n", lines);
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
 }

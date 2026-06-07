@@ -16,7 +16,8 @@ public sealed class PdfExtractedAttachment {
         string filter,
         int fileSpecObjectNumber,
         int embeddedFileObjectNumber,
-        byte[] bytes) {
+        byte[] bytes,
+        string source = "Names/EmbeddedFiles") {
         Name = name;
         FileName = fileName;
         UnicodeFileName = unicodeFileName;
@@ -26,6 +27,7 @@ public sealed class PdfExtractedAttachment {
         Filter = filter;
         FileSpecObjectNumber = fileSpecObjectNumber;
         EmbeddedFileObjectNumber = embeddedFileObjectNumber;
+        Source = source;
         _bytes = (byte[])bytes.Clone();
     }
 
@@ -55,6 +57,9 @@ public sealed class PdfExtractedAttachment {
 
     /// <summary>Object number of the embedded file stream, or 0 for a direct stream.</summary>
     public int EmbeddedFileObjectNumber { get; }
+
+    /// <summary>Catalog source that referenced this attachment, for example Names/EmbeddedFiles or AF.</summary>
+    public string Source { get; }
 
     /// <summary>Decoded embedded file bytes. The returned array is a defensive copy.</summary>
     public byte[] Bytes => (byte[])_bytes.Clone();

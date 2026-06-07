@@ -9,6 +9,7 @@ internal static partial class PdfWriter {
         // Layout blocks into pages and create per-page content streams.
         var layout = LayoutBlocks(blocks, opts);
         ValidateNamedDestinationLinks(layout.Pages);
+        ValidateUriActionLinks(layout.Pages, opts);
         ValidateGeneratedFormFieldNames(layout.Pages);
 
         // Build PDF objects as byte arrays, then assemble with xref.
@@ -74,14 +75,31 @@ internal static partial class PdfWriter {
             formOptions.TryGetEmbeddedStandardFontProgram(PdfStandardFont.Helvetica, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null;
 
-        string BuildFormTextAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style, PdfOptions formOptions) =>
-            PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(
+        string BuildFormTextAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style, PdfOptions formOptions) {
+            string displayValue = PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(value, style);
+            PdfFormFieldTextAlignment alignment = ResolveFormTextAppearanceAlignment(style, formOptions);
+            return PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(
                 width,
                 height,
-                value,
+                displayValue,
                 fontSize,
                 style,
-                ShouldUseEmbeddedFormHelveticaFont(formOptions) ? EncodeTextHex(value, PdfStandardFont.Helvetica, formOptions) : null);
+                ShouldUseEmbeddedFormHelveticaFont(formOptions) ? EncodeTextHex(displayValue, PdfStandardFont.Helvetica, formOptions) : null,
+                alignment,
+                MeasureFormTextAppearanceWidth(displayValue, fontSize, formOptions));
+        }
+
+        static PdfFormFieldTextAlignment ResolveFormTextAppearanceAlignment(PdfFormFieldStyle? style, PdfOptions formOptions) =>
+            style?.TextAlignment ?? formOptions.AcroFormDefaultTextAlignmentSnapshot ?? PdfFormFieldTextAlignment.Left;
+
+        static double MeasureFormTextAppearanceWidth(string value, double fontSize, PdfOptions formOptions) {
+            if (formOptions.TryGetEmbeddedStandardFontProgram(PdfStandardFont.Helvetica, out PdfTrueTypeFontProgram? fontProgram) &&
+                fontProgram != null) {
+                return fontProgram.MeasureTextWidth(value, fontSize);
+            }
+
+            return EstimateSimpleTextWidth(value, PdfStandardFont.Helvetica, fontSize);
+        }
 
         // Create content streams and page objects
         int totalPages = layout.Pages.Count;
@@ -236,6 +254,9 @@ internal static partial class PdfWriter {
                     }
 
                     AppendPageImageDraw(sbImgs, img);
+                    if (img.DebugBox) {
+                        DrawRowRect(sbImgs, new PdfColor(1D, 0D, 1D), 0.6D, img.X, img.Y, img.W, img.H, markInfo);
+                    }
                 }
 
                 contentStr += sbImgs.ToString();
@@ -244,6 +265,17 @@ internal static partial class PdfWriter {
                 string footer = BuildFooter(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.FooterFont, footerFontAlias!);
                 contentStr += WrapArtifactContent(footer, markInfo);
             }
+            bool flattenVisualAnnotations = pageOpts.FlattenVisualAnnotations;
+            if (flattenVisualAnnotations) {
+                contentStr += BuildFlattenedVisualAnnotationContent(
+                    page,
+                    pageOpts,
+                    objects,
+                    xobjects,
+                    EnsureFormHelveticaFont,
+                    markInfo);
+            }
+
             byte[] contentBytes = Encoding.ASCII.GetBytes(contentStr);
             int contentId = pageOpts.CompressContentStreams
                 ? AddFlateStreamObject(objects, contentBytes)
@@ -285,6 +317,79 @@ internal static partial class PdfWriter {
                         }
                     }
 
+                    pageAnnotIds.Add(annId);
+                }
+            }
+            if (page.TextAnnotations.Count > 0) {
+                foreach (var annotation in page.TextAnnotations) {
+                    string annot = PdfAnnotationDictionaryBuilder.BuildTextAnnotation(
+                        annotation.X1,
+                        annotation.Y1,
+                        annotation.X2,
+                        annotation.Y2,
+                        annotation.Contents,
+                        annotation.Icon,
+                        annotation.Color,
+                        annotation.Open);
+                    int annId = AddObject(objects, annot);
+                    annotation.ObjectId = annId;
+                    pageAnnotIds.Add(annId);
+                }
+            }
+            if (!flattenVisualAnnotations && page.FreeTextAnnotations.Count > 0) {
+                foreach (var annotation in page.FreeTextAnnotations) {
+                    double appearanceWidth = annotation.X2 - annotation.X1;
+                    double appearanceHeight = annotation.Y2 - annotation.Y1;
+                    string appearanceContent = PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(
+                        appearanceWidth,
+                        appearanceHeight,
+                        annotation.Contents,
+                        annotation.FontSize,
+                        annotation.TextColor,
+                        annotation.BorderColor,
+                        annotation.BorderWidth,
+                        annotation.FillColor,
+                        annotation.TextAlign,
+                        annotation.Padding,
+                        annotation.LineHeight);
+                    byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
+                    string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceBytes.Length, EnsureFormHelveticaFont(pageOpts));
+                    int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
+                    string annot = PdfAnnotationDictionaryBuilder.BuildFreeTextAnnotation(
+                        annotation.X1,
+                        annotation.Y1,
+                        annotation.X2,
+                        annotation.Y2,
+                        annotation.Contents,
+                        annotation.FontSize,
+                        annotation.TextColor,
+                        annotation.BorderColor,
+                        annotation.BorderWidth,
+                        annotation.FillColor,
+                        appearanceId);
+                    int annId = AddObject(objects, annot);
+                    annotation.ObjectId = annId;
+                    pageAnnotIds.Add(annId);
+                }
+            }
+            if (!flattenVisualAnnotations && page.HighlightAnnotations.Count > 0) {
+                foreach (var annotation in page.HighlightAnnotations) {
+                    double appearanceWidth = annotation.X2 - annotation.X1;
+                    double appearanceHeight = annotation.Y2 - annotation.Y1;
+                    string appearanceContent = PdfAnnotationDictionaryBuilder.BuildHighlightAppearanceContent(appearanceWidth, appearanceHeight, annotation.Color);
+                    byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
+                    string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(appearanceWidth, appearanceHeight, appearanceBytes.Length, usesHighlightBlendMode: true);
+                    int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
+                    string annot = PdfAnnotationDictionaryBuilder.BuildHighlightAnnotation(
+                        annotation.X1,
+                        annotation.Y1,
+                        annotation.X2,
+                        annotation.Y2,
+                        annotation.Contents,
+                        annotation.Color,
+                        appearanceId);
+                    int annId = AddObject(objects, annot);
+                    annotation.ObjectId = annId;
                     pageAnnotIds.Add(annId);
                 }
             }
@@ -390,11 +495,11 @@ internal static partial class PdfWriter {
             BuildGeneratedStructTree(objects, layout.Pages, pageIds, structTreeRootId, opts.Language);
         }
 
-        int outlinesId = BuildOutlines(objects, layout.Pages, pageIds);
+        int outlinesId = BuildOutlines(objects, layout.Pages, pageIds, opts.OutlineExpansionLevelSnapshot);
         int namedDestinationsId = BuildNamedDestinations(objects, layout.Pages, pageIds);
         int acroFormId = 0;
         if (formFieldIds.Count > 0) {
-            acroFormId = AddObject(objects, PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(formFieldIds, EnsureFormHelveticaFont(opts)));
+            acroFormId = AddObject(objects, PdfAcroFormDictionaryBuilder.BuildAcroFormDictionary(formFieldIds, EnsureFormHelveticaFont(opts), opts.AcroFormDefaultTextAlignmentSnapshot));
         }
 
         int metadataId = 0;
@@ -438,17 +543,45 @@ internal static partial class PdfWriter {
 
         int pageLabelsId = 0;
         if (opts.IncludePageLabels) {
-            pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(
-                opts.PageNumberStyle,
-                opts.PageNumberStart,
-                opts.PageLabelPrefix));
+            IReadOnlyList<PdfPageLabelRange> pageLabelRanges = opts.PageLabelRangeSnapshots;
+            if (pageLabelRanges.Count > 0) {
+                ValidatePageLabelRanges(pageLabelRanges, layout.Pages.Count);
+                pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(pageLabelRanges));
+            } else {
+                pageLabelsId = AddObject(objects, PdfPageLabelDictionaryBuilder.BuildGeneratedPageLabelsDictionary(
+                    opts.PageNumberStyle,
+                    opts.PageNumberStart,
+                    opts.PageLabelPrefix));
+            }
         }
 
         int viewerPreferencesId = 0;
         PdfViewerPreferencesOptions? viewerPreferences = opts.ViewerPreferencesSnapshot;
         if (viewerPreferences != null && viewerPreferences.HasAny) {
-            viewerPreferencesId = AddObject(objects, PdfViewerPreferenceDictionaryBuilder.BuildGeneratedViewerPreferencesDictionary(viewerPreferences));
+            viewerPreferencesId = AddObject(objects, PdfViewerPreferenceDictionaryBuilder.BuildGeneratedViewerPreferencesDictionary(viewerPreferences, layout.Pages.Count));
         }
+
+        string? openAction = null;
+        PdfOpenActionOptions? openActionOptions = opts.OpenActionSnapshot;
+        if (openActionOptions != null) {
+            ValidateOpenAction(openActionOptions, layout.Pages.Count);
+            int targetPageIndex = openActionOptions.PageNumber - 1;
+            var destination = ResolveOpenActionDestinationCoordinates(openActionOptions, layout.Pages[targetPageIndex]);
+            openAction = PdfCatalogDictionaryBuilder.BuildGeneratedOpenActionDestination(
+                pageIds[targetPageIndex],
+                destination.Top,
+                openActionOptions.DestinationMode,
+                destination.Left,
+                destination.Bottom,
+                destination.Right);
+        }
+
+        string? pageMode = opts.CatalogPageModeSnapshot.HasValue
+            ? PdfCatalogDictionaryBuilder.GetPageModeName(opts.CatalogPageModeSnapshot.Value)
+            : null;
+        string? pageLayout = opts.CatalogPageLayoutSnapshot.HasValue
+            ? PdfCatalogDictionaryBuilder.GetPageLayoutName(opts.CatalogPageLayoutSnapshot.Value)
+            : null;
 
         // Catalog
         catalogId = AddObject(objects, PdfCatalogDictionaryBuilder.BuildGeneratedCatalogDictionary(
@@ -464,7 +597,11 @@ internal static partial class PdfWriter {
             pageLabelsId,
             viewerPreferencesId,
             structTreeRootId,
-            markInfo));
+            markInfo,
+            openAction,
+            pageMode,
+            pageLayout,
+            opts.CatalogUriBaseSnapshot));
 
         infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords));
 
@@ -1024,7 +1161,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static int BuildOutlines(List<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds) {
+    private static int BuildOutlines(List<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int outlineExpansionLevel) {
         var root = new OutlineNode { Level = 0 };
         var stack = new Stack<OutlineNode>();
         stack.Push(root);
@@ -1069,7 +1206,9 @@ internal static partial class PdfWriter {
             int nextId = node.Parent != null && index >= 0 && index < node.Parent.Children.Count - 1 ? node.Parent.Children[index + 1].Id : 0;
             int firstChildId = node.Children.Count > 0 ? node.Children[0].Id : 0;
             int lastChildId = node.Children.Count > 0 ? node.Children[node.Children.Count - 1].Id : 0;
-            int descendantCount = CountOutlines(node.Children);
+            int descendantCount = IsOutlineExpanded(node, outlineExpansionLevel)
+                ? CountVisibleOutlines(node.Children, outlineExpansionLevel)
+                : -CountOutlines(node.Children);
             int pageId = pageIds[node.PageIndex];
 
             ReplaceObject(objects, node.Id, PdfOutlineDictionaryBuilder.BuildOutlineItem(
@@ -1087,7 +1226,7 @@ internal static partial class PdfWriter {
         ReplaceObject(objects, rootId, PdfOutlineDictionaryBuilder.BuildOutlineRoot(
             root.Children[0].Id,
             root.Children[root.Children.Count - 1].Id,
-            CountOutlines(root.Children)));
+            CountVisibleOutlines(root.Children, outlineExpansionLevel)));
 
         return rootId;
     }
@@ -1152,6 +1291,21 @@ internal static partial class PdfWriter {
 
         return count;
     }
+
+    private static int CountVisibleOutlines(IEnumerable<OutlineNode> nodes, int outlineExpansionLevel) {
+        int count = 0;
+        foreach (var node in nodes) {
+            count++;
+            if (IsOutlineExpanded(node, outlineExpansionLevel)) {
+                count += CountVisibleOutlines(node.Children, outlineExpansionLevel);
+            }
+        }
+
+        return count;
+    }
+
+    private static bool IsOutlineExpanded(OutlineNode node, int outlineExpansionLevel) =>
+        node.Children.Count > 0 && node.Level <= outlineExpansionLevel;
 
 }
 
