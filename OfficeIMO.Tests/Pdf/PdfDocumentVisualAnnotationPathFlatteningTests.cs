@@ -60,6 +60,21 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/OfficeIMOAnnot", pdf, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void ExistingVisualAnnotations_FlattenSkipsNoViewAnnotations() {
+        byte[] annotated = BuildVisibleAndNoViewFreeTextAnnotationsPdf();
+
+        byte[] flattened = PdfAnnotationFlattener.FlattenVisualAnnotations(annotated);
+        string pdf = Encoding.ASCII.GetString(flattened);
+
+        Assert.Equal(1, PdfInspector.Inspect(flattened).AnnotationCount);
+        Assert.DoesNotContain("/Contents (Visible note)", pdf, StringComparison.Ordinal);
+        Assert.Contains("/Contents (Hidden note)", pdf, StringComparison.Ordinal);
+        Assert.Contains("/F 32", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("/OfficeIMOAnnot2 Do", pdf, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildPathAnnotationsPdfWithoutAppearances() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
@@ -162,6 +177,50 @@ public partial class PdfDocumentVisualQualityTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildVisibleAndNoViewFreeTextAnnotationsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R /Annots [5 0 R 7 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /FreeText /Rect [20 40 120 80] /Contents (Visible note) /AP << /N 6 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 100 40] /Length 8 >>",
+            "stream",
+            "0 0 m S",
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Annot /Subtype /FreeText /Rect [20 100 120 140] /Contents (Hidden note) /F 32 /AP << /N 8 0 R >> >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 100 40] /Length 8 >>",
+            "stream",
+            "0 0 m S",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
             "%%EOF"
         });
 

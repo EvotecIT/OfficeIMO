@@ -463,6 +463,19 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_ReadsReusedIndirectAnnotationNextActionsForEachSource() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildSharedChainedAnnotationActionsPdf());
+
+        PdfAnnotation annotation = Assert.Single(info.Annotations);
+        Assert.Equal("JavaScript", annotation.ActionType);
+        Assert.Equal(2, annotation.ChainedActionCount);
+        Assert.Equal(new[] { "A", "E" }, annotation.ChainedActions.Select(action => action.SourceName).ToArray());
+        Assert.Equal(new[] { "A.Next", "E.Next" }, annotation.ChainedActions.Select(action => action.ActionPath).ToArray());
+        Assert.All(annotation.ChainedActions, action => Assert.Equal("Launch", action.ActionType));
+        Assert.Same(annotation, Assert.Single(info.GetAnnotationsByActionType("Launch")));
+    }
+
+    [Fact]
     public void Inspect_ReadsPageNextActionMetadataWithoutPayloads() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildPageChainedActionsPdf());
 

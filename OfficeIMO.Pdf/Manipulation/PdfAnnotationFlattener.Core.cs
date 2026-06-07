@@ -24,6 +24,11 @@ public static partial class PdfAnnotationFlattener {
                     continue;
                 }
 
+                if (HasNonViewableAnnotationFlag(objects, annotation)) {
+                    remainingAnnots.Items.Add(annotObject);
+                    continue;
+                }
+
                 if (!TryReadRectCoordinates(objects, annotation, out double x, out double y, out double width, out double height)) {
                     throw new NotSupportedException(UnsupportedVisualAnnotationMessage);
                 }
@@ -76,6 +81,20 @@ public static partial class PdfAnnotationFlattener {
             string.Equals(subtype, "PolyLine", StringComparison.Ordinal) ||
             string.Equals(subtype, "Stamp", StringComparison.Ordinal) ||
             string.Equals(subtype, "Caret", StringComparison.Ordinal);
+    }
+
+    private static bool HasNonViewableAnnotationFlag(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        const int invisible = 1;
+        const int hidden = 2;
+        const int noView = 32;
+
+        if (!annotation.Items.TryGetValue("F", out var flagsObject) ||
+            ResolveObject(objects, flagsObject) is not PdfNumber flagsNumber) {
+            return false;
+        }
+
+        int flags = (int)flagsNumber.Value;
+        return (flags & (invisible | hidden | noView)) != 0;
     }
 
     private static string BuildFlattenContent(Dictionary<int, PdfIndirectObject> objects, PdfDictionary page, List<FlattenVisualAnnotationState> annotations) {
