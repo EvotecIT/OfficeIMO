@@ -321,6 +321,24 @@ public partial class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void Load_ReadsReusedIndirectPageActionsForEachTrigger() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildPageAdditionalActionsWithSharedIndirectActionPdf());
+
+        Assert.True(logical.HasPageActions);
+        Assert.Equal(2, logical.PageActionCount);
+        Assert.Equal(new[] { "O", "C" }, logical.PageActionTriggerNames);
+        Assert.Equal(new[] { "O", "C" }, logical.PageActionPaths);
+
+        PdfLogicalPage page = Assert.Single(logical.Pages);
+        Assert.Equal(2, page.PageActionCount);
+        Assert.Equal("JavaScript", page.PageActions[0].ActionType);
+        Assert.Equal("JavaScript", page.PageActions[1].ActionType);
+        Assert.Equal("O", page.PageActions[0].TriggerName);
+        Assert.Equal("C", page.PageActions[1].TriggerName);
+        Assert.Equal(2, logical.GetPageActionsByActionType("JavaScript").Count);
+    }
+
+    [Fact]
     public void Load_ReadsPageNextActionsWithoutScriptPayload() {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildPageChainedActionsPdf());
 

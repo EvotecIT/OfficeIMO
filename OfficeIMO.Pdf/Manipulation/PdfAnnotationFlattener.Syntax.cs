@@ -66,37 +66,61 @@ public static partial class PdfAnnotationFlattener {
         if (!PdfObjectLookup.TryGet(objects, appearanceReference, out var appearanceObject) ||
             appearanceObject.Value is not PdfStream appearanceStream ||
             !TryReadBoxCoordinates(objects, appearanceStream.Dictionary, "BBox", out double bboxX, out double bboxY, out double bboxWidth, out double bboxHeight)) {
-            return new AppearancePlacement(1D, 1D, x, y);
-        }
-
-        if (HasNonIdentityMatrix(objects, appearanceStream.Dictionary)) {
-            return new AppearancePlacement(1D, 1D, x - bboxX, y - bboxY);
+            return new AppearancePlacement(1D, 0D, 0D, 1D, x, y);
         }
 
         double scaleX = width / bboxWidth;
         double scaleY = height / bboxHeight;
-        return new AppearancePlacement(scaleX, scaleY, x - bboxX * scaleX, y - bboxY * scaleY);
+        var placement = new AppearancePlacement(scaleX, 0D, 0D, scaleY, x - bboxX * scaleX, y - bboxY * scaleY);
+        return TryReadMatrix(objects, appearanceStream.Dictionary, out AppearancePlacement matrix) &&
+            TryInvertMatrix(matrix, out AppearancePlacement inverseMatrix)
+            ? MultiplyMatrices(placement, inverseMatrix)
+            : placement;
     }
 
-    private static bool HasNonIdentityMatrix(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
+    private static bool TryReadMatrix(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, out AppearancePlacement matrix) {
+        matrix = new AppearancePlacement(1D, 0D, 0D, 1D, 0D, 0D);
         if (!dictionary.Items.TryGetValue("Matrix", out var matrixObject) ||
-            ResolveObject(objects, matrixObject) is not PdfArray matrix ||
-            matrix.Items.Count < 6 ||
-            ResolveObject(objects, matrix.Items[0]) is not PdfNumber a ||
-            ResolveObject(objects, matrix.Items[1]) is not PdfNumber b ||
-            ResolveObject(objects, matrix.Items[2]) is not PdfNumber c ||
-            ResolveObject(objects, matrix.Items[3]) is not PdfNumber d ||
-            ResolveObject(objects, matrix.Items[4]) is not PdfNumber e ||
-            ResolveObject(objects, matrix.Items[5]) is not PdfNumber f) {
+            ResolveObject(objects, matrixObject) is not PdfArray matrixArray ||
+            matrixArray.Items.Count < 6 ||
+            ResolveObject(objects, matrixArray.Items[0]) is not PdfNumber a ||
+            ResolveObject(objects, matrixArray.Items[1]) is not PdfNumber b ||
+            ResolveObject(objects, matrixArray.Items[2]) is not PdfNumber c ||
+            ResolveObject(objects, matrixArray.Items[3]) is not PdfNumber d ||
+            ResolveObject(objects, matrixArray.Items[4]) is not PdfNumber e ||
+            ResolveObject(objects, matrixArray.Items[5]) is not PdfNumber f) {
             return false;
         }
 
-        return Math.Abs(a.Value - 1D) > 0.0001D ||
-            Math.Abs(b.Value) > 0.0001D ||
-            Math.Abs(c.Value) > 0.0001D ||
-            Math.Abs(d.Value - 1D) > 0.0001D ||
-            Math.Abs(e.Value) > 0.0001D ||
-            Math.Abs(f.Value) > 0.0001D;
+        matrix = new AppearancePlacement(a.Value, b.Value, c.Value, d.Value, e.Value, f.Value);
+        return true;
+    }
+
+    private static bool TryInvertMatrix(AppearancePlacement matrix, out AppearancePlacement inverse) {
+        double determinant = matrix.A * matrix.D - matrix.B * matrix.C;
+        if (Math.Abs(determinant) < 0.0000001D) {
+            inverse = new AppearancePlacement(1D, 0D, 0D, 1D, 0D, 0D);
+            return false;
+        }
+
+        double a = matrix.D / determinant;
+        double b = -matrix.B / determinant;
+        double c = -matrix.C / determinant;
+        double d = matrix.A / determinant;
+        double e = (matrix.C * matrix.F - matrix.D * matrix.E) / determinant;
+        double f = (matrix.B * matrix.E - matrix.A * matrix.F) / determinant;
+        inverse = new AppearancePlacement(a, b, c, d, e, f);
+        return true;
+    }
+
+    private static AppearancePlacement MultiplyMatrices(AppearancePlacement left, AppearancePlacement right) {
+        return new AppearancePlacement(
+            left.A * right.A + left.B * right.C,
+            left.A * right.B + left.B * right.D,
+            left.C * right.A + left.D * right.C,
+            left.C * right.B + left.D * right.D,
+            left.E * right.A + left.F * right.C + right.E,
+            left.E * right.B + left.F * right.D + right.F);
     }
 
     private static bool TryReadBoxCoordinates(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key, out double x, out double y, out double width, out double height) {

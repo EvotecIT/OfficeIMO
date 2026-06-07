@@ -58,7 +58,10 @@ public static partial class PdfPageExtractor {
     
             int clonedPageObjectId = nextObjectId++;
             outputPageObjectIds[i] = clonedPageObjectId;
-            var clonedAnnotationState = BuildClonedAnnotationState(sourceObjects, pageObjectNumber, ref nextObjectId);
+            Dictionary<string, PdfObject>? sourcePageOverrides = pageOverrides is not null && pageOverrides.TryGetValue(pageObjectNumber, out var overrides)
+                ? overrides
+                : null;
+            var clonedAnnotationState = BuildClonedAnnotationState(sourceObjects, pageObjectNumber, sourcePageOverrides, ref nextObjectId);
             clonedPages.Add(new ClonedPageObject(pageObjectNumber, clonedPageObjectId, clonedAnnotationState.PageOverrides, clonedAnnotationState.AnnotationObjectMap));
         }
     
@@ -126,11 +129,22 @@ public static partial class PdfPageExtractor {
     private static ClonedAnnotationState BuildClonedAnnotationState(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         int pageObjectNumber,
+        Dictionary<string, PdfObject>? pageOverrides,
         ref int nextObjectId) {
+        PdfObject? annotationsObject = pageOverrides is not null && pageOverrides.TryGetValue("Annots", out var overrideAnnotations)
+            ? overrideAnnotations
+            : null;
         if (!sourceObjects.TryGetValue(pageObjectNumber, out var pageObject) ||
-            pageObject.Value is not PdfDictionary pageDictionary ||
-            !pageDictionary.Items.TryGetValue("Annots", out var annotationsObject) ||
-            ResolveObject(sourceObjects, annotationsObject) is not PdfArray annotations) {
+            pageObject.Value is not PdfDictionary pageDictionary) {
+            return ClonedAnnotationState.Empty;
+        }
+
+        if (annotationsObject is null &&
+            !pageDictionary.Items.TryGetValue("Annots", out annotationsObject)) {
+            return ClonedAnnotationState.Empty;
+        }
+
+        if (ResolveObject(sourceObjects, annotationsObject) is not PdfArray annotations) {
             return ClonedAnnotationState.Empty;
         }
     
@@ -154,14 +168,17 @@ public static partial class PdfPageExtractor {
             clonedAnnotations.Items.Add(annotation);
         }
     
-        if (!hasClonedIndirectAnnotation) {
+        if (!hasClonedIndirectAnnotation && pageOverrides is null) {
             return ClonedAnnotationState.Empty;
         }
-    
+
+        var clonedPageOverrides = pageOverrides is null
+            ? new Dictionary<string, PdfObject>(StringComparer.Ordinal)
+            : new Dictionary<string, PdfObject>(pageOverrides, StringComparer.Ordinal);
+        clonedPageOverrides["Annots"] = clonedAnnotations;
+
         return new ClonedAnnotationState(
-            new Dictionary<string, PdfObject>(StringComparer.Ordinal) {
-                ["Annots"] = clonedAnnotations
-            },
+            clonedPageOverrides,
             annotationObjectMap);
     }
     

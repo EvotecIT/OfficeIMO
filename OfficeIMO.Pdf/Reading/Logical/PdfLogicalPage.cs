@@ -218,9 +218,11 @@ public sealed class PdfLogicalPage {
             elements.Add(logicalImage);
         }
 
-        IReadOnlyList<PdfLinkAnnotation> linkAnnotations = page.GetLinkAnnotations();
-        for (int i = 0; i < linkAnnotations.Count; i++) {
-            PdfLinkAnnotation linkAnnotation = ResolveLinkDestinationPageNumber(document, linkAnnotations[i]);
+        IReadOnlyList<PdfLinkAnnotation> readLinkAnnotations = page.GetLinkAnnotations();
+        var linkAnnotations = new List<PdfLinkAnnotation>(readLinkAnnotations.Count);
+        for (int i = 0; i < readLinkAnnotations.Count; i++) {
+            PdfLinkAnnotation linkAnnotation = ResolveLinkDestinationPageNumber(document, readLinkAnnotations[i]);
+            linkAnnotations.Add(linkAnnotation);
             var logicalLink = new PdfLogicalLinkAnnotation(pageNumber, linkAnnotation);
             links.Add(logicalLink);
             elements.Add(logicalLink);
@@ -260,7 +262,7 @@ public sealed class PdfLogicalPage {
             tables.AsReadOnly(),
             images.AsReadOnly(),
             links.AsReadOnly(),
-            linkAnnotations,
+            linkAnnotations.AsReadOnly(),
             formWidgets.AsReadOnly(),
             pageActions.AsReadOnly());
     }

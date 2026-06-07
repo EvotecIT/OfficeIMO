@@ -116,11 +116,13 @@ public partial class PdfLogicalDocumentTests {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildDirectDestinationLinkPdf());
 
         PdfLogicalLinkAnnotation link = Assert.Single(logical.Links);
+        PdfLinkAnnotation pageLink = Assert.Single(Assert.Single(logical.Pages).LinkAnnotations);
         Assert.True(link.IsInternalDestinationLink);
         Assert.False(link.IsUriLink);
         Assert.False(link.IsNamedDestinationLink);
         Assert.Equal(1, link.PageNumber);
         Assert.Equal(1, link.DestinationPageNumber);
+        Assert.Equal(1, pageLink.DestinationPageNumber);
         Assert.Equal(PdfOpenActionDestinationMode.FitRectangle, link.DestinationMode);
         Assert.Equal(10D, link.DestinationLeft);
         Assert.Equal(20D, link.DestinationBottom);

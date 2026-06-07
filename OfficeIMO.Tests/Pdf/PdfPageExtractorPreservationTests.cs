@@ -221,6 +221,22 @@ public partial class PdfPageExtractorTests {
     }
 
     [Fact]
+    public void ExtractPages_DropsDirectGoToLinksFromDuplicatePagesWhenDestinationPageIsNotCopied() {
+        byte[] source = BuildTwoPageDirectGoToLinkAnnotationPdf();
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(source, 1, 1);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(extracted);
+        Assert.Equal(2, info.PageCount);
+        Assert.Empty(info.LinkAnnotations);
+        Assert.All(info.Pages, page => Assert.Empty(page.LinkAnnotations));
+
+        string pdfText = Encoding.ASCII.GetString(extracted);
+        Assert.DoesNotContain("/S /GoTo", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain("/FitH", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ExtractPages_PreservesDirectGoToLinksWhenDestinationPageIsCopied() {
         byte[] source = BuildTwoPageDirectGoToLinkAnnotationPdf();
 

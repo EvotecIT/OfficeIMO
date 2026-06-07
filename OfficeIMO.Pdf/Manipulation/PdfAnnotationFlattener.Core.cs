@@ -13,6 +13,7 @@ public static partial class PdfAnnotationFlattener {
 
             var pageAnnotations = new List<FlattenVisualAnnotationState>();
             var remainingAnnots = new PdfArray();
+            var flattenedAnnotationObjectNumbers = new HashSet<int>();
             for (int i = 0; i < annots.Items.Count; i++) {
                 PdfObject annotObject = annots.Items[i];
                 PdfDictionary? annotation = ResolveDictionary(objects, annotObject);
@@ -34,6 +35,7 @@ public static partial class PdfAnnotationFlattener {
                 AppearancePlacement placement = ReadAppearancePlacement(objects, appearanceReference!, x, y, width, height);
                 pageAnnotations.Add(new FlattenVisualAnnotationState(placement, appearanceReference!.ObjectNumber));
                 if (annotObject is PdfReference annotationReference) {
+                    flattenedAnnotationObjectNumbers.Add(annotationReference.ObjectNumber);
                     objects.Remove(annotationReference.ObjectNumber);
                 }
             }
@@ -41,6 +43,8 @@ public static partial class PdfAnnotationFlattener {
             if (pageAnnotations.Count == 0) {
                 continue;
             }
+
+            RemovePopupAnnotationsForFlattenedParents(objects, remainingAnnots, flattenedAnnotationObjectNumbers);
 
             if (remainingAnnots.Items.Count == 0) {
                 page.Items.Remove("Annots");
@@ -82,19 +86,49 @@ public static partial class PdfAnnotationFlattener {
             string xObjectName = CreateUniqueXObjectName(xObjects);
             xObjects.Items[xObjectName] = new PdfReference(annotation.AppearanceObjectNumber, 0);
             builder.Append("q\n");
-            builder.Append(FormatNumber(annotation.Placement.ScaleX))
-                .Append(" 0 0 ")
-                .Append(FormatNumber(annotation.Placement.ScaleY))
+            builder.Append(FormatNumber(annotation.Placement.A))
                 .Append(' ')
-                .Append(FormatNumber(annotation.Placement.TranslateX))
+                .Append(FormatNumber(annotation.Placement.B))
                 .Append(' ')
-                .Append(FormatNumber(annotation.Placement.TranslateY))
+                .Append(FormatNumber(annotation.Placement.C))
+                .Append(' ')
+                .Append(FormatNumber(annotation.Placement.D))
+                .Append(' ')
+                .Append(FormatNumber(annotation.Placement.E))
+                .Append(' ')
+                .Append(FormatNumber(annotation.Placement.F))
                 .Append(" cm\n");
             builder.Append('/').Append(xObjectName).Append(" Do\n");
             builder.Append("Q\n");
         }
 
         return builder.ToString();
+    }
+
+    private static void RemovePopupAnnotationsForFlattenedParents(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfArray remainingAnnots,
+        HashSet<int> flattenedAnnotationObjectNumbers) {
+        if (flattenedAnnotationObjectNumbers.Count == 0 || remainingAnnots.Items.Count == 0) {
+            return;
+        }
+
+        for (int i = remainingAnnots.Items.Count - 1; i >= 0; i--) {
+            PdfObject popupObject = remainingAnnots.Items[i];
+            PdfDictionary? popup = ResolveDictionary(objects, popupObject);
+            if (popup is null ||
+                !string.Equals(TryReadName(objects, popup, "Subtype"), "Popup", StringComparison.Ordinal) ||
+                !popup.Items.TryGetValue("Parent", out var parentObject) ||
+                parentObject is not PdfReference parentReference ||
+                !flattenedAnnotationObjectNumbers.Contains(parentReference.ObjectNumber)) {
+                continue;
+            }
+
+            remainingAnnots.Items.RemoveAt(i);
+            if (popupObject is PdfReference popupReference) {
+                objects.Remove(popupReference.ObjectNumber);
+            }
+        }
     }
 
     private sealed class FlattenVisualAnnotationState {
@@ -108,16 +142,20 @@ public static partial class PdfAnnotationFlattener {
     }
 
     private sealed class AppearancePlacement {
-        public AppearancePlacement(double scaleX, double scaleY, double translateX, double translateY) {
-            ScaleX = scaleX;
-            ScaleY = scaleY;
-            TranslateX = translateX;
-            TranslateY = translateY;
+        public AppearancePlacement(double a, double b, double c, double d, double e, double f) {
+            A = a;
+            B = b;
+            C = c;
+            D = d;
+            E = e;
+            F = f;
         }
 
-        public double ScaleX { get; }
-        public double ScaleY { get; }
-        public double TranslateX { get; }
-        public double TranslateY { get; }
+        public double A { get; }
+        public double B { get; }
+        public double C { get; }
+        public double D { get; }
+        public double E { get; }
+        public double F { get; }
     }
 }
