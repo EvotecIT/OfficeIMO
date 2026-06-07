@@ -295,6 +295,16 @@ public partial class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void Load_ReadsReusedCatalogNextActionsForEachBranch() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildCatalogJavaScriptActionWithSharedNextActionPdf());
+
+        Assert.True(logical.HasCatalogActions);
+        Assert.Equal(3, logical.CatalogActionCount);
+        Assert.Equal(new[] { "OpenAction", "OpenAction.Next.0", "OpenAction.Next.1" }, logical.CatalogActionNames);
+        Assert.Equal(2, logical.GetCatalogActionsByActionType("Launch").Count);
+    }
+
+    [Fact]
     public void Load_ReadsPageActionsWithoutScriptPayload() {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildPageAdditionalActionsPdf());
 

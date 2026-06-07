@@ -36,8 +36,9 @@ public static partial class PdfFormFiller {
 
         var remaining = new HashSet<string>(fieldValues.Keys, StringComparer.Ordinal);
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        int? acroFormQuadding = ReadFieldQuadding(objects, acroForm, null);
         for (int i = 0; i < fields.Items.Count; i++) {
-            FillField(objects, fields.Items[i], null, null, 0, null, fieldValues, remaining, new HashSet<int>(), ref nextObjectNumber);
+            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, fieldValues, remaining, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (remaining.Count > 0) {

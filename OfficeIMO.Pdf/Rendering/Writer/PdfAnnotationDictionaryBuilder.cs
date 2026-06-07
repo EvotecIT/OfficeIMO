@@ -184,11 +184,12 @@ internal static partial class PdfAnnotationDictionaryBuilder {
                 .Append(PdfSyntaxEscaper.WinAnsiHexString(option));
         }
 
+        bool allowsCustomScalarValue = isComboBox && !allowsMultipleSelection && style != null && style.IsEditableChoice;
         var valueSet = new HashSet<string>(StringComparer.Ordinal);
         for (int i = 0; i < values.Count; i++) {
             string value = values[i];
             Guard.NotNullOrWhiteSpace(value, nameof(values));
-            if (!optionSet.Contains(value)) {
+            if (!allowsCustomScalarValue && !optionSet.Contains(value)) {
                 throw new ArgumentException("PDF choice field values must match the provided options.", nameof(values));
             }
 

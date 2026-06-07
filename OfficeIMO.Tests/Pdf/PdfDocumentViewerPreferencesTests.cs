@@ -65,7 +65,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/PrintArea /TrimBox", raw, StringComparison.Ordinal);
         Assert.Contains("/PrintClip /ArtBox", raw, StringComparison.Ordinal);
         Assert.Contains("/NumCopies 2", raw, StringComparison.Ordinal);
-        Assert.Contains("/PrintPageRange [1 1 2 3]", raw, StringComparison.Ordinal);
+        Assert.Contains("/PrintPageRange [0 0 1 2]", raw, StringComparison.Ordinal);
         Assert.True(info.HasViewerPreferences);
         Assert.True(info.HasReadableViewerPreferences);
         Assert.True(preflight.Probe.HasViewerPreferences);
@@ -85,7 +85,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal("TrimBox", viewerPreferences.GetValue("PrintArea"));
         Assert.Equal("ArtBox", viewerPreferences.GetValue("PrintClip"));
         Assert.Equal("2", viewerPreferences.GetValue("NumCopies"));
-        Assert.Equal("[1 1 2 3]", viewerPreferences.GetValue("PrintPageRange"));
+        Assert.Equal("[0 0 1 2]", viewerPreferences.GetValue("PrintPageRange"));
         Assert.True(clone.DisplayDocTitle);
         Assert.True(clone.HideToolbar);
         Assert.False(clone.FitWindow);
@@ -107,7 +107,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.True(extractedPreferences.GetBoolean("DisplayDocTitle"));
         Assert.Equal("R2L", extractedPreferences.GetValue("Direction"));
         Assert.Equal("ArtBox", extractedPreferences.GetValue("PrintClip"));
-        Assert.Equal("[1 1 2 3]", extractedPreferences.GetValue("PrintPageRange"));
+        Assert.Equal("[0 0 1 2]", extractedPreferences.GetValue("PrintPageRange"));
 
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfViewerPreferencesOptions { NonFullScreenPageMode = (PdfNonFullScreenPageMode)99 });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfViewerPreferencesOptions { Direction = (PdfViewerDirection)99 });

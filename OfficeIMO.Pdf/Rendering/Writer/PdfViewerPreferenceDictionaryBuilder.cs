@@ -144,9 +144,9 @@ internal static class PdfViewerPreferenceDictionaryBuilder {
             }
 
             PdfPrintPageRange range = ranges[i];
-            sb.Append(range.StartPageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            sb.Append((range.StartPageNumber - 1).ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .Append(' ')
-                .Append(range.EndPageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                .Append((range.EndPageNumber - 1).ToString(System.Globalization.CultureInfo.InvariantCulture));
         }
 
         sb.Append(']');

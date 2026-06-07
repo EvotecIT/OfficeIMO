@@ -32,13 +32,15 @@ public sealed partial class PdfReadDocument {
         PdfObject treeObject,
         List<PdfCatalogAction> result,
         HashSet<int> visitedReferences) {
+        HashSet<int> pathReferences = visitedReferences;
         if (treeObject is PdfReference reference) {
-            if (!visitedReferences.Add(reference.ObjectNumber) ||
+            if (visitedReferences.Contains(reference.ObjectNumber) ||
                 !PdfObjectLookup.TryGet(_objects, reference, out var indirect)) {
                 return;
             }
 
-            AddCatalogActionsFromNameTree(indirect.Value, result, visitedReferences);
+            pathReferences = new HashSet<int>(visitedReferences) { reference.ObjectNumber };
+            AddCatalogActionsFromNameTree(indirect.Value, result, pathReferences);
             return;
         }
 
@@ -58,7 +60,7 @@ public sealed partial class PdfReadDocument {
         if (tree.Items.TryGetValue("Kids", out var kidsObject) &&
             ResolveArray(kidsObject) is PdfArray kids) {
             foreach (var kid in kids.Items) {
-                AddCatalogActionsFromNameTree(kid, result, visitedReferences);
+                AddCatalogActionsFromNameTree(kid, result, new HashSet<int>(pathReferences));
             }
         }
     }
@@ -84,9 +86,14 @@ public sealed partial class PdfReadDocument {
         PdfObject obj,
         List<PdfCatalogAction> result,
         HashSet<int> visitedReferences) {
+        HashSet<int> pathReferences = visitedReferences;
         PdfObject? resolved = ResolveObject(obj);
-        if (obj is PdfReference reference && !visitedReferences.Add(reference.ObjectNumber)) {
-            return;
+        if (obj is PdfReference reference) {
+            if (visitedReferences.Contains(reference.ObjectNumber)) {
+                return;
+            }
+
+            pathReferences = new HashSet<int>(visitedReferences) { reference.ObjectNumber };
         }
 
         if (resolved is not PdfDictionary dictionary) {
@@ -99,7 +106,7 @@ public sealed partial class PdfReadDocument {
         }
 
         if (dictionary.Items.TryGetValue("Next", out var nextAction)) {
-            AddCatalogNextActions(name + ".Next", source, triggerName, nextAction, result, visitedReferences);
+            AddCatalogNextActions(name + ".Next", source, triggerName, nextAction, result, pathReferences);
         }
     }
 
@@ -110,16 +117,21 @@ public sealed partial class PdfReadDocument {
         PdfObject obj,
         List<PdfCatalogAction> result,
         HashSet<int> visitedReferences) {
+        HashSet<int> pathReferences = visitedReferences;
         PdfObject? resolved = ResolveObject(obj);
-        if (obj is PdfReference reference && !visitedReferences.Add(reference.ObjectNumber)) {
-            return;
+        if (obj is PdfReference reference) {
+            if (visitedReferences.Contains(reference.ObjectNumber)) {
+                return;
+            }
+
+            pathReferences = new HashSet<int>(visitedReferences) { reference.ObjectNumber };
         }
 
         if (resolved is PdfArray actions) {
             int activeIndex = 0;
             for (int i = 0; i < actions.Items.Count; i++) {
                 int before = result.Count;
-                AddCatalogAction(name + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), source, triggerName, actions.Items[i], result, visitedReferences);
+                AddCatalogAction(name + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), source, triggerName, actions.Items[i], result, new HashSet<int>(pathReferences));
                 if (result.Count > before) {
                     activeIndex++;
                 }
@@ -129,7 +141,7 @@ public sealed partial class PdfReadDocument {
         }
 
         if (resolved is PdfDictionary) {
-            AddCatalogAction(name, source, triggerName, resolved, result, visitedReferences);
+            AddCatalogAction(name, source, triggerName, resolved, result, pathReferences);
         }
     }
 

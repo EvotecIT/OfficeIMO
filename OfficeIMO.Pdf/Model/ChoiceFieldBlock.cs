@@ -47,7 +47,9 @@ internal sealed class ChoiceFieldBlock : IPdfBlock {
             throw new ArgumentException("PDF choice field requires at least one option.", nameof(options));
         }
 
-        List<string> selectedValues = NormalizeSelectedValues(values, normalizedOptions, seen, allowsMultipleSelection);
+        PdfFormFieldStyle effectiveStyle = style?.Clone() ?? new PdfFormFieldStyle();
+        bool allowsCustomScalarValue = isComboBox && !allowsMultipleSelection && effectiveStyle.IsEditableChoice;
+        List<string> selectedValues = NormalizeSelectedValues(values, normalizedOptions, seen, allowsMultipleSelection, allowsCustomScalarValue);
         if (!allowsMultipleSelection && selectedValues.Count != 1) {
             throw new ArgumentException("PDF scalar choice field must have exactly one selected value.", nameof(values));
         }
@@ -64,10 +66,10 @@ internal sealed class ChoiceFieldBlock : IPdfBlock {
         SpacingAfter = spacingAfter;
         IsComboBox = isComboBox;
         AllowsMultipleSelection = allowsMultipleSelection;
-        Style = style?.Clone() ?? new PdfFormFieldStyle();
+        Style = effectiveStyle;
     }
 
-    private static List<string> NormalizeSelectedValues(IEnumerable<string>? values, List<string> options, HashSet<string> optionSet, bool allowsMultipleSelection) {
+    private static List<string> NormalizeSelectedValues(IEnumerable<string>? values, List<string> options, HashSet<string> optionSet, bool allowsMultipleSelection, bool allowsCustomScalarValue) {
         if (values is null) {
             return new List<string> { options[0] };
         }
@@ -76,7 +78,7 @@ internal sealed class ChoiceFieldBlock : IPdfBlock {
         var selectedSet = new HashSet<string>(StringComparer.Ordinal);
         foreach (string? value in values) {
             Guard.NotNullOrWhiteSpace(value, nameof(values));
-            if (!optionSet.Contains(value!)) {
+            if (!allowsCustomScalarValue && !optionSet.Contains(value!)) {
                 throw new ArgumentException("PDF choice field values must match the provided options.", nameof(values));
             }
 

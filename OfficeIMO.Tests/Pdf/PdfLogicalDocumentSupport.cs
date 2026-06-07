@@ -331,6 +331,38 @@ public partial class PdfLogicalDocumentTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildCatalogJavaScriptActionWithSharedNextActionPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /S /JavaScript /JS (app.alert('OpenAction')) /Next [6 0 R 6 0 R] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildPageAdditionalActionsPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",

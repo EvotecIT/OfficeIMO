@@ -208,7 +208,7 @@ namespace OfficeIMO.Tests.Pdf {
             }.AddPrintPageRange(1, 1).AddPrintPageRange(3, 5);
 
             Assert.Equal(
-                "<< /HideToolbar true /FitWindow false /DisplayDocTitle true /PickTrayByPDFSize true /NonFullScreenPageMode /UseThumbs /Direction /R2L /PrintScaling /None /Duplex /DuplexFlipShortEdge /ViewArea /CropBox /ViewClip /BleedBox /PrintArea /TrimBox /PrintClip /ArtBox /NumCopies 3 /PrintPageRange [1 1 3 5] >>\n",
+                "<< /HideToolbar true /FitWindow false /DisplayDocTitle true /PickTrayByPDFSize true /NonFullScreenPageMode /UseThumbs /Direction /R2L /PrintScaling /None /Duplex /DuplexFlipShortEdge /ViewArea /CropBox /ViewClip /BleedBox /PrintArea /TrimBox /PrintClip /ArtBox /NumCopies 3 /PrintPageRange [0 0 2 4] >>\n",
                 PdfViewerPreferenceDictionaryBuilder.BuildGeneratedViewerPreferencesDictionary(preferences));
 
             Assert.Throws<ArgumentNullException>(() =>
@@ -576,6 +576,10 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Contains(
                 "/Ff 68026368",
                 PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Country", new[] { "Poland", "United States" }, "Poland", 10, 12, isComboBox: true, style: choiceFlagStyle),
+                StringComparison.Ordinal);
+            Assert.Contains(
+                "/V <4F74686572>",
+                PdfAnnotationDictionaryBuilder.BuildChoiceFieldWidgetAnnotation(10, 20.5, 110, 44.25, "Country", new[] { "Poland", "United States" }, "Other", 10, 12, isComboBox: true, style: choiceFlagStyle),
                 StringComparison.Ordinal);
 
             Assert.Equal(
