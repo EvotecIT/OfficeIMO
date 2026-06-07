@@ -58,6 +58,21 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preflight_DoesNotTreatResourceEncryptNameAsDocumentEncryption() {
+        PdfDocumentPreflight report = PdfInspector.Preflight(BuildPdfWithEncryptNamedXObject());
+
+        Assert.True(report.CanRead);
+        Assert.True(report.CanRewrite);
+        Assert.False(report.Probe.HasEncryption);
+        Assert.NotNull(report.DocumentInfo);
+        Assert.False(report.DocumentInfo!.Security.HasEncryption);
+        Assert.Null(report.DocumentInfo.Security.EncryptObjectNumber);
+        Assert.Null(report.DocumentInfo.Security.EncryptionFilter);
+        Assert.Empty(report.ReadBlockers);
+        Assert.Empty(report.RewriteBlockers);
+    }
+
+    [Fact]
     public void Inspect_ReadsSignatureAndRevisionSecurityState() {
         PdfDocumentInfo info = PdfInspector.Inspect(BuildSignedIncrementalPdf());
 
@@ -234,6 +249,40 @@ public partial class PdfInspectorTests {
             "<< /Root 1 0 R /Info 6 0 R /Encrypt 5 0 R /ID [(abc) (def)] /Size 7 >>",
             "startxref",
             "321",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPdfWithEncryptNamedXObject() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << /Encrypt 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 15 >>",
+            "stream",
+            "q /Encrypt Do Q",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "startxref",
+            "123",
             "%%EOF"
         });
 

@@ -285,9 +285,10 @@ public static class PdfInspector {
     public static PdfDocumentProbe Probe(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
+        PdfDocumentSecurityInfo security = PdfSyntax.ReadDocumentSecurityInfo(pdf);
         return new PdfDocumentProbe(
             PdfSyntax.GetHeaderVersion(pdf),
-            PdfSyntax.HasEncryptionMarkers(pdf),
+            security.HasEncryption,
             PdfSyntax.HasSignatureMarkers(pdf),
             PdfSyntax.HasFormMarkers(pdf),
             PdfSyntax.HasAnnotationMarkers(pdf),
@@ -305,7 +306,7 @@ public static class PdfInspector {
             PdfSyntax.HasEmbeddedFileMarkers(pdf),
             PdfSyntax.HasOptionalContentMarkers(pdf),
             PdfSyntax.HasActiveContentMarkers(pdf),
-            PdfSyntax.ReadDocumentSecurityInfo(pdf));
+            security);
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
@@ -641,6 +642,17 @@ namespace OfficeIMO.Tests.Pdf {
 
             string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(120, 20, "Ada", 10);
             Assert.Contains("<416461> Tj", content);
+
+            string multilineContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(
+                120,
+                48,
+                "First\r\nSecond",
+                10,
+                new PdfFormFieldStyle { IsMultiline = true });
+            Assert.Contains("<4669727374> Tj", multilineContent);
+            Assert.Contains("<5365636F6E64> Tj", multilineContent);
+            Assert.DoesNotContain("<46697273740D0A5365636F6E64> Tj", multilineContent);
+            Assert.Equal(2, Regex.Matches(multilineContent, " Tj ET").Count);
 
             string passwordContent = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(120, 20, "Secret", 10, new PdfFormFieldStyle { IsPassword = true });
             Assert.Contains("<2A2A2A2A2A2A> Tj", passwordContent);

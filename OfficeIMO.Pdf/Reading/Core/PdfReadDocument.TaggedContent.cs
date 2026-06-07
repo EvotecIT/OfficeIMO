@@ -163,21 +163,46 @@ public sealed partial class PdfReadDocument {
     }
 
     private IReadOnlyList<int> ReadParentTreeIndexes(PdfDictionary parentTree) {
-        if (!parentTree.Items.TryGetValue("Nums", out PdfObject? numsObject) ||
-            ResolveArray(numsObject) is not PdfArray nums ||
-            nums.Items.Count < 2) {
-            return Array.Empty<int>();
+        var indexes = new List<int>();
+        AddParentTreeIndexes(parentTree, indexes, new HashSet<int>());
+        return indexes.Count == 0 ? Array.Empty<int>() : indexes.AsReadOnly();
+    }
+
+    private void AddParentTreeIndexes(PdfObject? treeObject, List<int> indexes, HashSet<int> visitedReferences) {
+        if (treeObject is PdfReference reference) {
+            if (!visitedReferences.Add(reference.ObjectNumber)) {
+                return;
+            }
+
+            treeObject = ResolveObject(reference);
         }
 
-        var indexes = new List<int>();
+        if (treeObject is not PdfDictionary tree) {
+            return;
+        }
+
+        if (tree.Items.TryGetValue("Nums", out PdfObject? numsObject) &&
+            ResolveArray(numsObject) is PdfArray nums) {
+            AddParentTreeNums(nums, indexes);
+        }
+
+        if (!tree.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
+            ResolveArray(kidsObject) is not PdfArray kids) {
+            return;
+        }
+
+        for (int i = 0; i < kids.Items.Count; i++) {
+            AddParentTreeIndexes(kids.Items[i], indexes, visitedReferences);
+        }
+    }
+
+    private void AddParentTreeNums(PdfArray nums, List<int> indexes) {
         for (int i = 0; i + 1 < nums.Items.Count; i += 2) {
             if (ResolveObject(nums.Items[i]) is PdfNumber number &&
                 TryGetNonNegativeInteger(number, out int index)) {
-                indexes.Add(index);
+                AddUnique(indexes, index);
             }
         }
-
-        return indexes.Count == 0 ? Array.Empty<int>() : indexes.AsReadOnly();
     }
 
     private static void AddUnique(List<int> values, int value) {

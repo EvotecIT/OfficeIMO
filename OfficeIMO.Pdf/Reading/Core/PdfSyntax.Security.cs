@@ -15,7 +15,8 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        bool hasEncryption = ContainsPdfName(text, "Encrypt");
+        int? encryptObjectNumber = TryReadLastReferenceObjectNumber(text, "Encrypt");
+        bool hasEncryption = encryptObjectNumber.HasValue;
         bool hasSignatures = HasSignatureMarkers(pdf);
         IReadOnlyList<int> startXrefOffsets = ReadStartXrefOffsets(text);
         int startXrefCount = startXrefOffsets.Count;
@@ -28,7 +29,6 @@ internal static partial class PdfSyntax {
 
         int? rootObjectNumber = TryReadLastReferenceObjectNumber(text, "Root");
         int? infoObjectNumber = TryReadLastReferenceObjectNumber(text, "Info");
-        int? encryptObjectNumber = TryReadLastReferenceObjectNumber(text, "Encrypt");
         string? encryptionFilter = null;
         string? encryptionSubFilter = null;
         int? encryptionVersion = null;
@@ -67,6 +67,27 @@ internal static partial class PdfSyntax {
 
         try {
             var (objects, trailerRaw) = ParseObjects(pdf);
+            encryptObjectNumber = TryReadLastReferenceObjectNumber(trailerRaw, "Encrypt");
+            hasEncryption = encryptObjectNumber.HasValue;
+            encryptionFilter = null;
+            encryptionSubFilter = null;
+            encryptionVersion = null;
+            encryptionRevision = null;
+            encryptionLengthBits = null;
+            encryptionPermissions = null;
+            encryptMetadata = null;
+            if (encryptObjectNumber.HasValue &&
+                PdfObjectLookup.TryGet(objects, new PdfReference(encryptObjectNumber.Value, 0), out PdfIndirectObject? encryptionObject) &&
+                encryptionObject.Value is PdfDictionary parsedEncryptionDictionary) {
+                encryptionFilter = TryReadName(parsedEncryptionDictionary, "Filter");
+                encryptionSubFilter = TryReadName(parsedEncryptionDictionary, "SubFilter");
+                encryptionVersion = TryReadInteger(parsedEncryptionDictionary, "V");
+                encryptionRevision = TryReadInteger(parsedEncryptionDictionary, "R");
+                encryptionLengthBits = TryReadInteger(parsedEncryptionDictionary, "Length");
+                encryptionPermissions = TryReadInteger(parsedEncryptionDictionary, "P");
+                encryptMetadata = TryReadBoolean(parsedEncryptionDictionary, "EncryptMetadata");
+            }
+
             PdfDictionary? catalog = FindCatalog(objects, trailerRaw);
             if (catalog is not null) {
                 documentSecurityStore = ReadDocumentSecurityStoreInfo(objects, catalog);

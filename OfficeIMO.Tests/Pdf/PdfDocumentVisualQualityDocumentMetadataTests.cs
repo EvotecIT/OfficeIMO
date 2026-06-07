@@ -446,6 +446,18 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(36D, fitVerticalOpenAction.DestinationLeft);
         Assert.Null(fitVerticalOpenAction.DestinationTop);
 
+        byte[] wideFitVerticalBytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 200D,
+                PageHeight = 200D
+            })
+            .OpenAction(1, destinationMode: PdfOpenActionDestinationMode.FitVertical, destinationLeft: 300D)
+            .Paragraph(p => p.Text("Fit vertical can use one coordinate."))
+            .ToBytes();
+        PdfDocumentOpenAction wideFitVerticalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(wideFitVerticalBytes).OpenAction);
+        Assert.Contains("/FitV 300]", Encoding.ASCII.GetString(wideFitVerticalBytes), StringComparison.Ordinal);
+        Assert.Equal(PdfOpenActionDestinationMode.FitVertical, wideFitVerticalOpenAction.DestinationMode);
+        Assert.Equal(300D, wideFitVerticalOpenAction.DestinationLeft);
+
         byte[] fitRectangleBytes = PdfDocument.Create()
             .OpenAction(1, 640D, PdfOpenActionDestinationMode.FitRectangle, destinationLeft: 24D, destinationBottom: 48D, destinationRight: 320D)
             .Paragraph(p => p.Text("Fit rectangle page."))

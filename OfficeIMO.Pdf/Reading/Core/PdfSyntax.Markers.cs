@@ -72,8 +72,7 @@ internal static partial class PdfSyntax {
     internal static bool HasEncryptionMarkers(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
 
-        string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsPdfName(text, "Encrypt");
+        return ReadDocumentSecurityInfo(pdf).HasEncryption;
     }
 
     internal static bool HasSignatureMarkers(byte[] pdf) {

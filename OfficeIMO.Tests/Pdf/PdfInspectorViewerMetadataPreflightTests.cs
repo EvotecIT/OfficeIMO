@@ -72,6 +72,18 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Inspect_ReadsParentTreeIndexesFromNumberTreeKids() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildTaggedPdfWithParentTreeKids());
+
+        Assert.True(info.HasTaggedContent);
+        Assert.True(info.HasReadableTaggedContent);
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(info.TaggedContent);
+        Assert.Equal(7, tagged.ParentTreeObjectNumber);
+        Assert.Equal(new[] { 0 }, tagged.ParentTreeStructParentIndexes);
+        Assert.Equal(1, tagged.ParentTreeEntryCount);
+    }
+
+    [Fact]
     public void Inspect_ReadsGeneratedTaggedContentMetadata() {
         byte[] pdf = PdfDocument.Create()
             .TaggedPdfCatalogMarkers()
@@ -175,6 +187,26 @@ public partial class PdfInspectorTests {
         Assert.Equal(new[] { "alpha", "beta", "gamma" }, xmp.Subjects);
         Assert.Equal("OfficeIMO.Pdf", xmp.Producer);
         Assert.Equal("alpha, beta;gamma", xmp.Keywords);
+        Assert.True(xmp.HasPdfAIdentification);
+        Assert.Equal(3, xmp.PdfAPart);
+        Assert.Equal("B", xmp.PdfAConformance);
+        Assert.True(xmp.HasPdfUaIdentification);
+        Assert.Equal(1, xmp.PdfUaPart);
+        Assert.True(xmp.HasElectronicInvoiceMetadata);
+        Assert.Equal("INVOICE", xmp.ElectronicInvoiceDocumentType);
+        Assert.Equal("factur-x.xml", xmp.ElectronicInvoiceDocumentFileName);
+        Assert.Equal("1.0", xmp.ElectronicInvoiceVersion);
+        Assert.Equal("BASIC", xmp.ElectronicInvoiceConformanceLevel);
+    }
+
+    [Fact]
+    public void Inspect_ReadsXmpIdentificationFieldsByNamespaceUri() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildXmpMetadataPdfWithAlternateIdentificationPrefixes());
+
+        Assert.True(info.HasXmpMetadata);
+        Assert.True(info.HasReadableXmpMetadata);
+        PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(info.XmpMetadata);
+        Assert.True(xmp.IsWellFormedXml);
         Assert.True(xmp.HasPdfAIdentification);
         Assert.Equal(3, xmp.PdfAPart);
         Assert.Equal("B", xmp.PdfAConformance);
@@ -308,6 +340,23 @@ public partial class PdfInspectorTests {
         Assert.Empty(info.GetOutputIntentsByOutputConditionIdentifier("Office profile"));
         Assert.Throws<ArgumentException>(() => info.GetOutputIntentsBySubtype(""));
         Assert.Throws<ArgumentException>(() => info.GetOutputIntentsByOutputConditionIdentifier(""));
+    }
+
+    [Fact]
+    public void Inspect_DecodesFilteredOutputIntentProfileBeforeReadingIccHeader() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildFilteredOutputIntentProfilePdf());
+
+        Assert.True(info.HasOutputIntents);
+        Assert.True(info.HasReadableOutputIntents);
+        PdfOutputIntentInfo outputIntent = Assert.Single(info.OutputIntents);
+        Assert.True(outputIntent.HasDestinationOutputProfile);
+        Assert.Equal(6, outputIntent.DestinationOutputProfileObjectNumber);
+        Assert.Equal(3, outputIntent.DestinationOutputProfileColorComponents);
+        Assert.Equal("[ASCIIHexDecode FlateDecode]", outputIntent.DestinationOutputProfileFilter);
+        Assert.Equal(128, outputIntent.DestinationOutputProfileSizeBytes);
+        Assert.Equal(128, outputIntent.DestinationOutputProfileDeclaredSizeBytes);
+        Assert.Equal("RGB ", outputIntent.DestinationOutputProfileColorSpace);
+        Assert.True(outputIntent.DestinationOutputProfileHasIccSignature);
     }
 
 

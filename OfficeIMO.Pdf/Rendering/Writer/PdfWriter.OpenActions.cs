@@ -13,12 +13,14 @@ internal static partial class PdfWriter {
         double right = openAction.DestinationRight ?? page.Options.PageWidth;
         double top = openAction.DestinationTop ?? page.Options.PageHeight;
 
-        if (right <= left) {
-            throw new InvalidOperationException("PDF open-action destination rectangle right coordinate must be greater than left coordinate.");
-        }
+        if (openAction.DestinationMode == PdfOpenActionDestinationMode.FitRectangle) {
+            if (right <= left) {
+                throw new InvalidOperationException("PDF open-action destination rectangle right coordinate must be greater than left coordinate.");
+            }
 
-        if (top <= bottom) {
-            throw new InvalidOperationException("PDF open-action destination rectangle top coordinate must be greater than bottom coordinate.");
+            if (top <= bottom) {
+                throw new InvalidOperationException("PDF open-action destination rectangle top coordinate must be greater than bottom coordinate.");
+            }
         }
 
         return (left, bottom, right, top);

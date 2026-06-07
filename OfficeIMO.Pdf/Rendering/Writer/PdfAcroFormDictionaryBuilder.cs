@@ -1,6 +1,8 @@
 namespace OfficeIMO.Pdf;
 
 internal static class PdfAcroFormDictionaryBuilder {
+    private static readonly char[] TextFieldLineSeparators = { '\n' };
+
     internal static string BuildAcroFormDictionary(IReadOnlyList<int> fieldObjectIds, int helveticaFontId, PdfFormFieldTextAlignment? defaultTextAlignment = null) {
         Guard.NotNull(fieldObjectIds, nameof(fieldObjectIds));
         if (fieldObjectIds.Count == 0) {
@@ -92,15 +94,8 @@ internal static class PdfAcroFormDictionaryBuilder {
 
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
         string displayValue = GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
-        double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
         PdfFormFieldTextAlignment effectiveAlignment = textAlignment ?? effectiveStyle.TextAlignment ?? PdfFormFieldTextAlignment.Left;
         double availableTextWidth = Math.Max(0D, width - 6D);
-        double measuredTextWidth = textWidth.HasValue ? textWidth.Value : PdfWriter.EstimateSimpleTextWidth(displayValue, PdfStandardFont.Helvetica, fontSize);
-        double textX = CalculateAlignedTextX(availableTextWidth, measuredTextWidth, effectiveAlignment);
-        string clippedValue = displayValue;
-        if (availableTextWidth <= 0.001D) {
-            clippedValue = string.Empty;
-        }
 
         string content = "q\n";
         if (effectiveStyle.BackgroundColor.HasValue) {
@@ -113,8 +108,17 @@ internal static class PdfAcroFormDictionaryBuilder {
                 Format(inset) + " " + Format(inset) + " " + Format(Math.Max(0D, width - inset * 2D)) + " " + Format(Math.Max(0D, height - inset * 2D)) + " re S\n";
         }
 
-        string textHex = encodedTextHex == null || clippedValue.Length == 0 ? PdfSyntaxEscaper.WinAnsiHexString(clippedValue) : "<" + encodedTextHex + ">";
-        content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textHex + " Tj ET\n";
+        if (effectiveStyle.IsMultiline) {
+            content += BuildMultilineTextFieldAppearanceContent(height, displayValue, fontSize, effectiveStyle, effectiveAlignment, availableTextWidth);
+        } else {
+            double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
+            double measuredTextWidth = textWidth.HasValue ? textWidth.Value : PdfWriter.EstimateSimpleTextWidth(displayValue, PdfStandardFont.Helvetica, fontSize);
+            double textX = CalculateAlignedTextX(availableTextWidth, measuredTextWidth, effectiveAlignment);
+            string clippedValue = availableTextWidth <= 0.001D ? string.Empty : displayValue;
+            string textHex = encodedTextHex == null || clippedValue.Length == 0 ? PdfSyntaxEscaper.WinAnsiHexString(clippedValue) : "<" + encodedTextHex + ">";
+            content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textHex + " Tj ET\n";
+        }
+
         return content + "Q\n";
     }
 
@@ -141,6 +145,30 @@ internal static class PdfAcroFormDictionaryBuilder {
             default:
                 throw new ArgumentOutOfRangeException(nameof(alignment), "PDF form field text alignment must be Left, Center, or Right.");
         }
+    }
+
+    private static string BuildMultilineTextFieldAppearanceContent(double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, PdfFormFieldTextAlignment alignment, double availableTextWidth) {
+        string[] lines = SplitTextFieldAppearanceLines(displayValue);
+        double lineHeight = Math.Max(fontSize, fontSize * 1.2D);
+        double baseline = Math.Max(2D, height - fontSize * 1.15D);
+        string content = string.Empty;
+        for (int i = 0; i < lines.Length && baseline >= 2D; i++) {
+            string line = availableTextWidth <= 0.001D ? string.Empty : lines[i];
+            double lineWidth = PdfWriter.EstimateSimpleTextWidth(line, PdfStandardFont.Helvetica, fontSize);
+            double textX = CalculateAlignedTextX(availableTextWidth, lineWidth, alignment);
+            string textHex = PdfSyntaxEscaper.WinAnsiHexString(line);
+            content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textHex + " Tj ET\n";
+            baseline -= lineHeight;
+        }
+
+        return content;
+    }
+
+    private static string[] SplitTextFieldAppearanceLines(string value) {
+        return value
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Split(TextFieldLineSeparators);
     }
 
     internal static string BuildCheckBoxAppearanceContent(double width, double height, bool selected, PdfFormFieldStyle? style = null) {

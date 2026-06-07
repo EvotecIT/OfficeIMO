@@ -4,6 +4,8 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
+    private const string PdfAIdentificationNamespaceUri = "http://www.aiim.org/pdfa/ns/id/";
+
     /// <summary>Catalog XMP metadata stream discovered from /Metadata.</summary>
     public PdfXmpMetadataInfo? XmpMetadata { get; }
 
@@ -37,13 +39,13 @@ public sealed partial class PdfReadDocument {
             document is null ? Array.Empty<string>() : ReadCollectionText(document, "subject"),
             document is null ? null : ReadElementText(document, "Producer"),
             document is null ? null : ReadElementText(document, "Keywords"),
-            document is null ? null : ReadIntegerElement(document, "part", "pdfaid"),
-            document is null ? null : ReadPrefixedElementText(document, "conformance", "pdfaid"),
-            document is null ? null : ReadIntegerElement(document, "part", "pdfuaid"),
-            document is null ? null : ReadPrefixedElementText(document, "DocumentType", "fx"),
-            document is null ? null : ReadPrefixedElementText(document, "DocumentFileName", "fx"),
-            document is null ? null : ReadPrefixedElementText(document, "Version", "fx"),
-            document is null ? null : ReadPrefixedElementText(document, "ConformanceLevel", "fx"));
+            document is null ? null : ReadIntegerElementByNamespace(document, "part", PdfAIdentificationNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "conformance", PdfAIdentificationNamespaceUri),
+            document is null ? null : ReadIntegerElementByNamespace(document, "part", PdfUaIdentification.NamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "DocumentType", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "DocumentFileName", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "Version", PdfElectronicInvoiceMetadata.FacturXNamespaceUri),
+            document is null ? null : ReadElementTextByNamespace(document, "ConformanceLevel", PdfElectronicInvoiceMetadata.FacturXNamespaceUri));
     }
 
     private static string? DecodeMetadataText(byte[] data) {
@@ -134,6 +136,20 @@ public sealed partial class PdfReadDocument {
 
     private static int? ReadIntegerElement(XDocument document, string localName, string prefix) {
         string? value = ReadPrefixedElementText(document, localName, prefix);
+        return int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int result)
+            ? result
+            : null;
+    }
+
+    private static string? ReadElementTextByNamespace(XDocument document, string localName, string namespaceUri) {
+        XElement? element = document.Descendants().FirstOrDefault(e =>
+            e.Name.LocalName == localName &&
+            string.Equals(e.Name.NamespaceName, namespaceUri, StringComparison.Ordinal));
+        return NormalizeXmlText(element?.Value);
+    }
+
+    private static int? ReadIntegerElementByNamespace(XDocument document, string localName, string namespaceUri) {
+        string? value = ReadElementTextByNamespace(document, localName, namespaceUri);
         return int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int result)
             ? result
             : null;

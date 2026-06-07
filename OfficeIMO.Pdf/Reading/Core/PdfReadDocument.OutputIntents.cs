@@ -1,3 +1,5 @@
+using OfficeIMO.Pdf.Filters;
+
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadDocument {
@@ -32,6 +34,7 @@ public sealed partial class PdfReadDocument {
                 profileStream = ResolveObject(profileObject) as PdfStream;
             }
 
+            byte[]? profileBytes = profileStream is null ? null : StreamDecoder.Decode(profileStream.Dictionary, profileStream.Data, _objects);
             result.Add(new PdfOutputIntentInfo(
                 objectNumber,
                 TryReadName(outputIntent, "S"),
@@ -43,10 +46,10 @@ public sealed partial class PdfReadDocument {
                 profileStream is null ? null : TryReadStreamColorComponents(profileStream),
                 profileStream is null ? null : TryReadStreamAlternateColorSpace(profileStream),
                 profileStream is null ? null : TryReadStreamFilter(profileStream),
-                profileStream?.Data.Length,
-                profileStream is null ? null : TryReadIccDeclaredSize(profileStream.Data),
-                profileStream is null ? null : TryReadIccColorSpace(profileStream.Data),
-                profileStream is null ? null : TryReadIccSignature(profileStream.Data)));
+                profileBytes?.Length,
+                profileBytes is null ? null : TryReadIccDeclaredSize(profileBytes),
+                profileBytes is null ? null : TryReadIccColorSpace(profileBytes),
+                profileBytes is null ? null : TryReadIccSignature(profileBytes)));
         }
 
         return result.Count == 0 ? Array.Empty<PdfOutputIntentInfo>() : result.AsReadOnly();
