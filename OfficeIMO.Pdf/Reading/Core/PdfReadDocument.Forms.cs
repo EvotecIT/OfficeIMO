@@ -12,7 +12,7 @@ public sealed partial class PdfReadDocument {
         var result = new List<PdfFormField>();
         var visited = new HashSet<int>();
         var widgetPageNumbers = BuildWidgetPageNumberLookup();
-        PdfFormFieldInheritedState inherited = PdfFormFieldInheritedState.FromAcroForm(AcroFormDefaultAppearance);
+        PdfFormFieldInheritedState inherited = PdfFormFieldInheritedState.FromAcroForm(AcroFormDefaultAppearance, AcroFormQuadding);
         for (int i = 0; i < fields.Items.Count; i++) {
             ReadFormField(fields.Items[i], null, inherited, result, visited, widgetPageNumbers);
         }
@@ -178,10 +178,10 @@ public sealed partial class PdfReadDocument {
     private sealed class PdfFormFieldInheritedState {
         internal static readonly PdfFormFieldInheritedState Empty = new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, null, null, Array.Empty<PdfFormFieldOption>());
 
-        internal static PdfFormFieldInheritedState FromAcroForm(string? defaultAppearance) {
-            return string.IsNullOrEmpty(defaultAppearance)
+        internal static PdfFormFieldInheritedState FromAcroForm(string? defaultAppearance, int? quadding) {
+            return string.IsNullOrEmpty(defaultAppearance) && !quadding.HasValue
                 ? Empty
-                : new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, defaultAppearance, null, Array.Empty<PdfFormFieldOption>());
+                : new PdfFormFieldInheritedState(null, null, Array.Empty<string>(), null, Array.Empty<string>(), null, null, defaultAppearance, quadding, Array.Empty<PdfFormFieldOption>());
         }
 
         internal PdfFormFieldInheritedState(string? fieldType, string? value, IReadOnlyList<string> values, string? defaultValue, IReadOnlyList<string> defaultValues, int? flags, int? maxLength, string? defaultAppearance, int? quadding, IReadOnlyList<PdfFormFieldOption> options) {

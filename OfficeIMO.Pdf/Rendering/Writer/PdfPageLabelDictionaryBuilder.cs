@@ -55,4 +55,43 @@ internal static class PdfPageLabelDictionaryBuilder {
             _ => throw new ArgumentOutOfRangeException(nameof(style), "PDF page-label style is not supported.")
         };
     }
+
+    internal static string BuildGeneratedPageLabelsDictionary(IReadOnlyList<PdfPageLabelRange> ranges) {
+        Guard.NotNull(ranges, nameof(ranges));
+        if (ranges.Count == 0) {
+            throw new ArgumentException("At least one PDF page-label range is required.", nameof(ranges));
+        }
+
+        var ordered = ranges.OrderBy(range => range.StartPageNumber).ToList();
+        var seenStartPages = new HashSet<int>();
+        var sb = new StringBuilder();
+        sb.Append("<< /Nums [");
+
+        for (int i = 0; i < ordered.Count; i++) {
+            PdfPageLabelRange range = ordered[i];
+            if (!seenStartPages.Add(range.StartPageNumber)) {
+                throw new ArgumentException("PDF page-label ranges cannot contain duplicate start pages.", nameof(ranges));
+            }
+
+            if (i > 0) {
+                sb.Append(' ');
+            }
+
+            sb.Append((range.StartPageNumber - 1).ToString(CultureInfo.InvariantCulture))
+                .Append(" << /S /")
+                .Append(GetStyleName(range.Style))
+                .Append(" /St ")
+                .Append(range.StartNumber.ToString(CultureInfo.InvariantCulture));
+
+            if (range.Prefix != null) {
+                sb.Append(" /P ")
+                    .Append(PdfSyntaxEscaper.TextString(range.Prefix));
+            }
+
+            sb.Append(" >>");
+        }
+
+        sb.Append("] >>\n");
+        return sb.ToString();
+    }
 }

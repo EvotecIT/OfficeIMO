@@ -45,11 +45,12 @@ public static partial class PdfPageExtractor {
         return new CatalogRewriteState(pageMode, catalogState.PageLayout, catalogState.CatalogVersion, catalogState.CatalogLanguage, outlines, pageLabels, namedDestinations, namedDestinationNameTree, openAction, catalogState.ViewerPreferences, catalogState.XmpMetadata, catalogState.CatalogUri, catalogState.OutputIntents, catalogState.EmbeddedFiles, catalogState.AssociatedFiles, catalogState.OptionalContent);
     }
     
-    private static Dictionary<int, Dictionary<string, PdfObject>>? BuildPageOverridesWithFilteredNamedDestinationLinks(
+    private static Dictionary<int, Dictionary<string, PdfObject>>? BuildPageOverridesWithFilteredDestinationLinks(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         IReadOnlyList<int> pageObjectNumbers,
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides,
-        CatalogRewriteState catalogState) {
+        CatalogRewriteState catalogState,
+        HashSet<int> copiedPageObjectIds) {
         var availableDestinationNames = GetNamedDestinationNames(sourceObjects, catalogState);
         Dictionary<int, Dictionary<string, PdfObject>>? result = null;
     
@@ -76,7 +77,7 @@ public static partial class PdfPageExtractor {
                 ? overrideAnnotations
                 : pageDictionary.Items.TryGetValue("Annots", out var pageAnnotations) ? pageAnnotations : null;
     
-            if (!TryFilterNamedDestinationLinkAnnotations(sourceObjects, annotationsObject, availableDestinationNames, out var filteredAnnotations)) {
+            if (!TryFilterLinkAnnotations(sourceObjects, annotationsObject, availableDestinationNames, copiedPageObjectIds, out var filteredAnnotations)) {
                 continue;
             }
     
@@ -116,10 +117,11 @@ public static partial class PdfPageExtractor {
         return names;
     }
     
-    private static bool TryFilterNamedDestinationLinkAnnotations(
+    private static bool TryFilterLinkAnnotations(
         Dictionary<int, PdfIndirectObject> sourceObjects,
         PdfObject? annotationsObject,
         HashSet<string> availableDestinationNames,
+        HashSet<int> copiedPageObjectIds,
         out PdfArray filteredAnnotations) {
         filteredAnnotations = new PdfArray();
         if (ResolveObject(sourceObjects, annotationsObject) is not PdfArray annotations) {
@@ -130,6 +132,12 @@ public static partial class PdfPageExtractor {
         foreach (var annotation in annotations.Items) {
             if (TryGetNamedDestinationLinkName(sourceObjects, annotation, out string? destinationName) &&
                 !availableDestinationNames.Contains(destinationName!)) {
+                removed = true;
+                continue;
+            }
+
+            if (TryGetDirectDestinationLink(sourceObjects, annotation, out PdfObject? destination) &&
+                !IsDestinationForCopiedPages(destination!, copiedPageObjectIds)) {
                 removed = true;
                 continue;
             }
@@ -163,6 +171,49 @@ public static partial class PdfPageExtractor {
         }
     
         return TryGetNamedDestinationName(sourceObjects, actionDestination, out destinationName);
+    }
+
+    private static bool TryGetDirectDestinationLink(
+        Dictionary<int, PdfIndirectObject> sourceObjects,
+        PdfObject annotationObject,
+        out PdfObject? destination) {
+        destination = null;
+        if (ResolveDictionary(sourceObjects, annotationObject) is not PdfDictionary annotation ||
+            annotation.Get<PdfName>("Subtype")?.Name != "Link") {
+            return false;
+        }
+
+        if (annotation.Items.TryGetValue("Dest", out var directDestination) &&
+            TryResolveDirectDestination(sourceObjects, directDestination, out destination)) {
+            return true;
+        }
+
+        if (!annotation.Items.TryGetValue("A", out var actionObject) ||
+            ResolveDictionary(sourceObjects, actionObject) is not PdfDictionary action ||
+            action.Get<PdfName>("S")?.Name != "GoTo" ||
+            !action.Items.TryGetValue("D", out var actionDestination) ||
+            !TryResolveDirectDestination(sourceObjects, actionDestination, out destination)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryResolveDirectDestination(Dictionary<int, PdfIndirectObject> sourceObjects, PdfObject? destinationObject, out PdfObject? destination) {
+        destination = ResolveObject(sourceObjects, destinationObject);
+        if (destination is PdfDictionary dictionary &&
+            dictionary.Items.TryGetValue("D", out var explicitDestination)) {
+            destination = ResolveObject(sourceObjects, explicitDestination);
+        }
+
+        if (destination is PdfArray array &&
+            array.Items.Count > 0 &&
+            array.Items[0] is PdfReference) {
+            return true;
+        }
+
+        destination = null;
+        return false;
     }
     
     private static bool TryGetNamedDestinationName(

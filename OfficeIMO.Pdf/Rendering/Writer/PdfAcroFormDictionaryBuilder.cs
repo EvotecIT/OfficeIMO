@@ -1,10 +1,14 @@
 namespace OfficeIMO.Pdf;
 
 internal static class PdfAcroFormDictionaryBuilder {
-    internal static string BuildAcroFormDictionary(IReadOnlyList<int> fieldObjectIds, int helveticaFontId) {
+    internal static string BuildAcroFormDictionary(IReadOnlyList<int> fieldObjectIds, int helveticaFontId, PdfFormFieldTextAlignment? defaultTextAlignment = null) {
         Guard.NotNull(fieldObjectIds, nameof(fieldObjectIds));
         if (fieldObjectIds.Count == 0) {
             throw new ArgumentException("PDF AcroForm dictionary requires at least one field object.", nameof(fieldObjectIds));
+        }
+
+        if (defaultTextAlignment.HasValue) {
+            Guard.FormFieldTextAlignment(defaultTextAlignment.Value, nameof(defaultTextAlignment));
         }
 
         var sb = new StringBuilder();
@@ -16,8 +20,27 @@ internal static class PdfAcroFormDictionaryBuilder {
 
         sb.Append(" ] /NeedAppearances false /DR << /Font << /Helv ")
             .Append(PdfSyntaxEscaper.IndirectReference(helveticaFontId))
-            .Append(" >> >> /DA (/Helv 10 Tf 0 g) >>\n");
+            .Append(" >> >> /DA (/Helv 10 Tf 0 g)");
+        if (defaultTextAlignment.HasValue) {
+            sb.Append(" /Q ")
+                .Append(ToQuadding(defaultTextAlignment.Value));
+        }
+
+        sb.Append(" >>\n");
         return sb.ToString();
+    }
+
+    internal static int ToQuadding(PdfFormFieldTextAlignment alignment) {
+        switch (alignment) {
+            case PdfFormFieldTextAlignment.Left:
+                return 0;
+            case PdfFormFieldTextAlignment.Center:
+                return 1;
+            case PdfFormFieldTextAlignment.Right:
+                return 2;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(alignment), "PDF form field text alignment must be Left, Center, or Right.");
+        }
     }
 
     internal static string BuildTextFieldAppearanceStreamDictionary(double width, double height, int helveticaFontId, int contentLength) {
@@ -54,18 +77,28 @@ internal static class PdfAcroFormDictionaryBuilder {
             " >>";
     }
 
-    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null) {
+    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(value, nameof(value));
         Guard.Positive(fontSize, nameof(fontSize));
+        if (textAlignment.HasValue) {
+            Guard.FormFieldTextAlignment(textAlignment.Value, nameof(textAlignment));
+        }
+
+        if (textWidth.HasValue && (textWidth.Value < 0 || double.IsNaN(textWidth.Value) || double.IsInfinity(textWidth.Value))) {
+            throw new ArgumentOutOfRangeException(nameof(textWidth), textWidth.Value, "PDF appearance text width must be a finite non-negative number.");
+        }
 
         PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
+        string displayValue = GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
         double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
-        double textX = 3D;
-        double textWidth = Math.Max(0D, width - 6D);
-        string clippedValue = value;
-        if (textWidth <= 0.001D) {
+        PdfFormFieldTextAlignment effectiveAlignment = textAlignment ?? effectiveStyle.TextAlignment ?? PdfFormFieldTextAlignment.Left;
+        double availableTextWidth = Math.Max(0D, width - 6D);
+        double measuredTextWidth = textWidth.HasValue ? textWidth.Value : PdfWriter.EstimateSimpleTextWidth(displayValue, PdfStandardFont.Helvetica, fontSize);
+        double textX = CalculateAlignedTextX(availableTextWidth, measuredTextWidth, effectiveAlignment);
+        string clippedValue = displayValue;
+        if (availableTextWidth <= 0.001D) {
             clippedValue = string.Empty;
         }
 
@@ -83,6 +116,31 @@ internal static class PdfAcroFormDictionaryBuilder {
         string textHex = encodedTextHex == null || clippedValue.Length == 0 ? PdfSyntaxEscaper.WinAnsiHexString(clippedValue) : "<" + encodedTextHex + ">";
         content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textHex + " Tj ET\n";
         return content + "Q\n";
+    }
+
+    internal static string GetTextFieldAppearanceDisplayValue(string value, PdfFormFieldStyle? style) {
+        Guard.NotNull(value, nameof(value));
+        return style != null && style.IsPassword
+            ? new string('*', value.Length)
+            : value;
+    }
+
+    private static double CalculateAlignedTextX(double availableTextWidth, double measuredTextWidth, PdfFormFieldTextAlignment alignment) {
+        double padding = 3D;
+        if (availableTextWidth <= 0D || measuredTextWidth >= availableTextWidth) {
+            return padding;
+        }
+
+        switch (alignment) {
+            case PdfFormFieldTextAlignment.Left:
+                return padding;
+            case PdfFormFieldTextAlignment.Center:
+                return padding + (availableTextWidth - measuredTextWidth) / 2D;
+            case PdfFormFieldTextAlignment.Right:
+                return padding + availableTextWidth - measuredTextWidth;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(alignment), "PDF form field text alignment must be Left, Center, or Right.");
+        }
     }
 
     internal static string BuildCheckBoxAppearanceContent(double width, double height, bool selected, PdfFormFieldStyle? style = null) {

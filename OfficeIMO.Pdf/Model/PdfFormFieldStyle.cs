@@ -7,6 +7,8 @@ public class PdfFormFieldStyle {
     private double _borderWidth = 1D;
     private string? _alternateName;
     private string? _mappingName;
+    private PdfFormFieldTextAlignment? _textAlignment;
+    private int? _maxLength;
 
     /// <summary>Background fill color. Set to null for transparent field appearance streams.</summary>
     public PdfColor? BackgroundColor { get; set; } = PdfColor.White;
@@ -19,6 +21,66 @@ public class PdfFormFieldStyle {
 
     /// <summary>Check mark or radio dot color for generated button field appearance streams.</summary>
     public PdfColor MarkColor { get; set; } = PdfColor.Black;
+
+    /// <summary>When true, generated AcroForm fields emit the common read-only field flag.</summary>
+    public bool IsReadOnly { get; set; }
+
+    /// <summary>When true, generated AcroForm fields emit the common required field flag.</summary>
+    public bool IsRequired { get; set; }
+
+    /// <summary>When true, generated AcroForm fields emit the common no-export field flag.</summary>
+    public bool IsNoExport { get; set; }
+
+    /// <summary>When true, generated text fields emit the multiline field flag.</summary>
+    public bool IsMultiline { get; set; }
+
+    /// <summary>When true, generated text fields emit the password field flag.</summary>
+    public bool IsPassword { get; set; }
+
+    /// <summary>When true, generated text fields emit the file-select field flag.</summary>
+    public bool IsFileSelect { get; set; }
+
+    /// <summary>When true, generated text and choice fields emit the do-not-spell-check field flag.</summary>
+    public bool DoesNotSpellCheck { get; set; }
+
+    /// <summary>When true, generated text fields emit the do-not-scroll field flag.</summary>
+    public bool DoesNotScroll { get; set; }
+
+    /// <summary>When true, generated text fields emit the comb field flag. Requires <see cref="MaxLength"/>.</summary>
+    public bool IsComb { get; set; }
+
+    /// <summary>When true, generated combo choice fields emit the editable-choice field flag.</summary>
+    public bool IsEditableChoice { get; set; }
+
+    /// <summary>When true, generated choice fields emit the sort field flag.</summary>
+    public bool IsSortedChoice { get; set; }
+
+    /// <summary>When true, generated choice fields emit the commit-on-selection-change field flag.</summary>
+    public bool CommitsOnSelectionChange { get; set; }
+
+    /// <summary>Optional maximum text length emitted as /MaxLen for generated text fields.</summary>
+    public int? MaxLength {
+        get => _maxLength;
+        set {
+            if (value.HasValue && value.Value < 1) {
+                throw new ArgumentOutOfRangeException(nameof(value), value.Value, "PDF text field maximum length must be a positive integer.");
+            }
+
+            _maxLength = value;
+        }
+    }
+
+    /// <summary>Optional text alignment for generated text and choice fields. When null, document-level AcroForm defaults can apply.</summary>
+    public PdfFormFieldTextAlignment? TextAlignment {
+        get => _textAlignment;
+        set {
+            if (value.HasValue) {
+                Guard.FormFieldTextAlignment(value.Value, nameof(TextAlignment));
+            }
+
+            _textAlignment = value;
+        }
+    }
 
     /// <summary>Border stroke width in points. Set to 0 to suppress border drawing.</summary>
     public double BorderWidth {
@@ -58,6 +120,20 @@ public class PdfFormFieldStyle {
             BorderWidth = BorderWidth,
             TextColor = TextColor,
             MarkColor = MarkColor,
+            IsReadOnly = IsReadOnly,
+            IsRequired = IsRequired,
+            IsNoExport = IsNoExport,
+            IsMultiline = IsMultiline,
+            IsPassword = IsPassword,
+            IsFileSelect = IsFileSelect,
+            DoesNotSpellCheck = DoesNotSpellCheck,
+            DoesNotScroll = DoesNotScroll,
+            IsComb = IsComb,
+            IsEditableChoice = IsEditableChoice,
+            IsSortedChoice = IsSortedChoice,
+            CommitsOnSelectionChange = CommitsOnSelectionChange,
+            MaxLength = MaxLength,
+            TextAlignment = TextAlignment,
             AlternateName = AlternateName,
             MappingName = MappingName
         };

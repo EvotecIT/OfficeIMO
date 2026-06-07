@@ -59,6 +59,9 @@ internal static partial class PdfWriter {
             currentPage != null &&
             (currentPage.Images.Count > 0 ||
             currentPage.Annotations.Count > 0 ||
+            currentPage.TextAnnotations.Count > 0 ||
+            currentPage.FreeTextAnnotations.Count > 0 ||
+            currentPage.HighlightAnnotations.Count > 0 ||
             currentPage.FormFields.Count > 0 ||
             currentPage.GraphicsStates.Count > 0 ||
             currentPage.Shadings.Count > 0 ||

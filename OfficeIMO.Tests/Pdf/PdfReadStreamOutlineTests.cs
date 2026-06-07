@@ -63,6 +63,18 @@ public partial class PdfReadStreamTests {
         Assert.Equal("Chapter 1", item.Title);
         Assert.Equal(1, item.PageNumber);
         Assert.Equal(200d, item.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, item.DestinationMode);
+    }
+
+    [Fact]
+    public void ReadApis_ResolveOutlineFitHorizontalDestinations() {
+        PdfDocumentInfo info = PdfInspector.Inspect(BuildFitHorizontalOutlinePdf());
+
+        PdfOutlineItem item = Assert.Single(info.Outlines);
+        Assert.Equal("Fit horizontal", item.Title);
+        Assert.Equal(1, item.PageNumber);
+        Assert.Equal(144d, item.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, item.DestinationMode);
     }
 
     [Fact]
@@ -78,10 +90,12 @@ public partial class PdfReadStreamTests {
             Assert.Equal(expectedTitle, item.Title);
             Assert.Equal(1, item.PageNumber);
             Assert.Equal(expectedTop, item.DestinationTop);
+            Assert.Equal(PdfOpenActionDestinationMode.Xyz, item.DestinationMode);
             PdfNamedDestination destination = Assert.Single(info.NamedDestinations);
             Assert.Equal("Chapter1", destination.Name);
             Assert.Equal(1, destination.PageNumber);
             Assert.Equal(expectedTop, destination.DestinationTop);
+            Assert.Equal(PdfOpenActionDestinationMode.Xyz, destination.DestinationMode);
         }
     }
 

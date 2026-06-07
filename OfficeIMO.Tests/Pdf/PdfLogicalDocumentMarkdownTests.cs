@@ -103,4 +103,37 @@ public partial class PdfLogicalDocumentTests {
 
         Assert.Equal(1, CountOccurrences(markdown, "Chapter One"));
     }
+
+    [Fact]
+    public void ToMarkdown_RendersDirectDestinationLinkAnnotations() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildDirectDestinationLinkPdf());
+
+        string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
+            IncludeLinkAnnotations = true
+        });
+
+        Assert.Contains("[Link: Direct destination link -> page 1, FitRectangle, left 10, bottom 20, right 90, top 144]", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToMarkdown_RendersNamedActionLinkAnnotations() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildNamedActionLinkPdf());
+
+        string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
+            IncludeLinkAnnotations = true
+        });
+
+        Assert.Contains("[Link: Next page action -> named action NextPage]", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToMarkdown_RendersRemoteGoToLinkAnnotations() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildRemoteGoToLinkPdf());
+
+        string markdown = logical.ToMarkdown(new PdfLogicalMarkdownOptions {
+            IncludeLinkAnnotations = true
+        });
+
+        Assert.Contains("[Link: Remote report link -> remote file remote-report.pdf, page 2, FitHorizontal, top 144]", markdown, StringComparison.Ordinal);
+    }
 }

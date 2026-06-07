@@ -322,10 +322,10 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void TableCell_RejectsInvalidLinkUri() {
         var exception = Assert.Throws<ArgumentException>(() =>
-            PdfTableCell.TextCell("Invalid", "not-a-uri"));
+            PdfTableCell.TextCell("Invalid", "bad\u0001uri"));
 
         Assert.Equal("linkUri", exception.ParamName);
-        Assert.Contains("Parameter 'linkUri' must be an absolute URI.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Parameter 'linkUri' must be an absolute URI or a relative URI action target.", exception.Message, StringComparison.Ordinal);
     }
 
 

@@ -23,6 +23,15 @@ internal static partial class PdfWriter {
                     case PdfCanvasImageItem image:
                         RenderCanvasImage(image);
                         break;
+                    case PdfCanvasTextAnnotationItem textAnnotation:
+                        RenderCanvasTextAnnotation(textAnnotation);
+                        break;
+                    case PdfCanvasFreeTextAnnotationItem freeTextAnnotation:
+                        RenderCanvasFreeTextAnnotation(freeTextAnnotation);
+                        break;
+                    case PdfCanvasHighlightAnnotationItem highlightAnnotation:
+                        RenderCanvasHighlightAnnotation(highlightAnnotation);
+                        break;
                     case PdfCanvasTableItem table:
                         RenderCanvasTable(table);
                         break;
@@ -66,6 +75,7 @@ internal static partial class PdfWriter {
                 markedContentId: markedContentId,
                 structurePage: currentPage);
             MarkRichFonts(item.Runs);
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
 
@@ -158,6 +168,7 @@ internal static partial class PdfWriter {
                     .RestoreState();
             }
 
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
 
@@ -191,6 +202,7 @@ internal static partial class PdfWriter {
             }
 
             RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, topY - block.Shape.Height, block.Shape.Width, block.Shape.Height, item.RotationAngle);
+            DrawDebugCanvasItemBox(item.X, topY - block.Shape.Height, block.Shape.Width, block.Shape.Height);
             pageDirty = true;
         }
 
@@ -256,6 +268,7 @@ internal static partial class PdfWriter {
             }
 
             RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
 
@@ -282,6 +295,7 @@ internal static partial class PdfWriter {
             int annotationStart = currentPage!.Annotations.Count;
             AddImageLinkAnnotation(block, imageStyle, pageImage, item.X, bottomY, block.Width, block.Height);
             RotateCanvasLinkAnnotations(currentPage.Annotations, annotationStart, item.X, bottomY, block.Width, block.Height, item.RotationAngle);
+            DrawDebugCanvasItemBox(item.X, bottomY, block.Width, block.Height);
             pageDirty = true;
         }
 
@@ -309,6 +323,7 @@ internal static partial class PdfWriter {
             ClipCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height);
             new ContentStreamBuilder(sb)
                 .RestoreState();
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
             pageDirty = true;
         }
 

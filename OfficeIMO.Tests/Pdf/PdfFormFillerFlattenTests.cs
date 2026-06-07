@@ -27,6 +27,21 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FlattenFields_SynthesizesMaskedPasswordTextAppearanceWhenMissing() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildPasswordTextWidgetWithoutAppearancePdf());
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string appearance = GetFlattenedAppearanceStreamText(flattened);
+
+        Assert.False(PdfInspector.Inspect(flattened).HasForms);
+        Assert.DoesNotContain("/AcroForm", output);
+        Assert.DoesNotContain("/Subtype /Widget", output);
+        Assert.Contains("/OfficeIMOForm1 Do", output);
+        Assert.Contains("<2A2A2A2A2A2A2A2A> Tj", appearance);
+        Assert.DoesNotContain("<5365637265743432> Tj", appearance);
+    }
+
+    [Fact]
     public void FlattenFields_FlattensReferencedContentArraysBeforeAppendingAppearanceStream() {
         byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdfWithReferencedContentArray(), new Dictionary<string, string> {
             ["Name"] = "Flattened value"
@@ -45,6 +60,27 @@ public partial class PdfFormFillerTests {
             var reference = Assert.IsType<PdfReference>(item);
             Assert.IsType<PdfStream>(objects[reference.ObjectNumber].Value);
         }
+    }
+
+    [Fact]
+    public void FlattenFields_MaterializesInheritedPageResourcesBeforeAddingAppearanceXObject() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildTextWidgetFormPdfWithInheritedPageResources());
+        string output = Encoding.ASCII.GetString(flattened);
+        var (objects, _) = PdfSyntax.ParseObjects(flattened);
+        var page = Assert.IsType<PdfDictionary>(objects.Values.First(indirect =>
+            indirect.Value is PdfDictionary dictionary &&
+            dictionary.Get<PdfName>("Type")?.Name == "Page").Value);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(page.Items["Resources"]);
+        PdfDictionary fonts = Assert.IsType<PdfDictionary>(resources.Items["Font"]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources.Items["XObject"]);
+
+        Assert.False(PdfInspector.Inspect(flattened).HasForms);
+        Assert.DoesNotContain("/AcroForm", output);
+        Assert.DoesNotContain("/Subtype /Widget", output);
+        Assert.Contains("Inherited form page text", output);
+        Assert.True(fonts.Items.ContainsKey("F1"));
+        Assert.True(xObjects.Items.ContainsKey("OfficeIMOForm1"));
+        Assert.Contains("/OfficeIMOForm1 Do", output);
     }
 
     [Fact]

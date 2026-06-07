@@ -11,6 +11,7 @@ public sealed class PdfLogicalPage {
         double width,
         double height,
         int rotationDegrees,
+        PdfPageGeometry geometry,
         IReadOnlyList<IPdfLogicalElement> elements,
         IReadOnlyList<PdfLogicalTextBlock> textBlocks,
         IReadOnlyList<PdfLogicalHeading> headings,
@@ -20,11 +21,13 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLogicalLinkAnnotation> links,
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations,
-        IReadOnlyList<PdfLogicalFormWidget> formWidgets) {
+        IReadOnlyList<PdfLogicalFormWidget> formWidgets,
+        IReadOnlyList<PdfPageAction> pageActions) {
         PageNumber = pageNumber;
         Width = width;
         Height = height;
         RotationDegrees = rotationDegrees;
+        Geometry = geometry;
         Elements = elements;
         TextBlocks = textBlocks;
         Headings = headings;
@@ -35,6 +38,7 @@ public sealed class PdfLogicalPage {
         Links = links;
         LinkAnnotations = linkAnnotations;
         FormWidgets = formWidgets;
+        PageActions = pageActions;
     }
 
     /// <summary>One-based source page number.</summary>
@@ -48,6 +52,42 @@ public sealed class PdfLogicalPage {
 
     /// <summary>Inherited page rotation normalized to 0, 90, 180, or 270.</summary>
     public int RotationDegrees { get; }
+
+    /// <summary>Page boundary boxes and page-level presentation metadata.</summary>
+    public PdfPageGeometry Geometry { get; }
+
+    /// <summary>Inherited /MediaBox boundary, when readable.</summary>
+    public PdfPageBox? MediaBox => Geometry.MediaBox;
+
+    /// <summary>Inherited /CropBox boundary, when readable.</summary>
+    public PdfPageBox? CropBox => Geometry.CropBox;
+
+    /// <summary>Inherited /BleedBox boundary, when readable.</summary>
+    public PdfPageBox? BleedBox => Geometry.BleedBox;
+
+    /// <summary>Inherited /TrimBox boundary, when readable.</summary>
+    public PdfPageBox? TrimBox => Geometry.TrimBox;
+
+    /// <summary>Inherited /ArtBox boundary, when readable.</summary>
+    public PdfPageBox? ArtBox => Geometry.ArtBox;
+
+    /// <summary>Inherited page user-unit scale from /UserUnit, when present and positive.</summary>
+    public double? UserUnit => Geometry.UserUnit;
+
+    /// <summary>Page tab order from /Tabs, when present.</summary>
+    public string? TabOrder => Geometry.TabOrder;
+
+    /// <summary>Page display duration from /Dur, in seconds, when present.</summary>
+    public double? DurationSeconds => Geometry.DurationSeconds;
+
+    /// <summary>Page transition dictionary from /Trans, when present and readable.</summary>
+    public PdfPageTransition? Transition => Geometry.Transition;
+
+    /// <summary>True when page-level /Metadata was present.</summary>
+    public bool HasPageMetadata => Geometry.HasMetadata;
+
+    /// <summary>True when page-level /PieceInfo was present.</summary>
+    public bool HasPieceInfo => Geometry.HasPieceInfo;
 
     /// <summary>Logical elements in extraction order.</summary>
     public IReadOnlyList<IPdfLogicalElement> Elements { get; }
@@ -110,7 +150,7 @@ public sealed class PdfLogicalPage {
     /// <summary>Image XObjects referenced by the page.</summary>
     public IReadOnlyList<PdfLogicalImage> Images { get; }
 
-    /// <summary>URI and named-destination link annotations on the page.</summary>
+    /// <summary>URI, named-destination, direct-destination, named-action, and remote GoTo link annotations on the page.</summary>
     public IReadOnlyList<PdfLogicalLinkAnnotation> Links { get; }
 
     /// <summary>Simple link annotations read from the page.</summary>
@@ -119,8 +159,18 @@ public sealed class PdfLogicalPage {
     /// <summary>AcroForm widget annotations placed on this page.</summary>
     public IReadOnlyList<PdfLogicalFormWidget> FormWidgets { get; }
 
-    internal static PdfLogicalPage From(PdfReadPage page, int pageNumber, PdfTextLayoutOptions? options, IReadOnlyList<PdfFormField>? formFields = null) {
+    /// <summary>Page-level additional actions attached to the source page dictionary.</summary>
+    public IReadOnlyList<PdfPageAction> PageActions { get; }
+
+    /// <summary>Number of page-level additional actions attached to the source page dictionary.</summary>
+    public int PageActionCount => PageActions.Count;
+
+    /// <summary>True when the source page dictionary has page-level additional actions.</summary>
+    public bool HasPageActions => PageActionCount > 0;
+
+    internal static PdfLogicalPage From(PdfReadDocument document, PdfReadPage page, int pageNumber, PdfTextLayoutOptions? options, IReadOnlyList<PdfFormField>? formFields = null) {
         var size = page.GetPageSize();
+        PdfPageGeometry geometry = page.GetGeometry();
         var structured = page.ExtractStructured(options);
         var elements = new List<IPdfLogicalElement>();
         var textBlocks = new List<PdfLogicalTextBlock>();
@@ -170,7 +220,8 @@ public sealed class PdfLogicalPage {
 
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations = page.GetLinkAnnotations();
         for (int i = 0; i < linkAnnotations.Count; i++) {
-            var logicalLink = new PdfLogicalLinkAnnotation(pageNumber, linkAnnotations[i]);
+            PdfLinkAnnotation linkAnnotation = ResolveLinkDestinationPageNumber(document, linkAnnotations[i]);
+            var logicalLink = new PdfLogicalLinkAnnotation(pageNumber, linkAnnotation);
             links.Add(logicalLink);
             elements.Add(logicalLink);
         }
@@ -189,11 +240,18 @@ public sealed class PdfLogicalPage {
             }
         }
 
+        IReadOnlyList<PdfPageAction> readPageActions = page.GetPageActions();
+        var pageActions = new List<PdfPageAction>(readPageActions.Count);
+        for (int i = 0; i < readPageActions.Count; i++) {
+            pageActions.Add(readPageActions[i].WithPageNumber(pageNumber));
+        }
+
         return new PdfLogicalPage(
             pageNumber,
             size.Width,
             size.Height,
             page.GetRotationDegrees(),
+            geometry,
             elements.AsReadOnly(),
             textBlocks.AsReadOnly(),
             BuildHeadings(pageNumber, structured.Headings, textBlocks),
@@ -203,7 +261,16 @@ public sealed class PdfLogicalPage {
             images.AsReadOnly(),
             links.AsReadOnly(),
             linkAnnotations,
-            formWidgets.AsReadOnly());
+            formWidgets.AsReadOnly(),
+            pageActions.AsReadOnly());
+    }
+
+    private static PdfLinkAnnotation ResolveLinkDestinationPageNumber(PdfReadDocument document, PdfLinkAnnotation link) {
+        if (link.DestinationPageNumber.HasValue || !link.DestinationPageObjectNumber.HasValue) {
+            return link;
+        }
+
+        return link.WithDestinationPageNumber(document.GetPageNumberForObject(link.DestinationPageObjectNumber.Value));
     }
 
     private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(int pageNumber, List<StructuredParagraph> paragraphs, IReadOnlyList<PdfLogicalTextBlock> textBlocks) {

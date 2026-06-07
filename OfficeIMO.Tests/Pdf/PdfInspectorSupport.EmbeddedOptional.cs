@@ -284,5 +284,171 @@ public partial class PdfInspectorTests {
         return System.Text.Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildCatalogActiveActionSlotsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction 5 0 R /AA << /WC 6 0 R /DS << /S /SubmitForm /F (https://evotec.xyz/post) >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /S /JavaScript /JS (app.alert('OfficeIMO')) /Next 7 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /RichMedia >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildActiveAnnotationActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R 6 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [10 20 90 42] /Contents (Script link) /A << /S /JavaScript /JS (app.alert('OfficeIMO')) >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Annot /Subtype /Text /Rect [100 100 120 120] /Contents (Active note) /AA << /E << /S /Launch /F (tool.exe) >> /X << /S /SubmitForm /F (https://evotec.xyz/post) >> >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPageAdditionalActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O << /S /JavaScript /JS (app.alert('Page open')) >> /C << /S /Launch /F (tool.exe) >> >> >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildChainedAnnotationActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R 6 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [10 20 90 42] /Contents (Script chain) /A << /S /JavaScript /JS (app.alert('OfficeIMO')) /Next [7 0 R 8 0 R] >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Annot /Subtype /Text /Rect [100 100 120 120] /Contents (Active note chain) /AA << /E << /S /SubmitForm /F (https://evotec.xyz/post) /Next 9 0 R >> >> >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "8 0 obj",
+            "<< /S /RichMedia >>",
+            "endobj",
+            "9 0 obj",
+            "<< /S /ImportData /F (data.fdf) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 10 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPageChainedActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O << /S /JavaScript /JS (app.alert('Page open')) /Next [5 0 R 6 0 R] >> >> >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /RichMedia >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
 
 }

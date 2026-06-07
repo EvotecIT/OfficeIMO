@@ -64,6 +64,21 @@ public sealed partial class PdfOptions {
     /// <summary>When true, H1/H2/H3 blocks are written as PDF outline/bookmark entries.</summary>
     public bool CreateOutlineFromHeadings { get; set; }
 
+    /// <summary>
+    /// Highest outline level expanded when generated heading outlines are opened in a PDF reader. Defaults to all levels.
+    /// Set to 0 to show only top-level entries with children collapsed.
+    /// </summary>
+    public int OutlineExpansionLevel {
+        get => _outlineExpansionLevel;
+        set {
+            if (value < 0) {
+                throw new ArgumentOutOfRangeException(nameof(value), value, "PDF outline expansion level must be non-negative.");
+            }
+
+            _outlineExpansionLevel = value;
+        }
+    }
+
     /// <summary>Applies reusable default styles to this options object.</summary>
     public PdfOptions ApplyTheme(PdfTheme theme) {
         Guard.NotNull(theme, nameof(theme));
@@ -79,6 +94,7 @@ public sealed partial class PdfOptions {
     internal PdfImageStyle? DefaultImageStyleSnapshot => _defaultImageStyle;
     internal PdfDrawingStyle? DefaultDrawingStyleSnapshot => _defaultDrawingStyle;
     internal PdfRowStyle? DefaultRowStyleSnapshot => _defaultRowStyle;
+    internal int OutlineExpansionLevelSnapshot => _outlineExpansionLevel;
 
     /// <summary>Sets the default style for a built-in heading level.</summary>
     public PdfOptions SetDefaultHeadingStyle(int level, PdfHeadingStyle style) {

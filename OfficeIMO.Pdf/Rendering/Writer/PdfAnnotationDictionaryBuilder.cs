@@ -2,10 +2,24 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-internal static class PdfAnnotationDictionaryBuilder {
+internal static partial class PdfAnnotationDictionaryBuilder {
+    private const int FieldFlagReadOnly = 1;
+    private const int FieldFlagRequired = 2;
+    private const int FieldFlagNoExport = 4;
+    private const int FieldFlagMultiline = 4096;
+    private const int FieldFlagPassword = 8192;
+    private const int FieldFlagCombo = 131072;
+    private const int FieldFlagEdit = 262144;
+    private const int FieldFlagSort = 524288;
+    private const int FieldFlagFileSelect = 1048576;
+    private const int FieldFlagDoNotSpellCheck = 4194304;
+    private const int FieldFlagDoNotScroll = 8388608;
+    private const int FieldFlagComb = 16777216;
+    private const int FieldFlagCommitOnSelectionChange = 67108864;
+
     internal static string BuildUriLinkAnnotation(double x1, double y1, double x2, double y2, string uri, string? contents = null, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
-        Guard.AbsoluteUri(uri, nameof(uri));
+        Guard.UriAction(uri, nameof(uri));
 
         return "<< /Type /Annot /Subtype /Link /Border [0 0 0]" + BuildContentsEntry(contents) + " /Rect [" +
             FormatCoordinate(x1) + " " +
@@ -35,6 +49,27 @@ internal static class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
+    internal static string BuildAppearanceStreamDictionary(double width, double height, int contentLength, int helveticaFontId = 0) {
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        if (contentLength < 0) {
+            throw new ArgumentOutOfRangeException(nameof(contentLength), "PDF annotation appearance stream length cannot be negative.");
+        }
+
+        string resources = helveticaFontId > 0
+            ? " /Resources << /Font << /Helv " + PdfSyntaxEscaper.IndirectReference(helveticaFontId) + " >> >>"
+            : string.Empty;
+        return "<< /Type /XObject /Subtype /Form /BBox [0 0 " +
+            FormatCoordinate(width) +
+            " " +
+            FormatCoordinate(height) +
+            "]" +
+            resources +
+            " /Length " +
+            contentLength.ToString(CultureInfo.InvariantCulture) +
+            " >>";
+    }
+
     internal static string BuildTextFieldWidgetAnnotation(double x1, double y1, double x2, double y2, string name, string value, double fontSize, int normalAppearanceId, PdfFormFieldStyle? style = null, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(name, nameof(name));
@@ -47,6 +82,8 @@ internal static class PdfAnnotationDictionaryBuilder {
         return "<< /Type /Annot /Subtype /Widget /FT /Tx /T " +
             PdfSyntaxEscaper.TextString(name) +
             BuildFormFieldMetadataEntries(style) +
+            BuildTextFieldFlagsEntry(style) +
+            BuildMaxLengthEntry(style) +
             " /V " +
             PdfSyntaxEscaper.WinAnsiHexString(value) +
             " /DV " +
@@ -58,6 +95,7 @@ internal static class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /F 4 /DA " +
             PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf " + PdfAcroFormDictionaryBuilder.FormatColor((style ?? new PdfFormFieldStyle()).TextColor) + " rg") +
+            BuildQuaddingEntry(style) +
             BuildMkEntry(style) +
             " /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
@@ -80,6 +118,7 @@ internal static class PdfAnnotationDictionaryBuilder {
         return "<< /Type /Annot /Subtype /Widget /FT /Btn /T " +
             PdfSyntaxEscaper.TextString(name) +
             BuildFormFieldMetadataEntries(style) +
+            BuildFieldFlagsEntry(style) +
             " /V /" +
             PdfSyntaxEscaper.Name(selectedName) +
             " /DV /" +
@@ -158,7 +197,7 @@ internal static class PdfAnnotationDictionaryBuilder {
             }
         }
 
-        int flags = (isComboBox ? 131072 : 0) | (allowsMultipleSelection ? 2097152 : 0);
+        int flags = BuildChoiceFieldFlags(style, (isComboBox ? FieldFlagCombo : 0) | (allowsMultipleSelection ? 2097152 : 0), isComboBox);
         return "<< /Type /Annot /Subtype /Widget /FT /Ch /T " +
             PdfSyntaxEscaper.TextString(name) +
             BuildFormFieldMetadataEntries(style) +
@@ -177,6 +216,7 @@ internal static class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y2) +
             "] /F 4 /DA " +
             PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf " + PdfAcroFormDictionaryBuilder.FormatColor((style ?? new PdfFormFieldStyle()).TextColor) + " rg") +
+            BuildQuaddingEntry(style) +
             BuildMkEntry(style) +
             " /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
@@ -199,7 +239,8 @@ internal static class PdfAnnotationDictionaryBuilder {
         sb.Append("<< /FT /Btn /T ")
             .Append(PdfSyntaxEscaper.TextString(name))
             .Append(BuildFormFieldMetadataEntries(style))
-            .Append(" /Ff 49152 /V /")
+            .Append(BuildFieldFlagsEntry(style, 49152))
+            .Append(" /V /")
             .Append(PdfSyntaxEscaper.Name(value))
             .Append(" /DV /")
             .Append(PdfSyntaxEscaper.Name(value))
@@ -291,6 +332,112 @@ internal static class PdfAnnotationDictionaryBuilder {
         return sb.ToString();
     }
 
+    private static string BuildQuaddingEntry(PdfFormFieldStyle? style) {
+        if (style == null || !style.TextAlignment.HasValue) {
+            return string.Empty;
+        }
+
+        return " /Q " + PdfAcroFormDictionaryBuilder.ToQuadding(style.TextAlignment.Value).ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static string BuildFieldFlagsEntry(PdfFormFieldStyle? style, int baseFlags = 0) {
+        int flags = BuildFieldFlags(style, baseFlags);
+        return flags == 0 ? string.Empty : " /Ff " + flags.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static string BuildTextFieldFlagsEntry(PdfFormFieldStyle? style) {
+        int flags = BuildFieldFlags(style);
+        if (style != null) {
+            ValidateCombTextFieldStyle(style);
+
+            if (style.IsMultiline) {
+                flags |= FieldFlagMultiline;
+            }
+
+            if (style.IsPassword) {
+                flags |= FieldFlagPassword;
+            }
+
+            if (style.IsFileSelect) {
+                flags |= FieldFlagFileSelect;
+            }
+
+            if (style.DoesNotSpellCheck) {
+                flags |= FieldFlagDoNotSpellCheck;
+            }
+
+            if (style.DoesNotScroll) {
+                flags |= FieldFlagDoNotScroll;
+            }
+
+            if (style.IsComb) {
+                flags |= FieldFlagComb;
+            }
+        }
+
+        return flags == 0 ? string.Empty : " /Ff " + flags.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static void ValidateCombTextFieldStyle(PdfFormFieldStyle style) {
+        if (!style.IsComb) {
+            return;
+        }
+
+        if (!style.MaxLength.HasValue || style.IsMultiline || style.IsPassword || style.IsFileSelect) {
+            throw new ArgumentException("PDF comb text fields require MaxLength and cannot also be multiline, password, or file-select fields.", nameof(style));
+        }
+    }
+
+    private static int BuildChoiceFieldFlags(PdfFormFieldStyle? style, int baseFlags, bool isComboBox) {
+        int flags = BuildFieldFlags(style, baseFlags);
+        if (style != null && style.DoesNotSpellCheck) {
+            flags |= FieldFlagDoNotSpellCheck;
+        }
+
+        if (style != null && style.IsEditableChoice && isComboBox) {
+            flags |= FieldFlagEdit;
+        }
+
+        if (style != null && style.IsSortedChoice) {
+            flags |= FieldFlagSort;
+        }
+
+        if (style != null && style.CommitsOnSelectionChange) {
+            flags |= FieldFlagCommitOnSelectionChange;
+        }
+
+        return flags;
+    }
+
+    private static string BuildMaxLengthEntry(PdfFormFieldStyle? style) {
+        if (style == null || !style.MaxLength.HasValue) {
+            return string.Empty;
+        }
+
+        return " /MaxLen " + style.MaxLength.Value.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static int BuildFieldFlags(PdfFormFieldStyle? style, int baseFlags = 0) {
+        int flags = baseFlags;
+        if (style == null) {
+            return flags;
+        }
+
+        if (style.IsReadOnly) {
+            flags |= FieldFlagReadOnly;
+        }
+
+        if (style.IsRequired) {
+            flags |= FieldFlagRequired;
+        }
+
+        if (style.IsNoExport) {
+            flags |= FieldFlagNoExport;
+        }
+
+        return flags;
+    }
+
     private static string BuildStructParentEntry(int? structParentIndex) {
         if (!structParentIndex.HasValue) {
             return string.Empty;
@@ -375,4 +522,5 @@ internal static class PdfAnnotationDictionaryBuilder {
 
     private static string FormatCoordinate(double value) =>
         value.ToString("0.###", CultureInfo.InvariantCulture);
+
 }

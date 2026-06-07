@@ -67,16 +67,22 @@ public static class PdfAttachmentExtractor {
     internal static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(Dictionary<int, PdfIndirectObject> objects, string trailerRaw) {
         Guard.NotNull(objects, nameof(objects));
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
-        if (catalog is null ||
-            !catalog.Items.TryGetValue("Names", out var namesObject) ||
-            ResolveDictionary(objects, namesObject) is not PdfDictionary namesDictionary ||
-            !namesDictionary.Items.TryGetValue("EmbeddedFiles", out var embeddedFilesTreeObject)) {
+        if (catalog is null) {
             return Array.Empty<PdfExtractedAttachment>();
         }
 
         var attachments = new List<PdfExtractedAttachment>();
-        var visitedTrees = new HashSet<int>();
-        ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, visitedTrees);
+        if (catalog.Items.TryGetValue("Names", out var namesObject) &&
+            ResolveDictionary(objects, namesObject) is PdfDictionary namesDictionary &&
+            namesDictionary.Items.TryGetValue("EmbeddedFiles", out var embeddedFilesTreeObject)) {
+            var visitedTrees = new HashSet<int>();
+            ReadEmbeddedFilesNameTree(objects, embeddedFilesTreeObject, attachments, visitedTrees);
+        }
+
+        if (ResolveObject(objects, catalog.Items.TryGetValue("AF", out var associatedFilesObject) ? associatedFilesObject : null) is PdfArray associatedFiles) {
+            ReadAssociatedFiles(objects, associatedFiles, attachments);
+        }
+
         return attachments.Count == 0 ? Array.Empty<PdfExtractedAttachment>() : attachments.AsReadOnly();
     }
 
@@ -101,7 +107,7 @@ public static class PdfAttachmentExtractor {
                 }
 
                 PdfObject fileSpecObject = names.Items[i + 1];
-                PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name.Value, fileSpecObject);
+                PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name.Value, fileSpecObject, "Names/EmbeddedFiles");
                 if (attachment != null) {
                     attachments.Add(attachment);
                 }
@@ -115,7 +121,33 @@ public static class PdfAttachmentExtractor {
         }
     }
 
-    private static PdfExtractedAttachment? TryBuildAttachment(Dictionary<int, PdfIndirectObject> objects, string name, PdfObject fileSpecObject) {
+    private static void ReadAssociatedFiles(Dictionary<int, PdfIndirectObject> objects, PdfArray associatedFiles, List<PdfExtractedAttachment> attachments) {
+        var existingFileSpecs = new HashSet<int>();
+        foreach (PdfExtractedAttachment attachment in attachments) {
+            if (attachment.FileSpecObjectNumber > 0) {
+                existingFileSpecs.Add(attachment.FileSpecObjectNumber);
+            }
+        }
+
+        for (int i = 0; i < associatedFiles.Items.Count; i++) {
+            PdfObject fileSpecObject = associatedFiles.Items[i];
+            int fileSpecObjectNumber = fileSpecObject is PdfReference reference ? reference.ObjectNumber : 0;
+            if (fileSpecObjectNumber > 0 && existingFileSpecs.Contains(fileSpecObjectNumber)) {
+                continue;
+            }
+
+            string name = TryReadFileSpecName(objects, fileSpecObject) ?? "AF." + i.ToString(CultureInfo.InvariantCulture);
+            PdfExtractedAttachment? attachment = TryBuildAttachment(objects, name, fileSpecObject, "AF");
+            if (attachment != null) {
+                attachments.Add(attachment);
+                if (attachment.FileSpecObjectNumber > 0) {
+                    existingFileSpecs.Add(attachment.FileSpecObjectNumber);
+                }
+            }
+        }
+    }
+
+    private static PdfExtractedAttachment? TryBuildAttachment(Dictionary<int, PdfIndirectObject> objects, string name, PdfObject fileSpecObject, string source) {
         int fileSpecObjectNumber = fileSpecObject is PdfReference fileSpecReference ? fileSpecReference.ObjectNumber : 0;
         if (ResolveDictionary(objects, fileSpecObject) is not PdfDictionary fileSpec ||
             ResolveDictionary(objects, fileSpec.Items.TryGetValue("EF", out var embeddedFilesObject) ? embeddedFilesObject : null) is not PdfDictionary embeddedFiles) {
@@ -151,7 +183,16 @@ public static class PdfAttachmentExtractor {
             filter,
             fileSpecObjectNumber,
             embeddedFileObjectNumber,
-            bytes);
+            bytes,
+            source);
+    }
+
+    private static string? TryReadFileSpecName(Dictionary<int, PdfIndirectObject> objects, PdfObject fileSpecObject) {
+        if (ResolveDictionary(objects, fileSpecObject) is not PdfDictionary fileSpec) {
+            return null;
+        }
+
+        return TryReadText(objects, fileSpec, "UF") ?? TryReadText(objects, fileSpec, "F");
     }
 
     private static string? TryReadText(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, string key) {

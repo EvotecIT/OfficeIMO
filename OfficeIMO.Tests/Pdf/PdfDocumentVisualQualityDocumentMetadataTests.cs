@@ -270,52 +270,220 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void ViewerPreferences_CanBeEmittedAndInspected() {
-        var options = new PdfOptions {
-            ViewerPreferences = new PdfViewerPreferencesOptions {
-                DisplayDocTitle = true,
-                HideToolbar = true,
-                FitWindow = false
-            }
-        };
+    public void PageLabelRanges_CanBeEmittedClonedInspectedAndReindexed() {
+        var options = new PdfOptions()
+            .AddPageLabelRange(3, PdfPageNumberStyle.Arabic, 1)
+            .AddPageLabelRange(1, PdfPageNumberStyle.LowerRoman, 1, "front-");
 
         byte[] bytes = PdfDocument.Create(options)
-            .Meta(title: "Viewer preference proof")
-            .ViewerPreferences(preferences => {
-                preferences.CenterWindow = true;
-                preferences.HideMenubar = false;
-            })
-            .Paragraph(p => p.Text("Viewer preferences proof."))
+            .Paragraph(p => p.Text("Cover."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Contents."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Chapter one."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);
         PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
-        PdfViewerPreferences viewerPreferences = Assert.IsType<PdfViewerPreferences>(info.ViewerPreferences);
-        PdfViewerPreferencesOptions clone = options.Clone().ViewerPreferences!;
+        PdfOptions clone = options.Clone();
 
-        Assert.Contains("/ViewerPreferences ", raw, StringComparison.Ordinal);
-        Assert.Contains("/DisplayDocTitle true", raw, StringComparison.Ordinal);
-        Assert.Contains("/HideToolbar true", raw, StringComparison.Ordinal);
-        Assert.Contains("/FitWindow false", raw, StringComparison.Ordinal);
-        Assert.Contains("/CenterWindow true", raw, StringComparison.Ordinal);
-        Assert.Contains("/HideMenubar false", raw, StringComparison.Ordinal);
-        Assert.True(info.HasViewerPreferences);
-        Assert.True(info.HasReadableViewerPreferences);
-        Assert.True(preflight.Probe.HasViewerPreferences);
+        Assert.Contains("/PageLabels ", raw, StringComparison.Ordinal);
+        Assert.Contains("/Nums [0 << /S /r /St 1 /P <66726F6E742D> >> 2 << /S /D /St 1 >>]", raw, StringComparison.Ordinal);
+        Assert.True(info.HasPageLabels);
+        Assert.True(info.HasReadablePageLabels);
         Assert.True(preflight.CanRewrite);
-        Assert.True(viewerPreferences.GetBoolean("DisplayDocTitle"));
-        Assert.True(viewerPreferences.GetBoolean("HideToolbar"));
-        Assert.False(viewerPreferences.GetBoolean("FitWindow"));
-        Assert.True(viewerPreferences.GetBoolean("CenterWindow"));
-        Assert.False(viewerPreferences.GetBoolean("HideMenubar"));
-        Assert.True(clone.DisplayDocTitle);
-        Assert.True(clone.HideToolbar);
-        Assert.False(clone.FitWindow);
-        Assert.Null(clone.CenterWindow);
+        Assert.Equal(2, info.PageLabels.Count);
+        Assert.Equal(new[] { 0, 2 }, info.PageLabels.Select(label => label.StartPageIndex).ToArray());
+        Assert.Equal(new[] { "r", "D" }, info.PageLabels.Select(label => label.Style).ToArray());
+        Assert.Equal(new[] { "front-", null }, info.PageLabels.Select(label => label.Prefix).ToArray());
+        Assert.Equal(new[] { 1, 1 }, info.PageLabels.Select(label => label.StartNumber!.Value).ToArray());
+        Assert.True(clone.IncludePageLabels);
+        Assert.Equal(2, clone.PageLabelRanges.Count);
+        Assert.Equal(new[] { 1, 3 }, clone.PageLabelRanges.Select(range => range.StartPageNumber).ToArray());
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(bytes, 2, 3);
+        PdfDocumentInfo extractedInfo = PdfInspector.Inspect(extracted);
+        Assert.Equal(2, extractedInfo.PageLabels.Count);
+        Assert.Equal(new[] { 0, 1 }, extractedInfo.PageLabels.Select(label => label.StartPageIndex).ToArray());
+        Assert.Equal(new[] { "front-", null }, extractedInfo.PageLabels.Select(label => label.Prefix).ToArray());
+        Assert.Equal(new[] { 2, 1 }, extractedInfo.PageLabels.Select(label => label.StartNumber!.Value).ToArray());
+
+        Assert.Throws<ArgumentException>(() => options.AddPageLabelRange(1, PdfPageNumberStyle.Arabic));
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfDocument.Create().PageLabelRange(2, PdfPageNumberStyle.Arabic).Paragraph(p => p.Text("Only one page.")).ToBytes());
+    }
+
+    [Fact]
+    public void CatalogView_CanBeEmittedClonedInspectedAndPreservedOnExtraction() {
+        var options = new PdfOptions()
+            .SetCatalogView(PdfCatalogPageMode.FullScreen, PdfCatalogPageLayout.TwoColumnLeft);
+
+        byte[] bytes = PdfDocument.Create(options)
+            .CatalogPageMode(PdfCatalogPageMode.UseThumbs)
+            .CatalogPageLayout(PdfCatalogPageLayout.SinglePage)
+            .Paragraph(p => p.Text("Catalog view proof."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second page."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfOptions clone = options.Clone();
+
+        Assert.Contains("/PageMode /UseThumbs", raw, StringComparison.Ordinal);
+        Assert.Contains("/PageLayout /SinglePage", raw, StringComparison.Ordinal);
+        Assert.True(preflight.Probe.HasCatalogViewSettings);
+        Assert.True(preflight.CanRewrite);
+        Assert.Equal("UseThumbs", info.CatalogPageMode);
+        Assert.Equal("SinglePage", info.CatalogPageLayout);
+        Assert.Equal(PdfCatalogPageMode.FullScreen, clone.CatalogPageMode);
+        Assert.Equal(PdfCatalogPageLayout.TwoColumnLeft, clone.CatalogPageLayout);
 
         byte[] extracted = PdfPageExtractor.ExtractPages(bytes, 1);
-        Assert.True(PdfInspector.Inspect(extracted).ViewerPreferences!.GetBoolean("DisplayDocTitle"));
+        PdfDocumentInfo extractedInfo = PdfInspector.Inspect(extracted);
+        Assert.Equal("UseThumbs", extractedInfo.CatalogPageMode);
+        Assert.Equal("SinglePage", extractedInfo.CatalogPageLayout);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions { CatalogPageMode = (PdfCatalogPageMode)99 });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOptions { CatalogPageLayout = (PdfCatalogPageLayout)99 });
+    }
+
+    [Fact]
+    public void OpenAction_CanBeEmittedClonedInspectedAndFilteredOnExtraction() {
+        var options = new PdfOptions().SetOpenAction(pageNumber: 2, destinationTop: 700D);
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("First page."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Open here."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Third page."))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfDocumentPreflight preflight = PdfInspector.Preflight(bytes);
+        PdfDocumentOpenAction openAction = Assert.IsType<PdfDocumentOpenAction>(info.OpenAction);
+        PdfOpenActionOptions cloneOpenAction = Assert.IsType<PdfOpenActionOptions>(options.Clone().OpenAction);
+
+        Assert.Contains("/OpenAction [", raw, StringComparison.Ordinal);
+        Assert.Contains("/XYZ 0 700 0", raw, StringComparison.Ordinal);
+        Assert.True(info.HasOpenActions);
+        Assert.True(info.HasReadableOpenAction);
+        Assert.True(preflight.Probe.HasOpenActions);
+        Assert.True(preflight.CanRewrite);
+        Assert.Equal("Destination", openAction.ActionType);
+        Assert.Equal(2, openAction.PageNumber);
+        Assert.Equal(700D, openAction.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, openAction.DestinationMode);
+        Assert.Equal(2, cloneOpenAction.PageNumber);
+        Assert.Equal(700D, cloneOpenAction.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, cloneOpenAction.DestinationMode);
+
+        byte[] extractedTarget = PdfPageExtractor.ExtractPages(bytes, 2);
+        PdfDocumentOpenAction extractedOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(extractedTarget).OpenAction);
+        Assert.Equal(1, extractedOpenAction.PageNumber);
+        Assert.Equal(700D, extractedOpenAction.DestinationTop);
+        Assert.Equal(PdfOpenActionDestinationMode.Xyz, extractedOpenAction.DestinationMode);
+
+        byte[] extractedOther = PdfPageExtractor.ExtractPages(bytes, 1);
+        PdfDocumentInfo otherInfo = PdfInspector.Inspect(extractedOther);
+        Assert.False(otherInfo.HasOpenActions);
+        Assert.False(otherInfo.HasReadableOpenAction);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOpenActionOptions(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOpenActionOptions(1, double.PositiveInfinity));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfOpenActionOptions(1, destinationMode: (PdfOpenActionDestinationMode)99));
+        Assert.Throws<InvalidOperationException>(() =>
+            PdfDocument.Create().OpenAction(2).Paragraph(p => p.Text("Only one page.")).ToBytes());
+    }
+
+    [Fact]
+    public void OpenAction_CanEmitFitAndFitHorizontalDestinations() {
+        byte[] fitBytes = PdfDocument.Create(new PdfOptions().SetOpenAction(destinationMode: PdfOpenActionDestinationMode.Fit))
+            .Paragraph(p => p.Text("Fit page."))
+            .ToBytes();
+        string fitRaw = Encoding.ASCII.GetString(fitBytes);
+        PdfDocumentOpenAction fitOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitBytes).OpenAction);
+
+        Assert.Contains("/OpenAction [", fitRaw, StringComparison.Ordinal);
+        Assert.Contains("/Fit]", fitRaw, StringComparison.Ordinal);
+        Assert.DoesNotContain("/XYZ", fitRaw, StringComparison.Ordinal);
+        Assert.Equal(PdfOpenActionDestinationMode.Fit, fitOpenAction.DestinationMode);
+        Assert.Equal(1, fitOpenAction.PageNumber);
+        Assert.Null(fitOpenAction.DestinationTop);
+
+        byte[] fitHorizontalBytes = PdfDocument.Create()
+            .OpenAction(1, 640D, PdfOpenActionDestinationMode.FitHorizontal)
+            .Paragraph(p => p.Text("Fit horizontal page."))
+            .ToBytes();
+        string fitHorizontalRaw = Encoding.ASCII.GetString(fitHorizontalBytes);
+        PdfDocumentOpenAction fitHorizontalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitHorizontalBytes).OpenAction);
+
+        Assert.Contains("/FitH 640]", fitHorizontalRaw, StringComparison.Ordinal);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, fitHorizontalOpenAction.DestinationMode);
+        Assert.Equal(1, fitHorizontalOpenAction.PageNumber);
+        Assert.Equal(640D, fitHorizontalOpenAction.DestinationTop);
+
+        byte[] extracted = PdfPageExtractor.ExtractPages(fitHorizontalBytes, 1);
+        PdfDocumentOpenAction extractedOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(extracted).OpenAction);
+        Assert.Equal(PdfOpenActionDestinationMode.FitHorizontal, extractedOpenAction.DestinationMode);
+        Assert.Equal(640D, extractedOpenAction.DestinationTop);
+    }
+
+    [Fact]
+    public void OpenAction_CanEmitExtendedDestinationModes() {
+        byte[] fitVerticalBytes = PdfDocument.Create()
+            .OpenAction(1, destinationMode: PdfOpenActionDestinationMode.FitVertical, destinationLeft: 36D)
+            .Paragraph(p => p.Text("Fit vertical page."))
+            .ToBytes();
+        string fitVerticalRaw = Encoding.ASCII.GetString(fitVerticalBytes);
+        PdfDocumentOpenAction fitVerticalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitVerticalBytes).OpenAction);
+        Assert.Contains("/FitV 36]", fitVerticalRaw, StringComparison.Ordinal);
+        Assert.Equal(PdfOpenActionDestinationMode.FitVertical, fitVerticalOpenAction.DestinationMode);
+        Assert.Equal(36D, fitVerticalOpenAction.DestinationLeft);
+        Assert.Null(fitVerticalOpenAction.DestinationTop);
+
+        byte[] fitRectangleBytes = PdfDocument.Create()
+            .OpenAction(1, 640D, PdfOpenActionDestinationMode.FitRectangle, destinationLeft: 24D, destinationBottom: 48D, destinationRight: 320D)
+            .Paragraph(p => p.Text("Fit rectangle page."))
+            .ToBytes();
+        string fitRectangleRaw = Encoding.ASCII.GetString(fitRectangleBytes);
+        PdfDocumentOpenAction fitRectangleOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitRectangleBytes).OpenAction);
+        Assert.Contains("/FitR 24 48 320 640]", fitRectangleRaw, StringComparison.Ordinal);
+        Assert.Equal(PdfOpenActionDestinationMode.FitRectangle, fitRectangleOpenAction.DestinationMode);
+        Assert.Equal(24D, fitRectangleOpenAction.DestinationLeft);
+        Assert.Equal(48D, fitRectangleOpenAction.DestinationBottom);
+        Assert.Equal(320D, fitRectangleOpenAction.DestinationRight);
+        Assert.Equal(640D, fitRectangleOpenAction.DestinationTop);
+
+        byte[] fitBoundingBoxBytes = PdfDocument.Create(new PdfOptions().SetOpenAction(destinationMode: PdfOpenActionDestinationMode.FitBoundingBox))
+            .Paragraph(p => p.Text("Fit bounding box page."))
+            .ToBytes();
+        string fitBoundingBoxRaw = Encoding.ASCII.GetString(fitBoundingBoxBytes);
+        PdfDocumentOpenAction fitBoundingBoxOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitBoundingBoxBytes).OpenAction);
+        Assert.Contains("/FitB]", fitBoundingBoxRaw, StringComparison.Ordinal);
+        Assert.Equal(PdfOpenActionDestinationMode.FitBoundingBox, fitBoundingBoxOpenAction.DestinationMode);
+
+        byte[] fitBoundingHorizontalBytes = PdfDocument.Create()
+            .OpenAction(1, 610D, PdfOpenActionDestinationMode.FitBoundingBoxHorizontal)
+            .Paragraph(p => p.Text("Fit bounding box horizontal page."))
+            .ToBytes();
+        PdfDocumentOpenAction fitBoundingHorizontalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitBoundingHorizontalBytes).OpenAction);
+        Assert.Contains("/FitBH 610]", Encoding.ASCII.GetString(fitBoundingHorizontalBytes), StringComparison.Ordinal);
+        Assert.Equal(PdfOpenActionDestinationMode.FitBoundingBoxHorizontal, fitBoundingHorizontalOpenAction.DestinationMode);
+        Assert.Equal(610D, fitBoundingHorizontalOpenAction.DestinationTop);
+
+        byte[] fitBoundingVerticalBytes = PdfDocument.Create()
+            .OpenAction(1, destinationMode: PdfOpenActionDestinationMode.FitBoundingBoxVertical, destinationLeft: 42D)
+            .Paragraph(p => p.Text("Fit bounding box vertical page."))
+            .ToBytes();
+        PdfDocumentOpenAction fitBoundingVerticalOpenAction = Assert.IsType<PdfDocumentOpenAction>(PdfInspector.Inspect(fitBoundingVerticalBytes).OpenAction);
+        Assert.Contains("/FitBV 42]", Encoding.ASCII.GetString(fitBoundingVerticalBytes), StringComparison.Ordinal);
+        Assert.Equal(PdfOpenActionDestinationMode.FitBoundingBoxVertical, fitBoundingVerticalOpenAction.DestinationMode);
+        Assert.Equal(42D, fitBoundingVerticalOpenAction.DestinationLeft);
     }
 
     [Fact]

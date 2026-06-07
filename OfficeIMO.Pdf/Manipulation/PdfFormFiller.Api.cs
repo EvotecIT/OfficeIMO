@@ -181,7 +181,7 @@ public static partial class PdfFormFiller {
         var widgets = new Dictionary<int, FlattenWidgetState>();
         var removableObjects = new HashSet<int>();
         for (int i = 0; i < fields.Items.Count; i++) {
-            CollectFlattenWidgets(objects, fields.Items[i], null, null, null, null, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
+            CollectFlattenWidgets(objects, fields.Items[i], null, 0, null, null, null, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (widgets.Count == 0) {

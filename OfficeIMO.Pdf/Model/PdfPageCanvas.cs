@@ -129,7 +129,7 @@ public sealed class PdfPageCanvas {
         ValidateCanvasCoordinate(y, nameof(y));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         ValidateFiniteRotation(rotationAngle, nameof(rotationAngle), "Canvas image rotation angle must be finite.");
 
         PdfImageStyle? imageStyle = PdfDocument.CreateImageStyle(PdfAlign.Left, style?.ClipPath, style?.Fit, spacingBefore: 0D, spacingAfter: 0D, style, alternativeText);
@@ -143,6 +143,48 @@ public sealed class PdfPageCanvas {
         }
 
         _items.Add(new PdfCanvasImageItem(new ImageBlock(imageBytes, width, height, imageInfo, imageStyle, linkUri, linkContents), x, y, rotationAngle, horizontalFlip, verticalFlip));
+        return this;
+    }
+
+    /// <summary>Adds a PDF text annotation at fixed top-left page coordinates.</summary>
+    public PdfPageCanvas TextAnnotation(string contents, double x, double y, double width = 18D, double height = 18D, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, PdfColor? color = null, bool open = false) {
+        Guard.NotNullOrWhiteSpace(contents, nameof(contents));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        PdfDocument.ValidateTextAnnotationIcon(icon, nameof(icon));
+        _items.Add(new PdfCanvasTextAnnotationItem(contents, x, y, width, height, icon, color, open));
+        return this;
+    }
+
+    /// <summary>Adds a PDF free-text annotation at fixed top-left page coordinates.</summary>
+    public PdfPageCanvas FreeTextAnnotation(string contents, double x, double y, double width, double height, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null) {
+        Guard.NotNullOrWhiteSpace(contents, nameof(contents));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        Guard.Positive(fontSize, nameof(fontSize));
+        Guard.NonNegative(borderWidth, nameof(borderWidth));
+        Guard.LeftCenterRightAlign(textAlign, nameof(textAlign), "Canvas free text annotation text");
+        Guard.NonNegative(padding, nameof(padding));
+        if (lineHeight.HasValue) {
+            Guard.Positive(lineHeight.Value, nameof(lineHeight));
+        }
+
+        _items.Add(new PdfCanvasFreeTextAnnotationItem(contents, x, y, width, height, fontSize, textColor ?? PdfColor.Black, borderColor, borderWidth, fillColor, textAlign, padding, lineHeight));
+        return this;
+    }
+
+    /// <summary>Adds a PDF highlight annotation rectangle at fixed top-left page coordinates.</summary>
+    public PdfPageCanvas HighlightAnnotation(string contents, double x, double y, double width, double height, PdfColor? color = null) {
+        Guard.NotNullOrWhiteSpace(contents, nameof(contents));
+        ValidateCanvasCoordinate(x, nameof(x));
+        ValidateCanvasCoordinate(y, nameof(y));
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        _items.Add(new PdfCanvasHighlightAnnotationItem(contents, x, y, width, height, color ?? new PdfColor(1D, 0.92D, 0.2D)));
         return this;
     }
 
@@ -374,6 +416,69 @@ internal sealed class PdfCanvasImageItem : PdfCanvasItem {
     public double RotationAngle { get; }
     public bool HorizontalFlip { get; }
     public bool VerticalFlip { get; }
+}
+
+internal sealed class PdfCanvasTextAnnotationItem : PdfCanvasItem {
+    public PdfCanvasTextAnnotationItem(string contents, double x, double y, double width, double height, PdfTextAnnotationIcon icon, PdfColor? color, bool open)
+        : base(x, y) {
+        Contents = contents;
+        Width = width;
+        Height = height;
+        Icon = icon;
+        Color = color;
+        Open = open;
+    }
+
+    public string Contents { get; }
+    public double Width { get; }
+    public double Height { get; }
+    public PdfTextAnnotationIcon Icon { get; }
+    public PdfColor? Color { get; }
+    public bool Open { get; }
+}
+
+internal sealed class PdfCanvasFreeTextAnnotationItem : PdfCanvasItem {
+    public PdfCanvasFreeTextAnnotationItem(string contents, double x, double y, double width, double height, double fontSize, PdfColor textColor, PdfColor? borderColor, double borderWidth, PdfColor? fillColor, PdfAlign textAlign, double padding, double? lineHeight)
+        : base(x, y) {
+        Contents = contents;
+        Width = width;
+        Height = height;
+        FontSize = fontSize;
+        TextColor = textColor;
+        BorderColor = borderColor;
+        BorderWidth = borderWidth;
+        FillColor = fillColor;
+        TextAlign = textAlign;
+        Padding = padding;
+        LineHeight = lineHeight;
+    }
+
+    public string Contents { get; }
+    public double Width { get; }
+    public double Height { get; }
+    public double FontSize { get; }
+    public PdfColor TextColor { get; }
+    public PdfColor? BorderColor { get; }
+    public double BorderWidth { get; }
+    public PdfColor? FillColor { get; }
+    public PdfAlign TextAlign { get; }
+    public double Padding { get; }
+    public double? LineHeight { get; }
+}
+
+internal sealed class PdfCanvasHighlightAnnotationItem : PdfCanvasItem {
+    public PdfCanvasHighlightAnnotationItem(string contents, double x, double y, double width, double height, PdfColor color)
+        : base(x, y) {
+        Contents = contents;
+        Width = width;
+        Height = height;
+        Color = color;
+    }
+
+    public string Contents { get; }
+    public double Width { get; }
+    public double Height { get; }
+    public PdfColor Color { get; }
 }
 
 internal sealed class PdfCanvasTableItem : PdfCanvasItem {

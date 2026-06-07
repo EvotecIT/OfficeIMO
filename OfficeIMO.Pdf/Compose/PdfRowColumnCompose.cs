@@ -124,6 +124,21 @@ public class PdfRowColumnCompose {
         _col.AddBlock(new RadioButtonGroupBlock(name, options, value, size, gap, align, spacingBefore, spacingAfter, style));
         return this;
     }
+    /// <summary>Adds a PDF text annotation in the column.</summary>
+    public PdfRowColumnCompose TextAnnotation(string contents, double width = 18D, double height = 18D, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, PdfColor? color = null, bool open = false) {
+        _col.AddBlock(PdfDocument.CreateTextAnnotationBlock(contents, width, height, align, spacingBefore, spacingAfter, icon, color, open));
+        return this;
+    }
+    /// <summary>Adds a PDF free-text annotation in the column.</summary>
+    public PdfRowColumnCompose FreeTextAnnotation(string contents, double width, double height, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null) {
+        _col.AddBlock(PdfDocument.CreateFreeTextAnnotationBlock(contents, width, height, align, spacingBefore, spacingAfter, fontSize, textColor, borderColor, borderWidth, fillColor, textAlign, padding, lineHeight));
+        return this;
+    }
+    /// <summary>Adds a PDF highlight annotation rectangle in the column.</summary>
+    public PdfRowColumnCompose HighlightAnnotation(string contents, double width, double height, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfColor? color = null) {
+        _col.AddBlock(PdfDocument.CreateHighlightAnnotationBlock(contents, width, height, align, spacingBefore, spacingAfter, color));
+        return this;
+    }
     /// <summary>Adds a shared OfficeIMO.Drawing shape in the column.</summary>
     public PdfRowColumnCompose Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _col.AddBlock(PdfDocument.CreateShapeBlock(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents)); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing scene in the column.</summary>
@@ -212,7 +227,7 @@ public class PdfRowColumnCompose {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         PdfImageStyle? imageStyle = PdfDocument.CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
         if (imageStyle != null) {
             PdfDocument.ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));

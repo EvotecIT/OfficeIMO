@@ -3,12 +3,24 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Basic document-level information useful for inspection and automation scenarios.
 /// </summary>
-public sealed class PdfDocumentInfo {
+public sealed partial class PdfDocumentInfo {
     private const int AcroFormSignaturesExistFlag = 1;
     private const int AcroFormAppendOnlyFlag = 2;
+    private IReadOnlyList<PdfAnnotation>? _annotations;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfAnnotation>>? _annotationsBySubtype;
+    private IReadOnlyList<string>? _annotationActionTypes;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfAnnotation>>? _annotationsByActionType;
     private IReadOnlyList<PdfLinkAnnotation>? _linkAnnotations;
     private IReadOnlyList<string>? _linkUris;
     private IReadOnlyList<string>? _linkDestinationNames;
+    private IReadOnlyList<int>? _linkDestinationPageNumbers;
+    private IReadOnlyList<string>? _linkNamedActions;
+    private IReadOnlyList<string>? _linkRemoteFiles;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLinkAnnotation>>? _linkAnnotationsByUri;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLinkAnnotation>>? _linkAnnotationsByDestinationName;
+    private IReadOnlyDictionary<int, IReadOnlyList<PdfLinkAnnotation>>? _linkAnnotationsByDestinationPageNumber;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLinkAnnotation>>? _linkAnnotationsByNamedAction;
+    private IReadOnlyDictionary<string, IReadOnlyList<PdfLinkAnnotation>>? _linkAnnotationsByRemoteFile;
     private IReadOnlyList<string>? _namedDestinationNames;
     private IReadOnlyList<string>? _formFieldNames;
     private IReadOnlyDictionary<string, PdfFormField>? _formFieldsByName;
@@ -18,18 +30,26 @@ public sealed class PdfDocumentInfo {
     private IReadOnlyDictionary<string, IReadOnlyList<PdfFormWidget>>? _formWidgetsByFieldName;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _formWidgetsByPageNumber;
 
-    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
+    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, IReadOnlyList<PdfCatalogAction> catalogActions, IReadOnlyList<PdfAttachmentInfo> attachments, IReadOnlyList<PdfOutputIntentInfo> outputIntents, PdfXmpMetadataInfo? xmpMetadata, PdfTaggedContentInfo? taggedContent, PdfOptionalContentProperties? optionalContent, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, int? acroFormQuadding, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, PdfDocumentSecurityInfo security, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
         Pages = pages;
         Metadata = metadata;
         Outlines = outlines;
         PageLabels = pageLabels;
         NamedDestinations = namedDestinations;
+        CatalogActions = catalogActions;
+        Attachments = attachments;
+        OutputIntents = outputIntents;
+        XmpMetadata = xmpMetadata;
+        TaggedContent = taggedContent;
+        OptionalContent = optionalContent;
         OpenAction = openAction;
         ViewerPreferences = viewerPreferences;
         FormFields = formFields;
         AcroFormDefaultAppearance = acroFormDefaultAppearance;
+        AcroFormQuadding = acroFormQuadding;
         AcroFormNeedAppearances = acroFormNeedAppearances;
         AcroFormSignatureFlags = acroFormSignatureFlags;
+        Security = security;
         HeaderVersion = headerVersion;
         CatalogPageMode = catalogPageMode;
         CatalogPageLayout = catalogPageLayout;
@@ -60,14 +80,137 @@ public sealed class PdfDocumentInfo {
     /// <summary>Pages in document order.</summary>
     public IReadOnlyList<PdfPageInfo> Pages { get; }
 
+    /// <summary>Number of generic page annotations read from all pages.</summary>
+    public int AnnotationCount => Annotations.Count;
+
+    /// <summary>Number of distinct primary or additional annotation action types read from all pages.</summary>
+    public int AnnotationActionTypeCount => AnnotationActionTypes.Count;
+
     /// <summary>Number of simple link annotations read from all pages.</summary>
     public int LinkAnnotationCount => LinkAnnotations.Count;
+
+    /// <summary>Generic page annotations read from all pages in document order.</summary>
+    public IReadOnlyList<PdfAnnotation> Annotations {
+        get {
+            if (_annotations is not null) {
+                return _annotations;
+            }
+
+            var annotations = new List<PdfAnnotation>();
+            for (int i = 0; i < Pages.Count; i++) {
+                for (int j = 0; j < Pages[i].Annotations.Count; j++) {
+                    var annotation = Pages[i].Annotations[j];
+                    annotations.Add(annotation.PageNumber.HasValue ? annotation : annotation.WithPageNumber(Pages[i].PageNumber));
+                }
+            }
+
+            _annotations = annotations.AsReadOnly();
+            return _annotations;
+        }
+    }
+
+    /// <summary>Generic page annotations grouped by PDF annotation subtype name.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfAnnotation>> AnnotationsBySubtype {
+        get {
+            if (_annotationsBySubtype is not null) {
+                return _annotationsBySubtype;
+            }
+
+            var grouped = new Dictionary<string, List<PdfAnnotation>>(StringComparer.Ordinal);
+            foreach (var annotation in Annotations) {
+                if (!grouped.TryGetValue(annotation.Subtype, out List<PdfAnnotation>? annotations)) {
+                    annotations = new List<PdfAnnotation>();
+                    grouped.Add(annotation.Subtype, annotations);
+                }
+
+                annotations.Add(annotation);
+            }
+
+            var result = new Dictionary<string, IReadOnlyList<PdfAnnotation>>(StringComparer.Ordinal);
+            foreach (var item in grouped) {
+                result.Add(item.Key, item.Value.AsReadOnly());
+            }
+
+            _annotationsBySubtype = new System.Collections.ObjectModel.ReadOnlyDictionary<string, IReadOnlyList<PdfAnnotation>>(result);
+            return _annotationsBySubtype;
+        }
+    }
+
+    /// <summary>Distinct primary and additional annotation action types read from all pages in first-seen document order.</summary>
+    public IReadOnlyList<string> AnnotationActionTypes {
+        get {
+            if (_annotationActionTypes is not null) {
+                return _annotationActionTypes;
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var actionTypes = new List<string>();
+            foreach (var annotation in Annotations) {
+                if (!string.IsNullOrEmpty(annotation.ActionType) && seen.Add(annotation.ActionType!)) {
+                    actionTypes.Add(annotation.ActionType!);
+                }
+
+                for (int i = 0; i < annotation.AdditionalActions.Count; i++) {
+                    string actionType = annotation.AdditionalActions[i].ActionType;
+                    if (seen.Add(actionType)) {
+                        actionTypes.Add(actionType);
+                    }
+                }
+
+                for (int i = 0; i < annotation.ChainedActions.Count; i++) {
+                    string actionType = annotation.ChainedActions[i].ActionType;
+                    if (seen.Add(actionType)) {
+                        actionTypes.Add(actionType);
+                    }
+                }
+            }
+
+            _annotationActionTypes = actionTypes.AsReadOnly();
+            return _annotationActionTypes;
+        }
+    }
+
+    /// <summary>Generic page annotations grouped by primary or additional action type.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfAnnotation>> AnnotationsByActionType {
+        get {
+            if (_annotationsByActionType is not null) {
+                return _annotationsByActionType;
+            }
+
+            var grouped = new Dictionary<string, List<PdfAnnotation>>(StringComparer.Ordinal);
+            foreach (var annotation in Annotations) {
+                if (!string.IsNullOrEmpty(annotation.ActionType)) {
+                    AddAnnotation(grouped, annotation.ActionType!, annotation);
+                }
+
+                for (int i = 0; i < annotation.AdditionalActions.Count; i++) {
+                    AddAnnotation(grouped, annotation.AdditionalActions[i].ActionType, annotation);
+                }
+
+                for (int i = 0; i < annotation.ChainedActions.Count; i++) {
+                    AddAnnotation(grouped, annotation.ChainedActions[i].ActionType, annotation);
+                }
+            }
+
+            _annotationsByActionType = ToReadOnlyLookup(grouped);
+            return _annotationsByActionType;
+        }
+    }
 
     /// <summary>Number of distinct simple URI link targets read from all pages.</summary>
     public int LinkUriCount => LinkUris.Count;
 
     /// <summary>Number of distinct simple named-destination link targets read from all pages.</summary>
     public int LinkDestinationCount => LinkDestinationNames.Count;
+
+    /// <summary>Number of distinct simple direct-destination link target pages read from all pages.</summary>
+    public int LinkDestinationPageNumberCount => LinkDestinationPageNumbers.Count;
+
+    /// <summary>Number of distinct simple named viewer actions read from all pages.</summary>
+    public int LinkNamedActionCount => LinkNamedActions.Count;
+
+    /// <summary>Number of distinct remote GoTo target files read from all pages.</summary>
+    public int LinkRemoteFileCount => LinkRemoteFiles.Count;
 
     /// <summary>Number of named destinations read from the document catalog.</summary>
     public int NamedDestinationCount => NamedDestinations.Count;
@@ -138,6 +281,201 @@ public sealed class PdfDocumentInfo {
 
             _linkDestinationNames = names.AsReadOnly();
             return _linkDestinationNames;
+        }
+    }
+
+    /// <summary>Distinct simple direct-destination link target page numbers read from all pages in first-seen document order.</summary>
+    public IReadOnlyList<int> LinkDestinationPageNumbers {
+        get {
+            if (_linkDestinationPageNumbers is not null) {
+                return _linkDestinationPageNumbers;
+            }
+
+            var seen = new HashSet<int>();
+            var pageNumbers = new List<int>();
+            foreach (var link in LinkAnnotations) {
+                if (link.DestinationPageNumber.HasValue && seen.Add(link.DestinationPageNumber.Value)) {
+                    pageNumbers.Add(link.DestinationPageNumber.Value);
+                }
+            }
+
+            _linkDestinationPageNumbers = pageNumbers.AsReadOnly();
+            return _linkDestinationPageNumbers;
+        }
+    }
+
+    /// <summary>Distinct simple named viewer actions read from all pages in first-seen document order.</summary>
+    public IReadOnlyList<string> LinkNamedActions {
+        get {
+            if (_linkNamedActions is not null) {
+                return _linkNamedActions;
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var actions = new List<string>();
+            foreach (var link in LinkAnnotations) {
+                if (link.NamedAction != null && seen.Add(link.NamedAction)) {
+                    actions.Add(link.NamedAction);
+                }
+            }
+
+            _linkNamedActions = actions.AsReadOnly();
+            return _linkNamedActions;
+        }
+    }
+
+    /// <summary>Distinct remote GoTo target files read from all pages in first-seen document order.</summary>
+    public IReadOnlyList<string> LinkRemoteFiles {
+        get {
+            if (_linkRemoteFiles is not null) {
+                return _linkRemoteFiles;
+            }
+
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var files = new List<string>();
+            foreach (var link in LinkAnnotations) {
+                if (link.RemoteFile != null && seen.Add(link.RemoteFile)) {
+                    files.Add(link.RemoteFile);
+                }
+            }
+
+            _linkRemoteFiles = files.AsReadOnly();
+            return _linkRemoteFiles;
+        }
+    }
+
+    /// <summary>Simple URI link annotations grouped by URI action target.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLinkAnnotation>> LinkAnnotationsByUri {
+        get {
+            if (_linkAnnotationsByUri is not null) {
+                return _linkAnnotationsByUri;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLinkAnnotation>>(StringComparer.Ordinal);
+            foreach (var link in LinkAnnotations) {
+                string? uri = link.Uri;
+                if (string.IsNullOrEmpty(uri)) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(uri!, out List<PdfLinkAnnotation>? links)) {
+                    links = new List<PdfLinkAnnotation>();
+                    grouped.Add(uri!, links);
+                }
+
+                links.Add(link);
+            }
+
+            _linkAnnotationsByUri = ToReadOnlyLookup(grouped);
+            return _linkAnnotationsByUri;
+        }
+    }
+
+    /// <summary>Simple named-destination link annotations grouped by destination name.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLinkAnnotation>> LinkAnnotationsByDestinationName {
+        get {
+            if (_linkAnnotationsByDestinationName is not null) {
+                return _linkAnnotationsByDestinationName;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLinkAnnotation>>(StringComparer.Ordinal);
+            foreach (var link in LinkAnnotations) {
+                string? destinationName = link.DestinationName;
+                if (string.IsNullOrEmpty(destinationName)) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(destinationName!, out List<PdfLinkAnnotation>? links)) {
+                    links = new List<PdfLinkAnnotation>();
+                    grouped.Add(destinationName!, links);
+                }
+
+                links.Add(link);
+            }
+
+            _linkAnnotationsByDestinationName = ToReadOnlyLookup(grouped);
+            return _linkAnnotationsByDestinationName;
+        }
+    }
+
+    /// <summary>Simple direct-destination link annotations grouped by one-based destination page number.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyList<PdfLinkAnnotation>> LinkAnnotationsByDestinationPageNumber {
+        get {
+            if (_linkAnnotationsByDestinationPageNumber is not null) {
+                return _linkAnnotationsByDestinationPageNumber;
+            }
+
+            var grouped = new Dictionary<int, List<PdfLinkAnnotation>>();
+            foreach (var link in LinkAnnotations) {
+                if (!link.DestinationPageNumber.HasValue) {
+                    continue;
+                }
+
+                int destinationPageNumber = link.DestinationPageNumber.Value;
+                if (!grouped.TryGetValue(destinationPageNumber, out List<PdfLinkAnnotation>? links)) {
+                    links = new List<PdfLinkAnnotation>();
+                    grouped.Add(destinationPageNumber, links);
+                }
+
+                links.Add(link);
+            }
+
+            _linkAnnotationsByDestinationPageNumber = ToReadOnlyLookup(grouped);
+            return _linkAnnotationsByDestinationPageNumber;
+        }
+    }
+
+    /// <summary>Simple named-action link annotations grouped by viewer action name.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLinkAnnotation>> LinkAnnotationsByNamedAction {
+        get {
+            if (_linkAnnotationsByNamedAction is not null) {
+                return _linkAnnotationsByNamedAction;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLinkAnnotation>>(StringComparer.Ordinal);
+            foreach (var link in LinkAnnotations) {
+                string? namedAction = link.NamedAction;
+                if (string.IsNullOrEmpty(namedAction)) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(namedAction!, out List<PdfLinkAnnotation>? links)) {
+                    links = new List<PdfLinkAnnotation>();
+                    grouped.Add(namedAction!, links);
+                }
+
+                links.Add(link);
+            }
+
+            _linkAnnotationsByNamedAction = ToReadOnlyLookup(grouped);
+            return _linkAnnotationsByNamedAction;
+        }
+    }
+
+    /// <summary>Simple remote GoTo link annotations grouped by target file.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<PdfLinkAnnotation>> LinkAnnotationsByRemoteFile {
+        get {
+            if (_linkAnnotationsByRemoteFile is not null) {
+                return _linkAnnotationsByRemoteFile;
+            }
+
+            var grouped = new Dictionary<string, List<PdfLinkAnnotation>>(StringComparer.Ordinal);
+            foreach (var link in LinkAnnotations) {
+                string? remoteFile = link.RemoteFile;
+                if (string.IsNullOrEmpty(remoteFile)) {
+                    continue;
+                }
+
+                if (!grouped.TryGetValue(remoteFile!, out List<PdfLinkAnnotation>? links)) {
+                    links = new List<PdfLinkAnnotation>();
+                    grouped.Add(remoteFile!, links);
+                }
+
+                links.Add(link);
+            }
+
+            _linkAnnotationsByRemoteFile = ToReadOnlyLookup(grouped);
+            return _linkAnnotationsByRemoteFile;
         }
     }
 
@@ -341,6 +679,65 @@ public sealed class PdfDocumentInfo {
     /// <summary>True when at least one simple link annotation was read from the document pages.</summary>
     public bool HasLinkAnnotations => LinkAnnotationCount > 0;
 
+    /// <summary>Returns generic page annotations with a matching PDF annotation subtype name.</summary>
+    public IReadOnlyList<PdfAnnotation> GetAnnotationsBySubtype(string subtype) {
+        Guard.NotNullOrWhiteSpace(subtype, nameof(subtype));
+        return AnnotationsBySubtype.TryGetValue(subtype, out IReadOnlyList<PdfAnnotation>? annotations)
+            ? annotations
+            : Array.Empty<PdfAnnotation>();
+    }
+
+    /// <summary>Returns generic page annotations with a matching primary or additional action type.</summary>
+    public IReadOnlyList<PdfAnnotation> GetAnnotationsByActionType(string actionType) {
+        Guard.NotNullOrWhiteSpace(actionType, nameof(actionType));
+        return AnnotationsByActionType.TryGetValue(actionType, out IReadOnlyList<PdfAnnotation>? annotations)
+            ? annotations
+            : Array.Empty<PdfAnnotation>();
+    }
+
+    /// <summary>Returns simple URI link annotations for a URI action target.</summary>
+    public IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsByUri(string uri) {
+        Guard.UriAction(uri, nameof(uri));
+        return LinkAnnotationsByUri.TryGetValue(uri, out IReadOnlyList<PdfLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLinkAnnotation>();
+    }
+
+    /// <summary>Returns simple named-destination link annotations for a destination name.</summary>
+    public IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsByDestinationName(string destinationName) {
+        Guard.NotNullOrWhiteSpace(destinationName, nameof(destinationName));
+        return LinkAnnotationsByDestinationName.TryGetValue(destinationName, out IReadOnlyList<PdfLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLinkAnnotation>();
+    }
+
+    /// <summary>Returns simple direct-destination link annotations for a one-based destination page number.</summary>
+    public IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsByDestinationPageNumber(int pageNumber) {
+        if (pageNumber <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must be positive.");
+        }
+
+        return LinkAnnotationsByDestinationPageNumber.TryGetValue(pageNumber, out IReadOnlyList<PdfLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLinkAnnotation>();
+    }
+
+    /// <summary>Returns simple named-action link annotations for a viewer action name.</summary>
+    public IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsByNamedAction(string namedAction) {
+        Guard.NotNullOrWhiteSpace(namedAction, nameof(namedAction));
+        return LinkAnnotationsByNamedAction.TryGetValue(namedAction, out IReadOnlyList<PdfLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLinkAnnotation>();
+    }
+
+    /// <summary>Returns simple remote GoTo link annotations for a target file.</summary>
+    public IReadOnlyList<PdfLinkAnnotation> GetLinkAnnotationsByRemoteFile(string remoteFile) {
+        Guard.NotNullOrWhiteSpace(remoteFile, nameof(remoteFile));
+        return LinkAnnotationsByRemoteFile.TryGetValue(remoteFile, out IReadOnlyList<PdfLinkAnnotation>? links)
+            ? links
+            : Array.Empty<PdfLinkAnnotation>();
+    }
+
     /// <summary>Document metadata from the PDF Info dictionary when available.</summary>
     public PdfMetadata Metadata { get; }
 
@@ -413,6 +810,15 @@ public sealed class PdfDocumentInfo {
 
     /// <summary>True when an AcroForm default appearance string was readable.</summary>
     public bool HasAcroFormDefaultAppearance => !string.IsNullOrEmpty(AcroFormDefaultAppearance);
+
+    /// <summary>Raw AcroForm default /Q quadding value, when present.</summary>
+    public int? AcroFormQuadding { get; }
+
+    /// <summary>True when an AcroForm default /Q quadding value was readable.</summary>
+    public bool HasAcroFormQuadding => AcroFormQuadding.HasValue;
+
+    /// <summary>Common AcroForm default text alignment inferred from /Q quadding.</summary>
+    public PdfFormFieldTextAlignment AcroFormTextAlignment => ToTextAlignment(AcroFormQuadding);
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
     public bool? AcroFormNeedAppearances { get; }
@@ -515,5 +921,38 @@ public sealed class PdfDocumentInfo {
 
     private bool HasAcroFormSignatureFlag(int flag) {
         return AcroFormSignatureFlags.HasValue && (AcroFormSignatureFlags.Value & flag) != 0;
+    }
+
+    private static PdfFormFieldTextAlignment ToTextAlignment(int? quadding) {
+        switch (quadding) {
+            case 0:
+                return PdfFormFieldTextAlignment.Left;
+            case 1:
+                return PdfFormFieldTextAlignment.Center;
+            case 2:
+                return PdfFormFieldTextAlignment.Right;
+            default:
+                return PdfFormFieldTextAlignment.Unknown;
+        }
+    }
+
+    private static void AddAnnotation(Dictionary<string, List<PdfAnnotation>> grouped, string actionType, PdfAnnotation annotation) {
+        if (!grouped.TryGetValue(actionType, out List<PdfAnnotation>? annotations)) {
+            annotations = new List<PdfAnnotation>();
+            grouped.Add(actionType, annotations);
+        }
+
+        if (!annotations.Contains(annotation)) {
+            annotations.Add(annotation);
+        }
+    }
+
+    private static System.Collections.ObjectModel.ReadOnlyDictionary<TKey, IReadOnlyList<TValue>> ToReadOnlyLookup<TKey, TValue>(Dictionary<TKey, List<TValue>> grouped) where TKey : notnull {
+        var result = new Dictionary<TKey, IReadOnlyList<TValue>>(grouped.Count, grouped.Comparer);
+        foreach (var item in grouped) {
+            result.Add(item.Key, item.Value.AsReadOnly());
+        }
+
+        return new System.Collections.ObjectModel.ReadOnlyDictionary<TKey, IReadOnlyList<TValue>>(result);
     }
 }

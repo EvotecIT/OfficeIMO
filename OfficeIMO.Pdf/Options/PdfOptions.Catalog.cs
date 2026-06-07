@@ -11,6 +11,8 @@ public sealed partial class PdfOptions {
     public bool IncludeXmpMetadata { get; set; }
     /// <summary>When true, generated PDFs include catalog page labels that match the configured page-number style and start number.</summary>
     public bool IncludePageLabels { get; set; }
+    /// <summary>When true, generated FreeText and Highlight annotations are painted into page content instead of emitted as interactive annotations.</summary>
+    public bool FlattenVisualAnnotations { get; set; }
     /// <summary>Optional catalog page-label prefix, for example "A-" or "Appendix ". Requires <see cref="IncludePageLabels"/> to be emitted.</summary>
     public string? PageLabelPrefix {
         get => _pageLabelPrefix;
@@ -19,6 +21,17 @@ public sealed partial class PdfOptions {
             _pageLabelPrefix = value;
         }
     }
+
+    /// <summary>Generated catalog page-label rules, ordered by their one-based start page number.</summary>
+    public System.Collections.Generic.IReadOnlyList<PdfPageLabelRange> PageLabelRanges =>
+        _pageLabelRanges == null || _pageLabelRanges.Count == 0
+            ? System.Array.Empty<PdfPageLabelRange>()
+            : _pageLabelRanges.OrderBy(range => range.StartPageNumber).ToList().AsReadOnly();
+
+    internal System.Collections.Generic.IReadOnlyList<PdfPageLabelRange> PageLabelRangeSnapshots =>
+        _pageLabelRanges == null || _pageLabelRanges.Count == 0
+            ? System.Array.Empty<PdfPageLabelRange>()
+            : _pageLabelRanges.OrderBy(range => range.StartPageNumber).ToList().AsReadOnly();
     /// <summary>PDF file header version emitted for generated documents.</summary>
     public PdfFileVersion FileVersion {
         get => _fileVersion;
@@ -76,6 +89,42 @@ public sealed partial class PdfOptions {
         }
     }
 
+    /// <summary>Optional catalog page mode emitted for generated PDFs.</summary>
+    public PdfCatalogPageMode? CatalogPageMode {
+        get => _catalogPageMode;
+        set {
+            if (value.HasValue) {
+                Guard.CatalogPageMode(value.Value, nameof(CatalogPageMode));
+            }
+
+            _catalogPageMode = value;
+        }
+    }
+
+    internal PdfCatalogPageMode? CatalogPageModeSnapshot => _catalogPageMode;
+
+    /// <summary>Optional catalog page layout emitted for generated PDFs.</summary>
+    public PdfCatalogPageLayout? CatalogPageLayout {
+        get => _catalogPageLayout;
+        set {
+            if (value.HasValue) {
+                Guard.CatalogPageLayout(value.Value, nameof(CatalogPageLayout));
+            }
+
+            _catalogPageLayout = value;
+        }
+    }
+
+    internal PdfCatalogPageLayout? CatalogPageLayoutSnapshot => _catalogPageLayout;
+
+    /// <summary>Optional generated catalog open action controlling the initial page destination.</summary>
+    public PdfOpenActionOptions? OpenAction {
+        get => _openAction?.Clone();
+        set => _openAction = value?.Clone();
+    }
+
+    internal PdfOpenActionOptions? OpenActionSnapshot => _openAction?.Clone();
+
     /// <summary>Optional simple viewer preferences emitted through the generated catalog.</summary>
     public PdfViewerPreferencesOptions? ViewerPreferences {
         get => _viewerPreferences?.Clone();
@@ -83,6 +132,31 @@ public sealed partial class PdfOptions {
     }
 
     internal PdfViewerPreferencesOptions? ViewerPreferencesSnapshot => _viewerPreferences?.Clone();
+
+    /// <summary>Optional catalog URI base used by viewers to resolve relative URI actions.</summary>
+    public string? CatalogUriBase {
+        get => _catalogUriBase;
+        set {
+            ValidateOptionalCatalogUriBase(value, nameof(CatalogUriBase));
+            _catalogUriBase = value;
+        }
+    }
+
+    internal string? CatalogUriBaseSnapshot => _catalogUriBase;
+
+    /// <summary>Optional AcroForm default text alignment emitted as catalog-level /Q quadding.</summary>
+    public PdfFormFieldTextAlignment? AcroFormDefaultTextAlignment {
+        get => _acroFormDefaultTextAlignment;
+        set {
+            if (value.HasValue) {
+                Guard.FormFieldTextAlignment(value.Value, nameof(AcroFormDefaultTextAlignment));
+            }
+
+            _acroFormDefaultTextAlignment = value;
+        }
+    }
+
+    internal PdfFormFieldTextAlignment? AcroFormDefaultTextAlignmentSnapshot => _acroFormDefaultTextAlignment;
 
     /// <summary>Embedded files associated with the generated document catalog.</summary>
     public System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile> EmbeddedFiles =>
@@ -287,10 +361,79 @@ public sealed partial class PdfOptions {
         return this;
     }
 
+    /// <summary>Sets or clears the generated catalog page mode.</summary>
+    public PdfOptions SetCatalogPageMode(PdfCatalogPageMode? pageMode) {
+        CatalogPageMode = pageMode;
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated catalog page layout.</summary>
+    public PdfOptions SetCatalogPageLayout(PdfCatalogPageLayout? pageLayout) {
+        CatalogPageLayout = pageLayout;
+        return this;
+    }
+
+    /// <summary>Sets generated catalog page mode and page layout viewer hints.</summary>
+    public PdfOptions SetCatalogView(PdfCatalogPageMode? pageMode = null, PdfCatalogPageLayout? pageLayout = null) {
+        CatalogPageMode = pageMode;
+        CatalogPageLayout = pageLayout;
+        return this;
+    }
+
+    /// <summary>Clears generated catalog page mode and page layout viewer hints.</summary>
+    public PdfOptions ClearCatalogView() {
+        _catalogPageMode = null;
+        _catalogPageLayout = null;
+        return this;
+    }
+
+    /// <summary>Sets the generated catalog open action to a page destination.</summary>
+    public PdfOptions SetOpenAction(
+        int pageNumber = 1,
+        double? destinationTop = null,
+        PdfOpenActionDestinationMode destinationMode = PdfOpenActionDestinationMode.Xyz,
+        double? destinationLeft = null,
+        double? destinationBottom = null,
+        double? destinationRight = null) {
+        OpenAction = new PdfOpenActionOptions(pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight);
+        return this;
+    }
+
+    /// <summary>Clears the generated catalog open action.</summary>
+    public PdfOptions ClearOpenAction() {
+        _openAction = null;
+        return this;
+    }
+
     /// <summary>Enables or disables generated catalog page labels.</summary>
     public PdfOptions SetPageLabels(bool include = true, string? prefix = null) {
         IncludePageLabels = include;
         PageLabelPrefix = prefix;
+        _pageLabelRanges?.Clear();
+        return this;
+    }
+
+    /// <summary>Adds a generated catalog page-label rule beginning at the specified one-based document page.</summary>
+    public PdfOptions AddPageLabelRange(int startPageNumber, PdfPageNumberStyle style, int startNumber = 1, string? prefix = null) {
+        var range = new PdfPageLabelRange(startPageNumber, style, startNumber, prefix);
+        if ((_pageLabelRanges ??= new System.Collections.Generic.List<PdfPageLabelRange>()).Any(existing => existing.StartPageNumber == range.StartPageNumber)) {
+            throw new ArgumentException("A PDF page-label range already starts at the specified page.", nameof(startPageNumber));
+        }
+
+        _pageLabelRanges.Add(range);
+        IncludePageLabels = true;
+        return this;
+    }
+
+    /// <summary>Clears generated catalog page-label ranges while leaving simple page-label options unchanged.</summary>
+    public PdfOptions ClearPageLabelRanges() {
+        _pageLabelRanges?.Clear();
+        return this;
+    }
+
+    /// <summary>Enables or disables flattening generated FreeText and Highlight annotations into page content.</summary>
+    public PdfOptions SetFlattenVisualAnnotations(bool flatten = true) {
+        FlattenVisualAnnotations = flatten;
         return this;
     }
 
@@ -306,6 +449,30 @@ public sealed partial class PdfOptions {
         var preferences = _viewerPreferences?.Clone() ?? new PdfViewerPreferencesOptions();
         configure(preferences);
         _viewerPreferences = preferences;
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated catalog URI base used by viewers to resolve relative URI actions.</summary>
+    public PdfOptions SetCatalogUriBase(string? uriBase) {
+        CatalogUriBase = uriBase;
+        return this;
+    }
+
+    /// <summary>Clears the generated catalog URI base.</summary>
+    public PdfOptions ClearCatalogUriBase() {
+        _catalogUriBase = null;
+        return this;
+    }
+
+    /// <summary>Sets or clears the generated AcroForm default text alignment emitted through /Q.</summary>
+    public PdfOptions SetAcroFormDefaultTextAlignment(PdfFormFieldTextAlignment? alignment) {
+        AcroFormDefaultTextAlignment = alignment;
+        return this;
+    }
+
+    /// <summary>Clears the generated AcroForm default text alignment.</summary>
+    public PdfOptions ClearAcroFormDefaultTextAlignment() {
+        _acroFormDefaultTextAlignment = null;
         return this;
     }
 

@@ -25,12 +25,15 @@ public sealed partial class PdfReadDocument {
             }
 
             string title = current.Get<PdfStringObj>("Title")?.Value ?? string.Empty;
-            var (pageNumber, destinationTop) = GetOutlineDestination(current);
+            var (pageNumber, destinationTop, destinationMode, destinationLeft, destinationBottom, destinationRight) = GetOutlineDestination(current);
+            bool isExpanded = !current.Items.TryGetValue("Count", out var countObject) ||
+                ResolveObject(countObject) is not PdfNumber countNumber ||
+                countNumber.Value >= 0D;
             var children = current.Items.TryGetValue("First", out var childObj)
                 ? ReadOutlineSiblings(childObj, level + 1, visited)
                 : new List<PdfOutlineItem>();
 
-            items.Add(new PdfOutlineItem(title, level, pageNumber, destinationTop, children.AsReadOnly()));
+            items.Add(new PdfOutlineItem(title, level, pageNumber, destinationTop, isExpanded, children.AsReadOnly(), destinationMode, destinationLeft, destinationBottom, destinationRight));
 
             currentObj = current.Items.TryGetValue("Next", out var nextObj) ? nextObj : null;
         }

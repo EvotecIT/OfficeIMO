@@ -48,7 +48,7 @@ public class PdfItemCompose {
     public PdfItemCompose Table(System.Collections.Generic.IEnumerable<PdfTableCell[]> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.Table(rows, align, style); return this; }
     /// <summary>Adds a simple text table and attaches link URIs to specific cells.</summary>
     /// <param name="rows">Sequence of row arrays.</param>
-    /// <param name="links">Per-cell absolute link URIs keyed by zero-based row and column.</param>
+    /// <param name="links">Per-cell absolute or catalog-base-relative link URIs keyed by zero-based row and column.</param>
     /// <param name="align">Table alignment.</param>
     /// <param name="style">Optional table styling.</param>
     public PdfItemCompose TableWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) { _doc.TableWithLinks(rows, links, align, style); return this; }
@@ -74,6 +74,12 @@ public class PdfItemCompose {
     public PdfItemCompose MultiSelectChoiceField(string name, System.Collections.Generic.IEnumerable<string> options, System.Collections.Generic.IEnumerable<string>? values = null, double width = 180, double height = 72, PdfAlign align = PdfAlign.Left, double fontSize = 10, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) { _doc.MultiSelectChoiceField(name, options, values, width, height, align, fontSize, spacingBefore, spacingAfter, style); return this; }
     /// <summary>Adds a simple AcroForm radio button group at the current flow position.</summary>
     public PdfItemCompose RadioButtonGroup(string name, System.Collections.Generic.IEnumerable<string> options, string? value = null, double size = 14, double gap = 6, PdfAlign align = PdfAlign.Left, double spacingBefore = 0, double spacingAfter = 6, PdfFormFieldStyle? style = null) { _doc.RadioButtonGroup(name, options, value, size, gap, align, spacingBefore, spacingAfter, style); return this; }
+    /// <summary>Adds a PDF text annotation at the current flow position.</summary>
+    public PdfItemCompose TextAnnotation(string contents, double width = 18D, double height = 18D, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, PdfColor? color = null, bool open = false) { _doc.TextAnnotation(contents, width, height, align, spacingBefore, spacingAfter, icon, color, open); return this; }
+    /// <summary>Adds a PDF free-text annotation at the current flow position.</summary>
+    public PdfItemCompose FreeTextAnnotation(string contents, double width, double height, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null) { _doc.FreeTextAnnotation(contents, width, height, align, spacingBefore, spacingAfter, fontSize, textColor, borderColor, borderWidth, fillColor, textAlign, padding, lineHeight); return this; }
+    /// <summary>Adds a PDF highlight annotation rectangle at the current flow position.</summary>
+    public PdfItemCompose HighlightAnnotation(string contents, double width, double height, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfColor? color = null) { _doc.HighlightAnnotation(contents, width, height, align, spacingBefore, spacingAfter, color); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing shape.</summary>
     public PdfItemCompose Shape(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) { _doc.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents); return this; }
     /// <summary>Adds a shared OfficeIMO.Drawing scene.</summary>
@@ -112,7 +118,7 @@ public class PdfItemCompose {
     /// <param name="spacingBefore">Top spacing (pt), inherited from the current default image style when omitted.</param>
     /// <param name="spacingAfter">Bottom spacing (pt), inherited from the current default image style when omitted.</param>
     /// <param name="style">Optional reusable image placement style.</param>
-    /// <param name="linkUri">Optional absolute URI for an image link annotation.</param>
+    /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for an image link annotation.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
     public PdfItemCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align = null, OfficeClipPath? clipPath = null, OfficeImageFit? fit = null, double? spacingBefore = null, double? spacingAfter = null, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         Image(jpegBytes, width, height, align, clipPath, fit, spacingBefore, spacingAfter, style, linkUri, linkContents, alternativeText: null);
@@ -131,7 +137,7 @@ public class PdfItemCompose {
     /// <param name="spacingBefore">Top spacing (pt), inherited from the current default image style when omitted.</param>
     /// <param name="spacingAfter">Bottom spacing (pt), inherited from the current default image style when omitted.</param>
     /// <param name="style">Optional reusable image placement style.</param>
-    /// <param name="linkUri">Optional absolute URI for an image link annotation.</param>
+    /// <param name="linkUri">Optional absolute URI or catalog-base-relative URI for an image link annotation.</param>
     /// <param name="linkContents">Optional link annotation contents metadata.</param>
     /// <param name="alternativeText">Optional alternate text for meaningful generated images.</param>
     public PdfItemCompose Image(byte[] jpegBytes, double width, double height, PdfAlign? align, OfficeClipPath? clipPath, OfficeImageFit? fit, double? spacingBefore, double? spacingAfter, PdfImageStyle? style, string? linkUri, string? linkContents, string? alternativeText) {

@@ -42,6 +42,9 @@ internal static partial class PdfWriter {
                 if (block is CheckBoxBlock checkBox) { RenderCheckBoxBlock(checkBox, currentOpts.MarginLeft, width); continue; }
                 if (block is ChoiceFieldBlock choice) { RenderChoiceFieldBlock(choice, currentOpts.MarginLeft, width); continue; }
                 if (block is RadioButtonGroupBlock radioButtonGroup) { RenderRadioButtonGroupBlock(radioButtonGroup, currentOpts.MarginLeft, width); continue; }
+                if (block is TextAnnotationBlock textAnnotation) { RenderTextAnnotationFlowBlock(textAnnotation); continue; }
+                if (block is FreeTextAnnotationBlock freeTextAnnotation) { RenderFreeTextAnnotationFlowBlock(freeTextAnnotation); continue; }
+                if (block is HighlightAnnotationBlock highlightAnnotation) { RenderHighlightAnnotationFlowBlock(highlightAnnotation); continue; }
                 if (block is PdfCanvasBlock canvas) { RenderCanvasBlock(canvas); continue; }
                 if (block is ShapeBlock shape) { RenderShapeFlowBlock(shape, nextBlock); continue; }
                 if (block is DrawingBlock drawing) { RenderDrawingFlowBlock(drawing, nextBlock); continue; }

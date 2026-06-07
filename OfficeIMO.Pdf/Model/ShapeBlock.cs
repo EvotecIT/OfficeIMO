@@ -15,7 +15,7 @@ internal sealed class ShapeBlock : IPdfBlock {
 
     public ShapeBlock(OfficeShape shape, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNull(shape, nameof(shape));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         if (linkContents != null && linkUri == null) {
             throw new ArgumentException("Shape link contents require a link URI.", nameof(linkContents));
         }

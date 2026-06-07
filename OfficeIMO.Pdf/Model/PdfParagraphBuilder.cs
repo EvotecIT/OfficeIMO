@@ -79,7 +79,7 @@ public sealed class PdfParagraphBuilder {
     public PdfParagraphBuilder Subscript(string text, PdfColor? color = null) { _runs.Add(new TextRun(text, bold: false, underline: false, color: color ?? _currentColor, italic: false, strike: false, fontSize: _currentFontSize, font: _currentFont, baseline: PdfTextBaseline.Subscript, backgroundColor: _currentBackgroundColor)); return this; }
     /// <summary>Adds a hyperlink text run.</summary>
     /// <param name="text">Link text.</param>
-    /// <param name="uri">Absolute URI to open.</param>
+    /// <param name="uri">Absolute URI or catalog-base-relative URI to open.</param>
     /// <param name="color">Optional link color.</param>
     /// <param name="underline">Whether to underline the link text (default true).</param>
     /// <param name="contents">Optional link annotation contents; defaults to the link text when omitted.</param>

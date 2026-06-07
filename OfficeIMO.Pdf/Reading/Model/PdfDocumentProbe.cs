@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf;
 /// Lightweight PDF feature markers that can be read before full parsing.
 /// </summary>
 public sealed class PdfDocumentProbe {
-    internal PdfDocumentProbe(string? headerVersion, bool hasEncryption, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
+    internal PdfDocumentProbe(string? headerVersion, bool hasEncryption, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent, PdfDocumentSecurityInfo security) {
         HeaderVersion = headerVersion;
         HasEncryption = hasEncryption;
         HasSignatures = hasSignatures;
@@ -24,6 +24,7 @@ public sealed class PdfDocumentProbe {
         HasEmbeddedFiles = hasEmbeddedFiles;
         HasOptionalContent = hasOptionalContent;
         HasActiveContent = hasActiveContent;
+        Security = security;
     }
 
     /// <summary>PDF header version, for example 1.4, when a header is present.</summary>
@@ -82,4 +83,7 @@ public sealed class PdfDocumentProbe {
 
     /// <summary>True when the document contains active content markers such as JavaScript actions.</summary>
     public bool HasActiveContent { get; }
+
+    /// <summary>Lightweight security, signature, and revision markers read from the PDF bytes.</summary>
+    public PdfDocumentSecurityInfo Security { get; }
 }

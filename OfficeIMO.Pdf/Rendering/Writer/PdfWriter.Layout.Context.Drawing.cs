@@ -326,6 +326,7 @@ internal static partial class PdfWriter {
             if (spacingBefore > 0) y -= spacingBefore;
             int? structElementIndex = DrawShapeAt(block, style, containerX, containerWidth, y);
             AddShapeLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
+            DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Shape.Width, style.Align), y - block.Shape.Height, block.Shape.Width, block.Shape.Height);
             y -= block.Shape.Height + style.SpacingAfter;
         }
 
@@ -342,6 +343,7 @@ internal static partial class PdfWriter {
             if (spacingBefore > 0) y -= spacingBefore;
             int? structElementIndex = DrawDrawingAt(block, style, containerX, containerWidth, y);
             AddDrawingLinkAnnotation(block, style, containerX, containerWidth, y, structElementIndex);
+            DrawDebugFlowObjectBox(GetAlignedObjectX(containerX, containerWidth, block.Drawing.Width, style.Align), y - block.Drawing.Height, block.Drawing.Width, block.Drawing.Height);
             y -= block.Drawing.Height + style.SpacingAfter;
         }
 

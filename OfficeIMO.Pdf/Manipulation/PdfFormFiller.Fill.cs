@@ -74,18 +74,18 @@ public static partial class PdfFormFiller {
             IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
             if (isMultiSelectChoice) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
-                SetTextWidgetAppearances(objects, field, string.Join(", ", choiceValues.Select(item => item.DisplayValue)), new HashSet<int>(), ref nextObjectNumber);
+                SetTextWidgetAppearances(objects, field, string.Join(", ", choiceValues.Select(item => item.DisplayValue)), fieldFlags, new HashSet<int>(), ref nextObjectNumber);
                 return;
             }
 
             ChoiceFillValue choiceValue = choiceValues[0];
             field.Items["V"] = new PdfStringObj(choiceValue.ExportValue, useTextStringEncoding: true);
-            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, new HashSet<int>(), ref nextObjectNumber);
+            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, fieldFlags, new HashSet<int>(), ref nextObjectNumber);
             return;
         }
 
         field.Items["V"] = new PdfStringObj(firstValue, useTextStringEncoding: true);
-        SetTextWidgetAppearances(objects, field, firstValue, new HashSet<int>(), ref nextObjectNumber);
+        SetTextWidgetAppearances(objects, field, firstValue, fieldFlags, new HashSet<int>(), ref nextObjectNumber);
     }
 
     private static int ReadFieldFlags(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int inheritedFlags) {

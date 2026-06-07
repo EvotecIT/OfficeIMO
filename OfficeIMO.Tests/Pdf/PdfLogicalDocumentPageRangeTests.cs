@@ -91,6 +91,12 @@ public partial class PdfLogicalDocumentTests {
         Assert.Equal(new[] { 1, 2 }, logical.NamedDestinations.Select(destination => destination.PageNumber!.Value).OrderBy(pageNumber => pageNumber).ToArray());
         Assert.Equal(new[] { "First outline", "Second outline" }, logical.Outlines.Select(outline => outline.Title).OrderBy(title => title).ToArray());
         Assert.Equal(new[] { 1, 2 }, logical.Outlines.Select(outline => outline.PageNumber!.Value).OrderBy(pageNumber => pageNumber).ToArray());
+        PdfOutlineItem secondOutline = Assert.Single(logical.Outlines, outline => outline.Title == "Second outline");
+        Assert.Equal(PdfOpenActionDestinationMode.FitRectangle, secondOutline.DestinationMode);
+        Assert.Equal(10D, secondOutline.DestinationLeft);
+        Assert.Equal(20D, secondOutline.DestinationBottom);
+        Assert.Equal(90D, secondOutline.DestinationRight);
+        Assert.Equal(144D, secondOutline.DestinationTop);
         Assert.False(logical.HasReadableOpenAction);
         Assert.Null(logical.OpenAction);
 

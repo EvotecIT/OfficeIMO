@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -10,7 +12,7 @@ public sealed class PdfLogicalMarkdownOptions {
     /// <summary>Emit readable placeholders for image elements discovered in the logical model.</summary>
     public bool IncludeImagePlaceholders { get; set; } = true;
 
-    /// <summary>Emit a link annotation section for supported URI and named-destination links.</summary>
+    /// <summary>Emit a link annotation section for supported URI, named-destination, direct-destination, named-action, and remote GoTo links.</summary>
     public bool IncludeLinkAnnotations { get; set; }
 
     /// <summary>Emit a form widget section for AcroForm widgets placed on pages.</summary>
@@ -128,17 +130,17 @@ public static class PdfLogicalMarkdownExtensions {
         if (options.IncludeLinkAnnotations) {
             for (int i = 0; i < page.Links.Count; i++) {
                 PdfLogicalLinkAnnotation link = page.Links[i];
-                string target = link.Uri ?? link.DestinationName ?? string.Empty;
-                if (target.Length == 0) {
+                string? target = FormatLinkAnnotationTarget(link);
+                if (string.IsNullOrEmpty(target)) {
                     continue;
                 }
 
-                string label = !string.IsNullOrWhiteSpace(link.Contents) ? link.Contents! : target;
+                string label = !string.IsNullOrWhiteSpace(link.Contents) ? link.Contents! : target!;
                 string markdown = link.Uri is not null
                     ? IsSafeLinkUri(link.Uri)
                         ? "[Link: " + EscapeInline(label) + "](" + EscapeLinkTarget(link.Uri) + ")"
                         : "[Link: " + EscapeInline(label) + " -> " + EscapeInline(link.Uri) + "]"
-                    : "[Link: " + EscapeInline(label) + " -> " + EscapeInline(target) + "]";
+                    : "[Link: " + EscapeInline(label) + " -> " + EscapeInline(target!) + "]";
                 items.Add(new MarkdownItem(link.Y2, link.X1, sequence++, markdown));
             }
         }
@@ -444,9 +446,104 @@ public static class PdfLogicalMarkdownExtensions {
         return uri.Replace(")", "%29");
     }
 
+    private static string? FormatLinkAnnotationTarget(PdfLogicalLinkAnnotation link) {
+        if (!string.IsNullOrEmpty(link.Uri)) {
+            return link.Uri;
+        }
+
+        if (!string.IsNullOrEmpty(link.DestinationName)) {
+            return link.DestinationName;
+        }
+
+        if (!string.IsNullOrEmpty(link.NamedAction)) {
+            return "named action " + link.NamedAction;
+        }
+
+        if (!string.IsNullOrEmpty(link.RemoteFile)) {
+            return FormatRemoteLinkAnnotationTarget(link);
+        }
+
+        if (!link.DestinationPageNumber.HasValue) {
+            return null;
+        }
+
+        var builder = new StringBuilder();
+        builder.Append("page ");
+        builder.Append(link.DestinationPageNumber.Value.ToString(CultureInfo.InvariantCulture));
+        if (link.DestinationMode.HasValue) {
+            builder.Append(", ");
+            builder.Append(link.DestinationMode.Value.ToString());
+        }
+
+        AppendCoordinate(builder, "left", link.DestinationLeft);
+        AppendCoordinate(builder, "bottom", link.DestinationBottom);
+        AppendCoordinate(builder, "right", link.DestinationRight);
+        AppendCoordinate(builder, "top", link.DestinationTop);
+        return builder.ToString();
+    }
+
+    private static string FormatRemoteLinkAnnotationTarget(PdfLogicalLinkAnnotation link) {
+        var builder = new StringBuilder();
+        builder.Append("remote file ");
+        builder.Append(link.RemoteFile);
+
+        if (!string.IsNullOrEmpty(link.RemoteDestinationName)) {
+            builder.Append(", destination ");
+            builder.Append(link.RemoteDestinationName);
+            return builder.ToString();
+        }
+
+        if (link.RemoteDestinationPageNumber.HasValue) {
+            builder.Append(", page ");
+            builder.Append(link.RemoteDestinationPageNumber.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (link.RemoteDestinationMode.HasValue) {
+            builder.Append(", ");
+            builder.Append(link.RemoteDestinationMode.Value);
+        }
+
+        if (link.RemoteDestinationLeft.HasValue) {
+            builder.Append(", left ");
+            builder.Append(link.RemoteDestinationLeft.Value.ToString("0.###", CultureInfo.InvariantCulture));
+        }
+
+        if (link.RemoteDestinationBottom.HasValue) {
+            builder.Append(", bottom ");
+            builder.Append(link.RemoteDestinationBottom.Value.ToString("0.###", CultureInfo.InvariantCulture));
+        }
+
+        if (link.RemoteDestinationRight.HasValue) {
+            builder.Append(", right ");
+            builder.Append(link.RemoteDestinationRight.Value.ToString("0.###", CultureInfo.InvariantCulture));
+        }
+
+        if (link.RemoteDestinationTop.HasValue) {
+            builder.Append(", top ");
+            builder.Append(link.RemoteDestinationTop.Value.ToString("0.###", CultureInfo.InvariantCulture));
+        }
+
+        return builder.ToString();
+    }
+
+    private static void AppendCoordinate(StringBuilder builder, string name, double? value) {
+        if (!value.HasValue) {
+            return;
+        }
+
+        builder.Append(", ");
+        builder.Append(name);
+        builder.Append(' ');
+        builder.Append(value.Value.ToString("0.###", CultureInfo.InvariantCulture));
+    }
+
     private static bool IsSafeLinkUri(string uri) {
-        if (!Uri.TryCreate(uri, UriKind.Absolute, out Uri? parsed)) {
+        if (!Guard.IsUriAction(uri)) {
             return false;
+        }
+
+        if (!Uri.TryCreate(uri, UriKind.Absolute, out Uri? parsed)) {
+            return true;
         }
 
         return string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||

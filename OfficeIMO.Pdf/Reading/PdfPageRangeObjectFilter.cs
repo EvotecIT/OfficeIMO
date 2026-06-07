@@ -217,6 +217,11 @@ internal static class PdfPageRangeObjectFilter {
             outline.Level,
             keepOwnDestination ? outline.PageNumber : null,
             keepOwnDestination ? outline.DestinationTop : null,
-            selectedChildren.Count == 0 ? Array.Empty<PdfOutlineItem>() : selectedChildren.AsReadOnly());
+            outline.IsExpanded,
+            selectedChildren.Count == 0 ? Array.Empty<PdfOutlineItem>() : selectedChildren.AsReadOnly(),
+            keepOwnDestination ? outline.DestinationMode : null,
+            keepOwnDestination ? outline.DestinationLeft : null,
+            keepOwnDestination ? outline.DestinationBottom : null,
+            keepOwnDestination ? outline.DestinationRight : null);
     }
 }

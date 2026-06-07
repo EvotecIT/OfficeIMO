@@ -49,6 +49,7 @@ public sealed partial class PdfOptions {
     private bool _hasExplicitPageNumberStart;
     private PdfPageNumberStyle _pageNumberStyle = PdfPageNumberStyle.Arabic;
     private string? _pageLabelPrefix;
+    private System.Collections.Generic.List<PdfPageLabelRange>? _pageLabelRanges;
     private PdfParagraphStyle? _defaultParagraphStyle;
     private PdfTableStyle? _defaultTableStyle = TableStyles.Light();
     private PdfHeadingStyles? _defaultHeadingStyles;
@@ -66,7 +67,13 @@ public sealed partial class PdfOptions {
     private PdfOutputIntent? _outputIntent;
     private PdfTaggedStructureMode _taggedStructureMode;
     private string? _language;
+    private PdfCatalogPageMode? _catalogPageMode;
+    private PdfCatalogPageLayout? _catalogPageLayout;
+    private PdfOpenActionOptions? _openAction;
     private PdfViewerPreferencesOptions? _viewerPreferences;
+    private string? _catalogUriBase;
+    private int _outlineExpansionLevel = int.MaxValue;
+    private PdfFormFieldTextAlignment? _acroFormDefaultTextAlignment;
     private PdfTextWatermark? _textWatermark;
     private PdfImageWatermark? _imageWatermark;
     private PdfPageBorder? _pageBorder;

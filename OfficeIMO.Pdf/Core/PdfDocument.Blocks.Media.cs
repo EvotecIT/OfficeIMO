@@ -108,7 +108,7 @@ public sealed partial class PdfDocument {
         Guard.NotNullOrEmpty(jpegBytes, nameof(jpegBytes));
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         PdfImageStyle? imageStyle = CreateImageStyle(align, clipPath, fit, spacingBefore, spacingAfter, style, alternativeText);
         if (imageStyle != null) {
             ValidateImageStyleForBox(imageStyle, width, height, nameof(clipPath));
@@ -128,7 +128,7 @@ public sealed partial class PdfDocument {
         Guard.Positive(shape.Width, nameof(shape.Width));
         Guard.Positive(shape.Height, nameof(shape.Height));
         Guard.NonNegative(shape.StrokeWidth, nameof(shape.StrokeWidth));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         ValidateOpacity(shape.FillOpacity, nameof(shape.FillOpacity));
         ValidateOpacity(shape.StrokeOpacity, nameof(shape.StrokeOpacity));
         ValidateShapeClipPath(shape);
@@ -303,7 +303,7 @@ public sealed partial class PdfDocument {
         Guard.NotNull(drawing, nameof(drawing));
         Guard.Positive(drawing.Width, nameof(drawing.Width));
         Guard.Positive(drawing.Height, nameof(drawing.Height));
-        Guard.OptionalAbsoluteUri(linkUri, nameof(linkUri));
+        Guard.OptionalUriAction(linkUri, nameof(linkUri));
         if (drawing.Elements.Count == 0) {
             throw new System.ArgumentException("Drawing scenes require at least one shape or text element.", nameof(drawing));
         }

@@ -66,6 +66,34 @@ public class PdfMergerTests {
     }
 
     [Fact]
+    public void Merge_WithFlattenVisualAnnotationsOption_PaintsVisualAnnotationsAndRemovesLiveAnnotations() {
+        byte[] annotated = BuildAnnotatedPdf("Annotated source", "Annotated merge source");
+        byte[] plain = BuildPdf("Plain source", "Plain merge page");
+
+        byte[] merged = PdfMerger.Merge(
+            new PdfMergeOptions {
+                FlattenVisualAnnotations = true
+            },
+            annotated,
+            plain);
+        string pdf = Encoding.ASCII.GetString(merged);
+        PdfDocumentInfo info = PdfInspector.Inspect(merged);
+
+        Assert.Equal(2, info.PageCount);
+        Assert.False(info.HasAnnotations);
+        Assert.Equal(0, info.AnnotationCount);
+        Assert.DoesNotContain("/Subtype /FreeText", pdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Highlight", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
+        Assert.Contains("/OfficeIMOAnnot2 Do", pdf, StringComparison.Ordinal);
+        Assert.Contains("BT /Helv", pdf, StringComparison.Ordinal);
+        Assert.Contains("1 0.9 0.1 rg 0 0 120 14 re f", pdf, StringComparison.Ordinal);
+
+        string text = NormalizeExtractedText(PdfReadDocument.Load(merged).ExtractText());
+        AssertContainsInOrder(text, "Annotatedmergesource", "Plainmergepage");
+    }
+
+    [Fact]
     public void Merge_ReadsStreamsFromCurrentPositions() {
         using var first = CreatePrefixedStream(BuildPdf("First stream", "First stream page"));
         using var second = CreatePrefixedStream(BuildPdf("Second stream", "Second stream page"));
@@ -312,6 +340,23 @@ public class PdfMergerTests {
         }
 
         return doc.ToBytes();
+    }
+
+    private static byte[] BuildAnnotatedPdf(string title, string pageText) {
+        return PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .Meta(title: title, author: "OfficeIMO")
+            .Paragraph(p => p.Text(pageText))
+            .FreeTextAnnotation(
+                "Merge review note",
+                width: 150,
+                height: 44,
+                borderColor: new PdfColor(0.2D, 0.4D, 0.8D),
+                fillColor: new PdfColor(0.95D, 0.98D, 1D),
+                textAlign: PdfAlign.Center)
+            .HighlightAnnotation("Merge highlight", width: 120, height: 14, color: new PdfColor(1D, 0.9D, 0.1D))
+            .ToBytes();
     }
 
     private static void AssertContainsInOrder(string text, params string[] expected) {

@@ -13,7 +13,7 @@ public static partial class PdfPageExtractor {
         catalogState ??= CatalogRewriteState.Empty;
         var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
         catalogState = PruneCatalogStateForPages(sourceObjects, catalogState, copiedPageObjectIds, pageObjectNumbers);
-        pageOverrides = BuildPageOverridesWithFilteredNamedDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides, catalogState);
+        pageOverrides = BuildPageOverridesWithFilteredDestinationLinks(sourceObjects, pageObjectNumbers, pageOverrides, catalogState, copiedPageObjectIds);
     
         var collector = new ObjectCollector(sourceObjects, pageOverrides);
         foreach (int pageObjectNumber in pageObjectNumbers) {

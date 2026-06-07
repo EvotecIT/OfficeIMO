@@ -71,6 +71,8 @@ internal static partial class PdfWriter {
                 RotateCanvasFormFields(currentPage.FormFields, formFieldStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
                 RotateCanvasLinkAnnotations(currentPage!.Annotations, annotationStart, item.X, bottomY, item.Width, item.Height, item.RotationAngle);
             }
+
+            DrawDebugCanvasItemBox(item.X, bottomY, item.Width, item.Height);
         }
 
         private static void ValidateCanvasTableStyle(PdfTableStyle style, int rows, int columns) {

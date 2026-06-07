@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Wrapper-friendly PDF capability report for OfficeIMO.Pdf read and rewrite operations.
 /// </summary>
-public sealed class PdfDocumentPreflight {
+public sealed partial class PdfDocumentPreflight {
     internal PdfDocumentPreflight(
         PdfDocumentProbe probe,
         PdfDocumentInfo? documentInfo,
@@ -214,6 +214,7 @@ public sealed class PdfDocumentPreflight {
             AddDistinct(messages, ReadBlockers[i].Message);
         }
 
+        AddRange(messages, SecurityDiagnostics);
         return messages.AsReadOnly();
     }
 
@@ -229,6 +230,7 @@ public sealed class PdfDocumentPreflight {
             }
         }
 
+        AddRange(messages, SecurityDiagnostics);
         if (messages.Count == 0) {
             AddDistinct(messages, "PDF image extraction is not available for this PDF.");
         }
@@ -246,6 +248,7 @@ public sealed class PdfDocumentPreflight {
             AddDistinct(messages, RewriteBlockers[i].Message);
         }
 
+        AddRange(messages, SecurityDiagnostics);
         if (messages.Count == 0) {
             AddDistinct(messages, "PDF page manipulation is not available for this PDF.");
         }
@@ -262,6 +265,7 @@ public sealed class PdfDocumentPreflight {
 
         if (Probe.HasSignatures || DocumentInfo?.AcroFormSignaturesExist == true) {
             AddDistinct(messages, "Signed PDF files are not supported for form filling or flattening by OfficeIMO.Pdf yet.");
+            AddRange(messages, SignatureMutationDiagnostics);
         }
 
         if (Probe.HasActiveContent || DocumentInfo?.HasActiveContent == true) {
