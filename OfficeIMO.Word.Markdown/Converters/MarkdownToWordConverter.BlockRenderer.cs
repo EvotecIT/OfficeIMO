@@ -304,6 +304,10 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitFrontMatterBlock(Omd.FrontMatterBlock block) {
+                if (!_options.RenderFrontMatter) {
+                    return;
+                }
+
                 var lines = block.Render().Replace("\r", string.Empty).Split('\n');
                 var monoFont = FontResolver.Resolve("monospace") ?? "Consolas";
 
@@ -341,6 +345,8 @@ namespace OfficeIMO.Word.Markdown {
                         RenderNested(blockChildren[i], listLevel: effectiveLevel + 1);
                     }
                 }
+
+                _host.NotifyListRendered(list);
             }
         }
     }

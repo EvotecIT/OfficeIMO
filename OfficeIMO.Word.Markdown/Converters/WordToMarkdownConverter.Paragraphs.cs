@@ -196,6 +196,15 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             string alt = image.Description ?? string.Empty;
+            if (image.IsExternal && options.FallbackExternalImagesToLinks) {
+                string source = image.ExternalUri?.ToString() ?? image.FilePath;
+                if (string.IsNullOrWhiteSpace(source)) {
+                    source = image.ExternalRelationshipId ?? string.Empty;
+                }
+
+                options.OnWarning?.Invoke($"Externally linked image '{source}' was emitted as a Markdown image reference because the binary payload is not stored in the Word package.");
+                return $"![{alt}]({source})";
+            }
 
             if (options.ImageExportMode == ImageExportMode.File) {
                 string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
@@ -207,6 +216,10 @@ namespace OfficeIMO.Word.Markdown {
                 string fileName = string.IsNullOrEmpty(image.FileName)
                     ? Guid.NewGuid().ToString("N") + extension
                     : image.FileName!;
+                if (string.IsNullOrEmpty(Path.GetExtension(fileName))) {
+                    fileName += extension;
+                }
+
                 string targetPath = Path.Combine(directory, fileName);
 
                 if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
