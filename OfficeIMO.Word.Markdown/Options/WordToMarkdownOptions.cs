@@ -32,6 +32,18 @@ namespace OfficeIMO.Word.Markdown {
         public string? ImageDirectory { get; set; }
 
         /// <summary>
+        /// Emits externally linked images as Markdown image references instead of failing extraction.
+        /// This keeps existing documents with linked or cid-based images convertible even when the
+        /// binary image payload is not stored in the package.
+        /// </summary>
+        public bool FallbackExternalImagesToLinks { get; set; } = true;
+
+        /// <summary>
+        /// Optional callback for non-fatal conversion warnings, such as external image fallback.
+        /// </summary>
+        public Action<string>? OnWarning { get; set; }
+
+        /// <summary>
         /// Enables exporting section headers and footers as semantic fenced blocks instead of omitting them.
         /// The fenced payload contains markdown for the header/footer body and can be reparsed with
         /// <see cref="CreateReaderOptions(OfficeIMO.Markdown.MarkdownReaderOptions.MarkdownDialectProfile)"/>.

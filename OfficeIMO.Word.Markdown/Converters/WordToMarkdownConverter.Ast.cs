@@ -631,6 +631,10 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private string BuildImageSource(WordImage image, WordToMarkdownOptions options) {
+            if (TryGetExternalImageSource(image, options, out var externalSource)) {
+                return externalSource;
+            }
+
             if (options.ImageExportMode == ImageExportMode.File) {
                 string directory = options.ImageDirectory ?? Directory.GetCurrentDirectory();
                 Directory.CreateDirectory(directory);
@@ -642,6 +646,10 @@ namespace OfficeIMO.Word.Markdown {
                 string fileName = string.IsNullOrEmpty(image.FileName)
                     ? Guid.NewGuid().ToString("N") + fileExtension
                     : image.FileName!;
+                if (string.IsNullOrEmpty(Path.GetExtension(fileName))) {
+                    fileName += fileExtension;
+                }
+
                 string targetPath = Path.Combine(directory, fileName);
 
                 if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
@@ -664,6 +672,25 @@ namespace OfficeIMO.Word.Markdown {
             };
             string base64 = System.Convert.ToBase64String(bytes);
             return $"data:{mime};base64,{base64}";
+        }
+
+        private static bool TryGetExternalImageSource(WordImage image, WordToMarkdownOptions options, out string source) {
+            source = string.Empty;
+            if (!image.IsExternal) {
+                return false;
+            }
+
+            if (!options.FallbackExternalImagesToLinks) {
+                return false;
+            }
+
+            source = image.ExternalUri?.ToString() ?? image.FilePath;
+            if (string.IsNullOrWhiteSpace(source)) {
+                source = image.ExternalRelationshipId ?? string.Empty;
+            }
+
+            options.OnWarning?.Invoke($"Externally linked image '{source}' was emitted as a Markdown image reference because the binary payload is not stored in the Word package.");
+            return true;
         }
 
         private TableBlock BuildTableBlock(WordTable table, WordToMarkdownOptions options) {

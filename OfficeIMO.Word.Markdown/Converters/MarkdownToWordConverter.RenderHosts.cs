@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Markdown.Html;
@@ -17,6 +18,7 @@ namespace OfficeIMO.Word.Markdown {
             void InsertHtml(string html);
             bool SupportsHorizontalRule { get; }
             void InsertHorizontalRule();
+            void NotifyListRendered(WordList list);
         }
 
         private sealed class DocumentWordBlockRenderHost : IWordBlockRenderHost {
@@ -33,6 +35,7 @@ namespace OfficeIMO.Word.Markdown {
             public void InsertHtml(string html) => _document.AddHtmlToBody(html);
             public bool SupportsHorizontalRule => true;
             public void InsertHorizontalRule() => _document.AddHorizontalLine();
+            public void NotifyListRendered(WordList list) { }
         }
 
         private sealed class TableCellWordBlockRenderHost : IWordBlockRenderHost {
@@ -70,6 +73,7 @@ namespace OfficeIMO.Word.Markdown {
             public void InsertHtml(string html) { }
             public bool SupportsHorizontalRule => false;
             public void InsertHorizontalRule() { }
+            public void NotifyListRendered(WordList list) { }
         }
 
         private sealed class HeaderFooterWordBlockRenderHost : IWordBlockRenderHost {
@@ -86,6 +90,60 @@ namespace OfficeIMO.Word.Markdown {
             public void InsertHtml(string html) { }
             public bool SupportsHorizontalRule => true;
             public void InsertHorizontalRule() => _headerFooter.AddHorizontalLine();
+            public void NotifyListRendered(WordList list) { }
+        }
+
+        private sealed class BodyInsertionPointWordBlockRenderHost : IWordBlockRenderHost {
+            private readonly WordDocument _document;
+            private readonly OpenXmlElement _anchor;
+            private readonly List<Paragraph> _listSeeds = new();
+
+            public BodyInsertionPointWordBlockRenderHost(WordDocument document, OpenXmlElement anchor) {
+                _document = document ?? throw new ArgumentNullException(nameof(document));
+                _anchor = anchor ?? throw new ArgumentNullException(nameof(anchor));
+                if (_anchor.Parent == null) {
+                    throw new InvalidOperationException("Insertion anchor must be attached to a Word document.");
+                }
+            }
+
+            public WordParagraph CreateParagraph() {
+                var paragraph = new Paragraph();
+                _anchor.InsertBeforeSelf(paragraph);
+                return new WordParagraph(_document, paragraph);
+            }
+
+            public WordList CreateList(WordListStyle style) {
+                var seed = CreateSeedParagraph();
+                _listSeeds.Add(seed._paragraph);
+                return seed.AddList(style);
+            }
+
+            public WordTable CreateTable(int rows, int columns) {
+                var seed = CreateSeedParagraph();
+                try {
+                    return seed.AddTableAfter(rows, columns);
+                } finally {
+                    seed.Remove();
+                }
+            }
+
+            public bool SupportsHtmlInsertion => false;
+            public void InsertHtml(string html) { }
+            public bool SupportsHorizontalRule => true;
+            public void InsertHorizontalRule() => CreateParagraph().AddHorizontalLine();
+
+            public void NotifyListRendered(WordList list) {
+                foreach (var seed in _listSeeds) {
+                    seed.Remove();
+                }
+                _listSeeds.Clear();
+            }
+
+            private WordParagraph CreateSeedParagraph() {
+                var paragraph = new Paragraph();
+                _anchor.InsertBeforeSelf(paragraph);
+                return new WordParagraph(_document, paragraph);
+            }
         }
     }
 }

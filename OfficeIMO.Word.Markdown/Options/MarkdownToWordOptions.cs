@@ -86,6 +86,12 @@ namespace OfficeIMO.Word.Markdown {
         public OfficeIMO.Markdown.MarkdownReaderOptions? ReaderOptions { get; set; }
 
         /// <summary>
+        /// Controls whether front matter is rendered as visible Word content.
+        /// Disable this when front matter is consumed by a template or build pipeline as metadata.
+        /// </summary>
+        public bool RenderFrontMatter { get; set; } = true;
+
+        /// <summary>
         /// Optional hard cap (pixels) applied to rendered markdown image width.
         /// </summary>
         public double? MaxImageWidthPixels {

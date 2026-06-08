@@ -126,6 +126,28 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         /// <summary>
+        /// Creates a Word document from Markdown by inserting the generated content into an existing template document.
+        /// The template retains its styles, sections, headers, footers, table of contents and other package settings.
+        /// </summary>
+        /// <param name="markdown">Markdown content to insert.</param>
+        /// <param name="templatePath">Path to the Word template document to copy and populate.</param>
+        /// <param name="options">Template insertion options.</param>
+        /// <returns>A populated <see cref="WordDocument"/> instance backed by an in-memory copy of the template.</returns>
+        public static WordDocument LoadFromMarkdownTemplate(this string markdown, string templatePath, MarkdownToWordTemplateOptions? options = null) {
+            if (string.IsNullOrWhiteSpace(templatePath)) {
+                throw new ArgumentException("Template path cannot be null or empty.", nameof(templatePath));
+            }
+
+            using var file = File.OpenRead(templatePath);
+            var stream = new MemoryStream();
+            file.CopyTo(stream);
+            stream.Position = 0;
+            var document = WordDocument.Load(stream);
+            var converter = new MarkdownToWordConverter();
+            return converter.ConvertIntoTemplate(markdown, document, options ?? new MarkdownToWordTemplateOptions());
+        }
+
+        /// <summary>
         /// Creates a new Word document directly from a typed <see cref="MarkdownDoc"/>.
         /// </summary>
         /// <param name="markdown">Typed markdown document to convert.</param>
@@ -134,6 +156,18 @@ namespace OfficeIMO.Word.Markdown {
         public static WordDocument ToWordDocument(this MarkdownDoc markdown, MarkdownToWordOptions? options = null) {
             var converter = new MarkdownToWordConverter();
             return converter.ConvertAsync(markdown, options ?? new MarkdownToWordOptions(), CancellationToken.None).GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Inserts a typed Markdown document into an existing Word template document.
+        /// </summary>
+        /// <param name="markdown">Typed Markdown document to insert.</param>
+        /// <param name="templateDocument">Template document to populate.</param>
+        /// <param name="options">Template insertion options.</param>
+        /// <returns>The populated template document.</returns>
+        public static WordDocument ToWordDocument(this MarkdownDoc markdown, WordDocument templateDocument, MarkdownToWordTemplateOptions? options = null) {
+            var converter = new MarkdownToWordConverter();
+            return converter.ConvertIntoTemplate(markdown, templateDocument, options ?? new MarkdownToWordTemplateOptions());
         }
 
         /// <summary>

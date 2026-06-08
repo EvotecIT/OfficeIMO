@@ -317,6 +317,91 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Even footer", document.Footer!.Even!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
             Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Trim() == "Body line");
         }
+
+        [Fact]
+        public void MarkdownToWord_LoadFromMarkdownTemplate_Inserts_At_Bookmark_And_Preserves_Template_Content() {
+            string templatePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
+            try {
+                using (var template = WordDocument.Create(templatePath)) {
+                    template.AddParagraph("Before template content");
+                    template.AddParagraph("PLACEHOLDER").AddBookmark("MainContent");
+                    template.AddParagraph("After template content");
+                    template.Save();
+                }
+
+                const string markdown = """
+                    ---
+                    title: Hidden metadata
+                    ---
+                    # Inserted heading
+
+                    Inserted body.
+
+                    - First
+                    - Second
+                    """;
+
+                using var document = markdown.LoadFromMarkdownTemplate(
+                    templatePath,
+                    new MarkdownToWordTemplateOptions {
+                        BookmarkName = "MainContent"
+                    });
+
+                var paragraphTexts = document.Paragraphs
+                    .Select(paragraph => paragraph.Text.Trim())
+                    .Where(text => text.Length > 0)
+                    .ToArray();
+
+                Assert.DoesNotContain("PLACEHOLDER", paragraphTexts);
+                Assert.DoesNotContain(paragraphTexts, text => text.Contains("title: Hidden metadata", StringComparison.Ordinal));
+                Assert.True(Array.IndexOf(paragraphTexts, "Before template content") < Array.IndexOf(paragraphTexts, "Inserted heading"));
+                Assert.True(Array.IndexOf(paragraphTexts, "Inserted body.") < Array.IndexOf(paragraphTexts, "After template content"));
+                Assert.Contains(document.Paragraphs, paragraph => paragraph.Style == WordParagraphStyles.Heading1 && paragraph.Text.Trim() == "Inserted heading");
+                Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Trim() == "First" && paragraph.IsListItem);
+            } finally {
+                if (File.Exists(templatePath)) {
+                    File.Delete(templatePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void WordToMarkdown_Emits_ExternalImages_As_Links_Instead_Of_Failing() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph().AddImage(new Uri("cid:86dec9c7-5eda-46b3-b8fb-2e2b7b0d6fb8"), 50, 50, description: "Linked image");
+            var warnings = new List<string>();
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                ImageExportMode = ImageExportMode.File,
+                OnWarning = warnings.Add
+            });
+
+            Assert.Contains("![Linked image](cid:86dec9c7-5eda-46b3-b8fb-2e2b7b0d6fb8)", markdown);
+            Assert.Contains(warnings, warning => warning.Contains("Externally linked image", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void WordToMarkdown_Exports_Extensionless_ImageNames_With_Detected_Extension() {
+            using var doc = WordDocument.Create();
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            using (var stream = File.OpenRead(imagePath)) {
+                doc.AddParagraph().AddImage(stream, "Picture 1", width: 32, height: 32, description: "Logo");
+            }
+
+            string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+            Directory.CreateDirectory(tempDir);
+            try {
+                string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                    ImageExportMode = ImageExportMode.File,
+                    ImageDirectory = tempDir
+                });
+
+                Assert.Contains("![Logo](Picture 1.png)", markdown);
+                Assert.True(File.Exists(Path.Combine(tempDir, "Picture 1.png")));
+            } finally {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
     }
 }
 
