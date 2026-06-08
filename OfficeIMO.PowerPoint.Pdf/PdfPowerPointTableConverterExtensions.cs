@@ -139,6 +139,11 @@ public static partial class PowerPointPdfConverterExtensions {
             List<TableSegment> segments = BuildTableSegments(data, options);
             for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
                 TableSegment segment = segments[segmentIndex];
+                int tableRowCount = segment.RowCount + (headerRowIncluded ? 1 : 0);
+                if (tableRowCount <= 0) {
+                    continue;
+                }
+
                 int slideIndex = presentation.Slides.Count == 1 && results.Count == 0 ? 0 : presentation.Slides.Count;
                 PptCore.PowerPointSlide slide = presentation.AddSlide();
 
@@ -147,7 +152,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 }
 
                 PptCore.PowerPointTable table = slide.AddTable(
-                    segment.RowCount + (headerRowIncluded ? 1 : 0),
+                    tableRowCount,
                     segment.ColumnCount,
                     options.TableStyle,
                     options.TableLeft,
@@ -173,6 +178,10 @@ public static partial class PowerPointPdfConverterExtensions {
                     data.Truncated,
                     headerRowIncluded));
             }
+        }
+
+        if (results.Count == 0) {
+            AddEmptyPresentationSlide(presentation, options);
         }
 
         return results.AsReadOnly();

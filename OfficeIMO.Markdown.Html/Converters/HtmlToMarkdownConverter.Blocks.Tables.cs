@@ -58,6 +58,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
             DecrementActiveCellRowSpans(activeRowSpans);
             if (isHeaderRow) {
+                ClampHeaderRowSpans(structuredCells);
                 foreach (var value in renderedCells) {
                     table.Headers.Add(value);
                 }
@@ -77,7 +78,7 @@ public sealed partial class HtmlToMarkdownConverter {
             foreach (var value in firstRow) {
                 table.Headers.Add(value);
             }
-            ClampPromotedHeaderRowSpans(firstStructuredRow);
+            ClampHeaderRowSpans(firstStructuredRow);
             headerCells.AddRange(firstStructuredRow);
         }
 
@@ -88,7 +89,7 @@ public sealed partial class HtmlToMarkdownConverter {
         return table;
     }
 
-    private static void ClampPromotedHeaderRowSpans(IReadOnlyList<TableCell> cells) {
+    private static void ClampHeaderRowSpans(IReadOnlyList<TableCell> cells) {
         for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
             if (cells[cellIndex].RowSpan > 1) {
                 cells[cellIndex].RowSpan = 1;

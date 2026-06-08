@@ -165,6 +165,40 @@ public partial class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void TableAnalysis_KeepsMixedNumericFirstRowsAsBodyRows() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 460,
+                PageHeight = 320,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Product A", "10", "20" },
+                new[] { "Product B", "11", "21" },
+                new[] { "Product C", "12", "22" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 150, 70, 70 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }).Pages[0].Tables);
+
+        PdfLogicalTableStructure structure = PdfLogicalTableAnalysis.Analyze(table);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+
+        Assert.False(structure.HasHeaderRow);
+        Assert.Equal(0, structure.BodyStartRowIndex);
+        Assert.Equal(new[] { "Column 1", "Column 2", "Column 3" }, data.Columns);
+        Assert.Equal(new[] { "ProductA", "10", "20" }, data.Rows[0]);
+    }
+
+    [Fact]
     public void TableAnalysis_IdentifiesHeaderlessKeyValueTableShape() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,

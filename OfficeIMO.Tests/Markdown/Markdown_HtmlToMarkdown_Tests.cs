@@ -830,6 +830,23 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_ClampsHeaderRowSpansAtPdfHeaderBoundary() {
+        const string html = """
+<table>
+  <tr><th rowspan="2">Group</th><th>Name</th></tr>
+  <tr><td>A</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(1, table.HeaderCells[0].RowSpan);
+        string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
+        Assert.DoesNotContain("rowspan=\"2\"", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_RenderHtmlPreservesTableCellSpansWithoutPaddingCells() {
         const string html = """
 <table>

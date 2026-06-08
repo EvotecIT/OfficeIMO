@@ -146,7 +146,7 @@ public static class PdfLogicalTableAnalysis {
             return null;
         }
 
-        return nonNumericCount > 0 ? headers : null;
+        return nonNumericCount == columnCount ? headers : null;
     }
 
     /// <summary>

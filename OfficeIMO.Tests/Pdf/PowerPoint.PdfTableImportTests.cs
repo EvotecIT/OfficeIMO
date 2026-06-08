@@ -146,6 +146,46 @@ public class PowerPointPdfTableImportTests {
     }
 
     [Fact]
+    public void PdfTables_SaveAsPowerPoint_SkipsHeaderOnlySegmentsWhenHeadersAreDisabled() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 260,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Code", "Name" }
+            }, style: new PdfCore.PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 90, 150 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+
+        using var presentation = new MemoryStream();
+        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+            pdf,
+            presentation,
+            new PdfPowerPointTableImportOptions {
+                LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                },
+                IncludeColumnHeaderRows = false,
+                EmptyPresentationMessage = "No table rows were imported."
+            });
+
+        Assert.Empty(results);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
+        Assert.Empty(package.PresentationPart!.SlideParts.SelectMany(part => part.Slide.Descendants<A.Table>()));
+        Assert.Contains(ReadAllText(package), text => text == "No table rows were imported.");
+    }
+
+    [Fact]
     public void PdfTables_SaveAsPowerPoint_SplitsLargeTablesAcrossSlides() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 520,
