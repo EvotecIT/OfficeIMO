@@ -450,6 +450,38 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void AnalyzeTextEncoding_PreflightsFormWidgetValuesThroughWinAnsiPath() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = new PdfOptions();
+        options.EmbedStandardFont(PdfStandardFont.Helvetica, fontPath);
+        const string value = "\u0105";
+        if (PdfTextDiagnostics.AnalyzeGeneratedText(value, options, PdfStandardFont.Helvetica).Count != 0) {
+            return;
+        }
+
+        using PdfDocument document = PdfDocument.Create(options)
+            .TextField("Person.City", value: value)
+            .ChoiceField("Person.Country", new[] { "PL", value }, value: value);
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfChoiceFieldOption" && diagnostic.FieldName == "Person.Country" && diagnostic.CodePoint == "U+0105");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfChoiceFieldValue" && diagnostic.FieldName == "Person.Country" && diagnostic.CodePoint == "U+0105");
+
+        using var stream = new MemoryStream();
+        PdfSaveResult result = document.TrySave(stream);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(0, stream.Length);
+        Assert.Contains(result.TextEncodingDiagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
+    }
+
+    [Fact]
     public void ToBytes_ThrowsFullGeneratedTextPreflightBeforeRendering() {
         using PdfDocument document = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Paragraph \u2603"))

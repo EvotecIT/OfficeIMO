@@ -1,7 +1,12 @@
+using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Html;
 using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -55,4 +60,70 @@ public class MarkdownSaveAsPdfOptionsTests {
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains(polish, text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void ToPdfDocument_HtmlTableCellFillsTrackBodyRowSpans() {
+        const string html = """
+<table>
+  <tr><th>Group</th><th>Task</th></tr>
+  <tr><td rowspan="2">A</td><td style="background:#ff0000">B</td></tr>
+  <tr><td style="background:#0000ff">C</td></tr>
+</table>
+""";
+        MarkdownDoc document = html.LoadFromHtml();
+        byte[] bytes = document.ToPdfDocument(new MarkdownPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            }
+        }).ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        var blueFills = ExtractFilledRectangles(raw, "0 0 1 rg");
+
+        var blueFill = Assert.Single(blueFills);
+        Assert.True(blueFill.X > 100D, "Expected the second-row blue cell fill to be painted in the second logical column.");
+        Assert.True(blueFill.W > 40D);
+    }
+
+    [Fact]
+    public void ToPdfDocument_HtmlPromotedHeaderRowSpanDoesNotCrossPdfHeaderBoundary() {
+        const string html = """
+<table>
+  <tr><td rowspan="2">Group</td><td>Task</td></tr>
+  <tr><td>Setup</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(1, table.HeaderCells[0].RowSpan);
+        byte[] bytes = document.ToPdfDocument(new MarkdownPdfSaveOptions()).ToBytes();
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
+    }
+
+    private static IReadOnlyList<(double X, double Y, double W, double H)> ExtractFilledRectangles(string rawPdf, string colorOperator) {
+        var rectangles = new List<(double X, double Y, double W, double H)>();
+        string pattern = Regex.Escape(colorOperator) +
+            @"\s+(?<x>-?\d+(?:\.\d+)?)\s+(?<y>-?\d+(?:\.\d+)?)\s+(?<w>-?\d+(?:\.\d+)?)\s+(?<h>-?\d+(?:\.\d+)?)\s+re\s+f";
+
+        foreach (Match match in Regex.Matches(rawPdf, pattern, RegexOptions.Singleline)) {
+            rectangles.Add((
+                ParseInvariantDouble(match.Groups["x"].Value),
+                ParseInvariantDouble(match.Groups["y"].Value),
+                ParseInvariantDouble(match.Groups["w"].Value),
+                ParseInvariantDouble(match.Groups["h"].Value)));
+        }
+
+        return rectangles;
+    }
+
+    private static double ParseInvariantDouble(string value) =>
+        double.Parse(value, CultureInfo.InvariantCulture);
 }

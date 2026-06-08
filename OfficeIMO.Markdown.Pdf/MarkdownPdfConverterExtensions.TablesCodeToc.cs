@@ -42,7 +42,7 @@ public static partial class MarkdownPdfConverterExtensions {
         ApplyMarkdownTableAlignments(style, table, columnCount, rows.Count);
         ApplyMarkdownTableCellAlignments(style, table);
         ApplyMarkdownTableColumnWidths(style, table, columnCount);
-        ApplyMarkdownTableCellBackgrounds(style, table);
+        ApplyMarkdownTableCellBackgrounds(style, table, columnCount);
 
         pdf.Table(rows, style: style);
     }
@@ -189,18 +189,25 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void ApplyMarkdownTableCellBackgrounds(PdfCore.PdfTableStyle style, TableBlock table) {
+    private static void ApplyMarkdownTableCellBackgrounds(PdfCore.PdfTableStyle style, TableBlock table, int columnCount) {
+        if (columnCount <= 0) {
+            return;
+        }
+
         var cellFills = style.CellFills == null
             ? new Dictionary<(int Row, int Column), PdfCore.PdfColor>()
             : new Dictionary<(int Row, int Column), PdfCore.PdfColor>(style.CellFills);
 
         bool hasCellFills = cellFills.Count > 0;
-        ApplyMarkdownTableCellBackgrounds(cellFills, table.HeaderCells, pdfRowIndex: 0, ref hasCellFills);
+        var activeRowSpans = new int[columnCount];
+        if (table.Headers.Count > 0) {
+            ApplyMarkdownTableCellBackgrounds(cellFills, table.HeaderCells, pdfRowIndex: 0, columnCount, activeRowSpans, ref hasCellFills);
+        }
 
         int bodyRowOffset = table.Headers.Count > 0 ? 1 : 0;
         IReadOnlyList<IReadOnlyList<TableCell>> rowCells = table.RowCells;
         for (int rowIndex = 0; rowIndex < rowCells.Count; rowIndex++) {
-            ApplyMarkdownTableCellBackgrounds(cellFills, rowCells[rowIndex], bodyRowOffset + rowIndex, ref hasCellFills);
+            ApplyMarkdownTableCellBackgrounds(cellFills, rowCells[rowIndex], bodyRowOffset + rowIndex, columnCount, activeRowSpans, ref hasCellFills);
         }
 
         if (hasCellFills) {
@@ -208,10 +215,18 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void ApplyMarkdownTableCellBackgrounds(Dictionary<(int Row, int Column), PdfCore.PdfColor> cellFills, IReadOnlyList<TableCell> cells, int pdfRowIndex, ref bool hasCellFills) {
+    private static void ApplyMarkdownTableCellBackgrounds(Dictionary<(int Row, int Column), PdfCore.PdfColor> cellFills, IReadOnlyList<TableCell> cells, int pdfRowIndex, int columnCount, int[] activeRowSpans, ref bool hasCellFills) {
         int meaningfulCount = GetMeaningfulCellCount(cells);
         int logicalColumn = 0;
         for (int cellIndex = 0; cellIndex < meaningfulCount; cellIndex++) {
+            while (logicalColumn < columnCount && activeRowSpans[logicalColumn] > 0) {
+                logicalColumn++;
+            }
+
+            if (logicalColumn >= columnCount) {
+                break;
+            }
+
             TableCell? cell = cells[cellIndex];
             if (cell == null) {
                 logicalColumn++;
@@ -223,7 +238,19 @@ public static partial class MarkdownPdfConverterExtensions {
                 hasCellFills = true;
             }
 
-            logicalColumn += Math.Max(1, cell.ColumnSpan);
+            int columnSpan = Math.Max(1, Math.Min(cell.ColumnSpan, columnCount - logicalColumn));
+            int rowSpan = Math.Max(1, cell.RowSpan);
+            for (int column = logicalColumn; column < logicalColumn + columnSpan; column++) {
+                activeRowSpans[column] = Math.Max(activeRowSpans[column], rowSpan);
+            }
+
+            logicalColumn += columnSpan;
+        }
+
+        for (int column = 0; column < activeRowSpans.Length; column++) {
+            if (activeRowSpans[column] > 0) {
+                activeRowSpans[column]--;
+            }
         }
     }
 

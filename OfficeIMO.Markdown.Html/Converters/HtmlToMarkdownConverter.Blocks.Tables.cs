@@ -67,6 +67,7 @@ public sealed partial class HtmlToMarkdownConverter {
             foreach (var value in firstRow) {
                 table.Headers.Add(value);
             }
+            ClampPromotedHeaderRowSpans(firstStructuredRow);
             headerCells.AddRange(firstStructuredRow);
         }
 
@@ -75,6 +76,14 @@ public sealed partial class HtmlToMarkdownConverter {
         table.SetStructuredCells(headerCells, rowCells, table.ComputeContentSignature());
 
         return table;
+    }
+
+    private static void ClampPromotedHeaderRowSpans(IReadOnlyList<TableCell> cells) {
+        for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+            if (cells[cellIndex].RowSpan > 1) {
+                cells[cellIndex].RowSpan = 1;
+            }
+        }
     }
 
     private static void CaptureColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, ColumnAlignment alignment, bool replaceExisting) {
