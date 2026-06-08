@@ -4,7 +4,9 @@ using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Tests.Pdf;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Pdf;
+using System.Text;
 using PdfCore = OfficeIMO.Pdf;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -51,6 +53,228 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings);
         Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Equal("UnsupportedImage", warning.Code);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_SemanticProfile_PreservesBodyCellTableAlignment() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Semantic,
+            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
+                PdfOptions = new PdfCore.PdfOptions {
+                    PageWidth = 420,
+                    PageHeight = 260,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 10
+                }
+            }
+        };
+
+        byte[] pdf = """
+<table>
+  <tr><th>Item</th><th>Center Qty</th><th>Right Qty</th></tr>
+  <tr>
+    <td>Service</td>
+    <td style="text-align:center">77</td>
+    <td style="text-align:right">88</td>
+  </tr>
+</table>
+""".SaveAsPdf(options);
+
+        PdfTextBounds centerHeader = FindPdfTextBounds(pdf, "Center", "Qty");
+        PdfTextBounds rightHeader = FindPdfTextBounds(pdf, "Right", "Qty");
+        PdfTextBounds centerQuantity = FindPdfTextBounds(pdf, "77");
+        PdfTextBounds rightQuantity = FindPdfTextBounds(pdf, "88");
+
+        Assert.InRange(Math.Abs(centerQuantity.Center - centerHeader.Center), 0D, 2D);
+        Assert.InRange(Math.Abs(rightQuantity.Right - rightHeader.Right), 0D, 2D);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_SemanticProfile_PreservesNonUniformBodyCellTableAlignment() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Semantic,
+            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
+                PdfOptions = new PdfCore.PdfOptions {
+                    PageWidth = 420,
+                    PageHeight = 260,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 10
+                }
+            }
+        };
+
+        byte[] pdf = """
+<table>
+  <tr><th>Item</th><th style="text-align:center">Amount</th></tr>
+  <tr><td>Subtotal</td><td style="text-align:right">125.50</td></tr>
+  <tr><td>Discount</td><td style="text-align:center">10%</td></tr>
+</table>
+""".SaveAsPdf(options);
+
+        PdfTextBounds amountHeader = FindPdfTextBounds(pdf, "Amount");
+        PdfTextBounds subtotal = FindPdfTextBounds(pdf, "125.50");
+        PdfTextBounds discount = FindPdfTextBounds(pdf, "10%");
+
+        Assert.InRange(Math.Abs(discount.Center - amountHeader.Center), 0D, 2D);
+        Assert.True(subtotal.Right > discount.Right + 20D, $"Expected right-aligned subtotal to move past the centered discount. Subtotal right: {subtotal.Right:0.##}; discount right: {discount.Right:0.##}.");
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_SemanticProfile_PreservesColumnGroupTableAlignment() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Semantic,
+            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
+                PdfOptions = new PdfCore.PdfOptions {
+                    PageWidth = 420,
+                    PageHeight = 260,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 10
+                }
+            }
+        };
+
+        byte[] pdf = """
+<table>
+  <colgroup>
+    <col>
+    <col class="text-center">
+    <col style="text-align:right">
+  </colgroup>
+  <tr><th>Item</th><th>Center Qty</th><th>Right Qty</th></tr>
+  <tr><td>Service</td><td>77</td><td>88</td></tr>
+</table>
+""".SaveAsPdf(options);
+
+        PdfTextBounds centerHeader = FindPdfTextBounds(pdf, "Center", "Qty");
+        PdfTextBounds rightHeader = FindPdfTextBounds(pdf, "Right", "Qty");
+        PdfTextBounds centerQuantity = FindPdfTextBounds(pdf, "77");
+        PdfTextBounds rightQuantity = FindPdfTextBounds(pdf, "88");
+
+        Assert.InRange(Math.Abs(centerQuantity.Center - centerHeader.Center), 0D, 2D);
+        Assert.InRange(Math.Abs(rightQuantity.Right - rightHeader.Right), 0D, 2D);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_SemanticProfile_PreservesTableCellSpans() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Semantic,
+            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
+                PdfOptions = new PdfCore.PdfOptions {
+                    CompressContentStreams = false,
+                    PageWidth = 420,
+                    PageHeight = 260,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 10
+                }
+            }
+        };
+
+        byte[] pdf = """
+<table>
+  <tr><th colspan="2">Details</th></tr>
+  <tr><td rowspan="2">Service</td><td>Setup</td></tr>
+  <tr><td>Support</td></tr>
+</table>
+""".SaveAsPdf(options);
+
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        PdfTextBounds service = FindPdfTextBounds(pdf, "Service");
+        PdfTextBounds setup = FindPdfTextBounds(pdf, "Setup");
+        PdfTextBounds support = FindPdfTextBounds(pdf, "Support");
+
+        Assert.Contains("Details", text);
+        Assert.Contains("Support", text);
+        Assert.True(setup.Left > service.Left + 40D, $"Expected Setup to render in the second column. Service left: {service.Left}; Setup left: {setup.Left}.");
+        Assert.InRange(Math.Abs(support.Left - setup.Left), 0D, 2D);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_SemanticProfile_PreservesTableCellBackgroundColors() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Semantic,
+            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
+                PdfOptions = new PdfCore.PdfOptions {
+                    CompressContentStreams = false,
+                    PageWidth = 420,
+                    PageHeight = 260,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 10
+                }
+            }
+        };
+
+        byte[] pdf = """
+<table>
+  <tr><th>Item</th><th>Total</th></tr>
+  <tr><td>Service</td><td style="background-color:#663399">125.50</td></tr>
+</table>
+""".SaveAsPdf(options);
+
+        string content = Encoding.ASCII.GetString(pdf);
+        int fillCount = content.Split(new[] { "0.4 0.2 0.6 rg" }, StringSplitOptions.None).Length - 1;
+
+        Assert.Equal(1, fillCount);
+        Assert.Contains("125.50", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_SemanticProfile_PreservesTableCellTextStyles() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Semantic,
+            MarkdownPdfOptions = new MarkdownPdfSaveOptions {
+                PdfOptions = new PdfCore.PdfOptions {
+                    CompressContentStreams = false,
+                    PageWidth = 420,
+                    PageHeight = 260,
+                    MarginLeft = 36,
+                    MarginRight = 36,
+                    MarginTop = 36,
+                    MarginBottom = 36,
+                    DefaultFontSize = 10
+                }
+            }
+        };
+
+        byte[] pdf = """
+<table>
+  <tr><th>Item</th><th>Total</th></tr>
+  <tr>
+    <td>PlainMarker <strong>NestedBold</strong> <em>NestedItalic</em></td>
+    <td style="color:#663399;font-weight:700;font-style:italic">StyledTotal</td>
+  </tr>
+</table>
+""".SaveAsPdf(options);
+
+        string content = Encoding.ASCII.GetString(pdf);
+        int plainText = content.IndexOf("<" + Hex("PlainMarker") + ">", StringComparison.Ordinal);
+        int boldText = content.IndexOf("<" + Hex("NestedBold") + ">", StringComparison.Ordinal);
+        int italicText = content.IndexOf("<" + Hex("NestedItalic") + ">", StringComparison.Ordinal);
+        int styledText = content.IndexOf("<" + Hex("StyledTotal") + ">", StringComparison.Ordinal);
+
+        Assert.True(plainText >= 0, "Expected plain table text in the PDF content stream.");
+        Assert.True(boldText > plainText, "Expected nested bold table text after the plain marker.");
+        Assert.True(italicText > boldText, "Expected nested italic table text after the bold text.");
+        Assert.True(styledText > italicText, "Expected styled total text after the nested emphasis.");
+
+        Assert.True(content.LastIndexOf("/F2 ", boldText, StringComparison.Ordinal) > plainText, "Expected nested strong text to switch to the bold PDF font resource.");
+        Assert.True(content.LastIndexOf("/F3 ", italicText, StringComparison.Ordinal) > boldText, "Expected nested emphasis text to switch to the italic PDF font resource.");
+        Assert.True(content.LastIndexOf("/F4 ", styledText, StringComparison.Ordinal) > italicText, "Expected styled cell text to use the bold-italic PDF font resource.");
+        Assert.True(content.LastIndexOf("0.4 0.2 0.6 rg", styledText, StringComparison.Ordinal) > italicText, "Expected styled cell text to emit the CSS text color.");
     }
 
     [Fact]
@@ -169,7 +393,10 @@ public sealed class HtmlPdfTests {
         Assert.Contains("<ul data-pdf-list-level=\"1\"><li>Detected logical bullet</li></ul>", html, StringComparison.Ordinal);
         Assert.Contains("<table>", html, StringComparison.Ordinal);
         Assert.Contains("<th>Code</th>", html, StringComparison.Ordinal);
+        Assert.Contains("<th class=\"pdf-numeric\" style=\"text-align:right\">Qty</th>", html, StringComparison.Ordinal);
         Assert.Contains("<td>A-100</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td class=\"pdf-numeric\" style=\"text-align:right\">2</td>", html, StringComparison.Ordinal);
+        Assert.Contains("<td class=\"pdf-numeric\" style=\"text-align:right\">14</td>", html, StringComparison.Ordinal);
         Assert.Equal(1, CountOccurrences(html, "A-100"));
         Assert.False(options.ConversionReport.HasWarnings);
     }
@@ -567,5 +794,57 @@ public sealed class HtmlPdfTests {
         }
 
         return count;
+    }
+
+    private static string Hex(string text) {
+        byte[] bytes = Encoding.ASCII.GetBytes(text);
+        var builder = new StringBuilder(bytes.Length * 2);
+        for (int i = 0; i < bytes.Length; i++) {
+            builder.Append(bytes[i].ToString("X2"));
+        }
+
+        return builder.ToString();
+    }
+
+    private sealed class PdfTextBounds {
+        public PdfTextBounds(double left, double right) {
+            Left = left;
+            Right = right;
+        }
+
+        public double Left { get; }
+
+        public double Right { get; }
+
+        public double Center => (Left + Right) / 2D;
+    }
+
+    private static PdfTextBounds FindPdfTextBounds(byte[] pdf, params string[] texts) {
+        using PdfPigDocument document = PdfPigDocument.Open(new MemoryStream(pdf));
+        var lines = document.GetPage(1)
+            .GetWords()
+            .GroupBy(word => Math.Round(word.BoundingBox.Bottom, 1))
+            .Select(group => group.OrderBy(word => word.BoundingBox.Left).ToList())
+            .ToList();
+
+        foreach (var line in lines) {
+            for (int index = 0; index <= line.Count - texts.Length; index++) {
+                bool matches = true;
+                for (int offset = 0; offset < texts.Length; offset++) {
+                    if (!string.Equals(line[index + offset].Text, texts[offset], StringComparison.Ordinal)) {
+                        matches = false;
+                        break;
+                    }
+                }
+
+                if (matches) {
+                    double left = line.Skip(index).Take(texts.Length).Min(word => word.BoundingBox.Left);
+                    double right = line.Skip(index).Take(texts.Length).Max(word => word.BoundingBox.Right);
+                    return new PdfTextBounds(left, right);
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Could not find rendered PDF text '" + string.Join(" ", texts) + "'.");
     }
 }

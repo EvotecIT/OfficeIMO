@@ -134,6 +134,7 @@ public static class DocumentReaderCsvExtensions {
         var table = new ReaderTable {
             Title = Path.GetFileName(path),
             Columns = effectiveHeaders,
+            ColumnProfiles = ReaderTableProfiler.CreateProfiles(effectiveHeaders, normalizedRows),
             Rows = normalizedRows,
             TotalRowCount = normalizedRows.Count,
             Truncated = false

@@ -197,6 +197,7 @@ public static partial class DocumentReader {
                 Summary = TryReadJsonString(root, "summary"),
                 PayloadHash = ComputeShortHash(rawContent ?? string.Empty),
                 Columns = columns,
+                ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, normalizedRows),
                 Rows = normalizedRows,
                 TotalRowCount = totalRowCount,
                 Truncated = truncated

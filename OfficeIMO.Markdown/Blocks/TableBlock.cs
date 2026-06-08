@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -68,6 +69,10 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     public IReadOnlyList<IReadOnlyList<InlineSequence>> RowInlines => BuildRowInlines();
     /// <summary>Optional column alignments per column (used when headers are present).</summary>
     public List<ColumnAlignment> Alignments { get; } = new List<ColumnAlignment>();
+    /// <summary>Optional fixed column widths in points. Null entries are sized by weights or defaults.</summary>
+    public List<double?> ColumnWidthPoints { get; } = new List<double?>();
+    /// <summary>Optional relative column width weights. Missing columns default to 1.0 in consumers that support widths.</summary>
+    public List<double> ColumnWidthWeights { get; } = new List<double>();
     /// <summary>Number of rows skipped due to table limits.</summary>
     public int SkippedRowCount { get; internal set; }
     /// <summary>Number of columns skipped due to table limits.</summary>
@@ -173,6 +178,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
         sb.Append("<table>");
+        AppendColumnGroupHtml(sb, GetEffectiveColumnCount());
         var headerCells = HeaderCells;
         var rowCells = RowCells;
         var headerInlines = BuildHeaderInlines();
@@ -186,9 +192,9 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             for (int i = 0; i < preparedHeaders.Count; i++) {
                 var h = preparedHeaders[i];
                 var style = GetAlignment(i);
-                var styleAttr = style switch { ColumnAlignment.Left => " style=\"text-align:left\"", ColumnAlignment.Center => " style=\"text-align:center\"", ColumnAlignment.Right => " style=\"text-align:right\"", _ => string.Empty };
-                sb.Append($"<th{styleAttr}>");
-                sb.Append(RenderCellHtml(h, preparedStructuredHeaders?[i], preparedParsedHeaders?[i]));
+                TableCell? structuredCell = preparedStructuredHeaders?[i];
+                sb.Append($"<th{RenderCellAttributes(structuredCell, style)}>");
+                sb.Append(RenderCellHtml(h, structuredCell, preparedParsedHeaders?[i]));
                 sb.Append("</th>");
             }
             sb.Append("</tr></thead>");
@@ -208,9 +214,9 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             for (int i = 0; i < cells.Count; i++) {
                 var cell = cells[i];
                 var style = GetAlignment(i);
-                var styleAttr = style switch { ColumnAlignment.Left => " style=\"text-align:left\"", ColumnAlignment.Center => " style=\"text-align:center\"", ColumnAlignment.Right => " style=\"text-align:right\"", _ => string.Empty };
-                sb.Append($"<td{styleAttr}>");
-                sb.Append(RenderCellHtml(cell, structuredCells?[i], parsedCells?[i]));
+                TableCell? structuredCell = structuredCells?[i];
+                sb.Append($"<td{RenderCellAttributes(structuredCell, style)}>");
+                sb.Append(RenderCellHtml(cell, structuredCell, parsedCells?[i]));
                 sb.Append("</td>");
             }
             sb.Append("</tr>");
@@ -220,4 +226,134 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     }
 
     IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => BuildChildBlocks();
+
+    private void AppendColumnGroupHtml(StringBuilder sb, int columnCount) {
+        if (!HasColumnWidthHints(columnCount)) {
+            return;
+        }
+
+        double totalWeight = 0D;
+        for (int i = 0; i < columnCount; i++) {
+            if (i < ColumnWidthWeights.Count && ColumnWidthWeights[i] > 0D && !double.IsNaN(ColumnWidthWeights[i]) && !double.IsInfinity(ColumnWidthWeights[i])) {
+                totalWeight += ColumnWidthWeights[i];
+            } else {
+                totalWeight += 1D;
+            }
+        }
+
+        sb.Append("<colgroup>");
+        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+            double? fixedWidth = columnIndex < ColumnWidthPoints.Count ? ColumnWidthPoints[columnIndex] : null;
+            if (fixedWidth.HasValue && fixedWidth.Value > 0D && !double.IsNaN(fixedWidth.Value) && !double.IsInfinity(fixedWidth.Value)) {
+                sb.Append("<col style=\"width:");
+                sb.Append(fixedWidth.Value.ToString("0.###", CultureInfo.InvariantCulture));
+                sb.Append("pt\">");
+                continue;
+            }
+
+            if (ColumnWidthWeights.Count == 0 || totalWeight <= 0D) {
+                sb.Append("<col>");
+                continue;
+            }
+
+            double weight = columnIndex < ColumnWidthWeights.Count && ColumnWidthWeights[columnIndex] > 0D
+                ? ColumnWidthWeights[columnIndex]
+                : 1D;
+            double percentage = weight / totalWeight * 100D;
+            sb.Append("<col style=\"width:");
+            sb.Append(percentage.ToString("0.###", CultureInfo.InvariantCulture));
+            sb.Append("%\">");
+        }
+
+        sb.Append("</colgroup>");
+    }
+
+    private bool HasColumnWidthHints(int columnCount) {
+        if (columnCount <= 0) {
+            return false;
+        }
+
+        for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
+            if (columnIndex < ColumnWidthPoints.Count && ColumnWidthPoints[columnIndex].HasValue) {
+                return true;
+            }
+        }
+
+        return ColumnWidthWeights.Count > 0;
+    }
+
+    private static string RenderCellAttributes(TableCell? cell, ColumnAlignment alignment) {
+        if (cell == null) {
+            return RenderStyleAttribute(alignment, null);
+        }
+
+        StringBuilder? attributes = null;
+        if (cell.ColumnSpan > 1) {
+            attributes ??= new StringBuilder();
+            attributes.Append(" colspan=\"");
+            attributes.Append(cell.ColumnSpan.ToString(CultureInfo.InvariantCulture));
+            attributes.Append('"');
+        }
+
+        if (cell.RowSpan > 1) {
+            attributes ??= new StringBuilder();
+            attributes.Append(" rowspan=\"");
+            attributes.Append(cell.RowSpan.ToString(CultureInfo.InvariantCulture));
+            attributes.Append('"');
+        }
+
+        string styleAttribute = RenderStyleAttribute(alignment, cell);
+        if (styleAttribute.Length > 0) {
+            attributes ??= new StringBuilder();
+            attributes.Append(styleAttribute);
+        }
+
+        return attributes?.ToString() ?? string.Empty;
+    }
+
+    private static string RenderStyleAttribute(ColumnAlignment alignment, TableCell? cell) {
+        StringBuilder? style = null;
+        ColumnAlignment effectiveAlignment = cell != null && cell.Alignment != ColumnAlignment.None ? cell.Alignment : alignment;
+        if (effectiveAlignment != ColumnAlignment.None) {
+            style ??= new StringBuilder();
+            style.Append("text-align:");
+            style.Append(effectiveAlignment switch {
+                ColumnAlignment.Center => "center",
+                ColumnAlignment.Right => "right",
+                _ => "left"
+            });
+        }
+
+        AppendStyleDeclaration(ref style, "background-color", cell?.BackgroundColor);
+        AppendStyleDeclaration(ref style, "color", cell?.TextColor);
+        if (cell?.Bold == true) {
+            AppendStyleDeclaration(ref style, "font-weight", "bold");
+        }
+
+        if (cell?.Italic == true) {
+            AppendStyleDeclaration(ref style, "font-style", "italic");
+        }
+
+        if (cell?.Underline == true || cell?.Strikethrough == true) {
+            string decoration = cell.Underline && cell.Strikethrough ? "underline line-through" : cell.Underline ? "underline" : "line-through";
+            AppendStyleDeclaration(ref style, "text-decoration", decoration);
+        }
+
+        return style == null || style.Length == 0 ? string.Empty : " style=\"" + style + "\"";
+    }
+
+    private static void AppendStyleDeclaration(ref StringBuilder? style, string name, string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return;
+        }
+
+        if (style != null && style.Length > 0) {
+            style.Append(';');
+        }
+
+        style ??= new StringBuilder();
+        style.Append(name);
+        style.Append(':');
+        style.Append(System.Net.WebUtility.HtmlEncode(value!.Trim()));
+    }
 }

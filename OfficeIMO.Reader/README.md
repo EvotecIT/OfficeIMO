@@ -140,6 +140,10 @@ var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
 
 When `MarkdownChunkByHeadings` is enabled, markdown inputs are chunked from parsed OfficeIMO markdown blocks instead of raw line heuristics. That means setext headings are recognized, fenced code blocks are not split by `#` inside the fence, oversize markdown blocks stay intact with a warning, and markdown tables are exposed through `ReaderChunk.Tables`. Parser-aware markdown chunks keep `SourceBlockIndex`/`HeadingPath` for stable citations, and can also expose normalized markdown provenance through `NormalizedStartLine`/`NormalizedEndLine`, `HeadingSlug`, `SourceBlockKind`, and `BlockAnchor` without claiming those are exact source offsets. `BlockAnchor` identifies the first logical markdown block in the chunk, so hosts can point at a sub-block inside a heading section when chunk splitting occurs.
 
+Reader table emitters populate `ReaderTable.ColumnProfiles` where the source already provides normalized rows. Profiles are aligned to `ReaderTable.Columns` and classify each column as empty, numeric, text, or mixed, with simple counts and confidence hints for ingestion workflows.
+
+Use `DocumentReader.ExtractMarkdownTables(markdown, options)` when an adapter or host already has Markdown text and only needs the structured table contract. It uses the same parser and `MaxTableRows` behavior as Markdown reader chunks.
+
 ## Pluggable Handlers
 
 `DocumentReader` now supports extension-based handler registration for modular packages.

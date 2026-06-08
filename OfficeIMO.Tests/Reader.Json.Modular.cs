@@ -29,6 +29,13 @@ public sealed class ReaderJsonModularTests {
         Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Json, c.Kind));
         Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("$.agent.name", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Path", StringComparer.Ordinal));
+        var table = Assert.Single(chunks.SelectMany(c => c.Tables ?? Array.Empty<ReaderTable>()));
+        Assert.Equal(3, table.ColumnProfiles.Count);
+        Assert.Equal(ReaderTableColumnKind.Text, table.ColumnProfiles[0].Kind);
+        Assert.Equal(ReaderTableColumnKind.Text, table.ColumnProfiles[1].Kind);
+        Assert.Equal(ReaderTableColumnKind.Mixed, table.ColumnProfiles[2].Kind);
+        Assert.Equal(2, table.ColumnProfiles[2].NonEmptyCellCount);
+        Assert.Equal(1, table.ColumnProfiles[2].NumericCellCount);
         Assert.All(chunks, c => {
             Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
             Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));

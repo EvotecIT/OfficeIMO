@@ -43,6 +43,62 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>
+    /// Adds a two-column label/value table for document metadata, invoice facts, definition lists, and similar report sections.
+    /// </summary>
+    /// <param name="rows">Plain text label/value rows.</param>
+    /// <param name="align">Table alignment in the document flow.</param>
+    /// <param name="style">Optional table style. The style is cloned before header-row settings are applied.</param>
+    /// <param name="includeHeader">When true, emits a header row before the supplied values.</param>
+    /// <param name="keyHeader">Header text for the label column.</param>
+    /// <param name="valueHeader">Header text for the value column.</param>
+    public PdfDocument KeyValueTable(System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<string, string?>> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") {
+        Guard.NotNull(rows, nameof(rows));
+        var keyValueRows = new System.Collections.Generic.List<PdfKeyValueRow>();
+        foreach (System.Collections.Generic.KeyValuePair<string, string?> row in rows) {
+            keyValueRows.Add(new PdfKeyValueRow(row.Key, row.Value));
+        }
+
+        return KeyValueTable(keyValueRows, align, style, includeHeader, keyHeader, valueHeader);
+    }
+
+    /// <summary>
+    /// Adds a two-column rich label/value table for document metadata, invoice facts, definition lists, and similar report sections.
+    /// </summary>
+    /// <param name="rows">Rich text label/value rows.</param>
+    /// <param name="align">Table alignment in the document flow.</param>
+    /// <param name="style">Optional table style. The style is cloned before header-row settings are applied.</param>
+    /// <param name="includeHeader">When true, emits a header row before the supplied values.</param>
+    /// <param name="keyHeader">Header text for the label column.</param>
+    /// <param name="valueHeader">Header text for the value column.</param>
+    public PdfDocument KeyValueTable(System.Collections.Generic.IEnumerable<PdfKeyValueRow> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") {
+        AddBlock(CreateKeyValueTableBlock(rows, align, style, includeHeader, keyHeader, valueHeader));
+        return this;
+    }
+
+    internal static TableBlock CreateKeyValueTableBlock(System.Collections.Generic.IEnumerable<PdfKeyValueRow> rows, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null, bool includeHeader = false, string keyHeader = "Key", string valueHeader = "Value") {
+        Guard.NotNull(rows, nameof(rows));
+        var tableRows = new System.Collections.Generic.List<PdfTableCell[]>();
+        if (includeHeader) {
+            tableRows.Add(new[] {
+                PdfTableCell.TextCell(keyHeader ?? string.Empty),
+                PdfTableCell.TextCell(valueHeader ?? string.Empty)
+            });
+        }
+
+        foreach (PdfKeyValueRow row in rows) {
+            if (row == null) {
+                throw new System.ArgumentException("PDF key/value table rows cannot contain null entries.", nameof(rows));
+            }
+
+            tableRows.Add(row.ToTableCells());
+        }
+
+        PdfTableStyle effectiveStyle = style?.Clone() ?? new PdfTableStyle();
+        effectiveStyle.HeaderRowCount = includeHeader ? 1 : 0;
+        return new TableBlock(tableRows, align, effectiveStyle);
+    }
+
     internal static TableBlock CreateTableBlockWithLinks(System.Collections.Generic.IEnumerable<string[]> rows, System.Collections.Generic.Dictionary<(int Row, int Col), string> links, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
         var tb = new TableBlock(rows, align, style);
         if (links != null) {

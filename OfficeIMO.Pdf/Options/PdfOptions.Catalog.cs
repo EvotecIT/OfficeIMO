@@ -561,7 +561,8 @@ public sealed partial class PdfOptions {
         string conformanceLevel = "EN 16931",
         string version = "1.0",
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
-        string? description = "Factur-X/ZUGFeRD invoice XML") {
+        string? description = "Factur-X/ZUGFeRD invoice XML",
+        bool useDocumentFontFallback = true) {
         PdfAIdentification pdfAIdentification = new PdfAIdentification(3, "B");
         PdfOutputIntent outputIntent = PdfOutputIntent.CreateSrgbIec6196621();
         PdfElectronicInvoiceMetadata metadata = CreateFacturXInvoiceMetadata(conformanceLevel, version);
@@ -570,6 +571,10 @@ public sealed partial class PdfOptions {
         AddEmbeddedFile(attachment);
         FileVersion = PdfFileVersion.Pdf17;
         IncludeStandardFontToUnicodeMaps = true;
+        if (useDocumentFontFallback) {
+            TryUseDefaultDocumentFontFallback(requireEmbeddedFont: false);
+        }
+
         SetPdfAIdentification(pdfAIdentification);
         SetOutputIntent(outputIntent);
         return SetElectronicInvoiceMetadata(metadata);

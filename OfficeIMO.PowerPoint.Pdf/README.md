@@ -1,6 +1,6 @@
 # OfficeIMO.PowerPoint.Pdf
 
-First-party PowerPoint-to-PDF export built on the reusable `OfficeIMO.Pdf` engine.
+First-party PowerPoint-to-PDF export and PDF-table-to-PowerPoint import built on the reusable `OfficeIMO.Pdf` engine.
 
 Current scope:
 
@@ -13,5 +13,6 @@ Current scope:
 - clustered column, line, scatter, pie, and doughnut charts use the PowerPoint chart snapshot API plus the shared `OfficeChartDrawingRenderer` vector chart renderer, with optional `PowerPointPdfSaveOptions.ChartStyle` and `ChartLayout` pass-through for consistent chart palette, text, and dense-label layout
 - rectangle, rounded rectangle, ellipse, and line auto-shapes reuse `OfficeIMO.Drawing` descriptors
 - unsupported slide content, stretched-picture aspect ratio diagnostics, and shared chart drawing quality diagnostics record warnings through `PowerPointPdfSaveOptions.Warnings`
+- PDF logical table extraction can generate editable PowerPoint table slides through `SavePdfTablesAsPowerPoint(...)`, including source-page titles, row caps, empty-presentation messaging, source-proportional column sizing, numeric body-cell alignment, and optional row/column slide segmentation for wide or long document tables
 
 This package is intentionally a thin adapter over the shared PDF engine. Richer slide fidelity should land in `OfficeIMO.Pdf` reusable primitives first, then be exposed here.

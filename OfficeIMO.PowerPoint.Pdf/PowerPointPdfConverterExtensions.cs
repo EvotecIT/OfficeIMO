@@ -13,8 +13,6 @@ namespace OfficeIMO.PowerPoint.Pdf;
 /// First-party PowerPoint presentation to PDF conversion helpers.
 /// </summary>
 public static partial class PowerPointPdfConverterExtensions {
-    private const string DefaultEmbeddedFontFamily = "Arial, Aptos, Calibri, Liberation Sans, DejaVu Sans";
-
     /// <summary>
     /// Converts a PowerPoint presentation to a first-party OfficeIMO PDF document model.
     /// </summary>
