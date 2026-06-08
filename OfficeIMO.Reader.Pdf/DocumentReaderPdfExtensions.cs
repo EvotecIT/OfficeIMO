@@ -123,7 +123,7 @@ public static class DocumentReaderPdfExtensions {
             string pageAnchor = "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string idPrefix = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string markdown = page.ToMarkdown(markdownOptions);
-            var pageTables = BuildTables(PdfLogicalTableAnalysis.ExtractTables(page, GetMaxTableRows(readerOptions)));
+            var pageTables = BuildTables(PdfLogicalTableAnalysis.ExtractTables(page, GetMaxTableRows(readerOptions)), pageIndex);
             foreach (var chunk in BuildChunksFromText(
                 markdown,
                 source,
@@ -280,13 +280,14 @@ public static class DocumentReaderPdfExtensions {
         return readerOptions.MaxTableRows > 0 ? readerOptions.MaxTableRows : 0;
     }
 
-    private static IReadOnlyList<ReaderTable>? BuildTables(IReadOnlyList<PdfLogicalTableExtraction> tables) {
+    private static IReadOnlyList<ReaderTable>? BuildTables(IReadOnlyList<PdfLogicalTableExtraction> tables, int? pageSelectionIndex = null) {
         if (tables.Count == 0) return null;
 
         var result = new List<ReaderTable>(tables.Count);
         for (int i = 0; i < tables.Count; i++) {
             PdfLogicalTableExtraction table = tables[i];
             PdfLogicalTableData data = table.Data;
+            int selectionIndex = pageSelectionIndex ?? table.PageIndex;
 
             result.Add(new ReaderTable {
                 Kind = table.DetectionKind,
@@ -295,7 +296,7 @@ public static class DocumentReaderPdfExtensions {
                     TableIndex = table.TableIndex,
                     SourceBlockKind = "table",
                     BlockAnchor = "page-" + table.PageNumber.ToString(CultureInfo.InvariantCulture)
-                        + "-selection-" + table.PageIndex.ToString(CultureInfo.InvariantCulture)
+                        + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture)
                         + "-table-" + table.TableIndex.ToString(CultureInfo.InvariantCulture)
                 },
                 Columns = data.Columns,

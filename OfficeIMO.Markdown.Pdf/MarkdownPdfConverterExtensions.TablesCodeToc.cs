@@ -323,12 +323,14 @@ public static partial class MarkdownPdfConverterExtensions {
             : new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>(style.CellAlignments);
 
         bool hasExplicitAlignment = cellAlignments.Count > 0;
-        ApplyMarkdownTableCellAlignments(cellAlignments, table.HeaderCells, pdfRowIndex: 0, ref hasExplicitAlignment);
+        int columnCount = GetMarkdownTableColumnCount(table);
+        var activeRowSpans = new int[Math.Max(0, columnCount)];
+        ApplyMarkdownTableCellAlignments(cellAlignments, table.HeaderCells, pdfRowIndex: 0, columnCount, activeRowSpans, ref hasExplicitAlignment);
 
         int bodyRowOffset = table.Headers.Count > 0 ? 1 : 0;
         IReadOnlyList<IReadOnlyList<TableCell>> rowCells = table.RowCells;
         for (int rowIndex = 0; rowIndex < rowCells.Count; rowIndex++) {
-            ApplyMarkdownTableCellAlignments(cellAlignments, rowCells[rowIndex], bodyRowOffset + rowIndex, ref hasExplicitAlignment);
+            ApplyMarkdownTableCellAlignments(cellAlignments, rowCells[rowIndex], bodyRowOffset + rowIndex, columnCount, activeRowSpans, ref hasExplicitAlignment);
         }
 
         if (hasExplicitAlignment) {
@@ -336,10 +338,18 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void ApplyMarkdownTableCellAlignments(Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign> cellAlignments, IReadOnlyList<TableCell> cells, int pdfRowIndex, ref bool hasExplicitAlignment) {
+    private static void ApplyMarkdownTableCellAlignments(Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign> cellAlignments, IReadOnlyList<TableCell> cells, int pdfRowIndex, int columnCount, int[] activeRowSpans, ref bool hasExplicitAlignment) {
         int meaningfulCount = GetMeaningfulCellCount(cells);
         int logicalColumn = 0;
         for (int cellIndex = 0; cellIndex < meaningfulCount; cellIndex++) {
+            while (logicalColumn < columnCount && activeRowSpans[logicalColumn] > 0) {
+                logicalColumn++;
+            }
+
+            if (logicalColumn >= columnCount) {
+                break;
+            }
+
             TableCell? cell = cells[cellIndex];
             if (cell == null) {
                 logicalColumn++;
@@ -351,7 +361,19 @@ public static partial class MarkdownPdfConverterExtensions {
                 hasExplicitAlignment = true;
             }
 
-            logicalColumn += Math.Max(1, cell.ColumnSpan);
+            int columnSpan = Math.Max(1, Math.Min(cell.ColumnSpan, columnCount - logicalColumn));
+            int rowSpan = Math.Max(1, cell.RowSpan);
+            for (int column = logicalColumn; column < logicalColumn + columnSpan; column++) {
+                activeRowSpans[column] = Math.Max(activeRowSpans[column], rowSpan);
+            }
+
+            logicalColumn += columnSpan;
+        }
+
+        for (int column = 0; column < activeRowSpans.Length; column++) {
+            if (activeRowSpans[column] > 0) {
+                activeRowSpans[column]--;
+            }
         }
     }
 

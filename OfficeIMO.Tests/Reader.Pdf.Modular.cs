@@ -176,7 +176,7 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(1, table.Location!.Page);
         Assert.Equal(0, table.Location.TableIndex);
         Assert.Equal("table", table.Location.SourceBlockKind);
-        Assert.Equal("page-1-selection-0-table-0", table.Location.BlockAnchor);
+        Assert.Equal("page-1-selection-0000-table-0", table.Location.BlockAnchor);
         Assert.Equal(new[] { "Code", "Name", "Qty" }, table.Columns);
         Assert.Equal(3, table.ColumnProfiles.Count);
         Assert.Equal(ReaderTableColumnKind.Text, table.ColumnProfiles[0].Kind);
@@ -192,6 +192,57 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(2, table.Rows.Count);
         Assert.Equal(new[] { "A-100", "Alpha", "2" }, table.Rows[0]);
         Assert.Equal(new[] { "B-200", "Beta", "14" }, table.Rows[1]);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_DuplicatePageRangeTableSelectionsEmitUniqueAnchors() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "A-100", "Alpha", "2" },
+                new[] { "B-200", "Beta", "14" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "duplicate-table-ranges.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                LayoutOptions = new PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                },
+                PageRanges = new[] {
+                    PdfPageRange.From(1, 1),
+                    PdfPageRange.From(1, 1)
+                }
+            },
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
+
+        var tableAnchors = chunks
+            .Where(chunk => chunk.Tables?.Count > 0)
+            .Select(chunk => Assert.Single(chunk.Tables!).Location!.BlockAnchor)
+            .ToArray();
+
+        Assert.Equal(new[] {
+            "page-1-selection-0000-table-0",
+            "page-1-selection-0001-table-0"
+        }, tableAnchors);
+        Assert.Equal(tableAnchors.Length, tableAnchors.Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]

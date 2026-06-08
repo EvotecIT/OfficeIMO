@@ -71,7 +71,7 @@ public sealed partial class PdfDocument {
                 AnalyzeChoiceField(choiceField, diagnostics, location);
                 break;
             case FreeTextAnnotationBlock freeText:
-                AddText(diagnostics, freeText.Contents, options, PdfStandardFont.Helvetica, "PdfFreeTextAnnotation", location);
+                AddFreeTextAppearanceText(diagnostics, freeText.Contents, options, "PdfFreeTextAnnotation", location);
                 break;
             case DrawingBlock drawing:
                 AnalyzeDrawing(drawing, options, defaultFont, diagnostics, location);
@@ -185,7 +185,7 @@ public sealed partial class PdfDocument {
                     AddRuns(diagnostics, textBox.Runs, options, defaultFont, "PdfCanvasTextBox", AppendLocation(locationPrefix, "PdfCanvasTextBox[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
                 case PdfCanvasFreeTextAnnotationItem freeText:
-                    AddText(diagnostics, freeText.Contents, options, PdfStandardFont.Helvetica, "PdfCanvasFreeTextAnnotation", AppendLocation(locationPrefix, "PdfCanvasFreeTextAnnotation[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
+                    AddFreeTextAppearanceText(diagnostics, freeText.Contents, options, "PdfCanvasFreeTextAnnotation", AppendLocation(locationPrefix, "PdfCanvasFreeTextAnnotation[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
                     break;
                 case PdfCanvasTableItem table:
                     AnalyzeTable(table.Block, options, defaultFont, diagnostics, "PdfCanvasTableCell", AppendLocation(locationPrefix, "PdfCanvasTable[" + itemIndex.ToString(CultureInfo.InvariantCulture) + "]"));
@@ -235,7 +235,11 @@ public sealed partial class PdfDocument {
         }
 
         for (int segmentIndex = 0; segmentIndex < segments.Count; segmentIndex++) {
-            FooterSegment segment = segments[segmentIndex];
+            FooterSegment? segment = segments[segmentIndex];
+            if (segment is null) {
+                throw new ArgumentException(source + " segments cannot contain null entries.");
+            }
+
             if (segment.Kind == FooterSegmentKind.Text) {
                 AddPageText(diagnostics, seenPageText, segment.Text, options, font, source, AppendLocation(locationPrefix, "Segment[" + segmentIndex.ToString(CultureInfo.InvariantCulture) + "]"), pageNumber);
             }
@@ -267,6 +271,17 @@ public sealed partial class PdfDocument {
         IReadOnlyList<PdfTextEncodingDiagnostic> textDiagnostics = PdfTextDiagnostics.AnalyzeWinAnsiText(text!, source, location);
         foreach (PdfTextEncodingDiagnostic diagnostic in textDiagnostics) {
             diagnostics.Add(AnnotateDiagnostic(diagnostic, pageNumber: null, tableRowIndex, tableColumnIndex, fieldName));
+        }
+    }
+
+    private static void AddFreeTextAppearanceText(List<PdfTextEncodingDiagnostic> diagnostics, string? text, PdfOptions options, string source, string location) {
+        if (string.IsNullOrEmpty(text) || !options.TryGetEmbeddedStandardFont(PdfStandardFont.Helvetica, out _)) {
+            return;
+        }
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> textDiagnostics = PdfTextDiagnostics.AnalyzeWinAnsiText(text!, source, location);
+        foreach (PdfTextEncodingDiagnostic diagnostic in textDiagnostics) {
+            diagnostics.Add(AnnotateDiagnostic(diagnostic, pageNumber: null, tableRowIndex: null, tableColumnIndex: null));
         }
     }
 

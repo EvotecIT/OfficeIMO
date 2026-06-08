@@ -15,6 +15,7 @@ public sealed partial class HtmlToMarkdownConverter {
         var columnWidthWeights = new List<double?>();
         CaptureColumnGroupAlignments(element, columnAlignments);
         CaptureColumnGroupWidths(element, columnWidthPoints, columnWidthWeights);
+        var activeRowSpans = new List<int>();
 
         foreach (var row in EnumerateTableRows(element)) {
             var cells = row.Children
@@ -27,11 +28,16 @@ public sealed partial class HtmlToMarkdownConverter {
             bool isHeaderRow = !headerWritten && cells.All(cell => cell.TagName.Equals("TH", StringComparison.OrdinalIgnoreCase));
             var renderedCells = new List<string>(cells.Count);
             var structuredCells = new List<TableCell>(cells.Count);
+            int logicalColumn = 0;
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
+                while (logicalColumn < activeRowSpans.Count && activeRowSpans[logicalColumn] > 0) {
+                    logicalColumn++;
+                }
+
                 var cell = cells[cellIndex];
                 var cellBlocks = ConvertTableCellToBlocks(cell, context);
                 ColumnAlignment cellAlignment = ParseAlignment(cell);
-                structuredCells.Add(new TableCell(cellBlocks) {
+                var structuredCell = new TableCell(cellBlocks) {
                     Alignment = cellAlignment,
                     BackgroundColor = ParseBackgroundColor(cell),
                     TextColor = ParseTextColor(cell),
@@ -41,12 +47,16 @@ public sealed partial class HtmlToMarkdownConverter {
                     Strikethrough = ParseTextDecoration(cell, "line-through"),
                     ColumnSpan = ParseCellSpan(cell.GetAttribute("colspan")),
                     RowSpan = ParseCellSpan(cell.GetAttribute("rowspan"))
-                });
+                };
+                structuredCells.Add(structuredCell);
                 renderedCells.Add(RenderTableCellBlocksToMarkdown(cellBlocks));
-                CaptureColumnAlignment(columnAlignments, cellIndex, cellAlignment, replaceExisting: isHeaderRow);
-                CaptureColumnWidth(columnWidthPoints, columnWidthWeights, cellIndex, ParseColumnWidth(cell), replaceExisting: false);
+                CaptureSpannedColumnAlignment(columnAlignments, logicalColumn, structuredCell.ColumnSpan, cellAlignment, replaceExisting: isHeaderRow);
+                CaptureSpannedColumnWidth(columnWidthPoints, columnWidthWeights, logicalColumn, structuredCell.ColumnSpan, ParseColumnWidth(cell), replaceExisting: false);
+                UpdateActiveCellRowSpans(activeRowSpans, logicalColumn, structuredCell.ColumnSpan, structuredCell.RowSpan);
+                logicalColumn += Math.Max(1, structuredCell.ColumnSpan);
             }
 
+            DecrementActiveCellRowSpans(activeRowSpans);
             if (isHeaderRow) {
                 foreach (var value in renderedCells) {
                     table.Headers.Add(value);
@@ -133,6 +143,10 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static int CaptureSpannedColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, IElement columnElement, ColumnAlignment alignment, bool replaceExisting) {
         int span = ParseColumnSpan(columnElement.GetAttribute("span"));
+        return CaptureSpannedColumnAlignment(alignments, columnIndex, span, alignment, replaceExisting);
+    }
+
+    private static int CaptureSpannedColumnAlignment(List<ColumnAlignment> alignments, int columnIndex, int span, ColumnAlignment alignment, bool replaceExisting) {
         for (int offset = 0; offset < span; offset++) {
             CaptureColumnAlignment(alignments, columnIndex + offset, alignment, replaceExisting);
         }
@@ -173,6 +187,10 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static int CaptureSpannedColumnWidth(List<double?> widthPoints, List<double?> widthWeights, int columnIndex, IElement columnElement, ColumnWidthHint width, bool replaceExisting) {
         int span = ParseColumnSpan(columnElement.GetAttribute("span"));
+        return CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, span, width, replaceExisting);
+    }
+
+    private static int CaptureSpannedColumnWidth(List<double?> widthPoints, List<double?> widthWeights, int columnIndex, int span, ColumnWidthHint width, bool replaceExisting) {
         for (int offset = 0; offset < span; offset++) {
             CaptureColumnWidth(widthPoints, widthWeights, columnIndex + offset, width, replaceExisting);
         }
@@ -215,6 +233,30 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         return Math.Min(span, 512);
+    }
+
+    private static void UpdateActiveCellRowSpans(List<int> activeRowSpans, int logicalColumn, int columnSpan, int rowSpan) {
+        if (rowSpan <= 1) {
+            return;
+        }
+
+        int span = Math.Max(1, columnSpan);
+        while (activeRowSpans.Count < logicalColumn + span) {
+            activeRowSpans.Add(0);
+        }
+
+        for (int offset = 0; offset < span; offset++) {
+            int column = logicalColumn + offset;
+            activeRowSpans[column] = Math.Max(activeRowSpans[column], rowSpan);
+        }
+    }
+
+    private static void DecrementActiveCellRowSpans(List<int> activeRowSpans) {
+        for (int column = 0; column < activeRowSpans.Count; column++) {
+            if (activeRowSpans[column] > 0) {
+                activeRowSpans[column]--;
+            }
+        }
     }
 
     private static void ApplyColumnWidths(TableBlock table, List<double?> widthPoints, List<double?> widthWeights) {

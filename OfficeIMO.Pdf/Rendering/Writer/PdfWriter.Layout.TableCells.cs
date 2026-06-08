@@ -169,7 +169,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Table cell fill coordinates cannot be negative.");
                 }
 
-                ValidateTableCellStyleAnchor(table, columnCount, cellFill.Key.Row, cellFill.Key.Column, "Table cell fill coordinates must fit inside the table grid.", "Table cell fill coordinates must target visible table cells.");
+                ValidateTableCellStyleAnchor(table, columnCount, cellFill.Key.Row, cellFill.Key.Column, "Table cell fill coordinates must fit inside the table grid.");
             }
         }
 
@@ -179,7 +179,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Table cell border coordinates cannot be negative.");
                 }
 
-                ValidateTableCellStyleAnchor(table, columnCount, cellBorder.Key.Row, cellBorder.Key.Column, "Table cell border coordinates must fit inside the table grid.", "Table cell border coordinates must target visible table cells.");
+                ValidateTableCellStyleAnchor(table, columnCount, cellBorder.Key.Row, cellBorder.Key.Column, "Table cell border coordinates must fit inside the table grid.");
             }
         }
 
@@ -189,7 +189,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Table cell data bar coordinates cannot be negative.");
                 }
 
-                ValidateTableCellStyleAnchor(table, columnCount, cellDataBar.Key.Row, cellDataBar.Key.Column, "Table cell data bar coordinates must fit inside the table grid.", "Table cell data bar coordinates must target visible table cells.");
+                ValidateTableCellStyleAnchor(table, columnCount, cellDataBar.Key.Row, cellDataBar.Key.Column, "Table cell data bar coordinates must fit inside the table grid.");
             }
         }
 
@@ -199,7 +199,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Table cell icon coordinates cannot be negative.");
                 }
 
-                ValidateTableCellStyleAnchor(table, columnCount, cellIcon.Key.Row, cellIcon.Key.Column, "Table cell icon coordinates must fit inside the table grid.", "Table cell icon coordinates must target visible table cells.");
+                ValidateTableCellStyleAnchor(table, columnCount, cellIcon.Key.Row, cellIcon.Key.Column, "Table cell icon coordinates must fit inside the table grid.");
             }
         }
 
@@ -209,7 +209,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Table cell padding coordinates cannot be negative.");
                 }
 
-                ValidateTableCellStyleAnchor(table, columnCount, cellPadding.Key.Row, cellPadding.Key.Column, "Table cell padding coordinates must fit inside the table grid.", "Table cell padding coordinates must target visible table cells.");
+                ValidateTableCellStyleAnchor(table, columnCount, cellPadding.Key.Row, cellPadding.Key.Column, "Table cell padding coordinates must fit inside the table grid.");
             }
         }
 
@@ -219,7 +219,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Table cell alignment coordinates cannot be negative.");
                 }
 
-                ValidateTableCellStyleAnchor(table, columnCount, cellAlignment.Key.Row, cellAlignment.Key.Column, "Table cell alignment coordinates must fit inside the table grid.", "Table cell alignment coordinates must target visible table cells.");
+                ValidateTableCellStyleAnchor(table, columnCount, cellAlignment.Key.Row, cellAlignment.Key.Column, "Table cell alignment coordinates must fit inside the table grid.");
 
                 if (!IsValidPdfColumnAlign(cellAlignment.Value)) {
                     throw new ArgumentException("Table cell alignments must be Left, Center, or Right.");
@@ -233,7 +233,7 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Table cell vertical alignment coordinates cannot be negative.");
                 }
 
-                ValidateTableCellStyleAnchor(table, columnCount, cellAlignment.Key.Row, cellAlignment.Key.Column, "Table cell vertical alignment coordinates must fit inside the table grid.", "Table cell vertical alignment coordinates must target visible table cells.");
+                ValidateTableCellStyleAnchor(table, columnCount, cellAlignment.Key.Row, cellAlignment.Key.Column, "Table cell vertical alignment coordinates must fit inside the table grid.");
 
                 if (!IsValidPdfCellVerticalAlign(cellAlignment.Value)) {
                     throw new ArgumentException("Table cell vertical alignments must be defined PDF cell vertical alignment values.");
@@ -336,14 +336,9 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void ValidateTableCellStyleAnchor(TableBlock table, int columnCount, int row, int column, string outOfRangeMessage, string coveredCellMessage) {
+    private static void ValidateTableCellStyleAnchor(TableBlock table, int columnCount, int row, int column, string outOfRangeMessage) {
         if (row >= table.Rows.Count || column >= columnCount) {
             throw new ArgumentException(outOfRangeMessage);
-        }
-
-        var cells = GetTableCellLayouts(table, row, columnCount);
-        if (!TryGetTableCellLayoutAtColumn(cells, column, out _)) {
-            throw new ArgumentException(coveredCellMessage);
         }
     }
 

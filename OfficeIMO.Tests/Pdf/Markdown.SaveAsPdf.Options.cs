@@ -5,8 +5,11 @@ using PdfCore = OfficeIMO.Pdf;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
@@ -92,6 +95,49 @@ public class MarkdownSaveAsPdfOptionsTests {
     }
 
     [Fact]
+    public void ToPdfDocument_HtmlTableCellAlignmentsTrackBodyRowSpans() {
+        const string defaultHtml = """
+<table>
+  <colgroup><col style="width:80pt"><col style="width:130pt"><col style="width:60pt"></colgroup>
+  <tr><th>Group</th><th>Task</th><th>Qty</th></tr>
+  <tr><td rowspan="2">A</td><td>Build</td><td>1</td></tr>
+  <tr><td>Support</td><td>2</td></tr>
+</table>
+""";
+        const string alignedHtml = """
+<table>
+  <colgroup><col style="width:80pt"><col style="width:130pt"><col style="width:60pt"></colgroup>
+  <tr><th>Group</th><th>Task</th><th>Qty</th></tr>
+  <tr><td rowspan="2">A</td><td>Build</td><td>1</td></tr>
+  <tr><td style="text-align:right">Support</td><td>2</td></tr>
+</table>
+""";
+
+        var options = new MarkdownPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 240,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30,
+                DefaultFontSize = 9
+            }
+        };
+
+        byte[] defaultBytes = defaultHtml.LoadFromHtml().ToPdfDocument(options).ToBytes();
+        byte[] alignedBytes = alignedHtml.LoadFromHtml().ToPdfDocument(options).ToBytes();
+
+        using PdfPigDocument defaultPdf = PdfPigDocument.Open(new MemoryStream(defaultBytes));
+        using PdfPigDocument alignedPdf = PdfPigDocument.Open(new MemoryStream(alignedBytes));
+
+        double defaultX = FindWordStartX(defaultPdf.GetPage(1), "Support");
+        double alignedX = FindWordStartX(alignedPdf.GetPage(1), "Support");
+
+        Assert.True(alignedX > defaultX + 30D, $"Expected right-aligned Support cell to move within the second logical column. Default x: {defaultX:0.##}, aligned x: {alignedX:0.##}.");
+    }
+
+    [Fact]
     public void ToPdfDocument_HtmlPromotedHeaderRowSpanDoesNotCrossPdfHeaderBoundary() {
         const string html = """
 <table>
@@ -126,4 +172,21 @@ public class MarkdownSaveAsPdfOptionsTests {
 
     private static double ParseInvariantDouble(string value) =>
         double.Parse(value, CultureInfo.InvariantCulture);
+
+    private static double FindWordStartX(UglyToad.PdfPig.Content.Page page, string word) {
+        var lines = page.Letters
+            .Where(letter => !string.IsNullOrWhiteSpace(letter.Value))
+            .GroupBy(letter => Math.Round(letter.StartBaseLine.Y, 1));
+
+        foreach (var line in lines) {
+            var ordered = line.OrderBy(letter => letter.StartBaseLine.X).ToList();
+            string text = string.Concat(ordered.Select(letter => letter.Value));
+            int index = text.IndexOf(word, StringComparison.Ordinal);
+            if (index >= 0) {
+                return ordered[index].StartBaseLine.X;
+            }
+        }
+
+        throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
+    }
 }

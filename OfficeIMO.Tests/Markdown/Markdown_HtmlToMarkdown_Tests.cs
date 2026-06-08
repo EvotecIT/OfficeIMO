@@ -790,6 +790,26 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_MapsTableColumnMetadataToLogicalColumnsAfterSpans() {
+        const string html = """
+<table>
+  <tr><th colspan="2">A</th><th style="text-align:right;width:40pt">C</th></tr>
+  <tr><td rowspan="2">Group</td><td>Setup</td><td>10</td></tr>
+  <tr><td style="text-align:center;width:50pt">Support</td><td>20</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Center, ColumnAlignment.Right }, table.Alignments);
+        Assert.Equal(3, table.ColumnWidthPoints.Count);
+        Assert.Null(table.ColumnWidthPoints[0]);
+        Assert.Equal(50D, table.ColumnWidthPoints[1]);
+        Assert.Equal(40D, table.ColumnWidthPoints[2]);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_ReadsTableCellSpans() {
         const string html = """
 <table>

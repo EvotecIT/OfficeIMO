@@ -402,7 +402,7 @@ public class PdfDocumentWorkflowTests {
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
 
-        Assert.Equal(11, diagnostics.Count);
+        Assert.Equal(10, diagnostics.Count);
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfHeader" && diagnostic.Location == "PdfHeader[page=1]" && diagnostic.PageNumber == 1 && diagnostic.CodePoint == "U+2603");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfFooter" && diagnostic.Location == "PdfFooter[page=1]" && diagnostic.PageNumber == 1 && diagnostic.CodePoint == "U+2602");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfParagraph" && diagnostic.Location == "PdfParagraph[0].Run[0]" && diagnostic.RunIndex == 0 && diagnostic.CodePoint == "U+2603");
@@ -411,7 +411,6 @@ public class PdfDocumentWorkflowTests {
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTableCaption" && diagnostic.Location == "PdfTable[3].PdfTableCaption" && diagnostic.CodePoint == "U+2666");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTableCell" && diagnostic.Location == "PdfTable[3].PdfTableCell[0,0].Run[0]" && diagnostic.RunIndex == 0 && diagnostic.TableRowIndex == 0 && diagnostic.TableColumnIndex == 0 && diagnostic.CodePoint == "U+25A0");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfCanvasText" && diagnostic.Location == "PdfCanvas[4].PdfCanvasText[0].Run[0]" && diagnostic.RunIndex == 0 && diagnostic.CodePoint == "U+260E");
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfCanvasFreeTextAnnotation" && diagnostic.Location == "PdfCanvas[4].PdfCanvasFreeTextAnnotation[1]" && diagnostic.CodePoint == "U+2615");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTableCaption" && diagnostic.Location == "PdfCanvas[4].PdfCanvasTable[2].PdfTableCaption" && diagnostic.CodePoint == "U+273F");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.Location == "PdfTextField[5]" && diagnostic.FieldName == "Person.Name" && diagnostic.CodePoint == "U+2603");
 
@@ -437,7 +436,7 @@ public class PdfDocumentWorkflowTests {
         Assert.Contains(result.ConversionWarnings, warning =>
             warning.Source == "PdfTextField" &&
             warning.Details["fieldName"] == "Person.Name");
-        Assert.Contains("preflight found 11 generated text issues", result.Diagnostics[0], StringComparison.Ordinal);
+        Assert.Contains("preflight found 10 generated text issues", result.Diagnostics[0], StringComparison.Ordinal);
 
         ArgumentException preflightException = Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
 
@@ -479,6 +478,35 @@ public class PdfDocumentWorkflowTests {
         Assert.False(result.Succeeded);
         Assert.Equal(0, stream.Length);
         Assert.Contains(result.TextEncodingDiagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
+    }
+
+    [Fact]
+    public void AnalyzeTextEncoding_PreflightsFreeTextAppearanceThroughWinAnsiPath() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = new PdfOptions();
+        options.EmbedStandardFont(PdfStandardFont.Helvetica, fontPath);
+        const string value = "\u0105";
+        if (PdfTextDiagnostics.AnalyzeGeneratedText(value, options, PdfStandardFont.Helvetica).Count != 0) {
+            return;
+        }
+
+        using PdfDocument document = PdfDocument.Create(options)
+            .FreeTextAnnotation(value, width: 120, height: 32);
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfFreeTextAnnotation" && diagnostic.CodePoint == "U+0105");
+
+        using var stream = new MemoryStream();
+        PdfSaveResult result = document.TrySave(stream);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(0, stream.Length);
+        Assert.Contains(result.TextEncodingDiagnostics, diagnostic => diagnostic.Source == "PdfFreeTextAnnotation" && diagnostic.CodePoint == "U+0105");
     }
 
     [Fact]
