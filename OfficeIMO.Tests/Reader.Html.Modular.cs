@@ -132,6 +132,29 @@ public sealed class ReaderHtmlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderHtml_ReadHtmlString_ExtractsLargeTableProfilesBeforeSplitting() {
+        string rows = string.Concat(Enumerable.Range(1, 40).Select(index =>
+            "<tr><td>Item " + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "</td><td>" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + "</td></tr>"));
+        string html =
+            "<html><body><h1>Inventory</h1><table>" +
+            "<thead><tr><th>Name</th><th>Qty</th></tr></thead>" +
+            "<tbody>" + rows + "</tbody>" +
+            "</table></body></html>";
+
+        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+            html: html,
+            sourceName: "large-table.html",
+            readerOptions: new ReaderOptions { MaxChars = 128 }).ToList();
+
+        Assert.True(chunks.Count > 1);
+        var table = Assert.Single(chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>()));
+        Assert.Equal(new[] { "Name", "Qty" }, table.Columns);
+        Assert.Equal(40, table.TotalRowCount);
+        Assert.Equal("Item 1", table.Rows[0][0]);
+        Assert.Equal("40", table.Rows[39][1]);
+    }
+
+    [Fact]
     public void DocumentReaderHtml_ReadHtmlString_EmitsWarningForEmptyContent() {
         var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
             html: "<html><body></body></html>",

@@ -810,6 +810,28 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_RenderHtmlPreservesTableCellSpansWithoutPaddingCells() {
+        const string html = """
+<table>
+  <tr><th colspan="2">Details</th></tr>
+  <tr><td rowspan="2">Service</td><td>Setup</td></tr>
+  <tr><td>Support</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
+
+        Assert.Contains("<th colspan=\"2\">Details</th>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<td rowspan=\"2\">Service</td><td>Setup</td>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<tr><td>Support</td></tr>", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<th></th>", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<td></td>", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_ReadsTableCellBackgroundColors() {
         const string html = """
 <table>

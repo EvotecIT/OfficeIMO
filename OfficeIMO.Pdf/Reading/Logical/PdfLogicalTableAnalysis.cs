@@ -141,6 +141,7 @@ public static class PdfLogicalTableAnalysis {
         if (columnCount == 2 &&
             !LooksLikeKeyValueHeader(headers) &&
             !IsValueHeader(headers[1]) &&
+            LooksLikeHeaderlessKeyValueFirstRow(headers) &&
             LooksLikeKeyValueBody(table, startRow: 0)) {
             return null;
         }
@@ -474,6 +475,13 @@ public static class PdfLogicalTableAnalysis {
         string valueHeader = headerColumns[1].Trim();
 
         return IsKeyHeader(keyHeader) && IsValueHeader(valueHeader);
+    }
+
+    private static bool LooksLikeHeaderlessKeyValueFirstRow(string[] firstRow) {
+        string key = firstRow[0].Trim();
+        string value = firstRow[1].Trim();
+
+        return !IsKeyHeader(key) && value.Any(static c => char.IsDigit(c));
     }
 
     private static bool IsKeyHeader(string header) {

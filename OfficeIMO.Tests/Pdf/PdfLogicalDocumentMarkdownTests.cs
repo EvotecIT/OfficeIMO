@@ -128,6 +128,43 @@ public partial class PdfLogicalDocumentTests {
     }
 
     [Fact]
+    public void TableAnalysis_PreservesOrdinaryTwoColumnTableHeaders() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 320,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Name", "Age" },
+                new[] { "Alice", "42" },
+                new[] { "Bob", "37" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 120, 80 },
+                HeaderRowCount = 1
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }).Pages[0].Tables);
+
+        PdfLogicalTableStructure structure = PdfLogicalTableAnalysis.Analyze(table);
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+
+        Assert.True(structure.HasHeaderRow);
+        Assert.False(structure.IsKeyValueTable);
+        Assert.Equal(new[] { "Name", "Age" }, structure.Columns);
+        Assert.Equal(1, structure.BodyStartRowIndex);
+        Assert.Equal(new[] { "Name", "Age" }, data.Columns);
+        Assert.Equal(new[] { "Alice", "42" }, data.Rows[0]);
+        Assert.True(data.IsNumericColumn(1));
+    }
+
+    [Fact]
     public void TableAnalysis_IdentifiesHeaderlessKeyValueTableShape() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
