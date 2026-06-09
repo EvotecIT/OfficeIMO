@@ -47,7 +47,7 @@ public partial class PdfFormFillerTests {
             .Forms
             .TryFillAndFlatten(new Dictionary<string, string> {
                 ["Name"] = "office cafe\u0301"
-            }, options);
+            }, options, null);
 
         Assert.True(result.CanAttempt);
         Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));

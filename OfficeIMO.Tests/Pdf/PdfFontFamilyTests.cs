@@ -714,6 +714,31 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfOptions_ReportDiagnosticsToResetsTextDiagnosticDeduplicationForNewReport() {
+        var first = new PdfConversionReport();
+        var second = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false
+            }
+            .ReportDiagnosticsTo(first, "OfficeIMO.Tests");
+
+        Assert.ThrowsAny<ArgumentException>(() =>
+            PdfDocument.Create(options)
+                .Paragraph(paragraph => paragraph.Text("\u0645\u0631\u062D\u0628\u0627"))
+                .ToBytes());
+
+        options.ReportDiagnosticsTo(second, "OfficeIMO.Tests");
+
+        Assert.ThrowsAny<ArgumentException>(() =>
+            PdfDocument.Create(options)
+                .Paragraph(paragraph => paragraph.Text("\u0645\u0631\u062D\u0628\u0627"))
+                .ToBytes());
+
+        Assert.Contains(first.Warnings, item => item.Code == "unsupported-complex-script-shaping");
+        Assert.Contains(second.Warnings, item => item.Code == "unsupported-complex-script-shaping");
+    }
+
+    [Fact]
     public void PdfFontDiagnostics_AnalyzeEmbeddedFontReportsOpenTypeCffBeforeRendering() {
         IReadOnlyList<PdfFontEmbeddingDiagnostic> diagnostics = PdfFontDiagnostics.AnalyzeEmbeddedFont(
             CreateMinimalOpenTypeCffFont(),

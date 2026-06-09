@@ -185,6 +185,25 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void Forms_TryFillNullOptionsCallsRemainSourceCompatible() {
+        byte[] formPdf = BuildSimpleFormPdf();
+        var textValues = new Dictionary<string, string> {
+            ["Person.Name"] = "Ada Lovelace"
+        };
+        var fieldValues = new Dictionary<string, PdfFormFieldValue> {
+            ["Person.Name"] = PdfFormFieldValue.From("Ada Lovelace")
+        };
+
+        PdfDocumentForms forms = PdfDocument.Open(formPdf).Forms;
+
+        Assert.True(forms.TryFill(textValues, null).Succeeded);
+        Assert.True(forms.TryFill(fieldValues, null).Succeeded);
+        Assert.True(forms.TryFillAndFlatten(textValues, null).Succeeded);
+        Assert.True(forms.TryFillAndFlatten(fieldValues, null).Succeeded);
+        Assert.True(forms.TryFlatten(null).Succeeded);
+    }
+
+    [Fact]
     public void PageOperations_ReturnNewDocumentsAndMatchExistingHelpers() {
         byte[] source = BuildThreePagePdf();
 

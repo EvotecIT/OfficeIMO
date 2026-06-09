@@ -53,6 +53,11 @@ public sealed class HtmlPdfTests {
         PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "UnsupportedImage");
         Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Equal("UnsupportedImage", warning.Code);
+
+        options.ConversionReport.Clear();
+
+        Assert.False(options.ConversionReport.HasWarnings);
+        Assert.Empty(options.ConversionReport.Warnings);
     }
 
     [Fact]

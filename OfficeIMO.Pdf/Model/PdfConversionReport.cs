@@ -93,6 +93,7 @@ public sealed class PdfConversionReport {
     /// <summary>Clears warnings from a previous conversion run.</summary>
     public void Clear() {
         _warnings.Clear();
+        _linkedReports.Clear();
     }
 
     internal void LinkReport(PdfConversionReport report) {

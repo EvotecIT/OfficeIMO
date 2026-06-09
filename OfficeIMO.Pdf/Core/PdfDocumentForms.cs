@@ -34,7 +34,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions = null) {
+    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
         return _document.TryOperation("Fill form fields", PdfPreflightCapability.FillSimpleFormFields, () => Fill(fieldValues, formOptions), readOptions);
     }
 
@@ -62,7 +62,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions = null) {
+    public PdfOperationResult<PdfDocument> TryFill(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
         return _document.TryOperation("Fill form fields", PdfPreflightCapability.FillSimpleFormFields, () => Fill(fieldValues, formOptions), readOptions);
     }
 
@@ -90,7 +90,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields flattened, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFlatten(PdfFormFillerOptions formOptions, PdfReadOptions? readOptions = null) {
+    public PdfOperationResult<PdfDocument> TryFlatten(PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
         return _document.TryOperation("Flatten form fields", PdfPreflightCapability.FlattenSimpleFormFields, () => Flatten(formOptions), readOptions);
     }
 
@@ -118,7 +118,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled and flattened, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions = null) {
+    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
         return _document.TryOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, () => FillAndFlatten(fieldValues, formOptions), readOptions);
     }
 
@@ -146,7 +146,7 @@ public sealed class PdfDocumentForms {
     /// <summary>
     /// Attempts to create a new PDF with simple form fields filled and flattened, including multi-value fields, returning diagnostics when blocked or failed.
     /// </summary>
-    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions = null) {
+    public PdfOperationResult<PdfDocument> TryFillAndFlatten(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions formOptions, PdfReadOptions? readOptions) {
         return _document.TryOperation("Fill and flatten form fields", PdfPreflightCapability.FillAndFlattenSimpleFormFields, () => FillAndFlatten(fieldValues, formOptions), readOptions);
     }
 }
