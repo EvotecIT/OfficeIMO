@@ -186,6 +186,7 @@ public sealed partial class PdfOptions {
         var embeddedFont = new PdfEmbeddedFont(font, data, fontName);
         (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
         _embeddedFontPrograms?.Remove(font);
+        _embeddedOpenTypeCffFontPrograms?.Remove(font);
         _embeddedFontProgramFailures?.Remove(font);
         ClearReportedEmbeddedFontProgramFailure(font);
         return this;
@@ -241,6 +242,7 @@ public sealed partial class PdfOptions {
     public PdfOptions ClearEmbeddedStandardFonts() {
         _embeddedFonts?.Clear();
         _embeddedFontPrograms?.Clear();
+        _embeddedOpenTypeCffFontPrograms?.Clear();
         _embeddedFontProgramFailures?.Clear();
         _reportedEmbeddedFontProgramFailures?.Clear();
         return this;

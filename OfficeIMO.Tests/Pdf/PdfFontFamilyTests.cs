@@ -788,6 +788,29 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfOptions_EmbedStandardFontReplacesCachedOpenTypeCffProgram() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        byte[] fontBytes = File.ReadAllBytes(fontPath!);
+        var options = new PdfOptions()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO First CFF");
+
+        Assert.True(options.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? firstProgram));
+        Assert.NotNull(firstProgram);
+        Assert.Equal("OfficeIMOFirstCFF", firstProgram!.FontName);
+
+        options.EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO Second CFF");
+
+        Assert.True(options.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out PdfOpenTypeCffFontProgram? secondProgram));
+        Assert.NotNull(secondProgram);
+        Assert.Equal("OfficeIMOSecondCFF", secondProgram!.FontName);
+
+        options.ClearEmbeddedStandardFonts();
+
+        Assert.False(options.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out _));
+    }
+
+    [Fact]
     public void PdfEmbeddedFontFallbackSet_RendersOpenTypeCffCandidateThroughFluentFallbackText() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
@@ -817,6 +840,34 @@ public class PdfFontFamilyTests {
         Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("/FontFile2", raw, StringComparison.Ordinal);
         Assert.Contains("CFF fallback Łódź", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfOptions_EmbeddedFontFallbacksPropertyRegistersFallbackFontSlots() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("Source Serif CFF", File.ReadAllBytes(fontPath!)) },
+            new[] { PdfStandardFont.TimesRoman });
+        var options = new PdfOptions {
+            CompressContentStreams = false,
+            CompressEmbeddedFonts = false,
+            EmbeddedFontFallbacks = fallbackSet
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("CFF property fallback Łódź"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains(PdfStandardFont.TimesRoman, options.EmbeddedFonts.Keys);
+        Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("CFF property fallback Łódź", extracted, StringComparison.Ordinal);
     }
 
     [Fact]

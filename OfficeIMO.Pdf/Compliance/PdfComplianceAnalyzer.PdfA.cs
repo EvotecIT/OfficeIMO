@@ -93,7 +93,7 @@ public static partial class PdfComplianceAnalyzer {
                 "embedded-font-coverage",
                 "Embedded font coverage",
                 PdfComplianceRequirementStatus.Unsupported,
-                "OfficeIMO.Pdf can embed caller-supplied TrueType files for standard-font slots, but generated-document font usage was not supplied for this readiness assessment."));
+                "OfficeIMO.Pdf can embed caller-supplied TrueType and OpenType/CFF files for standard-font slots, but generated-document font usage was not supplied for this readiness assessment."));
             return;
         }
 
@@ -141,17 +141,17 @@ public static partial class PdfComplianceAnalyzer {
                 "embedded-font-coverage",
                 "Embedded font coverage",
                 PdfComplianceRequirementStatus.Satisfied,
-                "Every generated standard-font resource has a parseable embedded TrueType mapping."));
+                "Every generated standard-font resource has a parseable embedded TrueType or OpenType/CFF mapping."));
             return;
         }
 
         var diagnostics = new List<string>();
         if (missingFonts.Count > 0) {
-            diagnostics.Add("embed TrueType mappings for generated standard-font resources: " + string.Join(", ", missingFonts.Select(font => font.ToBaseFontName()).ToArray()));
+            diagnostics.Add("embed TrueType or OpenType/CFF mappings for generated standard-font resources: " + string.Join(", ", missingFonts.Select(font => font.ToBaseFontName()).ToArray()));
         }
 
         if (invalidFonts.Count > 0) {
-            diagnostics.Add("replace invalid embedded TrueType mappings: " + string.Join(", ", invalidFonts.ToArray()));
+            diagnostics.Add("replace invalid embedded TrueType or OpenType/CFF mappings: " + string.Join(", ", invalidFonts.ToArray()));
         }
 
         requirements.Add(new PdfComplianceRequirement(
@@ -176,7 +176,12 @@ public static partial class PdfComplianceAnalyzer {
 
     private static bool TryParseEmbeddedFont(PdfEmbeddedFont embeddedFont, out string? invalidReason) {
         try {
-            PdfTrueTypeFontProgram.Parse(embeddedFont.Data, embeddedFont.FontName);
+            if (IsOpenTypeCffFontData(embeddedFont.Data)) {
+                PdfOpenTypeCffFontProgram.Parse(embeddedFont.Data, embeddedFont.FontName);
+            } else {
+                PdfTrueTypeFontProgram.Parse(embeddedFont.Data, embeddedFont.FontName);
+            }
+
             invalidReason = null;
             return true;
         } catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is InvalidOperationException || ex is IndexOutOfRangeException) {
@@ -184,6 +189,13 @@ public static partial class PdfComplianceAnalyzer {
             return false;
         }
     }
+
+    private static bool IsOpenTypeCffFontData(byte[] fontData) =>
+        fontData.Length >= 4 &&
+        fontData[0] == 0x4F &&
+        fontData[1] == 0x54 &&
+        fontData[2] == 0x54 &&
+        fontData[3] == 0x4F;
 
     private static (int Part, string? Conformance) GetPdfAIdentificationTarget(PdfComplianceProfile profile) {
         switch (profile) {

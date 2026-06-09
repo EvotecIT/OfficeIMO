@@ -1,3 +1,4 @@
+using System.IO;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -43,6 +44,23 @@ public partial class PdfComplianceAnalyzerTests {
         Assert.True(proof.CanClaimConformance);
         Assert.Empty(proof.MissingExternalValidators);
         Assert.Empty(proof.FailedExternalValidations);
+    }
+
+    [Fact]
+    public void ReadinessAcceptsOpenTypeCffEmbeddedFontsForPdfAFontCoverage() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath!), "OfficeIMO Source Serif CFF");
+
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.Assess(
+            PdfComplianceProfile.PdfA3B,
+            options,
+            new[] { PdfStandardFont.Helvetica });
+
+        PdfComplianceRequirement requirement = AssertRequirement(readiness, "embedded-font-coverage", PdfComplianceRequirementStatus.Satisfied);
+        Assert.Contains("OpenType/CFF", requirement.Diagnostic, StringComparison.Ordinal);
     }
 
     [Fact]

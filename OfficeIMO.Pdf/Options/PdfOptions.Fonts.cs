@@ -10,7 +10,10 @@ public sealed partial class PdfOptions {
     /// </summary>
     public PdfEmbeddedFontFallbackSet? EmbeddedFontFallbacks {
         get => _embeddedFontFallbacks?.Clone();
-        set => _embeddedFontFallbacks = value?.Clone();
+        set {
+            _embeddedFontFallbacks = value?.Clone();
+            _embeddedFontFallbacks?.RegisterFonts(this);
+        }
     }
 
     internal PdfEmbeddedFontFallbackSet? EmbeddedFontFallbacksSnapshot => _embeddedFontFallbacks?.Clone();
