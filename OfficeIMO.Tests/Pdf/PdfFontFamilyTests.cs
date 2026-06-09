@@ -1138,6 +1138,28 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfTextFallbackPlan_ToTextRunsNormalizesCrLfBetweenFallbackSegments() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var candidate = new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath));
+        PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText(
+            "A\r\nB",
+            new[] { candidate },
+            "word:paragraph[4]");
+
+        IReadOnlyList<TextRun> runs = plan.ToTextRuns(new[] { PdfStandardFont.Helvetica });
+
+        Assert.Collection(
+            runs,
+            run => Assert.Equal("A", run.Text),
+            run => Assert.Equal("\n", run.Text),
+            run => Assert.Equal("B", run.Text));
+    }
+
+    [Fact]
     public void PdfTextFallbackPlan_ToTextRunsRejectsIncompletePlans() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

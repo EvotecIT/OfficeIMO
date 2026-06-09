@@ -107,9 +107,13 @@ public sealed class PdfTextFallbackPlan {
     }
 
     private static void AddLayoutControlRuns(List<TextRun> runs, string text) {
-        foreach (char ch in text) {
+        for (int i = 0; i < text.Length; i++) {
+            char ch = text[i];
             if (ch == '\n' || ch == '\r') {
                 runs.Add(TextRun.LineBreak());
+                if (ch == '\r' && i + 1 < text.Length && text[i + 1] == '\n') {
+                    i++;
+                }
             } else if (ch == '\t') {
                 runs.Add(TextRun.Tab());
             } else if (!char.IsControl(ch)) {
