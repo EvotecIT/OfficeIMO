@@ -4,6 +4,7 @@ namespace OfficeIMO.Pdf;
 
 internal sealed class ToUnicodeCMap {
     private readonly Dictionary<string, string> _map = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _reverseMap = new(StringComparer.Ordinal);
     private int _maxKeyBytes = 1;
 
     public static bool TryParse(byte[] data, out ToUnicodeCMap? cmap) {
@@ -67,6 +68,9 @@ internal sealed class ToUnicodeCMap {
         // dst may be multi-codepoints; keep as UTF-16 string
         string s = HexToString(dstHex);
         _map[key] = s;
+        if (!_reverseMap.ContainsKey(s)) {
+            _reverseMap[s] = key;
+        }
     }
 
     private static string RemoveHexWhitespace(string value) {
@@ -136,9 +140,36 @@ internal sealed class ToUnicodeCMap {
         return sb.ToString();
     }
 
+    public bool TryEncodeText(string text, out string hex) {
+        Guard.NotNull(text, nameof(text));
+
+        var sb = new System.Text.StringBuilder(text.Length * 4);
+        for (int index = 0; index < text.Length;) {
+            int scalarLength = GetScalarLength(text, index);
+            string scalarText = text.Substring(index, scalarLength);
+            if (!_reverseMap.TryGetValue(scalarText, out string? codeHex)) {
+                hex = string.Empty;
+                return false;
+            }
+
+            sb.Append(codeHex);
+            index += scalarLength;
+        }
+
+        hex = sb.ToString();
+        return true;
+    }
+
     private static string ByteSliceToHex(byte[] b, int start, int len) {
         var sb = new System.Text.StringBuilder(len * 2);
         for (int i = 0; i < len; i++) sb.Append(b[start + i].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         return sb.ToString();
     }
+
+    private static int GetScalarLength(string value, int index) =>
+        char.IsHighSurrogate(value[index]) &&
+        index + 1 < value.Length &&
+        char.IsLowSurrogate(value[index + 1])
+            ? 2
+            : 1;
 }

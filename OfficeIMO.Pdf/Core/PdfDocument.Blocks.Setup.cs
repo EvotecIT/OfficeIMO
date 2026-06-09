@@ -345,6 +345,12 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Sets or clears the generated text hyphenation callback used for long unspaced tokens.</summary>
+    public PdfDocument TextHyphenation(PdfTextHyphenationCallback? callback) {
+        _options.SetTextHyphenation(callback);
+        return this;
+    }
+
     /// <summary>Sets or clears the generated catalog page mode.</summary>
     public PdfDocument CatalogPageMode(PdfCatalogPageMode? pageMode) {
         _options.SetCatalogPageMode(pageMode);
@@ -509,6 +515,12 @@ public sealed partial class PdfDocument {
     /// <summary>Uses a reusable caller-supplied TrueType font family as the generated document's default font family.</summary>
     public PdfDocument UseFontFamily(PdfEmbeddedFontFamily fontFamily) {
         _options.UseFontFamily(fontFamily);
+        return this;
+    }
+
+    /// <summary>Registers a planned embedded-font fallback set for generated rich text runs.</summary>
+    public PdfDocument RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
+        _options.RegisterEmbeddedFontFallbacks(fallbackSet);
         return this;
     }
 

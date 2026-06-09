@@ -107,12 +107,16 @@ public static partial class PdfFormFiller {
         return normalAppearances;
     }
 
-    private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, int inheritedFlags, int? inheritedQuadding, HashSet<int> visited, ref int nextObjectNumber) {
+    private static void SetTextWidgetAppearances(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string value, string? fieldName, int inheritedFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, PdfFormFillerOptions? options, HashSet<int> visited, ref int nextObjectNumber) {
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
         int? fieldQuadding = ReadFieldQuadding(objects, field, inheritedQuadding);
+        int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
+        PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         if (IsWidget(field) && TryReadRect(field, out double width, out double height)) {
+            PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
+            PdfDictionary? widgetPageResources = TryReadWidgetPageResources(objects, field);
             int appearanceObjectNumber = nextObjectNumber++;
-            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(value, width, height, ReadWidgetAppearanceStyle(objects, field, fieldFlags, fieldQuadding)));
+            objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, value, width, height, ReadWidgetAppearanceStyle(objects, field, fieldFlags, fieldQuadding, fieldMaxLength), options, fieldName, ref nextObjectNumber));
 
             var appearance = new PdfDictionary();
             appearance.Items["N"] = new PdfReference(appearanceObjectNumber, 0);
@@ -131,22 +135,54 @@ public static partial class PdfFormFiller {
             }
 
             if (ResolveObject(objects, kidObject) is PdfDictionary kid) {
-                SetTextWidgetAppearances(objects, kid, value, fieldFlags, fieldQuadding, visited, ref nextObjectNumber);
+                SetTextWidgetAppearances(objects, kid, value, fieldName, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, options, visited, ref nextObjectNumber);
             }
         }
     }
 
-    private static PdfStream CreateTextAppearanceStream(string value, double width, double height, PdfFormFieldStyle? style = null) {
+    private static PdfStream CreateTextAppearanceStream(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? inheritedDefaultResources, PdfDictionary? widgetAppearanceResources, PdfDictionary? widgetPageResources, string value, double width, double height, PdfFormFieldStyle? style, PdfFormFillerOptions? options, string? fieldName, ref int nextObjectNumber) {
         double fontSize = Math.Max(6D, Math.Min(12D, height - 4D));
-        string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(width, height, value, fontSize, style);
+        PdfFormFieldStyle effectiveStyle = style ?? new PdfFormFieldStyle();
+        string displayValue = PdfAcroFormDictionaryBuilder.GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
+        string diagnosticSource = CreateTextAppearanceDiagnosticSource(fieldName);
+        bool hasEmbeddedAppearanceFont = TryCreateInheritedTextAppearanceFontPlan(objects, inheritedDefaultResources, widgetAppearanceResources, widgetPageResources, displayValue, out TextAppearanceFontPlan? fontPlan);
+        if (!hasEmbeddedAppearanceFont) {
+            hasEmbeddedAppearanceFont = TryCreateEmbeddedTextAppearanceFontPlan(options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? configuredFontFailure);
+            if (!hasEmbeddedAppearanceFont) {
+                hasEmbeddedAppearanceFont = TryCreateFallbackTextAppearanceFontPlan(options, displayValue, diagnosticSource, ref nextObjectNumber, out fontPlan, out string? fallbackFontFailure);
+                if (!hasEmbeddedAppearanceFont &&
+                    (options?.HasAppearanceFontFamily == true || options?.HasAppearanceFontFallbacks == true) &&
+                    !string.IsNullOrEmpty(displayValue)) {
+                    throw new InvalidOperationException(fallbackFontFailure ?? configuredFontFailure ?? "The configured appearance font could not be used for the form field appearance.");
+                }
+            }
+        }
+
+        string content = PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(
+            width,
+            height,
+            value,
+            fontSize,
+            effectiveStyle,
+            fontPlan?.EncodedTextHex,
+            fontResourceName: fontPlan?.FontResourceName,
+            encodeTextSegmentHex: fontPlan?.EncodeTextSegmentHex,
+            measureTextSegmentWidth: fontPlan?.MeasureTextSegmentWidth,
+            encodeTextSegments: fontPlan?.EncodeTextSegments);
+        fontPlan?.Materialize(objects);
 
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");
         dictionary.Items["Subtype"] = new PdfName("Form");
         dictionary.Items["BBox"] = CreateNumberArray(0D, 0D, width, height);
-        dictionary.Items["Resources"] = CreateAppearanceResources();
+        dictionary.Items["Resources"] = hasEmbeddedAppearanceFont ? fontPlan!.Resources : CreateAppearanceResources();
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
+
+    private static string CreateTextAppearanceDiagnosticSource(string? fieldName) =>
+        string.IsNullOrWhiteSpace(fieldName)
+            ? "form field appearance"
+            : "form field '" + fieldName + "' appearance";
 
     private static PdfStream CreateButtonAppearanceStream(double width, double height, bool selected, PdfFormFieldStyle? style = null) {
         string content = PdfAcroFormDictionaryBuilder.BuildCheckBoxAppearanceContent(width, height, selected, style);
@@ -157,9 +193,17 @@ public static partial class PdfFormFiller {
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static PdfFormFieldStyle ReadWidgetAppearanceStyle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, int fieldFlags = 0, int? inheritedQuadding = null) {
+    private static PdfFormFieldStyle ReadWidgetAppearanceStyle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, int fieldFlags = 0, int? inheritedQuadding = null, int? inheritedMaxLength = null) {
         var style = new PdfFormFieldStyle();
+        style.IsMultiline = (fieldFlags & MultilineFlag) != 0;
         style.IsPassword = (fieldFlags & PasswordFlag) != 0;
+        style.IsComb = (fieldFlags & CombFlag) != 0;
+        if (TryReadMaxLength(objects, widget, out int maxLength)) {
+            style.MaxLength = maxLength;
+        } else if (inheritedMaxLength.HasValue) {
+            style.MaxLength = inheritedMaxLength.Value;
+        }
+
         if (ResolveDictionary(objects, widget.Items.TryGetValue("MK", out var mkObject) ? mkObject : null) is PdfDictionary mk) {
             if (TryReadColor(objects, mk, "BG", out PdfColor backgroundColor)) {
                 style.BackgroundColor = backgroundColor;
@@ -181,8 +225,26 @@ public static partial class PdfFormFiller {
         return style;
     }
 
+    private static bool TryReadMaxLength(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, out int maxLength) {
+        maxLength = 0;
+        if (!field.Items.TryGetValue("MaxLen", out PdfObject? maxLengthObject) ||
+            ResolveObject(objects, maxLengthObject) is not PdfNumber maxLengthNumber ||
+            maxLengthNumber.Value < 1 ||
+            maxLengthNumber.Value > int.MaxValue ||
+            Math.Truncate(maxLengthNumber.Value) != maxLengthNumber.Value) {
+            return false;
+        }
+
+        maxLength = (int)maxLengthNumber.Value;
+        return true;
+    }
+
     private static int? ReadFieldQuadding(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int? inheritedQuadding) {
         return TryReadQuadding(objects, field, out int quadding) ? quadding : inheritedQuadding;
+    }
+
+    private static int? ReadFieldMaxLength(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int? inheritedMaxLength) {
+        return TryReadMaxLength(objects, field, out int maxLength) ? maxLength : inheritedMaxLength;
     }
 
     private static bool TryReadWidgetTextAlignment(Dictionary<int, PdfIndirectObject> objects, PdfDictionary widget, int? inheritedQuadding, out PdfFormFieldTextAlignment textAlignment) {

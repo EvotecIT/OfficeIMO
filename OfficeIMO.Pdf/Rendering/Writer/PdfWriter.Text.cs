@@ -21,9 +21,30 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return fontProgram.EncodeTextAsGlyphHex(text);
+            if (options.HasDiagnosticsReport) {
+                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName));
+            }
+
+            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
+            return fontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot);
         }
 
+        if (options != null &&
+            options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            if (options.HasDiagnosticsReport) {
+                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName));
+            }
+
+            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
+            return cffFontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot);
+        }
+
+        if (options?.HasDiagnosticsReport == true) {
+            options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text));
+        }
+
+        options?.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
         return EncodeWinAnsiHex(text);
     }
 
@@ -37,6 +58,15 @@ internal static partial class PdfWriter {
             char.IsLowSurrogate(text[index + 1])
                 ? 2
                 : 1;
+    }
+
+    private static int ReadScalar(string text, ref int index) {
+        char ch = text[index++];
+        if (char.IsHighSurrogate(ch) && index < text.Length && char.IsLowSurrogate(text[index])) {
+            return char.ConvertToUtf32(ch, text[index++]);
+        }
+
+        return ch;
     }
 
     private static System.Collections.Generic.List<string> WrapMonospace(string text, double widthPts, double fontSize, double glyphWidthEm) {
@@ -114,6 +144,24 @@ internal static partial class PdfWriter {
 
         void AppendLongToken(string token, StringBuilder current, ref double currentWidth) {
             FlushLine(current, ref currentWidth);
+            var multilingualChunks = TryBuildMultilingualTokenChunks(
+                token,
+                part => EstimateSimpleTextWidthForOptions(part, font, fontSize, options),
+                maxWidth,
+                maxWidth);
+            if (multilingualChunks != null) {
+                for (int chunkIndex = 0; chunkIndex < multilingualChunks.Count; chunkIndex++) {
+                    PdfTextTokenChunk chunk = multilingualChunks[chunkIndex];
+                    current.Append(chunk.Text);
+                    currentWidth += chunk.Width;
+                    if (chunkIndex + 1 < multilingualChunks.Count) {
+                        FlushLine(current, ref currentWidth);
+                    }
+                }
+
+                return;
+            }
+
             for (int i = 0; i < token.Length; i++) {
                 int scalarLength = GetScalarUtf16Length(token, i);
                 string scalar = token.Substring(i, scalarLength);
@@ -375,6 +423,7 @@ internal static partial class PdfWriter {
         WrapRichRunsCore(runs, maxWidthPts, fontSize, baseFont, lineHeight, firstLineWidthPts, tabStopWidth, options: null);
 
     private static (System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> Lines, System.Collections.Generic.List<double> LineHeights) WrapRichRunsCore(System.Collections.Generic.IEnumerable<TextRun> runs, double maxWidthPts, double fontSize, PdfStandardFont baseFont, double lineHeight, double? firstLineWidthPts, double tabStopWidth, PdfOptions? options) {
+        System.Collections.Generic.IEnumerable<TextRun> effectiveRuns = NormalizeFallbackRuns(runs, baseFont, options);
         var lines = new System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> { new() };
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
@@ -407,7 +456,7 @@ internal static partial class PdfWriter {
             currentLine[currentLine.Count - 1] = lastSegment.WithEndsWithHardBreak();
         }
 
-        foreach (var run in runs) {
+        foreach (var run in effectiveRuns) {
             string text = (run.Text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
             bool bold = run.Bold;
             bool underline = run.Underline;
@@ -447,6 +496,46 @@ internal static partial class PdfWriter {
                     pendingLeadingIsTab = false;
                     pendingLeadingTabAlignment = PdfTabAlignment.Left;
                     pendingLeadingTabLeader = PdfTabLeaderStyle.None;
+                    if (TryAppendHyphenatedLongToken(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
+                        if (hadNewline) {
+                            MarkCurrentLineHardBreak();
+                            StartNewLine();
+                            pendingLeadingAdvance = 0;
+                            pendingLeadingIsExpandable = true;
+                            pendingLeadingIsTab = false;
+                            pendingLeadingTabAlignment = PdfTabAlignment.Left;
+                            pendingLeadingTabLeader = PdfTabLeaderStyle.None;
+                        } else if (nextWs != -1) {
+                            bool hadTab = text[nextWs] == '\t';
+                            pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth, options: options, maxWidth: CurrentMaxWidth()) : spaceW;
+                            pendingLeadingIsExpandable = !hadTab;
+                            pendingLeadingIsTab = hadTab;
+                            pendingLeadingTabAlignment = hadTab ? tabAlignment : PdfTabAlignment.Left;
+                            pendingLeadingTabLeader = hadTab ? tabLeader : PdfTabLeaderStyle.None;
+                        }
+                        continue;
+                    }
+
+                    if (TryAppendMultilingualLongToken(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
+                        if (hadNewline) {
+                            MarkCurrentLineHardBreak();
+                            StartNewLine();
+                            pendingLeadingAdvance = 0;
+                            pendingLeadingIsExpandable = true;
+                            pendingLeadingIsTab = false;
+                            pendingLeadingTabAlignment = PdfTabAlignment.Left;
+                            pendingLeadingTabLeader = PdfTabLeaderStyle.None;
+                        } else if (nextWs != -1) {
+                            bool hadTab = text[nextWs] == '\t';
+                            pendingLeadingAdvance = hadTab ? CalculateTabAdvance(lineWidth, 0D, spaceW, tabAlignment, tabStopWidth, options: options, maxWidth: CurrentMaxWidth()) : spaceW;
+                            pendingLeadingIsExpandable = !hadTab;
+                            pendingLeadingIsTab = hadTab;
+                            pendingLeadingTabAlignment = hadTab ? tabAlignment : PdfTabAlignment.Left;
+                            pendingLeadingTabLeader = hadTab ? tabLeader : PdfTabLeaderStyle.None;
+                        }
+                        continue;
+                    }
+
                     int pos = 0;
                     while (pos < token.Length) {
                         int take = 0;
@@ -541,7 +630,237 @@ internal static partial class PdfWriter {
         if (lines.Count > 0 && lines[lines.Count - 1].Count == 0) { lines.RemoveAt(lines.Count - 1); }
         if (heights.Count < lines.Count) heights.Add(currentLineHeight);
         return (lines, heights);
+
+        bool TryAppendHyphenatedLongToken(
+            string token,
+            bool bold,
+            bool italic,
+            bool underline,
+            bool strike,
+            PdfColor? color,
+            PdfColor? backgroundColor,
+            string? uri,
+            string? destinationName,
+            string? contents,
+            PdfStandardFont font,
+            double runFontSize,
+            PdfTextBaseline baseline) {
+            int[] breakpoints = GetValidHyphenationBreakpoints(token, options);
+            if (breakpoints.Length == 0) {
+                return false;
+            }
+
+            int position = 0;
+            while (position < token.Length) {
+                int selectedBreak = -1;
+                string selectedText = string.Empty;
+                double selectedWidth = 0D;
+                int[] candidates = breakpoints
+                    .Where(point => point > position)
+                    .Concat(new[] { token.Length })
+                    .Distinct()
+                    .OrderBy(point => point)
+                    .ToArray();
+
+                foreach (int candidate in candidates) {
+                    bool finalChunk = candidate >= token.Length;
+                    string chunkText = token.Substring(position, candidate - position);
+                    if (!finalChunk) {
+                        chunkText += "-";
+                    }
+
+                    if (chunkText.Length == 0) {
+                        continue;
+                    }
+
+                    double chunkWidth = MeasureRichText(chunkText, font, runFontSize, baseline, options);
+                    if (chunkWidth <= CurrentMaxWidth() || selectedBreak < 0) {
+                        if (chunkWidth <= CurrentMaxWidth()) {
+                            selectedBreak = candidate;
+                            selectedText = chunkText;
+                            selectedWidth = chunkWidth;
+                        }
+                    }
+
+                    if (chunkWidth > CurrentMaxWidth() && selectedBreak >= 0) {
+                        break;
+                    }
+                }
+
+                if (selectedBreak <= position || selectedText.Length == 0) {
+                    return false;
+                }
+
+                lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline));
+                RegisterLineHeight(runFontSize);
+                lineWidth += selectedWidth;
+                position = selectedBreak;
+                if (position < token.Length) {
+                    StartNewLine();
+                }
+            }
+
+            return true;
+        }
+
+        bool TryAppendMultilingualLongToken(
+            string token,
+            bool bold,
+            bool italic,
+            bool underline,
+            bool strike,
+            PdfColor? color,
+            PdfColor? backgroundColor,
+            string? uri,
+            string? destinationName,
+            string? contents,
+            PdfStandardFont font,
+            double runFontSize,
+            PdfTextBaseline baseline) {
+            var chunks = TryBuildMultilingualTokenChunks(
+                token,
+                part => MeasureRichText(part, font, runFontSize, baseline, options),
+                CurrentMaxWidth(),
+                maxWidthPts);
+
+            if (chunks == null) {
+                return false;
+            }
+
+            for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                PdfTextTokenChunk chunk = chunks[chunkIndex];
+                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline));
+                RegisterLineHeight(runFontSize);
+                lineWidth += chunk.Width;
+                if (chunkIndex + 1 < chunks.Count) {
+                    StartNewLine();
+                }
+            }
+
+            return true;
+        }
     }
+
+    private static int[] GetValidHyphenationBreakpoints(string token, PdfOptions? options) {
+        PdfTextHyphenationCallback? callback = options?.TextHyphenationCallbackSnapshot;
+        if (callback == null || string.IsNullOrEmpty(token)) {
+            return Array.Empty<int>();
+        }
+
+        System.Collections.Generic.IReadOnlyList<int>? points = callback(token);
+        if (points == null || points.Count == 0) {
+            return Array.Empty<int>();
+        }
+
+        return points
+            .Where(point => IsValidTokenBreakIndex(token, point))
+            .Distinct()
+            .OrderBy(point => point)
+            .ToArray();
+    }
+
+    private static bool IsValidTokenBreakIndex(string token, int index) =>
+        index > 0 &&
+        index < token.Length &&
+        !(index > 0 && index < token.Length && char.IsHighSurrogate(token[index - 1]) && char.IsLowSurrogate(token[index]));
+
+    private static System.Collections.Generic.IReadOnlyList<TextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<TextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
+        Guard.NotNull(runs, nameof(runs));
+        PdfEmbeddedFontFallbackSet? fallbackSet = options?.EmbeddedFontFallbacksSnapshot;
+        if (fallbackSet == null) {
+            return runs as System.Collections.Generic.IReadOnlyList<TextRun> ?? runs.ToArray();
+        }
+
+        var normalized = new System.Collections.Generic.List<TextRun>();
+        foreach (TextRun run in runs) {
+            if (CanWriteRunWithSelectedFont(run, baseFont, options)) {
+                normalized.Add(run);
+                continue;
+            }
+
+            if (fallbackSet.TryPlanTextRuns(run.Text, out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns, styleTemplate: run)) {
+                normalized.AddRange(plannedRuns);
+            } else {
+                normalized.Add(run);
+            }
+        }
+
+        return normalized;
+    }
+
+    private static bool CanWriteRunWithSelectedFont(TextRun run, PdfStandardFont baseFont, PdfOptions? options) {
+        string text = run.Text ?? string.Empty;
+        if (text.Length == 0 || IsLayoutControlRun(run)) {
+            return true;
+        }
+
+        PdfStandardFont runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
+        PdfStandardFont fontForRun = (run.Bold && run.Italic)
+            ? ChooseBoldItalic(runBaseFont)
+            : run.Bold
+                ? ChooseBold(runBaseFont)
+                : run.Italic
+                    ? ChooseItalic(runBaseFont)
+                    : runBaseFont;
+
+        if (options != null &&
+            options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            return CanWriteWithEmbeddedFont(text, fontProgram);
+        }
+
+        if (options != null &&
+            options.TryGetEmbeddedStandardOpenTypeCffFontProgram(fontForRun, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            return CanWriteWithEmbeddedFont(text, cffFontProgram);
+        }
+
+        return PdfWinAnsiEncoding.CanEncode(text, out _);
+    }
+
+    private static bool CanWriteWithEmbeddedFont(string text, PdfTrueTypeFontProgram fontProgram) {
+        int index = 0;
+        while (index < text.Length) {
+            int scalar = ReadScalar(text, ref index);
+            if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
+                continue;
+            }
+
+            if (scalar < ' ' || scalar == '\u007F') {
+                return false;
+            }
+
+            if (!fontProgram.TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool CanWriteWithEmbeddedFont(string text, PdfOpenTypeCffFontProgram fontProgram) {
+        int index = 0;
+        while (index < text.Length) {
+            int scalar = ReadScalar(text, ref index);
+            if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
+                continue;
+            }
+
+            if (scalar < ' ' || scalar == '\u007F') {
+                return false;
+            }
+
+            if (!fontProgram.TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsLayoutControlRun(TextRun run) =>
+        string.Equals(run.Text, "\n", StringComparison.Ordinal) ||
+        string.Equals(run.Text, "\t", StringComparison.Ordinal);
 
     private static void WriteRichParagraph(StringBuilder sb, RichParagraphBlock block, System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>> lines, System.Collections.Generic.List<double> lineHeights, PdfOptions opts, double startY, double fontSize, double defaultLeading, System.Collections.Generic.List<LinkAnnotation> annots, double? xOverride = null, double? widthOverride = null, double? firstLineXOverride = null, double? firstLineWidthOverride = null, string? structureType = null, int? markedContentId = null, LayoutResult.Page? structurePage = null) {
         double widthContent = opts.PageWidth - opts.MarginLeft - opts.MarginRight;

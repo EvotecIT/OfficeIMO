@@ -6,9 +6,12 @@ public static partial class PdfFormFiller {
         PdfObject fieldObject,
         string? inheritedFieldType,
         int inheritedFlags,
+        int? inheritedMaxLength,
+        PdfDictionary? inheritedDefaultResources,
         string? inheritedDisplayValue,
         string? inheritedName,
         PdfArray? inheritedChoiceOptions,
+        PdfFormFillerOptions? options,
         Dictionary<int, FlattenWidgetState> widgets,
         HashSet<int> removableObjects,
         HashSet<int> visited,
@@ -33,6 +36,8 @@ public static partial class PdfFormFiller {
         string? fullName = CombineFieldName(inheritedName, partialName);
         string? fieldType = TryReadName(objects, field, "FT") ?? inheritedFieldType;
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
+        int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
+        PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
         PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
         IReadOnlyList<string>? values = TryReadSimpleValues(objects, field, "V");
         string? value = values is { Count: > 0 } ? values[0] : inheritedDisplayValue;
@@ -61,8 +66,10 @@ public static partial class PdfFormFiller {
             } else if (TryGetNormalAppearanceReference(objects, field, out PdfReference? appearanceReference)) {
                 appearanceObjectNumber = appearanceReference!.ObjectNumber;
             } else {
+                PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
+                PdfDictionary? widgetPageResources = TryReadWidgetPageResources(objects, field);
                 appearanceObjectNumber = nextObjectNumber++;
-                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(appearanceValue ?? string.Empty, width, height, ReadWidgetAppearanceStyle(objects, field, fieldFlags)));
+                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, appearanceValue ?? string.Empty, width, height, ReadWidgetAppearanceStyle(objects, field, fieldFlags, inheritedMaxLength: fieldMaxLength), options, fullName, ref nextObjectNumber));
             }
 
             widgets[fieldObjectNumber.Value] = new FlattenWidgetState(fieldObjectNumber.Value, x, y, width, height, appearanceObjectNumber);
@@ -75,7 +82,7 @@ public static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, appearanceValue, fullName, choiceOptions, widgets, removableObjects, visited, ref nextObjectNumber);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldMaxLength, defaultResources, appearanceValue, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber);
         }
     }
 

@@ -216,10 +216,12 @@ internal static partial class PdfWriter {
                         } else if (it is ColHead ch) {
                             var hb2 = ch.Block;
                             var lines = ch.Lines;
+                            var heights = ch.Heights;
                             double leading = ch.Leading;
                             double size = ch.Size;
                             double spacingBefore = (consumed > 0.001 || ch.ApplySpacingBeforeAtTop) ? ch.SpacingBefore : 0D;
-                            double needed = spacingBefore + lines.Count * leading + ch.SpacingAfter;
+                            double textHeight = MeasureRichLinesHeight(heights, lines.Count, leading);
+                            double needed = spacingBefore + textHeight + ch.SpacingAfter;
                             if (ch.KeepWithNext && idx + 1 < items.Count) {
                                 double nextHeight = MeasureColItemFirstVisualHeight(items[idx + 1]);
                                 double keepHeight = needed + nextHeight;
@@ -259,12 +261,13 @@ internal static partial class PdfWriter {
                             }
 
                             AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline, linkStructElementIndex);
-                            WriteLinesInternal(ch.Bold ? "F2" : "F1", size, leading, xCol, wCol, firstBaseline, lines, hb2.Align, ch.Color, applyBaselineTweak: false, structureType: markedStructureType, markedContentId: markedContentId);
+                            WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
+                            MarkRichFonts(ch.Runs);
                             if (ch.Bold) {
                                 currentPage!.UsedBold = true;
                                 usedBold = true;
                             }
-                            double consumedHeight = lines.Count * leading + ch.SpacingAfter;
+                            double consumedHeight = textHeight + ch.SpacingAfter;
                             yCol -= consumedHeight; remain -= consumedHeight; consumed += consumedHeight; idx++;
                         } else if (it is ColListItem listItem) {
                             var lines = listItem.Lines;
@@ -551,7 +554,7 @@ internal static partial class PdfWriter {
                                 return tableStructureElementIndex;
                             }
 
-                            if (line == 0 && table.CaptionLines != null) {
+                            if (line == 0 && table.CaptionRuns != null && table.CaptionLines != null && table.CaptionLineHeights != null) {
                                 double firstRowHeight = table.RowHeights.Length > 0 ? table.RowHeights[0] : 0;
                                 double neededWithFirstRow = table.CaptionHeight + firstRowHeight;
                                 if (neededWithFirstRow > maxContentHeight + 0.001) {
@@ -564,7 +567,8 @@ internal static partial class PdfWriter {
                                 var captionFont = ChooseNormal(currentOpts.DefaultFont);
                                 pageDirty = true;
                                 int? captionMarkedContentId = RegisterTextStructureElement("Caption", EnsureTableStructureElement());
-                                WriteLinesInternal("F1", captionSize, table.CaptionLeading, xTable, table.Width, yCol - GetAscenderForOptions(captionFont, captionSize, currentOpts), table.CaptionLines, tableStyle.CaptionAlign, tableStyle.CaptionColor, structureType: "Caption", markedContentId: captionMarkedContentId);
+                                MarkRichFonts(table.CaptionRuns);
+                                WriteRichParagraph(sb, new RichParagraphBlock(table.CaptionRuns, tableStyle.CaptionAlign, tableStyle.CaptionColor), table.CaptionLines, table.CaptionLineHeights, currentOpts, FirstTextBaselineFromTop(captionFont, captionSize, yCol), captionSize, table.CaptionLeading, currentPage!.Annotations, xTable, table.Width, structureType: "Caption", markedContentId: captionMarkedContentId, structurePage: currentPage);
                                 yCol -= table.CaptionHeight;
                                 remain -= table.CaptionHeight;
                                 consumed += table.CaptionHeight;

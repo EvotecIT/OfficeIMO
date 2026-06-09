@@ -7,6 +7,8 @@ namespace OfficeIMO.Pdf;
 /// Describes text that cannot be written through the current generated PDF text encoding path.
 /// </summary>
 public sealed class PdfTextEncodingDiagnostic {
+    private readonly string? _code;
+
     /// <summary>
     /// Creates a text encoding diagnostic.
     /// </summary>
@@ -15,13 +17,20 @@ public sealed class PdfTextEncodingDiagnostic {
     /// <param name="codePoint">Unicode code point formatted as U+XXXX or U+XXXXX.</param>
     /// <param name="text">Unsupported character or surrogate pair text. Control characters are represented as an empty string.</param>
     /// <param name="isControlCharacter">Whether the unsupported character is a control character.</param>
-    public PdfTextEncodingDiagnostic(string source, int index, string codePoint, string text, bool isControlCharacter) {
+    public PdfTextEncodingDiagnostic(string source, int index, string codePoint, string text, bool isControlCharacter)
+        : this(source, index, codePoint, text, isControlCharacter, null, null) {
+    }
+
+    internal PdfTextEncodingDiagnostic(string source, int index, string codePoint, string text, bool isControlCharacter, string? code, string? message) {
         Source = source ?? string.Empty;
         Index = index;
         CodePoint = codePoint ?? string.Empty;
         Text = text ?? string.Empty;
         IsControlCharacter = isControlCharacter;
-        Message = CreateMessage(Index, CodePoint, Text, IsControlCharacter);
+        _code = string.IsNullOrWhiteSpace(code) ? null : code;
+        Message = string.IsNullOrWhiteSpace(message)
+            ? CreateMessage(Index, CodePoint, Text, IsControlCharacter)
+            : message!;
     }
 
     /// <summary>Caller-provided source label such as a block, field, sheet, slide, or converter area.</summary>
@@ -40,7 +49,7 @@ public sealed class PdfTextEncodingDiagnostic {
     public bool IsControlCharacter { get; }
 
     /// <summary>Stable warning code suitable for shared conversion reports.</summary>
-    public string Code => IsControlCharacter ? "unsupported-control-character" : "unsupported-text-glyph";
+    public string Code => _code ?? (IsControlCharacter ? "unsupported-control-character" : "unsupported-text-glyph");
 
     /// <summary>Human-readable diagnostic message.</summary>
     public string Message { get; }

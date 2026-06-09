@@ -3,6 +3,17 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfOptions {
     private static readonly char[] OfficeFontFamilySeparators = { ',', ';' };
     private static readonly char[] OfficeFontFamilyTrimChars = { ' ', '\t', '"', '\'' };
+    private PdfEmbeddedFontFallbackSet? _embeddedFontFallbacks;
+
+    /// <summary>
+    /// Embedded font fallback set used to split generated rich text runs that cannot be written by their selected font.
+    /// </summary>
+    public PdfEmbeddedFontFallbackSet? EmbeddedFontFallbacks {
+        get => _embeddedFontFallbacks?.Clone();
+        set => _embeddedFontFallbacks = value?.Clone();
+    }
+
+    internal PdfEmbeddedFontFallbackSet? EmbeddedFontFallbacksSnapshot => _embeddedFontFallbacks?.Clone();
 
     /// <summary>
     /// Uses an Office-style font family name for generated text, embedding the installed TrueType
@@ -70,6 +81,17 @@ public sealed partial class PdfOptions {
         EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), snapshot.BoldSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Bold"));
         EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), snapshot.ItalicSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "Italic"));
         EmbedStandardFont(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), snapshot.BoldItalicSnapshot ?? snapshot.BoldSnapshot ?? snapshot.ItalicSnapshot ?? snapshot.RegularSnapshot, BuildFontFamilyFaceName(snapshot.FamilyName, "BoldItalic"));
+        return this;
+    }
+
+    /// <summary>
+    /// Registers a planned embedded-font fallback set into its generated standard-font family slots.
+    /// </summary>
+    /// <param name="fallbackSet">Fallback set that pairs prioritized embedded font candidates with generated font slots.</param>
+    public PdfOptions RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) {
+        Guard.NotNull(fallbackSet, nameof(fallbackSet));
+        _embeddedFontFallbacks = fallbackSet.Clone();
+        _embeddedFontFallbacks.RegisterFonts(this);
         return this;
     }
 

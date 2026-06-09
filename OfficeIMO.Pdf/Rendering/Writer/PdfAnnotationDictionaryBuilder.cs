@@ -50,13 +50,22 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     }
 
     internal static string BuildAppearanceStreamDictionary(double width, double height, int contentLength, int helveticaFontId = 0, bool usesHighlightBlendMode = false) {
+        IReadOnlyList<(string Name, int Id)> fontResources = helveticaFontId > 0
+            ? new[] { ("Helv", helveticaFontId) }
+            : Array.Empty<(string Name, int Id)>();
+
+        return BuildAppearanceStreamDictionary(width, height, contentLength, fontResources, usesHighlightBlendMode);
+    }
+
+    internal static string BuildAppearanceStreamDictionary(double width, double height, int contentLength, IReadOnlyList<(string Name, int Id)> fontResources, bool usesHighlightBlendMode = false) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
+        Guard.NotNull(fontResources, nameof(fontResources));
         if (contentLength < 0) {
             throw new ArgumentOutOfRangeException(nameof(contentLength), "PDF annotation appearance stream length cannot be negative.");
         }
 
-        string resources = BuildAppearanceStreamResources(helveticaFontId, usesHighlightBlendMode);
+        string resources = BuildAppearanceStreamResources(fontResources, usesHighlightBlendMode);
         return "<< /Type /XObject /Subtype /Form /BBox [0 0 " +
             FormatCoordinate(width) +
             " " +
@@ -68,17 +77,31 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>";
     }
 
-    private static string BuildAppearanceStreamResources(int helveticaFontId, bool usesHighlightBlendMode) {
-        if (helveticaFontId <= 0 && !usesHighlightBlendMode) {
+    private static string BuildAppearanceStreamResources(IReadOnlyList<(string Name, int Id)> fontResources, bool usesHighlightBlendMode) {
+        if (fontResources.Count == 0 && !usesHighlightBlendMode) {
             return string.Empty;
         }
 
         var sb = new StringBuilder();
         sb.Append(" /Resources <<");
-        if (helveticaFontId > 0) {
-            sb.Append(" /Font << /Helv ")
-                .Append(PdfSyntaxEscaper.IndirectReference(helveticaFontId))
-                .Append(" >>");
+        if (fontResources.Count > 0) {
+            sb.Append(" /Font <<");
+            for (int i = 0; i < fontResources.Count; i++) {
+                (string name, int id) = fontResources[i];
+                Guard.NotNullOrWhiteSpace(name, nameof(fontResources));
+                if (id <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(fontResources), id, "PDF annotation appearance font resource object id must be positive.");
+                }
+
+                string normalizedName = name[0] == '/' ? name.Substring(1) : name;
+                Guard.NotNullOrWhiteSpace(normalizedName, nameof(fontResources));
+                sb.Append(" /")
+                    .Append(PdfSyntaxEscaper.Name(normalizedName))
+                    .Append(' ')
+                    .Append(PdfSyntaxEscaper.IndirectReference(id));
+            }
+
+            sb.Append(" >>");
         }
 
         if (usesHighlightBlendMode) {
@@ -104,9 +127,9 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             BuildTextFieldFlagsEntry(style) +
             BuildMaxLengthEntry(style) +
             " /V " +
-            PdfSyntaxEscaper.WinAnsiHexString(value) +
+            PdfSyntaxEscaper.TextString(value) +
             " /DV " +
-            PdfSyntaxEscaper.WinAnsiHexString(value) +
+            PdfSyntaxEscaper.TextString(value) +
             " /Rect [" +
             FormatCoordinate(x1) + " " +
             FormatCoordinate(y1) + " " +
@@ -200,7 +223,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             }
 
             optionBuilder.Append(' ')
-                .Append(PdfSyntaxEscaper.WinAnsiHexString(option));
+                .Append(PdfSyntaxEscaper.TextString(option));
         }
 
         bool allowsCustomScalarValue = isComboBox && !allowsMultipleSelection && style != null && style.IsEditableChoice;
@@ -311,7 +334,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
     private static string BuildChoiceValue(IReadOnlyList<string> values, bool forceArray) {
         if (values.Count == 1 && !forceArray) {
-            return PdfSyntaxEscaper.WinAnsiHexString(values[0]);
+            return PdfSyntaxEscaper.TextString(values[0]);
         }
 
         var valueBuilder = new StringBuilder();
@@ -321,7 +344,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
                 valueBuilder.Append(' ');
             }
 
-            valueBuilder.Append(PdfSyntaxEscaper.WinAnsiHexString(values[i]));
+            valueBuilder.Append(PdfSyntaxEscaper.TextString(values[i]));
         }
 
         valueBuilder.Append(']');

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word;
@@ -45,23 +46,33 @@ public static class HtmlPdfConverterExtensions {
     /// Converts HTML text to PDF bytes.
     /// </summary>
     public static byte[] SaveAsPdf(this string html, HtmlPdfSaveOptions? options = null) {
-        return html.ToPdfDocument(options).ToBytes();
+        options ??= new HtmlPdfSaveOptions();
+        PdfCore.PdfDocument pdf = html.ToPdfDocument(options);
+        byte[] bytes = pdf.ToBytes();
+        SyncSelectedProfileReport(options);
+        return bytes;
     }
 
     /// <summary>
     /// Saves HTML text as a PDF file.
     /// </summary>
     public static void SaveAsPdf(this string html, string path, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
         html.ToPdfDocument(options).Save(path);
+        SyncSelectedProfileReport(options);
     }
 
     /// <summary>
     /// Attempts to save HTML text as a PDF file and returns output diagnostics instead of throwing.
     /// </summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this string html, string path, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
         try {
-            return html.ToPdfDocument(options).TrySave(path);
+            PdfCore.PdfSaveResult result = html.ToPdfDocument(options).TrySave(path);
+            SyncSelectedProfileReport(options);
+            return result;
         } catch (Exception ex) {
+            SyncSelectedProfileReport(options);
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
     }
@@ -70,34 +81,58 @@ public static class HtmlPdfConverterExtensions {
     /// Writes HTML text as PDF to a stream.
     /// </summary>
     public static void SaveAsPdf(this string html, Stream stream, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
         html.ToPdfDocument(options).Save(stream);
+        SyncSelectedProfileReport(options);
     }
 
     /// <summary>
     /// Attempts to write HTML text as PDF to a stream and returns output diagnostics instead of throwing.
     /// </summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this string html, Stream stream, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
         try {
-            return html.ToPdfDocument(options).TrySave(stream);
+            PdfCore.PdfSaveResult result = html.ToPdfDocument(options).TrySave(stream);
+            SyncSelectedProfileReport(options);
+            return result;
         } catch (Exception ex) {
+            SyncSelectedProfileReport(options);
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
     }
 
     private static PdfCore.PdfDocument ConvertSemantic(string html, HtmlPdfSaveOptions options) {
         MarkdownPdfSaveOptions markdownPdfOptions = options.MarkdownPdfOptions ?? new MarkdownPdfSaveOptions();
+        options.MarkdownPdfOptions = markdownPdfOptions;
         PdfCore.PdfDocument pdf = html
             .LoadFromHtml(options.MarkdownHtmlOptions)
             .ToPdfDocument(markdownPdfOptions);
-        options.ConversionReport.AddRange(markdownPdfOptions.ConversionReport.Warnings);
+        options.ConversionReport.LinkReport(markdownPdfOptions.ConversionReport);
         return pdf;
     }
 
     private static PdfCore.PdfDocument ConvertDocument(string html, HtmlPdfSaveOptions options) {
         PdfSaveOptions wordPdfOptions = options.WordPdfOptions ?? new PdfSaveOptions();
+        options.WordPdfOptions = wordPdfOptions;
         using WordDocument document = html.LoadFromHtml(options.WordHtmlOptions);
         PdfCore.PdfDocument pdf = document.ToPdfDocument(wordPdfOptions);
-        options.ConversionReport.AddRange(wordPdfOptions.ConversionReport.Warnings);
+        options.ConversionReport.LinkReport(wordPdfOptions.ConversionReport);
         return pdf;
+    }
+
+    private static void SyncSelectedProfileReport(HtmlPdfSaveOptions options) {
+        PdfCore.PdfConversionReport? source = options.Profile switch {
+            HtmlPdfProfile.Semantic => options.MarkdownPdfOptions?.ConversionReport,
+            HtmlPdfProfile.Document => options.WordPdfOptions?.ConversionReport,
+            _ => null
+        };
+        if (source == null) {
+            return;
+        }
+
+        List<PdfCore.PdfConversionWarning> warnings = new(source.Warnings);
+        options.ConversionReport.ClearLinkedReports();
+        options.ConversionReport.Clear();
+        options.ConversionReport.AddRange(warnings);
     }
 }

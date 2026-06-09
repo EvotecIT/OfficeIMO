@@ -163,14 +163,19 @@ internal static partial class PdfWriter {
 
             double maxContentHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
             string? captionText = string.IsNullOrWhiteSpace(style.Caption) ? null : style.Caption;
-            System.Collections.Generic.List<string>? captionLines = null;
+            System.Collections.Generic.IReadOnlyList<TextRun>? captionRuns = null;
+            System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? captionLines = null;
+            System.Collections.Generic.List<double>? captionLineHeights = null;
             double captionSize = style.CaptionFontSize ?? size;
             double captionLeading = captionSize * 1.25;
             double captionHeight = 0;
             if (captionText != null) {
                 var captionFontForWrap = ChooseNormal(currentOpts.DefaultFont);
-                captionLines = WrapSimpleTextForOptions(captionText, tableWidth, captionFontForWrap, captionSize, currentOpts).ToList();
-                captionHeight = captionLines.Count * captionLeading;
+                captionRuns = new[] { TextRun.Normal(captionText, style.CaptionColor, captionSize) };
+                var captionWrap = WrapRichRunsCore(captionRuns, tableWidth, captionSize, captionFontForWrap, captionLeading, null, DefaultParagraphTabStopWidth, currentOpts);
+                captionLines = captionWrap.Lines;
+                captionLineHeights = captionWrap.LineHeights;
+                captionHeight = MeasureRichLinesHeight(captionLineHeights, captionLines.Count, captionLeading);
                 double firstRowHeight = rowHeights.Length > 0 ? rowHeights[0] : 0;
                 if (captionHeight + style.CaptionSpacingAfter + firstRowHeight > maxContentHeight + 0.001) {
                     throw new ArgumentException("Table caption and first row exceed the available page content height.");
@@ -225,7 +230,7 @@ internal static partial class PdfWriter {
                 return tableStructureElementIndex;
             }
 
-            if (captionLines != null) {
+            if (captionRuns != null && captionLines != null && captionLineHeights != null) {
                 var captionFont = ChooseNormal(currentOpts.DefaultFont);
                 double firstRowHeight = rowHeights.Length > 0 ? rowHeights[0] : 0;
                 double captionAndFirstRowHeight = captionHeight + style.CaptionSpacingAfter + firstRowHeight;
@@ -235,7 +240,8 @@ internal static partial class PdfWriter {
                 }
 
                 int? captionMarkedContentId = RegisterTextStructureElement("Caption", EnsureTableStructureElement());
-                WriteLinesInternal("F1", captionSize, captionLeading, xOrigin, tableWidth, y - GetAscenderForOptions(captionFont, captionSize, currentOpts), captionLines, style.CaptionAlign, style.CaptionColor, structureType: "Caption", markedContentId: captionMarkedContentId);
+                MarkRichFonts(captionRuns);
+                WriteRichParagraph(sb, new RichParagraphBlock(captionRuns, style.CaptionAlign, style.CaptionColor), captionLines, captionLineHeights, currentOpts, FirstTextBaselineFromTop(captionFont, captionSize, y), captionSize, captionLeading, currentPage!.Annotations, xOrigin, tableWidth, structureType: "Caption", markedContentId: captionMarkedContentId, structurePage: currentPage);
                 y -= captionHeight + style.CaptionSpacingAfter;
             }
 

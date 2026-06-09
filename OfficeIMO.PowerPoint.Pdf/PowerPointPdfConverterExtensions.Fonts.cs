@@ -11,6 +11,8 @@ namespace OfficeIMO.PowerPoint.Pdf;
 public static partial class PowerPointPdfConverterExtensions {
     private static PdfCore.PdfOptions CreatePdfOptions(PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+        pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.PowerPoint.Pdf");
+
         pdfOptions.PageWidth = presentation.SlideSize.WidthPoints;
         pdfOptions.PageHeight = presentation.SlideSize.HeightPoints;
         pdfOptions.Margins = PdfCore.PageMargins.Uniform(0);

@@ -16,6 +16,10 @@ namespace OfficeIMO.Word.Pdf {
         private static PdfCore.PdfOptions CreateNativeOptions(WordDocument document, PdfSaveOptions? options) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+            if (options != null) {
+                pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.Word.Pdf");
+            }
+
             pdfOptions.PageSize = firstSection == null ? PdfCore.PageSizes.A4 : GetNativePageSize(firstSection, options);
             pdfOptions.Margins = firstSection == null ? PdfCore.PageMargins.Uniform(72) : GetNativeMargins(firstSection, options);
             bool preserveConfiguredFontSlots = ApplyNativeDefaultFont(document, options, pdfOptions) ||

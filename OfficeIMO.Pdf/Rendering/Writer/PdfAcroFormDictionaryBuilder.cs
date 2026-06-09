@@ -46,21 +46,51 @@ internal static class PdfAcroFormDictionaryBuilder {
     }
 
     internal static string BuildTextFieldAppearanceStreamDictionary(double width, double height, int helveticaFontId, int contentLength) {
+        IReadOnlyList<(string Name, int Id)> fontResources = helveticaFontId > 0
+            ? new[] { ("Helv", helveticaFontId) }
+            : Array.Empty<(string Name, int Id)>();
+
+        return BuildTextFieldAppearanceStreamDictionary(width, height, fontResources, contentLength);
+    }
+
+    internal static string BuildTextFieldAppearanceStreamDictionary(double width, double height, IReadOnlyList<(string Name, int Id)> fontResources, int contentLength) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
+        Guard.NotNull(fontResources, nameof(fontResources));
         if (contentLength < 0) {
             throw new ArgumentOutOfRangeException(nameof(contentLength), "PDF appearance stream length cannot be negative.");
         }
 
-        return "<< /Type /XObject /Subtype /Form /BBox [0 0 " +
-            Format(width) +
-            " " +
-            Format(height) +
-            "] /Resources << /Font << /Helv " +
-            PdfSyntaxEscaper.IndirectReference(helveticaFontId) +
-            " >> >> /Length " +
-            contentLength.ToString(System.Globalization.CultureInfo.InvariantCulture) +
-            " >>";
+        var sb = new StringBuilder();
+        sb.Append("<< /Type /XObject /Subtype /Form /BBox [0 0 ")
+            .Append(Format(width))
+            .Append(' ')
+            .Append(Format(height))
+            .Append(']');
+        if (fontResources.Count > 0) {
+            sb.Append(" /Resources << /Font <<");
+            for (int i = 0; i < fontResources.Count; i++) {
+                (string name, int id) = fontResources[i];
+                Guard.NotNullOrWhiteSpace(name, nameof(fontResources));
+                if (id <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(fontResources), id, "PDF appearance font resource object id must be positive.");
+                }
+
+                string normalizedName = name[0] == '/' ? name.Substring(1) : name;
+                Guard.NotNullOrWhiteSpace(normalizedName, nameof(fontResources));
+                sb.Append(" /")
+                    .Append(PdfSyntaxEscaper.Name(normalizedName))
+                    .Append(' ')
+                    .Append(PdfSyntaxEscaper.IndirectReference(id));
+            }
+
+            sb.Append(" >> >>");
+        }
+
+        sb.Append(" /Length ")
+            .Append(contentLength.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .Append(" >>");
+        return sb.ToString();
     }
 
     internal static string BuildCheckBoxAppearanceStreamDictionary(double width, double height, int contentLength) {
@@ -79,7 +109,7 @@ internal static class PdfAcroFormDictionaryBuilder {
             " >>";
     }
 
-    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null) {
+    internal static string BuildTextFieldAppearanceContent(double width, double height, string value, double fontSize, PdfFormFieldStyle? style = null, string? encodedTextHex = null, PdfFormFieldTextAlignment? textAlignment = null, double? textWidth = null, string? fontResourceName = null, Func<string, string?>? encodeTextSegmentHex = null, Func<string, double, double>? measureTextSegmentWidth = null, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(value, nameof(value));
@@ -96,6 +126,7 @@ internal static class PdfAcroFormDictionaryBuilder {
         string displayValue = GetTextFieldAppearanceDisplayValue(value, effectiveStyle);
         PdfFormFieldTextAlignment effectiveAlignment = textAlignment ?? effectiveStyle.TextAlignment ?? PdfFormFieldTextAlignment.Left;
         double availableTextWidth = Math.Max(0D, width - 6D);
+        string effectiveFontResourceName = PdfSyntaxEscaper.Name(string.IsNullOrWhiteSpace(fontResourceName) ? "Helv" : fontResourceName!);
 
         string content = "q\n";
         if (effectiveStyle.BackgroundColor.HasValue) {
@@ -109,16 +140,16 @@ internal static class PdfAcroFormDictionaryBuilder {
         }
 
         if (effectiveStyle.IsMultiline) {
-            content += BuildMultilineTextFieldAppearanceContent(height, displayValue, fontSize, effectiveStyle, effectiveAlignment, availableTextWidth);
+            content += BuildMultilineTextFieldAppearanceContent(height, displayValue, fontSize, effectiveStyle, effectiveAlignment, availableTextWidth, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments);
         } else if (effectiveStyle.IsComb && effectiveStyle.MaxLength.HasValue) {
-            content += BuildCombTextFieldAppearanceContent(width, height, displayValue, fontSize, effectiveStyle);
+            content += BuildCombTextFieldAppearanceContent(width, height, displayValue, fontSize, effectiveStyle, effectiveFontResourceName, encodeTextSegmentHex, measureTextSegmentWidth, encodeTextSegments);
         } else {
             double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
-            double measuredTextWidth = textWidth.HasValue ? textWidth.Value : PdfWriter.EstimateSimpleTextWidth(displayValue, PdfStandardFont.Helvetica, fontSize);
+            double measuredTextWidth = textWidth.HasValue ? textWidth.Value : MeasureTextAppearanceSegment(displayValue, fontSize, measureTextSegmentWidth);
             double textX = CalculateAlignedTextX(availableTextWidth, measuredTextWidth, effectiveAlignment);
             string clippedValue = availableTextWidth <= 0.001D ? string.Empty : displayValue;
-            string textHex = encodedTextHex == null || clippedValue.Length == 0 ? PdfSyntaxEscaper.WinAnsiHexString(clippedValue) : "<" + encodedTextHex + ">";
-            content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textHex + " Tj ET\n";
+            string textShowing = BuildTextAppearanceShowing(clippedValue, fontSize, encodedTextHex, encodeTextSegmentHex, encodeTextSegments);
+            content += "BT /" + effectiveFontResourceName + " " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textShowing + " ET\n";
         }
 
         return content + "Q\n";
@@ -149,24 +180,24 @@ internal static class PdfAcroFormDictionaryBuilder {
         }
     }
 
-    private static string BuildMultilineTextFieldAppearanceContent(double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, PdfFormFieldTextAlignment alignment, double availableTextWidth) {
+    private static string BuildMultilineTextFieldAppearanceContent(double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, PdfFormFieldTextAlignment alignment, double availableTextWidth, string fontResourceName, Func<string, string?>? encodeTextSegmentHex, Func<string, double, double>? measureTextSegmentWidth, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments) {
         string[] lines = SplitTextFieldAppearanceLines(displayValue);
         double lineHeight = Math.Max(fontSize, fontSize * 1.2D);
         double baseline = Math.Max(2D, height - fontSize * 1.15D);
         string content = string.Empty;
         for (int i = 0; i < lines.Length && baseline >= 2D; i++) {
             string line = availableTextWidth <= 0.001D ? string.Empty : lines[i];
-            double lineWidth = PdfWriter.EstimateSimpleTextWidth(line, PdfStandardFont.Helvetica, fontSize);
+            double lineWidth = MeasureTextAppearanceSegment(line, fontSize, measureTextSegmentWidth);
             double textX = CalculateAlignedTextX(availableTextWidth, lineWidth, alignment);
-            string textHex = PdfSyntaxEscaper.WinAnsiHexString(line);
-            content += "BT /Helv " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textHex + " Tj ET\n";
+            string textShowing = BuildTextAppearanceShowing(line, fontSize, encodedTextHex: null, encodeTextSegmentHex, encodeTextSegments);
+            content += "BT /" + fontResourceName + " " + Format(fontSize) + " Tf " + FormatColor(effectiveStyle.TextColor) + " rg " + Format(textX) + " " + Format(baseline) + " Td " + textShowing + " ET\n";
             baseline -= lineHeight;
         }
 
         return content;
     }
 
-    private static string BuildCombTextFieldAppearanceContent(double width, double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle) {
+    private static string BuildCombTextFieldAppearanceContent(double width, double height, string displayValue, double fontSize, PdfFormFieldStyle effectiveStyle, string fontResourceName, Func<string, string?>? encodeTextSegmentHex, Func<string, double, double>? measureTextSegmentWidth, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments) {
         int cellCount = effectiveStyle.MaxLength!.Value;
         double cellWidth = width / cellCount;
         double baseline = Math.Max(2D, (height - fontSize) / 2D + fontSize * 0.72D);
@@ -176,10 +207,12 @@ internal static class PdfAcroFormDictionaryBuilder {
             int scalarLength = GetScalarLength(displayValue, valueIndex);
             string glyph = displayValue.Substring(valueIndex, scalarLength);
             valueIndex += scalarLength;
-            double glyphWidth = PdfWriter.EstimateSimpleTextWidth(glyph, PdfStandardFont.Helvetica, fontSize);
+            double glyphWidth = MeasureTextAppearanceSegment(glyph, fontSize, measureTextSegmentWidth);
             double textX = glyphIndex * cellWidth + Math.Max(0D, (cellWidth - glyphWidth) / 2D);
-            string textHex = PdfSyntaxEscaper.WinAnsiHexString(glyph);
-            content.Append("BT /Helv ")
+            string textShowing = BuildTextAppearanceShowing(glyph, fontSize, encodedTextHex: null, encodeTextSegmentHex, encodeTextSegments);
+            content.Append("BT /")
+                .Append(fontResourceName)
+                .Append(' ')
                 .Append(Format(fontSize))
                 .Append(" Tf ")
                 .Append(FormatColor(effectiveStyle.TextColor))
@@ -188,12 +221,65 @@ internal static class PdfAcroFormDictionaryBuilder {
                 .Append(' ')
                 .Append(Format(baseline))
                 .Append(" Td ")
-                .Append(textHex)
-                .Append(" Tj ET\n");
+                .Append(textShowing)
+                .Append(" ET\n");
         }
 
         return content.ToString();
     }
+
+    private static string BuildTextAppearanceShowing(string value, double fontSize, string? encodedTextHex, Func<string, string?>? encodeTextSegmentHex, Func<string, IReadOnlyList<PdfTextAppearanceSegment>>? encodeTextSegments) {
+        if (value.Length > 0 && encodeTextSegments != null) {
+            IReadOnlyList<PdfTextAppearanceSegment> segments = encodeTextSegments(value);
+            if (segments.Count > 0) {
+                var sb = new StringBuilder();
+                for (int i = 0; i < segments.Count; i++) {
+                    PdfTextAppearanceSegment segment = segments[i];
+                    if (segment.EncodedHex.Length == 0) {
+                        continue;
+                    }
+
+                    if (sb.Length > 0) {
+                        sb.Append(' ');
+                    }
+
+                    sb.Append('/')
+                        .Append(PdfSyntaxEscaper.Name(segment.FontResourceName))
+                        .Append(' ')
+                        .Append(Format(fontSize))
+                        .Append(" Tf <")
+                        .Append(segment.EncodedHex)
+                        .Append("> Tj");
+                }
+
+                if (sb.Length > 0) {
+                    return sb.ToString();
+                }
+            }
+        }
+
+        return EncodeTextAppearanceSegment(value, encodedTextHex, encodeTextSegmentHex) + " Tj";
+    }
+
+    private static string EncodeTextAppearanceSegment(string value, string? encodedTextHex, Func<string, string?>? encodeTextSegmentHex) {
+        if (value.Length == 0) {
+            return PdfSyntaxEscaper.WinAnsiHexString(value);
+        }
+
+        if (!string.IsNullOrEmpty(encodedTextHex)) {
+            return "<" + encodedTextHex + ">";
+        }
+
+        string? segmentHex = encodeTextSegmentHex?.Invoke(value);
+        return string.IsNullOrEmpty(segmentHex)
+            ? PdfSyntaxEscaper.WinAnsiHexString(value)
+            : "<" + segmentHex + ">";
+    }
+
+    private static double MeasureTextAppearanceSegment(string value, double fontSize, Func<string, double, double>? measureTextSegmentWidth) =>
+        measureTextSegmentWidth == null
+            ? PdfWriter.EstimateSimpleTextWidth(value, PdfStandardFont.Helvetica, fontSize)
+            : measureTextSegmentWidth(value, fontSize);
 
     private static int GetScalarLength(string value, int index) =>
         char.IsHighSurrogate(value[index]) &&

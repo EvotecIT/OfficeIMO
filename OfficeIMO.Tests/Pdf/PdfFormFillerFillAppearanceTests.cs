@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
@@ -70,6 +71,611 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FillFields_RejectsUnicodeAppearanceValuesWithoutEmbeddedAppearanceFont() {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+                ["Name"] = "Łódź"
+            }));
+
+        Assert.Contains("PDF WinAnsiEncoding", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("embedded Unicode fonts are required", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_UsesConfiguredEmbeddedAppearanceFontForUnicodeValueWithoutSourceFont() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFile("OfficeIMO Fill Font", fontPath);
+
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "Łódź"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/AP << /N", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile2", output, StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_UsesConfiguredOpenTypeCffAppearanceFontForUnicodeValueWithoutSourceFont() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFont("OfficeIMO Fill CFF Font", System.IO.File.ReadAllBytes(fontPath!))
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "Łódź"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/AP << /N", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /OpenType", output, StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/FontFile2", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+        PdfConversionWarning fullFontWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-full-font-embedded");
+        Assert.Equal("OfficeIMO.Tests", fullFontWarning.Converter);
+        Assert.Equal(PdfConversionWarningSeverity.Warning, fullFontWarning.Severity);
+        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, fullFontWarning.LayoutDiagnostic!.Kind);
+        Assert.Equal("form field 'Name' appearance", fullFontWarning.Source);
+        Assert.Equal("OpenType/CFF", fullFontWarning.Details["format"]);
+        Assert.Equal("OfficeIMOFillCFFFont", fullFontWarning.Details["fontName"]);
+        Assert.True(int.Parse(fullFontWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(fullFontWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
+        Assert.True(int.Parse(fullFontWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(fullFontWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
+    }
+
+    [Fact]
+    public void FillFields_ReportsConfiguredAppearanceFontOpenTypeFeatureDiagnostics() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFont("OfficeIMO Fill CFF Font", System.IO.File.ReadAllBytes(fontPath!))
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "office cafe\u0301"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("office cafe\u0301", field.Value);
+        Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
+        AssertOpenTypeFeatureAppearanceDiagnostics(report);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_ReportsConfiguredAppearanceFontOpenTypeFeatureDiagnostics() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFont("OfficeIMO Fill CFF Font", System.IO.File.ReadAllBytes(fontPath!))
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "office cafe\u0301"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
+        Assert.Contains("office cafe", extracted, StringComparison.Ordinal);
+        AssertOpenTypeFeatureAppearanceDiagnostics(report);
+    }
+
+    [Fact]
+    public void FillFields_ThrowsWhenConfiguredAppearanceFontCannotBeUsed() {
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFont("Broken Fill Font", new byte[] { 0, 1, 2, 3 });
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+                ["Name"] = "Łódź"
+            }, options));
+
+        Assert.Contains("configured appearance font", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Broken Fill Font", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_ReportsConfiguredAppearanceFontMissingGlyphDiagnostics() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFile("OfficeIMO Fill Font", fontPath)
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+                ["Name"] = "Invoice " + char.ConvertFromUtf32(0x10FFFF)
+            }, options));
+
+        PdfConversionWarning warning = Assert.Single(report.Warnings);
+        Assert.Contains("configured appearance font", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("OfficeIMO.Tests", warning.Converter);
+        Assert.Equal("missing-embedded-font-glyph", warning.Code);
+        Assert.Equal("form field 'Name' appearance", warning.Source);
+        Assert.Equal(PdfConversionWarningSeverity.Error, warning.Severity);
+        Assert.Equal("U+10FFFF", warning.Details["codePoint"]);
+    }
+
+    [Fact]
+    public void FillFields_UsesAppearanceFontFallbackSetWhenConfiguredFontCannotBeUsed() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate("Fallback Fill Font", System.IO.File.ReadAllBytes(fontPath))
+            },
+            new[] { PdfStandardFont.Helvetica });
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFont("Broken Fill Font", new byte[] { 0, 1, 2, 3 })
+            .UseAppearanceFontFallbacks(fallbackSet)
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "Łódź"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/Helv0", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile2", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_UsesOpenTypeCffAppearanceFontFallbackSetWhenConfiguredFontCannotBeUsed() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate("Fallback Fill CFF Font", System.IO.File.ReadAllBytes(fontPath!))
+            },
+            new[] { PdfStandardFont.Helvetica });
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFont("Broken Fill Font", new byte[] { 0, 1, 2, 3 })
+            .UseAppearanceFontFallbacks(fallbackSet)
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "Łódź"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/Helv0", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /CIDFontType0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /OpenType", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/FontFile2", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+        PdfConversionWarning fullFontWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-full-font-embedded");
+        Assert.Equal("OfficeIMO.Tests", fullFontWarning.Converter);
+        Assert.Equal(PdfConversionWarningSeverity.Warning, fullFontWarning.Severity);
+        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, fullFontWarning.LayoutDiagnostic!.Kind);
+        Assert.Equal("form field 'Name' appearance", fullFontWarning.Source);
+        Assert.Equal("OpenType/CFF", fullFontWarning.Details["format"]);
+        Assert.Equal("FallbackFillCFFFont", fullFontWarning.Details["fontName"]);
+        Assert.True(int.Parse(fullFontWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(fullFontWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
+        Assert.True(int.Parse(fullFontWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(fullFontWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
+    }
+
+    [Fact]
+    public void FillFields_ReportsAppearanceFontFallbackOpenTypeFeatureDiagnostics() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate("Fallback Fill CFF Font", System.IO.File.ReadAllBytes(fontPath!))
+            },
+            new[] { PdfStandardFont.Helvetica });
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFallbacks(fallbackSet)
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "office cafe\u0301"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("office cafe\u0301", field.Value);
+        Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
+        AssertOpenTypeFeatureAppearanceDiagnostics(report);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_ReportsAppearanceFontFallbackOpenTypeFeatureDiagnostics() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate("Fallback Fill CFF Font", System.IO.File.ReadAllBytes(fontPath!))
+            },
+            new[] { PdfStandardFont.Helvetica });
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFallbacks(fallbackSet)
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "office cafe\u0301"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile3", output, StringComparison.Ordinal);
+        Assert.Contains("office cafe", extracted, StringComparison.Ordinal);
+        AssertOpenTypeFeatureAppearanceDiagnostics(report);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_UsesAppearanceFontFallbackSetForExtractableUnicodeValue() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate("Fallback Fill Font", System.IO.File.ReadAllBytes(fontPath))
+            },
+            new[] { PdfStandardFont.Helvetica });
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFallbacks(fallbackSet);
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "Łódź"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.Contains("/Helv0", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile2", output, StringComparison.Ordinal);
+        Assert.Contains("Łódź", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_ThrowsWhenAppearanceFontFallbackSetCannotCoverValue() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate("Fallback Fill Font", System.IO.File.ReadAllBytes(fontPath))
+            },
+            new[] { PdfStandardFont.Helvetica });
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFallbacks(fallbackSet);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+                ["Name"] = "Invoice " + char.ConvertFromUtf32(0x10FFFF)
+            }, options));
+
+        Assert.Contains("missing-embedded-font-fallback-glyph", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("U+10FFFF", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_ReportsAppearanceFontFallbackMissingGlyphDiagnostics() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] {
+                new PdfEmbeddedFontFallbackCandidate("Fallback Fill Font", System.IO.File.ReadAllBytes(fontPath))
+            },
+            new[] { PdfStandardFont.Helvetica });
+        var report = new PdfConversionReport();
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFallbacks(fallbackSet)
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            PdfFormFiller.FillFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+                ["Name"] = "Invoice " + char.ConvertFromUtf32(0x10FFFF)
+            }, options));
+
+        PdfConversionWarning warning = Assert.Single(report.Warnings);
+        Assert.Contains("missing-embedded-font-fallback-glyph", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("OfficeIMO.Tests", warning.Converter);
+        Assert.Equal("missing-embedded-font-fallback-glyph", warning.Code);
+        Assert.Equal("form field 'Name' appearance", warning.Source);
+        Assert.Equal(PdfConversionWarningSeverity.Error, warning.Severity);
+        Assert.Equal("U+10FFFF", warning.Details["codePoint"]);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_UsesConfiguredEmbeddedAppearanceFontForExtractableUnicodeValueWithoutSourceFont() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFile("OfficeIMO Fill Font", fontPath);
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(BuildTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Name"] = "Łódź"
+        }, options);
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile2", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+        Assert.Contains("Łódź", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FluentFill_UsesConfiguredEmbeddedAppearanceFontForUnicodeValueWithoutSourceFont() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = new PdfFormFillerOptions()
+            .UseAppearanceFontFile("OfficeIMO Fill Font", fontPath);
+
+        byte[] filled = PdfDocument
+            .Open(BuildTextWidgetFormPdf())
+            .Forms
+            .Fill(new Dictionary<string, string> {
+                ["Name"] = "Łódź"
+            }, options)
+            .ToBytes();
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/FontFile2", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_ReusesInheritedEmbeddedTextAppearanceFontForCoveredUnicodeValue() {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdf("Łódź Zażółć");
+        if (source.Length == 0) {
+            return;
+        }
+
+        byte[] filled = PdfFormFiller.FillFields(source, new Dictionary<string, string> {
+            ["Office.City"] = "Łódź"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/AP << /N", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_DiscoversNonHelvInheritedEmbeddedTextAppearanceFontForCoveredUnicodeValue() {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdfWithResourceName("Łódź Zażółć", "Funi");
+        if (source.Length == 0) {
+            return;
+        }
+
+        byte[] filled = PdfFormFiller.FillFields(source, new Dictionary<string, string> {
+            ["Office.City"] = "Łódź"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/AP << /N", output, StringComparison.Ordinal);
+        Assert.Contains("/Funi", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_ReusesExistingAppearanceEmbeddedFontWhenAcroFormDefaultResourceFontsAreUnavailable() {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdfWithAppearanceOnlyFontResource("Łódź Zażółć");
+        if (source.Length == 0) {
+            return;
+        }
+
+        byte[] filled = PdfFormFiller.FillFields(source, new Dictionary<string, string> {
+            ["Office.City"] = "Łódź"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/AP << /N", output, StringComparison.Ordinal);
+        Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.Contains("/ToUnicode", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_ReusesInheritedEmbeddedTextAppearanceFontForCoveredUnicodeValue() {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdf("Łódź Zażółć");
+        if (source.Length == 0) {
+            return;
+        }
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(source, new Dictionary<string, string> {
+            ["Office.City"] = "Łódź"
+        });
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+        Assert.Contains("Łódź", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_ReusesExistingAppearanceEmbeddedFontWhenAcroFormDefaultResourceFontsAreUnavailable() {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdfWithAppearanceOnlyFontResource("Łódź Zażółć");
+        if (source.Length == 0) {
+            return;
+        }
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(source, new Dictionary<string, string> {
+            ["Office.City"] = "Łódź"
+        });
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+        Assert.Contains("Łódź", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_DiscoversNonHelvInheritedEmbeddedTextAppearanceFontForCoveredUnicodeValue() {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdfWithResourceName("Łódź Zażółć", "Funi");
+        if (source.Length == 0) {
+            return;
+        }
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(source, new Dictionary<string, string> {
+            ["Office.City"] = "Łódź"
+        });
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.Contains("/Funi", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+        Assert.Contains("Łódź", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillAndFlattenFields_ReusesInheritedEmbeddedFontForMultilineUnicodeTextField() {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdf(
+            "Łódź\nZażółć",
+            new PdfFormFieldStyle {
+                IsMultiline = true
+            });
+        if (source.Length == 0) {
+            return;
+        }
+
+        byte[] flattened = PdfFormFiller.FillAndFlattenFields(source, new Dictionary<string, string> {
+            ["Office.City"] = "Łódź\nZażółć"
+        });
+
+        string output = Encoding.ASCII.GetString(flattened);
+        string extracted = PdfReadDocument.Load(flattened).ExtractText();
+
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+        Assert.Contains("Łódź", extracted, StringComparison.Ordinal);
+        Assert.Contains("Zażółć", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_ReusesInheritedEmbeddedFontForCombUnicodeTextField() {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdf(
+            "Łódź",
+            new PdfFormFieldStyle {
+                IsComb = true,
+                MaxLength = 4
+            });
+        if (source.Length == 0) {
+            return;
+        }
+
+        byte[] filled = PdfFormFiller.FillFields(source, new Dictionary<string, string> {
+            ["Office.City"] = "Łódź"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.True(field.IsComb);
+        Assert.Equal(4, field.MaxLength);
+        Assert.Equal("Łódź", field.Value);
+        Assert.Contains("/Encoding /Identity-H", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FillFields_GeneratesSimpleButtonWidgetAppearances() {
         byte[] filled = PdfFormFiller.FillFields(BuildCheckboxWidgetWithoutAppearancePdf(), new Dictionary<string, string> {
             ["AcceptTerms"] = "Yes"
@@ -84,5 +690,106 @@ public partial class PdfFormFillerTests {
         Assert.Contains("/Off", output);
         Assert.Contains("/Yes", output);
         Assert.Contains("1.25 w", output);
+    }
+
+    private static byte[] BuildEmbeddedUnicodeTextFieldPdf(string value, PdfFormFieldStyle? style = null) {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return Array.Empty<byte>();
+        }
+
+        return PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .UseFontFamily("OfficeIMO Fill Font", fontPath)
+            .TextField("Office.City", value: value, width: 180, height: style?.IsMultiline == true ? 48 : 24, style: style)
+            .ToBytes();
+    }
+
+    private static void AssertOpenTypeFeatureAppearanceDiagnostics(PdfConversionReport report) {
+        PdfConversionWarning ligature = Assert.Single(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
+        PdfConversionWarning mark = Assert.Single(report.Warnings, warning => warning.Code == "unsupported-font-mark-positioning");
+        Assert.Equal("OfficeIMO.Tests", ligature.Converter);
+        Assert.Equal("form field 'Name' appearance", ligature.Source);
+        Assert.Equal("OpenType GSUB ligature", ligature.Details["script"]);
+        Assert.Equal("U+0066", ligature.Details["codePoint"]);
+        Assert.Equal("OpenType GPOS mark", mark.Details["script"]);
+        Assert.Equal("U+0301", mark.Details["codePoint"]);
+        Assert.Contains(report.Warnings, warning => warning.Code == "opentype-cff-full-font-embedded");
+    }
+
+    private static byte[] BuildEmbeddedUnicodeTextFieldPdfWithResourceName(string value, string resourceName) {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdf(value);
+        if (source.Length == 0) {
+            return source;
+        }
+
+        return ReplaceAsciiTokenSameLength(source, "/Helv", "/" + resourceName);
+    }
+
+    private static byte[] BuildEmbeddedUnicodeTextFieldPdfWithAppearanceOnlyFontResource(string value) {
+        byte[] source = BuildEmbeddedUnicodeTextFieldPdf(value);
+        if (source.Length == 0) {
+            return source;
+        }
+
+        return ReplaceFirstAsciiTokenSameLength(source, "/DR << /Font << /Helv ", "/DR << /F0nt << /Helv ");
+    }
+
+    private static byte[] ReplaceFirstAsciiTokenSameLength(byte[] source, string oldValue, string newValue) {
+        byte[] oldBytes = Encoding.ASCII.GetBytes(oldValue);
+        byte[] newBytes = Encoding.ASCII.GetBytes(newValue);
+        Assert.Equal(oldBytes.Length, newBytes.Length);
+
+        byte[] result = (byte[])source.Clone();
+        for (int index = 0; index <= result.Length - oldBytes.Length; index++) {
+            bool matched = true;
+            for (int offset = 0; offset < oldBytes.Length; offset++) {
+                if (result[index + offset] != oldBytes[offset]) {
+                    matched = false;
+                    break;
+                }
+            }
+
+            if (!matched) {
+                continue;
+            }
+
+            for (int offset = 0; offset < newBytes.Length; offset++) {
+                result[index + offset] = newBytes[offset];
+            }
+
+            return result;
+        }
+
+        Assert.Fail("The PDF fixture did not contain the expected ASCII token.");
+        return result;
+    }
+
+    private static byte[] ReplaceAsciiTokenSameLength(byte[] source, string oldValue, string newValue) {
+        byte[] oldBytes = Encoding.ASCII.GetBytes(oldValue);
+        byte[] newBytes = Encoding.ASCII.GetBytes(newValue);
+        Assert.Equal(oldBytes.Length, newBytes.Length);
+
+        byte[] result = (byte[])source.Clone();
+        for (int index = 0; index <= result.Length - oldBytes.Length; index++) {
+            bool matched = true;
+            for (int offset = 0; offset < oldBytes.Length; offset++) {
+                if (result[index + offset] != oldBytes[offset]) {
+                    matched = false;
+                    break;
+                }
+            }
+
+            if (!matched) {
+                continue;
+            }
+
+            for (int offset = 0; offset < newBytes.Length; offset++) {
+                result[index + offset] = newBytes[offset];
+            }
+        }
+
+        return result;
     }
 }

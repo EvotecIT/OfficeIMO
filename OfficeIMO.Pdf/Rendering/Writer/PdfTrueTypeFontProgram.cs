@@ -1,10 +1,17 @@
 namespace OfficeIMO.Pdf;
 
-internal sealed class PdfTrueTypeFontProgram {
+internal sealed partial class PdfTrueTypeFontProgram {
+    private readonly byte[] _data;
     private readonly ushort[] _advanceWidths;
     private readonly Dictionary<int, int> _cmap;
+    private readonly Dictionary<string, TableRecord> _tables;
+    private readonly SortedSet<int> _usedGlyphIds = new();
+    private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
+    private readonly object _usageLock = new();
 
-    private PdfTrueTypeFontProgram(string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, ushort[] advanceWidths, Dictionary<int, int> cmap) {
+    private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, ushort[] advanceWidths, Dictionary<int, int> cmap) {
+        _data = data.ToArray();
+        _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         FontName = fontName;
         UnitsPerEm = unitsPerEm;
         FontBBox = new[] { ScaleMetric(xMin, unitsPerEm), ScaleMetric(yMin, unitsPerEm), ScaleMetric(xMax, unitsPerEm), ScaleMetric(yMax, unitsPerEm) };
@@ -41,23 +48,12 @@ internal sealed class PdfTrueTypeFontProgram {
         return width;
     }
 
-    public double MeasureTextWidth(string? text, double fontSize) {
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
-        double width = 0D;
-        for (int index = 0; index < text!.Length;) {
-            int scalarStart = index;
-            int scalar = ReadScalar(text, ref index);
-            if (!TryGetGlyphId(scalar, out int glyphId)) {
-                throw CreateUnsupportedGlyphException(text, scalarStart, scalar);
-            }
-
-            width += GetGlyphWidth1000(glyphId) * fontSize / 1000D;
-        }
-
-        return width;
+        return ShapeText(text!, shapingMode).TotalAdvanceWidth1000 * fontSize / 1000D;
     }
 
     public double GetAscender(double fontSize) =>
@@ -67,6 +63,8 @@ internal sealed class PdfTrueTypeFontProgram {
         Math.Abs(Descent) * fontSize / 1000D;
 
     public int GlyphCount => _advanceWidths.Length;
+
+    internal byte[] FontDataSnapshot => _data.ToArray();
 
     public bool TryGetGlyphId(int unicodeScalar, out int glyphId) =>
         _cmap.TryGetValue(unicodeScalar, out glyphId);
@@ -79,31 +77,46 @@ internal sealed class PdfTrueTypeFontProgram {
         return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
     }
 
-    public string EncodeTextAsGlyphHex(string text) {
+    public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
         Guard.NotNull(text, nameof(text));
-        var sb = new StringBuilder(text.Length * 4);
-        for (int index = 0; index < text.Length;) {
-            int scalarStart = index;
-            int scalar = ReadScalar(text, ref index);
-            if (!TryGetGlyphId(scalar, out int glyphId)) {
-                throw CreateUnsupportedGlyphException(text, scalarStart, scalar);
-            }
-
-            sb.Append(glyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        return sb.ToString();
+        return ShapeText(text, shapingMode).ToGlyphHex();
     }
 
-    public IReadOnlyList<(int GlyphId, int UnicodeScalar)> GetGlyphToUnicodeMappings() {
-        var glyphToUnicode = new Dictionary<int, int>();
+    internal PdfGlyphRun ShapeText(string text) {
+        Guard.NotNull(text, nameof(text));
+        return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName));
+    }
+
+    internal PdfGlyphRun ShapeText(string text, PdfTextShapingMode shapingMode) {
+        Guard.NotNull(text, nameof(text));
+        return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode));
+    }
+
+    internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
+        Guard.NotNull(text, nameof(text));
+        return PdfUnicodeScalarTextShaper.Instance.ShapeText(text, this, options);
+    }
+
+    public IReadOnlyList<(int GlyphId, string UnicodeText)> GetGlyphToUnicodeMappings() {
+        lock (_usageLock) {
+            if (_usedGlyphToUnicode.Count > 0) {
+                return _usedGlyphToUnicode
+                    .OrderBy(entry => entry.Key)
+                    .Select(entry => (entry.Key, entry.Value))
+                    .ToArray();
+            }
+        }
+
+        var glyphToUnicode = new Dictionary<int, string>();
+        var glyphToScalar = new Dictionary<int, int>();
         foreach (var entry in _cmap) {
             if (entry.Value <= 0) {
                 continue;
             }
 
-            if (!glyphToUnicode.TryGetValue(entry.Value, out int existingScalar) || entry.Key < existingScalar) {
-                glyphToUnicode[entry.Value] = entry.Key;
+            if (!glyphToScalar.TryGetValue(entry.Value, out int existingScalar) || entry.Key < existingScalar) {
+                glyphToScalar[entry.Value] = entry.Key;
+                glyphToUnicode[entry.Value] = char.ConvertFromUtf32(entry.Key);
             }
         }
 
@@ -113,6 +126,47 @@ internal sealed class PdfTrueTypeFontProgram {
             .ToArray();
     }
 
+    internal IReadOnlyList<int> GetUsedGlyphIds() {
+        lock (_usageLock) {
+            return _usedGlyphIds.Count == 0
+                ? Array.Empty<int>()
+                : _usedGlyphIds.ToArray();
+        }
+    }
+
+    internal void ResetGlyphUsage() {
+        lock (_usageLock) {
+            _usedGlyphIds.Clear();
+            _usedGlyphToUnicode.Clear();
+        }
+    }
+
+    internal void RecordGlyphUsage(int glyphId, int unicodeScalar) =>
+        RecordGlyphUsage(glyphId, char.ConvertFromUtf32(unicodeScalar));
+
+    internal void RecordGlyphUsage(int glyphId, string unicodeText) {
+        if (glyphId < 0) {
+            return;
+        }
+
+        lock (_usageLock) {
+            _usedGlyphIds.Add(glyphId);
+            if (glyphId > 0 &&
+                !string.IsNullOrEmpty(unicodeText) &&
+                (!_usedGlyphToUnicode.TryGetValue(glyphId, out string? existingText) || ShouldReplaceGlyphUnicodeText(unicodeText, existingText))) {
+                _usedGlyphToUnicode[glyphId] = unicodeText;
+            }
+        }
+    }
+
+    private static bool ShouldReplaceGlyphUnicodeText(string candidate, string existing) {
+        if (candidate.Length != existing.Length) {
+            return candidate.Length > existing.Length;
+        }
+
+        return string.CompareOrdinal(candidate, existing) < 0;
+    }
+
     public static PdfTrueTypeFontProgram Parse(byte[] data, string? fontNameOverride = null) {
         Guard.NotNull(data, nameof(data));
         if (data.Length < 12) {
@@ -120,6 +174,10 @@ internal sealed class PdfTrueTypeFontProgram {
         }
 
         uint scalerType = ReadUInt32(data, 0);
+        if (scalerType == 0x4F54544F) {
+            throw new NotSupportedException("This font program parser handles TrueType fonts with glyf outlines. Use the OpenType/CFF parser path for fonts with an OTTO scaler.");
+        }
+
         if (scalerType != 0x00010000 && scalerType != 0x74727565) {
             throw new NotSupportedException("Only TrueType fonts with glyf outlines can be embedded by OfficeIMO.Pdf at this stage.");
         }
@@ -181,7 +239,7 @@ internal sealed class PdfTrueTypeFontProgram {
         if ((macStyle & 0x02) != 0 || Math.Abs(italicAngle) > 0.01D) flags |= 64;
         int stemV = Math.Max(50, Math.Min(220, 80 + ((weightClass - 400) / 10)));
 
-        return new PdfTrueTypeFontProgram(fontName, unitsPerEm, xMin, yMin, xMax, yMax, ascent, descent, capHeight, italicAngle, flags, stemV, widths, charMap);
+        return new PdfTrueTypeFontProgram(data, tables, fontName, unitsPerEm, xMin, yMin, xMax, yMax, ascent, descent, capHeight, italicAngle, flags, stemV, widths, charMap);
     }
 
     public int[] BuildWinAnsiWidths() {
@@ -210,6 +268,7 @@ internal sealed class PdfTrueTypeFontProgram {
             int offset = recordOffset + index * 16;
             EnsureRange(data, offset, 16);
             string tag = Encoding.ASCII.GetString(data, offset, 4);
+            uint checksum = ReadUInt32(data, offset + 4);
             uint tableOffset = ReadUInt32(data, offset + 8);
             uint tableLength = ReadUInt32(data, offset + 12);
             if (tableOffset > int.MaxValue || tableLength > int.MaxValue) {
@@ -217,7 +276,7 @@ internal sealed class PdfTrueTypeFontProgram {
             }
 
             EnsureRange(data, (int)tableOffset, (int)tableLength);
-            tables[tag] = new TableRecord((int)tableOffset, (int)tableLength);
+            tables[tag] = new TableRecord((int)tableOffset, (int)tableLength, checksum);
         }
 
         return tables;
@@ -447,7 +506,7 @@ internal sealed class PdfTrueTypeFontProgram {
         return ch;
     }
 
-    private static ArgumentException CreateUnsupportedGlyphException(string text, int index, int scalar) {
+    internal static ArgumentException CreateUnsupportedGlyphException(string text, int index, int scalar) {
         string codePoint = "U+" + scalar.ToString("X", System.Globalization.CultureInfo.InvariantCulture);
         string display = scalar <= 0x10FFFF ? char.ConvertFromUtf32(scalar) : string.Empty;
         string rendered = display.Length == 0 || char.IsControl(display, 0) ? string.Empty : " '" + display + "'";
@@ -481,12 +540,14 @@ internal sealed class PdfTrueTypeFontProgram {
     }
 
     private readonly struct TableRecord {
-        public TableRecord(int offset, int length) {
+        public TableRecord(int offset, int length, uint checksum = 0) {
             Offset = offset;
             Length = length;
+            Checksum = checksum;
         }
 
         public int Offset { get; }
         public int Length { get; }
+        public uint Checksum { get; }
     }
 }

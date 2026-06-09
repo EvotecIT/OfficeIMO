@@ -180,7 +180,23 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return fontProgram.MeasureTextWidth(text, fontSize);
+            if (options.HasDiagnosticsReport) {
+                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text ?? string.Empty, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName));
+            }
+
+            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text ?? string.Empty, fontProgram));
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot);
+        }
+
+        if (options != null &&
+            options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            if (options.HasDiagnosticsReport) {
+                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text ?? string.Empty, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName));
+            }
+
+            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text ?? string.Empty, cffFontProgram));
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot);
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);
@@ -665,6 +681,12 @@ internal static partial class PdfWriter {
             return fontProgram.GetDescender(fontSize);
         }
 
+        if (options != null &&
+            options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            return cffFontProgram.GetDescender(fontSize);
+        }
+
         return GetDescender(font, fontSize);
     }
 
@@ -680,6 +702,12 @@ internal static partial class PdfWriter {
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
             return fontProgram.GetAscender(fontSize);
+        }
+
+        if (options != null &&
+            options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            return cffFontProgram.GetAscender(fontSize);
         }
 
         return GetAscender(font, fontSize);
