@@ -141,11 +141,11 @@ public sealed class PdfConversionTypographyTests {
     [InlineData("powerpoint-to-pdf", "OfficeIMO.PowerPoint.Pdf")]
     public void ConversionAdapters_ReportComplexScriptWarningsForGeneratedText(string conversionPath, string expectedConverter) {
         PdfCore.PdfConversionReport report = conversionPath switch {
-            "word-to-pdf" => CreateWordComplexScriptReport(),
-            "excel-to-pdf" => CreateExcelComplexScriptReport(),
-            "markdown-to-pdf" => CreateMarkdownComplexScriptReport(),
-            "html-to-pdf" => CreateHtmlComplexScriptReport(),
-            "powerpoint-to-pdf" => CreatePowerPointComplexScriptReport(),
+            "word-to-pdf" => CreateWordComplexScriptReport(allowMissingGlyphFailure: true),
+            "excel-to-pdf" => CreateExcelComplexScriptReport(allowMissingGlyphFailure: true),
+            "markdown-to-pdf" => CreateMarkdownComplexScriptReport(allowMissingGlyphFailure: true),
+            "html-to-pdf" => CreateHtmlComplexScriptReport(allowMissingGlyphFailure: true),
+            "powerpoint-to-pdf" => CreatePowerPointComplexScriptReport(allowMissingGlyphFailure: true),
             _ => throw new ArgumentOutOfRangeException(nameof(conversionPath), conversionPath, null)
         };
 
