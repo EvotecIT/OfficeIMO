@@ -270,10 +270,16 @@ internal static class PdfAcroFormDictionaryBuilder {
             return "<" + encodedTextHex + ">";
         }
 
-        string? segmentHex = encodeTextSegmentHex?.Invoke(value);
-        return string.IsNullOrEmpty(segmentHex)
-            ? PdfSyntaxEscaper.WinAnsiHexString(value)
-            : "<" + segmentHex + ">";
+        if (encodeTextSegmentHex != null) {
+            string? segmentHex = encodeTextSegmentHex(value);
+            if (string.IsNullOrEmpty(segmentHex)) {
+                throw new ArgumentException("Text field appearance segment cannot be encoded by the selected embedded appearance font.", nameof(value));
+            }
+
+            return "<" + segmentHex + ">";
+        }
+
+        return PdfSyntaxEscaper.WinAnsiHexString(value);
     }
 
     private static double MeasureTextAppearanceSegment(string value, double fontSize, Func<string, double, double>? measureTextSegmentWidth) =>

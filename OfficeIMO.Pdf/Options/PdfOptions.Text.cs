@@ -111,5 +111,6 @@ public sealed partial class PdfOptions {
 
     private bool IsCoveredTextShapingDiagnostic(PdfTextShapingDiagnostic diagnostic) =>
         _textShapingMode == PdfTextShapingMode.LatinLigatures &&
+        diagnostic.IsCoveredByBuiltInShaping &&
         string.Equals(diagnostic.Code, "unsupported-font-ligature-substitution", StringComparison.Ordinal);
 }

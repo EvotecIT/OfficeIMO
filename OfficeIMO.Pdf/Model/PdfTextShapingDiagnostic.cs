@@ -7,7 +7,7 @@ namespace OfficeIMO.Pdf;
 /// Describes text that can be written only through OfficeIMO.Pdf's current simplified scalar text path.
 /// </summary>
 public sealed class PdfTextShapingDiagnostic {
-    internal PdfTextShapingDiagnostic(string source, int index, int scalar, string script, string code, string message) {
+    internal PdfTextShapingDiagnostic(string source, int index, int scalar, string script, string code, string message, bool isCoveredByBuiltInShaping = false) {
         Source = source ?? string.Empty;
         Index = index;
         CodePoint = "U+" + scalar.ToString(scalar <= 0xFFFF ? "X4" : "X", CultureInfo.InvariantCulture);
@@ -15,6 +15,7 @@ public sealed class PdfTextShapingDiagnostic {
         Script = script ?? string.Empty;
         Code = string.IsNullOrWhiteSpace(code) ? "unsupported-text-shaping" : code;
         Message = message ?? string.Empty;
+        IsCoveredByBuiltInShaping = isCoveredByBuiltInShaping;
     }
 
     /// <summary>Caller-provided source label such as a block, field, sheet, slide, or converter area.</summary>
@@ -37,6 +38,8 @@ public sealed class PdfTextShapingDiagnostic {
 
     /// <summary>Human-readable diagnostic message.</summary>
     public string Message { get; }
+
+    internal bool IsCoveredByBuiltInShaping { get; }
 
     /// <summary>
     /// Converts this shaping diagnostic to the shared conversion warning shape used by PDF adapters.

@@ -473,9 +473,9 @@ public static class PdfTextDiagnostics {
             message: message);
     }
 
-    private static void AddDiagnostic(List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int index, int scalar, string script, string code, string message) {
+    private static void AddDiagnostic(List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int index, int scalar, string script, string code, string message, bool isCoveredByBuiltInShaping = false) {
         if (reportedCodes.Add(code)) {
-            diagnostics.Add(new PdfTextShapingDiagnostic(source, index, scalar, script, code, message));
+            diagnostics.Add(new PdfTextShapingDiagnostic(source, index, scalar, script, code, message, isCoveredByBuiltInShaping));
         }
     }
 
@@ -485,6 +485,9 @@ public static class PdfTextDiagnostics {
             if (ligatureIndex >= 0) {
                 int sourceIndex = ligatureIndex + indexOffset;
                 int scalar = char.ConvertToUtf32(text, ligatureIndex);
+                bool isCoveredByBuiltInShaping =
+                    PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, ligatureIndex, out int ligatureScalar, out _) &&
+                    info.ContainsUnicodeScalar(ligatureScalar);
                 AddDiagnostic(
                     diagnostics,
                     reportedCodes,
@@ -493,7 +496,8 @@ public static class PdfTextDiagnostics {
                     scalar,
                     "OpenType GSUB ligature",
                     "unsupported-font-ligature-substitution",
-                    "Text contains a Latin ligature sequence at index " + sourceIndex.ToString(CultureInfo.InvariantCulture) + ", and embedded font '" + info.FontName + "' advertises GSUB ligature features. OfficeIMO.Pdf currently writes scalar glyph ids without applying OpenType ligature substitution, so generated output may be visually simplified.");
+                    "Text contains a Latin ligature sequence at index " + sourceIndex.ToString(CultureInfo.InvariantCulture) + ", and embedded font '" + info.FontName + "' advertises GSUB ligature features. OfficeIMO.Pdf currently writes scalar glyph ids without applying OpenType ligature substitution, so generated output may be visually simplified.",
+                    isCoveredByBuiltInShaping);
             }
         }
 

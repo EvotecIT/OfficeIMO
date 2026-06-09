@@ -184,7 +184,7 @@ public static partial class PdfComplianceAnalyzer {
 
             invalidReason = null;
             return true;
-        } catch (Exception ex) when (ex is ArgumentException || ex is NotSupportedException || ex is InvalidOperationException || ex is IndexOutOfRangeException) {
+        } catch (Exception ex) when (PdfFontDiagnostics.IsFontProgramException(ex)) {
             invalidReason = ex.Message;
             return false;
         }

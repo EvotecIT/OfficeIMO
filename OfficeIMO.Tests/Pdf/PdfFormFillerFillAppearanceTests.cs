@@ -147,6 +147,21 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void TextAppearanceBuilder_RejectsUnencodableEmbeddedAppearanceFontSegmentsWithoutWinAnsiFallback() {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            PdfAcroFormDictionaryBuilder.BuildTextFieldAppearanceContent(
+                120,
+                20,
+                "Łódź\nZażółć",
+                10,
+                textWidth: 30,
+                fontResourceName: "F0",
+                encodeTextSegmentHex: _ => null));
+
+        Assert.Contains("cannot be encoded by the selected embedded appearance font", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FillFields_ReportsConfiguredAppearanceFontOpenTypeFeatureDiagnostics() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
