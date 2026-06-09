@@ -247,7 +247,8 @@ jobs:
   test-macos-matrix:
     name: 'macOS ${{ matrix.framework }}'
     runs-on: macos-latest
-    timeout-minutes: 30
+    # Hosted macOS runners can run the full OfficeIMO.Tests net10.0 suite past 30 minutes.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
