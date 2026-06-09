@@ -97,10 +97,14 @@ public static class DocumentReaderHtmlExtensions {
             maxChars,
             chunkByHeadings: effective.MarkdownChunkByHeadings,
             cancellationToken);
+        var sourceTables = DocumentReader.ExtractMarkdownTables(markdown, effective, cancellationToken);
 
         int chunkIndex = 0;
         foreach (var part in parts) {
             cancellationToken.ThrowIfCancellationRequested();
+            IReadOnlyList<ReaderTable> tables = chunkIndex == 0
+                ? sourceTables
+                : Array.Empty<ReaderTable>();
 
             yield return EnrichChunk(new ReaderChunk {
                 Id = string.Concat("html-", chunkIndex.ToString("D4", CultureInfo.InvariantCulture)),
@@ -113,6 +117,7 @@ public static class DocumentReaderHtmlExtensions {
                 },
                 Text = part.Text,
                 Markdown = part.Text,
+                Tables = tables.Count > 0 ? tables : null,
                 Warnings = part.Warnings
             }, source, effective.ComputeHashes);
 

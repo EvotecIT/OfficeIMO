@@ -42,14 +42,21 @@ namespace OfficeIMO.Tests.Pdf {
 
         [Fact]
         public void WinAnsiEncoding_RejectsUnsupportedGeneratedTextWithClearDiagnostic() {
-            var exception = Assert.Throws<ArgumentException>(() =>
+            var exception = Assert.ThrowsAny<ArgumentException>(() =>
                 PdfDocument.Create()
                     .Paragraph(p => p.Text("Snowman \u2603"))
                     .ToBytes());
 
             Assert.Contains("U+2603", exception.Message, StringComparison.Ordinal);
             Assert.Contains("PDF WinAnsiEncoding", exception.Message, StringComparison.Ordinal);
-            Assert.Contains("embedded Unicode fonts", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("Embedded Unicode fonts", exception.Message, StringComparison.Ordinal);
+            Assert.Equal("unsupported-text-glyph", exception.Data["code"]);
+            Assert.Equal("PdfParagraph", exception.Data["source"]);
+            Assert.Equal("PdfParagraph[0].Run[0]", exception.Data["location"]);
+            Assert.Equal(0, exception.Data["runIndex"]);
+            Assert.Equal("PDF WinAnsiEncoding", exception.Data["encoding"]);
+            Assert.Equal("Embedded Unicode fonts are required for this text.", exception.Data["remediation"]);
+            Assert.Equal(1, exception.Data["diagnosticsCount"]);
             Assert.False(PdfWinAnsiEncoding.CanEncode("Snowman \u2603", out int unsupportedIndex));
             Assert.Equal(8, unsupportedIndex);
         }
@@ -73,6 +80,8 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal("U+2603", diagnostic.CodePoint);
             Assert.Equal("\u2603", diagnostic.Text);
             Assert.False(diagnostic.IsControlCharacter);
+            Assert.Equal("PDF WinAnsiEncoding", diagnostic.Encoding);
+            Assert.Equal("Embedded Unicode fonts are required for this text.", diagnostic.Remediation);
             Assert.Equal("unsupported-text-glyph", diagnostic.Code);
             Assert.Contains("Embedded Unicode fonts", diagnostic.Message, StringComparison.Ordinal);
 
@@ -84,6 +93,8 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, warning.LayoutDiagnostic!.Kind);
             Assert.Equal("U+2603", warning.Details["codePoint"]);
             Assert.Equal("8", warning.Details["index"]);
+            Assert.Equal("PDF WinAnsiEncoding", warning.Details["encoding"]);
+            Assert.Equal("Embedded Unicode fonts are required for this text.", warning.Details["remediation"]);
         }
 
         [Fact]
@@ -98,6 +109,8 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal("unsupported-control-character", controlDiagnostic.Code);
             Assert.Equal("U+0001", controlDiagnostic.CodePoint);
             Assert.Equal(string.Empty, controlDiagnostic.Text);
+            Assert.Equal("PDF text output", controlDiagnostic.Encoding);
+            Assert.Equal("Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.", controlDiagnostic.Remediation);
 
             IReadOnlyList<PdfTextEncodingDiagnostic> runDiagnostics = PdfTextDiagnostics.AnalyzeWinAnsiTextRuns(
                 new[] {
@@ -109,6 +122,34 @@ namespace OfficeIMO.Tests.Pdf {
                 "runs");
 
             Assert.Empty(runDiagnostics);
+        }
+
+        [Fact]
+        public void TextDiagnostics_ReportsRunLocationForRichTextDiagnostics() {
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(
+                new[] {
+                    TextRun.Normal("Alpha"),
+                    TextRun.Tab(PdfTabLeaderStyle.Dots),
+                    TextRun.LineBreak(),
+                    TextRun.Normal("Beta \u2603")
+                },
+                new PdfOptions(),
+                PdfStandardFont.Helvetica,
+                "paragraph",
+                "PdfParagraph[0]");
+
+            PdfTextEncodingDiagnostic diagnostic = Assert.Single(diagnostics);
+
+            Assert.Equal("paragraph", diagnostic.Source);
+            Assert.Equal("PdfParagraph[0].Run[3]", diagnostic.Location);
+            Assert.Equal(3, diagnostic.RunIndex);
+            Assert.Equal("U+2603", diagnostic.CodePoint);
+            Assert.Equal("PDF WinAnsiEncoding", diagnostic.Encoding);
+
+            PdfConversionWarning warning = diagnostic.ToConversionWarning("OfficeIMO.Tests");
+
+            Assert.Equal("3", warning.Details["runIndex"]);
+            Assert.Equal("PDF WinAnsiEncoding", warning.Details["encoding"]);
         }
 
         [Fact]

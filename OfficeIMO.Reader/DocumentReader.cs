@@ -269,6 +269,29 @@ public static partial class DocumentReader {
     }
 
     /// <summary>
+    /// Extracts structured tables from Markdown text using the same parser path as Markdown reader chunks.
+    /// </summary>
+    /// <param name="markdown">Markdown text to inspect.</param>
+    /// <param name="options">Reader options. <see cref="ReaderOptions.MaxTableRows"/> is honored.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Tables discovered in source order.</returns>
+    public static IReadOnlyList<ReaderTable> ExtractMarkdownTables(string markdown, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
+        var opt = NormalizeOptions(options);
+        var tables = new List<ReaderTable>();
+
+        foreach (var block in ParseMarkdownBlocksForChunking(markdown ?? string.Empty, opt, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (block.Tables.Count == 0) {
+                continue;
+            }
+
+            tables.AddRange(block.Tables);
+        }
+
+        return tables.Count == 0 ? Array.Empty<ReaderTable>() : tables.ToArray();
+    }
+
+    /// <summary>
     /// Discovers modular registrar methods in the provided assemblies.
     /// </summary>
     public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrars(IEnumerable<Assembly> assemblies) {

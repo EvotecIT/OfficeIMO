@@ -9,6 +9,8 @@ public sealed class PdfSaveResult {
         BytesWritten = bytesWritten;
         Diagnostics = diagnostics;
         Exception = exception;
+        TextEncodingDiagnostics = PdfOutputDiagnostics.ExtractTextEncodingDiagnostics(exception);
+        ConversionWarnings = PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics);
     }
 
     /// <summary>True when the save operation completed.</summary>
@@ -25,6 +27,12 @@ public sealed class PdfSaveResult {
 
     /// <summary>Exception captured from the save attempt, when available.</summary>
     public Exception? Exception { get; }
+
+    /// <summary>Structured text encoding diagnostics captured from PDF generation failures.</summary>
+    public IReadOnlyList<PdfTextEncodingDiagnostic> TextEncodingDiagnostics { get; }
+
+    /// <summary>Shared conversion warnings captured from structured PDF generation failures.</summary>
+    public IReadOnlyList<PdfConversionWarning> ConversionWarnings { get; }
 
     /// <summary>Returns this result or throws with diagnostics when the save failed.</summary>
     public PdfSaveResult RequireSuccess() {
@@ -46,9 +54,7 @@ public sealed class PdfSaveResult {
     /// <summary>Creates a failed save result from an exception captured by a wrapper or adapter.</summary>
     public static PdfSaveResult FromFailure(string? outputPath, Exception exception) {
         Guard.NotNull(exception, nameof(exception));
-        IReadOnlyList<string> diagnostics = string.IsNullOrWhiteSpace(exception.Message)
-            ? Array.Empty<string>()
-            : new[] { exception.Message };
+        IReadOnlyList<string> diagnostics = PdfOutputDiagnostics.BuildExceptionDiagnostics(exception);
         return new PdfSaveResult(outputPath, 0, diagnostics, exception);
     }
 

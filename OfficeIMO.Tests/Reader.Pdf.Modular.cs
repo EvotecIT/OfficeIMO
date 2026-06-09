@@ -172,9 +172,169 @@ public sealed class ReaderPdfModularTests {
 
         Assert.NotNull(chunk.Tables);
         var table = Assert.Single(chunk.Tables!);
+        Assert.NotNull(table.Location);
+        Assert.Equal(1, table.Location!.Page);
+        Assert.Equal(0, table.Location.TableIndex);
+        Assert.Equal("table", table.Location.SourceBlockKind);
+        Assert.Equal("page-1-selection-0000-table-0", table.Location.BlockAnchor);
+        Assert.Equal(new[] { "Code", "Name", "Qty" }, table.Columns);
+        Assert.Equal(3, table.ColumnProfiles.Count);
+        Assert.Equal(ReaderTableColumnKind.Text, table.ColumnProfiles[0].Kind);
+        Assert.Equal(ReaderTableColumnKind.Text, table.ColumnProfiles[1].Kind);
+        Assert.Equal(ReaderTableColumnKind.Numeric, table.ColumnProfiles[2].Kind);
+        Assert.Equal("Qty", table.ColumnProfiles[2].Name);
+        Assert.True(table.ColumnProfiles[2].IsNumeric);
+        Assert.Equal(2, table.ColumnProfiles[2].NonEmptyCellCount);
+        Assert.Equal(2, table.ColumnProfiles[2].NumericCellCount);
+        Assert.Equal(1d, table.ColumnProfiles[2].Confidence);
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.False(table.Truncated);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(new[] { "A-100", "Alpha", "2" }, table.Rows[0]);
+        Assert.Equal(new[] { "B-200", "Beta", "14" }, table.Rows[1]);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_DuplicatePageRangeTableSelectionsEmitUniqueAnchors() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "A-100", "Alpha", "2" },
+                new[] { "B-200", "Beta", "14" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "duplicate-table-ranges.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                LayoutOptions = new PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                },
+                PageRanges = new[] {
+                    PdfPageRange.From(1, 1),
+                    PdfPageRange.From(1, 1)
+                }
+            },
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
+
+        var tableAnchors = chunks
+            .Where(chunk => chunk.Tables?.Count > 0)
+            .Select(chunk => Assert.Single(chunk.Tables!).Location!.BlockAnchor)
+            .ToArray();
+
+        Assert.Equal(new[] {
+            "page-1-selection-0000-table-0",
+            "page-1-selection-0001-table-0"
+        }, tableAnchors);
+        Assert.Equal(tableAnchors.Length, tableAnchors.Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_TableRowCapsApplyAfterDetectedHeader() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "A-100", "Alpha", "2" },
+                new[] { "B-200", "Beta", "14" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        var chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "table-row-cap.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                LayoutOptions = new PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                }
+            },
+            readerOptions: new ReaderOptions {
+                MaxChars = 8_000,
+                MaxTableRows = 1
+            }).ToList());
+
+        Assert.NotNull(chunk.Tables);
+        var table = Assert.Single(chunk.Tables!);
+        Assert.Equal(new[] { "Code", "Name", "Qty" }, table.Columns);
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.True(table.Truncated);
+        Assert.Single(table.Rows);
+        Assert.Equal(new[] { "A-100", "Alpha", "2" }, table.Rows[0]);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ExposesHeaderlessKeyValueTables() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .KeyValueTable(new[] {
+                PdfKeyValueRow.Text("InvoiceId", "INV-001"),
+                PdfKeyValueRow.Text("Customer", "Evotec"),
+                PdfKeyValueRow.Text("Due", "2026-06-30")
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 120, 170 },
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        var chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "invoice-facts.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                LayoutOptions = new PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                }
+            },
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.NotNull(chunk.Tables);
+        var table = Assert.Single(chunk.Tables!);
+        Assert.NotNull(table.Location);
+        Assert.Equal(1, table.Location!.Page);
+        Assert.Equal(0, table.Location.TableIndex);
+        Assert.Equal(new[] { "Key", "Value" }, table.Columns);
         Assert.Equal(3, table.TotalRowCount);
         Assert.False(table.Truncated);
-        Assert.Contains(table.Rows, r => string.Join("|", r).Contains("A-100|Alpha|2", StringComparison.Ordinal));
+        Assert.Equal(new[] { "InvoiceId", "INV-001" }, table.Rows[0]);
+        Assert.Equal(new[] { "Customer", "Evotec" }, table.Rows[1]);
+        Assert.Equal(new[] { "Due", "2026-06-30" }, table.Rows[2]);
     }
 
     [Fact]
@@ -276,6 +436,7 @@ public sealed class ReaderPdfModularTests {
             MarginLeft = 12
         };
         options.PageRanges = new[] { PdfPageRange.From(1, 1) };
+        options.MarkdownOptions!.AlignNumericTableColumns = false;
 
         var clone = options.Clone();
 
@@ -284,13 +445,16 @@ public sealed class ReaderPdfModularTests {
         Assert.NotSame(options.MarkdownOptions, clone.MarkdownOptions);
         Assert.Equal(options.LayoutOptions.MarginLeft, clone.LayoutOptions!.MarginLeft);
         Assert.Equal(options.MarkdownOptions!.IncludeLinkAnnotations, clone.MarkdownOptions!.IncludeLinkAnnotations);
+        Assert.False(clone.MarkdownOptions.AlignNumericTableColumns);
         Assert.Equal(options.PageRanges.Single(), clone.PageRanges!.Single());
 
         clone.LayoutOptions.MarginLeft = 48;
         clone.MarkdownOptions.IncludeLinkAnnotations = false;
+        clone.MarkdownOptions.AlignNumericTableColumns = true;
 
         Assert.Equal(12, options.LayoutOptions.MarginLeft);
         Assert.True(options.MarkdownOptions.IncludeLinkAnnotations);
+        Assert.False(options.MarkdownOptions.AlignNumericTableColumns);
     }
 
     [Fact]

@@ -136,6 +136,42 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void Table_IgnoresCellFillCoordinatesCoveredByColumnSpan() {
+        var style = TableStyles.Minimal();
+        style.HeaderRowCount = 0;
+        style.CellFills = new Dictionary<(int Row, int Column), PdfColor> {
+            [(0, 1)] = PdfColor.Gray
+        };
+
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { PdfTableCell.Span("A+B", 2), PdfTableCell.TextCell("C") },
+                new[] { PdfTableCell.TextCell("1"), PdfTableCell.TextCell("2"), PdfTableCell.TextCell("3") }
+            }, style: style)
+            .ToBytes();
+
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
+    }
+
+    [Fact]
+    public void Table_IgnoresCellAlignmentCoordinatesCoveredByRowSpan() {
+        var style = TableStyles.Minimal();
+        style.HeaderRowCount = 0;
+        style.CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
+            [(1, 0)] = PdfColumnAlign.Right
+        };
+
+        byte[] bytes = PdfDocument.Create()
+            .Table(new[] {
+                new[] { PdfTableCell.Merge("A", rowSpan: 2), PdfTableCell.TextCell("B") },
+                new[] { PdfTableCell.TextCell("C") }
+            }, style: style)
+            .ToBytes();
+
+        Assert.StartsWith("%PDF", Encoding.ASCII.GetString(bytes));
+    }
+
+    [Fact]
     public void Table_RejectsOutOfRangeColumnAlignment() {
         var style = TableStyles.Minimal();
         style.Alignments = new List<PdfColumnAlign> {

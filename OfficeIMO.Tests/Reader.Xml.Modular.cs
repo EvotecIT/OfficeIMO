@@ -25,6 +25,12 @@ public sealed class ReaderXmlModularTests {
             Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Xml, c.Kind));
             Assert.Contains(chunks, c => (c.Text ?? string.Empty).Contains("catalog[1]/book[1]/@id", StringComparison.Ordinal));
             Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Type", StringComparer.Ordinal));
+            Assert.All(chunks.SelectMany(c => c.Tables ?? Array.Empty<ReaderTable>()), table => {
+                Assert.Equal(3, table.ColumnProfiles.Count);
+                Assert.Equal("Path", table.ColumnProfiles[0].Name);
+                Assert.Equal("Type", table.ColumnProfiles[1].Name);
+                Assert.Equal("Value", table.ColumnProfiles[2].Name);
+            });
             Assert.All(chunks, c => {
                 Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
                 Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));

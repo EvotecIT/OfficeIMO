@@ -95,7 +95,19 @@ public static class DocumentReaderPdfExtensions {
 
         if (!pdfOptions.ChunkByPage) {
             string markdown = BuildMarkdown(pages, markdownOptions);
-            foreach (var chunk in BuildChunksFromText(markdown, source, readerOptions, page: null, sourceBlockIndex: 0, blockKind: "document", blockAnchor: "document", tables: BuildTables(GetTables(pages), readerOptions), idPrefix: "pdf-document", maxChars: maxChars, cancellationToken: cancellationToken)) {
+            var documentTables = BuildTables(PdfLogicalTableAnalysis.ExtractTables(pages, GetMaxTableRows(readerOptions)));
+            foreach (var chunk in BuildChunksFromText(
+                markdown,
+                source,
+                readerOptions,
+                page: null,
+                sourceBlockIndex: 0,
+                blockKind: "document",
+                blockAnchor: "document",
+                tables: documentTables,
+                idPrefix: "pdf-document",
+                maxChars: maxChars,
+                cancellationToken: cancellationToken)) {
                 yield return chunk;
             }
 
@@ -111,8 +123,19 @@ public static class DocumentReaderPdfExtensions {
             string pageAnchor = "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string idPrefix = "pdf-page-" + page.PageNumber.ToString("D4", CultureInfo.InvariantCulture) + "-selection-" + pageOccurrence;
             string markdown = page.ToMarkdown(markdownOptions);
-            var pageTables = BuildTables(page.Tables, readerOptions);
-            foreach (var chunk in BuildChunksFromText(markdown, source, readerOptions, page.PageNumber, pageIndex, "page", pageAnchor, pageTables, idPrefix, maxChars, cancellationToken)) {
+            var pageTables = BuildTables(PdfLogicalTableAnalysis.ExtractTables(page, GetMaxTableRows(readerOptions)), pageIndex);
+            foreach (var chunk in BuildChunksFromText(
+                markdown,
+                source,
+                readerOptions,
+                page.PageNumber,
+                pageIndex,
+                "page",
+                pageAnchor,
+                pageTables,
+                idPrefix,
+                maxChars,
+                cancellationToken)) {
                 chunk.Location.BlockIndex = emittedIndex++;
                 yield return chunk;
             }
@@ -177,15 +200,6 @@ public static class DocumentReaderPdfExtensions {
         }
 
         return string.Join(Environment.NewLine + Environment.NewLine, pages.Select(page => page.ToMarkdown(markdownOptions)).Where(text => !string.IsNullOrWhiteSpace(text)));
-    }
-
-    private static IReadOnlyList<PdfLogicalTable> GetTables(IReadOnlyList<PdfLogicalPage> pages) {
-        var tables = new List<PdfLogicalTable>();
-        for (int i = 0; i < pages.Count; i++) {
-            tables.AddRange(pages[i].Tables);
-        }
-
-        return tables.Count == 0 ? Array.Empty<PdfLogicalTable>() : tables.AsReadOnly();
     }
 
     private static IEnumerable<ReaderChunk> BuildChunksFromText(string markdown, SourceMetadata source, ReaderOptions readerOptions, int? page, int sourceBlockIndex, string blockKind, string blockAnchor, IReadOnlyList<ReaderTable>? tables, string idPrefix, int maxChars, CancellationToken cancellationToken) {
@@ -262,32 +276,74 @@ public static class DocumentReaderPdfExtensions {
         return end;
     }
 
-    private static IReadOnlyList<ReaderTable>? BuildTables(IReadOnlyList<PdfLogicalTable> tables, ReaderOptions readerOptions) {
+    private static int GetMaxTableRows(ReaderOptions readerOptions) {
+        return readerOptions.MaxTableRows > 0 ? readerOptions.MaxTableRows : 0;
+    }
+
+    private static IReadOnlyList<ReaderTable>? BuildTables(IReadOnlyList<PdfLogicalTableExtraction> tables, int? pageSelectionIndex = null) {
         if (tables.Count == 0) return null;
 
         var result = new List<ReaderTable>(tables.Count);
         for (int i = 0; i < tables.Count; i++) {
-            PdfLogicalTable table = tables[i];
-            int totalRows = table.Rows.Count;
-            int maxRows = readerOptions.MaxTableRows > 0 ? readerOptions.MaxTableRows : totalRows;
-            var rows = table.Rows.Take(maxRows).Select(static row => (IReadOnlyList<string>)row.ToArray()).ToArray();
-            int columnCount = 0;
-            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-                columnCount = Math.Max(columnCount, table.Rows[rowIndex].Count);
-            }
+            PdfLogicalTableExtraction table = tables[i];
+            PdfLogicalTableData data = table.Data;
+            int selectionIndex = pageSelectionIndex ?? table.PageIndex;
 
             result.Add(new ReaderTable {
                 Kind = table.DetectionKind,
-                Columns = Enumerable.Range(1, columnCount)
-                    .Select(static column => "Column " + column.ToString(CultureInfo.InvariantCulture))
-                    .ToArray(),
-                Rows = rows,
-                TotalRowCount = totalRows,
-                Truncated = rows.Length < totalRows
+                Location = new ReaderLocation {
+                    Page = table.PageNumber,
+                    TableIndex = table.TableIndex,
+                    SourceBlockKind = "table",
+                    BlockAnchor = "page-" + table.PageNumber.ToString(CultureInfo.InvariantCulture)
+                        + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture)
+                        + "-table-" + table.TableIndex.ToString(CultureInfo.InvariantCulture)
+                },
+                Columns = data.Columns,
+                ColumnProfiles = BuildColumnProfiles(data),
+                Rows = data.Rows,
+                TotalRowCount = data.TotalRowCount,
+                Truncated = data.Truncated
             });
         }
 
         return result;
+    }
+
+    private static IReadOnlyList<ReaderTableColumnProfile> BuildColumnProfiles(PdfLogicalTableData data) {
+        if (data.ColumnProfiles.Count == 0) {
+            return Array.Empty<ReaderTableColumnProfile>();
+        }
+
+        var profiles = new ReaderTableColumnProfile[data.ColumnProfiles.Count];
+        for (int i = 0; i < data.ColumnProfiles.Count; i++) {
+            PdfLogicalTableColumnProfile source = data.ColumnProfiles[i];
+            profiles[i] = new ReaderTableColumnProfile {
+                Index = source.Index,
+                Name = source.Name,
+                Kind = ToReaderTableColumnKind(source.Kind),
+                NonEmptyCellCount = source.NonEmptyCellCount,
+                NumericCellCount = source.NumericCellCount,
+                Confidence = source.Confidence
+            };
+        }
+
+        return Array.AsReadOnly(profiles);
+    }
+
+    private static ReaderTableColumnKind ToReaderTableColumnKind(PdfLogicalTableColumnKind kind) {
+        switch (kind) {
+            case PdfLogicalTableColumnKind.Empty:
+                return ReaderTableColumnKind.Empty;
+            case PdfLogicalTableColumnKind.Numeric:
+                return ReaderTableColumnKind.Numeric;
+            case PdfLogicalTableColumnKind.Text:
+                return ReaderTableColumnKind.Text;
+            case PdfLogicalTableColumnKind.Mixed:
+                return ReaderTableColumnKind.Mixed;
+            default:
+                return ReaderTableColumnKind.Mixed;
+        }
     }
 
     private static PdfLogicalDocument LoadDocument(string path, ReaderPdfOptions options) {

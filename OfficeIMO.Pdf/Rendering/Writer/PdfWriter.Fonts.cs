@@ -180,6 +180,11 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
+            PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text ?? string.Empty, font, options);
+            if (diagnostic != null) {
+                throw CreateTextEncodingException(diagnostic, nameof(text));
+            }
+
             return fontProgram.MeasureTextWidth(text, fontSize);
         }
 

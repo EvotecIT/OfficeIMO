@@ -7,6 +7,49 @@ using System.Threading;
 namespace OfficeIMO.Reader;
 
 /// <summary>
+/// Inferred content kind for a reader table column.
+/// </summary>
+public enum ReaderTableColumnKind {
+    /// <summary>The column has no non-empty body cells.</summary>
+    Empty,
+
+    /// <summary>The column has non-empty body cells that all look numeric.</summary>
+    Numeric,
+
+    /// <summary>The column has non-empty body cells that all look non-numeric.</summary>
+    Text,
+
+    /// <summary>The column contains both numeric-looking and non-numeric body cells.</summary>
+    Mixed
+}
+
+/// <summary>
+/// Inferred column profile for reader table ingestion consumers.
+/// </summary>
+public sealed class ReaderTableColumnProfile {
+    /// <summary>Zero-based column index aligned to <see cref="ReaderTable.Columns"/>.</summary>
+    public int Index { get; set; }
+
+    /// <summary>Column name aligned to <see cref="ReaderTable.Columns"/>.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>Inferred content kind for the column.</summary>
+    public ReaderTableColumnKind Kind { get; set; }
+
+    /// <summary>Number of non-empty body cells inspected for this column.</summary>
+    public int NonEmptyCellCount { get; set; }
+
+    /// <summary>Number of non-empty body cells that looked numeric.</summary>
+    public int NumericCellCount { get; set; }
+
+    /// <summary>Confidence score between 0 and 1 for the inferred <see cref="Kind"/>.</summary>
+    public double Confidence { get; set; }
+
+    /// <summary>True when the column profile is numeric.</summary>
+    public bool IsNumeric => Kind == ReaderTableColumnKind.Numeric;
+}
+
+/// <summary>
 /// Minimal table model for ingestion (columns + rows).
 /// </summary>
 public sealed class ReaderTable {
@@ -36,9 +79,19 @@ public sealed class ReaderTable {
     public string? PayloadHash { get; set; }
 
     /// <summary>
+    /// Optional source location for the extracted table.
+    /// </summary>
+    public ReaderLocation? Location { get; set; }
+
+    /// <summary>
     /// Column headers.
     /// </summary>
     public IReadOnlyList<string> Columns { get; set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Inferred column profiles aligned to <see cref="Columns"/>.
+    /// </summary>
+    public IReadOnlyList<ReaderTableColumnProfile> ColumnProfiles { get; set; } = Array.Empty<ReaderTableColumnProfile>();
 
     /// <summary>
     /// Rows aligned with <see cref="Columns"/>.

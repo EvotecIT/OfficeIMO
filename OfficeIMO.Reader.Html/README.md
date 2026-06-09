@@ -5,6 +5,7 @@
 Current scope:
 - HTML -> Markdown (via `OfficeIMO.Markdown.Html`)
 - Markdown chunk emission in `ReaderChunk` shape
+- table extraction from converted Markdown into `ReaderChunk.Tables`, including `ReaderTable.ColumnProfiles`
 - heading-aware chunk metadata (`Location.HeadingPath`, `Location.StartLine`) when `ReaderOptions.MarkdownChunkByHeadings = true`
 - path and stream dispatch via `DocumentReader` handler registration
 - `ReaderHtmlOptions.HtmlToMarkdownOptions` pass-through for markdown writer profiles, input limits, transforms, custom element converters, and visual round-trip hints

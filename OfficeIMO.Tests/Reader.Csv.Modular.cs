@@ -9,9 +9,9 @@ public sealed class ReaderCsvModularTests {
     [Fact]
     public void DocumentReaderCsv_ReadCsvStream_ParsesCsvIntoStructuredChunks() {
         var csv =
-            "Name,Role\n" +
-            "Alice,Admin\n" +
-            "Bob,Ops\n";
+            "Name,Score\n" +
+            "Alice,1\n" +
+            "Bob,2\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
 
         var chunks = DocumentReaderCsvExtensions.ReadCsv(
@@ -26,6 +26,11 @@ public sealed class ReaderCsvModularTests {
         Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Csv, c.Kind));
         Assert.Contains(chunks, c => (c.Location.Path ?? string.Empty).Contains("users.csv", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(chunks, c => c.Tables != null && c.Tables.Count > 0 && c.Tables[0].Columns.Contains("Name", StringComparer.Ordinal));
+        Assert.Contains(chunks, c =>
+            c.Tables != null &&
+            c.Tables.Count > 0 &&
+            c.Tables[0].ColumnProfiles.Count == 2 &&
+            c.Tables[0].ColumnProfiles[1].Kind == ReaderTableColumnKind.Numeric);
         Assert.All(chunks, c => {
             Assert.False(string.IsNullOrWhiteSpace(c.SourceId));
             Assert.False(string.IsNullOrWhiteSpace(c.SourceHash));

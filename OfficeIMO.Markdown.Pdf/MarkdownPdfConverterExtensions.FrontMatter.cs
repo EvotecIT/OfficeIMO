@@ -93,15 +93,13 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     private static void RenderFrontMatterTable(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownPdfVisualTheme visualTheme) {
-        var rows = new List<string[]>();
-        rows.Add(new[] { "Key", "Value" });
+        var rows = new List<PdfCore.PdfKeyValueRow>();
         for (int i = 0; i < frontMatter.Entries.Count; i++) {
-            rows.Add(new[] { frontMatter.Entries[i].Key, ConvertMetadataValue(frontMatter.Entries[i].Value) ?? string.Empty });
+            rows.Add(PdfCore.PdfKeyValueRow.Text(frontMatter.Entries[i].Key, ConvertMetadataValue(frontMatter.Entries[i].Value)));
         }
 
         PdfCore.PdfTableStyle style = visualTheme.FrontMatterTableStyleSnapshot;
-        style.HeaderRowCount = 1;
-        pdf.Table(rows, style: style);
+        pdf.KeyValueTable(rows, style: style, includeHeader: true);
     }
 
     private static string? BuildFrontMatterMetadataLine(FrontMatterBlock frontMatter) {

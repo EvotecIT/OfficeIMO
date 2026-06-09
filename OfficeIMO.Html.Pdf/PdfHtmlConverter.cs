@@ -453,23 +453,34 @@ public static partial class PdfHtmlConverter {
     }
 
     private static void AppendTableRows(StringBuilder builder, PdfCore.PdfLogicalTable table) {
-        int columnCount = 0;
-        for (int i = 0; i < table.Rows.Count; i++) {
-            columnCount = Math.Max(columnCount, table.Rows[i].Count);
+        PdfCore.PdfLogicalTableData data = PdfCore.PdfLogicalTableAnalysis.Extract(table);
+
+        builder.Append("<tr>");
+        for (int columnIndex = 0; columnIndex < data.Structure.ColumnCount; columnIndex++) {
+            builder.Append("<th");
+            if (data.IsNumericColumn(columnIndex)) {
+                builder.Append(" class=\"pdf-numeric\" style=\"text-align:right\"");
+            }
+
+            builder.Append('>');
+            builder.Append(HtmlText(columnIndex < data.Columns.Count ? data.Columns[columnIndex] : string.Empty));
+            builder.Append("</th>");
         }
 
-        for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            IReadOnlyList<string> row = table.Rows[rowIndex];
+        builder.AppendLine("</tr>");
+
+        for (int rowIndex = 0; rowIndex < data.Rows.Count; rowIndex++) {
+            IReadOnlyList<string> row = data.Rows[rowIndex];
             builder.Append("<tr>");
-            for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
-                string tag = rowIndex == 0 ? "th" : "td";
-                builder.Append('<');
-                builder.Append(tag);
+            for (int columnIndex = 0; columnIndex < data.Structure.ColumnCount; columnIndex++) {
+                builder.Append("<td");
+                if (data.IsNumericColumn(columnIndex)) {
+                    builder.Append(" class=\"pdf-numeric\" style=\"text-align:right\"");
+                }
+
                 builder.Append('>');
                 builder.Append(HtmlText(columnIndex < row.Count ? row[columnIndex] : string.Empty));
-                builder.Append("</");
-                builder.Append(tag);
-                builder.Append('>');
+                builder.Append("</td>");
             }
 
             builder.AppendLine("</tr>");
