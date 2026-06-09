@@ -38,6 +38,19 @@ public partial class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ToUnicodeCMap_TryEncodeTextGreedilyMatchesMultiScalarEntries() {
+        const string cmap = "beginbfchar\n<01> <0066>\n<02> <00660069>\n<03> <0069>\nendbfchar";
+
+        Assert.True(ToUnicodeCMap.TryParse(Encoding.ASCII.GetBytes(cmap), out ToUnicodeCMap? parsed));
+        Assert.NotNull(parsed);
+
+        Assert.True(parsed!.TryEncodeText("fi", out string ligatureHex));
+        Assert.Equal("02", ligatureHex);
+        Assert.True(parsed.TryEncodeText("fii", out string mixedHex));
+        Assert.Equal("0203", mixedHex);
+    }
+
+    [Fact]
     public void ExtractTextByPage_UsesExternalThreeByteToUnicodeCMap() {
         byte[] pdf = BuildExternalThreeByteToUnicodePdf();
 

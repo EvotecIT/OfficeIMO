@@ -280,6 +280,11 @@ public sealed partial class PdfDocument {
     }
 
     private static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeFormWidgetText(string text, PdfOptions options, string source, string location) {
+        IReadOnlyList<PdfTextEncodingDiagnostic> generatedDiagnostics = PdfTextDiagnostics.AnalyzeGeneratedText(text, options, PdfStandardFont.Helvetica, source, location);
+        if (generatedDiagnostics.Count == 0) {
+            return Array.Empty<PdfTextEncodingDiagnostic>();
+        }
+
         PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacksSnapshot;
         if (fallbackSet != null) {
             PdfTextFallbackPlan plan = fallbackSet.PlanText(text, source);
@@ -290,7 +295,7 @@ public sealed partial class PdfDocument {
             return plan.Diagnostics;
         }
 
-        return PdfTextDiagnostics.AnalyzeGeneratedText(text, options, PdfStandardFont.Helvetica, source, location);
+        return generatedDiagnostics;
     }
 
     private static void AddFreeTextAppearanceText(List<PdfTextEncodingDiagnostic> diagnostics, string? text, PdfOptions options, string source, string location) {

@@ -6,6 +6,7 @@ internal sealed class ToUnicodeCMap {
     private readonly Dictionary<string, string> _map = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, string> _reverseMap = new(StringComparer.Ordinal);
     private int _maxKeyBytes = 1;
+    private int _maxReverseTextLength = 1;
 
     public static bool TryParse(byte[] data, out ToUnicodeCMap? cmap) {
         try {
@@ -68,6 +69,10 @@ internal sealed class ToUnicodeCMap {
         // dst may be multi-codepoints; keep as UTF-16 string
         string s = HexToString(dstHex);
         _map[key] = s;
+        if (s.Length > 0) {
+            _maxReverseTextLength = Math.Max(_maxReverseTextLength, s.Length);
+        }
+
         if (!_reverseMap.ContainsKey(s)) {
             _reverseMap[s] = key;
         }
@@ -145,15 +150,24 @@ internal sealed class ToUnicodeCMap {
 
         var sb = new System.Text.StringBuilder(text.Length * 4);
         for (int index = 0; index < text.Length;) {
-            int scalarLength = GetScalarLength(text, index);
-            string scalarText = text.Substring(index, scalarLength);
-            if (!_reverseMap.TryGetValue(scalarText, out string? codeHex)) {
+            string? codeHex = null;
+            int matchedLength = 0;
+            int maxLength = Math.Min(_maxReverseTextLength, text.Length - index);
+            for (int length = maxLength; length >= 1; length--) {
+                string candidate = text.Substring(index, length);
+                if (_reverseMap.TryGetValue(candidate, out codeHex)) {
+                    matchedLength = length;
+                    break;
+                }
+            }
+
+            if (codeHex == null) {
                 hex = string.Empty;
                 return false;
             }
 
             sb.Append(codeHex);
-            index += scalarLength;
+            index += matchedLength;
         }
 
         hex = sb.ToString();

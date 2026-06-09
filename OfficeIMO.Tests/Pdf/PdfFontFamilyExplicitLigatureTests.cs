@@ -66,6 +66,8 @@ public class PdfFontFamilyExplicitLigatureTests {
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "OfficeIMO Source Serif CFF");
 
         const string text = "Ligature shaping: staff fine flow affinity waffle";
+        Assert.Empty(PdfTextDiagnostics.AnalyzeGeneratedText(text, options, PdfStandardFont.Helvetica));
+
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
