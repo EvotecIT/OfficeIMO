@@ -692,6 +692,25 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfFontDiagnostics_AnalyzeEmbeddedFontRejectsOpenTypeCffFontsThatEmbeddingParserRejects() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+        byte[] restrictedFont = CreateEmbeddingRestrictedOpenTypeCffFont(File.ReadAllBytes(fontPath!));
+
+        PdfOpenTypeFontInfo info = PdfOpenTypeFontInspector.Inspect(restrictedFont, "OfficeIMO Restricted CFF");
+        IReadOnlyList<PdfFontEmbeddingDiagnostic> diagnostics = PdfFontDiagnostics.AnalyzeEmbeddedFont(
+            restrictedFont,
+            "word:styles[Restricted]",
+            "OfficeIMO Restricted CFF");
+
+        Assert.True(info.IsOpenTypeCff);
+        PdfFontEmbeddingDiagnostic diagnostic = Assert.Single(diagnostics);
+        Assert.Equal("unsupported-opentype-cff-font", diagnostic.Code);
+        Assert.Equal("OpenType/CFF", diagnostic.Format);
+        Assert.Contains("fsType", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfOpenTypeCffFontProgram_ParsesMetricsAndEncodesGlyphIdsFromRealFont() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
@@ -808,6 +827,29 @@ public class PdfFontFamilyTests {
         options.ClearEmbeddedStandardFonts();
 
         Assert.False(options.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont.Helvetica, out _));
+    }
+
+    [Fact]
+    public void PdfOptions_ClearEmbeddedStandardFontsClearsFallbackPlans() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("Source Serif CFF", File.ReadAllBytes(fontPath!)) },
+            new[] { PdfStandardFont.TimesRoman });
+        var options = new PdfOptions {
+            CompressContentStreams = false,
+            CompressEmbeddedFonts = false
+        }.RegisterEmbeddedFontFallbacks(fallbackSet);
+
+        options.ClearEmbeddedStandardFonts();
+
+        Assert.Null(options.EmbeddedFontFallbacks);
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Create(options)
+                .Paragraph(paragraph => paragraph.Text("Fallback cleared Łódź"))
+                .ToBytes());
+        Assert.Contains("WinAnsiEncoding", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1861,6 +1903,13 @@ public class PdfFontFamilyTests {
             0x00, 0x00
         };
 
+    private static byte[] CreateEmbeddingRestrictedOpenTypeCffFont(byte[] fontData) {
+        byte[] restricted = fontData.ToArray();
+        int os2Offset = FindOpenTypeTableOffset(restricted, "OS/2");
+        WriteUInt16(restricted, os2Offset + 8, 0x0002);
+        return restricted;
+    }
+
     private static int CountUnicodeScalars(string text) {
         int count = 0;
         for (int index = 0; index < text.Length; index++) {
@@ -2030,6 +2079,24 @@ public class PdfFontFamilyTests {
         ((uint)data[offset + 1] << 16) |
         ((uint)data[offset + 2] << 8) |
         data[offset + 3];
+
+    private static int FindOpenTypeTableOffset(byte[] data, string tag) {
+        int tableCount = ReadUInt16(data, 4);
+        for (int index = 0; index < tableCount; index++) {
+            int recordOffset = 12 + index * 16;
+            string candidate = Encoding.ASCII.GetString(data, recordOffset, 4);
+            if (string.Equals(candidate, tag, StringComparison.Ordinal)) {
+                return checked((int)ReadUInt32(data, recordOffset + 8));
+            }
+        }
+
+        throw new InvalidOperationException("Required OpenType table '" + tag + "' was not found.");
+    }
+
+    private static void WriteUInt16(byte[] data, int offset, ushort value) {
+        data[offset] = (byte)(value >> 8);
+        data[offset + 1] = (byte)value;
+    }
 
     private static void WriteUInt32(byte[] data, int offset, uint value) {
         data[offset] = (byte)(value >> 24);

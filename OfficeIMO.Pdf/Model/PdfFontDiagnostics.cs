@@ -33,13 +33,13 @@ public static class PdfFontDiagnostics {
 
         uint scalerType = ReadUInt32(fontData, 0);
         if (scalerType == OpenTypeCffScalerType) {
-            if (PdfOpenTypeFontInspector.TryInspect(fontData, out PdfOpenTypeFontInfo? info, out string? error, resolvedFontName) &&
-                info != null &&
-                info.IsOpenTypeCff) {
+            try {
+                _ = PdfOpenTypeCffFontProgram.Parse(fontData, resolvedFontName);
                 return Array.Empty<PdfFontEmbeddingDiagnostic>();
+            } catch (Exception parseException) when (IsFontProgramException(parseException)) {
+                Exception effectiveException = exception ?? parseException;
+                return Single(source, resolvedFontName, "OpenType/CFF", "unsupported-opentype-cff-font", "OpenType/CFF font data could not be parsed by OfficeIMO.Pdf: " + effectiveException.Message);
             }
-
-            return Single(source, resolvedFontName, "OpenType/CFF", "unsupported-opentype-cff-font", "OpenType/CFF font data could not be parsed by OfficeIMO.Pdf: " + (string.IsNullOrWhiteSpace(error) ? "unknown parse failure" : error!) + ".");
         }
 
         if (scalerType == TrueTypeCollectionScalerType) {
