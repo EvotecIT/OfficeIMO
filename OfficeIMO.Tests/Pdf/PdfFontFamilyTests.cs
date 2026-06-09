@@ -1093,6 +1093,51 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfTextFallbackPlan_ToTextRunsKeepsLayoutControlsBetweenFallbackSegments() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var candidate = new PdfEmbeddedFontFallbackCandidate("Primary", File.ReadAllBytes(fontPath));
+        PdfTextFallbackPlan plan = PdfTextDiagnostics.PlanEmbeddedFontFallbackText(
+            "A\nB\tC\rD",
+            new[] { candidate },
+            "word:paragraph[4]");
+
+        Assert.Collection(
+            plan.Segments,
+            segment => {
+                Assert.Equal("A", segment.Text);
+                Assert.Equal(0, segment.StartIndex);
+            },
+            segment => {
+                Assert.Equal("B", segment.Text);
+                Assert.Equal(2, segment.StartIndex);
+            },
+            segment => {
+                Assert.Equal("C", segment.Text);
+                Assert.Equal(4, segment.StartIndex);
+            },
+            segment => {
+                Assert.Equal("D", segment.Text);
+                Assert.Equal(6, segment.StartIndex);
+            });
+
+        IReadOnlyList<TextRun> runs = plan.ToTextRuns(new[] { PdfStandardFont.Helvetica });
+
+        Assert.Collection(
+            runs,
+            run => Assert.Equal("A", run.Text),
+            run => Assert.Equal("\n", run.Text),
+            run => Assert.Equal("B", run.Text),
+            run => Assert.Equal("\t", run.Text),
+            run => Assert.Equal("C", run.Text),
+            run => Assert.Equal("\n", run.Text),
+            run => Assert.Equal("D", run.Text));
+    }
+
+    [Fact]
     public void PdfTextFallbackPlan_ToTextRunsRejectsIncompletePlans() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

@@ -332,6 +332,7 @@ public static class PdfTextDiagnostics {
             int scalarStart = index;
             int scalar = ReadScalar(text, ref index);
             if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
+                FlushSegment(scalarStart);
                 continue;
             }
 
