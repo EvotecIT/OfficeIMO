@@ -93,24 +93,46 @@ public static class PdfTextDiagnostics {
         Guard.StandardFont(font, nameof(font), "Generated PDF text diagnostics require a supported PDF font.");
         PdfTextShapingMode shapingMode = options.TextShapingModeSnapshot;
 
+        PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacksSnapshot;
+
         if (options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
+            if (fallbackSet != null) {
+                return AnalyzeGeneratedTextWithFallback(
+                    text,
+                    fallbackSet,
+                    source,
+                    location,
+                    runIndex,
+                    (string value, int index, out int length) => TryGetCoveredTextLength(value, index, fontProgram, shapingMode, out length));
+            }
+
             return AnalyzeEmbeddedFontText(text, fontProgram, source, location, runIndex, shapingMode);
         }
 
         if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
+            if (fallbackSet != null) {
+                return AnalyzeGeneratedTextWithFallback(
+                    text,
+                    fallbackSet,
+                    source,
+                    location,
+                    runIndex,
+                    (string value, int index, out int length) => TryGetCoveredTextLength(value, index, cffFontProgram, shapingMode, out length));
+            }
+
             return AnalyzeEmbeddedFontText(text, cffFontProgram, source, location, runIndex, shapingMode);
         }
 
-        PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacksSnapshot;
         if (fallbackSet != null) {
-            PdfTextFallbackPlan fallbackPlan = fallbackSet.PlanText(text, source);
-            if (fallbackPlan.IsFullyCovered) {
-                return new List<PdfTextEncodingDiagnostic>();
-            }
-
-            return fallbackPlan.Diagnostics.ToList();
+            return AnalyzeGeneratedTextWithFallback(
+                text,
+                fallbackSet,
+                source,
+                location,
+                runIndex,
+                TryGetWinAnsiCoveredTextLength);
         }
 
         return AnalyzeWinAnsiTextCore(text, source, location, runIndex);
@@ -450,6 +472,72 @@ public static class PdfTextDiagnostics {
 
         FlushSegment(text.Length);
         return new PdfTextFallbackPlan(text, segments, diagnostics);
+    }
+
+    private delegate bool TryGetSelectedTextLength(string text, int index, out int length);
+
+    private static List<PdfTextEncodingDiagnostic> AnalyzeGeneratedTextWithFallback(
+        string text,
+        PdfEmbeddedFontFallbackSet fallbackSet,
+        string source,
+        string location,
+        int? runIndex,
+        TryGetSelectedTextLength tryGetSelectedTextLength) {
+        List<EmbeddedFontFallbackProgram> fallbackFonts = BuildFallbackPrograms(fallbackSet.Candidates);
+        var diagnostics = new List<PdfTextEncodingDiagnostic>();
+
+        for (int index = 0; index < text.Length;) {
+            int scalarStart = index;
+            int scalar = ReadScalar(text, ref index);
+            if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
+                continue;
+            }
+
+            if (tryGetSelectedTextLength(text, scalarStart, out int selectedLength)) {
+                index = scalarStart + selectedLength;
+                continue;
+            }
+
+            if (scalar < ' ' || scalar == '\u007F') {
+                diagnostics.Add(CreateDiagnostic(text, scalarStart, source, location, runIndex));
+                continue;
+            }
+
+            if (FindCoveringFont(fallbackFonts, scalar) < 0) {
+                diagnostics.Add(CreateEmbeddedFallbackDiagnostic(scalarStart, scalar, source, fallbackFonts, location, runIndex));
+            }
+        }
+
+        return diagnostics;
+    }
+
+    private static bool TryGetWinAnsiCoveredTextLength(string text, int index, out int length) {
+        int endIndex = index;
+        _ = ReadScalar(text, ref endIndex);
+        length = endIndex - index;
+        return PdfWinAnsiEncoding.CanEncode(text.Substring(index, length), out _);
+    }
+
+    private static bool TryGetCoveredTextLength(string text, int index, PdfTrueTypeFontProgram fontProgram, PdfTextShapingMode shapingMode, out int length) {
+        if (TrySkipCoveredLatinLigature(text, index, shapingMode, fontProgram, out length)) {
+            return true;
+        }
+
+        int endIndex = index;
+        int scalar = ReadScalar(text, ref endIndex);
+        length = endIndex - index;
+        return fontProgram.TryGetGlyphId(scalar, out int glyphId) && glyphId > 0;
+    }
+
+    private static bool TryGetCoveredTextLength(string text, int index, PdfOpenTypeCffFontProgram fontProgram, PdfTextShapingMode shapingMode, out int length) {
+        if (TrySkipCoveredLatinLigature(text, index, shapingMode, fontProgram, out length)) {
+            return true;
+        }
+
+        int endIndex = index;
+        int scalar = ReadScalar(text, ref endIndex);
+        length = endIndex - index;
+        return fontProgram.TryGetGlyphId(scalar, out int glyphId) && glyphId > 0;
     }
 
     private static bool IsLayoutControlRun(TextRun run) =>
@@ -874,7 +962,7 @@ public static class PdfTextDiagnostics {
     private static bool IsInRange(int scalar, int first, int last) =>
         scalar >= first && scalar <= last;
 
-    private static PdfTextEncodingDiagnostic CreateEmbeddedFallbackDiagnostic(int index, int scalar, string source, IReadOnlyList<EmbeddedFontFallbackProgram> fonts) {
+    private static PdfTextEncodingDiagnostic CreateEmbeddedFallbackDiagnostic(int index, int scalar, string source, IReadOnlyList<EmbeddedFontFallbackProgram> fonts, string location = "", int? runIndex = null) {
         string codePoint = FormatCodePoint(scalar);
         string display = GetDisplayText(scalar);
         string rendered = string.IsNullOrEmpty(display) ? string.Empty : " '" + display + "'";

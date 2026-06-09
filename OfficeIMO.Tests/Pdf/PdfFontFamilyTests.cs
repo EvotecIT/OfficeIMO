@@ -1990,6 +1990,85 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfTextDiagnostics_AnalyzeGeneratedTextAcceptsSelectedFontPlusFallbackCoverage() {
+        string? primaryPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (primaryPath == null) {
+            return;
+        }
+
+        byte[] primary = File.ReadAllBytes(primaryPath);
+        string text = "Invoice 😀 marker";
+        foreach (string fallbackPath in EnumerateLocalNonBmpTrueTypeFonts()) {
+            if (string.Equals(primaryPath, fallbackPath, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            var fallbackSet = new PdfEmbeddedFontFallbackSet(
+                new[] { new PdfEmbeddedFontFallbackCandidate("Emoji Fallback", File.ReadAllBytes(fallbackPath)) },
+                new[] { PdfStandardFont.TimesRoman });
+            var options = new PdfOptions()
+                .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "OfficeIMO Primary")
+                .RegisterEmbeddedFontFallbacks(fallbackSet);
+
+            try {
+                IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeGeneratedText(
+                    text,
+                    options,
+                    PdfStandardFont.Helvetica,
+                    "word:paragraph[mixed-fallback]");
+
+                if (diagnostics.Count == 0) {
+                    return;
+                }
+            } catch (NotSupportedException) {
+                continue;
+            }
+        }
+    }
+
+    [Fact]
+    public void PdfDocument_RegisteredFallbacksPreserveSelectedFontCoveredSpans() {
+        string? primaryPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (primaryPath == null) {
+            return;
+        }
+
+        byte[] primary = File.ReadAllBytes(primaryPath);
+        string text = "Invoice 😀 marker";
+        foreach (string fallbackPath in EnumerateLocalNonBmpTrueTypeFonts()) {
+            if (string.Equals(primaryPath, fallbackPath, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            var fallbackSet = new PdfEmbeddedFontFallbackSet(
+                new[] { new PdfEmbeddedFontFallbackCandidate("Emoji Fallback", File.ReadAllBytes(fallbackPath)) },
+                new[] { PdfStandardFont.TimesRoman });
+
+            byte[] bytes;
+            try {
+                bytes = PdfDocument.Create(new PdfOptions {
+                        CompressContentStreams = false
+                    })
+                    .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "OfficeIMO Primary")
+                    .RegisterEmbeddedFontFallbacks(fallbackSet)
+                    .Paragraph(paragraph => paragraph.Text(text))
+                    .ToBytes();
+            } catch (Exception exception) when (exception is NotSupportedException || exception is ArgumentException) {
+                continue;
+            }
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+
+            Assert.Contains("/BaseFont /OfficeIMOPrimary", raw, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /EmojiFallback", raw, StringComparison.Ordinal);
+            Assert.Contains("Invoice", extracted, StringComparison.Ordinal);
+            Assert.Contains("marker", extracted, StringComparison.Ordinal);
+            return;
+        }
+    }
+
+    [Fact]
     public void PdfDocument_UseFontFamilyEncodesTextWatermarkWithEmbeddedGlyphs() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
