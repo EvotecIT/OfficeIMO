@@ -61,7 +61,7 @@ public static partial class PdfFormFiller {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(true);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
     }
 
     /// <summary>
@@ -310,7 +310,7 @@ public static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
     }
 
     /// <summary>

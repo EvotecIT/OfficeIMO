@@ -124,6 +124,7 @@ public partial class PdfFormFillerTests {
         string output = Encoding.ASCII.GetString(filled);
         PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
 
+        Assert.StartsWith("%PDF-1.6", output, StringComparison.Ordinal);
         Assert.Equal("Łódź", field.Value);
         Assert.Contains("/AP << /N", output, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);
@@ -302,6 +303,7 @@ public partial class PdfFormFillerTests {
         string output = Encoding.ASCII.GetString(filled);
         PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
 
+        Assert.StartsWith("%PDF-1.6", output, StringComparison.Ordinal);
         Assert.Equal("Łódź", field.Value);
         Assert.Contains("/Helv0", output, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Type0", output, StringComparison.Ordinal);

@@ -842,21 +842,30 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            return CanWriteWithEmbeddedFont(text, fontProgram);
+            return CanWriteWithEmbeddedFont(text, fontProgram, options.TextShapingModeSnapshot);
         }
 
         if (options != null &&
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(fontForRun, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            return CanWriteWithEmbeddedFont(text, cffFontProgram);
+            return CanWriteWithEmbeddedFont(text, cffFontProgram, options.TextShapingModeSnapshot);
         }
 
         return PdfWinAnsiEncoding.CanEncode(text, out _);
     }
 
-    private static bool CanWriteWithEmbeddedFont(string text, PdfTrueTypeFontProgram fontProgram) {
+    private static bool CanWriteWithEmbeddedFont(string text, PdfTrueTypeFontProgram fontProgram, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
         int index = 0;
         while (index < text.Length) {
+            int scalarStart = index;
+            if (shapingMode == PdfTextShapingMode.LatinLigatures &&
+                PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                fontProgram.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
+                ligatureGlyphId > 0) {
+                index += ligatureLength;
+                continue;
+            }
+
             int scalar = ReadScalar(text, ref index);
             if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
                 continue;
@@ -874,9 +883,18 @@ internal static partial class PdfWriter {
         return true;
     }
 
-    private static bool CanWriteWithEmbeddedFont(string text, PdfOpenTypeCffFontProgram fontProgram) {
+    private static bool CanWriteWithEmbeddedFont(string text, PdfOpenTypeCffFontProgram fontProgram, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
         int index = 0;
         while (index < text.Length) {
+            int scalarStart = index;
+            if (shapingMode == PdfTextShapingMode.LatinLigatures &&
+                PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
+                fontProgram.TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
+                ligatureGlyphId > 0) {
+                index += ligatureLength;
+                continue;
+            }
+
             int scalar = ReadScalar(text, ref index);
             if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
                 continue;

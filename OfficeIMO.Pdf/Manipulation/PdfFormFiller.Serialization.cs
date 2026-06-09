@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfFormFiller {
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata) {
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf) {
         var sourceIds = objects.Keys.OrderBy(id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {
@@ -18,6 +18,22 @@ public static partial class PdfFormFiller {
         int infoId = rewritten.Count + 1;
         rewritten.Add(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(metadata))));
 
-        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId);
+        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
+        if (ContainsOpenTypeFontFileStream(objects)) {
+            fileVersion = PdfFileAssembler.RequireAtLeast(fileVersion, PdfFileVersion.Pdf16);
+        }
+
+        return PdfPageExtractor.Assemble(rewritten, numberMap[catalogObjectNumber], infoId, fileVersion);
+    }
+
+    private static bool ContainsOpenTypeFontFileStream(Dictionary<int, PdfIndirectObject> objects) {
+        foreach (PdfIndirectObject indirect in objects.Values) {
+            if (indirect.Value is PdfStream stream &&
+                stream.Dictionary.Get<PdfName>("Subtype")?.Name == "OpenType") {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

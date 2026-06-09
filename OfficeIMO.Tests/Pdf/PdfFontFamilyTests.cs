@@ -919,6 +919,7 @@ public class PdfFontFamilyTests {
         string raw = Encoding.ASCII.GetString(bytes);
         string extracted = PdfReadDocument.Load(bytes).ExtractText();
 
+        Assert.StartsWith("%PDF-1.6", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType0", raw, StringComparison.Ordinal);
@@ -1011,6 +1012,7 @@ public class PdfFontFamilyTests {
         string raw = Encoding.ASCII.GetString(bytes);
         string extracted = PdfReadDocument.Load(bytes).ExtractText();
 
+        Assert.StartsWith("%PDF-1.6", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /OpenType", raw, StringComparison.Ordinal);
         Assert.Contains("/Subtype /CIDFontType0", raw, StringComparison.Ordinal);

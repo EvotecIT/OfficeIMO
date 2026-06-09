@@ -28,6 +28,7 @@ internal static partial class PdfWriter {
         var fontObjectIds = new Dictionary<PdfOptions, Dictionary<PdfStandardFont, int>>();
         var formHelveticaFontIds = new Dictionary<PdfOptions, int>();
         var pendingFontObjects = new List<(int ObjectId, PdfStandardFont Font, PdfOptions Options)>();
+        bool requiresPdf16FileVersion = false;
         int EnsureFont(PdfStandardFont font, PdfOptions fontOptions) {
             if (!fontObjectIds.TryGetValue(fontOptions, out Dictionary<PdfStandardFont, int>? optionFontObjectIds)) {
                 optionFontObjectIds = new Dictionary<PdfStandardFont, int>();
@@ -60,6 +61,7 @@ internal static partial class PdfWriter {
                     ReplaceObject(objects, pendingFont.ObjectId, PdfStandardFontDictionaryBuilder.BuildEmbeddedType0FontObject(fontProgram, descendantFontId, toUnicodeObjectId));
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
+                    requiresPdf16FileVersion = true;
                     pendingFont.Options.AddFontDiagnostics(
                         pendingFont.Font,
                         PdfFontDiagnostics.AnalyzeOpenTypeCffFullFontEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font));
@@ -621,7 +623,10 @@ internal static partial class PdfWriter {
         infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords));
         MaterializePendingFontObjects();
 
-        return PdfFileAssembler.Assemble(objects, catalogId, infoId, opts.FileVersion);
+        PdfFileVersion effectiveFileVersion = requiresPdf16FileVersion
+            ? PdfFileAssembler.RequireAtLeast(opts.FileVersion, PdfFileVersion.Pdf16)
+            : opts.FileVersion;
+        return PdfFileAssembler.Assemble(objects, catalogId, infoId, effectiveFileVersion);
     }
 
     private static string ReplaceInlineImageDrawTokens(string content, IReadOnlyList<PageImage> images) {

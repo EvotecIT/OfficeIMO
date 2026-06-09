@@ -149,6 +149,23 @@ internal sealed class ToUnicodeCMap {
         Guard.NotNull(text, nameof(text));
 
         var sb = new System.Text.StringBuilder(text.Length * 4);
+        if (!TryEncodeTextCodes(text, out IReadOnlyList<string> codeHexValues)) {
+            hex = string.Empty;
+            return false;
+        }
+
+        foreach (string codeHex in codeHexValues) {
+            sb.Append(codeHex);
+        }
+
+        hex = sb.ToString();
+        return true;
+    }
+
+    internal bool TryEncodeTextCodes(string text, out IReadOnlyList<string> codeHexValues) {
+        Guard.NotNull(text, nameof(text));
+
+        var codes = new List<string>();
         for (int index = 0; index < text.Length;) {
             string? codeHex = null;
             int matchedLength = 0;
@@ -162,15 +179,15 @@ internal sealed class ToUnicodeCMap {
             }
 
             if (codeHex == null) {
-                hex = string.Empty;
+                codeHexValues = Array.Empty<string>();
                 return false;
             }
 
-            sb.Append(codeHex);
+            codes.Add(codeHex);
             index += matchedLength;
         }
 
-        hex = sb.ToString();
+        codeHexValues = codes;
         return true;
     }
 

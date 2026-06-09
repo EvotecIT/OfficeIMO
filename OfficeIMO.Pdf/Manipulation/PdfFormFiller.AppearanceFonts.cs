@@ -147,7 +147,79 @@ public static partial class PdfFormFiller {
 
         var resources = new PdfDictionary();
         resources.Items["Font"] = appearanceFonts;
-        fontPlan = new TextAppearanceFontPlan(fontResourceName, resources, mappedHex, segmentEncoder, measureTextSegmentWidth: null, encodeTextSegments: null, materialize: null);
+        TryCreateInheritedType0TextMeasure(objects, font, cmap, out Func<string, double, double>? measureTextSegmentWidth);
+        fontPlan = new TextAppearanceFontPlan(fontResourceName, resources, mappedHex, segmentEncoder, measureTextSegmentWidth, encodeTextSegments: null, materialize: null);
+        return true;
+    }
+
+    private static bool TryCreateInheritedType0TextMeasure(Dictionary<int, PdfIndirectObject> objects, PdfDictionary font, ToUnicodeCMap cmap, out Func<string, double, double>? measureTextSegmentWidth) {
+        measureTextSegmentWidth = null;
+        if (!font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantFontsObject) ||
+            ResolveObject(objects, descendantFontsObject) is not PdfArray descendantFonts ||
+            descendantFonts.Items.Count == 0 ||
+            ResolveDictionary(objects, descendantFonts.Items[0]) is not PdfDictionary descendantFont) {
+            return false;
+        }
+
+        double defaultWidth = descendantFont.Get<PdfNumber>("DW")?.Value ?? 1000D;
+        var widths = new Dictionary<int, double>();
+        if (ResolveObject(objects, descendantFont.Items.TryGetValue("W", out PdfObject? widthsObject) ? widthsObject : null) is PdfArray widthArray &&
+            !TryReadCidWidths(widthArray, widths)) {
+            return false;
+        }
+
+        measureTextSegmentWidth = (text, fontSize) => {
+            if (!cmap.TryEncodeTextCodes(text, out IReadOnlyList<string> codeHexValues)) {
+                throw new InvalidOperationException("The inherited appearance font cannot encode the text segment for measurement.");
+            }
+
+            double width = 0D;
+            foreach (string codeHex in codeHexValues) {
+                int code = Convert.ToInt32(codeHex, 16);
+                width += (widths.TryGetValue(code, out double glyphWidth) ? glyphWidth : defaultWidth) * fontSize / 1000D;
+            }
+
+            return width;
+        };
+        return true;
+    }
+
+    private static bool TryReadCidWidths(PdfArray widthArray, Dictionary<int, double> widths) {
+        for (int index = 0; index < widthArray.Items.Count;) {
+            if (widthArray.Items[index++] is not PdfNumber firstNumber) {
+                return false;
+            }
+
+            int firstCode = (int)firstNumber.Value;
+            if (index >= widthArray.Items.Count) {
+                return false;
+            }
+
+            PdfObject widthSpec = widthArray.Items[index++];
+            if (widthSpec is PdfArray explicitWidths) {
+                for (int offset = 0; offset < explicitWidths.Items.Count; offset++) {
+                    if (explicitWidths.Items[offset] is not PdfNumber widthNumber) {
+                        return false;
+                    }
+
+                    widths[firstCode + offset] = widthNumber.Value;
+                }
+
+                continue;
+            }
+
+            if (widthSpec is not PdfNumber lastNumber ||
+                index >= widthArray.Items.Count ||
+                widthArray.Items[index++] is not PdfNumber rangeWidthNumber) {
+                return false;
+            }
+
+            int lastCode = (int)lastNumber.Value;
+            for (int code = firstCode; code <= lastCode; code++) {
+                widths[code] = rangeWidthNumber.Value;
+            }
+        }
+
         return true;
     }
 
