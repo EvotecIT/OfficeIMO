@@ -51,4 +51,40 @@ public class RichParagraphWrappingHyphenationTests {
         Assert.Contains("typography-", extracted, StringComparison.Ordinal);
         Assert.Contains("milestone", extracted, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void GeneratedText_RollsBackPartialHyphenationWhenLaterChunkCannotFit() {
+        PdfTextHyphenationCallback callback = token => token == "typographymilestone"
+            ? new[] { 1 }
+            : Array.Empty<int>();
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 118,
+                PageHeight = 180,
+                MarginLeft = 18,
+                MarginRight = 18,
+                MarginTop = 24,
+                MarginBottom = 24,
+                CompressContentStreams = false
+            })
+            .TextHyphenation(callback)
+            .Paragraph(paragraph => paragraph.Text("typographymilestone"))
+            .ToBytes();
+
+        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.DoesNotContain("t-", extracted, StringComparison.Ordinal);
+        Assert.Equal(1, CountOccurrences(extracted, "typography"));
+    }
+
+    private static int CountOccurrences(string text, string value) {
+        int count = 0;
+        int index = 0;
+        while ((index = text.IndexOf(value, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += value.Length;
+        }
+
+        return count;
+    }
 }

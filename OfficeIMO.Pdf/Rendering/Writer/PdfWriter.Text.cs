@@ -687,10 +687,12 @@ internal static partial class PdfWriter {
             }
 
             int position = 0;
+            var plannedChunks = new System.Collections.Generic.List<(string Text, double Width)>();
             while (position < token.Length) {
                 int selectedBreak = -1;
                 string selectedText = string.Empty;
                 double selectedWidth = 0D;
+                double maxWidthForChunk = plannedChunks.Count == 0 ? CurrentMaxWidth() : maxWidthPts;
                 int[] candidates = breakpoints
                     .Where(point => point > position)
                     .Concat(new[] { token.Length })
@@ -710,15 +712,15 @@ internal static partial class PdfWriter {
                     }
 
                     double chunkWidth = MeasureRichText(chunkText, font, runFontSize, baseline, options);
-                    if (chunkWidth <= CurrentMaxWidth() || selectedBreak < 0) {
-                        if (chunkWidth <= CurrentMaxWidth()) {
+                    if (chunkWidth <= maxWidthForChunk || selectedBreak < 0) {
+                        if (chunkWidth <= maxWidthForChunk) {
                             selectedBreak = candidate;
                             selectedText = chunkText;
                             selectedWidth = chunkWidth;
                         }
                     }
 
-                    if (chunkWidth > CurrentMaxWidth() && selectedBreak >= 0) {
+                    if (chunkWidth > maxWidthForChunk && selectedBreak >= 0) {
                         break;
                     }
                 }
@@ -727,11 +729,16 @@ internal static partial class PdfWriter {
                     return false;
                 }
 
+                plannedChunks.Add((selectedText, selectedWidth));
+                position = selectedBreak;
+            }
+
+            for (int chunkIndex = 0; chunkIndex < plannedChunks.Count; chunkIndex++) {
+                (string selectedText, double selectedWidth) = plannedChunks[chunkIndex];
                 lines[lines.Count - 1].Add(new RichSeg(selectedText, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline));
                 RegisterLineHeight(runFontSize);
                 lineWidth += selectedWidth;
-                position = selectedBreak;
-                if (position < token.Length) {
+                if (chunkIndex < plannedChunks.Count - 1) {
                     StartNewLine();
                 }
             }
@@ -814,7 +821,8 @@ internal static partial class PdfWriter {
                 continue;
             }
 
-            if (fallbackSet.TryPlanTextRuns(run.Text, out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns, styleTemplate: run) ||
+            PdfTextShapingMode shapingMode = options?.TextShapingModeSnapshot ?? PdfTextShapingMode.UnicodeScalar;
+            if (fallbackSet.TryPlanTextRuns(run.Text, out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns, styleTemplate: run, shapingMode: shapingMode) ||
                 TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns)) {
                 normalized.AddRange(plannedRuns);
             } else {
@@ -879,7 +887,8 @@ internal static partial class PdfWriter {
 
             FlushSelected(scalarStart);
             string scalarText = text.Substring(scalarStart, index - scalarStart);
-            if (!fallbackSet.TryPlanTextRuns(scalarText, out System.Collections.Generic.IReadOnlyList<TextRun> fallbackRuns, styleTemplate: run)) {
+            PdfTextShapingMode shapingMode = options?.TextShapingModeSnapshot ?? PdfTextShapingMode.UnicodeScalar;
+            if (!fallbackSet.TryPlanTextRuns(scalarText, out System.Collections.Generic.IReadOnlyList<TextRun> fallbackRuns, styleTemplate: run, shapingMode: shapingMode)) {
                 plannedRuns = Array.Empty<TextRun>();
                 return false;
             }

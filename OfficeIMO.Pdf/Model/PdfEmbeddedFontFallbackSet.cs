@@ -68,18 +68,20 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// </summary>
     /// <param name="text">Text to inspect.</param>
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
+    /// <param name="shapingMode">Text shaping mode to use when checking fallback font coverage.</param>
     /// <returns>A fallback plan with covered text segments and missing-glyph diagnostics.</returns>
-    public PdfTextFallbackPlan PlanText(string text, string source = "") =>
-        PdfTextDiagnostics.PlanEmbeddedFontFallbackText(text, _candidates, source);
+    public PdfTextFallbackPlan PlanText(string text, string source = "", PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
+        PdfTextDiagnostics.PlanEmbeddedFontFallbackText(text, _candidates, source, shapingMode);
 
     /// <summary>
     /// Finds advanced-layout warnings for text planned against this fallback set, including selected-font OpenType feature gaps.
     /// </summary>
     /// <param name="text">Text to inspect.</param>
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
+    /// <param name="shapingMode">Text shaping mode to use when checking fallback font coverage.</param>
     /// <returns>Advanced text layout diagnostics in source order, with duplicate warning families collapsed.</returns>
-    public IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, string source = "") =>
-        AnalyzeAdvancedTextLayout(PlanText(text, source), source);
+    public IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, string source = "", PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
+        AnalyzeAdvancedTextLayout(PlanText(text, source, shapingMode), source);
 
     /// <summary>
     /// Plans text and converts a fully covered plan into styled rich text runs assigned to this set's generated font slots.
@@ -87,9 +89,10 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <param name="text">Text to inspect and convert.</param>
     /// <param name="source">Optional caller-provided source label such as a block, field, sheet, slide, or converter area.</param>
     /// <param name="styleTemplate">Optional run whose styling is copied to each generated text run.</param>
+    /// <param name="shapingMode">Text shaping mode to use when checking fallback font coverage.</param>
     /// <returns>Text runs that can be used with rich paragraphs, lists, tables, panels, and canvas text boxes.</returns>
-    public IReadOnlyList<TextRun> PlanTextRuns(string text, string source = "", TextRun? styleTemplate = null) =>
-        PlanText(text, source).ToTextRuns(_fontSlots, styleTemplate);
+    public IReadOnlyList<TextRun> PlanTextRuns(string text, string source = "", TextRun? styleTemplate = null, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
+        PlanText(text, source, shapingMode).ToTextRuns(_fontSlots, styleTemplate);
 
     /// <summary>
     /// Plans text and returns renderable rich text runs only when every non-layout scalar is covered.
@@ -100,6 +103,7 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <param name="styleTemplate">Optional run whose styling is copied to each generated text run.</param>
     /// <param name="report">Optional conversion report that receives missing-glyph diagnostics from incomplete plans.</param>
     /// <param name="converter">Converter or adapter name used when writing diagnostics to <paramref name="report"/>.</param>
+    /// <param name="shapingMode">Text shaping mode to use when checking fallback font coverage.</param>
     /// <returns><c>true</c> when <paramref name="runs"/> contains a fully covered renderable plan; otherwise <c>false</c>.</returns>
     public bool TryPlanTextRuns(
         string text,
@@ -107,8 +111,9 @@ public sealed class PdfEmbeddedFontFallbackSet {
         string source = "",
         TextRun? styleTemplate = null,
         PdfConversionReport? report = null,
-        string converter = "OfficeIMO.Pdf") {
-        PdfTextFallbackPlan plan = PlanText(text, source);
+        string converter = "OfficeIMO.Pdf",
+        PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+        PdfTextFallbackPlan plan = PlanText(text, source, shapingMode);
         report?.AddTextFallbackPlanDiagnostics(plan, converter);
         if (report != null) {
             report.AddTextShapingDiagnostics(AnalyzeAdvancedTextLayout(plan, source), converter);
