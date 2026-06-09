@@ -108,6 +108,27 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void TableBlock_RenderHtml_EmitsColumnWidthHints() {
+            var table = new TableBlock();
+            table.Headers.Add("Code");
+            table.Headers.Add("Description");
+            table.ColumnWidthPoints.Add(54D);
+            table.ColumnWidthPoints.Add(null);
+            table.ColumnWidthWeights.Add(1D);
+            table.ColumnWidthWeights.Add(3D);
+
+            table.Rows.Add(new[] { "A-100", "Consulting" });
+
+            var html = ((IMarkdownBlock)table).RenderHtml();
+
+            const string expected = "<table><colgroup><col style=\"width:54pt\"><col style=\"width:75%\"></colgroup><thead><tr><th>Code</th><th>Description</th></tr></thead><tbody>" +
+                                    "<tr><td>A-100</td><td>Consulting</td></tr>" +
+                                    "</tbody></table>";
+
+            Assert.Equal(expected, html);
+        }
+
+        [Fact]
         public void TableBlock_RenderHtml_SanitizesDisallowedTags() {
             var table = new TableBlock();
             table.Headers.Add("Header");

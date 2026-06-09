@@ -704,6 +704,235 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_InfersTableAlignmentFromBodyCellsWhenHeaderIsUnmarked() {
+        const string html = """
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Amount</th>
+  </tr>
+  <tr>
+    <td>Service</td>
+    <td style="text-align: right;">125.50</td>
+  </tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Right }, table.Alignments);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("| --- | ---: |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReadsTableAlignmentFromColumnGroupsAndClassTokens() {
+        const string html = """
+<table>
+  <colgroup>
+    <col span="2">
+    <col class="text-right">
+  </colgroup>
+  <tr>
+    <th>Item</th>
+    <th>Center</th>
+    <th>Total</th>
+  </tr>
+  <tr>
+    <td>Service</td>
+    <td class="align-center">Monthly</td>
+    <td>125.50</td>
+  </tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Center, ColumnAlignment.Right }, table.Alignments);
+
+        string markdown = document.ToMarkdown();
+        Assert.Contains("| --- | :---: | ---: |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReadsTableColumnWidthHints() {
+        const string html = """
+<table>
+  <colgroup>
+    <col style="width: 80px">
+    <col style="width: 75%">
+  </colgroup>
+  <tr>
+    <th>Code</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>A-100</td>
+    <td>Consulting</td>
+  </tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(2, table.ColumnWidthPoints.Count);
+        Assert.Equal(60D, table.ColumnWidthPoints[0]);
+        Assert.Null(table.ColumnWidthPoints[1]);
+        Assert.Equal(new[] { 1D, 75D }, table.ColumnWidthWeights);
+
+        string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
+        Assert.Contains("<col style=\"width:60pt\">", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<col style=\"width:98.684%\">", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_MapsTableColumnMetadataToLogicalColumnsAfterSpans() {
+        const string html = """
+<table>
+  <tr><th colspan="2">A</th><th style="text-align:right;width:40pt">C</th></tr>
+  <tr><td rowspan="2">Group</td><td>Setup</td><td>10</td></tr>
+  <tr><td style="text-align:center;width:50pt">Support</td><td>20</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Center, ColumnAlignment.Right }, table.Alignments);
+        Assert.Equal(3, table.ColumnWidthPoints.Count);
+        Assert.Null(table.ColumnWidthPoints[0]);
+        Assert.Equal(50D, table.ColumnWidthPoints[1]);
+        Assert.Equal(40D, table.ColumnWidthPoints[2]);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReadsTableCellSpans() {
+        const string html = """
+<table>
+  <tr><th colspan="2">Details</th></tr>
+  <tr><td rowspan="2">Service</td><td>Setup</td></tr>
+  <tr><td>Support</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(2, table.HeaderCells[0].ColumnSpan);
+        Assert.Equal(2, table.RowCells[0][0].RowSpan);
+        Assert.Equal(0, table.HeaderCells[0].ColumnIndex);
+        Assert.Equal(0, table.RowCells[0][0].ColumnIndex);
+        Assert.Equal(1, table.RowCells[0][1].ColumnIndex);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ClampsHeaderRowSpansAtPdfHeaderBoundary() {
+        const string html = """
+<table>
+  <tr><th rowspan="2">Group</th><th>Name</th></tr>
+  <tr><td>A</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(1, table.HeaderCells[0].RowSpan);
+        string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
+        Assert.DoesNotContain("rowspan=\"2\"", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_RenderHtmlPreservesTableCellSpansWithoutPaddingCells() {
+        const string html = """
+<table>
+  <tr><th colspan="2">Details</th></tr>
+  <tr><td rowspan="2">Service</td><td>Setup</td></tr>
+  <tr><td>Support</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
+
+        Assert.Contains("<th colspan=\"2\">Details</th>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<td rowspan=\"2\">Service</td><td>Setup</td>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<tr><td>Support</td></tr>", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<th></th>", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<td></td>", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReadsTableCellBackgroundColors() {
+        const string html = """
+<table>
+  <tr><th style="background-color: #663399">Item</th><th>Total</th></tr>
+  <tr><td style="background: rgb(224, 242, 254)">Service</td><td>125.50</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("#663399", table.HeaderCells[0].BackgroundColor);
+        Assert.Equal("#e0f2fe", table.RowCells[0][0].BackgroundColor);
+
+        string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
+        Assert.Contains("<th style=\"background-color:#663399\">Item</th>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<td style=\"background-color:#e0f2fe\">Service</td>", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReadsTableCellTextStyles() {
+        const string html = """
+<table>
+  <tr><th>Item</th><th>Total</th></tr>
+  <tr><td>Service</td><td style="color:#663399;font-weight:700;font-style:italic;text-decoration: underline line-through">125.50</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+        TableCell styledCell = table.RowCells[0][1];
+
+        Assert.Equal("#663399", styledCell.TextColor);
+        Assert.True(styledCell.Bold);
+        Assert.True(styledCell.Italic);
+        Assert.True(styledCell.Underline);
+        Assert.True(styledCell.Strikethrough);
+
+        string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
+        Assert.Contains("<td style=\"color:#663399;font-weight:bold;font-style:italic;text-decoration:underline line-through\">125.50</td>", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_ReadsTableCellAlignmentOverrides() {
+        const string html = """
+<table>
+  <tr><th>Item</th><th>Amount</th></tr>
+  <tr><td>Subtotal</td><td style="text-align:right">125.50</td></tr>
+  <tr><td>Discount</td><td style="text-align:center">10%</td></tr>
+</table>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml();
+        var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(ColumnAlignment.Right, table.RowCells[0][1].Alignment);
+        Assert.Equal(ColumnAlignment.Center, table.RowCells[1][1].Alignment);
+
+        string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
+        Assert.Contains("<td style=\"text-align:right\">125.50</td>", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("<td style=\"text-align:center\">10%</td>", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_RecoversLazyLoadedImageSourcesAndStyleDimensions() {
         const string html = "<figure><img data-src=\"/img/demo.png\" alt=\"Demo\" style=\"width: 640px; height: 480px;\" /></figure>";
 

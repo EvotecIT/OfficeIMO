@@ -220,4 +220,9 @@ public sealed class ReaderLocation {
     /// Optional 1-based page number (PDF).
     /// </summary>
     public int? Page { get; set; }
+
+    /// <summary>
+    /// Optional 0-based table index within the closest source container, such as a PDF page or spreadsheet sheet.
+    /// </summary>
+    public int? TableIndex { get; set; }
 }

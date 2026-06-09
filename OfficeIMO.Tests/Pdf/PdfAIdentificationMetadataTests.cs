@@ -167,6 +167,8 @@ public class PdfAIdentificationMetadataTests {
     [Fact]
     public void FacturXGroundworkHelper_EmitsPdfA3EinvoicePrerequisitesWithoutFormalProfile() {
         byte[] invoiceXml = CreateCiiXml();
+        var fallbackProbe = new PdfOptions();
+        bool fallbackAvailable = fallbackProbe.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true);
         var options = new PdfOptions()
             .ConfigureFacturXGroundwork(invoiceXml, "EXTENDED");
 
@@ -188,6 +190,10 @@ public class PdfAIdentificationMetadataTests {
         Assert.Equal("EXTENDED", clone.ElectronicInvoiceMetadata!.ConformanceLevel);
         Assert.Equal(PdfOutputIntentPolicy.SrgbIec6196621, clone.OutputIntent!.Policy);
         Assert.Equal(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, clone.OutputIntent.OutputConditionIdentifier);
+        if (fallbackAvailable) {
+            Assert.True(clone.HasEmbeddedStandardFontFamily(clone.DefaultFont));
+        }
+
         Assert.StartsWith("%PDF-1.7", raw, StringComparison.Ordinal);
         Assert.Contains("<pdfaid:part>3</pdfaid:part>", raw, StringComparison.Ordinal);
         Assert.Contains("<pdfaid:conformance>B</pdfaid:conformance>", raw, StringComparison.Ordinal);
@@ -198,6 +204,21 @@ public class PdfAIdentificationMetadataTests {
         Assert.Equal("application/xml", attachment.MimeType);
         Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
         Assert.Equal(invoiceXml, attachment.Bytes);
+    }
+
+    [Fact]
+    public void FacturXGroundworkHelper_CanPreserveCallerFontState() {
+        var options = new PdfOptions()
+            .ConfigureFacturXGroundwork(CreateCiiXml(), useDocumentFontFallback: false);
+
+        PdfOptions clone = options.Clone();
+
+        Assert.True(clone.IncludeStandardFontToUnicodeMaps);
+        Assert.False(clone.HasEmbeddedStandardFontFamily(PdfStandardFont.Helvetica));
+        Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
+        Assert.Equal(3, clone.PdfAIdentification!.Part);
+        Assert.Equal("B", clone.PdfAIdentification.Conformance);
+        Assert.Equal("EN 16931", clone.ElectronicInvoiceMetadata!.ConformanceLevel);
     }
 
     [Fact]

@@ -425,6 +425,7 @@ public static partial class DocumentReader {
         return new ReaderTable {
             Title = t.Title,
             Columns = t.Columns,
+            ColumnProfiles = ReaderTableProfiler.CreateProfiles(t.Columns, t.Rows),
             Rows = t.Rows,
             TotalRowCount = t.TotalRowCount,
             Truncated = t.Truncated
@@ -452,6 +453,7 @@ public static partial class DocumentReader {
 
         return new ReaderTable {
             Columns = columns,
+            ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, normalizedRows),
             Rows = normalizedRows,
             TotalRowCount = totalRowCount,
             Truncated = truncatedByOptions || t.SkippedRowCount > 0 || t.SkippedColumnCount > 0

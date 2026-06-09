@@ -11,8 +11,6 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private const string DefaultEmbeddedFontFamily = "Arial, Aptos, Calibri, Liberation Sans, DejaVu Sans";
-
         private static PdfCore.PdfOptions CreateNativeOptions(WordDocument document, PdfSaveOptions? options) {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
@@ -55,47 +53,13 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeFallbackFont(PdfSaveOptions? options, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
             if (options?.PdfOptions == null &&
                 !preserveConfiguredFontSlots &&
-                !HasNativeEmbeddedFontSlot(pdfOptions, pdfOptions.DefaultFont)) {
-                TryApplyNativeDefaultFontCandidate(DefaultEmbeddedFontFamily, pdfOptions, embedSystemFont: true, requireEmbeddedFont: true);
+                !pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont)) {
+                pdfOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true);
             }
         }
 
         private static bool TryApplyNativeDefaultFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
-            if (string.IsNullOrWhiteSpace(familyName)) {
-                return false;
-            }
-
-            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out _)) {
-                string beforeMappedEmbeddedFonts = CaptureNativeEmbeddedFontState(pdfOptions);
-                pdfOptions.UseOfficeFontFamily(familyName, embedSystemFont);
-                return !requireEmbeddedFont ||
-                       !string.Equals(beforeMappedEmbeddedFonts, CaptureNativeEmbeddedFontState(pdfOptions), StringComparison.Ordinal);
-            }
-
-            if (!embedSystemFont) {
-                return false;
-            }
-
-            PdfCore.PdfStandardFont beforeDefault = pdfOptions.DefaultFont;
-            PdfCore.PdfStandardFont beforeHeader = pdfOptions.HeaderFont;
-            PdfCore.PdfStandardFont beforeFooter = pdfOptions.FooterFont;
-            string beforeEmbeddedFonts = CaptureNativeEmbeddedFontState(pdfOptions);
-            pdfOptions.UseOfficeFontFamily(familyName, embedSystemFont: true);
-
-            return beforeDefault != pdfOptions.DefaultFont ||
-                   beforeHeader != pdfOptions.HeaderFont ||
-                   beforeFooter != pdfOptions.FooterFont ||
-                   !string.Equals(beforeEmbeddedFonts, CaptureNativeEmbeddedFontState(pdfOptions), StringComparison.Ordinal);
-        }
-
-        private static string CaptureNativeEmbeddedFontState(PdfCore.PdfOptions pdfOptions) {
-            return string.Join("|", pdfOptions.EmbeddedFonts
-                .OrderBy(font => font.Key)
-                .Select(font => ((int)font.Key).ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.Data.Length.ToString(CultureInfo.InvariantCulture)));
-        }
-
-        private static bool HasNativeEmbeddedFontSlot(PdfCore.PdfOptions pdfOptions, PdfCore.PdfStandardFont font) {
-            return pdfOptions.EmbeddedFonts.ContainsKey(PdfCore.PdfStandardFontMapper.GetFontFamily(font));
+            return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
         private static void RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {

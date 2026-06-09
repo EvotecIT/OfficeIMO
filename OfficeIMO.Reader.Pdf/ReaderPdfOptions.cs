@@ -75,6 +75,7 @@ public sealed class ReaderPdfOptions {
             IncludeImagePlaceholders = options.IncludeImagePlaceholders,
             IncludeLinkAnnotations = options.IncludeLinkAnnotations,
             IncludeFormWidgets = options.IncludeFormWidgets,
+            AlignNumericTableColumns = options.AlignNumericTableColumns,
             PageSeparator = options.PageSeparator
         };
     }

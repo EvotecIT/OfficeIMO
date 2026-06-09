@@ -18,6 +18,9 @@ public sealed class PdfLogicalMarkdownOptions {
     /// <summary>Emit a form widget section for AcroForm widgets placed on pages.</summary>
     public bool IncludeFormWidgets { get; set; }
 
+    /// <summary>Right-align table columns in Markdown when all non-empty body cells look numeric.</summary>
+    public bool AlignNumericTableColumns { get; set; } = true;
+
     /// <summary>Markdown text used between pages when <see cref="IncludePageSeparators"/> is true.</summary>
     public string PageSeparator { get; set; } = "---";
 }
@@ -94,7 +97,7 @@ public static class PdfLogicalMarkdownExtensions {
         for (int i = 0; i < page.Tables.Count; i++) {
             PdfLogicalTable table = page.Tables[i];
             double x = table.Columns.Count > 0 ? table.Columns[0].From : 0;
-            string markdown = RenderTable(table);
+            string markdown = RenderTable(table, options);
             if (markdown.Length > 0) {
                 items.Add(new MarkdownItem(table.YTop, x, sequence++, markdown));
             }
@@ -330,28 +333,24 @@ public static class PdfLogicalMarkdownExtensions {
         builder.Append(markdown.Trim());
     }
 
-    private static string RenderTable(PdfLogicalTable table) {
+    private static string RenderTable(PdfLogicalTable table, PdfLogicalMarkdownOptions options) {
         if (table.Rows.Count == 0) {
             return string.Empty;
         }
 
-        int columnCount = 0;
-        for (int i = 0; i < table.Rows.Count; i++) {
-            columnCount = Math.Max(columnCount, table.Rows[i].Count);
-        }
-
-        if (columnCount == 0) {
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        if (data.Structure.ColumnCount == 0) {
             return string.Empty;
         }
 
         var builder = new StringBuilder();
-        AppendTableRow(builder, table.Rows[0], columnCount);
+        AppendTableRow(builder, data.Columns, data.Structure.ColumnCount);
         builder.AppendLine();
-        AppendTableSeparator(builder, columnCount);
+        AppendTableSeparator(builder, data, options.AlignNumericTableColumns);
 
-        for (int i = 1; i < table.Rows.Count; i++) {
+        for (int i = 0; i < data.Rows.Count; i++) {
             builder.AppendLine();
-            AppendTableRow(builder, table.Rows[i], columnCount);
+            AppendTableRow(builder, data.Rows[i], data.Structure.ColumnCount);
         }
 
         return builder.ToString();
@@ -367,10 +366,10 @@ public static class PdfLogicalMarkdownExtensions {
         }
     }
 
-    private static void AppendTableSeparator(StringBuilder builder, int columnCount) {
+    private static void AppendTableSeparator(StringBuilder builder, PdfLogicalTableData data, bool alignNumericColumns) {
         builder.Append('|');
-        for (int i = 0; i < columnCount; i++) {
-            builder.Append(" --- |");
+        for (int i = 0; i < data.Structure.ColumnCount; i++) {
+            builder.Append(alignNumericColumns && data.IsNumericColumn(i) ? " ---: |" : " --- |");
         }
     }
 

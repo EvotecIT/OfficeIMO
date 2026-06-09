@@ -28,6 +28,35 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void KeyValueTable_RendersRichDocumentFactsAndClonesCallerStyle() {
+        PdfTableStyle style = TableStyles.Minimal();
+        style.HeaderRowCount = 4;
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                CompressContentStreams = false
+            })
+            .KeyValueTable(new[] {
+                PdfKeyValueRow.Rich(
+                    new[] { TextRun.Bolded("Invoice") },
+                    new[] { TextRun.Normal("FV/2026/001"), TextRun.Bolded(" paid") }),
+                PdfKeyValueRow.Text("Customer", "Evotec")
+            }, style: style, includeHeader: true, keyHeader: "Field", valueHeader: "Value")
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Equal(4, style.HeaderRowCount);
+        Assert.Contains("Field", text, StringComparison.Ordinal);
+        Assert.Contains("Value", text, StringComparison.Ordinal);
+        Assert.Contains("Invoice", text, StringComparison.Ordinal);
+        Assert.Contains("FV/2026/001 paid", text, StringComparison.Ordinal);
+        Assert.Contains("Customer", text, StringComparison.Ordinal);
+        Assert.Contains("Evotec", text, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Helvetica-Bold", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Open_SnapshotsInputBytesAndExposesReadInspectAndPreflight() {
         byte[] source = BuildThreePagePdf();
         byte[] callerBuffer = (byte[])source.Clone();
@@ -240,6 +269,18 @@ public class PdfDocumentWorkflowTests {
         using PdfDocument document = PdfDocument.Open(invalidPdf);
         using var stream = new MemoryStream();
 
+        Assert.Empty(document.AnalyzeTextEncoding());
+
+        PdfBytesResult bytesResult = document.TryToBytes();
+
+        Assert.True(bytesResult.Succeeded);
+        Assert.Equal(invalidPdf.LongLength, bytesResult.ByteCount);
+        Assert.Equal(invalidPdf, bytesResult.Bytes);
+        Assert.Equal(invalidPdf, bytesResult.RequireBytes());
+        Assert.Empty(bytesResult.Diagnostics);
+        Assert.Empty(bytesResult.TextEncodingDiagnostics);
+        Assert.Empty(bytesResult.ConversionWarnings);
+
         PdfSaveResult streamResult = document.TrySave(stream);
 
         Assert.True(streamResult.Succeeded);
@@ -283,6 +324,259 @@ public class PdfDocumentWorkflowTests {
 
         Assert.False(streamFailure.Succeeded);
         Assert.NotEmpty(streamFailure.Diagnostics);
+    }
+
+    [Fact]
+    public void SaveResult_CarriesTextEncodingDiagnosticsForGeneratedPdfFailures() {
+        using PdfDocument document = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Snowman \u2603"));
+        using var stream = new MemoryStream();
+
+        PdfBytesResult bytesResult = document.TryToBytes();
+        Assert.False(bytesResult.Succeeded);
+        Assert.Equal(0, bytesResult.ByteCount);
+        Assert.Empty(bytesResult.Bytes);
+        Assert.NotEmpty(bytesResult.Diagnostics);
+        Assert.Throws<InvalidOperationException>(() => bytesResult.RequireBytes());
+
+        PdfSaveResult result = document.TrySave(stream);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(0, result.BytesWritten);
+        Assert.Equal(0, stream.Length);
+        Assert.NotEmpty(result.Diagnostics);
+
+        PdfTextEncodingDiagnostic diagnostic = Assert.Single(result.TextEncodingDiagnostics);
+        PdfTextEncodingDiagnostic bytesDiagnostic = Assert.Single(bytesResult.TextEncodingDiagnostics);
+
+        Assert.Equal("unsupported-text-glyph", diagnostic.Code);
+        Assert.Equal("PdfParagraph", diagnostic.Source);
+        Assert.Equal("PdfParagraph[0].Run[0]", diagnostic.Location);
+        Assert.Equal(0, diagnostic.RunIndex);
+        Assert.Equal("U+2603", diagnostic.CodePoint);
+        Assert.Equal("\u2603", diagnostic.Text);
+        Assert.False(diagnostic.IsControlCharacter);
+        Assert.Equal("PDF WinAnsiEncoding", diagnostic.Encoding);
+        Assert.Equal("Embedded Unicode fonts are required for this text.", diagnostic.Remediation);
+        Assert.Equal(diagnostic.CodePoint, bytesDiagnostic.CodePoint);
+        Assert.Equal(diagnostic.Location, bytesDiagnostic.Location);
+
+        PdfConversionWarning warning = Assert.Single(result.ConversionWarnings);
+        PdfConversionWarning bytesWarning = Assert.Single(bytesResult.ConversionWarnings);
+
+        Assert.Equal("OfficeIMO.Pdf", warning.Converter);
+        Assert.Equal(diagnostic.Code, warning.Code);
+        Assert.Equal(diagnostic.Message, warning.Message);
+        Assert.Equal(PdfConversionWarningSeverity.Error, warning.Severity);
+        Assert.Equal("U+2603", warning.Details["codePoint"]);
+        Assert.Equal("PdfParagraph[0].Run[0]", warning.Details["location"]);
+        Assert.Equal("0", warning.Details["runIndex"]);
+        Assert.Equal("PDF WinAnsiEncoding", warning.Details["encoding"]);
+        Assert.Equal("Embedded Unicode fonts are required for this text.", warning.Details["remediation"]);
+        Assert.Equal(warning.Code, bytesWarning.Code);
+    }
+
+    [Fact]
+    public void AnalyzeTextEncoding_ReturnsAllGeneratedTextDiagnosticsBeforeRender() {
+        var options = new PdfOptions {
+            ShowHeader = true,
+            HeaderFormat = "Header \u2603",
+            ShowPageNumbers = true,
+            FooterFormat = "Footer \u2602"
+        };
+
+        using PdfDocument document = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("Paragraph \u2603"))
+            .H1("Heading \U0001F680")
+            .Bullets(new[] { "Bullet \u266b" })
+            .Table(new[] { new[] { "Table \u25a0" } }, style: new PdfTableStyle {
+                Caption = "Table caption \u2666"
+            })
+            .Canvas(canvas => canvas
+                .Text("Canvas \u260e", 10, 10, 120, 24)
+                .FreeTextAnnotation("Callout \u2615", 10, 42, 120, 32)
+                .Table(new[] { new[] { "Canvas table" } }, 10, 84, 120, 42, new PdfTableStyle {
+                    Caption = "Canvas caption \u273f"
+                }))
+            .TextField("Person.Name", width: 120, height: 20, value: "Field \u2603");
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
+
+        Assert.Equal(10, diagnostics.Count);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfHeader" && diagnostic.Location == "PdfHeader[page=1]" && diagnostic.PageNumber == 1 && diagnostic.CodePoint == "U+2603");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfFooter" && diagnostic.Location == "PdfFooter[page=1]" && diagnostic.PageNumber == 1 && diagnostic.CodePoint == "U+2602");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfParagraph" && diagnostic.Location == "PdfParagraph[0].Run[0]" && diagnostic.RunIndex == 0 && diagnostic.CodePoint == "U+2603");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfHeading" && diagnostic.Location == "PdfHeading[1]" && diagnostic.CodePoint == "U+1F680");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfListItem" && diagnostic.Location == "PdfBulletList[2].PdfListItem[0].Run[0]" && diagnostic.RunIndex == 0 && diagnostic.CodePoint == "U+266B");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTableCaption" && diagnostic.Location == "PdfTable[3].PdfTableCaption" && diagnostic.CodePoint == "U+2666");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTableCell" && diagnostic.Location == "PdfTable[3].PdfTableCell[0,0].Run[0]" && diagnostic.RunIndex == 0 && diagnostic.TableRowIndex == 0 && diagnostic.TableColumnIndex == 0 && diagnostic.CodePoint == "U+25A0");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfCanvasText" && diagnostic.Location == "PdfCanvas[4].PdfCanvasText[0].Run[0]" && diagnostic.RunIndex == 0 && diagnostic.CodePoint == "U+260E");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTableCaption" && diagnostic.Location == "PdfCanvas[4].PdfCanvasTable[2].PdfTableCaption" && diagnostic.CodePoint == "U+273F");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.Location == "PdfTextField[5]" && diagnostic.FieldName == "Person.Name" && diagnostic.CodePoint == "U+2603");
+
+        PdfBytesResult result = document.TryToBytes();
+        using var stream = new MemoryStream();
+        PdfSaveResult saveResult = document.TrySave(stream);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(diagnostics.Count, result.TextEncodingDiagnostics.Count);
+        Assert.Equal("PdfHeader", result.TextEncodingDiagnostics[0].Source);
+        Assert.Equal("PdfHeader[page=1]", result.TextEncodingDiagnostics[0].Location);
+        Assert.Equal(1, result.TextEncodingDiagnostics[0].PageNumber);
+        Assert.Equal("U+2603", result.TextEncodingDiagnostics[0].CodePoint);
+        Assert.Equal("PDF WinAnsiEncoding", result.TextEncodingDiagnostics[0].Encoding);
+        Assert.Equal(diagnostics.Count, result.ConversionWarnings.Count);
+        Assert.Equal("PdfHeader[page=1]", result.ConversionWarnings[0].Details["location"]);
+        Assert.Equal("1", result.ConversionWarnings[0].Details["pageNumber"]);
+        Assert.Equal("PDF WinAnsiEncoding", result.ConversionWarnings[0].Details["encoding"]);
+        Assert.Contains(result.ConversionWarnings, warning =>
+            warning.Source == "PdfTableCell" &&
+            warning.Details["tableRowIndex"] == "0" &&
+            warning.Details["tableColumnIndex"] == "0");
+        Assert.Contains(result.ConversionWarnings, warning =>
+            warning.Source == "PdfTextField" &&
+            warning.Details["fieldName"] == "Person.Name");
+        Assert.Contains("preflight found 10 generated text issues", result.Diagnostics[0], StringComparison.Ordinal);
+
+        ArgumentException preflightException = Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
+
+        Assert.Equal(1, preflightException.Data["pageNumber"]);
+
+        Assert.False(saveResult.Succeeded);
+        Assert.Equal(diagnostics.Count, saveResult.TextEncodingDiagnostics.Count);
+        Assert.Equal(0, saveResult.BytesWritten);
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public void AnalyzeTextEncoding_PreflightsFormWidgetValuesThroughWinAnsiPath() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = new PdfOptions();
+        options.EmbedStandardFont(PdfStandardFont.Helvetica, fontPath);
+        const string value = "\u0105";
+        if (PdfTextDiagnostics.AnalyzeGeneratedText(value, options, PdfStandardFont.Helvetica).Count != 0) {
+            return;
+        }
+
+        using PdfDocument document = PdfDocument.Create(options)
+            .TextField("Person.City", value: value)
+            .ChoiceField("Person.Country", new[] { "PL", value }, value: value);
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfChoiceFieldOption" && diagnostic.FieldName == "Person.Country" && diagnostic.CodePoint == "U+0105");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfChoiceFieldValue" && diagnostic.FieldName == "Person.Country" && diagnostic.CodePoint == "U+0105");
+
+        using var stream = new MemoryStream();
+        PdfSaveResult result = document.TrySave(stream);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(0, stream.Length);
+        Assert.Contains(result.TextEncodingDiagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
+    }
+
+    [Fact]
+    public void AnalyzeTextEncoding_PreflightsFreeTextAppearanceThroughWinAnsiPath() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        var options = new PdfOptions();
+        options.EmbedStandardFont(PdfStandardFont.Helvetica, fontPath);
+        const string value = "\u0105";
+        if (PdfTextDiagnostics.AnalyzeGeneratedText(value, options, PdfStandardFont.Helvetica).Count != 0) {
+            return;
+        }
+
+        using PdfDocument document = PdfDocument.Create(options)
+            .FreeTextAnnotation(value, width: 120, height: 32);
+
+        IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
+
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfFreeTextAnnotation" && diagnostic.CodePoint == "U+0105");
+
+        using var stream = new MemoryStream();
+        PdfSaveResult result = document.TrySave(stream);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(0, stream.Length);
+        Assert.Contains(result.TextEncodingDiagnostics, diagnostic => diagnostic.Source == "PdfFreeTextAnnotation" && diagnostic.CodePoint == "U+0105");
+    }
+
+    [Fact]
+    public void ToBytes_ThrowsFullGeneratedTextPreflightBeforeRendering() {
+        using PdfDocument document = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Paragraph \u2603"))
+            .H1("Heading \U0001F680");
+
+        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
+
+        Assert.Contains("preflight found 2 generated text issues", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("U+2603", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("unsupported-text-glyph", exception.Data["code"]);
+        Assert.Equal("PdfParagraph", exception.Data["source"]);
+        Assert.Equal("PdfParagraph[0].Run[0]", exception.Data["location"]);
+        Assert.Equal(0, exception.Data["runIndex"]);
+        Assert.Equal(2, exception.Data["diagnosticsCount"]);
+
+        var diagnostics = Assert.IsAssignableFrom<IReadOnlyList<PdfTextEncodingDiagnostic>>(exception.Data["textEncodingDiagnostics"]);
+        Assert.Equal(2, diagnostics.Count);
+        Assert.Equal("PdfParagraph[0].Run[0]", diagnostics[0].Location);
+        Assert.Equal("PdfHeading[1]", diagnostics[1].Location);
+    }
+
+    [Fact]
+    public void ToBytes_ThrowsTableCellCoordinatesInTextPreflightException() {
+        using PdfDocument document = PdfDocument.Create()
+            .Table(new[] { new[] { "Table \u25a0" } });
+
+        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
+
+        Assert.Equal("PdfTableCell", exception.Data["source"]);
+        Assert.Equal("PdfTable[0].PdfTableCell[0,0].Run[0]", exception.Data["location"]);
+        Assert.Equal(0, exception.Data["tableRowIndex"]);
+        Assert.Equal(0, exception.Data["tableColumnIndex"]);
+
+        var diagnostics = Assert.IsAssignableFrom<IReadOnlyList<PdfTextEncodingDiagnostic>>(exception.Data["textEncodingDiagnostics"]);
+        PdfTextEncodingDiagnostic diagnostic = Assert.Single(diagnostics);
+
+        Assert.Equal(0, diagnostic.TableRowIndex);
+        Assert.Equal(0, diagnostic.TableColumnIndex);
+    }
+
+    [Fact]
+    public void ToBytes_ThrowsFieldNameForGeneratedFormPreflightException() {
+        using PdfDocument document = PdfDocument.Create()
+            .Table(new[] {
+                new[] {
+                    PdfTableCell.WithFormFields(
+                        "Table form",
+                        new[] {
+                            PdfTableCellFormField.TextField("Table.DueDate", "Due \u2603", width: 120, height: 18)
+                        })
+                }
+            });
+
+        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => document.ToBytes());
+
+        Assert.Equal("PdfTableTextField", exception.Data["source"]);
+        Assert.Equal("PdfTable[0].PdfTableCell[0,0].PdfTableTextField", exception.Data["location"]);
+        Assert.Equal("Table.DueDate", exception.Data["fieldName"]);
+        Assert.Equal(0, exception.Data["tableRowIndex"]);
+        Assert.Equal(0, exception.Data["tableColumnIndex"]);
+
+        var diagnostics = Assert.IsAssignableFrom<IReadOnlyList<PdfTextEncodingDiagnostic>>(exception.Data["textEncodingDiagnostics"]);
+        PdfTextEncodingDiagnostic diagnostic = Assert.Single(diagnostics);
+
+        Assert.Equal("Table.DueDate", diagnostic.FieldName);
+        Assert.Equal(0, diagnostic.TableRowIndex);
+        Assert.Equal(0, diagnostic.TableColumnIndex);
     }
 
     private static byte[] BuildThreePagePdf() {

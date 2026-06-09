@@ -1,3 +1,4 @@
+using System;
 using System.Text;
 
 namespace OfficeIMO.Markdown;
@@ -6,6 +7,9 @@ namespace OfficeIMO.Markdown;
 /// Typed table cell containing one or more markdown blocks.
 /// </summary>
 public sealed class TableCell : MarkdownObject {
+    private int _columnSpan = 1;
+    private int _rowSpan = 1;
+
     /// <summary>Structured cell content.</summary>
     public List<IMarkdownBlock> Blocks { get; } = new List<IMarkdownBlock>();
     /// <summary>Owned syntax nodes for the structured cell body.</summary>
@@ -16,6 +20,42 @@ public sealed class TableCell : MarkdownObject {
     public int RowIndex { get; internal set; } = -1;
     /// <summary>Zero-based column index within the row.</summary>
     public int ColumnIndex { get; internal set; } = -1;
+    /// <summary>Optional cell-level horizontal alignment override.</summary>
+    public ColumnAlignment Alignment { get; set; } = ColumnAlignment.None;
+    /// <summary>Optional CSS-compatible cell background color token.</summary>
+    public string? BackgroundColor { get; set; }
+    /// <summary>Optional CSS-compatible cell text color token.</summary>
+    public string? TextColor { get; set; }
+    /// <summary>Whether cell text should be rendered with bold emphasis.</summary>
+    public bool Bold { get; set; }
+    /// <summary>Whether cell text should be rendered with italic emphasis.</summary>
+    public bool Italic { get; set; }
+    /// <summary>Whether cell text should be rendered with underline decoration.</summary>
+    public bool Underline { get; set; }
+    /// <summary>Whether cell text should be rendered with strikethrough decoration.</summary>
+    public bool Strikethrough { get; set; }
+    /// <summary>Number of logical table columns covered by this cell.</summary>
+    public int ColumnSpan {
+        get => _columnSpan;
+        set {
+            if (value < 1) {
+                throw new ArgumentOutOfRangeException(nameof(value), "Table cell column span must be at least 1.");
+            }
+
+            _columnSpan = value;
+        }
+    }
+    /// <summary>Number of logical table rows covered by this cell.</summary>
+    public int RowSpan {
+        get => _rowSpan;
+        set {
+            if (value < 1) {
+                throw new ArgumentOutOfRangeException(nameof(value), "Table cell row span must be at least 1.");
+            }
+
+            _rowSpan = value;
+        }
+    }
     /// <summary>Creates a typed table cell.</summary>
     public TableCell(IEnumerable<IMarkdownBlock>? blocks = null) {
         if (blocks == null) {

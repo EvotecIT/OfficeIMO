@@ -180,22 +180,34 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
+            string value = text ?? string.Empty;
             if (options.HasDiagnosticsReport) {
-                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text ?? string.Empty, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName));
+                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName));
             }
 
-            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text ?? string.Empty, fontProgram));
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
+            options.AddTextDiagnostics(diagnostics);
+            if (diagnostics.Count > 0) {
+                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            }
+
             return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot);
         }
 
         if (options != null &&
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
+            string value = text ?? string.Empty;
             if (options.HasDiagnosticsReport) {
-                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text ?? string.Empty, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName));
+                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName));
             }
 
-            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text ?? string.Empty, cffFontProgram));
+            IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
+            options.AddTextDiagnostics(diagnostics);
+            if (diagnostics.Count > 0) {
+                throw CreateTextEncodingException(diagnostics[0], nameof(text));
+            }
+
             return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot);
         }
 

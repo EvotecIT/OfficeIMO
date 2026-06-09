@@ -108,10 +108,12 @@ public static class DocumentReaderXmlExtensions {
             var tableRows = slice
                 .Select(static r => (IReadOnlyList<string>)new[] { r.Path, r.Type, r.Value })
                 .ToArray();
+            var columns = new[] { "Path", "Type", "Value" };
 
             var table = new ReaderTable {
                 Title = Path.GetFileName(path),
-                Columns = new[] { "Path", "Type", "Value" },
+                Columns = columns,
+                ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, tableRows),
                 Rows = tableRows,
                 TotalRowCount = slice.Count,
                 Truncated = false

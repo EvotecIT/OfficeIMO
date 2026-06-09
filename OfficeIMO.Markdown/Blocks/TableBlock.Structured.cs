@@ -156,6 +156,15 @@ public sealed partial class TableBlock {
             IsHeader = cell.IsHeader,
             RowIndex = cell.RowIndex,
             ColumnIndex = cell.ColumnIndex,
+            Alignment = cell.Alignment,
+            BackgroundColor = cell.BackgroundColor,
+            TextColor = cell.TextColor,
+            Bold = cell.Bold,
+            Italic = cell.Italic,
+            Underline = cell.Underline,
+            Strikethrough = cell.Strikethrough,
+            ColumnSpan = cell.ColumnSpan,
+            RowSpan = cell.RowSpan,
             SourceSpan = cell.SourceSpan,
             SyntaxChildren = cell.SyntaxChildren
         };

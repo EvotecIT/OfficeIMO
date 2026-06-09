@@ -24,7 +24,23 @@ public sealed partial class PdfDocument {
             return (byte[])_loadedPdf.Clone();
         }
 
-        return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords);
+        ThrowIfTextEncodingPreflightFails();
+        return RenderBytesCore();
+    }
+
+    /// <summary>
+    /// Attempts to render the document into a PDF byte array and returns diagnostics instead of throwing.
+    /// </summary>
+    public PdfBytesResult TryToBytes() {
+        try {
+            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+                return PdfBytesResult.Failed(preflightException!);
+            }
+
+            return PdfBytesResult.Success(RenderBytesCore());
+        } catch (Exception ex) {
+            return PdfBytesResult.Failed(ex);
+        }
     }
 
     /// <summary>
@@ -49,7 +65,11 @@ public sealed partial class PdfDocument {
             Guard.NotNull(stream, nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
 
-            var bytes = ToBytes();
+            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+                return PdfSaveResult.Failed(outputPath: null, preflightException!);
+            }
+
+            var bytes = RenderBytesCore();
             stream.Write(bytes, 0, bytes.Length);
             return PdfSaveResult.Success(outputPath: null, bytes.LongLength);
         } catch (Exception ex) {
@@ -80,7 +100,11 @@ public sealed partial class PdfDocument {
             fullPath = ValidateOutputPath(path);
             EnsureOutputDirectory(fullPath);
 
-            var bytes = ToBytes();
+            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+                return PdfSaveResult.Failed(fullPath, preflightException!);
+            }
+
+            var bytes = RenderBytesCore();
             File.WriteAllBytes(fullPath, bytes);
             return PdfSaveResult.Success(fullPath, bytes.LongLength);
         } catch (Exception ex) {
@@ -113,7 +137,11 @@ public sealed partial class PdfDocument {
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
             cancellationToken.ThrowIfCancellationRequested();
 
-            var bytes = ToBytes();
+            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+                return PdfSaveResult.Failed(outputPath: null, preflightException!);
+            }
+
+            var bytes = RenderBytesCore();
 #if NET8_0_OR_GREATER
             await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
 #else
@@ -152,7 +180,11 @@ public sealed partial class PdfDocument {
             cancellationToken.ThrowIfCancellationRequested();
             EnsureOutputDirectory(fullPath);
 
-            var bytes = ToBytes();
+            if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+                return PdfSaveResult.Failed(fullPath ?? path, preflightException!);
+            }
+
+            var bytes = RenderBytesCore();
             using var fs = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
 #if NET8_0_OR_GREATER
             await fs.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
@@ -162,6 +194,20 @@ public sealed partial class PdfDocument {
             return PdfSaveResult.Success(fullPath, bytes.LongLength);
         } catch (Exception ex) {
             return PdfSaveResult.Failed(fullPath ?? path, ex);
+        }
+    }
+
+    private byte[] RenderBytesCore() {
+        if (_loadedPdf is not null) {
+            return (byte[])_loadedPdf.Clone();
+        }
+
+        return PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords);
+    }
+
+    private void ThrowIfTextEncodingPreflightFails() {
+        if (TryCreateTextEncodingPreflightException(out PdfTextEncodingPreflightException? preflightException)) {
+            throw preflightException!;
         }
     }
 

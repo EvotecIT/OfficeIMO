@@ -179,12 +179,40 @@ public sealed class ReaderDocumentReaderTests {
             Assert.NotNull(chunk.Tables);
             Assert.Single(chunk.Tables!);
             Assert.Equal(new[] { "Name", "Value" }, chunk.Tables![0].Columns);
+            Assert.Equal(2, chunk.Tables[0].ColumnProfiles.Count);
+            Assert.Equal(ReaderTableColumnKind.Text, chunk.Tables[0].ColumnProfiles[0].Kind);
+            Assert.Equal(ReaderTableColumnKind.Numeric, chunk.Tables[0].ColumnProfiles[1].Kind);
+            Assert.True(chunk.Tables[0].ColumnProfiles[1].IsNumeric);
             Assert.Equal(2, chunk.Tables[0].TotalRowCount);
             Assert.Equal("A", chunk.Tables[0].Rows[0][0]);
             Assert.Equal("2", chunk.Tables[0].Rows[1][1]);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void DocumentReader_ExtractMarkdownTables_HonorsRowCapsAndColumnProfiles() {
+        var markdown =
+            "| Name | Value |\n" +
+            "| --- | ---: |\n" +
+            "| A | 1 |\n" +
+            "| B | 2 |\n" +
+            "| C | 3 |\n";
+
+        var table = Assert.Single(DocumentReader.ExtractMarkdownTables(
+            markdown,
+            new ReaderOptions { MaxTableRows = 2 }));
+
+        Assert.Equal(new[] { "Name", "Value" }, table.Columns);
+        Assert.Equal(3, table.TotalRowCount);
+        Assert.True(table.Truncated);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(2, table.ColumnProfiles.Count);
+        Assert.Equal(ReaderTableColumnKind.Text, table.ColumnProfiles[0].Kind);
+        Assert.Equal(ReaderTableColumnKind.Numeric, table.ColumnProfiles[1].Kind);
+        Assert.Equal(2, table.ColumnProfiles[1].NonEmptyCellCount);
+        Assert.Equal(2, table.ColumnProfiles[1].NumericCellCount);
     }
 
     [Fact]
@@ -229,6 +257,10 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Equal("Latest replication posture", chunk.Tables[0].Summary);
             Assert.Equal(ComputeShortHash(raw), chunk.Tables[0].PayloadHash);
             Assert.Equal(new[] { "Server", "Fails" }, chunk.Tables[0].Columns);
+            Assert.Equal(ReaderTableColumnKind.Text, chunk.Tables[0].ColumnProfiles[0].Kind);
+            Assert.Equal(ReaderTableColumnKind.Numeric, chunk.Tables[0].ColumnProfiles[1].Kind);
+            Assert.Equal(2, chunk.Tables[0].ColumnProfiles[1].NonEmptyCellCount);
+            Assert.Equal(2, chunk.Tables[0].ColumnProfiles[1].NumericCellCount);
             Assert.Equal(2, chunk.Tables[0].TotalRowCount);
             Assert.Equal("AD0", chunk.Tables[0].Rows[0][0]);
             Assert.Equal("1", chunk.Tables[0].Rows[1][1]);

@@ -46,6 +46,21 @@ public static partial class MarkdownPdfConverterExtensions {
             case LinkInline link:
                 AppendLinkInline(builder, link, style);
                 break;
+            case BoldSequenceInline boldSequence:
+                AppendInlines(builder, boldSequence.Inlines, style.With(bold: true));
+                break;
+            case ItalicSequenceInline italicSequence:
+                AppendInlines(builder, italicSequence.Inlines, style.With(italic: true));
+                break;
+            case BoldItalicSequenceInline boldItalicSequence:
+                AppendInlines(builder, boldItalicSequence.Inlines, style.With(bold: true, italic: true));
+                break;
+            case StrikethroughSequenceInline strikethroughSequence:
+                AppendInlines(builder, strikethroughSequence.Inlines, style.With(strike: true));
+                break;
+            case HighlightSequenceInline highlightSequence:
+                AppendInlines(builder, highlightSequence.Inlines, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)));
+                break;
             case ImageInline image:
                 ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
                 break;
@@ -138,6 +153,31 @@ public static partial class MarkdownPdfConverterExtensions {
                 break;
             case LinkInline link:
                 AddLinkRun(runs, link, style);
+                break;
+            case BoldSequenceInline boldSequence:
+                foreach (IMarkdownInline nested in boldSequence.Inlines.Nodes) {
+                    AddTextRuns(runs, nested, style.With(bold: true));
+                }
+                break;
+            case ItalicSequenceInline italicSequence:
+                foreach (IMarkdownInline nested in italicSequence.Inlines.Nodes) {
+                    AddTextRuns(runs, nested, style.With(italic: true));
+                }
+                break;
+            case BoldItalicSequenceInline boldItalicSequence:
+                foreach (IMarkdownInline nested in boldItalicSequence.Inlines.Nodes) {
+                    AddTextRuns(runs, nested, style.With(bold: true, italic: true));
+                }
+                break;
+            case StrikethroughSequenceInline strikethroughSequence:
+                foreach (IMarkdownInline nested in strikethroughSequence.Inlines.Nodes) {
+                    AddTextRuns(runs, nested, style.With(strike: true));
+                }
+                break;
+            case HighlightSequenceInline highlightSequence:
+                foreach (IMarkdownInline nested in highlightSequence.Inlines.Nodes) {
+                    AddTextRuns(runs, nested, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)));
+                }
                 break;
             case HardBreakInline:
                 runs.Add(PdfTextRun.LineBreak());

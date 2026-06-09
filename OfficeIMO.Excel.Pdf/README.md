@@ -1,11 +1,18 @@
 # OfficeIMO.Excel.Pdf
 
-First-party Excel workbook to PDF export using `OfficeIMO.Pdf`.
+First-party Excel workbook to PDF export using `OfficeIMO.Pdf`, plus logical PDF table import into editable Excel worksheets.
 
 The initial exporter maps everyday worksheet used ranges into reusable PDF tables. It is intentionally thin: workbook reading stays in `OfficeIMO.Excel`, layout and PDF writing stay in `OfficeIMO.Pdf`, and this package only translates worksheet data into PDF document primitives.
 
+PDF table import uses `OfficeIMO.Pdf` logical table analysis and writes detected tables as real Excel tables. Numeric PDF columns are converted to numeric Excel cells by default when every non-empty value parses successfully; set `PdfExcelTableImportOptions.ConvertNumericColumns` to `false` to preserve all imported cells as text.
+
 Current scope:
 
+- Logical PDF table import from paths, streams, byte arrays, or existing `PdfLogicalDocument` instances.
+- One worksheet table per detected PDF table, with source page/table metadata returned to callers.
+- Optional page ranges and maximum imported body rows for direct PDF loading overloads.
+- Duplicate/empty PDF headers normalized into valid Excel table column names.
+- Detected numeric PDF table columns written as numeric Excel cells when parsing is safe, including simple currency symbols, grouping separators, decimals, and parenthesized negatives.
 - All workbook sheets, or a selected sheet list.
 - Worksheet used range detection through the existing Excel reader bridge.
 - Worksheet print areas when configured.

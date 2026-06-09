@@ -46,6 +46,72 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void Markdown_SaveAsPdf_PreservesExplicitTableColumnAlignment() {
+        string markdown = """
+# Invoice
+
+| Item | Center Qty | Right Qty |
+| :--- | :---: | ---: |
+| Service | 77 | 88 |
+""";
+
+        byte[] pdf = markdown.SaveAsPdf(new MarkdownPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 260,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            }
+        });
+
+        PdfTextBounds centerHeader = FindPdfTextBounds(pdf, "Center", "Qty");
+        PdfTextBounds rightHeader = FindPdfTextBounds(pdf, "Right", "Qty");
+        PdfTextBounds centerQuantity = FindPdfTextBounds(pdf, "77");
+        PdfTextBounds rightQuantity = FindPdfTextBounds(pdf, "88");
+
+        Assert.InRange(Math.Abs(centerQuantity.Center - centerHeader.Center), 0D, 2D);
+        Assert.InRange(Math.Abs(rightQuantity.Right - rightHeader.Right), 0D, 2D);
+    }
+
+    [Fact]
+    public void Markdown_SaveAsPdf_UsesTableColumnWidthHints() {
+        var defaultTable = new TableBlock();
+        defaultTable.Headers.Add("Code");
+        defaultTable.Headers.Add("Description");
+        defaultTable.Rows.Add(new[] { "A-100", "Consulting" });
+
+        var narrowFirstColumnTable = new TableBlock();
+        narrowFirstColumnTable.Headers.Add("Code");
+        narrowFirstColumnTable.Headers.Add("Description");
+        narrowFirstColumnTable.Rows.Add(new[] { "A-100", "Consulting" });
+        narrowFirstColumnTable.ColumnWidthPoints.Add(48D);
+        narrowFirstColumnTable.ColumnWidthPoints.Add(null);
+
+        var options = new MarkdownPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 260,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            }
+        };
+
+        byte[] defaultPdf = MarkdownDoc.Create().Add(defaultTable).SaveAsPdf(options);
+        byte[] narrowPdf = MarkdownDoc.Create().Add(narrowFirstColumnTable).SaveAsPdf(options);
+
+        PdfTextBounds defaultDescription = FindPdfTextBounds(defaultPdf, "Description");
+        PdfTextBounds narrowDescription = FindPdfTextBounds(narrowPdf, "Description");
+
+        Assert.True(narrowDescription.Left < defaultDescription.Left - 70D, $"Expected the second column to move left when the first column width is fixed. Default left: {defaultDescription.Left}; narrow left: {narrowDescription.Left}.");
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_RecordsWarningsForRemoteImages() {
         var options = new MarkdownPdfSaveOptions();
         string markdown = """
@@ -1012,6 +1078,39 @@ Content.
         }
 
         throw new InvalidOperationException("Could not find rendered PDF line containing '" + text + "'. Lines: " + string.Join(" | ", lines.Select(line => line.Text)));
+    }
+
+    private sealed record PdfTextBounds(double Left, double Right) {
+        public double Center => (Left + Right) / 2D;
+    }
+
+    private static PdfTextBounds FindPdfTextBounds(byte[] pdf, params string[] texts) {
+        using PdfPigDocument document = PdfPigDocument.Open(new MemoryStream(pdf));
+        var lines = document.GetPage(1)
+            .GetWords()
+            .GroupBy(word => Math.Round(word.BoundingBox.Bottom, 1))
+            .Select(group => group.OrderBy(word => word.BoundingBox.Left).ToList())
+            .ToList();
+
+        foreach (var line in lines) {
+            for (int index = 0; index <= line.Count - texts.Length; index++) {
+                bool matches = true;
+                for (int offset = 0; offset < texts.Length; offset++) {
+                    if (!string.Equals(line[index + offset].Text, texts[offset], StringComparison.Ordinal)) {
+                        matches = false;
+                        break;
+                    }
+                }
+
+                if (matches) {
+                    double left = line.Skip(index).Take(texts.Length).Min(word => word.BoundingBox.Left);
+                    double right = line.Skip(index).Take(texts.Length).Max(word => word.BoundingBox.Right);
+                    return new PdfTextBounds(left, right);
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Could not find rendered PDF text '" + string.Join(" ", texts) + "'.");
     }
 
     private static string NormalizePdfProbeText(string text) => new string(text.Where(ch => !char.IsWhiteSpace(ch)).ToArray());

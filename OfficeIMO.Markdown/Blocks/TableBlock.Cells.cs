@@ -270,7 +270,27 @@ public sealed partial class TableBlock {
             }
         }
 
+        columnCount = Math.Max(columnCount, GetStructuredColumnCount(StructuredHeaders));
+        if (StructuredRows != null) {
+            for (int rowIndex = 0; rowIndex < StructuredRows.Count; rowIndex++) {
+                columnCount = Math.Max(columnCount, GetStructuredColumnCount(StructuredRows[rowIndex]));
+            }
+        }
+
         columnCount = Math.Max(columnCount, Alignments.Count);
+        return columnCount;
+    }
+
+    private static int GetStructuredColumnCount(IReadOnlyList<TableCell>? row) {
+        if (row == null || row.Count == 0) {
+            return 0;
+        }
+
+        int columnCount = 0;
+        for (int i = 0; i < row.Count; i++) {
+            columnCount += Math.Max(1, row[i]?.ColumnSpan ?? 1);
+        }
+
         return columnCount;
     }
 
@@ -390,15 +410,18 @@ public sealed partial class TableBlock {
     }
 
     private static IReadOnlyList<TableCell> AssignTableCellLocations(IReadOnlyList<TableCell> cells, bool isHeader, int rowIndex) {
+        int columnIndex = 0;
         for (int i = 0; i < cells.Count; i++) {
             var cell = cells[i];
             if (cell == null) {
+                columnIndex++;
                 continue;
             }
 
             cell.IsHeader = isHeader;
             cell.RowIndex = isHeader ? -1 : rowIndex;
-            cell.ColumnIndex = i;
+            cell.ColumnIndex = columnIndex;
+            columnIndex += Math.Max(1, cell.ColumnSpan);
         }
 
         return cells;

@@ -18,6 +18,11 @@ internal static partial class PdfWriter {
     }
 
     private static string EncodeTextHex(string text, PdfStandardFont font, PdfOptions? options) {
+        PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
+        if (diagnostic != null) {
+            throw CreateTextEncodingException(diagnostic, nameof(text));
+        }
+
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
@@ -46,6 +51,37 @@ internal static partial class PdfWriter {
 
         options?.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
         return EncodeWinAnsiHex(text);
+    }
+
+    private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
+        System.Collections.Generic.IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = options == null
+            ? PdfTextDiagnostics.AnalyzeWinAnsiText(text, "generated text")
+            : PdfTextDiagnostics.AnalyzeGeneratedText(text, options, font, "generated text");
+
+        return diagnostics.Count == 0 ? null : diagnostics[0];
+    }
+
+    private static ArgumentException CreateTextEncodingException(PdfTextEncodingDiagnostic diagnostic, string paramName) {
+        var exception = new ArgumentException(diagnostic.Message, paramName);
+        exception.Data["code"] = diagnostic.Code;
+        exception.Data["source"] = diagnostic.Source;
+        exception.Data["index"] = diagnostic.Index;
+        exception.Data["codePoint"] = diagnostic.CodePoint;
+        exception.Data["text"] = diagnostic.Text;
+        exception.Data["isControlCharacter"] = diagnostic.IsControlCharacter;
+        if (!string.IsNullOrWhiteSpace(diagnostic.Location)) {
+            exception.Data["location"] = diagnostic.Location;
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostic.Encoding)) {
+            exception.Data["encoding"] = diagnostic.Encoding;
+        }
+
+        if (!string.IsNullOrWhiteSpace(diagnostic.Remediation)) {
+            exception.Data["remediation"] = diagnostic.Remediation;
+        }
+
+        return exception;
     }
 
     private static int GetScalarUtf16Length(string text, int index) {

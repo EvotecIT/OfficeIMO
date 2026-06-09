@@ -161,6 +161,87 @@ internal static partial class PdfWriter {
         }
     }
 
+    private static void ValidateTableCellStyleCoordinates(PdfTableStyle style, TableBlock table, int columnCount) {
+        int rowCount = table.Rows.Count;
+        if (style.CellFills != null) {
+            foreach (var cellFill in style.CellFills) {
+                if (cellFill.Key.Row < 0 || cellFill.Key.Column < 0) {
+                    throw new ArgumentException("Table cell fill coordinates cannot be negative.");
+                }
+
+                ValidateTableCellStyleAnchor(table, columnCount, cellFill.Key.Row, cellFill.Key.Column, "Table cell fill coordinates must fit inside the table grid.");
+            }
+        }
+
+        if (style.CellBorders != null) {
+            foreach (var cellBorder in style.CellBorders) {
+                if (cellBorder.Key.Row < 0 || cellBorder.Key.Column < 0) {
+                    throw new ArgumentException("Table cell border coordinates cannot be negative.");
+                }
+
+                ValidateTableCellStyleAnchor(table, columnCount, cellBorder.Key.Row, cellBorder.Key.Column, "Table cell border coordinates must fit inside the table grid.");
+            }
+        }
+
+        if (style.CellDataBars != null) {
+            foreach (var cellDataBar in style.CellDataBars) {
+                if (cellDataBar.Key.Row < 0 || cellDataBar.Key.Column < 0) {
+                    throw new ArgumentException("Table cell data bar coordinates cannot be negative.");
+                }
+
+                ValidateTableCellStyleAnchor(table, columnCount, cellDataBar.Key.Row, cellDataBar.Key.Column, "Table cell data bar coordinates must fit inside the table grid.");
+            }
+        }
+
+        if (style.CellIcons != null) {
+            foreach (var cellIcon in style.CellIcons) {
+                if (cellIcon.Key.Row < 0 || cellIcon.Key.Column < 0) {
+                    throw new ArgumentException("Table cell icon coordinates cannot be negative.");
+                }
+
+                ValidateTableCellStyleAnchor(table, columnCount, cellIcon.Key.Row, cellIcon.Key.Column, "Table cell icon coordinates must fit inside the table grid.");
+            }
+        }
+
+        if (style.CellPaddings != null) {
+            foreach (var cellPadding in style.CellPaddings) {
+                if (cellPadding.Key.Row < 0 || cellPadding.Key.Column < 0) {
+                    throw new ArgumentException("Table cell padding coordinates cannot be negative.");
+                }
+
+                ValidateTableCellStyleAnchor(table, columnCount, cellPadding.Key.Row, cellPadding.Key.Column, "Table cell padding coordinates must fit inside the table grid.");
+            }
+        }
+
+        if (style.CellAlignments != null) {
+            foreach (var cellAlignment in style.CellAlignments) {
+                if (cellAlignment.Key.Row < 0 || cellAlignment.Key.Column < 0) {
+                    throw new ArgumentException("Table cell alignment coordinates cannot be negative.");
+                }
+
+                ValidateTableCellStyleAnchor(table, columnCount, cellAlignment.Key.Row, cellAlignment.Key.Column, "Table cell alignment coordinates must fit inside the table grid.");
+
+                if (!IsValidPdfColumnAlign(cellAlignment.Value)) {
+                    throw new ArgumentException("Table cell alignments must be Left, Center, or Right.");
+                }
+            }
+        }
+
+        if (style.CellVerticalAlignments != null) {
+            foreach (var cellAlignment in style.CellVerticalAlignments) {
+                if (cellAlignment.Key.Row < 0 || cellAlignment.Key.Column < 0) {
+                    throw new ArgumentException("Table cell vertical alignment coordinates cannot be negative.");
+                }
+
+                ValidateTableCellStyleAnchor(table, columnCount, cellAlignment.Key.Row, cellAlignment.Key.Column, "Table cell vertical alignment coordinates must fit inside the table grid.");
+
+                if (!IsValidPdfCellVerticalAlign(cellAlignment.Value)) {
+                    throw new ArgumentException("Table cell vertical alignments must be defined PDF cell vertical alignment values.");
+                }
+            }
+        }
+    }
+
     private static void ValidateTableCellStyleCoordinates(PdfTableStyle style, int rowCount, int columnCount) {
         if (style.CellFills != null) {
             foreach (var cellFill in style.CellFills) {
@@ -252,6 +333,12 @@ internal static partial class PdfWriter {
                     throw new ArgumentException("Table cell vertical alignments must be defined PDF cell vertical alignment values.");
                 }
             }
+        }
+    }
+
+    private static void ValidateTableCellStyleAnchor(TableBlock table, int columnCount, int row, int column, string outOfRangeMessage) {
+        if (row >= table.Rows.Count || column >= columnCount) {
+            throw new ArgumentException(outOfRangeMessage);
         }
     }
 

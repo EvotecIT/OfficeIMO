@@ -8,9 +8,6 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private const string DefaultEmbeddedFontFamily = "Arial, Aptos, Calibri, Liberation Sans, DejaVu Sans";
-    private const string DefaultEmbeddedMonospaceFontFamily = "Consolas, Courier New, Liberation Mono, DejaVu Sans Mono";
-
     /// <summary>
     /// Converts Markdown text to a first-party OfficeIMO PDF document model.
     /// </summary>
@@ -53,13 +50,13 @@ public static partial class MarkdownPdfConverterExtensions {
         pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.Markdown.Pdf");
 
         if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
-            pdfOptions.UseOfficeFontFamily(options.FontFamily);
+            pdfOptions.TryUseOfficeFontFamily(options.FontFamily);
         } else if (options.PdfOptions == null) {
-            pdfOptions.UseOfficeFontFamily(DefaultEmbeddedFontFamily);
+            pdfOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: false);
         }
 
         if (options.PdfOptions == null) {
-            pdfOptions.RegisterOfficeFontFamily(DefaultEmbeddedMonospaceFontFamily, PdfCore.PdfStandardFont.Courier);
+            pdfOptions.TryRegisterDefaultDocumentMonospaceFontFallback();
         }
 
         if (options.CreateOutlineFromHeadings) {

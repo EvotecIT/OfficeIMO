@@ -271,7 +271,7 @@ internal static partial class PdfWriter {
                 int headerRowCount = style.HeaderRowCount;
                 int footerRowCount = style.FooterRowCount;
                 int footerStartRowIndex = table.Rows.Count - footerRowCount;
-                ValidateTableCellStyleCoordinates(style, table.Rows.Count, columns);
+                ValidateTableCellStyleCoordinates(style, table, columns);
                 ValidateTableColumnStyleBounds(style, columns);
                 ValidateTableRowStyleBounds(style, table.Rows.Count);
                 ValidateTableRowSpansWithinRoleBoundaries(table, columns, headerRowCount, footerStartRowIndex);
