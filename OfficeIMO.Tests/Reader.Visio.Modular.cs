@@ -1,6 +1,7 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Visio;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using Xunit;
@@ -89,6 +90,39 @@ public sealed class ReaderVisioModularTests {
     }
 
     [Fact]
+    public void DocumentReaderVisio_ReadVisio_HonorsMaxCharsForPageChunks() {
+        using MemoryStream stream = BuildLargeTextVisio();
+
+        List<ReaderChunk> chunks = DocumentReaderVisioExtensions.ReadVisio(
+            stream,
+            sourceName: "large.vsdx",
+            readerOptions: new ReaderOptions { MaxChars = 256 }).ToList();
+
+        Assert.True(chunks.Count > 1);
+        Assert.All(chunks, chunk => {
+            Assert.True((chunk.Markdown ?? string.Empty).Length <= 256);
+            Assert.True((chunk.Text ?? string.Empty).Length <= 256);
+        });
+        Assert.Equal(chunks.Count, chunks.Select(chunk => chunk.Id).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    [Fact]
+    public void DocumentReaderVisio_ReadVisioTables_RespectsMaxTableRows() {
+        using MemoryStream stream = BuildManyShapeDataRowsVisio();
+
+        IReadOnlyList<ReaderTable> tables = DocumentReaderVisioExtensions.ReadVisioTables(
+            stream,
+            sourceName: "shape-data.vsdx",
+            readerOptions: new ReaderOptions { MaxTableRows = 2 });
+
+        ReaderTable table = Assert.Single(tables);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(5, table.TotalRowCount);
+        Assert.True(table.Truncated);
+        Assert.DoesNotContain(table.Rows, row => row[3] == "Key5");
+    }
+
+    [Fact]
     public void DocumentReaderVisio_ReadVisioDocumentJson_EmitsStableTransportShape() {
         using MemoryStream stream = BuildSampleVisio();
 
@@ -165,6 +199,34 @@ public sealed class ReaderVisioModularTests {
         connector.Label = "Gateway -> Service";
         connector.SetShapeData("Protocol", "TLS", "Protocol", VisioShapeDataType.String);
         connector.AddHyperlink("https://example.test/flow", "Flow details");
+        document.Save();
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream BuildLargeTextVisio() {
+        var stream = new MemoryStream();
+        VisioDocument document = VisioDocument.Create(stream);
+        VisioPage page = document.AddPage("Large", 8, 5);
+        for (int i = 0; i < 32; i++) {
+            page.AddRectangle(1 + (i % 4), 1 + (i / 4) * 0.3, 0.8, 0.2, "Node " + i.ToString("D2", CultureInfo.InvariantCulture) + " " + new string('A', 32));
+        }
+
+        document.Save();
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream BuildManyShapeDataRowsVisio() {
+        var stream = new MemoryStream();
+        VisioDocument document = VisioDocument.Create(stream);
+        VisioPage page = document.AddPage("Shape Data", 8, 5);
+        VisioShape shape = page.AddRectangle(1.5, 3.5, 1.4, 0.7, "Data Shape");
+        for (int i = 1; i <= 5; i++) {
+            string key = "Key" + i.ToString(CultureInfo.InvariantCulture);
+            shape.SetShapeData(key, "Value " + i.ToString(CultureInfo.InvariantCulture), key, VisioShapeDataType.String);
+        }
+
         document.Save();
         stream.Position = 0;
         return stream;

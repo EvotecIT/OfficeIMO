@@ -198,9 +198,15 @@ public static class ReaderVisualExportMaterializer {
             prefix = "visual-export";
         }
 
-        string fileName = OfficeDocumentAssetNaming.BuildFileName(prefix, GetExtension(export, format));
+        string extension = GetExtension(export, format);
+        if (format == ReaderVisualExportFormat.Json &&
+            string.Equals(NormalizeExtension(export.PayloadExtension), ".json", StringComparison.OrdinalIgnoreCase)) {
+            prefix += ".metadata";
+        }
+
+        string fileName = OfficeDocumentAssetNaming.BuildFileName(prefix, extension);
         fileName = System.IO.Path.GetFileName(fileName);
-        return string.IsNullOrWhiteSpace(fileName) ? OfficeDocumentAssetNaming.BuildFileName("visual-export", GetExtension(export, format)) : fileName;
+        return string.IsNullOrWhiteSpace(fileName) ? OfficeDocumentAssetNaming.BuildFileName("visual-export", extension) : fileName;
     }
 
     private static string GetPayload(ReaderVisualExportBundle export, ReaderVisualExportFormat format) {
@@ -223,6 +229,19 @@ public static class ReaderVisualExportMaterializer {
             default:
                 throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported visual export format.");
         }
+    }
+
+    private static string? NormalizeExtension(string? extension) {
+        if (string.IsNullOrWhiteSpace(extension)) {
+            return null;
+        }
+
+        string trimmed = extension!.Trim();
+        if (trimmed.Length == 0) {
+            return null;
+        }
+
+        return trimmed.StartsWith(".", StringComparison.Ordinal) ? trimmed : "." + trimmed;
     }
 
     private static ReaderVisualMaterializedExport Skipped(ReaderVisualExportBundle export, ReaderVisualExportFormat format, string fileName, string? path, string reason) {

@@ -10,6 +10,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using DPic = DocumentFormat.OpenXml.Drawing.Pictures;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Reader;
@@ -204,7 +206,8 @@ public static partial class DocumentReader {
 
             OpenXmlPart part = pair.OpenXmlPart;
             if (part is ImagePart imagePart) {
-                IReadOnlyList<OpenXmlImageAssetMetadata>? metadataPlacements = resolveMetadata?.Invoke(container, pair.RelationshipId);
+                IReadOnlyList<OpenXmlImageAssetMetadata>? metadataPlacements = resolveMetadata?.Invoke(container, pair.RelationshipId)
+                    ?? ResolveOpenXmlImageMetadataPlacements(container, pair.RelationshipId);
                 int placementCount = metadataPlacements?.Count ?? Math.Max(1, CountImageRelationshipPlacements(container, pair.RelationshipId));
                 for (int placementIndex = 0; placementIndex < placementCount; placementIndex++) {
                     OpenXmlImageAssetMetadata? metadata = metadataPlacements != null && placementIndex < metadataPlacements.Count
@@ -350,6 +353,44 @@ public static partial class DocumentReader {
         }
 
         return metadata.TryGetValue(relationshipId, out IReadOnlyList<OpenXmlImageAssetMetadata>? value) ? value : null;
+    }
+
+    private static IReadOnlyList<OpenXmlImageAssetMetadata>? ResolveOpenXmlImageMetadataPlacements(OpenXmlPartContainer container, string relationshipId) {
+        OpenXmlPartRootElement? root = (container as OpenXmlPart)?.RootElement;
+        if (root == null) {
+            return null;
+        }
+
+        List<OpenXmlImageAssetMetadata>? placements = null;
+        foreach (A.Blip blip in root.Descendants<A.Blip>()) {
+            if (!string.Equals(blip.Embed?.Value, relationshipId, StringComparison.Ordinal) &&
+                !string.Equals(blip.Link?.Value, relationshipId, StringComparison.Ordinal)) {
+                continue;
+            }
+
+            placements ??= new List<OpenXmlImageAssetMetadata>();
+            placements.Add(ResolveOpenXmlImageMetadata(blip));
+        }
+
+        return placements == null || placements.Count == 0 ? null : placements;
+    }
+
+    private static OpenXmlImageAssetMetadata ResolveOpenXmlImageMetadata(A.Blip blip) {
+        DW.DocProperties? wordProperties = blip.Ancestors<DW.Inline>().FirstOrDefault()?.DocProperties
+            ?? blip.Ancestors<DW.Anchor>().FirstOrDefault()?.GetFirstChild<DW.DocProperties>();
+        DPic.NonVisualDrawingProperties? drawingProperties = blip.Ancestors<DPic.Picture>().FirstOrDefault()?.NonVisualPictureProperties?.NonVisualDrawingProperties;
+        NonVisualDrawingProperties? presentationProperties = blip.Ancestors<DocumentFormat.OpenXml.Presentation.Picture>().FirstOrDefault()?.NonVisualPictureProperties?.NonVisualDrawingProperties;
+
+        return new OpenXmlImageAssetMetadata {
+            AltText = NormalizeOptionalAssetText(
+                wordProperties?.Description?.Value ??
+                drawingProperties?.Description?.Value ??
+                presentationProperties?.Description?.Value),
+            Title = NormalizeOptionalAssetText(
+                wordProperties?.Title?.Value ??
+                drawingProperties?.Title?.Value ??
+                presentationProperties?.Title?.Value)
+        };
     }
 
     private static bool ShouldTraverseRelatedPart(ReaderInputKind kind, ReaderOptions opt, OpenXmlPart part) {

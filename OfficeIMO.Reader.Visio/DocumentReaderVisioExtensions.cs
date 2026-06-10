@@ -80,17 +80,81 @@ public static partial class DocumentReaderVisioExtensions {
             cancellationToken.ThrowIfCancellationRequested();
             VisioInspectionPageSnapshot page = snapshot.Pages[pageIndex];
             string markdown = BuildPageMarkdown(snapshot, page);
-            ReaderTable? shapeDataTable = BuildShapeDataTable(page, source, pageIndex);
+            string text = BuildPageText(page);
+            ReaderTable? shapeDataTable = BuildShapeDataTable(page, source, pageIndex, readerOptions.MaxTableRows);
 
-            yield return EnrichChunk(new ReaderChunk {
+            foreach (ReaderChunk chunk in BuildPageChunks(source, pageIndex, text, markdown, shapeDataTable, readerOptions.MaxChars)) {
+                yield return EnrichChunk(chunk, source, readerOptions.ComputeHashes);
+            }
+        }
+    }
+
+    private static IEnumerable<ReaderChunk> BuildPageChunks(SourceMetadata source, int pageIndex, string text, string markdown, ReaderTable? shapeDataTable, int maxChars) {
+        maxChars = Math.Max(1, maxChars);
+        if (text.Length <= maxChars && markdown.Length <= maxChars) {
+            yield return new ReaderChunk {
                 Id = "visio-page-" + (pageIndex + 1).ToString("D4", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.Visio,
                 Location = BuildLocation(source, pageIndex, "page", "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture)),
-                Text = BuildPageText(page),
+                Text = text,
                 Markdown = markdown,
                 Tables = shapeDataTable == null ? null : new[] { shapeDataTable }
-            }, source, readerOptions.ComputeHashes);
+            };
+            yield break;
         }
+
+        IReadOnlyList<string> textParts = SplitByMaxChars(text, maxChars);
+        IReadOnlyList<string> markdownParts = SplitByMaxChars(markdown, maxChars);
+        int partCount = Math.Max(textParts.Count, markdownParts.Count);
+        for (int partIndex = 0; partIndex < partCount; partIndex++) {
+            string blockAnchor = "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-part-" + (partIndex + 1).ToString(CultureInfo.InvariantCulture);
+            yield return new ReaderChunk {
+                Id = "visio-page-" + (pageIndex + 1).ToString("D4", CultureInfo.InvariantCulture) + "-part-" + (partIndex + 1).ToString("D4", CultureInfo.InvariantCulture),
+                Kind = ReaderInputKind.Visio,
+                Location = BuildLocation(source, pageIndex, "page", blockAnchor),
+                Text = partIndex < textParts.Count ? textParts[partIndex] : string.Empty,
+                Markdown = partIndex < markdownParts.Count ? markdownParts[partIndex] : string.Empty,
+                Tables = partIndex == 0 && shapeDataTable != null ? new[] { shapeDataTable } : null
+            };
+        }
+    }
+
+    private static IReadOnlyList<string> SplitByMaxChars(string value, int maxChars) {
+        if (string.IsNullOrEmpty(value)) {
+            return new[] { string.Empty };
+        }
+
+        var parts = new List<string>();
+        int offset = 0;
+        while (offset < value.Length) {
+            int length = Math.Min(maxChars, value.Length - offset);
+            int cut = length;
+            if (offset + length < value.Length) {
+                int newlineIndex = value.LastIndexOf('\n', offset + length - 1, length);
+                if (newlineIndex > offset) {
+                    cut = newlineIndex - offset + 1;
+                } else {
+                    int spaceIndex = value.LastIndexOf(' ', offset + length - 1, length);
+                    if (spaceIndex > offset) {
+                        cut = spaceIndex - offset + 1;
+                    }
+                }
+            }
+
+            string part = value.Substring(offset, cut).Trim();
+            if (part.Length == 0) {
+                part = value.Substring(offset, length);
+                cut = length;
+            }
+
+            parts.Add(part);
+            offset += cut;
+            while (offset < value.Length && char.IsWhiteSpace(value[offset])) {
+                offset++;
+            }
+        }
+
+        return parts;
     }
 
     internal static string BuildPageMarkdown(VisioInspectionSnapshot snapshot, VisioInspectionPageSnapshot page) {
@@ -171,7 +235,7 @@ public static partial class DocumentReaderVisioExtensions {
         }
     }
 
-    internal static ReaderTable? BuildShapeDataTable(VisioInspectionPageSnapshot page, SourceMetadata source, int pageIndex) {
+    internal static ReaderTable? BuildShapeDataTable(VisioInspectionPageSnapshot page, SourceMetadata source, int pageIndex, int maxTableRows) {
         var rows = new List<IReadOnlyList<string>>();
         foreach (VisioInspectionShapeSnapshot shape in page.Shapes) {
             AddShapeDataRows(rows, "shape", shape.Id, shape.Text, shape.ShapeData);
@@ -185,15 +249,19 @@ public static partial class DocumentReaderVisioExtensions {
         }
 
         string[] columns = { "OwnerType", "OwnerId", "OwnerText", "Name", "Label", "Value", "Type", "Prompt" };
+        int totalRowCount = rows.Count;
+        IReadOnlyList<IReadOnlyList<string>> visibleRows = rows.Count > maxTableRows
+            ? rows.Take(maxTableRows).ToArray()
+            : rows;
         return new ReaderTable {
             Title = page.Name + " Shape Data",
             Kind = "visio-shape-data",
             Location = BuildLocation(source, pageIndex, "shape-data", "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) + "-shape-data"),
             Columns = columns,
-            ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, rows),
-            Rows = rows,
-            TotalRowCount = rows.Count,
-            Truncated = false
+            ColumnProfiles = ReaderTableProfiler.CreateProfiles(columns, visibleRows),
+            Rows = visibleRows,
+            TotalRowCount = totalRowCount,
+            Truncated = totalRowCount > visibleRows.Count
         };
     }
 

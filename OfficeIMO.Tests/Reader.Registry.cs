@@ -132,6 +132,46 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadDocument_SkipsBuiltInAssetsWhenCustomPathReaderOverridesOpenXmlExtension() {
+        const string handlerId = "officeimo.tests.custom.docx";
+        const string extension = ".docx";
+
+        var file = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
+        try {
+            DocumentReader.UnregisterHandler(handlerId);
+            DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+                Id = handlerId,
+                DisplayName = "Custom DOCX override",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { extension },
+                ReadPath = (path, options, ct) => new[] {
+                    new ReaderChunk {
+                        Id = "custom-docx-0001",
+                        Kind = ReaderInputKind.Text,
+                        Location = new ReaderLocation {
+                            Path = path,
+                            BlockIndex = 0
+                        },
+                        Text = "custom-docx-output"
+                    }
+                }
+            }, replaceExisting: true);
+
+            File.WriteAllText(file, "not an OpenXML package");
+
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(file);
+
+            Assert.Equal(ReaderInputKind.Text, result.Kind);
+            ReaderChunk chunk = Assert.Single(result.Chunks);
+            Assert.Equal("custom-docx-output", chunk.Text);
+            Assert.Empty(result.Assets);
+        } finally {
+            DocumentReader.UnregisterHandler(handlerId);
+            if (File.Exists(file)) File.Delete(file);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_RegisterHandler_RejectsInvalidAdvertisedDefaultMaxInputBytes() {
         const string handlerId = "officeimo.tests.custom.invalidmax";
         DocumentReader.UnregisterHandler(handlerId);

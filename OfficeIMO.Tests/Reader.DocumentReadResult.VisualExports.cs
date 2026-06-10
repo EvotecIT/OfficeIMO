@@ -90,6 +90,30 @@ public sealed class ReaderDocumentReadResultVisualExportTests {
     }
 
     [Fact]
+    public void ReaderVisualExportMaterializer_WriteVisualExportsToDirectory_DisambiguatesJsonPayloadAndSidecar() {
+        var export = new ReaderVisualExportBundle {
+            Id = "chart-visual",
+            FileNamePrefix = "chart-visual",
+            PayloadExtension = ".json",
+            Payload = "{\"payload\":true}",
+            Json = "{\"kind\":\"chart\"}"
+        };
+        var directory = Path.Combine(Path.GetTempPath(), "officeimo-reader-json-visuals-" + Guid.NewGuid().ToString("N"));
+
+        try {
+            IReadOnlyList<ReaderVisualMaterializedExport> materialized = new[] { export }.WriteVisualExportsToDirectory(directory);
+
+            Assert.Equal(2, materialized.Count);
+            Assert.Contains(materialized, item => item.Format == ReaderVisualExportFormat.Payload && item.FileName == "chart-visual.json");
+            Assert.Contains(materialized, item => item.Format == ReaderVisualExportFormat.Json && item.FileName == "chart-visual-metadata.json");
+            Assert.Equal("{\"payload\":true}", File.ReadAllText(Path.Combine(directory, "chart-visual.json")));
+            Assert.Equal("{\"kind\":\"chart\"}", File.ReadAllText(Path.Combine(directory, "chart-visual-metadata.json")));
+        } finally {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void ReaderVisualExport_ToJson_EmitsStableNormalizedVisualShape() {
         var visual = new ReaderVisual {
             Kind = "chart",

@@ -66,7 +66,9 @@ public sealed class ReaderDocumentReadResultAssetTests {
         try {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
-                document.AddParagraph("Logo:").AddImage(imagePath);
+                WordImage image = document.AddParagraph("Logo:").InsertImage(imagePath);
+                image.Description = "Company logo alt text";
+                image.Title = "Company logo title";
                 document.Save();
             }
 
@@ -77,6 +79,8 @@ public sealed class ReaderDocumentReadResultAssetTests {
             Assert.Equal("image/png", asset.MediaType);
             Assert.Equal(".png", asset.Extension);
             Assert.Equal("word-image-0000.png", asset.FileName);
+            Assert.Equal("Company logo alt text", asset.AltText);
+            Assert.Equal("Company logo title", asset.Title);
             Assert.Equal(path, asset.Location.Path);
             Assert.Equal("image", asset.Location.SourceBlockKind);
             Assert.Equal("word-image-0000", asset.Location.BlockAnchor);
@@ -113,7 +117,8 @@ public sealed class ReaderDocumentReadResultAssetTests {
         using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Intro slide");
-            slide.AddPicture(imagePath);
+            PowerPointPicture picture = slide.AddPicture(imagePath);
+            picture.AltText = "Slide logo alt text";
             presentation.Save();
         }
 
@@ -125,6 +130,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         Assert.Equal("image", asset.Kind);
         Assert.Equal("image/png", asset.MediaType);
         Assert.Equal(".png", asset.Extension);
+        Assert.Equal("Slide logo alt text", asset.AltText);
         Assert.Equal("deck.pptx", asset.Location.Path);
         Assert.Equal(1, asset.Location.Slide);
         Assert.Equal("image", asset.Location.SourceBlockKind);
