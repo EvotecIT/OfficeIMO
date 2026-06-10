@@ -142,12 +142,12 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
     public IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> Rows { get; }
 
     private static IReadOnlyList<MarkdownNativeTableCell> BuildHeaderCells(TableBlock table, MarkdownSyntaxNode syntaxNode) {
-        if (table.HeaderCells.Count == 0 && table.Headers.Count == 0) {
+        if (table.Headers.Count == 0) {
             return Array.Empty<MarkdownNativeTableCell>();
         }
 
         var headerNode = syntaxNode.Children.FirstOrDefault(static child => child.Kind == MarkdownSyntaxKind.TableHeader);
-        return BuildCells(table.Headers, table.HeaderCells, headerNode, isHeader: true, rowIndex: -1);
+        return BuildCells(table.Headers, table.HeaderCells, table.Alignments, headerNode, isHeader: true, rowIndex: -1);
     }
 
     private static IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> BuildRows(TableBlock table, MarkdownSyntaxNode syntaxNode) {
@@ -162,7 +162,7 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
             var rawCells = rowIndex < table.Rows.Count ? table.Rows[rowIndex] : Array.Empty<string>();
             var structuredCells = rowIndex < table.RowCells.Count ? table.RowCells[rowIndex] : Array.Empty<TableCell>();
             var rowNode = rowIndex < rowNodes.Length ? rowNodes[rowIndex] : null;
-            rows.Add(BuildCells(rawCells, structuredCells, rowNode, isHeader: false, rowIndex: rowIndex));
+            rows.Add(BuildCells(rawCells, structuredCells, table.Alignments, rowNode, isHeader: false, rowIndex: rowIndex));
         }
 
         return rows;
@@ -171,6 +171,7 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
     private static IReadOnlyList<MarkdownNativeTableCell> BuildCells(
         IReadOnlyList<string> rawCells,
         IReadOnlyList<TableCell> structuredCells,
+        IReadOnlyList<ColumnAlignment> columnAlignments,
         MarkdownSyntaxNode? rowNode,
         bool isHeader,
         int rowIndex) {
@@ -184,10 +185,24 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
             var raw = rawCells != null && columnIndex < rawCells.Count ? rawCells[columnIndex] ?? string.Empty : string.Empty;
             var cell = structuredCells != null && columnIndex < structuredCells.Count ? structuredCells[columnIndex] : null;
             var cellNode = rowNode != null && columnIndex < rowNode.Children.Count ? rowNode.Children[columnIndex] : null;
-            cells.Add(new MarkdownNativeTableCell(raw, cell, cellNode, isHeader, rowIndex, columnIndex));
+            var alignment = ResolveAlignment(cell, columnAlignments, columnIndex);
+            cells.Add(new MarkdownNativeTableCell(raw, cell, cellNode, isHeader, rowIndex, columnIndex, alignment));
         }
 
         return cells;
+    }
+
+    private static ColumnAlignment ResolveAlignment(
+        TableCell? sourceCell,
+        IReadOnlyList<ColumnAlignment> columnAlignments,
+        int columnIndex) {
+        if (sourceCell != null && sourceCell.Alignment != ColumnAlignment.None) {
+            return sourceCell.Alignment;
+        }
+
+        return columnAlignments != null && columnIndex >= 0 && columnIndex < columnAlignments.Count
+            ? columnAlignments[columnIndex]
+            : ColumnAlignment.None;
     }
 }
 
@@ -201,7 +216,8 @@ public sealed class MarkdownNativeTableCell {
         MarkdownSyntaxNode? syntaxNode,
         bool isHeader,
         int rowIndex,
-        int columnIndex) {
+        int columnIndex,
+        ColumnAlignment alignment) {
         RawText = rawText ?? string.Empty;
         SourceCell = sourceCell;
         SyntaxNode = syntaxNode;
@@ -212,7 +228,7 @@ public sealed class MarkdownNativeTableCell {
         Text = ExtractText(sourceCell, RawText);
         Markdown = sourceCell?.Markdown ?? RawText;
         Blocks = sourceCell != null ? sourceCell.Blocks : Array.Empty<IMarkdownBlock>();
-        Alignment = sourceCell?.Alignment ?? ColumnAlignment.None;
+        Alignment = alignment;
     }
 
     /// <summary>Raw cell text from the table source.</summary>

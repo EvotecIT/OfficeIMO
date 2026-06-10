@@ -234,6 +234,22 @@ Rendered result:
         }
 
         [Fact]
+        public void IntelligenceXMarkdownRenderer_ParseTranscriptNativeDesktopShell_Uses_Renderer_Semantic_Fences() {
+            var markdown = """
+```mermaid
+flowchart LR
+  A-->B
+```
+""";
+
+            var native = IntelligenceXMarkdownRenderer.ParseTranscriptNativeDesktopShell(markdown);
+
+            var visual = Assert.IsType<MarkdownNativeVisualBlock>(Assert.Single(native.Blocks));
+            Assert.Equal(MarkdownSemanticKinds.Mermaid, visual.SemanticKind);
+            Assert.Equal("mermaid", visual.Language);
+        }
+
+        [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Reuses_Shared_Transcript_Reader_Contract() {
             var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
                 preservesGroupedDefinitionLikeParagraphs: false,

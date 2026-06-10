@@ -55,4 +55,37 @@ Console.WriteLine(1);
         Assert.Equal(11, visual.SourceSpan!.Value.StartLine);
         Assert.Same(visual, native.FindBlockAtLine(12));
     }
+
+    [Fact]
+    public void Parse_Does_Not_Project_Phantom_Headers_For_Headerless_Tables() {
+        var markdown = """
+| One | 1 |
+| Two | 2 |
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
+        Assert.Empty(table.HeaderCells);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal("One", table.Rows[0][0].Text);
+        Assert.Equal("2", table.Rows[1][1].Text);
+    }
+
+    [Fact]
+    public void Parse_Preserves_Table_Column_Alignment_In_Native_Cells() {
+        var markdown = """
+| Name | Value |
+| :--- | ---: |
+| CPU | 42 |
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
+        Assert.Equal(ColumnAlignment.Left, table.HeaderCells[0].Alignment);
+        Assert.Equal(ColumnAlignment.Right, table.HeaderCells[1].Alignment);
+        Assert.Equal(ColumnAlignment.Left, table.Rows[0][0].Alignment);
+        Assert.Equal(ColumnAlignment.Right, table.Rows[0][1].Alignment);
+    }
 }

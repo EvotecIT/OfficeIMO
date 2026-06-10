@@ -172,7 +172,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// </summary>
     public static MarkdownNativeDocument ParseTranscriptNative(string markdown, string? baseHref = null) {
         var options = CreateTranscript(baseHref);
-        return MarkdownNativeDocument.Parse(markdown, options.ReaderOptions);
+        return MarkdownRenderer.ParseNativeDocument(markdown, options);
     }
 
     /// <summary>
@@ -180,7 +180,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// </summary>
     public static MarkdownNativeDocument ParseTranscriptNativeMinimal(string markdown, string? baseHref = null) {
         var options = CreateTranscriptMinimal(baseHref);
-        return MarkdownNativeDocument.Parse(markdown, options.ReaderOptions);
+        return MarkdownRenderer.ParseNativeDocument(markdown, options);
     }
 
     /// <summary>
@@ -188,7 +188,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// </summary>
     public static MarkdownNativeDocument ParseTranscriptNativeDesktopShell(string markdown, string? baseHref = null) {
         var options = CreateTranscriptDesktopShell(baseHref);
-        return MarkdownNativeDocument.Parse(markdown, options.ReaderOptions);
+        return MarkdownRenderer.ParseNativeDocument(markdown, options);
     }
 
     /// <summary>
@@ -196,6 +196,6 @@ public static class IntelligenceXMarkdownRenderer {
     /// </summary>
     public static MarkdownNativeDocument ParseTranscriptNativeRelaxed(string markdown, string? baseHref = null) {
         var options = CreateTranscriptRelaxed(baseHref);
-        return MarkdownNativeDocument.Parse(markdown, options.ReaderOptions);
+        return MarkdownRenderer.ParseNativeDocument(markdown, options);
     }
 }

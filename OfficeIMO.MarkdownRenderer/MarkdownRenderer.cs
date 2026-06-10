@@ -71,6 +71,21 @@ public static partial class MarkdownRenderer {
     }
 
     /// <summary>
+    /// Parses Markdown using the renderer-owned pipeline and returns the AST-backed native projection.
+    /// </summary>
+    public static MarkdownNativeDocument ParseNativeDocument(
+        string markdown,
+        MarkdownRendererOptions? options = null) {
+        var result = ParseDocumentResult(markdown, options);
+        var parseResult = new MarkdownParseResult(
+            result.Document,
+            result.SyntaxTree,
+            result.FinalSyntaxTree,
+            result.TransformDiagnostics);
+        return MarkdownNativeDocument.FromParseResult(parseResult);
+    }
+
+    /// <summary>
     /// Parses Markdown using OfficeIMO.Markdown and returns an HTML fragment (typically an &lt;article class="markdown-body"&gt; wrapper).
     /// When Mermaid is enabled, Mermaid code blocks are annotated with hashes for incremental rendering.
     /// </summary>
