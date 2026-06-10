@@ -71,7 +71,7 @@ public sealed class MarkdownNativeListItem {
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         Text = InlinePlainText.Extract(item.Content);
         Inlines = item.Content;
-        InlineRuns = MarkdownNativeInlineProjection.FromFirstDescendantInlineContainer(syntaxNode);
+        InlineRuns = MarkdownNativeInlineProjection.FromListItemLeadContent(syntaxNode, item);
         AdditionalParagraphs = item.AdditionalParagraphs;
         IsTask = item.IsTask;
         Checked = item.Checked;

@@ -230,6 +230,35 @@ Paragraph with `code` and ![Alt](img.png "Img").
     }
 
     [Fact]
+    public void Parse_Restricts_BlockFirst_List_Item_InlineRuns_To_Lead_Content() {
+        const string markdown = """
+- - foo
+- # Bar
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+
+        var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
+        Assert.Equal(2, list.Items.Count);
+        Assert.Empty(list.Items[0].Text);
+        Assert.Empty(list.Items[0].InlineRuns);
+        Assert.Empty(list.Items[1].Text);
+        Assert.Empty(list.Items[1].InlineRuns);
+
+        var nestedList = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(list.Items[0].Children));
+        var nestedItem = Assert.Single(nestedList.Items);
+        var nestedInline = Assert.Single(nestedItem.InlineRuns);
+        Assert.Equal("foo", nestedInline.Text);
+
+        var heading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(list.Items[1].Children));
+        var headingInline = Assert.Single(heading.InlineRuns);
+        Assert.Equal("Bar", headingInline.Text);
+
+        Assert.Single(native.EnumerateInlines(), inline => inline.Text == "foo");
+        Assert.Single(native.EnumerateInlines(), inline => inline.Text == "Bar");
+    }
+
+    [Fact]
     public void Parse_Exposes_Visual_Payload_Hints_Without_Json_Dependency() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));

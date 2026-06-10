@@ -131,6 +131,20 @@ internal static class MarkdownNativeInlineProjection {
         return container == null ? Array.Empty<MarkdownNativeInline>() : FromInlineContainer(container);
     }
 
+    internal static IReadOnlyList<MarkdownNativeInline> FromListItemLeadContent(MarkdownSyntaxNode? node, ListItem? item) {
+        if (node == null || item == null || item.Content.Nodes.Count == 0) {
+            return Array.Empty<MarkdownNativeInline>();
+        }
+
+        for (var i = 0; i < node.Children.Count; i++) {
+            if (node.Children[i].Kind == MarkdownSyntaxKind.Paragraph) {
+                return FromInlineContainer(node.Children[i]);
+            }
+        }
+
+        return Array.Empty<MarkdownNativeInline>();
+    }
+
     private static IReadOnlyList<MarkdownNativeInline> FromSyntaxNodes(IReadOnlyList<MarkdownSyntaxNode> nodes) {
         if (nodes == null || nodes.Count == 0) {
             return Array.Empty<MarkdownNativeInline>();

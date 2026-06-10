@@ -189,9 +189,12 @@ public sealed class MarkdownNativeDocument {
 
     /// <summary>Enumerates all native inline runs in document order.</summary>
     public IEnumerable<MarkdownNativeInline> EnumerateInlines() {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < Blocks.Count; i++) {
             foreach (var inline in EnumerateInlines(Blocks[i])) {
-                yield return inline;
+                if (seen.Add(inline.Id)) {
+                    yield return inline;
+                }
             }
         }
     }
