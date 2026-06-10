@@ -291,7 +291,7 @@ public sealed class MarkdownNativeTableCell {
         Blocks = sourceCell != null ? sourceCell.Blocks : Array.Empty<IMarkdownBlock>();
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         Alignment = alignment;
-        InlineRuns = MarkdownNativeInlineProjection.FromFirstDescendantInlineContainer(syntaxNode);
+        InlineRuns = MarkdownNativeInlineProjection.FromTableCellDirectContent(syntaxNode);
     }
 
     /// <summary>Raw cell text from the table source.</summary>

@@ -182,6 +182,7 @@ Console.WriteLine(1);
 
         var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
         var detailCell = table.Rows[0][1];
+        Assert.Empty(detailCell.InlineRuns);
         var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(detailCell.Children));
         Assert.Equal(new[] { "high", "low" }, list.Items.Select(item => item.Text).ToArray());
         Assert.Same(list, native.FindBlockById(list.Id));
@@ -189,6 +190,7 @@ Console.WriteLine(1);
         Assert.Contains(native.DescendantBlocksAndSelf(), block => ReferenceEquals(block, list));
 
         var snapshotCell = native.ToSnapshot().Blocks[0].Rows[0][1];
+        Assert.Empty(snapshotCell.Inlines);
         var snapshotList = Assert.Single(snapshotCell.Children);
         Assert.Equal(MarkdownNativeBlockKind.List, snapshotList.Kind);
         Assert.Equal(new[] { "high", "low" }, snapshotList.Items.Select(item => item.Text).ToArray());
@@ -294,6 +296,12 @@ Paragraph with `code` and ![Alt](img.png "Img").
         Assert.Equal(2, native.Blocks.Select(block => block.Id).Distinct().Count());
         Assert.Equal(native.Blocks[0], native.FindBlockById(native.Blocks[0].Id));
         Assert.Equal(native.Blocks[1], native.FindBlockById(native.Blocks[1].Id));
+
+        var inlines = native.EnumerateInlines().Where(inline => inline.Text == "Same").ToArray();
+        Assert.Equal(2, inlines.Length);
+        Assert.Equal(2, inlines.Select(inline => inline.Id).Distinct().Count());
+        Assert.Equal(inlines[0], native.FindInlineById(inlines[0].Id));
+        Assert.Equal(inlines[1], native.FindInlineById(inlines[1].Id));
     }
 
     [Fact]
@@ -397,6 +405,23 @@ Outside
         var updated = edit.Apply(native.SourceMarkdown);
 
         Assert.Equal("First\n\nUpdated\n", updated);
+    }
+
+    [Fact]
+    public void Renderer_ParseNativeDocument_Uses_Reader_Normalized_Source_For_Edits() {
+        var markdown = "First\r\n\r\nSecond\r\n";
+
+        var parseResult = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseDocumentResult(markdown);
+        var native = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseNativeDocument(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[1]);
+
+        Assert.Equal("First\r\n\r\nSecond\r\n", parseResult.PreprocessedMarkdown);
+        Assert.Equal("First\n\nSecond\n", parseResult.SourceMarkdown);
+        Assert.Equal(MarkdownNativeDocumentSourceKind.RendererPreprocessed, native.SourceKind);
+        Assert.Equal("First\n\nSecond\n", native.SourceMarkdown);
+
+        var edit = native.CreateReplaceEdit(paragraph, "Updated");
+        Assert.Equal("First\n\nUpdated\n", edit.Apply(native.SourceMarkdown));
     }
 
     [Fact]

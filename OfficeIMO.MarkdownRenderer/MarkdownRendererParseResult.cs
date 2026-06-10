@@ -12,6 +12,9 @@ public sealed class MarkdownRendererParseResult {
     /// <summary>The final markdown text after renderer preprocessing and before parsing.</summary>
     public string PreprocessedMarkdown { get; }
 
+    /// <summary>The reader-normalized markdown source text used to compute syntax source spans.</summary>
+    public string SourceMarkdown { get; }
+
     /// <summary>The original syntax tree produced before document transforms were applied.</summary>
     public MarkdownSyntaxNode SyntaxTree { get; }
     /// <summary>The syntax tree corresponding to the final renderer-owned <see cref="Document"/>.</summary>
@@ -26,12 +29,14 @@ public sealed class MarkdownRendererParseResult {
     internal MarkdownRendererParseResult(
         MarkdownDoc document,
         string preprocessedMarkdown,
+        string sourceMarkdown,
         MarkdownSyntaxNode syntaxTree,
         MarkdownSyntaxNode? finalSyntaxTree = null,
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
         IReadOnlyList<MarkdownRendererPreProcessorDiagnostic>? preProcessorDiagnostics = null) {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         PreprocessedMarkdown = preprocessedMarkdown ?? string.Empty;
+        SourceMarkdown = sourceMarkdown ?? string.Empty;
         SyntaxTree = syntaxTree ?? throw new ArgumentNullException(nameof(syntaxTree));
         FinalSyntaxTree = finalSyntaxTree ?? SyntaxTree;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();

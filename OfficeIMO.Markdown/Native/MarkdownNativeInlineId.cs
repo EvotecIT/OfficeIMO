@@ -7,7 +7,8 @@ internal static class MarkdownNativeInlineId {
         MarkdownSourceSpan? sourceSpan) {
         var span = sourceSpan.HasValue ? sourceSpan.Value.ToString() : "nosource";
         var literal = syntaxNode.Literal ?? string.Empty;
-        var key = kind.ToString() + "|" + syntaxNode.Kind + "|" + span + "|" + literal;
+        var path = MarkdownNativeBlockId.BuildSyntaxPath(syntaxNode);
+        var key = kind.ToString() + "|" + syntaxNode.Kind + "|" + span + "|" + path + "|" + literal;
         return "mdn-in-" + ComputeFnv1A64(key).ToString("x16", System.Globalization.CultureInfo.InvariantCulture);
     }
 
