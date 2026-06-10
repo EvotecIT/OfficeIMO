@@ -15,7 +15,7 @@ public static partial class MarkdownReader {
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
         var syntaxChildren = new List<MarkdownSyntaxNode>();
-        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: lineOffset, applyDocumentTransforms: false);
+        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: lineOffset, applyDocumentTransforms: false);
         return (nestedDoc.Blocks, syntaxChildren);
     }
 
@@ -31,7 +31,7 @@ public static partial class MarkdownReader {
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
         var syntaxChildren = new List<MarkdownSyntaxNode>();
-        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
+        var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
         var remappedSyntaxChildren = RemapNestedSyntaxNodes(sourceLines, syntaxChildren);
         var remappedSyntaxTree = BuildDocumentSyntaxTree(remappedSyntaxChildren, nestedDoc);
         SynchronizeOwnedSyntaxCaches(remappedSyntaxTree);

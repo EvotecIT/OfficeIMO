@@ -171,6 +171,30 @@ Console.WriteLine(1);
     }
 
     [Fact]
+    public void Parse_Projects_Structured_Table_Cell_Blocks_As_Native_Children() {
+        var markdown = """
+| Name | Detail |
+| --- | --- |
+| CPU | - high<br>- low |
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
+        var detailCell = table.Rows[0][1];
+        var list = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(detailCell.Children));
+        Assert.Equal(new[] { "high", "low" }, list.Items.Select(item => item.Text).ToArray());
+        Assert.Same(list, native.FindBlockById(list.Id));
+        Assert.Equal(new[] { table.Id, list.Id }, native.GetBlockPath(list.Id).Select(block => block.Id).ToArray());
+        Assert.Contains(native.DescendantBlocksAndSelf(), block => ReferenceEquals(block, list));
+
+        var snapshotCell = native.ToSnapshot().Blocks[0].Rows[0][1];
+        var snapshotList = Assert.Single(snapshotCell.Children);
+        Assert.Equal(MarkdownNativeBlockKind.List, snapshotList.Kind);
+        Assert.Equal(new[] { "high", "low" }, snapshotList.Items.Select(item => item.Text).ToArray());
+    }
+
+    [Fact]
     public void Parse_Projects_Fence_Metadata_For_Code_And_Visual_Blocks() {
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
@@ -256,6 +280,20 @@ Paragraph with `code` and ![Alt](img.png "Img").
 
         Assert.Single(native.EnumerateInlines(), inline => inline.Text == "foo");
         Assert.Single(native.EnumerateInlines(), inline => inline.Text == "Bar");
+    }
+
+    [Fact]
+    public void Parse_Includes_Syntax_Path_In_Block_Ids_For_Duplicated_Generated_Blocks() {
+        var options = new MarkdownReaderOptions();
+        options.DocumentTransforms.Add(new DuplicateParagraphTransform());
+
+        var native = MarkdownNativeDocument.Parse("Same", options);
+
+        Assert.Equal(2, native.Blocks.Count);
+        Assert.All(native.Blocks, block => Assert.Equal(MarkdownNativeBlockKind.Paragraph, block.Kind));
+        Assert.Equal(2, native.Blocks.Select(block => block.Id).Distinct().Count());
+        Assert.Equal(native.Blocks[0], native.FindBlockById(native.Blocks[0].Id));
+        Assert.Equal(native.Blocks[1], native.FindBlockById(native.Blocks[1].Id));
     }
 
     [Fact]
@@ -348,6 +386,36 @@ Outside
     }
 
     [Fact]
+    public void Source_Edit_Helpers_Use_Normalized_Source_That_Backs_SourceSpans() {
+        var markdown = "First\r\n\r\nSecond\r\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[1]);
+
+        Assert.Equal("First\n\nSecond\n", native.SourceMarkdown);
+        var edit = native.CreateReplaceEdit(paragraph, "Updated");
+        var updated = edit.Apply(native.SourceMarkdown);
+
+        Assert.Equal("First\n\nUpdated\n", updated);
+    }
+
+    [Fact]
+    public void Source_Edit_Helpers_Reject_Spans_When_Backing_Source_Is_Missing() {
+        var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Editable");
+        var withoutSource = new MarkdownParseResult(
+            parseResult.Document,
+            parseResult.SyntaxTree,
+            parseResult.FinalSyntaxTree,
+            sourceMarkdown: null,
+            parseResult.TransformDiagnostics);
+        var native = MarkdownNativeDocument.FromParseResult(withoutSource, sourceMarkdown: string.Empty);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+
+        var ex = Assert.Throws<InvalidOperationException>(() => native.CreateReplaceEdit(paragraph, "Updated"));
+        Assert.Contains("cannot be mapped", ex.Message);
+    }
+
+    [Fact]
     public void Renderer_ParseNativeDocument_Exposes_Preprocessed_Source_Kind_And_Transform_Diagnostics() {
         var markdown = """
 ix:cached-tool-evidence:v1
@@ -378,5 +446,14 @@ ix:cached-tool-evidence:v1
         var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.unsupported-block");
         Assert.Same(other, diagnostic.Block);
         Assert.Equal(MarkdownNativeDiagnosticSeverity.Info, diagnostic.Severity);
+    }
+
+    private sealed class DuplicateParagraphTransform : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            var clone = MarkdownDoc.Create();
+            clone.Add(new ParagraphBlock(new InlineSequence().Text("Same")));
+            clone.Add(new ParagraphBlock(new InlineSequence().Text("Same")));
+            return clone;
+        }
     }
 }

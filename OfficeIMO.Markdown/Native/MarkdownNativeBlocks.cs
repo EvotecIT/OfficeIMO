@@ -172,11 +172,14 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
 /// Native projection for a markdown table.
 /// </summary>
 public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
-    internal MarkdownNativeTableBlock(TableBlock table, MarkdownSyntaxNode syntaxNode)
+    internal MarkdownNativeTableBlock(
+        TableBlock table,
+        MarkdownSyntaxNode syntaxNode,
+        ICollection<MarkdownNativeDiagnostic> diagnostics)
         : base(MarkdownNativeBlockKind.Table, table, syntaxNode) {
         Table = table;
-        HeaderCells = BuildHeaderCells(table, syntaxNode);
-        Rows = BuildRows(table, syntaxNode);
+        HeaderCells = BuildHeaderCells(table, syntaxNode, diagnostics);
+        Rows = BuildRows(table, syntaxNode, diagnostics);
     }
 
     /// <summary>Source table block.</summary>
@@ -188,16 +191,22 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
     /// <summary>Body rows and cells in document order.</summary>
     public IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> Rows { get; }
 
-    private static IReadOnlyList<MarkdownNativeTableCell> BuildHeaderCells(TableBlock table, MarkdownSyntaxNode syntaxNode) {
+    private static IReadOnlyList<MarkdownNativeTableCell> BuildHeaderCells(
+        TableBlock table,
+        MarkdownSyntaxNode syntaxNode,
+        ICollection<MarkdownNativeDiagnostic> diagnostics) {
         if (table.Headers.Count == 0) {
             return Array.Empty<MarkdownNativeTableCell>();
         }
 
         var headerNode = syntaxNode.Children.FirstOrDefault(static child => child.Kind == MarkdownSyntaxKind.TableHeader);
-        return BuildCells(table.Headers, table.HeaderCells, table.Alignments, headerNode, isHeader: true, rowIndex: -1);
+        return BuildCells(table.Headers, table.HeaderCells, table.Alignments, headerNode, diagnostics, isHeader: true, rowIndex: -1);
     }
 
-    private static IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> BuildRows(TableBlock table, MarkdownSyntaxNode syntaxNode) {
+    private static IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> BuildRows(
+        TableBlock table,
+        MarkdownSyntaxNode syntaxNode,
+        ICollection<MarkdownNativeDiagnostic> diagnostics) {
         if (table.Rows.Count == 0 && table.RowCells.Count == 0) {
             return Array.Empty<IReadOnlyList<MarkdownNativeTableCell>>();
         }
@@ -209,7 +218,7 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
             var rawCells = rowIndex < table.Rows.Count ? table.Rows[rowIndex] : Array.Empty<string>();
             var structuredCells = rowIndex < table.RowCells.Count ? table.RowCells[rowIndex] : Array.Empty<TableCell>();
             var rowNode = rowIndex < rowNodes.Length ? rowNodes[rowIndex] : null;
-            rows.Add(BuildCells(rawCells, structuredCells, table.Alignments, rowNode, isHeader: false, rowIndex: rowIndex));
+            rows.Add(BuildCells(rawCells, structuredCells, table.Alignments, rowNode, diagnostics, isHeader: false, rowIndex: rowIndex));
         }
 
         return rows;
@@ -220,6 +229,7 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
         IReadOnlyList<TableCell> structuredCells,
         IReadOnlyList<ColumnAlignment> columnAlignments,
         MarkdownSyntaxNode? rowNode,
+        ICollection<MarkdownNativeDiagnostic> diagnostics,
         bool isHeader,
         int rowIndex) {
         var count = Math.Max(rawCells?.Count ?? 0, structuredCells?.Count ?? 0);
@@ -233,7 +243,10 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
             var cell = structuredCells != null && columnIndex < structuredCells.Count ? structuredCells[columnIndex] : null;
             var cellNode = rowNode != null && columnIndex < rowNode.Children.Count ? rowNode.Children[columnIndex] : null;
             var alignment = ResolveAlignment(cell, columnAlignments, columnIndex);
-            cells.Add(new MarkdownNativeTableCell(raw, cell, cellNode, isHeader, rowIndex, columnIndex, alignment));
+            var children = cellNode != null
+                ? MarkdownNativeProjectionFactory.CreateChildren(cellNode, diagnostics)
+                : Array.Empty<MarkdownNativeBlock>();
+            cells.Add(new MarkdownNativeTableCell(raw, cell, cellNode, isHeader, rowIndex, columnIndex, alignment, children));
         }
 
         return cells;
@@ -264,7 +277,8 @@ public sealed class MarkdownNativeTableCell {
         bool isHeader,
         int rowIndex,
         int columnIndex,
-        ColumnAlignment alignment) {
+        ColumnAlignment alignment,
+        IReadOnlyList<MarkdownNativeBlock> children) {
         RawText = rawText ?? string.Empty;
         SourceCell = sourceCell;
         SyntaxNode = syntaxNode;
@@ -275,6 +289,7 @@ public sealed class MarkdownNativeTableCell {
         Text = ExtractText(sourceCell, RawText);
         Markdown = sourceCell?.Markdown ?? RawText;
         Blocks = sourceCell != null ? sourceCell.Blocks : Array.Empty<IMarkdownBlock>();
+        Children = children ?? Array.Empty<MarkdownNativeBlock>();
         Alignment = alignment;
         InlineRuns = MarkdownNativeInlineProjection.FromFirstDescendantInlineContainer(syntaxNode);
     }
@@ -290,6 +305,9 @@ public sealed class MarkdownNativeTableCell {
 
     /// <summary>Structured child blocks in the cell.</summary>
     public IReadOnlyList<IMarkdownBlock> Blocks { get; }
+
+    /// <summary>Native child blocks projected from structured cell content.</summary>
+    public IReadOnlyList<MarkdownNativeBlock> Children { get; }
 
     /// <summary>Source table cell when structured cell data is available.</summary>
     public TableCell? SourceCell { get; }

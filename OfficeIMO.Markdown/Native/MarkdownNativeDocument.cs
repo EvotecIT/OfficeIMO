@@ -54,7 +54,7 @@ public sealed class MarkdownNativeDocument {
     public static MarkdownNativeDocument Parse(string markdown, MarkdownReaderOptions? options = null) {
         markdown ??= string.Empty;
         var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
-        return FromParseResult(parseResult, markdown, MarkdownNativeDocumentSourceKind.ReaderInput);
+        return FromParseResult(parseResult, sourceMarkdown: null, MarkdownNativeDocumentSourceKind.ReaderInput);
     }
 
     /// <summary>
@@ -82,7 +82,7 @@ public sealed class MarkdownNativeDocument {
             }
         }
 
-        return new MarkdownNativeDocument(parseResult, sourceMarkdown ?? string.Empty, sourceKind, blocks, diagnostics);
+        return new MarkdownNativeDocument(parseResult, sourceMarkdown ?? parseResult.SourceMarkdown, sourceKind, blocks, diagnostics);
     }
 
     /// <summary>Finds the first native block whose source span contains the supplied 1-based line.</summary>
@@ -254,6 +254,8 @@ public sealed class MarkdownNativeDocument {
                 }
 
                 return list.ContainsLine(lineNumber) ? list : null;
+            case MarkdownNativeTableBlock table:
+                return FindChildBlockAtLine(EnumerateTableChildren(table), lineNumber) ?? (table.ContainsLine(lineNumber) ? table : null);
             default:
                 return block.ContainsLine(lineNumber) ? block : null;
         }
@@ -276,6 +278,8 @@ public sealed class MarkdownNativeDocument {
                 }
 
                 return ContainsPosition(list, lineNumber, columnNumber) ? list : null;
+            case MarkdownNativeTableBlock table:
+                return FindChildBlockAtPosition(EnumerateTableChildren(table), lineNumber, columnNumber) ?? (ContainsPosition(table, lineNumber, columnNumber) ? table : null);
             default:
                 return ContainsPosition(block, lineNumber, columnNumber) ? block : null;
         }
@@ -356,9 +360,30 @@ public sealed class MarkdownNativeDocument {
                 return details.Children;
             case MarkdownNativeListBlock list:
                 return EnumerateListItemChildren(list);
+            case MarkdownNativeTableBlock table:
+                return EnumerateTableChildren(table);
             default:
                 return Array.Empty<MarkdownNativeBlock>();
         }
+    }
+
+    private static IReadOnlyList<MarkdownNativeBlock> EnumerateTableChildren(MarkdownNativeTableBlock table) {
+        if (table == null) {
+            return Array.Empty<MarkdownNativeBlock>();
+        }
+
+        var children = new List<MarkdownNativeBlock>();
+        for (var i = 0; i < table.HeaderCells.Count; i++) {
+            children.AddRange(table.HeaderCells[i].Children);
+        }
+
+        for (var row = 0; row < table.Rows.Count; row++) {
+            for (var column = 0; column < table.Rows[row].Count; column++) {
+                children.AddRange(table.Rows[row][column].Children);
+            }
+        }
+
+        return children;
     }
 
     private static IEnumerable<MarkdownNativeBlock> EnumerateListItemChildren(MarkdownNativeListBlock list) {
@@ -466,6 +491,12 @@ public sealed class MarkdownNativeDocument {
     }
 
     private bool TryResolveOffsets(MarkdownSourceSpan span, out int startOffset, out int endOffsetInclusive) {
+        if (SourceMarkdown.Length == 0) {
+            startOffset = 0;
+            endOffsetInclusive = -1;
+            return false;
+        }
+
         if (span.StartOffset.HasValue && span.EndOffset.HasValue) {
             startOffset = ClampOffset(span.StartOffset.Value);
             endOffsetInclusive = ClampOffset(span.EndOffset.Value);
@@ -489,10 +520,6 @@ public sealed class MarkdownNativeDocument {
     }
 
     private int ClampOffset(int offset) {
-        if (SourceMarkdown.Length == 0) {
-            return 0;
-        }
-
         if (offset < 0) {
             return 0;
         }
@@ -506,7 +533,7 @@ public sealed class MarkdownNativeDocument {
             return false;
         }
 
-        offset = Math.Min(SourceMarkdown.Length == 0 ? 0 : SourceMarkdown.Length - 1, lineStart + Math.Max(0, columnNumber - 1));
+        offset = Math.Min(SourceMarkdown.Length - 1, lineStart + Math.Max(0, columnNumber - 1));
         return true;
     }
 
@@ -542,7 +569,7 @@ public sealed class MarkdownNativeDocument {
             return false;
         }
 
-        offset = SourceMarkdown.Length == 0 ? 0 : SourceMarkdown.Length - 1;
+        offset = SourceMarkdown.Length - 1;
         for (var i = lineStart; i < SourceMarkdown.Length; i++) {
             if (SourceMarkdown[i] == '\n') {
                 offset = Math.Max(lineStart, i - 1);

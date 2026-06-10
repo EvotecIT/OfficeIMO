@@ -226,7 +226,8 @@ internal static class MarkdownNativeSnapshotFactory {
             cell.ColumnIndex,
             cell.Alignment,
             ToSpanSnapshot(cell.SourceSpan),
-            FromInlines(cell.InlineRuns));
+            FromInlines(cell.InlineRuns),
+            FromBlocks(cell.Children));
     }
 
     private static MarkdownNativeSourceSpanSnapshot? ToSpanSnapshot(MarkdownSourceSpan? span) =>

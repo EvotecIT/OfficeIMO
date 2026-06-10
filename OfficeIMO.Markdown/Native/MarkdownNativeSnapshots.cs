@@ -183,7 +183,8 @@ public sealed class MarkdownNativeTableCellSnapshot {
         int columnIndex,
         ColumnAlignment alignment,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
-        IReadOnlyList<MarkdownNativeInlineSnapshot> inlines) {
+        IReadOnlyList<MarkdownNativeInlineSnapshot> inlines,
+        IReadOnlyList<MarkdownNativeBlockSnapshot> children) {
         Text = text ?? string.Empty;
         Markdown = markdown ?? string.Empty;
         IsHeader = isHeader;
@@ -192,6 +193,7 @@ public sealed class MarkdownNativeTableCellSnapshot {
         Alignment = alignment;
         SourceSpan = sourceSpan;
         Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
+        Children = children ?? Array.Empty<MarkdownNativeBlockSnapshot>();
     }
 
     /// <summary>Plain text cell content.</summary>
@@ -217,6 +219,9 @@ public sealed class MarkdownNativeTableCellSnapshot {
 
     /// <summary>Inline snapshots for cell content when available.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }
+
+    /// <summary>Native child block snapshots projected from structured cell content.</summary>
+    public IReadOnlyList<MarkdownNativeBlockSnapshot> Children { get; }
 }
 
 /// <summary>

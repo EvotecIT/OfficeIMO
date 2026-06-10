@@ -81,6 +81,7 @@ public static partial class MarkdownRenderer {
             result.Document,
             result.SyntaxTree,
             result.FinalSyntaxTree,
+            sourceMarkdown: result.PreprocessedMarkdown,
             result.TransformDiagnostics);
         return MarkdownNativeDocument.FromParseResult(
             parseResult,

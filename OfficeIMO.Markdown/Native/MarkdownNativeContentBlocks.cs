@@ -120,7 +120,8 @@ internal static class MarkdownNativeListItemId {
     internal static string Create(ListItem item, MarkdownSyntaxNode syntaxNode, MarkdownSourceSpan? sourceSpan) {
         var span = sourceSpan.HasValue ? sourceSpan.Value.ToString() : "nosource";
         var literal = syntaxNode.Literal ?? item.RenderMarkdown() ?? string.Empty;
-        var key = "ListItem|" + syntaxNode.Kind + "|" + span + "|" + literal;
+        var path = MarkdownNativeBlockId.BuildSyntaxPath(syntaxNode);
+        var key = "ListItem|" + syntaxNode.Kind + "|" + span + "|" + path + "|" + literal;
         return "mdn-li-" + ComputeFnv1A64(key).ToString("x16", System.Globalization.CultureInfo.InvariantCulture);
     }
 

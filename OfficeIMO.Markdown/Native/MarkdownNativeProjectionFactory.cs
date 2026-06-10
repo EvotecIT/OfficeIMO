@@ -18,7 +18,7 @@ internal static class MarkdownNativeProjectionFactory {
             ImageBlock image => new MarkdownNativeImageBlock(image, syntaxNode),
             CodeBlock code => new MarkdownNativeCodeBlock(code, syntaxNode),
             SemanticFencedBlock visual => new MarkdownNativeVisualBlock(visual, syntaxNode),
-            TableBlock table => new MarkdownNativeTableBlock(table, syntaxNode),
+            TableBlock table => new MarkdownNativeTableBlock(table, syntaxNode, diagnostics),
             DetailsBlock details => new MarkdownNativeDetailsBlock(details, syntaxNode, CreateChildren(syntaxNode, diagnostics, static node => node.AssociatedObject is not SummaryBlock)),
             FrontMatterBlock frontMatter => new MarkdownNativeFrontMatterBlock(frontMatter, syntaxNode),
             HtmlRawBlock html => new MarkdownNativeHtmlBlock(html, syntaxNode),
