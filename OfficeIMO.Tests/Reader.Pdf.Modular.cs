@@ -476,8 +476,10 @@ public sealed class ReaderPdfModularTests {
         ReaderTable table = Assert.Single(result.Tables);
         Assert.Equal(new[] { "Code", "Name", "Qty" }, table.Columns);
         Assert.Equal(2, table.TotalRowCount);
+        Assert.Equal("table-readback.pdf", table.Location?.Path);
         OfficeDocumentPage page = Assert.Single(result.Pages);
         Assert.Same(table, Assert.Single(page.Tables));
+        Assert.Equal("table-readback.pdf", page.Tables[0].Location?.Path);
         Assert.Contains(result.Blocks, block => block.Kind == "table" && block.Location.Page == 1);
     }
 

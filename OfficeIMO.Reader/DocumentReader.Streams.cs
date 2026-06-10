@@ -154,6 +154,7 @@ public static partial class DocumentReader {
         var sheets = ResolveSheetNames(reader, opt.ExcelSheetName);
 
         int outIndex = 0;
+        int tableIndex = 0;
         foreach (var sheet in sheets) {
             ct.ThrowIfCancellationRequested();
 
@@ -174,7 +175,7 @@ public static partial class DocumentReader {
 
                 IReadOnlyList<ReaderTable>? tables = null;
                 if (c.Tables != null && c.Tables.Count > 0) {
-                    tables = c.Tables.Select((table, index) => MapTable(table, c.Location, index)).ToArray();
+                    tables = MapTables(c.Tables, c.Location, ref tableIndex);
                 }
 
                 yield return new ReaderChunk {
@@ -209,6 +210,7 @@ public static partial class DocumentReader {
         var sheets = ResolveSheetNames(reader, opt.ExcelSheetName);
 
         int outIndex = 0;
+        int tableIndex = 0;
         foreach (var sheet in sheets) {
             ct.ThrowIfCancellationRequested();
 
@@ -229,7 +231,7 @@ public static partial class DocumentReader {
 
                 IReadOnlyList<ReaderTable>? tables = null;
                 if (c.Tables != null && c.Tables.Count > 0) {
-                    tables = c.Tables.Select((table, index) => MapTable(table, c.Location, index)).ToArray();
+                    tables = MapTables(c.Tables, c.Location, ref tableIndex);
                 }
 
                 yield return new ReaderChunk {
@@ -438,6 +440,16 @@ public static partial class DocumentReader {
             TotalRowCount = t.TotalRowCount,
             Truncated = t.Truncated
         };
+    }
+
+    private static IReadOnlyList<ReaderTable> MapTables(IReadOnlyList<ExcelExtractTable> tables, ExcelExtractLocation location, ref int nextTableIndex) {
+        var mapped = new ReaderTable[tables.Count];
+        for (int i = 0; i < tables.Count; i++) {
+            mapped[i] = MapTable(tables[i], location, nextTableIndex);
+            nextTableIndex++;
+        }
+
+        return mapped;
     }
 
     private static ReaderTable MapTable(TableBlock t, ReaderOptions opt) {

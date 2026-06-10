@@ -26,14 +26,22 @@ public static partial class DocumentReader {
         return $"{kind}:{fileName}:c{chunkIndex}:l{l}";
     }
 
-    private static MemoryStream CopyToMemory(Stream stream, CancellationToken ct) {
+    private static MemoryStream CopyToMemory(Stream stream, CancellationToken ct, long? maxInputBytes = null) {
         ct.ThrowIfCancellationRequested();
         var ms = new MemoryStream();
         var buffer = new byte[64 * 1024];
+        long totalBytes = 0;
         int read;
         while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
             ct.ThrowIfCancellationRequested();
+            long nextTotalBytes = totalBytes + read;
+            if (maxInputBytes.HasValue && nextTotalBytes > maxInputBytes.Value) {
+                ms.Dispose();
+                throw new IOException($"Input exceeds MaxInputBytes ({nextTotalBytes.ToString(CultureInfo.InvariantCulture)} > {maxInputBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
+            }
+
             ms.Write(buffer, 0, read);
+            totalBytes = nextTotalBytes;
         }
         ms.Position = 0;
         return ms;

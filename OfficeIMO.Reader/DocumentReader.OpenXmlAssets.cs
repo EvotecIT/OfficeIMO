@@ -59,7 +59,7 @@ public static partial class DocumentReader {
         }
 
         int assetIndex = assets.Count;
-        var seenImages = new HashSet<Uri>();
+        var seenImagePlacements = new HashSet<string>(StringComparer.Ordinal);
         var visitedParts = new HashSet<Uri>();
         CollectImageParts(
             document.MainDocumentPart,
@@ -69,7 +69,7 @@ public static partial class DocumentReader {
             sheetNumber: null,
             sheetName: null,
             assets,
-            seenImages,
+            seenImagePlacements,
             visitedParts,
             ref assetIndex,
             cancellationToken);
@@ -82,8 +82,7 @@ public static partial class DocumentReader {
         }
 
         int assetIndex = assets.Count;
-        var seenImages = new HashSet<Uri>();
-        var visitedParts = new HashSet<Uri>();
+        var seenImagePlacements = new HashSet<string>(StringComparer.Ordinal);
         int slideNumber = 1;
         foreach (SlideId slideId in presentationPart.Presentation.SlideIdList.Elements<SlideId>()) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -95,6 +94,7 @@ public static partial class DocumentReader {
             }
 
             if (presentationPart.GetPartById(relationshipId!) is SlidePart slidePart) {
+                var visitedParts = new HashSet<Uri>();
                 CollectImageParts(
                     slidePart,
                     sourceName,
@@ -103,7 +103,7 @@ public static partial class DocumentReader {
                     sheetNumber: null,
                     sheetName: null,
                     assets,
-                    seenImages,
+                    seenImagePlacements,
                     visitedParts,
                     ref assetIndex,
                     cancellationToken);
@@ -120,8 +120,7 @@ public static partial class DocumentReader {
         }
 
         int assetIndex = assets.Count;
-        var seenImages = new HashSet<Uri>();
-        var visitedParts = new HashSet<Uri>();
+        var seenImagePlacements = new HashSet<string>(StringComparer.Ordinal);
         int sheetNumber = 1;
         foreach (Sheet sheet in workbookPart.Workbook.Sheets.Elements<Sheet>()) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -134,6 +133,7 @@ public static partial class DocumentReader {
 
             if (workbookPart.GetPartById(relationshipId!) is WorksheetPart worksheetPart) {
                 IReadOnlyDictionary<string, OpenXmlImageAssetMetadata> imageMetadata = BuildExcelImageMetadata(worksheetPart.DrawingsPart);
+                var visitedParts = new HashSet<Uri>();
                 CollectImageParts(
                     worksheetPart,
                     sourceName,
@@ -142,7 +142,7 @@ public static partial class DocumentReader {
                     sheetNumber,
                     sheet.Name?.Value,
                     assets,
-                    seenImages,
+                    seenImagePlacements,
                     visitedParts,
                     (container, imageRelationshipId) => ResolveExcelImageMetadata(container, worksheetPart.DrawingsPart, imageMetadata, imageRelationshipId),
                     ref assetIndex,
@@ -161,11 +161,11 @@ public static partial class DocumentReader {
         int? sheetNumber,
         string? sheetName,
         List<OfficeDocumentAsset> assets,
-        HashSet<Uri> seenImages,
+        HashSet<string> seenImagePlacements,
         HashSet<Uri> visitedParts,
         ref int assetIndex,
         CancellationToken cancellationToken) {
-        CollectImageParts(container, sourceName, kind, slideNumber, sheetNumber, sheetName, assets, seenImages, visitedParts, resolveMetadata: null, ref assetIndex, cancellationToken);
+        CollectImageParts(container, sourceName, kind, slideNumber, sheetNumber, sheetName, assets, seenImagePlacements, visitedParts, resolveMetadata: null, ref assetIndex, cancellationToken);
     }
 
     private static void CollectImageParts(
@@ -176,7 +176,7 @@ public static partial class DocumentReader {
         int? sheetNumber,
         string? sheetName,
         List<OfficeDocumentAsset> assets,
-        HashSet<Uri> seenImages,
+        HashSet<string> seenImagePlacements,
         HashSet<Uri> visitedParts,
         Func<OpenXmlPartContainer, string, OpenXmlImageAssetMetadata?>? resolveMetadata,
         ref int assetIndex,
@@ -186,8 +186,7 @@ public static partial class DocumentReader {
 
             OpenXmlPart part = pair.OpenXmlPart;
             if (part is ImagePart imagePart) {
-                Uri uri = imagePart.Uri;
-                if (seenImages.Add(uri)) {
+                if (seenImagePlacements.Add(BuildOpenXmlImagePlacementKey(kind, slideNumber, sheetNumber, container, pair.RelationshipId, imagePart))) {
                     assets.Add(BuildOpenXmlImageAsset(imagePart, pair.RelationshipId, sourceName, kind, slideNumber, sheetNumber, sheetName, assetIndex, resolveMetadata?.Invoke(container, pair.RelationshipId)));
                     assetIndex++;
                 }
@@ -197,10 +196,21 @@ public static partial class DocumentReader {
 
             if (part is OpenXmlPartContainer childContainer) {
                 if (visitedParts.Add(part.Uri)) {
-                    CollectImageParts(childContainer, sourceName, kind, slideNumber, sheetNumber, sheetName, assets, seenImages, visitedParts, resolveMetadata, ref assetIndex, cancellationToken);
+                    CollectImageParts(childContainer, sourceName, kind, slideNumber, sheetNumber, sheetName, assets, seenImagePlacements, visitedParts, resolveMetadata, ref assetIndex, cancellationToken);
                 }
             }
         }
+    }
+
+    private static string BuildOpenXmlImagePlacementKey(ReaderInputKind kind, int? slideNumber, int? sheetNumber, OpenXmlPartContainer container, string relationshipId, ImagePart imagePart) {
+        string containerUri = container is OpenXmlPart part ? part.Uri.ToString() : "package";
+        return string.Concat(
+            kind.ToString(),
+            "|slide:", slideNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            "|sheet:", sheetNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            "|container:", containerUri,
+            "|relationship:", relationshipId,
+            "|image:", imagePart.Uri);
     }
 
     private static OfficeDocumentAsset BuildOpenXmlImageAsset(ImagePart imagePart, string relationshipId, string sourceName, ReaderInputKind kind, int? slideNumber, int? sheetNumber, string? sheetName, int assetIndex, OpenXmlImageAssetMetadata? metadata = null) {

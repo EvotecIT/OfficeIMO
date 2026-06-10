@@ -42,7 +42,11 @@ public static partial class DocumentReader {
         ReaderOptions opt = NormalizeOptions(options);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
         ReaderInputKind kind = string.IsNullOrWhiteSpace(logicalSourceName) ? ReaderInputKind.Unknown : DetectKind(logicalSourceName);
-        using MemoryStream snapshot = CopyToMemory(stream, cancellationToken);
+        if (stream.CanSeek) {
+            ReaderInputLimits.EnforceSeekableStreamRemainingSize(stream, opt.MaxInputBytes);
+        }
+
+        using MemoryStream snapshot = CopyToMemory(stream, cancellationToken, opt.MaxInputBytes);
         ReaderChunk[] chunks = Read(snapshot, logicalSourceName, opt, cancellationToken).ToArray();
         snapshot.Position = 0;
         IReadOnlyList<OfficeDocumentAsset> assets = ReadOpenXmlImageAssets(snapshot, logicalSourceName, kind, opt, cancellationToken);

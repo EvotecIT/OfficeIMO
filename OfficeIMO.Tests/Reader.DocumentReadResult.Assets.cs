@@ -143,6 +143,29 @@ public sealed class ReaderDocumentReadResultAssetTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadDocument_EmitsPowerPointAssetsForEachVisibleSlidePlacement() {
+        string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
+        using var stream = new MemoryStream();
+        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            PowerPointSlide first = presentation.AddSlide();
+            first.AddPicture(imagePath);
+            PowerPointSlide second = presentation.AddSlide();
+            second.AddPicture(imagePath);
+            presentation.Save();
+        }
+
+        stream.Position = 0;
+        OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "placements.pptx");
+
+        Assert.Equal(2, result.Assets.Count);
+        Assert.Equal(new[] { 1, 2 }, result.Assets.Select(asset => asset.Location.Slide ?? -1).ToArray());
+        Assert.Equal(2, result.Pages.Count);
+        Assert.Single(result.Pages[0].Assets);
+        Assert.Single(result.Pages[1].Assets);
+        Assert.NotEqual(result.Assets[0].Id, result.Assets[1].Id);
+    }
+
+    [Fact]
     public void DocumentReader_ReadDocument_FlagsImageOnlyPowerPointSlideForOcr() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();

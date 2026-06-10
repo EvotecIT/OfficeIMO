@@ -252,6 +252,58 @@ public sealed class ReaderDocumentReadResultTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadTableExports_UsesDocumentWideExcelTableIndexesAcrossChunks() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+        try {
+            using (var workbook = ExcelDocument.Create(path)) {
+                var sheet = workbook.AddWorkSheet("Data");
+                sheet.Cell(1, 1, "Name");
+                sheet.Cell(1, 2, "Value");
+                sheet.Cell(2, 1, "Alpha");
+                sheet.Cell(2, 2, 1);
+                sheet.Cell(3, 1, "Beta");
+                sheet.Cell(3, 2, 2);
+                sheet.Cell(4, 1, "Gamma");
+                sheet.Cell(4, 2, 3);
+                workbook.Save();
+            }
+
+            IReadOnlyList<ReaderTableExportBundle> exports = DocumentReader.ReadTableExports(
+                path,
+                new ReaderOptions {
+                    ExcelSheetName = "Data",
+                    ExcelA1Range = "A1:B4",
+                    ExcelChunkRows = 1
+                });
+
+            Assert.True(exports.Count > 1);
+            int[] indexes = Enumerable.Range(0, exports.Count).ToArray();
+            Assert.Equal(indexes, exports.Select(export => export.Table.Location?.TableIndex ?? -1).ToArray());
+            Assert.Equal(exports.Count, exports.Select(export => export.Id).Distinct(StringComparer.Ordinal).Count());
+            Assert.All(indexes, index => Assert.EndsWith("-sheet-Data-table-" + index.ToString("D4"), exports[index].Id));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadDocument_NonSeekableStream_EnforcesMaxInputBytesBeforeSnapshot() {
+        using var package = new MemoryStream();
+        using (WordDocument document = WordDocument.Create(package)) {
+            document.AddParagraph("Large document");
+            document.Save();
+        }
+
+        using var stream = new NonSeekableReadStream(package.ToArray());
+
+        IOException ex = Assert.Throws<IOException>(() => DocumentReader.ReadDocument(
+            stream,
+            "large.docx",
+            new ReaderOptions { MaxInputBytes = 16 }));
+        Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReader_ReadDocument_EmitsChunkMetadataForWordDocument() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
         try {

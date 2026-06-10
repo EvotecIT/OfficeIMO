@@ -155,10 +155,7 @@ public static partial class DocumentReaderPdfExtensions {
         IReadOnlyList<PdfLogicalPage> pages = applyPageRanges ? GetReaderPages(document, pdfOptions) : document.Pages;
         string markdown = BuildMarkdown(pages, markdownOptions);
         ReaderChunk[] chunks = ReadPdf(document, source, readerOptions, pdfOptions, applyPageRanges, cancellationToken).ToArray();
-        ReaderTable[] tables = chunks
-            .Where(chunk => chunk.Tables != null)
-            .SelectMany(chunk => chunk.Tables!)
-            .ToArray();
+        ReaderTable[] tables = DocumentReader.ExtractTables(chunks, cancellationToken).ToArray();
         OfficeDocumentBlock[] blocks = BuildDocumentBlocks(pages, source).ToArray();
         OfficeDocumentAsset[] assets = BuildDocumentAssets(pages, source).ToArray();
         OfficeDocumentLink[] links = BuildDocumentLinks(pages, source).ToArray();
