@@ -31,6 +31,7 @@ public static partial class DocumentReader {
         var headingStack = new List<MarkdownHeadingState>();
         var headingSlugRegistry = new Dictionary<string, int>(StringComparer.Ordinal);
         int nextStartLine = 1;
+        int tableIndex = 0;
         bool firstEmittedBlock = true;
 
         for (int i = 0; i < doc.Blocks.Count; i++) {
@@ -49,6 +50,8 @@ public static partial class DocumentReader {
 
             int startLine = nextStartLine;
             int endLine = startLine + CountLogicalLines(markdown) - 1;
+            int sourceStartLine = syntaxBlock?.SourceSpan?.StartLine ?? startLine;
+            int sourceEndLine = syntaxBlock?.SourceSpan?.EndLine ?? endLine;
             bool startsHeading = false;
             if (block is HeadingBlock heading) {
                 var slug = BuildMarkdownHeadingSlug(heading.Text, headingSlugRegistry);
@@ -56,20 +59,48 @@ public static partial class DocumentReader {
                 startsHeading = true;
             }
 
+            string? headingPath = BuildHeadingPath(headingStack);
+            string? headingSlug = BuildHeadingSlug(headingStack);
+            string blockKind = GetMarkdownBlockKind(block);
+            string blockAnchor = BuildMarkdownBlockAnchor(headingSlug, blockKind, i, startsHeading);
+            IReadOnlyList<ReaderTable> tables = AddMarkdownTableLocations(
+                ExtractTables(block, opt),
+                ref tableIndex,
+                i,
+                startLine,
+                endLine,
+                sourceStartLine,
+                sourceEndLine,
+                headingPath,
+                headingSlug,
+                blockKind,
+                blockAnchor);
+            IReadOnlyList<ReaderVisual> visuals = AddMarkdownVisualLocations(
+                ExtractVisuals(block),
+                i,
+                startLine,
+                endLine,
+                sourceStartLine,
+                sourceEndLine,
+                headingPath,
+                headingSlug,
+                blockKind,
+                blockAnchor);
+
             blocks.Add(new MarkdownChunkBlock(
                 blockIndex: i,
                 startLine: startLine,
                 endLine: endLine,
-                sourceStartLine: syntaxBlock?.SourceSpan?.StartLine ?? startLine,
-                sourceEndLine: syntaxBlock?.SourceSpan?.EndLine ?? endLine,
-                headingPath: BuildHeadingPath(headingStack),
-                headingSlug: BuildHeadingSlug(headingStack),
-                blockKind: GetMarkdownBlockKind(block),
-                blockAnchor: BuildMarkdownBlockAnchor(BuildHeadingSlug(headingStack), GetMarkdownBlockKind(block), i, startsHeading),
+                sourceStartLine: sourceStartLine,
+                sourceEndLine: sourceEndLine,
+                headingPath: headingPath,
+                headingSlug: headingSlug,
+                blockKind: blockKind,
+                blockAnchor: blockAnchor,
                 markdown: markdown,
                 startsHeading: startsHeading,
-                tables: ExtractTables(block, opt),
-                visuals: ExtractVisuals(block)));
+                tables: tables,
+                visuals: visuals));
 
             nextStartLine += CountLogicalLines(markdown);
             firstEmittedBlock = false;
@@ -104,6 +135,79 @@ public static partial class DocumentReader {
         return Array.Empty<ReaderTable>();
     }
 
+    private static IReadOnlyList<ReaderTable> AddMarkdownTableLocations(
+        IReadOnlyList<ReaderTable> tables,
+        ref int tableIndex,
+        int blockIndex,
+        int startLine,
+        int endLine,
+        int sourceStartLine,
+        int sourceEndLine,
+        string? headingPath,
+        string? headingSlug,
+        string blockKind,
+        string blockAnchor) {
+        if (tables == null || tables.Count == 0) {
+            return Array.Empty<ReaderTable>();
+        }
+
+        var located = new ReaderTable[tables.Count];
+        for (int i = 0; i < tables.Count; i++) {
+            located[i] = WithMarkdownTableLocation(
+                tables[i],
+                tableIndex++,
+                blockIndex,
+                startLine,
+                endLine,
+                sourceStartLine,
+                sourceEndLine,
+                headingPath,
+                headingSlug,
+                blockKind,
+                blockAnchor);
+        }
+
+        return located;
+    }
+
+    private static ReaderTable WithMarkdownTableLocation(
+        ReaderTable table,
+        int tableIndex,
+        int blockIndex,
+        int startLine,
+        int endLine,
+        int sourceStartLine,
+        int sourceEndLine,
+        string? headingPath,
+        string? headingSlug,
+        string blockKind,
+        string blockAnchor) {
+        return new ReaderTable {
+            Title = table.Title,
+            Kind = table.Kind,
+            CallId = table.CallId,
+            Summary = table.Summary,
+            PayloadHash = table.PayloadHash,
+            Location = new ReaderLocation {
+                SourceBlockIndex = blockIndex,
+                StartLine = sourceStartLine,
+                EndLine = sourceEndLine,
+                NormalizedStartLine = startLine,
+                NormalizedEndLine = endLine,
+                HeadingPath = headingPath,
+                HeadingSlug = headingSlug,
+                SourceBlockKind = string.IsNullOrWhiteSpace(blockKind) ? "table" : blockKind,
+                BlockAnchor = blockAnchor,
+                TableIndex = tableIndex
+            },
+            Columns = table.Columns,
+            ColumnProfiles = table.ColumnProfiles,
+            Rows = table.Rows,
+            TotalRowCount = table.TotalRowCount,
+            Truncated = table.Truncated
+        };
+    }
+
     private static IReadOnlyList<ReaderVisual> ExtractVisuals(IMarkdownBlock block) {
         if (block is CodeBlock code &&
             TryMapVisual(code, out var visual) &&
@@ -112,6 +216,46 @@ public static partial class DocumentReader {
         }
 
         return Array.Empty<ReaderVisual>();
+    }
+
+    private static IReadOnlyList<ReaderVisual> AddMarkdownVisualLocations(
+        IReadOnlyList<ReaderVisual> visuals,
+        int blockIndex,
+        int startLine,
+        int endLine,
+        int sourceStartLine,
+        int sourceEndLine,
+        string? headingPath,
+        string? headingSlug,
+        string blockKind,
+        string blockAnchor) {
+        if (visuals == null || visuals.Count == 0) {
+            return Array.Empty<ReaderVisual>();
+        }
+
+        var located = new ReaderVisual[visuals.Count];
+        for (int i = 0; i < visuals.Count; i++) {
+            ReaderVisual visual = visuals[i];
+            located[i] = new ReaderVisual {
+                Kind = visual.Kind,
+                Language = visual.Language,
+                Content = visual.Content,
+                PayloadHash = visual.PayloadHash,
+                Location = new ReaderLocation {
+                    SourceBlockIndex = blockIndex,
+                    StartLine = sourceStartLine,
+                    EndLine = sourceEndLine,
+                    NormalizedStartLine = startLine,
+                    NormalizedEndLine = endLine,
+                    HeadingPath = headingPath,
+                    HeadingSlug = headingSlug,
+                    SourceBlockKind = string.IsNullOrWhiteSpace(blockKind) ? "code" : blockKind,
+                    BlockAnchor = blockAnchor
+                }
+            };
+        }
+
+        return located;
     }
 
     private static bool TryMapVisual(CodeBlock code, out ReaderVisual? visual) {

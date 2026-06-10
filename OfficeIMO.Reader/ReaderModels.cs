@@ -61,7 +61,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// EPUB e-book archive.
     /// </summary>
-    Epub
+    Epub,
+    /// <summary>
+    /// Visio drawing (VSDX/VSDM/VSTX/VSTM).
+    /// </summary>
+    Visio
 }
 
 /// <summary>

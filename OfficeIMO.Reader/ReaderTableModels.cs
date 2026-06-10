@@ -132,4 +132,9 @@ public sealed class ReaderVisual {
     /// Optional stable short hash derived from <see cref="Content"/>.
     /// </summary>
     public string? PayloadHash { get; set; }
+
+    /// <summary>
+    /// Optional source location for the extracted visual payload.
+    /// </summary>
+    public ReaderLocation? Location { get; set; }
 }
