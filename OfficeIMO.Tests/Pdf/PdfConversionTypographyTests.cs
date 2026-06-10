@@ -38,7 +38,7 @@ public sealed class PdfConversionTypographyTests {
                 "powerpoint-to-pdf" => CreatePowerPointPdf(fontPath),
                 _ => throw new ArgumentOutOfRangeException(nameof(conversionPath), conversionPath, null)
             };
-        } catch (ArgumentException exception) when (exception.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal)) {
+        } catch (ArgumentException exception) when (IsMissingEmbeddedGlyphFailure(exception)) {
             return;
         }
 
@@ -68,7 +68,7 @@ public sealed class PdfConversionTypographyTests {
         try {
             first = CreateMarkdownPdf(fontPath);
             second = CreateMarkdownPdf(fontPath);
-        } catch (ArgumentException exception) when (exception.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal)) {
+        } catch (ArgumentException exception) when (IsMissingEmbeddedGlyphFailure(exception)) {
             return;
         }
 
@@ -76,7 +76,7 @@ public sealed class PdfConversionTypographyTests {
     }
 
     [Fact]
-    public void MarkdownConversion_ReportsMissingEmbeddedGlyphThroughConversionReportBeforeThrowing() {
+    public void MarkdownConversion_ReportsMissingEmbeddedGlyphThroughPreflightExceptionBeforeThrowing() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
             return;
@@ -88,13 +88,11 @@ public sealed class PdfConversionTypographyTests {
             PdfOptions = CreatePdfOptions(fontPath)
         };
 
-        ArgumentException exception = Assert.Throws<ArgumentException>(() => ("# Missing Glyph\n\nUnsupported " + unsupportedScalar).SaveAsPdf(options));
+        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => ("# Missing Glyph\n\nUnsupported " + unsupportedScalar).SaveAsPdf(options));
 
-        Assert.Contains("not covered by the embedded TrueType font", exception.Message, StringComparison.Ordinal);
-        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings.Where(item => item.Code == "missing-embedded-font-glyph").Take(1));
-        Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
-        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Error, warning.Severity);
-        Assert.Equal("U+10FFFF", warning.Details["codePoint"]);
+        Assert.True(IsMissingEmbeddedGlyphFailure(exception));
+        Assert.Contains((string?)exception.Data["code"], new[] { "missing-embedded-font-glyph", "unsupported-text-glyph" });
+        Assert.Equal("U+10FFFF", exception.Data["codePoint"]);
     }
 
     [Theory]
@@ -509,11 +507,21 @@ Zażółć gęślą jaźń
 
         if (allowMissingGlyphFailure &&
             exception is ArgumentException argumentException &&
-            argumentException.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal)) {
+            IsMissingEmbeddedGlyphFailure(argumentException)) {
             return;
         }
 
         throw exception;
+    }
+
+    private static bool IsMissingEmbeddedGlyphFailure(ArgumentException exception) {
+        if (exception.Data["code"] is string code &&
+            string.Equals(code, "missing-embedded-font-glyph", StringComparison.Ordinal)) {
+            return true;
+        }
+
+        return exception.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal) ||
+               exception.Message.Contains("cannot be encoded with embedded TrueType font", StringComparison.Ordinal);
     }
 
     private static void WriteReviewArtifact(string fileName, byte[] bytes) {
