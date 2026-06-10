@@ -32,6 +32,9 @@ public abstract class MarkdownNativeBlock {
 
     /// <summary>Returns <see langword="true"/> when this block's source span contains the supplied 1-based line.</summary>
     public bool ContainsLine(int lineNumber) => SourceSpan.HasValue && SourceSpan.Value.ContainsLine(lineNumber);
+
+    /// <summary>Creates a UI-safe snapshot of this block without parser object references.</summary>
+    public MarkdownNativeBlockSnapshot ToSnapshot() => MarkdownNativeSnapshotFactory.FromBlock(this);
 }
 
 /// <summary>
@@ -42,6 +45,7 @@ public sealed class MarkdownNativeParagraphBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Paragraph, paragraph, syntaxNode) {
         Paragraph = paragraph;
         Inlines = paragraph.Inlines;
+        InlineRuns = MarkdownNativeInlineProjection.FromInlineContainer(syntaxNode);
         Text = InlinePlainText.Extract(paragraph.Inlines);
     }
 
@@ -53,6 +57,9 @@ public sealed class MarkdownNativeParagraphBlock : MarkdownNativeBlock {
 
     /// <summary>Structured inline nodes.</summary>
     public InlineSequence Inlines { get; }
+
+    /// <summary>AST-backed native inline projection with source spans.</summary>
+    public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 }
 
 /// <summary>
@@ -121,6 +128,7 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
         Classes = visual.FenceInfo.Classes;
         ElementId = visual.FenceInfo.ElementId;
         Title = visual.FenceInfo.Title;
+        Payload = MarkdownNativeVisualPayload.Create(visual);
     }
 
     /// <summary>Source semantic fenced block.</summary>
@@ -155,6 +163,9 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
 
     /// <summary>Convenience title resolved from fence metadata.</summary>
     public string? Title { get; }
+
+    /// <summary>Dependency-free typed payload hints for visual UI hosts.</summary>
+    public MarkdownNativeVisualPayload Payload { get; }
 }
 
 /// <summary>
@@ -265,6 +276,7 @@ public sealed class MarkdownNativeTableCell {
         Markdown = sourceCell?.Markdown ?? RawText;
         Blocks = sourceCell != null ? sourceCell.Blocks : Array.Empty<IMarkdownBlock>();
         Alignment = alignment;
+        InlineRuns = MarkdownNativeInlineProjection.FromFirstDescendantInlineContainer(syntaxNode);
     }
 
     /// <summary>Raw cell text from the table source.</summary>
@@ -299,6 +311,9 @@ public sealed class MarkdownNativeTableCell {
 
     /// <summary>Cell-level alignment override when present.</summary>
     public ColumnAlignment Alignment { get; }
+
+    /// <summary>AST-backed native inline projection for the cell content when available.</summary>
+    public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 
     private static string ExtractText(TableCell? sourceCell, string rawText) {
         if (sourceCell == null || sourceCell.Blocks.Count == 0) {

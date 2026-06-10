@@ -9,6 +9,7 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
         Heading = heading;
         Level = heading.Level;
         Inlines = heading.Inlines;
+        InlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.HeadingText);
         Text = heading.Text;
     }
 
@@ -23,6 +24,9 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
 
     /// <summary>Structured inline nodes.</summary>
     public InlineSequence Inlines { get; }
+
+    /// <summary>AST-backed native inline projection with source spans.</summary>
+    public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 }
 
 /// <summary>
@@ -67,6 +71,7 @@ public sealed class MarkdownNativeListItem {
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         Text = InlinePlainText.Extract(item.Content);
         Inlines = item.Content;
+        InlineRuns = MarkdownNativeInlineProjection.FromFirstDescendantInlineContainer(syntaxNode);
         AdditionalParagraphs = item.AdditionalParagraphs;
         IsTask = item.IsTask;
         Checked = item.Checked;
@@ -91,6 +96,9 @@ public sealed class MarkdownNativeListItem {
 
     /// <summary>Structured lead inline nodes.</summary>
     public InlineSequence Inlines { get; }
+
+    /// <summary>AST-backed native inline projection for the lead content.</summary>
+    public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 
     /// <summary>Additional paragraph inline nodes owned by this list item.</summary>
     public IReadOnlyList<InlineSequence> AdditionalParagraphs { get; }

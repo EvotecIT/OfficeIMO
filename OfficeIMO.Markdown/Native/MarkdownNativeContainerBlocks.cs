@@ -37,6 +37,7 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
         CalloutKind = callout.Kind;
         Title = callout.Title;
         TitleInlines = callout.TitleInlines;
+        TitleInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.CalloutTitle);
         Body = callout.Body;
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
     }
@@ -52,6 +53,9 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
 
     /// <summary>Structured title inline nodes.</summary>
     public InlineSequence TitleInlines { get; }
+
+    /// <summary>AST-backed native title inline projection with source spans.</summary>
+    public IReadOnlyList<MarkdownNativeInline> TitleInlineRuns { get; }
 
     /// <summary>Rendered markdown body.</summary>
     public string Body { get; }
@@ -73,6 +77,7 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
         Open = details.Open;
         SummaryInlines = details.Summary?.Inlines;
         Summary = SummaryInlines == null ? null : InlinePlainText.Extract(SummaryInlines);
+        SummaryInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.Summary);
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
     }
 
@@ -87,6 +92,9 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
 
     /// <summary>Structured summary inline nodes when available.</summary>
     public InlineSequence? SummaryInlines { get; }
+
+    /// <summary>AST-backed native summary inline projection with source spans.</summary>
+    public IReadOnlyList<MarkdownNativeInline> SummaryInlineRuns { get; }
 
     /// <summary>Nested native body blocks.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }

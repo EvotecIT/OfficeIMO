@@ -201,6 +201,124 @@ Console.WriteLine(1);
     }
 
     [Fact]
+    public void Parse_Projects_Native_Inlines_With_SourceSpans_And_Metadata() {
+        var markdown = """
+# Native **AST** [docs](https://example.com "Docs")
+
+Paragraph with `code` and ![Alt](img.png "Img").
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
+        Assert.Contains(heading.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "AST");
+
+        var link = Assert.Single(heading.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        Assert.Equal("docs", link.Text);
+        Assert.Equal("https://example.com", link.GetMetadata("target"));
+        Assert.Equal("Docs", link.GetMetadata("title"));
+        Assert.True(link.SourceSpan.HasValue);
+        Assert.Same(link, native.FindInlineById(link.Id));
+        Assert.Same(link, native.FindInlineAtPosition(link.SourceSpan.Value.StartLine, link.SourceSpan.Value.StartColumn!.Value));
+
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[1]);
+        Assert.Contains(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Code && inline.Text == "code");
+        var image = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Image);
+        Assert.Equal("Alt", image.GetMetadata("alt"));
+        Assert.Equal("img.png", image.GetMetadata("source"));
+        Assert.Equal("Img", image.GetMetadata("imageTitle"));
+    }
+
+    [Fact]
+    public void Parse_Exposes_Visual_Payload_Hints_Without_Json_Dependency() {
+        var options = new MarkdownReaderOptions();
+        options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
+        options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+            "Mermaid",
+            new[] { "mermaid" },
+            context => new SemanticFencedBlock(MarkdownSemanticKinds.Mermaid, context.InfoString, context.Content, context.Caption)));
+        var markdown = """
+```ix-chart {#cpu .wide title="CPU" pinned=true}
+{"type":"bar","data":{"labels":["A"],"datasets":[{"label":"CPU","data":[42]}]}}
+```
+
+```mermaid
+graph TD
+  A-->B
+```
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+
+        var chart = Assert.IsType<MarkdownNativeVisualBlock>(native.Blocks[0]);
+        Assert.Equal(MarkdownNativeVisualPayloadFormat.JsonObject, chart.Payload.Format);
+        Assert.True(chart.Payload.IsJson);
+        Assert.Equal(MarkdownSemanticKinds.Chart, chart.Payload.DetectedSemanticKind);
+        Assert.Equal("bar", chart.Payload.JsonType);
+        Assert.Equal("true", chart.Payload.Signals["json.has.data"]);
+
+        var mermaid = Assert.IsType<MarkdownNativeVisualBlock>(native.Blocks[1]);
+        Assert.Equal(MarkdownNativeVisualPayloadFormat.Mermaid, mermaid.Payload.Format);
+        Assert.True(mermaid.Payload.IsMermaid);
+    }
+
+    [Fact]
+    public void ToSnapshot_Returns_UI_Safe_Block_Inline_Table_And_Diagnostic_Data() {
+        var markdown = """
+# Snapshot [docs](https://example.com)
+
+| Name | Value |
+| :--- | ---: |
+| **CPU** | `42` |
+
+***
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var snapshot = native.ToSnapshot();
+
+        Assert.Equal(MarkdownNativeDocumentSourceKind.ReaderInput, snapshot.SourceKind);
+        Assert.Equal(native.Blocks.Count, snapshot.Blocks.Count);
+        var heading = snapshot.Blocks[0];
+        Assert.Equal(MarkdownNativeBlockKind.Heading, heading.Kind);
+        Assert.Equal("Snapshot docs", heading.Text);
+        Assert.Contains(heading.Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Metadata["target"] == "https://example.com");
+
+        var table = snapshot.Blocks[1];
+        Assert.Equal(ColumnAlignment.Left, table.HeaderCells[0].Alignment);
+        Assert.Equal(ColumnAlignment.Right, table.Rows[0][1].Alignment);
+        Assert.Contains(table.Rows[0][0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "CPU");
+
+        Assert.Contains(snapshot.Diagnostics, diagnostic =>
+            diagnostic.Id == "native.unsupported-block"
+            && diagnostic.BlockId == native.Blocks[2].Id);
+    }
+
+    [Fact]
+    public void Navigation_And_Source_Edit_Helpers_Find_Blocks_And_Draft_Replacements() {
+        var markdown = """
+> [!NOTE] Heads up
+> Body text
+
+Outside
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var callout = Assert.IsType<MarkdownNativeCalloutBlock>(native.Blocks[0]);
+        var child = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(callout.Children));
+
+        Assert.Same(callout, native.FindBlockById(callout.Id));
+        Assert.Same(child, native.FindBlockAtPosition(child.SourceSpan!.Value.StartLine, child.SourceSpan.Value.StartColumn!.Value));
+        Assert.Equal(new[] { callout.Id, child.Id }, native.GetBlockPath(child.Id).Select(block => block.Id).ToArray());
+
+        var edit = native.CreateReplaceEdit(child, "> Updated body");
+        var updated = edit.Apply(native.SourceMarkdown);
+        Assert.Contains("> Updated body", updated);
+        Assert.DoesNotContain("> Body text", updated);
+    }
+
+    [Fact]
     public void Renderer_ParseNativeDocument_Exposes_Preprocessed_Source_Kind_And_Transform_Diagnostics() {
         var markdown = """
 ix:cached-tool-evidence:v1
