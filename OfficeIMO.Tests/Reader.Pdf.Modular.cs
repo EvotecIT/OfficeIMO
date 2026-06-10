@@ -273,6 +273,63 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_FiltersLogicalMetadataToSelectedPages() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                CreateOutlineFromHeadings = true
+            })
+            .H1("First")
+            .Bookmark("FirstDest")
+            .Paragraph(p => p.Text("First page body."))
+            .PageBreak()
+            .H1("Second")
+            .Bookmark("SecondDest")
+            .Paragraph(p => p.Text("Second page body."))
+            .ToBytes();
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            logical,
+            sourceName: "selected-metadata.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] { PdfPageRange.From(1, 1) }
+            });
+
+        Assert.Single(result.Pages);
+        Assert.Contains(result.Metadata, entry => entry.Category == "pdf.destination" && entry.Name == "FirstDest");
+        Assert.DoesNotContain(result.Metadata, entry => entry.Category == "pdf.destination" && entry.Name == "SecondDest");
+        Assert.Contains(result.Metadata, entry => entry.Category == "pdf.outline" && entry.Name == "First");
+        Assert.DoesNotContain(result.Metadata, entry => entry.Category == "pdf.outline" && entry.Name == "Second");
+        Assert.Contains(result.Metadata, entry =>
+            entry.Id == "pdf-named-destination-count" &&
+            entry.Value == "1");
+        Assert.Contains(result.Metadata, entry =>
+            entry.Id == "pdf-outline-count" &&
+            entry.Value == "1");
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_PreservesRemoteLinkDestinations() {
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(BuildRemoteGoToLinkPdf(), writable: false),
+            sourceName: "remote-link.pdf");
+
+        OfficeDocumentLink link = Assert.Single(result.Links);
+        Assert.Equal("remote", link.Kind);
+        Assert.Equal("remote-report.pdf", link.RemoteFile);
+        Assert.Null(link.RemoteDestinationName);
+        Assert.Equal(2, link.RemoteDestinationPageNumber);
+        Assert.Equal(nameof(PdfOpenActionDestinationMode.FitHorizontal), link.RemoteDestinationMode);
+        Assert.Equal(144D, link.RemoteDestinationTop);
+
+        using JsonDocument document = JsonDocument.Parse(result.ToJson());
+        JsonElement jsonLink = document.RootElement.GetProperty("links")[0];
+        Assert.Equal("remote-report.pdf", jsonLink.GetProperty("remoteFile").GetString());
+        Assert.Equal(2, jsonLink.GetProperty("remoteDestinationPageNumber").GetInt32());
+        Assert.Equal(nameof(PdfOpenActionDestinationMode.FitHorizontal), jsonLink.GetProperty("remoteDestinationMode").GetString());
+        Assert.Equal(144D, jsonLink.GetProperty("remoteDestinationTop").GetDouble());
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_UsesCurrentSeekableStreamPosition() {
         byte[] pdf = BuildTwoPagePdf();
         byte[] prefix = Encoding.ASCII.GetBytes("not-a-pdf-prefix");
@@ -635,6 +692,53 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfTableExports_DuplicatePageRangeTableSelectionsEmitUniqueIds() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Reader PDF table marker."))
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "A-100", "Alpha", "2" },
+                new[] { "B-200", "Beta", "14" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 70, 170, 60 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        IReadOnlyList<ReaderTableExportBundle> exports = DocumentReaderPdfExtensions.ReadPdfTableExports(
+            stream,
+            sourceName: "duplicate-table-ranges.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                LayoutOptions = new PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                },
+                PageRanges = new[] {
+                    PdfPageRange.From(1, 1),
+                    PdfPageRange.From(1, 1)
+                }
+            },
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+
+        Assert.Equal(2, exports.Count);
+        Assert.Equal(exports.Count, exports.Select(export => export.Id).Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(new[] {
+            "duplicate-table-ranges-page-0001-table-0000",
+            "duplicate-table-ranges-page-0001-selection-0001-table-0000"
+        }, exports.Select(export => export.Id).ToArray());
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_TableRowCapsApplyAfterDetectedHeader() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
@@ -914,6 +1018,35 @@ public sealed class ReaderPdfModularTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildRemoteGoToLinkPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [10 20 90 42] /Contents (Remote report link) /A << /S /GoToR /F << /F (fallback.pdf) /UF (remote-report.pdf) >> /D [1 /FitH 144] >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
             "%%EOF"
         }) + "\n";
 

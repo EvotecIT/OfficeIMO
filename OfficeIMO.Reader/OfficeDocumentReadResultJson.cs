@@ -190,6 +190,13 @@ public static class OfficeDocumentReadResultJson {
             destinationPageNumber = link.DestinationPageNumber,
             namedAction = link.NamedAction,
             remoteFile = link.RemoteFile,
+            remoteDestinationName = link.RemoteDestinationName,
+            remoteDestinationPageNumber = link.RemoteDestinationPageNumber,
+            remoteDestinationMode = link.RemoteDestinationMode,
+            remoteDestinationTop = link.RemoteDestinationTop,
+            remoteDestinationLeft = link.RemoteDestinationLeft,
+            remoteDestinationBottom = link.RemoteDestinationBottom,
+            remoteDestinationRight = link.RemoteDestinationRight,
             text = link.Text,
             location = ProjectLocation(link.Location),
             region = ProjectRegion(link.Region)

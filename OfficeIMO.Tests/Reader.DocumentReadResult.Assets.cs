@@ -205,6 +205,9 @@ public sealed class ReaderDocumentReadResultAssetTests {
                 ExcelSheet sheet = document.AddWorkSheet("Images");
                 sheet.Cell(1, 1, "Logo sheet");
                 sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Logo", altText: "Company logo");
+                ExcelSheet otherSheet = document.AddWorkSheet("Other");
+                otherSheet.Cell(1, 1, "Other sheet");
+                otherSheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "OtherLogo", altText: "Other logo");
                 document.Save();
             }
 
@@ -228,6 +231,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
             Assert.Equal("Images", page.Name);
             OfficeDocumentAsset pageAsset = Assert.Single(page.Assets);
             Assert.Same(asset, pageAsset);
+            Assert.DoesNotContain(result.Assets, candidate => candidate.Location.Sheet == "Other");
 
             Assert.Contains(result.Metadata, entry =>
                 entry.Category == "reader.summary" &&

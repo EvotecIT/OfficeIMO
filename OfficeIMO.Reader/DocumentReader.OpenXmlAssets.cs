@@ -47,7 +47,7 @@ public static partial class DocumentReader {
             using SpreadsheetDocument document = openSettings == null
                 ? SpreadsheetDocument.Open(stream, false)
                 : SpreadsheetDocument.Open(stream, false, openSettings);
-            CollectExcelImageAssets(document, sourceName, assets, cancellationToken);
+            CollectExcelImageAssets(document, sourceName, opt, assets, cancellationToken);
         }
 
         return assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets;
@@ -113,7 +113,7 @@ public static partial class DocumentReader {
         }
     }
 
-    private static void CollectExcelImageAssets(SpreadsheetDocument document, string sourceName, List<OfficeDocumentAsset> assets, CancellationToken cancellationToken) {
+    private static void CollectExcelImageAssets(SpreadsheetDocument document, string sourceName, ReaderOptions opt, List<OfficeDocumentAsset> assets, CancellationToken cancellationToken) {
         WorkbookPart? workbookPart = document.WorkbookPart;
         if (workbookPart?.Workbook?.Sheets == null) {
             return;
@@ -121,9 +121,16 @@ public static partial class DocumentReader {
 
         int assetIndex = assets.Count;
         var seenImagePlacements = new HashSet<string>(StringComparer.Ordinal);
+        string? selectedSheetName = string.IsNullOrWhiteSpace(opt.ExcelSheetName) ? null : opt.ExcelSheetName!.Trim();
         int sheetNumber = 1;
         foreach (Sheet sheet in workbookPart.Workbook.Sheets.Elements<Sheet>()) {
             cancellationToken.ThrowIfCancellationRequested();
+
+            string? sheetName = sheet.Name?.Value;
+            if (selectedSheetName != null && !string.Equals(sheetName, selectedSheetName, StringComparison.Ordinal)) {
+                sheetNumber++;
+                continue;
+            }
 
             string? relationshipId = sheet.Id?.Value;
             if (string.IsNullOrWhiteSpace(relationshipId)) {
@@ -140,7 +147,7 @@ public static partial class DocumentReader {
                     ReaderInputKind.Excel,
                     slideNumber: null,
                     sheetNumber,
-                    sheet.Name?.Value,
+                    sheetName,
                     assets,
                     seenImagePlacements,
                     visitedParts,

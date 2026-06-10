@@ -450,6 +450,41 @@ public sealed class OfficeDocumentLink {
     public string? RemoteFile { get; set; }
 
     /// <summary>
+    /// Remote destination name within the remote file when available.
+    /// </summary>
+    public string? RemoteDestinationName { get; set; }
+
+    /// <summary>
+    /// Remote destination page number within the remote file when available.
+    /// </summary>
+    public int? RemoteDestinationPageNumber { get; set; }
+
+    /// <summary>
+    /// Remote destination mode when available.
+    /// </summary>
+    public string? RemoteDestinationMode { get; set; }
+
+    /// <summary>
+    /// Remote destination top coordinate when available.
+    /// </summary>
+    public double? RemoteDestinationTop { get; set; }
+
+    /// <summary>
+    /// Remote destination left coordinate when available.
+    /// </summary>
+    public double? RemoteDestinationLeft { get; set; }
+
+    /// <summary>
+    /// Remote destination bottom coordinate when available.
+    /// </summary>
+    public double? RemoteDestinationBottom { get; set; }
+
+    /// <summary>
+    /// Remote destination right coordinate when available.
+    /// </summary>
+    public double? RemoteDestinationRight { get; set; }
+
+    /// <summary>
     /// Optional display or annotation text for the link.
     /// </summary>
     public string? Text { get; set; }

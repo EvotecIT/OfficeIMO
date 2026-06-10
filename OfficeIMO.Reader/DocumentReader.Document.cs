@@ -268,8 +268,7 @@ public static partial class DocumentReader {
             .Concat(tables.Where(static table => !string.IsNullOrWhiteSpace(table.Location?.Sheet)).Select(static table => table.Location!.Sheet!))
             .Concat(assets.Where(static asset => !string.IsNullOrWhiteSpace(asset.Location.Sheet)).Select(static asset => asset.Location.Sheet!))
             .Concat(ocrCandidates.Where(static candidate => !string.IsNullOrWhiteSpace(candidate.Location.Sheet)).Select(static candidate => candidate.Location.Sheet!))
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(static sheet => sheet, StringComparer.Ordinal);
+            .Distinct(StringComparer.Ordinal);
         foreach (string sheetName in sheetNames) {
             ReaderLocation location = chunks.FirstOrDefault(chunk => string.Equals(chunk.Location.Sheet, sheetName, StringComparison.Ordinal))?.Location
                 ?? tables.FirstOrDefault(table => string.Equals(table.Location?.Sheet, sheetName, StringComparison.Ordinal))?.Location

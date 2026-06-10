@@ -287,6 +287,28 @@ public sealed class ReaderDocumentReadResultTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadDocument_PreservesWorkbookSheetOrderForPages() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+        try {
+            using (var workbook = ExcelDocument.Create(path)) {
+                var zSheet = workbook.AddWorkSheet("Z");
+                zSheet.Cell(1, 1, "Name");
+                zSheet.Cell(2, 1, "Zulu");
+                var aSheet = workbook.AddWorkSheet("A");
+                aSheet.Cell(1, 1, "Name");
+                aSheet.Cell(2, 1, "Alpha");
+                workbook.Save();
+            }
+
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(path);
+
+            Assert.Equal(new[] { "Z", "A" }, result.Pages.Select(page => page.Name).ToArray());
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadDocument_NonSeekableStream_EnforcesMaxInputBytesBeforeSnapshot() {
         using var package = new MemoryStream();
         using (WordDocument document = WordDocument.Create(package)) {

@@ -182,7 +182,7 @@ public static partial class DocumentReaderPdfExtensions {
             },
             Markdown = markdown,
             Chunks = chunks,
-            Metadata = BuildDocumentMetadata(document, source, preflight),
+            Metadata = BuildDocumentMetadata(document, source, preflight, applyPageRanges ? pages : null),
             Pages = BuildDocumentPages(pages, source, blocks, tables, assets, links, forms, ocrCandidates),
             Blocks = blocks,
             Tables = tables,
@@ -382,6 +382,13 @@ public static partial class DocumentReaderPdfExtensions {
                     DestinationPageNumber = link.DestinationPageNumber,
                     NamedAction = link.NamedAction,
                     RemoteFile = link.RemoteFile,
+                    RemoteDestinationName = link.RemoteDestinationName,
+                    RemoteDestinationPageNumber = link.RemoteDestinationPageNumber,
+                    RemoteDestinationMode = link.RemoteDestinationMode?.ToString(),
+                    RemoteDestinationTop = link.RemoteDestinationTop,
+                    RemoteDestinationLeft = link.RemoteDestinationLeft,
+                    RemoteDestinationBottom = link.RemoteDestinationBottom,
+                    RemoteDestinationRight = link.RemoteDestinationRight,
                     Text = link.Contents,
                     Location = BuildLocation(source, page.PageNumber, pageIndex, "link", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-link-" + linkIndex.ToString(CultureInfo.InvariantCulture)),
                     Region = new OfficeDocumentRegion {
@@ -419,21 +426,22 @@ public static partial class DocumentReaderPdfExtensions {
         }
     }
 
-    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfLogicalDocument document, SourceMetadata source, PdfDocumentPreflight? preflight) {
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfLogicalDocument document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages) {
         var entries = new List<OfficeDocumentMetadataEntry>();
+        HashSet<int>? selectedPageNumbers = BuildSelectedPageNumberSet(selectedPages);
         AddMetadata(entries, "pdf-catalog-page-mode", "pdf.catalog", "PageMode", document.CatalogPageMode);
         AddMetadata(entries, "pdf-catalog-page-layout", "pdf.catalog", "PageLayout", document.CatalogPageLayout);
         AddMetadata(entries, "pdf-catalog-version", "pdf.catalog", "Version", document.CatalogVersion);
         AddMetadata(entries, "pdf-catalog-language", "pdf.catalog", "Language", document.CatalogLanguage);
-        AddCountMetadata(entries, "pdf-outline-count", "pdf.outline", "Count", CountOutlines(document.Outlines));
-        AddCountMetadata(entries, "pdf-named-destination-count", "pdf.destination", "Count", document.NamedDestinations.Count);
+        AddCountMetadata(entries, "pdf-outline-count", "pdf.outline", "Count", CountOutlines(document.Outlines, selectedPageNumbers));
+        AddCountMetadata(entries, "pdf-named-destination-count", "pdf.destination", "Count", CountNamedDestinations(document.NamedDestinations, selectedPageNumbers));
         AddCountMetadata(entries, "pdf-catalog-action-count", "pdf.catalog.action", "Count", document.CatalogActions.Count);
         AddCountMetadata(entries, "pdf-form-field-count", "pdf.form", "Count", document.FormFields.Count);
         AddMetadata(entries, "pdf-acroform-need-appearances", "pdf.form", "NeedAppearances", ToMetadataText(document.AcroFormNeedAppearances), "boolean");
         AddMetadata(entries, "pdf-acroform-signature-flags", "pdf.form", "SignatureFlags", ToMetadataText(document.AcroFormSignatureFlags), "number");
         entries.AddRange(BuildPdfPreflightMetadata(preflight));
 
-        if (document.OpenAction != null) {
+        if (document.OpenAction != null && IsSelectedPage(document.OpenAction.PageNumber, selectedPageNumbers)) {
             entries.Add(new OfficeDocumentMetadataEntry {
                 Id = "pdf-open-action",
                 Category = "pdf.catalog.openAction",
@@ -463,10 +471,14 @@ public static partial class DocumentReaderPdfExtensions {
             }
         }
 
-        AddOutlineMetadata(entries, source, document.Outlines);
+        AddOutlineMetadata(entries, source, document.Outlines, selectedPageNumbers);
 
         for (int i = 0; i < document.NamedDestinations.Count; i++) {
             PdfNamedDestination destination = document.NamedDestinations[i];
+            if (!IsSelectedPage(destination.PageNumber, selectedPageNumbers)) {
+                continue;
+            }
+
             entries.Add(new OfficeDocumentMetadataEntry {
                 Id = "pdf-named-destination-" + i.ToString("D4", CultureInfo.InvariantCulture),
                 Category = "pdf.destination",
@@ -507,32 +519,34 @@ public static partial class DocumentReaderPdfExtensions {
         return entries.Count == 0 ? Array.Empty<OfficeDocumentMetadataEntry>() : entries.AsReadOnly();
     }
 
-    private static void AddOutlineMetadata(List<OfficeDocumentMetadataEntry> entries, SourceMetadata source, IReadOnlyList<PdfOutlineItem> outlines) {
+    private static void AddOutlineMetadata(List<OfficeDocumentMetadataEntry> entries, SourceMetadata source, IReadOnlyList<PdfOutlineItem> outlines, HashSet<int>? selectedPageNumbers) {
         for (int i = 0; i < outlines.Count; i++) {
             PdfOutlineItem outline = outlines[i];
-            string id = "pdf-outline-" + entries.Count.ToString("D4", CultureInfo.InvariantCulture);
-            var attributes = BuildDestinationAttributes(
-                outline.PageNumber,
-                outline.DestinationTop,
-                outline.DestinationMode,
-                outline.DestinationLeft,
-                outline.DestinationBottom,
-                outline.DestinationRight);
-            attributes["level"] = outline.Level.ToString(CultureInfo.InvariantCulture);
-            attributes["isExpanded"] = ToMetadataText(outline.IsExpanded)!;
-            attributes["childCount"] = outline.Children.Count.ToString(CultureInfo.InvariantCulture);
+            if (IsSelectedPage(outline.PageNumber, selectedPageNumbers)) {
+                string id = "pdf-outline-" + entries.Count.ToString("D4", CultureInfo.InvariantCulture);
+                var attributes = BuildDestinationAttributes(
+                    outline.PageNumber,
+                    outline.DestinationTop,
+                    outline.DestinationMode,
+                    outline.DestinationLeft,
+                    outline.DestinationBottom,
+                    outline.DestinationRight);
+                attributes["level"] = outline.Level.ToString(CultureInfo.InvariantCulture);
+                attributes["isExpanded"] = ToMetadataText(outline.IsExpanded)!;
+                attributes["childCount"] = CountOutlines(outline.Children, selectedPageNumbers).ToString(CultureInfo.InvariantCulture);
 
-            entries.Add(new OfficeDocumentMetadataEntry {
-                Id = id,
-                Category = "pdf.outline",
-                Name = outline.Title,
-                Value = outline.Title,
-                ValueType = "object",
-                Location = BuildMetadataLocation(source, outline.PageNumber, "outline", id),
-                Attributes = attributes
-            });
+                entries.Add(new OfficeDocumentMetadataEntry {
+                    Id = id,
+                    Category = "pdf.outline",
+                    Name = outline.Title,
+                    Value = outline.Title,
+                    ValueType = "object",
+                    Location = BuildMetadataLocation(source, outline.PageNumber, "outline", id),
+                    Attributes = attributes
+                });
+            }
 
-            AddOutlineMetadata(entries, source, outline.Children);
+            AddOutlineMetadata(entries, source, outline.Children, selectedPageNumbers);
         }
     }
 
@@ -599,10 +613,46 @@ public static partial class DocumentReaderPdfExtensions {
         }
     }
 
-    private static int CountOutlines(IReadOnlyList<PdfOutlineItem> outlines) {
-        int count = outlines.Count;
+    private static HashSet<int>? BuildSelectedPageNumberSet(IReadOnlyList<PdfLogicalPage>? selectedPages) {
+        if (selectedPages == null) {
+            return null;
+        }
+
+        var pages = new HashSet<int>();
+        for (int i = 0; i < selectedPages.Count; i++) {
+            pages.Add(selectedPages[i].PageNumber);
+        }
+
+        return pages;
+    }
+
+    private static bool IsSelectedPage(int? pageNumber, HashSet<int>? selectedPageNumbers) {
+        return selectedPageNumbers == null || !pageNumber.HasValue || selectedPageNumbers.Contains(pageNumber.Value);
+    }
+
+    private static int CountNamedDestinations(IReadOnlyList<PdfNamedDestination> destinations, HashSet<int>? selectedPageNumbers) {
+        if (selectedPageNumbers == null) {
+            return destinations.Count;
+        }
+
+        int count = 0;
+        for (int i = 0; i < destinations.Count; i++) {
+            if (IsSelectedPage(destinations[i].PageNumber, selectedPageNumbers)) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountOutlines(IReadOnlyList<PdfOutlineItem> outlines, HashSet<int>? selectedPageNumbers = null) {
+        int count = 0;
         for (int i = 0; i < outlines.Count; i++) {
-            count += CountOutlines(outlines[i].Children);
+            if (IsSelectedPage(outlines[i].PageNumber, selectedPageNumbers)) {
+                count++;
+            }
+
+            count += CountOutlines(outlines[i].Children, selectedPageNumbers);
         }
 
         return count;

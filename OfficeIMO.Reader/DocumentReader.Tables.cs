@@ -189,7 +189,7 @@ public static partial class DocumentReader {
         ReaderLocation? location = table.Location;
         string container = location == null ? "document" : BuildTableLocationStem(location);
         int tableIndex = location?.TableIndex ?? index;
-        return container + "-table-" + tableIndex.ToString("D4", CultureInfo.InvariantCulture);
+        return container + BuildTableSelectionSuffix(location) + "-table-" + tableIndex.ToString("D4", CultureInfo.InvariantCulture);
     }
 
     private static string BuildTableLocationStem(ReaderLocation location) {
@@ -217,5 +217,13 @@ public static partial class DocumentReader {
         }
 
         return string.Empty;
+    }
+
+    private static string BuildTableSelectionSuffix(ReaderLocation? location) {
+        if (location?.Page == null || location.SourceBlockIndex == null || location.SourceBlockIndex.Value <= 0) {
+            return string.Empty;
+        }
+
+        return "-selection-" + location.SourceBlockIndex.Value.ToString("D4", CultureInfo.InvariantCulture);
     }
 }
