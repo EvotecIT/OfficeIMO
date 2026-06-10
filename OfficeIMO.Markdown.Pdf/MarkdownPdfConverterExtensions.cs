@@ -47,6 +47,8 @@ public static partial class MarkdownPdfConverterExtensions {
         options.ResetExportState();
 
         PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
+        pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.Markdown.Pdf");
+
         if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
             pdfOptions.TryUseOfficeFontFamily(options.FontFamily);
         } else if (options.PdfOptions == null) {

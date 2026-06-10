@@ -1,0 +1,358 @@
+{
+  "version": 1,
+  "description": "OfficeIMO PDF conversion proof scenarios. The manifest is consumed by tests and the PDF visual review gallery so converter coverage stays observable.",
+  "scenarios": [
+    {
+      "id": "word-native-report",
+      "path": "word-to-pdf",
+      "converter": "OfficeIMO.Word.Pdf",
+      "sourceFormat": "word",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "headings",
+        "table-of-contents",
+        "rich-runs",
+        "lists",
+        "tables",
+        "images",
+        "checkbox-form-fields",
+        "header-content"
+      ],
+      "expectedSimplifications": [
+        "complex unsupported Word content records converter warnings rather than blocking export"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "native-word-report.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Native Word PDF Visual Gate",
+          "Native evidence table"
+        ],
+        "logicalSignals": [
+          "headings",
+          "outlines",
+          "links",
+          "form-fields"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfInspector",
+          "PdfLogicalDocument",
+          "optional Poppler raster baseline"
+        ]
+      }
+    },
+    {
+      "id": "excel-native-daily-workbook",
+      "path": "excel-to-pdf",
+      "converter": "OfficeIMO.Excel.Pdf",
+      "sourceFormat": "excel",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "multiple-sheets",
+        "cell-formatting",
+        "hyperlinks",
+        "images",
+        "charts",
+        "print-area",
+        "header-footer",
+        "hidden-rows-columns"
+      ],
+      "expectedSimplifications": [
+        "unsupported workbook constructs are represented through warnings or skipped from the visible export"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "native-excel-daily-workbook.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Daily Excel PDF Gate",
+          "Revenue Chart",
+          "Details Target"
+        ],
+        "logicalSignals": [
+          "page-count",
+          "outlines",
+          "links",
+          "images"
+        ],
+        "visualPages": 2,
+        "validatorEvidence": [
+          "PdfInspector",
+          "PdfLogicalDocument",
+          "PdfImageExtractor",
+          "optional Poppler raster baseline"
+        ]
+      }
+    },
+    {
+      "id": "markdown-technical-document",
+      "path": "markdown-to-pdf",
+      "converter": "OfficeIMO.Markdown.Pdf",
+      "sourceFormat": "markdown",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "front-matter",
+        "headings",
+        "links",
+        "local-images",
+        "lists",
+        "tables",
+        "quotes",
+        "code-blocks"
+      ],
+      "expectedSimplifications": [
+        "remote images require caller-supplied resolver and produce warnings when unresolved"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "markdown-technical-document.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Markdown PDF Visual Gate",
+          "Export coverage"
+        ],
+        "logicalSignals": [
+          "headings",
+          "links",
+          "images",
+          "tables"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfReadDocument",
+          "PdfLogicalDocument",
+          "optional Poppler raster baseline"
+        ]
+      }
+    },
+    {
+      "id": "html-document-profile",
+      "path": "html-to-pdf",
+      "converter": "OfficeIMO.Html.Pdf",
+      "sourceFormat": "html",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "headings",
+        "links",
+        "embedded-images",
+        "tables",
+        "page-breaks",
+        "document-profile"
+      ],
+      "expectedSimplifications": [
+        "document profile follows the Word HTML bridge and is not a browser/CSS renderer"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "practical-html.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Practical HTML",
+          "Second page marker"
+        ],
+        "logicalSignals": [
+          "page-count",
+          "links",
+          "images",
+          "tables"
+        ],
+        "visualPages": 2,
+        "validatorEvidence": [
+          "PdfInspector",
+          "PdfLogicalDocument",
+          "PdfImageExtractor"
+        ]
+      }
+    },
+    {
+      "id": "powerpoint-native-dense-layout",
+      "path": "powerpoint-to-pdf",
+      "converter": "OfficeIMO.PowerPoint.Pdf",
+      "sourceFormat": "powerpoint",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "slide-size",
+        "text-boxes",
+        "bullets",
+        "tables",
+        "images",
+        "charts",
+        "backgrounds"
+      ],
+      "expectedSimplifications": [
+        "unsupported slide shapes and overflowing text boxes record converter warnings"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "native-powerpoint-dense-layout.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Dense Layout Gate",
+          "Flow"
+        ],
+        "logicalSignals": [
+          "page-geometry",
+          "text",
+          "images"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfInspector",
+          "PdfReadDocument",
+          "optional Poppler raster baseline"
+        ]
+      }
+    },
+    {
+      "id": "converter-multilingual-typography",
+      "path": "cross-converter-typography-to-pdf",
+      "converter": "OfficeIMO.Word.Pdf, OfficeIMO.Excel.Pdf, OfficeIMO.Markdown.Pdf, OfficeIMO.Html.Pdf, OfficeIMO.PowerPoint.Pdf",
+      "sourceFormat": "word/excel/markdown/html/powerpoint",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "embedded-truetype-font-options",
+        "unicode-polish-text",
+        "unicode-greek-text",
+        "unicode-cyrillic-text",
+        "tables",
+        "extractable-text"
+      ],
+      "expectedSimplifications": [
+        "visual layout remains adapter-specific while the shared typography contract requires Type0 Identity-H embedded font output and extractable Unicode text"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "multilingual-word-to-pdf.pdf",
+        "multilingual-excel-to-pdf.pdf",
+        "multilingual-markdown-to-pdf.pdf",
+        "multilingual-html-to-pdf.pdf",
+        "multilingual-powerpoint-to-pdf.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Converter typography report",
+          "Zażółć gęślą jaźń",
+          "Ελλάδα",
+          "Київ"
+        ],
+        "logicalSignals": [
+          "type0-font",
+          "identity-h-encoding",
+          "to-unicode-map",
+          "font-file2",
+          "extractable-unicode"
+        ],
+        "visualPages": 5,
+        "validatorEvidence": [
+          "PdfReadDocument",
+          "raw PDF font-resource checks",
+          "visual review gallery"
+        ]
+      }
+    },
+    {
+      "id": "pdf-logical-readback",
+      "path": "pdf-to-logical",
+      "converter": "OfficeIMO.Pdf",
+      "sourceFormat": "pdf",
+      "targetFormat": "logical-read-model",
+      "status": "supported",
+      "sourceFeatures": [
+        "headings",
+        "paragraphs",
+        "lists",
+        "tables",
+        "links",
+        "images"
+      ],
+      "expectedSimplifications": [
+        "logical readback is parser-supported and does not OCR scanned pages"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "pdf-to-html-logical-source.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Logical PDF sample",
+          "Detected logical bullet"
+        ],
+        "logicalSignals": [
+          "headings",
+          "paragraphs",
+          "list-items",
+          "tables",
+          "links",
+          "images"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfLogicalDocument",
+          "PdfReadDocument"
+        ]
+      }
+    },
+    {
+      "id": "pdf-to-html-positioned-review",
+      "path": "pdf-to-html",
+      "converter": "OfficeIMO.Html.Pdf",
+      "sourceFormat": "pdf",
+      "targetFormat": "html",
+      "status": "supported",
+      "sourceFeatures": [
+        "logical-text",
+        "headings",
+        "tables",
+        "links",
+        "image-placeholders",
+        "positioned-review-profile"
+      ],
+      "expectedSimplifications": [
+        "positioned review HTML is an inspection surface, not a full PDF renderer"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "pdf-to-html-logical-source.pdf",
+        "pdf-to-html-positioned-review.html"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Logical PDF sample",
+          "Logical Heading"
+        ],
+        "logicalSignals": [
+          "html-page-containers",
+          "positioned-text",
+          "safe-links",
+          "image-placeholders"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfHtmlConverter",
+          "PdfLogicalDocument"
+        ]
+      }
+    }
+  ]
+}

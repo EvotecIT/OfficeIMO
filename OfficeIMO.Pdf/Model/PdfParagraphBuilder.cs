@@ -61,6 +61,19 @@ public sealed class PdfParagraphBuilder {
 
     /// <summary>Adds a text run using the current style flags.</summary>
     public PdfParagraphBuilder Text(string text) { _runs.Add(new TextRun(text, _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike, fontSize: _currentFontSize, font: _currentFont, baseline: _currentBaseline, backgroundColor: _currentBackgroundColor)); return this; }
+    /// <summary>Adds text planned through an embedded-font fallback set while preserving the current run styling.</summary>
+    public PdfParagraphBuilder FallbackText(PdfEmbeddedFontFallbackSet fallbackSet, string text, string source = "") {
+        Guard.NotNull(fallbackSet, nameof(fallbackSet));
+        Guard.NotNull(text, nameof(text));
+        _runs.AddRange(fallbackSet.PlanTextRuns(text, source, CreateCurrentStyleTemplate()));
+        return this;
+    }
+    /// <summary>Adds already prepared rich text runs, preserving their per-run styling and font selections.</summary>
+    public PdfParagraphBuilder Runs(System.Collections.Generic.IEnumerable<TextRun> runs) {
+        Guard.NotNull(runs, nameof(runs));
+        _runs.AddRange(runs);
+        return this;
+    }
     /// <summary>Adds an explicit line break inside the current paragraph.</summary>
     public PdfParagraphBuilder LineBreak() { _runs.Add(TextRun.LineBreak()); return this; }
     /// <summary>Adds an explicit paragraph tab using the current style flags.</summary>
@@ -91,6 +104,19 @@ public sealed class PdfParagraphBuilder {
     /// <param name="underline">Whether to underline the link text (default true).</param>
     /// <param name="contents">Optional link annotation contents; defaults to the link text when omitted.</param>
     public PdfParagraphBuilder LinkToBookmark(string text, string bookmarkName, PdfColor? color = null, bool underline = true, string? contents = null) { _runs.Add(TextRun.LinkToBookmark(text, bookmarkName, color ?? _currentColor, underline, contents, _currentBaseline, _currentFontSize, _currentBackgroundColor, _currentFont)); return this; }
+
+    private TextRun CreateCurrentStyleTemplate() =>
+        new TextRun(
+            "template",
+            _currentBold,
+            _currentUnderline,
+            _currentColor,
+            _currentItalic,
+            _currentStrike,
+            _currentFontSize,
+            _currentFont,
+            baseline: _currentBaseline,
+            backgroundColor: _currentBackgroundColor);
 
     internal RichParagraphBlock Build(PdfParagraphStyle? style = null) => new RichParagraphBlock(_runs, Align, DefaultColor, style);
 }

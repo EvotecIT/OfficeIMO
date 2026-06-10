@@ -31,7 +31,7 @@ public sealed class HtmlPdfTests {
         Assert.True(pdf.Length > 0);
         Assert.Contains("HTML Report", text);
         Assert.Contains("Markdown bridge", text);
-        Assert.False(options.ConversionReport.HasWarnings);
+        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "UnsupportedImage");
     }
 
     [Fact]
@@ -49,10 +49,15 @@ public sealed class HtmlPdfTests {
 """.SaveAsPdf(options);
 
         Assert.True(pdf.Length > 0);
-        Assert.Single(markdownOptions.Warnings);
-        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings);
+        Assert.Single(markdownOptions.Warnings, item => item.Code == "UnsupportedImage");
+        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "UnsupportedImage");
         Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
         Assert.Equal("UnsupportedImage", warning.Code);
+
+        options.ConversionReport.Clear();
+
+        Assert.False(options.ConversionReport.HasWarnings);
+        Assert.Empty(options.ConversionReport.Warnings);
     }
 
     [Fact]

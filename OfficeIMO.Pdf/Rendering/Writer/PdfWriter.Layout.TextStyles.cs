@@ -93,6 +93,14 @@ internal static partial class PdfWriter {
         return GetHeadingBold(style) ? ChooseBold(normalFont) : normalFont;
     }
 
+    private static System.Collections.ObjectModel.ReadOnlyCollection<TextRun> CreateHeadingTextRuns(HeadingBlock heading, PdfHeadingStyle? style, PdfColor? color) =>
+        System.Array.AsReadOnly(new[] {
+            new TextRun(
+                heading.Text,
+                bold: GetHeadingBold(style),
+                color: color)
+        });
+
     private static string GetHeadingFontResource(PdfHeadingStyle? style) {
         return GetHeadingBold(style) ? "F2" : "F1";
     }

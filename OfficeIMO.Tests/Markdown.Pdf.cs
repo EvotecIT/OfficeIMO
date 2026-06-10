@@ -124,9 +124,9 @@ Console.WriteLine("OfficeIMO");
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
-        MarkdownPdfExportWarning warning = Assert.Single(options.Warnings);
+        MarkdownPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "UnsupportedImage");
         Assert.Equal("UnsupportedImage", warning.Code);
-        PdfCore.PdfConversionWarning sharedWarning = Assert.Single(options.ConversionReport.Warnings);
+        PdfCore.PdfConversionWarning sharedWarning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "UnsupportedImage");
         Assert.Equal("OfficeIMO.Markdown.Pdf", sharedWarning.Converter);
         Assert.Equal(warning.Code, sharedWarning.Code);
         Assert.Contains("OfficeIMO logo", text);

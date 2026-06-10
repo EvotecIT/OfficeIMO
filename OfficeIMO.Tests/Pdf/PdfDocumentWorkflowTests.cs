@@ -185,6 +185,25 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void Forms_TryFillNullOptionsCallsRemainSourceCompatible() {
+        byte[] formPdf = BuildSimpleFormPdf();
+        var textValues = new Dictionary<string, string> {
+            ["Person.Name"] = "Ada Lovelace"
+        };
+        var fieldValues = new Dictionary<string, PdfFormFieldValue> {
+            ["Person.Name"] = PdfFormFieldValue.From("Ada Lovelace")
+        };
+
+        PdfDocumentForms forms = PdfDocument.Open(formPdf).Forms;
+
+        Assert.True(forms.TryFill(textValues, null).Succeeded);
+        Assert.True(forms.TryFill(fieldValues, null).Succeeded);
+        Assert.True(forms.TryFillAndFlatten(textValues, null).Succeeded);
+        Assert.True(forms.TryFillAndFlatten(fieldValues, null).Succeeded);
+        Assert.True(forms.TryFlatten(null).Succeeded);
+    }
+
+    [Fact]
     public void PageOperations_ReturnNewDocumentsAndMatchExistingHelpers() {
         byte[] source = BuildThreePagePdf();
 
@@ -449,7 +468,7 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
-    public void AnalyzeTextEncoding_PreflightsFormWidgetValuesThroughWinAnsiPath() {
+    public void AnalyzeTextEncoding_PreflightsFormWidgetValuesThroughEmbeddedHelveticaPath() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
             return;
@@ -468,16 +487,15 @@ public class PdfDocumentWorkflowTests {
 
         IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = document.AnalyzeTextEncoding();
 
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfChoiceFieldOption" && diagnostic.FieldName == "Person.Country" && diagnostic.CodePoint == "U+0105");
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "PdfChoiceFieldValue" && diagnostic.FieldName == "Person.Country" && diagnostic.CodePoint == "U+0105");
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.FieldName == "Person.Country" && diagnostic.CodePoint == "U+0105");
 
         using var stream = new MemoryStream();
         PdfSaveResult result = document.TrySave(stream);
 
-        Assert.False(result.Succeeded);
-        Assert.Equal(0, stream.Length);
-        Assert.Contains(result.TextEncodingDiagnostics, diagnostic => diagnostic.Source == "PdfTextField" && diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
+        Assert.True(result.Succeeded);
+        Assert.True(stream.Length > 0);
+        Assert.DoesNotContain(result.TextEncodingDiagnostics, diagnostic => diagnostic.FieldName == "Person.City" && diagnostic.CodePoint == "U+0105");
     }
 
     [Fact]

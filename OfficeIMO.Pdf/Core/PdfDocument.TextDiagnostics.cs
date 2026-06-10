@@ -28,6 +28,7 @@ public sealed partial class PdfDocument {
             return false;
         }
 
+        _options.AddTextDiagnostics(diagnostics);
         exception = new PdfTextEncodingPreflightException(diagnostics);
         return true;
     }
@@ -65,10 +66,10 @@ public sealed partial class PdfDocument {
                 AddRuns(diagnostics, panel.Runs, options, defaultFont, "PdfPanel", location);
                 break;
             case TextFieldBlock textField:
-                AddFormWidgetText(diagnostics, textField.Value, "PdfTextField", location, fieldName: textField.Name);
+                AddFormWidgetText(diagnostics, textField.Value, options, "PdfTextField", location, fieldName: textField.Name);
                 break;
             case ChoiceFieldBlock choiceField:
-                AnalyzeChoiceField(choiceField, diagnostics, location);
+                AnalyzeChoiceField(choiceField, options, diagnostics, location);
                 break;
             case FreeTextAnnotationBlock freeText:
                 AddFreeTextAppearanceText(diagnostics, freeText.Contents, options, "PdfFreeTextAnnotation", location);
@@ -109,7 +110,7 @@ public sealed partial class PdfDocument {
                 string cellLocation = AppendLocation(locationPrefix, source + "[" + rowIndex.ToString(CultureInfo.InvariantCulture) + "," + cellIndex.ToString(CultureInfo.InvariantCulture) + "]");
                 AddRuns(diagnostics, cell.Runs, options, defaultFont, source, cellLocation, rowIndex, cellIndex);
                 foreach (PdfTableCellFormField field in cell.FormFields) {
-                    AnalyzeTableFormField(field, diagnostics, cellLocation, rowIndex, cellIndex);
+                    AnalyzeTableFormField(field, options, diagnostics, cellLocation, rowIndex, cellIndex);
                 }
             }
         }
@@ -124,28 +125,28 @@ public sealed partial class PdfDocument {
         AddText(diagnostics, caption, options, defaultFont, "PdfTableCaption", AppendLocation(locationPrefix, "PdfTableCaption"));
     }
 
-    private static void AnalyzeChoiceField(ChoiceFieldBlock choiceField, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix) {
+    private static void AnalyzeChoiceField(ChoiceFieldBlock choiceField, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix) {
         for (int optionIndex = 0; optionIndex < choiceField.Options.Count; optionIndex++) {
-            AddFormWidgetText(diagnostics, choiceField.Options[optionIndex], "PdfChoiceFieldOption", AppendLocation(locationPrefix, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: choiceField.Name);
+            AddFormWidgetText(diagnostics, choiceField.Options[optionIndex], options, "PdfChoiceFieldOption", AppendLocation(locationPrefix, "Option[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: choiceField.Name);
         }
 
         for (int valueIndex = 0; valueIndex < choiceField.Values.Count; valueIndex++) {
-            AddFormWidgetText(diagnostics, choiceField.Values[valueIndex], "PdfChoiceFieldValue", AppendLocation(locationPrefix, "Value[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: choiceField.Name);
+            AddFormWidgetText(diagnostics, choiceField.Values[valueIndex], options, "PdfChoiceFieldValue", AppendLocation(locationPrefix, "Value[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), fieldName: choiceField.Name);
         }
     }
 
-    private static void AnalyzeTableFormField(PdfTableCellFormField field, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, int rowIndex, int cellIndex) {
+    private static void AnalyzeTableFormField(PdfTableCellFormField field, PdfOptions options, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix, int rowIndex, int cellIndex) {
         if (field.Kind == PdfTableCellFormFieldKind.Text) {
-            AddFormWidgetText(diagnostics, field.Value, "PdfTableTextField", AppendLocation(locationPrefix, "PdfTableTextField"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
+            AddFormWidgetText(diagnostics, field.Value, options, "PdfTableTextField", AppendLocation(locationPrefix, "PdfTableTextField"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
             return;
         }
 
         for (int optionIndex = 0; optionIndex < field.Options.Count; optionIndex++) {
-            AddFormWidgetText(diagnostics, field.Options[optionIndex], "PdfTableChoiceFieldOption", AppendLocation(locationPrefix, "PdfTableChoiceFieldOption[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
+            AddFormWidgetText(diagnostics, field.Options[optionIndex], options, "PdfTableChoiceFieldOption", AppendLocation(locationPrefix, "PdfTableChoiceFieldOption[" + optionIndex.ToString(CultureInfo.InvariantCulture) + "]"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
         }
 
         for (int valueIndex = 0; valueIndex < field.Values.Count; valueIndex++) {
-            AddFormWidgetText(diagnostics, field.Values[valueIndex], "PdfTableChoiceFieldValue", AppendLocation(locationPrefix, "PdfTableChoiceFieldValue[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
+            AddFormWidgetText(diagnostics, field.Values[valueIndex], options, "PdfTableChoiceFieldValue", AppendLocation(locationPrefix, "PdfTableChoiceFieldValue[" + valueIndex.ToString(CultureInfo.InvariantCulture) + "]"), tableRowIndex: rowIndex, tableColumnIndex: cellIndex, fieldName: field.Name);
         }
     }
 
@@ -257,21 +258,44 @@ public sealed partial class PdfDocument {
             return;
         }
 
+        if (options.HasDiagnosticsReport) {
+            options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text!, source));
+        }
+
         IReadOnlyList<PdfTextEncodingDiagnostic> textDiagnostics = PdfTextDiagnostics.AnalyzeGeneratedText(text!, options, font, source, location);
         foreach (PdfTextEncodingDiagnostic diagnostic in textDiagnostics) {
             diagnostics.Add(AnnotateDiagnostic(diagnostic, pageNumber, tableRowIndex, tableColumnIndex, fieldName));
         }
     }
 
-    private static void AddFormWidgetText(List<PdfTextEncodingDiagnostic> diagnostics, string? text, string source, string location, int? tableRowIndex = null, int? tableColumnIndex = null, string? fieldName = null) {
+    private static void AddFormWidgetText(List<PdfTextEncodingDiagnostic> diagnostics, string? text, PdfOptions options, string source, string location, int? tableRowIndex = null, int? tableColumnIndex = null, string? fieldName = null) {
         if (string.IsNullOrEmpty(text)) {
             return;
         }
 
-        IReadOnlyList<PdfTextEncodingDiagnostic> textDiagnostics = PdfTextDiagnostics.AnalyzeWinAnsiText(text!, source, location);
+        IReadOnlyList<PdfTextEncodingDiagnostic> textDiagnostics = AnalyzeFormWidgetText(text!, options, source, location);
         foreach (PdfTextEncodingDiagnostic diagnostic in textDiagnostics) {
             diagnostics.Add(AnnotateDiagnostic(diagnostic, pageNumber: null, tableRowIndex, tableColumnIndex, fieldName));
         }
+    }
+
+    private static IReadOnlyList<PdfTextEncodingDiagnostic> AnalyzeFormWidgetText(string text, PdfOptions options, string source, string location) {
+        IReadOnlyList<PdfTextEncodingDiagnostic> generatedDiagnostics = PdfTextDiagnostics.AnalyzeGeneratedText(text, options, PdfStandardFont.Helvetica, source, location);
+        if (generatedDiagnostics.Count == 0) {
+            return Array.Empty<PdfTextEncodingDiagnostic>();
+        }
+
+        PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacksSnapshot;
+        if (fallbackSet != null) {
+            PdfTextFallbackPlan plan = fallbackSet.PlanText(text, source);
+            if (plan.IsFullyCovered) {
+                return Array.Empty<PdfTextEncodingDiagnostic>();
+            }
+
+            return plan.Diagnostics;
+        }
+
+        return generatedDiagnostics;
     }
 
     private static void AddFreeTextAppearanceText(List<PdfTextEncodingDiagnostic> diagnostics, string? text, PdfOptions options, string source, string location) {
@@ -297,6 +321,10 @@ public sealed partial class PdfDocument {
     }
 
     private static void AddRuns(List<PdfTextEncodingDiagnostic> diagnostics, IEnumerable<TextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source, string location, int? tableRowIndex = null, int? tableColumnIndex = null) {
+        if (options.HasDiagnosticsReport) {
+            options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayoutRuns(runs, source));
+        }
+
         IReadOnlyList<PdfTextEncodingDiagnostic> runDiagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(runs, options, defaultFont, source, location);
         foreach (PdfTextEncodingDiagnostic diagnostic in runDiagnostics) {
             diagnostics.Add(AnnotateDiagnostic(diagnostic, pageNumber: null, tableRowIndex: tableRowIndex, tableColumnIndex: tableColumnIndex));

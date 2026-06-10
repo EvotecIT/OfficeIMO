@@ -51,4 +51,23 @@ internal static class PdfFileAssembler {
                 return "1.4";
         }
     }
+
+    internal static PdfFileVersion RequireAtLeast(PdfFileVersion fileVersion, PdfFileVersion minimumVersion) {
+        Guard.FileVersion(fileVersion, nameof(fileVersion));
+        Guard.FileVersion(minimumVersion, nameof(minimumVersion));
+        return fileVersion < minimumVersion ? minimumVersion : fileVersion;
+    }
+
+    internal static PdfFileVersion ParseHeaderVersionOrDefault(string? headerVersion) {
+        switch (headerVersion) {
+            case "1.5":
+                return PdfFileVersion.Pdf15;
+            case "1.6":
+                return PdfFileVersion.Pdf16;
+            case "1.7":
+                return PdfFileVersion.Pdf17;
+            default:
+                return PdfFileVersion.Pdf14;
+        }
+    }
 }

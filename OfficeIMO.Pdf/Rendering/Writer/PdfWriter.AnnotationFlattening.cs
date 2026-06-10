@@ -6,32 +6,29 @@ internal static partial class PdfWriter {
         PdfOptions pageOptions,
         List<byte[]> objects,
         List<(string Name, int Id)> xobjects,
+        Func<PdfStandardFont, PdfOptions, int> ensureFont,
         Func<PdfOptions, int> ensureFormHelveticaFont,
         bool markAsArtifact) {
         Guard.NotNull(page, nameof(page));
         Guard.NotNull(pageOptions, nameof(pageOptions));
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(xobjects, nameof(xobjects));
+        Guard.NotNull(ensureFont, nameof(ensureFont));
         Guard.NotNull(ensureFormHelveticaFont, nameof(ensureFormHelveticaFont));
 
         var sb = new StringBuilder();
         foreach (FreeTextAnnotation annotation in page.FreeTextAnnotations) {
             double width = annotation.X2 - annotation.X1;
             double height = annotation.Y2 - annotation.Y1;
-            string appearanceContent = PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(
+            string appearanceContent = BuildFreeTextAnnotationAppearanceContent(
+                annotation,
                 width,
                 height,
-                annotation.Contents,
-                annotation.FontSize,
-                annotation.TextColor,
-                annotation.BorderColor,
-                annotation.BorderWidth,
-                annotation.FillColor,
-                annotation.TextAlign,
-                annotation.Padding,
-                annotation.LineHeight);
+                pageOptions,
+                ensureFont,
+                out IReadOnlyList<(string Name, int Id)> appearanceFontResources);
             byte[] appearanceBytes = PdfEncoding.Latin1GetBytes(appearanceContent);
-            string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(width, height, appearanceBytes.Length, ensureFormHelveticaFont(pageOptions));
+            string appearanceDictionary = PdfAnnotationDictionaryBuilder.BuildAppearanceStreamDictionary(width, height, appearanceBytes.Length, appearanceFontResources);
             int appearanceId = AddStreamObject(objects, appearanceDictionary, appearanceBytes);
             string resourceName = NextFlattenedAnnotationXObjectName(xobjects);
             xobjects.Add((resourceName, appearanceId));

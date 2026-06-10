@@ -179,8 +179,8 @@ public static partial class PdfPageExtractor {
         return PdfObjectBytes.WrapIndirectObject(objectNumber, body);
     }
     
-    internal static byte[] Assemble(List<byte[]> objects, int catalogId, int infoId) {
-        return PdfFileAssembler.Assemble(objects, catalogId, infoId);
+    internal static byte[] Assemble(List<byte[]> objects, int catalogId, int infoId, PdfFileVersion fileVersion = PdfFileVersion.Pdf14) {
+        return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion);
     }
     
     private static string FormatNumber(double value) {

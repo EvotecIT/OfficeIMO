@@ -704,10 +704,10 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/CIDToGIDMap /Identity", raw, StringComparison.Ordinal);
         Assert.Contains("/FontDescriptor", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
-        Assert.Contains("/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
+        AssertSubsetLength1(raw, fontData.Length);
         Assert.Contains("/Filter /FlateDecode", raw, StringComparison.Ordinal);
         Assert.DoesNotContain("/Filter /FlateDecode", rawUncompressed, StringComparison.Ordinal);
-        Assert.Contains("/W [0 [", raw, StringComparison.Ordinal);
+        Assert.Contains("/W [", raw, StringComparison.Ordinal);
         Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
         Assert.Contains("Embedded font Cafe é and Euro", text, StringComparison.Ordinal);
         Assert.Contains("€", text, StringComparison.Ordinal);
@@ -745,10 +745,19 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/BaseFont /OfficeIMOPretty-Bold", raw, StringComparison.Ordinal);
         Assert.Contains("/BaseFont /OfficeIMOPretty-Italic", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile2", raw, StringComparison.Ordinal);
-        Assert.Contains("/Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
+        AssertSubsetLength1(raw, fontData.Length);
         Assert.Contains("Pretty regular pretty bold pretty italic", text, StringComparison.Ordinal);
         Assert.Contains("Pretty header", text, StringComparison.Ordinal);
         Assert.Contains("Pretty footer 1/1", text, StringComparison.Ordinal);
+    }
+
+    private static void AssertSubsetLength1(string raw, int originalFontLength) {
+        MatchCollection matches = Regex.Matches(raw, @"/Length1\s+(\d+)");
+        Assert.NotEmpty(matches);
+        foreach (Match match in matches) {
+            int length = int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture);
+            Assert.InRange(length, 1, originalFontLength - 1);
+        }
     }
 
 

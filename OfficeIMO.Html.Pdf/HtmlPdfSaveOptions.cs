@@ -71,5 +71,6 @@ public sealed class HtmlPdfSaveOptions {
 
     internal void ResetExportState() {
         ConversionReport.Clear();
+        ConversionReport.ClearLinkedReports();
     }
 }

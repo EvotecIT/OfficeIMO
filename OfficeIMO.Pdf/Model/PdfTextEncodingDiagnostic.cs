@@ -7,6 +7,8 @@ namespace OfficeIMO.Pdf;
 /// Describes text that cannot be written through the current generated PDF text encoding path.
 /// </summary>
 public sealed class PdfTextEncodingDiagnostic {
+    private readonly string? _code;
+
     /// <summary>
     /// Creates a text encoding diagnostic.
     /// </summary>
@@ -17,6 +19,26 @@ public sealed class PdfTextEncodingDiagnostic {
     /// <param name="isControlCharacter">Whether the unsupported character is a control character.</param>
     public PdfTextEncodingDiagnostic(string source, int index, string codePoint, string text, bool isControlCharacter)
         : this(source, index, codePoint, text, isControlCharacter, string.Empty, string.Empty, string.Empty) {
+    }
+
+    internal PdfTextEncodingDiagnostic(string source, int index, string codePoint, string text, bool isControlCharacter, string? code, string? message, bool customCode) {
+        Source = source ?? string.Empty;
+        Index = index;
+        CodePoint = codePoint ?? string.Empty;
+        Text = text ?? string.Empty;
+        IsControlCharacter = isControlCharacter;
+        Encoding = string.Empty;
+        Remediation = string.Empty;
+        Location = string.Empty;
+        RunIndex = null;
+        PageNumber = null;
+        TableRowIndex = null;
+        TableColumnIndex = null;
+        FieldName = string.Empty;
+        _code = string.IsNullOrWhiteSpace(code) ? null : code;
+        Message = string.IsNullOrWhiteSpace(message)
+            ? CreateMessage(Index, CodePoint, Text, IsControlCharacter, Encoding, Remediation)
+            : message!;
     }
 
     /// <summary>
@@ -146,6 +168,7 @@ public sealed class PdfTextEncodingDiagnostic {
         TableRowIndex = tableRowIndex;
         TableColumnIndex = tableColumnIndex;
         FieldName = fieldName ?? string.Empty;
+        _code = null;
         Message = CreateMessage(Index, CodePoint, Text, IsControlCharacter, Encoding, Remediation);
     }
 
@@ -189,7 +212,7 @@ public sealed class PdfTextEncodingDiagnostic {
     public string FieldName { get; }
 
     /// <summary>Stable warning code suitable for shared conversion reports.</summary>
-    public string Code => IsControlCharacter ? "unsupported-control-character" : "unsupported-text-glyph";
+    public string Code => _code ?? (IsControlCharacter ? "unsupported-control-character" : "unsupported-text-glyph");
 
     /// <summary>Human-readable diagnostic message.</summary>
     public string Message { get; }

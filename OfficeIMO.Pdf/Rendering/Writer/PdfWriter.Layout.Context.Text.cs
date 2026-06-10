@@ -65,6 +65,31 @@ internal static partial class PdfWriter {
             }
         }
 
+        private void AddHeadingLinkAnnotations(HeadingBlock heading, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.List<RichSeg>> lines, PdfStandardFont font, double fontSize, double lineHeight, double x, double widthUsed, double startBaselineY, int? structElementIndex = null) {
+            if (string.IsNullOrEmpty(heading.LinkUri) && string.IsNullOrEmpty(heading.LinkDestinationName)) {
+                return;
+            }
+
+            double asc = GetAscenderForOptions(font, fontSize, currentOpts);
+            double desc = GetDescenderForOptions(font, fontSize, currentOpts);
+            for (int i = 0; i < lines.Count; i++) {
+                double lineWidth = MeasureRichLineWidth(lines[i], currentOpts);
+                if (lineWidth <= 0.001D) {
+                    continue;
+                }
+
+                double dx = 0D;
+                if (heading.Align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - lineWidth) / 2);
+                else if (heading.Align == PdfAlign.Right) dx = Math.Max(0, widthUsed - lineWidth);
+                double baselineY = startBaselineY - i * lineHeight;
+                double x1 = x + dx;
+                double x2 = x1 + Math.Min(widthUsed, lineWidth);
+                double y1 = baselineY - desc;
+                double y2 = baselineY + asc;
+                currentPage!.Annotations.Add(new LinkAnnotation { X1 = x1, Y1 = y1, X2 = x2, Y2 = y2, Uri = heading.LinkUri, DestinationName = heading.LinkDestinationName, Contents = heading.LinkContents, StructElementIndex = structElementIndex });
+            }
+        }
+
         private void AddImageLinkAnnotation(ImageBlock image, PdfImageStyle style, PageImage pageImage, double targetX, double targetBottomY, double targetWidth, double targetHeight) {
             if (string.IsNullOrEmpty(image.LinkUri)) {
                 return;
@@ -105,7 +130,8 @@ internal static partial class PdfWriter {
             topY - GetAscenderForOptions(font, fontSize, currentOpts);
 
         private void MarkRichFonts(System.Collections.Generic.IEnumerable<TextRun> runs) {
-            foreach (TextRun run in runs) {
+            System.Collections.Generic.IReadOnlyList<TextRun> effectiveRuns = NormalizeFallbackRuns(runs, ChooseNormal(currentOpts.DefaultFont), currentOpts);
+            foreach (TextRun run in effectiveRuns) {
                 PdfStandardFont runBaseFont = ChooseNormal(run.Font ?? currentOpts.DefaultFont);
                 PdfStandardFont runFont = run.Bold && run.Italic
                     ? ChooseBoldItalic(runBaseFont)
@@ -117,9 +143,9 @@ internal static partial class PdfWriter {
                 currentPage!.UsedFonts.Add(runFont);
             }
 
-            if (runs.Any(r => r.Bold)) { currentPage!.UsedBold = true; usedBold = true; }
-            if (runs.Any(r => r.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
-            if (runs.Any(r => r.Bold && r.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
+            if (effectiveRuns.Any(r => r.Bold)) { currentPage!.UsedBold = true; usedBold = true; }
+            if (effectiveRuns.Any(r => r.Italic)) { currentPage!.UsedItalic = true; usedItalic = true; }
+            if (effectiveRuns.Any(r => r.Bold && r.Italic)) { currentPage!.UsedBoldItalic = true; usedBoldItalic = true; }
         }
 
     }

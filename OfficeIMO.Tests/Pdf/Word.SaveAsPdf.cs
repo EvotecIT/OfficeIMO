@@ -203,7 +203,7 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        AssertPdfUsesFont(pdfPath, "Courier");
+        AssertPdfUsesAnyFont(pdfPath, "Courier New", "Courier");
     }
 
     [Fact]
@@ -250,7 +250,7 @@ public partial class Word {
         }
 
         Assert.True(File.Exists(pdfPath));
-        AssertPdfUsesFont(pdfPath, "Courier");
+        AssertPdfUsesAnyFont(pdfPath, "Consolas", "Courier");
     }
 
     [Fact]
@@ -643,6 +643,17 @@ public partial class Word {
 
         string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
         Assert.Contains("/BaseFont /" + expectedFontNamePart, pdfContent, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static void AssertPdfUsesAnyFont(string pdfPath, params string[] expectedFontNameParts) {
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.Contains(pdf.GetPage(1).Letters, letter =>
+            letter.FontName != null &&
+            expectedFontNameParts.Any(expected => letter.FontName.Contains(expected, StringComparison.OrdinalIgnoreCase)));
+
+        string pdfContent = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains(expectedFontNameParts, expected =>
+            pdfContent.Contains("/BaseFont /" + expected, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void AssertPdfDoesNotUseFont(string pdfPath, string fontNamePart) {

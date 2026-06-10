@@ -1987,7 +1987,9 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(1, 1, 2d);
             sheet.CellValue(2, 1, 3d);
             sheet.CellFormula(3, 1, "SUM(A1:A2)");
-            Assert.Equal(1, document.RecalculateSupportedFormulas());
+            document.RecalculateSupportedFormulas();
+            Assert.True(sheet.TryGetCachedFormulaValue(3, 1, out string? cachedValue));
+            Assert.Equal("5", cachedValue);
 
             document.Save(memory);
 

@@ -5,13 +5,27 @@ public static partial class PdfFormFiller {
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues) {
-        return FillFields(pdf, ToFormFieldValues(fieldValues));
+        return FillFields(pdf, ToFormFieldValues(fieldValues), options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
+    /// </summary>
+    public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+        return FillFields(pdf, ToFormFieldValues(fieldValues), options);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
     /// </summary>
     public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        return FillFields(pdf, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated by fully qualified field name.
+    /// </summary>
+    public static byte[] FillFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
         ValidateFieldValues(fieldValues);
 
@@ -37,8 +51,9 @@ public static partial class PdfFormFiller {
         var remaining = new HashSet<string>(fieldValues.Keys, StringComparer.Ordinal);
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int? acroFormQuadding = ReadFieldQuadding(objects, acroForm, null);
+        PdfDictionary? acroFormDefaultResources = TryReadDefaultResources(objects, acroForm);
         for (int i = 0; i < fields.Items.Count; i++) {
-            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, fieldValues, remaining, new HashSet<int>(), ref nextObjectNumber);
+            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, acroFormDefaultResources, null, fieldValues, options, remaining, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (remaining.Count > 0) {
@@ -46,58 +61,107 @@ public static partial class PdfFormFiller {
         }
 
         acroForm.Items["NeedAppearances"] = new PdfBoolean(true);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
     public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues) {
-        return FillFields(ReadStream(stream, nameof(stream)), fieldValues);
+        return FillFields(stream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
+    /// </summary>
+    public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+        return FillFields(ReadStream(stream, nameof(stream)), fieldValues, options);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
     public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
-        return FillFields(ReadStream(stream, nameof(stream)), fieldValues);
+        return FillFields(stream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated from the current position of a readable stream.
+    /// </summary>
+    public static byte[] FillFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+        return FillFields(ReadStream(stream, nameof(stream)), fieldValues, options);
     }
 
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues) {
-        WriteOutput(outputStream, FillFields(pdf, fieldValues));
+        FillFields(pdf, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FillFields(pdf, fieldValues, options));
     }
 
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
-        WriteOutput(outputStream, FillFields(pdf, fieldValues));
+        FillFields(pdf, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FillFields(pdf, fieldValues, options));
     }
 
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
     public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues) {
-        WriteOutput(outputStream, FillFields(inputStream, fieldValues));
+        FillFields(inputStream, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
+    /// </summary>
+    public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options));
     }
 
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
     /// </summary>
     public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
-        WriteOutput(outputStream, FillFields(inputStream, fieldValues));
+        FillFields(inputStream, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated from the current position of a readable stream.
+    /// </summary>
+    public static void FillFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FillFields(inputStream, fieldValues, options));
     }
 
     /// <summary>
     /// Writes a new PDF file with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues) {
+        FillFields(inputPath, outputPath, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF file with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues);
+        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         File.WriteAllBytes(fullOutputPath, bytes);
@@ -107,9 +171,16 @@ public static partial class PdfFormFiller {
     /// Writes a new PDF file with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        FillFields(inputPath, outputPath, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF file with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues);
+        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         File.WriteAllBytes(fullOutputPath, bytes);
@@ -119,10 +190,17 @@ public static partial class PdfFormFiller {
     /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues) {
+        FillFields(inputPath, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues);
+        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -130,10 +208,17 @@ public static partial class PdfFormFiller {
     /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated.
     /// </summary>
     public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        FillFields(inputPath, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated.
+    /// </summary>
+    public static void FillFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues);
+        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -141,22 +226,43 @@ public static partial class PdfFormFiller {
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated.
     /// </summary>
     public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues) {
+        return FillFieldsToBytes(inputPath, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated.
+    /// </summary>
+    public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillFields(File.ReadAllBytes(inputPath), fieldValues);
+        return FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
     }
 
     /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated.
     /// </summary>
     public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        return FillFieldsToBytes(inputPath, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated.
+    /// </summary>
+    public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillFields(File.ReadAllBytes(inputPath), fieldValues);
+        return FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
     }
 
     /// <summary>
     /// Returns a new PDF with simple text, choice, and button AcroForm widgets painted into page content and removed from the form tree.
     /// </summary>
     public static byte[] FlattenFields(byte[] pdf) {
+        return FlattenFields(pdf, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple text, choice, and button AcroForm widgets painted into page content and removed from the form tree.
+    /// </summary>
+    public static byte[] FlattenFields(byte[] pdf, PdfFormFillerOptions? options) {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (PdfSyntax.HasSignatureMarkers(pdf)) {
@@ -179,10 +285,11 @@ public static partial class PdfFormFiller {
         }
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
+        PdfDictionary? acroFormDefaultResources = TryReadDefaultResources(objects, acroForm);
         var widgets = new Dictionary<int, FlattenWidgetState>();
         var removableObjects = new HashSet<int>();
         for (int i = 0; i < fields.Items.Count; i++) {
-            CollectFlattenWidgets(objects, fields.Items[i], null, 0, null, null, null, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
+            CollectFlattenWidgets(objects, fields.Items[i], null, 0, null, acroFormDefaultResources, null, null, null, options, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (widgets.Count == 0) {
@@ -203,37 +310,65 @@ public static partial class PdfFormFiller {
             objects.Remove(objectNumber);
         }
 
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf);
     }
 
     /// <summary>
     /// Returns a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FlattenFields(Stream stream) {
-        return FlattenFields(ReadStream(stream, nameof(stream)));
+        return FlattenFields(stream, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
+    /// </summary>
+    public static byte[] FlattenFields(Stream stream, PdfFormFillerOptions? options) {
+        return FlattenFields(ReadStream(stream, nameof(stream)), options);
     }
 
     /// <summary>
     /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static void FlattenFields(byte[] pdf, Stream outputStream) {
-        WriteOutput(outputStream, FlattenFields(pdf));
+        FlattenFields(pdf, outputStream, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
+    /// </summary>
+    public static void FlattenFields(byte[] pdf, Stream outputStream, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FlattenFields(pdf, options));
     }
 
     /// <summary>
     /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
     /// </summary>
     public static void FlattenFields(Stream inputStream, Stream outputStream) {
-        WriteOutput(outputStream, FlattenFields(inputStream));
+        FlattenFields(inputStream, outputStream, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple text, choice, and button AcroForm widgets flattened from the current position of a readable stream.
+    /// </summary>
+    public static void FlattenFields(Stream inputStream, Stream outputStream, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FlattenFields(inputStream, options));
     }
 
     /// <summary>
     /// Writes a new PDF file with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static void FlattenFields(string inputPath, string outputPath) {
+        FlattenFields(inputPath, outputPath, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF file with simple text, choice, and button AcroForm widgets flattened.
+    /// </summary>
+    public static void FlattenFields(string inputPath, string outputPath, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FlattenFields(File.ReadAllBytes(inputPath));
+        byte[] bytes = FlattenFields(File.ReadAllBytes(inputPath), options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         File.WriteAllBytes(fullOutputPath, bytes);
@@ -243,10 +378,17 @@ public static partial class PdfFormFiller {
     /// Reads a PDF file and writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static void FlattenFields(string inputPath, Stream outputStream) {
+        FlattenFields(inputPath, outputStream, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and writes a new PDF with simple text, choice, and button AcroForm widgets flattened.
+    /// </summary>
+    public static void FlattenFields(string inputPath, Stream outputStream, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FlattenFields(File.ReadAllBytes(inputPath));
+        byte[] bytes = FlattenFields(File.ReadAllBytes(inputPath), options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -254,73 +396,143 @@ public static partial class PdfFormFiller {
     /// Reads a PDF file and returns new PDF bytes with simple text, choice, and button AcroForm widgets flattened.
     /// </summary>
     public static byte[] FlattenFieldsToBytes(string inputPath) {
+        return FlattenFieldsToBytes(inputPath, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and returns new PDF bytes with simple text, choice, and button AcroForm widgets flattened.
+    /// </summary>
+    public static byte[] FlattenFieldsToBytes(string inputPath, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FlattenFields(File.ReadAllBytes(inputPath));
+        return FlattenFields(File.ReadAllBytes(inputPath), options);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
     /// </summary>
     public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues) {
-        return FlattenFields(FillFields(pdf, fieldValues));
+        return FillAndFlattenFields(pdf, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
+    /// </summary>
+    public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+        return FlattenFields(FillFields(pdf, fieldValues, options), options);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
     /// </summary>
     public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
-        return FlattenFields(FillFields(pdf, fieldValues));
+        return FillAndFlattenFields(pdf, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated and then flattened into page content.
+    /// </summary>
+    public static byte[] FillAndFlattenFields(byte[] pdf, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+        return FlattenFields(FillFields(pdf, fieldValues, options), options);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues) {
-        return FillAndFlattenFields(ReadStream(stream, nameof(stream)), fieldValues);
+        return FillAndFlattenFields(stream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
+    /// </summary>
+    public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+        return FillAndFlattenFields(ReadStream(stream, nameof(stream)), fieldValues, options);
     }
 
     /// <summary>
     /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
-        return FillAndFlattenFields(ReadStream(stream, nameof(stream)), fieldValues);
+        return FillAndFlattenFields(stream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Returns a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
+    /// </summary>
+    public static byte[] FillAndFlattenFields(Stream stream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+        return FillAndFlattenFields(ReadStream(stream, nameof(stream)), fieldValues, options);
     }
 
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues) {
-        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues));
+        FillAndFlattenFields(pdf, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options));
     }
 
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
-        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues));
+        FillAndFlattenFields(pdf, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(byte[] pdf, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FillAndFlattenFields(pdf, fieldValues, options));
     }
 
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues) {
-        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues));
+        FillAndFlattenFields(inputStream, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
+    /// </summary>
+    public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options));
     }
 
     /// <summary>
     /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
     /// </summary>
     public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
-        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues));
+        FillAndFlattenFields(inputStream, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF with simple AcroForm field values updated and flattened from the current position of a readable stream.
+    /// </summary>
+    public static void FillAndFlattenFields(Stream inputStream, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
+        WriteOutput(outputStream, FillAndFlattenFields(inputStream, fieldValues, options));
     }
 
     /// <summary>
     /// Writes a new PDF file with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues) {
+        FillAndFlattenFields(inputPath, outputPath, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF file with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         File.WriteAllBytes(fullOutputPath, bytes);
@@ -330,9 +542,16 @@ public static partial class PdfFormFiller {
     /// Writes a new PDF file with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        FillAndFlattenFields(inputPath, outputPath, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Writes a new PDF file with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         File.WriteAllBytes(fullOutputPath, bytes);
@@ -342,10 +561,17 @@ public static partial class PdfFormFiller {
     /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues) {
+        FillAndFlattenFields(inputPath, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -353,10 +579,17 @@ public static partial class PdfFormFiller {
     /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated and flattened.
     /// </summary>
     public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        FillAndFlattenFields(inputPath, outputStream, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and writes a new PDF with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static void FillAndFlattenFields(string inputPath, Stream outputStream, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -364,15 +597,29 @@ public static partial class PdfFormFiller {
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated and flattened.
     /// </summary>
     public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues) {
+        return FillAndFlattenFieldsToBytes(inputPath, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+        return FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
     }
 
     /// <summary>
     /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated and flattened.
     /// </summary>
     public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues) {
+        return FillAndFlattenFieldsToBytes(inputPath, fieldValues, options: null);
+    }
+
+    /// <summary>
+    /// Reads a PDF file and returns new PDF bytes with simple AcroForm field values updated and flattened.
+    /// </summary>
+    public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues);
+        return FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
     }
 }

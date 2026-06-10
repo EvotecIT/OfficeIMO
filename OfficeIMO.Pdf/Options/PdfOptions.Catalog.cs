@@ -186,7 +186,9 @@ public sealed partial class PdfOptions {
         var embeddedFont = new PdfEmbeddedFont(font, data, fontName);
         (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
         _embeddedFontPrograms?.Remove(font);
+        _embeddedOpenTypeCffFontPrograms?.Remove(font);
         _embeddedFontProgramFailures?.Remove(font);
+        ClearReportedEmbeddedFontProgramFailure(font);
         return this;
     }
 
@@ -240,7 +242,10 @@ public sealed partial class PdfOptions {
     public PdfOptions ClearEmbeddedStandardFonts() {
         _embeddedFonts?.Clear();
         _embeddedFontPrograms?.Clear();
+        _embeddedOpenTypeCffFontPrograms?.Clear();
         _embeddedFontProgramFailures?.Clear();
+        _reportedEmbeddedFontProgramFailures?.Clear();
+        _embeddedFontFallbacks = null;
         return this;
     }
 
@@ -613,9 +618,15 @@ public sealed partial class PdfOptions {
             return false;
         }
 
+        if (IsOpenTypeCffFontData(embeddedFont.DataSnapshot)) {
+            fontProgram = null;
+            return false;
+        }
+
         try {
             fontProgram = PdfTrueTypeFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
-        } catch (System.NotSupportedException) {
+        } catch (System.Exception exception) when (PdfFontDiagnostics.IsFontProgramException(exception)) {
+            ReportEmbeddedFontProgramFailure(font, embeddedFont, exception);
             (_embeddedFontProgramFailures ??= new System.Collections.Generic.HashSet<PdfStandardFont>()).Add(font);
             fontProgram = null;
             return false;
@@ -633,16 +644,119 @@ public sealed partial class PdfOptions {
             return false;
         }
 
+        if (IsOpenTypeCffFontData(embeddedFont.DataSnapshot)) {
+            fontProgram = null;
+            return false;
+        }
+
         if (_embeddedFontPrograms != null && _embeddedFontPrograms.TryGetValue(font, out PdfTrueTypeFontProgram? cachedProgram)) {
             fontProgram = cachedProgram;
             return true;
         }
 
-        fontProgram = PdfTrueTypeFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
+        try {
+            fontProgram = PdfTrueTypeFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
+        } catch (System.Exception exception) when (PdfFontDiagnostics.IsFontProgramException(exception)) {
+            ReportEmbeddedFontProgramFailure(font, embeddedFont, exception);
+            throw;
+        }
+
         (_embeddedFontPrograms ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfTrueTypeFontProgram>())[font] = fontProgram;
         _embeddedFontProgramFailures?.Remove(font);
+        ClearReportedEmbeddedFontProgramFailure(font);
         return true;
     }
+
+    internal bool TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfStandardFont font, out PdfOpenTypeCffFontProgram? fontProgram) {
+        Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        if (_embeddedOpenTypeCffFontPrograms != null && _embeddedOpenTypeCffFontPrograms.TryGetValue(font, out PdfOpenTypeCffFontProgram? cachedProgram)) {
+            fontProgram = cachedProgram;
+            return true;
+        }
+
+        if (_embeddedFontProgramFailures != null && _embeddedFontProgramFailures.Contains(font)) {
+            fontProgram = null;
+            return false;
+        }
+
+        if (_embeddedFonts == null || !_embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont) || !IsOpenTypeCffFontData(embeddedFont.DataSnapshot)) {
+            fontProgram = null;
+            return false;
+        }
+
+        try {
+            fontProgram = PdfOpenTypeCffFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
+        } catch (System.Exception exception) when (PdfFontDiagnostics.IsFontProgramException(exception)) {
+            ReportEmbeddedFontProgramFailure(font, embeddedFont, exception);
+            (_embeddedFontProgramFailures ??= new System.Collections.Generic.HashSet<PdfStandardFont>()).Add(font);
+            fontProgram = null;
+            return false;
+        }
+
+        (_embeddedOpenTypeCffFontPrograms ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfOpenTypeCffFontProgram>())[font] = fontProgram;
+        return true;
+    }
+
+    internal bool TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(PdfStandardFont font, out PdfEmbeddedFont? embeddedFont, out PdfOpenTypeCffFontProgram? fontProgram) {
+        Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
+        embeddedFont = null;
+        if (_embeddedFonts == null || !_embeddedFonts.TryGetValue(font, out embeddedFont) || !IsOpenTypeCffFontData(embeddedFont.DataSnapshot)) {
+            fontProgram = null;
+            return false;
+        }
+
+        if (_embeddedOpenTypeCffFontPrograms != null && _embeddedOpenTypeCffFontPrograms.TryGetValue(font, out PdfOpenTypeCffFontProgram? cachedProgram)) {
+            fontProgram = cachedProgram;
+            return true;
+        }
+
+        try {
+            fontProgram = PdfOpenTypeCffFontProgram.Parse(embeddedFont.DataSnapshot, embeddedFont.FontName);
+        } catch (System.Exception exception) when (PdfFontDiagnostics.IsFontProgramException(exception)) {
+            ReportEmbeddedFontProgramFailure(font, embeddedFont, exception);
+            throw;
+        }
+
+        (_embeddedOpenTypeCffFontPrograms ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfOpenTypeCffFontProgram>())[font] = fontProgram;
+        _embeddedFontProgramFailures?.Remove(font);
+        ClearReportedEmbeddedFontProgramFailure(font);
+        return true;
+    }
+
+    private void ReportEmbeddedFontProgramFailure(PdfStandardFont font, PdfEmbeddedFont embeddedFont, System.Exception exception) {
+        string source = "embedded-font:" + font;
+        AddFontDiagnostics(font, PdfFontDiagnostics.AnalyzeEmbeddedFontFailure(embeddedFont.DataSnapshot, source, embeddedFont.FontName, exception));
+    }
+
+    private void ClearReportedEmbeddedFontProgramFailure(PdfStandardFont font) {
+        if (_reportedEmbeddedFontProgramFailures == null || _reportedEmbeddedFontProgramFailures.Count == 0) {
+            return;
+        }
+
+        string prefix = font.ToString() + "|";
+        _reportedEmbeddedFontProgramFailures.RemoveWhere(key => key.StartsWith(prefix, System.StringComparison.Ordinal));
+    }
+
+    internal void ResetEmbeddedFontProgramUsage() {
+        if (_embeddedFontPrograms != null) {
+            foreach (PdfTrueTypeFontProgram program in _embeddedFontPrograms.Values) {
+                program.ResetGlyphUsage();
+            }
+        }
+
+        if (_embeddedOpenTypeCffFontPrograms != null) {
+            foreach (PdfOpenTypeCffFontProgram program in _embeddedOpenTypeCffFontPrograms.Values) {
+                program.ResetGlyphUsage();
+            }
+        }
+    }
+
+    private static bool IsOpenTypeCffFontData(byte[] fontData) =>
+        fontData.Length >= 4 &&
+        fontData[0] == 0x4F &&
+        fontData[1] == 0x54 &&
+        fontData[2] == 0x54 &&
+        fontData[3] == 0x4F;
 
     private static PdfElectronicInvoiceMetadata CreateFacturXInvoiceMetadata(string conformanceLevel, string version) {
         return PdfElectronicInvoiceMetadata.FacturX(conformanceLevel, version);
