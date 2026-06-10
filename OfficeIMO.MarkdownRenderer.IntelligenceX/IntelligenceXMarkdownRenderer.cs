@@ -166,4 +166,36 @@ public static class IntelligenceXMarkdownRenderer {
         ApplyVisuals(options);
         return options;
     }
+
+    /// <summary>
+    /// Parses transcript markdown into the shared AST-backed native document projection using the strict IX preset.
+    /// </summary>
+    public static MarkdownNativeDocument ParseTranscriptNative(string markdown, string? baseHref = null) {
+        var options = CreateTranscript(baseHref);
+        return MarkdownNativeDocument.Parse(markdown, options.ReaderOptions);
+    }
+
+    /// <summary>
+    /// Parses transcript markdown into the shared AST-backed native document projection using the minimal IX preset.
+    /// </summary>
+    public static MarkdownNativeDocument ParseTranscriptNativeMinimal(string markdown, string? baseHref = null) {
+        var options = CreateTranscriptMinimal(baseHref);
+        return MarkdownNativeDocument.Parse(markdown, options.ReaderOptions);
+    }
+
+    /// <summary>
+    /// Parses transcript markdown into the shared AST-backed native document projection using the desktop-shell IX preset.
+    /// </summary>
+    public static MarkdownNativeDocument ParseTranscriptNativeDesktopShell(string markdown, string? baseHref = null) {
+        var options = CreateTranscriptDesktopShell(baseHref);
+        return MarkdownNativeDocument.Parse(markdown, options.ReaderOptions);
+    }
+
+    /// <summary>
+    /// Parses transcript markdown into the shared AST-backed native document projection using the relaxed IX preset.
+    /// </summary>
+    public static MarkdownNativeDocument ParseTranscriptNativeRelaxed(string markdown, string? baseHref = null) {
+        var options = CreateTranscriptRelaxed(baseHref);
+        return MarkdownNativeDocument.Parse(markdown, options.ReaderOptions);
+    }
 }
