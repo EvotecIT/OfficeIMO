@@ -440,6 +440,31 @@ public sealed class OfficeDocumentLink {
     public int? DestinationPageNumber { get; set; }
 
     /// <summary>
+    /// Internal destination mode when available.
+    /// </summary>
+    public string? DestinationMode { get; set; }
+
+    /// <summary>
+    /// Internal destination top coordinate when available.
+    /// </summary>
+    public double? DestinationTop { get; set; }
+
+    /// <summary>
+    /// Internal destination left coordinate when available.
+    /// </summary>
+    public double? DestinationLeft { get; set; }
+
+    /// <summary>
+    /// Internal destination bottom coordinate when available.
+    /// </summary>
+    public double? DestinationBottom { get; set; }
+
+    /// <summary>
+    /// Internal destination right coordinate when available.
+    /// </summary>
+    public double? DestinationRight { get; set; }
+
+    /// <summary>
     /// Viewer named action when available.
     /// </summary>
     public string? NamedAction { get; set; }

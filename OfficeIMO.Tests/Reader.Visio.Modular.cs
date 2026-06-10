@@ -1,6 +1,7 @@
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Visio;
+using System.Text;
 using System.Text.Json;
 using Xunit;
 
@@ -110,6 +111,30 @@ public sealed class ReaderVisioModularTests {
     }
 
     [Fact]
+    public void DocumentReaderVisio_ReadVisioDocument_AlignsLinksAndAssetsWithSnapshotPageOrder() {
+        using MemoryStream stream = BuildOutOfOrderVisioPages();
+
+        OfficeDocumentReadResult result = DocumentReaderVisioExtensions.ReadVisioDocument(
+            stream,
+            sourceName: "out-of-order.vsdx",
+            visioOptions: new ReaderVisioOptions { IncludeSvgPreviewAssets = true });
+
+        Assert.Equal(new[] { "Earlier", "Later" }, result.Pages.Select(page => page.Name).ToArray());
+
+        OfficeDocumentLink earlierLink = Assert.Single(result.Links, link => link.Text == "Earlier details");
+        OfficeDocumentLink laterLink = Assert.Single(result.Links, link => link.Text == "Later details");
+        Assert.Equal(1, earlierLink.Location.Page);
+        Assert.Equal(2, laterLink.Location.Page);
+
+        OfficeDocumentAsset earlierAsset = Assert.Single(result.Pages[0].Assets);
+        OfficeDocumentAsset laterAsset = Assert.Single(result.Pages[1].Assets);
+        Assert.Equal("visio-page-0001-preview-svg", earlierAsset.Id);
+        Assert.Equal("visio-page-0002-preview-svg", laterAsset.Id);
+        Assert.Contains("Earlier Shape", Encoding.UTF8.GetString(earlierAsset.PayloadBytes!), StringComparison.Ordinal);
+        Assert.Contains("Later Shape", Encoding.UTF8.GetString(laterAsset.PayloadBytes!), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderVisio_Registration_DispatchesVisioStream() {
         try {
             DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
@@ -140,6 +165,23 @@ public sealed class ReaderVisioModularTests {
         connector.Label = "Gateway -> Service";
         connector.SetShapeData("Protocol", "TLS", "Protocol", VisioShapeDataType.String);
         connector.AddHyperlink("https://example.test/flow", "Flow details");
+        document.Save();
+        stream.Position = 0;
+        return stream;
+    }
+
+    private static MemoryStream BuildOutOfOrderVisioPages() {
+        var stream = new MemoryStream();
+        VisioDocument document = VisioDocument.Create(stream);
+
+        VisioPage later = document.AddPage("Later", id: 10);
+        VisioShape laterShape = later.AddRectangle(1.5, 3.5, 1.4, 0.7, "Later Shape");
+        laterShape.AddHyperlink("https://example.test/later", "Later details");
+
+        VisioPage earlier = document.AddPage("Earlier", id: 5);
+        VisioShape earlierShape = earlier.AddRectangle(1.5, 3.5, 1.4, 0.7, "Earlier Shape");
+        earlierShape.AddHyperlink("https://example.test/earlier", "Earlier details");
+
         document.Save();
         stream.Position = 0;
         return stream;

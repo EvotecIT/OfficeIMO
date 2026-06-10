@@ -139,8 +139,9 @@ public static partial class DocumentReaderVisioExtensions {
             .SelectMany(static chunk => chunk.Tables!)
             .ToArray();
         OfficeDocumentBlock[] blocks = BuildDocumentBlocks(snapshot, source).ToArray();
-        OfficeDocumentLink[] links = BuildDocumentLinks(document, source).ToArray();
-        OfficeDocumentAsset[] assets = BuildDocumentAssets(document, source, visioOptions, cancellationToken).ToArray();
+        VisioPage[] snapshotOrderedPages = GetSnapshotOrderedPages(document, snapshot).ToArray();
+        OfficeDocumentLink[] links = BuildDocumentLinks(snapshotOrderedPages, source).ToArray();
+        OfficeDocumentAsset[] assets = BuildDocumentAssets(snapshotOrderedPages, source, visioOptions, cancellationToken).ToArray();
 
         return new OfficeDocumentReadResult {
             Kind = ReaderInputKind.Visio,
@@ -239,9 +240,19 @@ public static partial class DocumentReaderVisioExtensions {
         return pages;
     }
 
-    private static IEnumerable<OfficeDocumentLink> BuildDocumentLinks(VisioDocument document, SourceMetadata source) {
-        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
-            VisioPage page = document.Pages[pageIndex];
+    private static IEnumerable<VisioPage> GetSnapshotOrderedPages(VisioDocument document, VisioInspectionSnapshot snapshot) {
+        for (int pageIndex = 0; pageIndex < snapshot.Pages.Count; pageIndex++) {
+            int pageId = snapshot.Pages[pageIndex].Id;
+            VisioPage? page = document.Pages.FirstOrDefault(candidate => candidate.Id == pageId);
+            if (page != null) {
+                yield return page;
+            }
+        }
+    }
+
+    private static IEnumerable<OfficeDocumentLink> BuildDocumentLinks(IReadOnlyList<VisioPage> pages, SourceMetadata source) {
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
+            VisioPage page = pages[pageIndex];
             foreach (VisioShape shape in page.AllShapes()) {
                 for (int linkIndex = 0; linkIndex < shape.Hyperlinks.Count; linkIndex++) {
                     VisioHyperlink link = shape.Hyperlinks[linkIndex];
@@ -289,14 +300,14 @@ public static partial class DocumentReaderVisioExtensions {
         };
     }
 
-    private static IEnumerable<OfficeDocumentAsset> BuildDocumentAssets(VisioDocument document, SourceMetadata source, ReaderVisioOptions options, CancellationToken cancellationToken) {
+    private static IEnumerable<OfficeDocumentAsset> BuildDocumentAssets(IReadOnlyList<VisioPage> pages, SourceMetadata source, ReaderVisioOptions options, CancellationToken cancellationToken) {
         if (!options.IncludeSvgPreviewAssets && !options.IncludePngPreviewAssets) {
             yield break;
         }
 
-        for (int pageIndex = 0; pageIndex < document.Pages.Count; pageIndex++) {
+        for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
-            VisioPage page = document.Pages[pageIndex];
+            VisioPage page = pages[pageIndex];
             if (options.IncludeSvgPreviewAssets) {
                 byte[] svgBytes = Encoding.UTF8.GetBytes(page.ToSvg(options.SvgOptions));
                 yield return BuildPreviewAsset(source, pageIndex, "preview-svg", "image/svg+xml", ".svg", svgBytes);

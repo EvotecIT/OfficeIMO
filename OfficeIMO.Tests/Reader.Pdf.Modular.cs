@@ -352,6 +352,27 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_PreservesInternalLinkDestinationCoordinates() {
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(BuildInternalDestinationLinkPdf(), writable: false),
+            sourceName: "internal-link.pdf");
+
+        OfficeDocumentLink link = Assert.Single(result.Links);
+        Assert.Equal("destination", link.Kind);
+        Assert.Equal(2, link.DestinationPageNumber);
+        Assert.Equal(nameof(PdfOpenActionDestinationMode.Xyz), link.DestinationMode);
+        Assert.Equal(24D, link.DestinationLeft);
+        Assert.Equal(144D, link.DestinationTop);
+
+        using JsonDocument document = JsonDocument.Parse(result.ToJson());
+        JsonElement jsonLink = document.RootElement.GetProperty("links")[0];
+        Assert.Equal(2, jsonLink.GetProperty("destinationPageNumber").GetInt32());
+        Assert.Equal(nameof(PdfOpenActionDestinationMode.Xyz), jsonLink.GetProperty("destinationMode").GetString());
+        Assert.Equal(24D, jsonLink.GetProperty("destinationLeft").GetDouble());
+        Assert.Equal(144D, jsonLink.GetProperty("destinationTop").GetDouble());
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_UsesCurrentSeekableStreamPosition() {
         byte[] pdf = BuildTwoPagePdf();
         byte[] prefix = Encoding.ASCII.GetBytes("not-a-pdf-prefix");
@@ -1069,6 +1090,44 @@ public sealed class ReaderPdfModularTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildInternalDestinationLinkPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 5 0 R /Annots [6 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 7 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [10 20 90 42] /Contents (Internal report link) /Dest [4 0 R /XYZ 24 144 1] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
             "%%EOF"
         }) + "\n";
 

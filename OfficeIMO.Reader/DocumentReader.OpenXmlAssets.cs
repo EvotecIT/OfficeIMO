@@ -144,7 +144,7 @@ public static partial class DocumentReader {
             }
 
             if (workbookPart.GetPartById(relationshipId!) is WorksheetPart worksheetPart) {
-                IReadOnlyDictionary<string, OpenXmlImageAssetMetadata> imageMetadata = BuildExcelImageMetadata(worksheetPart.DrawingsPart);
+                IReadOnlyDictionary<string, IReadOnlyList<OpenXmlImageAssetMetadata>> imageMetadata = BuildExcelImageMetadata(worksheetPart.DrawingsPart);
                 (int Row1, int Column1, int Row2, int Column2)? selectedRange = TryParseExcelAssetRange(opt.ExcelA1Range);
                 var visitedParts = new HashSet<Uri>();
                 CollectImageParts(
@@ -195,7 +195,7 @@ public static partial class DocumentReader {
         HashSet<string> seenImagePlacements,
         HashSet<Uri> visitedParts,
         ReaderOptions opt,
-        Func<OpenXmlPartContainer, string, OpenXmlImageAssetMetadata?>? resolveMetadata,
+        Func<OpenXmlPartContainer, string, IReadOnlyList<OpenXmlImageAssetMetadata>?>? resolveMetadata,
         Func<OpenXmlImageAssetMetadata?, bool>? shouldIncludeMetadata,
         ref int assetIndex,
         CancellationToken cancellationToken) {
@@ -204,13 +204,16 @@ public static partial class DocumentReader {
 
             OpenXmlPart part = pair.OpenXmlPart;
             if (part is ImagePart imagePart) {
-                OpenXmlImageAssetMetadata? metadata = resolveMetadata?.Invoke(container, pair.RelationshipId);
-                if (shouldIncludeMetadata != null && !shouldIncludeMetadata(metadata)) {
-                    continue;
-                }
-
-                int placementCount = Math.Max(1, CountImageRelationshipPlacements(container, pair.RelationshipId));
+                IReadOnlyList<OpenXmlImageAssetMetadata>? metadataPlacements = resolveMetadata?.Invoke(container, pair.RelationshipId);
+                int placementCount = metadataPlacements?.Count ?? Math.Max(1, CountImageRelationshipPlacements(container, pair.RelationshipId));
                 for (int placementIndex = 0; placementIndex < placementCount; placementIndex++) {
+                    OpenXmlImageAssetMetadata? metadata = metadataPlacements != null && placementIndex < metadataPlacements.Count
+                        ? metadataPlacements[placementIndex]
+                        : null;
+                    if (shouldIncludeMetadata != null && !shouldIncludeMetadata(metadata)) {
+                        continue;
+                    }
+
                     if (!seenImagePlacements.Add(BuildOpenXmlImagePlacementKey(kind, slideNumber, sheetNumber, container, pair.RelationshipId, imagePart, placementIndex))) {
                         continue;
                     }
@@ -302,13 +305,13 @@ public static partial class DocumentReader {
         public int? AnchorColumn { get; set; }
     }
 
-    private static IReadOnlyDictionary<string, OpenXmlImageAssetMetadata> BuildExcelImageMetadata(DrawingsPart? drawingsPart) {
+    private static IReadOnlyDictionary<string, IReadOnlyList<OpenXmlImageAssetMetadata>> BuildExcelImageMetadata(DrawingsPart? drawingsPart) {
         Xdr.WorksheetDrawing? drawing = drawingsPart?.WorksheetDrawing;
         if (drawing == null) {
-            return new Dictionary<string, OpenXmlImageAssetMetadata>(StringComparer.Ordinal);
+            return new Dictionary<string, IReadOnlyList<OpenXmlImageAssetMetadata>>(StringComparer.Ordinal);
         }
 
-        var metadata = new Dictionary<string, OpenXmlImageAssetMetadata>(StringComparer.Ordinal);
+        var metadata = new Dictionary<string, List<OpenXmlImageAssetMetadata>>(StringComparer.Ordinal);
         foreach (Xdr.Picture picture in drawing.Descendants<Xdr.Picture>()) {
             string? relationshipId = picture.BlipFill?.Blip?.Embed?.Value;
             if (string.IsNullOrWhiteSpace(relationshipId)) {
@@ -322,23 +325,31 @@ public static partial class DocumentReader {
                 // Keep anchor metadata even when the picture has no descriptive text.
             }
 
-            metadata[relationshipId!] = new OpenXmlImageAssetMetadata {
+            if (!metadata.TryGetValue(relationshipId!, out List<OpenXmlImageAssetMetadata>? placements)) {
+                placements = new List<OpenXmlImageAssetMetadata>();
+                metadata[relationshipId!] = placements;
+            }
+
+            placements.Add(new OpenXmlImageAssetMetadata {
                 AltText = altText,
                 Title = title,
                 AnchorRow = GetExcelImageAnchorRow(picture),
                 AnchorColumn = GetExcelImageAnchorColumn(picture)
-            };
+            });
         }
 
-        return metadata;
+        return metadata.ToDictionary(
+            pair => pair.Key,
+            pair => (IReadOnlyList<OpenXmlImageAssetMetadata>)pair.Value.ToArray(),
+            StringComparer.Ordinal);
     }
 
-    private static OpenXmlImageAssetMetadata? ResolveExcelImageMetadata(OpenXmlPartContainer container, DrawingsPart? drawingsPart, IReadOnlyDictionary<string, OpenXmlImageAssetMetadata> metadata, string relationshipId) {
+    private static IReadOnlyList<OpenXmlImageAssetMetadata>? ResolveExcelImageMetadata(OpenXmlPartContainer container, DrawingsPart? drawingsPart, IReadOnlyDictionary<string, IReadOnlyList<OpenXmlImageAssetMetadata>> metadata, string relationshipId) {
         if (drawingsPart == null || !ReferenceEquals(container, drawingsPart)) {
             return null;
         }
 
-        return metadata.TryGetValue(relationshipId, out OpenXmlImageAssetMetadata? value) ? value : null;
+        return metadata.TryGetValue(relationshipId, out IReadOnlyList<OpenXmlImageAssetMetadata>? value) ? value : null;
     }
 
     private static bool ShouldTraverseRelatedPart(ReaderInputKind kind, ReaderOptions opt, OpenXmlPart part) {

@@ -1,8 +1,10 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Reader;
 using OfficeIMO.Word;
 using System.Text.Json;
+using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -287,6 +289,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
                 sheet.AddImage(5, 5, png, "image/png", widthPixels: 12, heightPixels: 10, name: "OutsideLogo", altText: "Outside logo");
                 document.Save();
             }
+            PointSecondExcelPictureAtFirstImageRelationship(path);
 
             OfficeDocumentReadResult result = DocumentReader.ReadDocument(
                 path,
@@ -306,5 +309,19 @@ public sealed class ReaderDocumentReadResultAssetTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    private static void PointSecondExcelPictureAtFirstImageRelationship(string path) {
+        using SpreadsheetDocument document = SpreadsheetDocument.Open(path, true);
+        DrawingsPart drawingsPart = document.WorkbookPart!
+            .WorksheetParts
+            .Select(part => part.DrawingsPart)
+            .First(part => part?.WorksheetDrawing != null)!;
+        Xdr.Picture[] pictures = drawingsPart.WorksheetDrawing!.Descendants<Xdr.Picture>().ToArray();
+        Assert.True(pictures.Length >= 2);
+
+        string firstRelationshipId = pictures[0].BlipFill!.Blip!.Embed!.Value!;
+        pictures[1].BlipFill!.Blip!.Embed!.Value = firstRelationshipId;
+        drawingsPart.WorksheetDrawing.Save();
     }
 }
