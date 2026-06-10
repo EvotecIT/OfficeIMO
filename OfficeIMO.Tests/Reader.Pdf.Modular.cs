@@ -308,6 +308,28 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_FiltersSelectedPageFormMetadata() {
+        byte[] pdf = PdfDocument.Create()
+            .H1("First")
+            .Paragraph(p => p.Text("First page body."))
+            .PageBreak()
+            .H1("Second")
+            .TextField("Second.Only", value: "hidden")
+            .ToBytes();
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            logical,
+            sourceName: "selected-form.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] { PdfPageRange.From(1, 1) }
+            });
+
+        Assert.Empty(result.Forms);
+        Assert.DoesNotContain(result.Metadata, entry => entry.Id == "pdf-form-field-count");
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_PreservesRemoteLinkDestinations() {
         OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
             new MemoryStream(BuildRemoteGoToLinkPdf(), writable: false),

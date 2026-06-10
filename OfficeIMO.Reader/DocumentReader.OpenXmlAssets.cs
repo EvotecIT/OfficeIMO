@@ -1,12 +1,15 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Reader;
@@ -37,12 +40,12 @@ public static partial class DocumentReader {
             using WordprocessingDocument document = openSettings == null
                 ? WordprocessingDocument.Open(stream, false)
                 : WordprocessingDocument.Open(stream, false, openSettings);
-            CollectWordImageAssets(document, sourceName, assets, cancellationToken);
+            CollectWordImageAssets(document, sourceName, opt, assets, cancellationToken);
         } else if (kind == ReaderInputKind.PowerPoint) {
             using PresentationDocument document = openSettings == null
                 ? PresentationDocument.Open(stream, false)
                 : PresentationDocument.Open(stream, false, openSettings);
-            CollectPowerPointImageAssets(document, sourceName, assets, cancellationToken);
+            CollectPowerPointImageAssets(document, sourceName, opt, assets, cancellationToken);
         } else if (kind == ReaderInputKind.Excel) {
             using SpreadsheetDocument document = openSettings == null
                 ? SpreadsheetDocument.Open(stream, false)
@@ -53,7 +56,7 @@ public static partial class DocumentReader {
         return assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets;
     }
 
-    private static void CollectWordImageAssets(WordprocessingDocument document, string sourceName, List<OfficeDocumentAsset> assets, CancellationToken cancellationToken) {
+    private static void CollectWordImageAssets(WordprocessingDocument document, string sourceName, ReaderOptions opt, List<OfficeDocumentAsset> assets, CancellationToken cancellationToken) {
         if (document.MainDocumentPart == null) {
             return;
         }
@@ -71,11 +74,12 @@ public static partial class DocumentReader {
             assets,
             seenImagePlacements,
             visitedParts,
+            opt,
             ref assetIndex,
             cancellationToken);
     }
 
-    private static void CollectPowerPointImageAssets(PresentationDocument document, string sourceName, List<OfficeDocumentAsset> assets, CancellationToken cancellationToken) {
+    private static void CollectPowerPointImageAssets(PresentationDocument document, string sourceName, ReaderOptions opt, List<OfficeDocumentAsset> assets, CancellationToken cancellationToken) {
         PresentationPart? presentationPart = document.PresentationPart;
         if (presentationPart?.Presentation?.SlideIdList == null) {
             return;
@@ -105,6 +109,7 @@ public static partial class DocumentReader {
                     assets,
                     seenImagePlacements,
                     visitedParts,
+                    opt,
                     ref assetIndex,
                     cancellationToken);
             }
@@ -127,7 +132,7 @@ public static partial class DocumentReader {
             cancellationToken.ThrowIfCancellationRequested();
 
             string? sheetName = sheet.Name?.Value;
-            if (selectedSheetName != null && !string.Equals(sheetName, selectedSheetName, StringComparison.Ordinal)) {
+            if (selectedSheetName != null && !string.Equals(sheetName, selectedSheetName, StringComparison.OrdinalIgnoreCase)) {
                 sheetNumber++;
                 continue;
             }
@@ -140,6 +145,7 @@ public static partial class DocumentReader {
 
             if (workbookPart.GetPartById(relationshipId!) is WorksheetPart worksheetPart) {
                 IReadOnlyDictionary<string, OpenXmlImageAssetMetadata> imageMetadata = BuildExcelImageMetadata(worksheetPart.DrawingsPart);
+                (int Row1, int Column1, int Row2, int Column2)? selectedRange = TryParseExcelAssetRange(opt.ExcelA1Range);
                 var visitedParts = new HashSet<Uri>();
                 CollectImageParts(
                     worksheetPart,
@@ -151,7 +157,9 @@ public static partial class DocumentReader {
                     assets,
                     seenImagePlacements,
                     visitedParts,
+                    opt,
                     (container, imageRelationshipId) => ResolveExcelImageMetadata(container, worksheetPart.DrawingsPart, imageMetadata, imageRelationshipId),
+                    metadata => IsExcelImageInSelectedRange(metadata, selectedRange),
                     ref assetIndex,
                     cancellationToken);
             }
@@ -170,9 +178,10 @@ public static partial class DocumentReader {
         List<OfficeDocumentAsset> assets,
         HashSet<string> seenImagePlacements,
         HashSet<Uri> visitedParts,
+        ReaderOptions opt,
         ref int assetIndex,
         CancellationToken cancellationToken) {
-        CollectImageParts(container, sourceName, kind, slideNumber, sheetNumber, sheetName, assets, seenImagePlacements, visitedParts, resolveMetadata: null, ref assetIndex, cancellationToken);
+        CollectImageParts(container, sourceName, kind, slideNumber, sheetNumber, sheetName, assets, seenImagePlacements, visitedParts, opt, resolveMetadata: null, shouldIncludeMetadata: null, ref assetIndex, cancellationToken);
     }
 
     private static void CollectImageParts(
@@ -185,7 +194,9 @@ public static partial class DocumentReader {
         List<OfficeDocumentAsset> assets,
         HashSet<string> seenImagePlacements,
         HashSet<Uri> visitedParts,
+        ReaderOptions opt,
         Func<OpenXmlPartContainer, string, OpenXmlImageAssetMetadata?>? resolveMetadata,
+        Func<OpenXmlImageAssetMetadata?, bool>? shouldIncludeMetadata,
         ref int assetIndex,
         CancellationToken cancellationToken) {
         foreach (IdPartPair pair in container.Parts) {
@@ -193,8 +204,18 @@ public static partial class DocumentReader {
 
             OpenXmlPart part = pair.OpenXmlPart;
             if (part is ImagePart imagePart) {
-                if (seenImagePlacements.Add(BuildOpenXmlImagePlacementKey(kind, slideNumber, sheetNumber, container, pair.RelationshipId, imagePart))) {
-                    assets.Add(BuildOpenXmlImageAsset(imagePart, pair.RelationshipId, sourceName, kind, slideNumber, sheetNumber, sheetName, assetIndex, resolveMetadata?.Invoke(container, pair.RelationshipId)));
+                OpenXmlImageAssetMetadata? metadata = resolveMetadata?.Invoke(container, pair.RelationshipId);
+                if (shouldIncludeMetadata != null && !shouldIncludeMetadata(metadata)) {
+                    continue;
+                }
+
+                int placementCount = Math.Max(1, CountImageRelationshipPlacements(container, pair.RelationshipId));
+                for (int placementIndex = 0; placementIndex < placementCount; placementIndex++) {
+                    if (!seenImagePlacements.Add(BuildOpenXmlImagePlacementKey(kind, slideNumber, sheetNumber, container, pair.RelationshipId, imagePart, placementIndex))) {
+                        continue;
+                    }
+
+                    assets.Add(BuildOpenXmlImageAsset(imagePart, pair.RelationshipId, sourceName, kind, slideNumber, sheetNumber, sheetName, assetIndex, metadata));
                     assetIndex++;
                 }
 
@@ -202,14 +223,14 @@ public static partial class DocumentReader {
             }
 
             if (part is OpenXmlPartContainer childContainer) {
-                if (visitedParts.Add(part.Uri)) {
-                    CollectImageParts(childContainer, sourceName, kind, slideNumber, sheetNumber, sheetName, assets, seenImagePlacements, visitedParts, resolveMetadata, ref assetIndex, cancellationToken);
+                if (ShouldTraverseRelatedPart(kind, opt, part) && visitedParts.Add(part.Uri)) {
+                    CollectImageParts(childContainer, sourceName, kind, slideNumber, sheetNumber, sheetName, assets, seenImagePlacements, visitedParts, opt, resolveMetadata, shouldIncludeMetadata, ref assetIndex, cancellationToken);
                 }
             }
         }
     }
 
-    private static string BuildOpenXmlImagePlacementKey(ReaderInputKind kind, int? slideNumber, int? sheetNumber, OpenXmlPartContainer container, string relationshipId, ImagePart imagePart) {
+    private static string BuildOpenXmlImagePlacementKey(ReaderInputKind kind, int? slideNumber, int? sheetNumber, OpenXmlPartContainer container, string relationshipId, ImagePart imagePart, int placementIndex) {
         string containerUri = container is OpenXmlPart part ? part.Uri.ToString() : "package";
         return string.Concat(
             kind.ToString(),
@@ -217,7 +238,8 @@ public static partial class DocumentReader {
             "|sheet:", sheetNumber?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             "|container:", containerUri,
             "|relationship:", relationshipId,
-            "|image:", imagePart.Uri);
+            "|image:", imagePart.Uri,
+            "|placement:", placementIndex.ToString(CultureInfo.InvariantCulture));
     }
 
     private static OfficeDocumentAsset BuildOpenXmlImageAsset(ImagePart imagePart, string relationshipId, string sourceName, ReaderInputKind kind, int? slideNumber, int? sheetNumber, string? sheetName, int assetIndex, OpenXmlImageAssetMetadata? metadata = null) {
@@ -274,6 +296,10 @@ public static partial class DocumentReader {
         public string? AltText { get; set; }
 
         public string? Title { get; set; }
+
+        public int? AnchorRow { get; set; }
+
+        public int? AnchorColumn { get; set; }
     }
 
     private static IReadOnlyDictionary<string, OpenXmlImageAssetMetadata> BuildExcelImageMetadata(DrawingsPart? drawingsPart) {
@@ -293,12 +319,14 @@ public static partial class DocumentReader {
             string? altText = NormalizeOptionalAssetText(properties?.Description?.Value);
             string? title = NormalizeOptionalAssetText(properties?.Title?.Value);
             if (altText == null && title == null) {
-                continue;
+                // Keep anchor metadata even when the picture has no descriptive text.
             }
 
             metadata[relationshipId!] = new OpenXmlImageAssetMetadata {
                 AltText = altText,
-                Title = title
+                Title = title,
+                AnchorRow = GetExcelImageAnchorRow(picture),
+                AnchorColumn = GetExcelImageAnchorColumn(picture)
             };
         }
 
@@ -311,6 +339,79 @@ public static partial class DocumentReader {
         }
 
         return metadata.TryGetValue(relationshipId, out OpenXmlImageAssetMetadata? value) ? value : null;
+    }
+
+    private static bool ShouldTraverseRelatedPart(ReaderInputKind kind, ReaderOptions opt, OpenXmlPart part) {
+        if (kind == ReaderInputKind.Word && !opt.IncludeWordFootnotes && (part is FootnotesPart || part is EndnotesPart)) {
+            return false;
+        }
+
+        if (kind == ReaderInputKind.PowerPoint && !opt.IncludePowerPointNotes && part is NotesSlidePart) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static int CountImageRelationshipPlacements(OpenXmlPartContainer container, string relationshipId) {
+        OpenXmlPartRootElement? root = (container as OpenXmlPart)?.RootElement;
+        if (root == null) {
+            return 0;
+        }
+
+        int count = 0;
+        foreach (A.Blip blip in root.Descendants<A.Blip>()) {
+            if (string.Equals(blip.Embed?.Value, relationshipId, StringComparison.Ordinal) ||
+                string.Equals(blip.Link?.Value, relationshipId, StringComparison.Ordinal)) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static (int Row1, int Column1, int Row2, int Column2)? TryParseExcelAssetRange(string? a1Range) {
+        if (string.IsNullOrWhiteSpace(a1Range)) {
+            return null;
+        }
+
+        return A1.TryParseRange(a1Range!, out int row1, out int column1, out int row2, out int column2)
+            ? (row1, column1, row2, column2)
+            : null;
+    }
+
+    private static bool IsExcelImageInSelectedRange(OpenXmlImageAssetMetadata? metadata, (int Row1, int Column1, int Row2, int Column2)? selectedRange) {
+        if (selectedRange == null) {
+            return true;
+        }
+
+        if (metadata?.AnchorRow == null || metadata.AnchorColumn == null) {
+            return false;
+        }
+
+        var range = selectedRange.Value;
+        return metadata.AnchorRow.Value >= range.Row1 &&
+            metadata.AnchorRow.Value <= range.Row2 &&
+            metadata.AnchorColumn.Value >= range.Column1 &&
+            metadata.AnchorColumn.Value <= range.Column2;
+    }
+
+    private static int? GetExcelImageAnchorRow(Xdr.Picture picture) {
+        Xdr.FromMarker? marker = picture.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker
+            ?? picture.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker;
+        return TryParseZeroBasedMarkerIndex(marker?.RowId?.Text);
+    }
+
+    private static int? GetExcelImageAnchorColumn(Xdr.Picture picture) {
+        Xdr.FromMarker? marker = picture.Ancestors<Xdr.TwoCellAnchor>().FirstOrDefault()?.FromMarker
+            ?? picture.Ancestors<Xdr.OneCellAnchor>().FirstOrDefault()?.FromMarker;
+        return TryParseZeroBasedMarkerIndex(marker?.ColumnId?.Text);
+    }
+
+    private static int? TryParseZeroBasedMarkerIndex(string? value) {
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int zeroBased) && zeroBased >= 0
+            ? zeroBased + 1
+            : null;
     }
 
     private static string? NormalizeOptionalAssetText(string? value) {

@@ -166,6 +166,28 @@ public sealed class ReaderDocumentReadResultAssetTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadDocument_EmitsPowerPointAssetsForEachDuplicateSlidePlacement() {
+        string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
+        using var stream = new MemoryStream();
+        using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream)) {
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddPicture(imagePath);
+            slide.AddPicture(imagePath);
+            presentation.Save();
+        }
+
+        stream.Position = 0;
+        OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "duplicate-placement.pptx");
+
+        Assert.Equal(2, result.Assets.Count);
+        Assert.All(result.Assets, asset => Assert.Equal(1, asset.Location.Slide));
+        Assert.Equal(2, result.Assets.Select(asset => asset.Id).Distinct(StringComparer.Ordinal).Count());
+
+        OfficeDocumentPage page = Assert.Single(result.Pages);
+        Assert.Equal(2, page.Assets.Count);
+    }
+
+    [Fact]
     public void DocumentReader_ReadDocument_FlagsImageOnlyPowerPointSlideForOcr() {
         string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "EvotecLogo.png");
         using var stream = new MemoryStream();
@@ -247,6 +269,40 @@ public sealed class ReaderDocumentReadResultAssetTests {
             Assert.Equal(1, jsonAsset.GetProperty("height").GetInt32());
             Assert.Equal("Images", jsonAsset.GetProperty("location").GetProperty("sheet").GetString());
             Assert.False(jsonAsset.TryGetProperty("payloadBytes", out _));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_ReadDocument_FiltersExcelAssetsByCaseInsensitiveSheetAndRange() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorkSheet("Data");
+                sheet.Cell(1, 1, "Inside");
+                sheet.Cell(5, 5, "Outside");
+                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "InsideLogo", altText: "Inside logo");
+                sheet.AddImage(5, 5, png, "image/png", widthPixels: 12, heightPixels: 10, name: "OutsideLogo", altText: "Outside logo");
+                document.Save();
+            }
+
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(
+                path,
+                new ReaderOptions {
+                    ExcelSheetName = "data",
+                    ExcelA1Range = "A1:B2"
+                });
+
+            OfficeDocumentAsset asset = Assert.Single(result.Assets);
+            Assert.Equal("Inside logo", asset.AltText);
+            Assert.Equal("Data", asset.Location.Sheet);
+            Assert.DoesNotContain(result.Assets, candidate => candidate.AltText == "Outside logo");
+
+            OfficeDocumentPage page = Assert.Single(result.Pages, candidate => candidate.Assets.Count > 0);
+            Assert.Equal("Data", page.Name);
+            Assert.Same(asset, Assert.Single(page.Assets));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

@@ -436,7 +436,7 @@ public static partial class DocumentReaderPdfExtensions {
         AddCountMetadata(entries, "pdf-outline-count", "pdf.outline", "Count", CountOutlines(document.Outlines, selectedPageNumbers));
         AddCountMetadata(entries, "pdf-named-destination-count", "pdf.destination", "Count", CountNamedDestinations(document.NamedDestinations, selectedPageNumbers));
         AddCountMetadata(entries, "pdf-catalog-action-count", "pdf.catalog.action", "Count", document.CatalogActions.Count);
-        AddCountMetadata(entries, "pdf-form-field-count", "pdf.form", "Count", document.FormFields.Count);
+        AddCountMetadata(entries, "pdf-form-field-count", "pdf.form", "Count", CountFormFields(document.FormFields, selectedPageNumbers));
         AddMetadata(entries, "pdf-acroform-need-appearances", "pdf.form", "NeedAppearances", ToMetadataText(document.AcroFormNeedAppearances), "boolean");
         AddMetadata(entries, "pdf-acroform-signature-flags", "pdf.form", "SignatureFlags", ToMetadataText(document.AcroFormSignatureFlags), "number");
         entries.AddRange(BuildPdfPreflightMetadata(preflight));
@@ -639,6 +639,26 @@ public static partial class DocumentReaderPdfExtensions {
         for (int i = 0; i < destinations.Count; i++) {
             if (IsSelectedPage(destinations[i].PageNumber, selectedPageNumbers)) {
                 count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountFormFields(IReadOnlyList<PdfFormField> fields, HashSet<int>? selectedPageNumbers) {
+        if (selectedPageNumbers == null) {
+            return fields.Count;
+        }
+
+        int count = 0;
+        for (int i = 0; i < fields.Count; i++) {
+            PdfFormField field = fields[i];
+            for (int widgetIndex = 0; widgetIndex < field.Widgets.Count; widgetIndex++) {
+                int? pageNumber = field.Widgets[widgetIndex].PageNumber;
+                if (pageNumber.HasValue && selectedPageNumbers.Contains(pageNumber.Value)) {
+                    count++;
+                    break;
+                }
             }
         }
 
