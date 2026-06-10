@@ -12,7 +12,11 @@ public abstract class MarkdownNativeBlock {
         SourceBlock = sourceBlock ?? throw new ArgumentNullException(nameof(sourceBlock));
         SyntaxNode = syntaxNode ?? throw new ArgumentNullException(nameof(syntaxNode));
         SourceSpan = syntaxNode.SourceSpan ?? (sourceBlock as MarkdownObject)?.SourceSpan;
+        Id = MarkdownNativeBlockId.Create(kind, sourceBlock, syntaxNode, SourceSpan);
     }
+
+    /// <summary>Deterministic identity for this projection within stable markdown input.</summary>
+    public string Id { get; }
 
     /// <summary>Native projection kind.</summary>
     public MarkdownNativeBlockKind Kind { get; }
@@ -63,6 +67,10 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
         FenceInfo = code.FenceInfo;
         Content = code.Content;
         Caption = code.Caption;
+        Attributes = code.FenceInfo.Attributes;
+        Classes = code.FenceInfo.Classes;
+        ElementId = code.FenceInfo.ElementId;
+        Title = code.FenceInfo.Title;
     }
 
     /// <summary>Source code block.</summary>
@@ -82,6 +90,18 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
 
     /// <summary>Optional code-block caption.</summary>
     public string? Caption { get; }
+
+    /// <summary>Parsed fence attributes.</summary>
+    public IReadOnlyDictionary<string, string?> Attributes { get; }
+
+    /// <summary>Parsed fence classes.</summary>
+    public IReadOnlyList<string> Classes { get; }
+
+    /// <summary>Parsed fence element id.</summary>
+    public string? ElementId { get; }
+
+    /// <summary>Convenience title resolved from fence metadata.</summary>
+    public string? Title { get; }
 }
 
 /// <summary>
@@ -97,6 +117,10 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
         FenceInfo = visual.FenceInfo;
         Content = visual.Content;
         Caption = visual.Caption;
+        Attributes = visual.FenceInfo.Attributes;
+        Classes = visual.FenceInfo.Classes;
+        ElementId = visual.FenceInfo.ElementId;
+        Title = visual.FenceInfo.Title;
     }
 
     /// <summary>Source semantic fenced block.</summary>
@@ -119,6 +143,18 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
 
     /// <summary>Optional visual-block caption.</summary>
     public string? Caption { get; }
+
+    /// <summary>Parsed fence attributes.</summary>
+    public IReadOnlyDictionary<string, string?> Attributes { get; }
+
+    /// <summary>Parsed fence classes.</summary>
+    public IReadOnlyList<string> Classes { get; }
+
+    /// <summary>Parsed fence element id.</summary>
+    public string? ElementId { get; }
+
+    /// <summary>Convenience title resolved from fence metadata.</summary>
+    public string? Title { get; }
 }
 
 /// <summary>

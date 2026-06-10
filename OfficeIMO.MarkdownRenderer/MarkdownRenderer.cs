@@ -82,7 +82,10 @@ public static partial class MarkdownRenderer {
             result.SyntaxTree,
             result.FinalSyntaxTree,
             result.TransformDiagnostics);
-        return MarkdownNativeDocument.FromParseResult(parseResult);
+        return MarkdownNativeDocument.FromParseResult(
+            parseResult,
+            result.PreprocessedMarkdown,
+            MarkdownNativeDocumentSourceKind.RendererPreprocessed);
     }
 
     /// <summary>

@@ -4,13 +4,21 @@ namespace OfficeIMO.Markdown;
 /// Native, AST-backed projection of a parsed markdown document for UI hosts that need structured blocks and source spans.
 /// </summary>
 public sealed class MarkdownNativeDocument {
-    private MarkdownNativeDocument(MarkdownParseResult parseResult, IReadOnlyList<MarkdownNativeBlock> blocks) {
+    private MarkdownNativeDocument(
+        MarkdownParseResult parseResult,
+        string sourceMarkdown,
+        MarkdownNativeDocumentSourceKind sourceKind,
+        IReadOnlyList<MarkdownNativeBlock> blocks,
+        IReadOnlyList<MarkdownNativeDiagnostic> diagnostics) {
         ParseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
         Document = parseResult.Document;
         SyntaxTree = parseResult.SyntaxTree;
         FinalSyntaxTree = parseResult.FinalSyntaxTree;
         TransformDiagnostics = parseResult.TransformDiagnostics;
+        SourceMarkdown = sourceMarkdown ?? string.Empty;
+        SourceKind = sourceKind;
         Blocks = blocks ?? Array.Empty<MarkdownNativeBlock>();
+        Diagnostics = diagnostics ?? Array.Empty<MarkdownNativeDiagnostic>();
     }
 
     /// <summary>Underlying parse result, including original/final syntax trees and diagnostics.</summary>
@@ -28,42 +36,61 @@ public sealed class MarkdownNativeDocument {
     /// <summary>Document-transform diagnostics captured during parsing.</summary>
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
 
+    /// <summary>Markdown source text whose source spans back this projection.</summary>
+    public string SourceMarkdown { get; }
+
+    /// <summary>Identifies whether <see cref="SourceMarkdown"/> is direct reader input or renderer-preprocessed markdown.</summary>
+    public MarkdownNativeDocumentSourceKind SourceKind { get; }
+
     /// <summary>Top-level native block projection in document order.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Blocks { get; }
+
+    /// <summary>Projection diagnostics including transform notices and unsupported block fallbacks.</summary>
+    public IReadOnlyList<MarkdownNativeDiagnostic> Diagnostics { get; }
 
     /// <summary>
     /// Parses markdown into the typed object model, syntax tree, diagnostics, and native block projection.
     /// </summary>
     public static MarkdownNativeDocument Parse(string markdown, MarkdownReaderOptions? options = null) {
-        var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown ?? string.Empty, options);
-        return FromParseResult(parseResult);
+        markdown ??= string.Empty;
+        var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+        return FromParseResult(parseResult, markdown, MarkdownNativeDocumentSourceKind.ReaderInput);
     }
 
     /// <summary>
     /// Builds a native projection from an existing syntax-backed parse result.
     /// </summary>
-    public static MarkdownNativeDocument FromParseResult(MarkdownParseResult parseResult) {
+    public static MarkdownNativeDocument FromParseResult(
+        MarkdownParseResult parseResult,
+        string? sourceMarkdown = null,
+        MarkdownNativeDocumentSourceKind sourceKind = MarkdownNativeDocumentSourceKind.ReaderInput) {
         if (parseResult == null) {
             throw new ArgumentNullException(nameof(parseResult));
         }
 
         var blocks = new List<MarkdownNativeBlock>();
+        var diagnostics = new List<MarkdownNativeDiagnostic>();
+        for (var i = 0; i < parseResult.TransformDiagnostics.Count; i++) {
+            diagnostics.Add(MarkdownNativeDiagnostic.FromTransform(parseResult.TransformDiagnostics[i]));
+        }
+
         var children = parseResult.FinalSyntaxTree.Children;
         for (var i = 0; i < children.Count; i++) {
-            var block = CreateNativeBlock(children[i]);
+            var block = MarkdownNativeProjectionFactory.Create(children[i], diagnostics);
             if (block != null) {
                 blocks.Add(block);
             }
         }
 
-        return new MarkdownNativeDocument(parseResult, blocks);
+        return new MarkdownNativeDocument(parseResult, sourceMarkdown ?? string.Empty, sourceKind, blocks, diagnostics);
     }
 
-    /// <summary>Finds the first top-level native block whose source span contains the supplied 1-based line.</summary>
+    /// <summary>Finds the first native block whose source span contains the supplied 1-based line.</summary>
     public MarkdownNativeBlock? FindBlockAtLine(int lineNumber) {
         for (var i = 0; i < Blocks.Count; i++) {
-            if (Blocks[i].ContainsLine(lineNumber)) {
-                return Blocks[i];
+            var match = FindBlockAtLine(Blocks[i], lineNumber);
+            if (match != null) {
+                return match;
             }
         }
 
@@ -79,22 +106,36 @@ public sealed class MarkdownNativeDocument {
         }
     }
 
-    private static MarkdownNativeBlock? CreateNativeBlock(MarkdownSyntaxNode syntaxNode) {
-        if (syntaxNode?.AssociatedObject is not IMarkdownBlock block) {
-            return null;
+    private static MarkdownNativeBlock? FindBlockAtLine(MarkdownNativeBlock block, int lineNumber) {
+        switch (block) {
+            case MarkdownNativeQuoteBlock quote:
+                return FindChildBlockAtLine(quote.Children, lineNumber) ?? (quote.ContainsLine(lineNumber) ? quote : null);
+            case MarkdownNativeCalloutBlock callout:
+                return FindChildBlockAtLine(callout.Children, lineNumber) ?? (callout.ContainsLine(lineNumber) ? callout : null);
+            case MarkdownNativeDetailsBlock details:
+                return FindChildBlockAtLine(details.Children, lineNumber) ?? (details.ContainsLine(lineNumber) ? details : null);
+            case MarkdownNativeListBlock list:
+                for (var i = 0; i < list.Items.Count; i++) {
+                    var itemMatch = FindChildBlockAtLine(list.Items[i].Children, lineNumber);
+                    if (itemMatch != null) {
+                        return itemMatch;
+                    }
+                }
+
+                return list.ContainsLine(lineNumber) ? list : null;
+            default:
+                return block.ContainsLine(lineNumber) ? block : null;
+        }
+    }
+
+    private static MarkdownNativeBlock? FindChildBlockAtLine(IReadOnlyList<MarkdownNativeBlock> children, int lineNumber) {
+        for (var i = 0; i < children.Count; i++) {
+            var match = FindBlockAtLine(children[i], lineNumber);
+            if (match != null) {
+                return match;
+            }
         }
 
-        switch (block) {
-            case ParagraphBlock paragraph:
-                return new MarkdownNativeParagraphBlock(paragraph, syntaxNode);
-            case CodeBlock code:
-                return new MarkdownNativeCodeBlock(code, syntaxNode);
-            case SemanticFencedBlock visual:
-                return new MarkdownNativeVisualBlock(visual, syntaxNode);
-            case TableBlock table:
-                return new MarkdownNativeTableBlock(table, syntaxNode);
-            default:
-                return new MarkdownNativeOtherBlock(block, syntaxNode);
-        }
+        return null;
     }
 }
