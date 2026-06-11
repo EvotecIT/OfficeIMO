@@ -15,6 +15,8 @@ public sealed class MarkdownParseResult {
     public MarkdownSyntaxNode SyntaxTree { get; }
     /// <summary>The syntax tree corresponding to the final returned <see cref="Document"/>.</summary>
     public MarkdownSyntaxNode FinalSyntaxTree { get; }
+    /// <summary>The normalized markdown source text used to compute syntax source spans.</summary>
+    public string SourceMarkdown { get; }
     /// <summary>Optional document-transform diagnostics captured during parsing.</summary>
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
 
@@ -22,10 +24,12 @@ public sealed class MarkdownParseResult {
         MarkdownDoc document,
         MarkdownSyntaxNode syntaxTree,
         MarkdownSyntaxNode? finalSyntaxTree = null,
+        string? sourceMarkdown = null,
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null) {
         Document = document;
         SyntaxTree = syntaxTree;
         FinalSyntaxTree = finalSyntaxTree ?? syntaxTree;
+        SourceMarkdown = sourceMarkdown ?? string.Empty;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
     }
 

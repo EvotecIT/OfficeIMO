@@ -19,7 +19,7 @@ public static partial class MarkdownReader {
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
-        return ParseInternal(markdown, options, state, allowFrontMatter: true, out _);
+        return ParseInternal(markdown, options, state, allowFrontMatter: true, out _, out _);
     }
 
     /// <summary>
@@ -30,7 +30,7 @@ public static partial class MarkdownReader {
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();
         var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
-        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, syntaxNodes, lineOffset: 0, transformDiagnostics: diagnostics);
+        var document = ParseInternal(markdown, options, state, allowFrontMatter: true, out var syntaxTree, out var sourceMarkdown, syntaxNodes, lineOffset: 0, transformDiagnostics: diagnostics);
         var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
         if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
             originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
@@ -38,7 +38,7 @@ public static partial class MarkdownReader {
 
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree);
+        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, sourceMarkdown);
     }
 
     /// <summary>
@@ -55,6 +55,7 @@ public static partial class MarkdownReader {
             state,
             allowFrontMatter: true,
             out var syntaxTree,
+            out var sourceMarkdown,
             syntaxNodes,
             lineOffset: 0,
             transformDiagnostics: diagnostics);
@@ -65,7 +66,7 @@ public static partial class MarkdownReader {
 
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, diagnostics);
+        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, sourceMarkdown, diagnostics);
     }
 
     /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
@@ -120,38 +121,22 @@ public static partial class MarkdownReader {
         MarkdownReaderState state,
         bool allowFrontMatter,
         out MarkdownSyntaxNode? syntaxTree,
+        out string normalizedSourceText,
         List<MarkdownSyntaxNode>? syntaxNodes = null,
         int lineOffset = 0,
         ICollection<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
         bool applyDocumentTransforms = true) {
         var doc = MarkdownDoc.Create();
         syntaxTree = syntaxNodes != null ? BuildDocumentSyntaxTree(syntaxNodes, doc) : null;
+        normalizedSourceText = string.Empty;
         if (string.IsNullOrEmpty(markdown)) return doc;
         int previousLineOffset = state.SourceLineOffset;
         var previousSourceTextMap = state.SourceTextMap;
         state.SourceLineOffset = lineOffset;
 
         try {
-            // Normalize BOM (U+FEFF) at the very beginning to avoid blocking heading/html detection
-            if (markdown[0] == '\uFEFF') {
-                markdown = markdown.Substring(1);
-            }
-
-            ValidateInputLength(markdown, options.MaxInputCharacters, nameof(markdown));
-
-            // This specific repair must happen before block parsing: once a collapsed heading marker
-            // is swallowed into a table cell, the AST no longer knows the table boundary was malformed.
-            if (options.InputNormalization?.NormalizeCompactHeadingBoundaries == true) {
-                markdown = MarkdownInputNormalizer.NormalizeCollapsedTableHeadingBoundaries(markdown);
-            }
-
-            var preParseNormalization = CreatePreParseNormalizationOptions(options.InputNormalization);
-            if (preParseNormalization != null) {
-                markdown = MarkdownInputNormalizer.Normalize(markdown, preParseNormalization);
-            }
-
-            // Normalize line endings and split. Keep empty lines significant for block boundaries.
-            var text = markdown.Replace("\r\n", "\n").Replace('\r', '\n');
+            var text = PrepareMarkdownForParsing(markdown, options);
+            normalizedSourceText = text;
             if (lineOffset == 0 || state.SourceTextMap == null) {
                 state.SourceTextMap = new MarkdownSourceTextMap(text);
             }
@@ -218,6 +203,33 @@ public static partial class MarkdownReader {
             state.SourceLineOffset = previousLineOffset;
             state.SourceTextMap = previousSourceTextMap;
         }
+    }
+
+    private static string PrepareMarkdownForParsing(string markdown, MarkdownReaderOptions options) {
+        markdown ??= string.Empty;
+        if (markdown.Length == 0) {
+            return string.Empty;
+        }
+
+        // Normalize BOM (U+FEFF) at the very beginning to avoid blocking heading/html detection.
+        if (markdown[0] == '\uFEFF') {
+            markdown = markdown.Substring(1);
+        }
+
+        ValidateInputLength(markdown, options.MaxInputCharacters, nameof(markdown));
+
+        // This specific repair must happen before block parsing: once a collapsed heading marker
+        // is swallowed into a table cell, the AST no longer knows the table boundary was malformed.
+        if (options.InputNormalization?.NormalizeCompactHeadingBoundaries == true) {
+            markdown = MarkdownInputNormalizer.NormalizeCollapsedTableHeadingBoundaries(markdown);
+        }
+
+        var preParseNormalization = CreatePreParseNormalizationOptions(options.InputNormalization);
+        if (preParseNormalization != null) {
+            markdown = MarkdownInputNormalizer.Normalize(markdown, preParseNormalization);
+        }
+
+        return markdown.Replace("\r\n", "\n").Replace('\r', '\n');
     }
 
     private static void ValidateInputLength(string input, int? maxInputCharacters, string paramName) {

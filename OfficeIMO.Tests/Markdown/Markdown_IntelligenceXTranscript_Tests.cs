@@ -211,6 +211,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void IntelligenceXMarkdownRenderer_ParseTranscriptNative_Projects_Visual_Fences() {
+            var markdown = """
+Rendered result:
+
+```ix-chart
+{"type":"bar"}
+```
+""";
+
+            var native = IntelligenceXMarkdownRenderer.ParseTranscriptNative(markdown);
+
+            Assert.Equal(new[] {
+                MarkdownNativeBlockKind.Paragraph,
+                MarkdownNativeBlockKind.Visual
+            }, native.Blocks.Select(block => block.Kind).ToArray());
+
+            var visual = Assert.IsType<MarkdownNativeVisualBlock>(native.Blocks[1]);
+            Assert.Equal(MarkdownSemanticKinds.Chart, visual.SemanticKind);
+            Assert.Equal("ix-chart", visual.Language);
+            Assert.Equal(3, visual.SourceSpan!.Value.StartLine);
+        }
+
+        [Fact]
+        public void IntelligenceXMarkdownRenderer_ParseTranscriptNativeDesktopShell_Uses_Renderer_Semantic_Fences() {
+            var markdown = """
+```mermaid
+flowchart LR
+  A-->B
+```
+""";
+
+            var native = IntelligenceXMarkdownRenderer.ParseTranscriptNativeDesktopShell(markdown);
+
+            var visual = Assert.IsType<MarkdownNativeVisualBlock>(Assert.Single(native.Blocks));
+            Assert.Equal(MarkdownSemanticKinds.Mermaid, visual.SemanticKind);
+            Assert.Equal("mermaid", visual.Language);
+        }
+
+        [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Reuses_Shared_Transcript_Reader_Contract() {
             var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
                 preservesGroupedDefinitionLikeParagraphs: false,

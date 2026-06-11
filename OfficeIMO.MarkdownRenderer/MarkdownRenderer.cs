@@ -64,10 +64,30 @@ public static partial class MarkdownRenderer {
         return new MarkdownRendererParseResult(
             document,
             markdown,
+            parseResult.SourceMarkdown,
             parseResult.SyntaxTree,
             finalSyntaxTree,
             transformDiagnostics,
             preProcessorDiagnostics);
+    }
+
+    /// <summary>
+    /// Parses Markdown using the renderer-owned pipeline and returns the AST-backed native projection.
+    /// </summary>
+    public static MarkdownNativeDocument ParseNativeDocument(
+        string markdown,
+        MarkdownRendererOptions? options = null) {
+        var result = ParseDocumentResult(markdown, options);
+        var parseResult = new MarkdownParseResult(
+            result.Document,
+            result.SyntaxTree,
+            result.FinalSyntaxTree,
+            sourceMarkdown: result.SourceMarkdown,
+            result.TransformDiagnostics);
+        return MarkdownNativeDocument.FromParseResult(
+            parseResult,
+            sourceMarkdown: null,
+            MarkdownNativeDocumentSourceKind.RendererPreprocessed);
     }
 
     /// <summary>

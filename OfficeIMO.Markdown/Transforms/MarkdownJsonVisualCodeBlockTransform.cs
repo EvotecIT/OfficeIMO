@@ -49,6 +49,7 @@ public sealed class MarkdownJsonVisualCodeBlockTransform : IMarkdownDocumentTran
         language = block.Language ?? string.Empty;
 
         if (TryResolveKnownFenceLanguage(language, out semanticKind)) {
+            language = block.InfoString;
             return true;
         }
 
@@ -56,8 +57,18 @@ public sealed class MarkdownJsonVisualCodeBlockTransform : IMarkdownDocumentTran
             return false;
         }
 
-        language = ResolveUpgradedLanguage(semanticKind, language);
+        language = BuildResolvedInfoString(block, ResolveUpgradedLanguage(semanticKind, language));
         return true;
+    }
+
+    private static string BuildResolvedInfoString(CodeBlock block, string language) {
+        if (string.IsNullOrWhiteSpace(block.FenceInfo.AdditionalInfo)) {
+            return language ?? string.Empty;
+        }
+
+        return string.IsNullOrWhiteSpace(language)
+            ? block.FenceInfo.AdditionalInfo
+            : language.Trim() + " " + block.FenceInfo.AdditionalInfo;
     }
 
     private static bool TryResolveKnownFenceLanguage(string language, out string semanticKind) {

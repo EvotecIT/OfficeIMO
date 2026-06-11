@@ -133,6 +133,42 @@ if (parsed.HasDocumentHeader && parsed.TryGetFrontMatterValue<string>("title", o
 }
 ```
 
+### Native AST projection for UI hosts
+
+Use `MarkdownNativeDocument` when an editor, transcript viewer, or chat shell needs an AST-backed read model with stable ids, source spans, native block kinds, inline runs, semantic visual metadata, and a DTO-style snapshot that avoids parser object references.
+
+````csharp
+var options = new MarkdownReaderOptions();
+options.DocumentTransforms.Add(new MarkdownJsonVisualCodeBlockTransform(
+    MarkdownVisualFenceLanguageMode.GenericSemanticFence));
+
+var native = MarkdownNativeDocument.Parse("""
+# Investigation
+
+See **CPU** in [dashboard](https://example.com).
+
+```chart {#cpu .wide title="CPU"}
+{"type":"bar","data":{"labels":["A"],"datasets":[{"label":"CPU","data":[42]}]}}
+```
+""", options);
+
+var heading = native.BlocksOfType<MarkdownNativeHeadingBlock>().Single();
+Console.WriteLine($"{heading.Id}: {heading.Text}");
+
+var link = native.EnumerateInlines()
+    .First(inline => inline.Kind == MarkdownNativeInlineKind.Link);
+Console.WriteLine($"{link.Text} -> {link.GetMetadata("target")}");
+
+var visual = native.BlocksOfType<MarkdownNativeVisualBlock>().Single();
+Console.WriteLine($"{visual.SemanticKind}: {visual.Payload.Format} / {visual.Payload.JsonType}");
+
+var snapshot = native.ToSnapshot();
+var edit = native.CreateReplaceEdit(heading, "## Investigation");
+var editedMarkdown = edit.Apply(native.SourceMarkdown);
+````
+
+`MarkdownRenderer.ParseNativeDocument(...)` uses the renderer's effective reader options and returns a native document backed by renderer-preprocessed markdown. The `OfficeIMO.MarkdownRenderer.IntelligenceX` transcript presets also expose `ParseTranscriptNative(...)` helpers so chat and desktop-shell hosts can consume the same native projection that rendering uses.
+
 ### Semantic fenced blocks and reader extensions
 
 ```csharp
