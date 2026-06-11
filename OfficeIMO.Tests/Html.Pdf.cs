@@ -594,7 +594,8 @@ public sealed class HtmlPdfTests {
 
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
 
-        Assert.Same(options.ConversionReport, result.ConversionReport);
+        Assert.NotSame(options.ConversionReport, result.ConversionReport);
+        Assert.False(result.ConversionReport.HasWarnings);
         Assert.Contains("Logical Heading", result.Html, StringComparison.Ordinal);
         Assert.Equal(PdfHtmlProfile.PositionedReview, result.Summary.Profile);
         Assert.Equal("pdf-html-positioned-review", result.Summary.ProfileId);
@@ -613,6 +614,28 @@ public sealed class HtmlPdfTests {
         Assert.Equal(PdfHtmlImageExportMode.EmbeddedDataUri, result.Summary.ImageExportMode);
         Assert.Contains("positioned", result.Summary.FidelityContract, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("not a full PDF renderer", result.Summary.UnsupportedScope, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_SnapshotsConversionReportWhenOptionsAreReused() {
+        byte[] imagePdf = CreateImageSamplePdf();
+        byte[] textPdf = CreateLogicalSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            MaxEmbeddedImageBytes = 0
+        };
+
+        PdfHtmlConversionResult imageResult = PdfHtmlConverter.ToHtmlResult(imagePdf, options);
+        PdfCore.PdfConversionWarning warning = Assert.Single(imageResult.ConversionReport.Warnings, item => item.Code == "ImageDataTooLarge");
+        Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
+
+        PdfHtmlConversionResult textResult = PdfHtmlConverter.ToHtmlResult(textPdf, options);
+
+        Assert.NotSame(options.ConversionReport, imageResult.ConversionReport);
+        Assert.NotSame(options.ConversionReport, textResult.ConversionReport);
+        Assert.Single(imageResult.ConversionReport.Warnings, item => item.Code == "ImageDataTooLarge");
+        Assert.False(textResult.ConversionReport.HasWarnings);
+        Assert.False(options.ConversionReport.HasWarnings);
     }
 
     [Fact]

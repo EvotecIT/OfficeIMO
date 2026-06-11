@@ -9,7 +9,7 @@ public sealed class PdfHtmlConversionResult {
     internal PdfHtmlConversionResult(string html, PdfHtmlExportSummary summary, PdfCore.PdfConversionReport conversionReport) {
         Html = html;
         Summary = summary;
-        ConversionReport = conversionReport;
+        ConversionReport = SnapshotReport(conversionReport);
     }
 
     /// <summary>Generated HTML output.</summary>
@@ -18,6 +18,12 @@ public sealed class PdfHtmlConversionResult {
     /// <summary>Machine-readable summary of selected pages, preserved logical objects, and output policy.</summary>
     public PdfHtmlExportSummary Summary { get; }
 
-    /// <summary>Shared conversion report populated during export.</summary>
+    /// <summary>Conversion report snapshot populated during export.</summary>
     public PdfCore.PdfConversionReport ConversionReport { get; }
+
+    private static PdfCore.PdfConversionReport SnapshotReport(PdfCore.PdfConversionReport conversionReport) {
+        var snapshot = new PdfCore.PdfConversionReport();
+        snapshot.AddRange(conversionReport.Warnings);
+        return snapshot;
+    }
 }
