@@ -23,11 +23,13 @@ public static class HtmlPdfConverterExtensions {
         options ??= new HtmlPdfSaveOptions();
         options.ResetExportState();
 
-        return options.Profile switch {
+        PdfCore.PdfDocument pdf = options.Profile switch {
             HtmlPdfProfile.Semantic => ConvertSemantic(html, options),
             HtmlPdfProfile.Document => ConvertDocument(html, options),
             _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported HTML PDF profile.")
         };
+        AddCurrentHtmlImportDiagnostics(options);
+        return pdf;
     }
 
     /// <summary>
@@ -114,6 +116,7 @@ public static class HtmlPdfConverterExtensions {
     private static PdfCore.PdfDocument ConvertDocument(string html, HtmlPdfSaveOptions options) {
         PdfSaveOptions wordPdfOptions = options.WordPdfOptions ?? new PdfSaveOptions();
         options.WordPdfOptions = wordPdfOptions;
+        options.WordHtmlOptions?.Diagnostics.Clear();
         using WordDocument document = html.LoadFromHtml(options.WordHtmlOptions);
         PdfCore.PdfDocument pdf = document.ToPdfDocument(wordPdfOptions);
         options.ConversionReport.LinkReport(wordPdfOptions.ConversionReport);
@@ -133,6 +136,16 @@ public static class HtmlPdfConverterExtensions {
         AddHtmlImportDiagnostics(options, warnings);
         options.ConversionReport.ClearLinkedReports();
         options.ConversionReport.Clear();
+        options.ConversionReport.AddRange(warnings);
+    }
+
+    private static void AddCurrentHtmlImportDiagnostics(HtmlPdfSaveOptions options) {
+        if (options.Profile != HtmlPdfProfile.Document) {
+            return;
+        }
+
+        var warnings = new List<PdfCore.PdfConversionWarning>();
+        AddHtmlImportDiagnostics(options, warnings);
         options.ConversionReport.AddRange(warnings);
     }
 

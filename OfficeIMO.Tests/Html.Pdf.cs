@@ -395,6 +395,59 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Html_ToPdfDocument_DocumentProfile_ForwardsHtmlImportDiagnosticsToSharedReport() {
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
+        options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");
+
+        PdfCore.PdfDocument pdf = """
+<html>
+<head>
+  <link rel="stylesheet" href="https://blocked.example.test/site.css">
+</head>
+<body>
+  <h1>HTML policy diagnostic</h1>
+</body>
+</html>
+""".ToPdfDocument(options);
+
+        Assert.NotNull(pdf);
+        Assert.Contains(options.WordHtmlOptions.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
+        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
+        Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_DocumentProfile_DoesNotReuseStaleHtmlImportDiagnostics() {
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
+        string blocked = """
+<html>
+<head>
+  <link rel="stylesheet" href="https://blocked.example.test/site.css">
+</head>
+<body>
+  <h1>Blocked policy diagnostic</h1>
+</body>
+</html>
+""";
+        string clean = """
+<html>
+<body>
+  <h1>Clean document profile export</h1>
+</body>
+</html>
+""";
+
+        byte[] blockedPdf = blocked.SaveAsPdf(options);
+        byte[] cleanPdf = clean.SaveAsPdf(options);
+
+        Assert.True(blockedPdf.Length > 0);
+        Assert.True(cleanPdf.Length > 0);
+        Assert.DoesNotContain(options.WordHtmlOptions!.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "StylesheetResourceRejectedByPolicy");
+    }
+
+    [Fact]
     public void HtmlPdf_ProfileContracts_CoverSupportedProfiles() {
         HtmlPdfProfileContract semantic = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Semantic);
         HtmlPdfProfileContract document = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Document);

@@ -17,6 +17,7 @@ on:
       - 'OfficeIMO.Html.Pdf/**'
       - 'OfficeIMO.PowerPoint/**'
       - 'OfficeIMO.PowerPoint.Pdf/**'
+      - 'OfficeIMO.Reader/**'
       - 'OfficeIMO.Reader.Pdf/**'
       - 'OfficeIMO.Tests/Pdf/**'
       - 'OfficeIMO.Tests/Markdown.Pdf.cs'
@@ -42,6 +43,7 @@ on:
       - 'OfficeIMO.Html.Pdf/**'
       - 'OfficeIMO.PowerPoint/**'
       - 'OfficeIMO.PowerPoint.Pdf/**'
+      - 'OfficeIMO.Reader/**'
       - 'OfficeIMO.Reader.Pdf/**'
       - 'OfficeIMO.Tests/Pdf/**'
       - 'OfficeIMO.Tests/Markdown.Pdf.cs'
@@ -154,8 +156,7 @@ jobs:
           retention-days: 14
           path: |
             ${{ env.GALLERY_PATH }}/index.md
-            ${{ env.GALLERY_PATH }}/conversion-scenarios.json
-            ${{ env.GALLERY_PATH }}/conversion-proof-summary.json
+            ${{ env.GALLERY_PATH }}/*.json
             ${{ env.GALLERY_PATH }}/*.pdf
             ${{ env.GALLERY_PATH }}/*.html
             ${{ env.GALLERY_PATH }}/*.docx
