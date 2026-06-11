@@ -6,10 +6,12 @@ namespace OfficeIMO.Pdf;
 public sealed class PdfLogicalTableData {
     internal PdfLogicalTableData(
         PdfLogicalTableStructure structure,
+        PdfLogicalTableDiagnostics diagnostics,
         IReadOnlyList<IReadOnlyList<string>> rows,
         IReadOnlyList<bool> numericColumns,
         bool truncated) {
         Structure = structure;
+        Diagnostics = diagnostics;
         Columns = structure.Columns;
         Rows = rows;
         NumericColumns = SnapshotNumericColumns(numericColumns);
@@ -20,6 +22,9 @@ public sealed class PdfLogicalTableData {
 
     /// <summary>Inferred schema and body-row boundaries used to build this table data.</summary>
     public PdfLogicalTableStructure Structure { get; }
+
+    /// <summary>Confidence and geometry diagnostics for the detected source table.</summary>
+    public PdfLogicalTableDiagnostics Diagnostics { get; }
 
     /// <summary>Inferred column names suitable for structured extraction surfaces.</summary>
     public IReadOnlyList<string> Columns { get; }

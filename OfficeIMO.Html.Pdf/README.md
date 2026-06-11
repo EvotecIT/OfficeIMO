@@ -88,7 +88,10 @@ existing Word HTML converter is a better source model for the HTML being
 processed. `HtmlPdfSaveOptions.CreateDocumentProfile()` is the practical
 HTML-to-PDF preset for local/trusted print HTML with CSS, images, links,
 tables, and page-break hints; `CreateTrustedDocumentProfile()` also enables
-the trusted Word HTML stylesheet behavior.
+the trusted Word HTML stylesheet behavior. `HtmlPdfSaveOptions.GetResourcePolicySummary()`
+returns the active stylesheet/image resource policy, and document-profile HTML
+import diagnostics such as blocked stylesheets are forwarded into
+`HtmlPdfSaveOptions.ConversionReport`.
 
 Use PDF semantic HTML for search, indexing, export, and review workflows where
 clean structure matters. Use positioned review HTML when callers need a

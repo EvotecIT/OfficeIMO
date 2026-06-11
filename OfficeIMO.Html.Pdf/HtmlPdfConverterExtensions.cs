@@ -126,13 +126,42 @@ public static class HtmlPdfConverterExtensions {
             HtmlPdfProfile.Document => options.WordPdfOptions?.ConversionReport,
             _ => null
         };
-        if (source == null) {
-            return;
-        }
 
-        List<PdfCore.PdfConversionWarning> warnings = new(source.Warnings);
+        List<PdfCore.PdfConversionWarning> warnings = source == null
+            ? new List<PdfCore.PdfConversionWarning>()
+            : new List<PdfCore.PdfConversionWarning>(source.Warnings);
+        AddHtmlImportDiagnostics(options, warnings);
         options.ConversionReport.ClearLinkedReports();
         options.ConversionReport.Clear();
         options.ConversionReport.AddRange(warnings);
+    }
+
+    private static void AddHtmlImportDiagnostics(HtmlPdfSaveOptions options, List<PdfCore.PdfConversionWarning> warnings) {
+        if (options.Profile != HtmlPdfProfile.Document || options.WordHtmlOptions is null) {
+            return;
+        }
+
+        foreach (HtmlConversionDiagnostic diagnostic in options.WordHtmlOptions.Diagnostics) {
+            var details = string.IsNullOrWhiteSpace(diagnostic.Detail)
+                ? null
+                : new Dictionary<string, string> {
+                    ["Detail"] = diagnostic.Detail!
+                };
+            warnings.Add(new PdfCore.PdfConversionWarning(
+                "OfficeIMO.Word.Html",
+                diagnostic.Code,
+                diagnostic.Source ?? "html",
+                diagnostic.Message,
+                MapSeverity(diagnostic.Severity),
+                details: details));
+        }
+    }
+
+    private static PdfCore.PdfConversionWarningSeverity MapSeverity(HtmlConversionDiagnosticSeverity severity) {
+        return severity switch {
+            HtmlConversionDiagnosticSeverity.Info => PdfCore.PdfConversionWarningSeverity.Information,
+            HtmlConversionDiagnosticSeverity.Error => PdfCore.PdfConversionWarningSeverity.Error,
+            _ => PdfCore.PdfConversionWarningSeverity.Warning
+        };
     }
 }

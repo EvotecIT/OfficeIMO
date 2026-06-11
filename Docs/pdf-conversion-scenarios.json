@@ -93,6 +93,53 @@
       }
     },
     {
+      "id": "excel-dashboard-report",
+      "path": "excel-dashboard-to-pdf",
+      "converter": "OfficeIMO.Excel.Pdf",
+      "sourceFormat": "excel",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "single-sheet-dashboard",
+        "cell-formatting",
+        "conditional-formatting",
+        "worksheet-image",
+        "chart-snapshot",
+        "print-area",
+        "header-footer",
+        "fit-to-page"
+      ],
+      "expectedSimplifications": [
+        "dashboard proof validates first-party worksheet rendering rather than pixel-perfect Excel application output"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "excel-dashboard-report.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Excel Dashboard PDF Gate",
+          "KPI Trend",
+          "Renewals",
+          "Pipeline risk"
+        ],
+        "logicalSignals": [
+          "worksheet-text",
+          "chart-title",
+          "image-extraction",
+          "print-area"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "ExcelDocument.SaveAsPdf",
+          "PdfReadDocument",
+          "PdfLogicalDocument",
+          "PdfImageExtractor"
+        ]
+      }
+    },
+    {
       "id": "markdown-technical-document",
       "path": "markdown-to-pdf",
       "converter": "OfficeIMO.Markdown.Pdf",
@@ -179,6 +226,102 @@
       }
     },
     {
+      "id": "html-css-resource-policy",
+      "path": "html-css-resource-policy-to-pdf",
+      "converter": "OfficeIMO.Html.Pdf",
+      "sourceFormat": "html",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "trusted-document-profile",
+        "document-stylesheet-link",
+        "file-stylesheet-policy",
+        "blocked-remote-stylesheet-diagnostic",
+        "data-uri-image",
+        "table"
+      ],
+      "expectedSimplifications": [
+        "HTML conversion follows the Word HTML bridge and reports blocked resources instead of acting as a browser renderer"
+      ],
+      "expectedWarnings": [
+        "StylesheetResourceRejectedByPolicy"
+      ],
+      "visualReviewFiles": [
+        "html-css-resource-policy.pdf",
+        "html-css-resource-policy-summary.json"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "HTML CSS Resource Policy Gate",
+          "Local stylesheet marker",
+          "Blocked remote stylesheet marker"
+        ],
+        "logicalSignals": [
+          "trusted-document-profile",
+          "stylesheet-policy-diagnostic",
+          "resource-policy-summary",
+          "shared-conversion-report-warning",
+          "data-uri-image",
+          "table"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "HtmlPdfSaveOptions.CreateTrustedDocumentProfile",
+          "HtmlPdfResourcePolicySummary",
+          "PdfConversionReport",
+          "HtmlToWordOptions.Diagnostics",
+          "PdfReadDocument",
+          "PdfImageExtractor"
+        ]
+      }
+    },
+    {
+      "id": "markdown-invoice-statement",
+      "path": "markdown-invoice-to-pdf",
+      "converter": "OfficeIMO.Markdown.Pdf",
+      "sourceFormat": "markdown",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "front-matter",
+        "invoice-heading",
+        "line-item-table",
+        "summary-table",
+        "right-aligned-numeric-columns",
+        "payment-terms-list"
+      ],
+      "expectedSimplifications": [
+        "invoice semantics remain represented as document text and tables rather than a formal e-invoice compliance profile"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "markdown-invoice-statement.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Invoice Statement INV-2026-0042",
+          "Managed PDF conversion review",
+          "Subtotal",
+          "Amount due"
+        ],
+        "logicalSignals": [
+          "front-matter-metadata",
+          "heading",
+          "tables",
+          "right-aligned-numeric-cells",
+          "list-items"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "MarkdownPdfConverter",
+          "PdfReadDocument",
+          "PdfLogicalDocument"
+        ]
+      }
+    },
+    {
       "id": "powerpoint-native-dense-layout",
       "path": "powerpoint-to-pdf",
       "converter": "OfficeIMO.PowerPoint.Pdf",
@@ -217,6 +360,48 @@
           "PdfInspector",
           "PdfReadDocument",
           "optional Poppler raster baseline"
+        ]
+      }
+    },
+    {
+      "id": "powerpoint-layout-theme-groups",
+      "path": "powerpoint-layout-theme-groups-to-pdf",
+      "converter": "OfficeIMO.PowerPoint.Pdf",
+      "sourceFormat": "powerpoint",
+      "targetFormat": "pdf",
+      "status": "supported",
+      "sourceFeatures": [
+        "custom-slide-size",
+        "theme-colors",
+        "gradient-background",
+        "text-boxes",
+        "grouped-shapes",
+        "group-transform"
+      ],
+      "expectedSimplifications": [
+        "PowerPoint proof validates first-party slide geometry and transforms rather than full Office renderer parity"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "powerpoint-layout-theme-groups.pdf"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Layout Theme Group Gate",
+          "Grouped transform marker"
+        ],
+        "logicalSignals": [
+          "theme-color",
+          "gradient-background",
+          "group-transform",
+          "page-geometry"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PowerPointPresentation.SaveAsPdf",
+          "PdfReadDocument",
+          "raw PDF geometry checks"
         ]
       }
     },
@@ -266,6 +451,202 @@
           "PdfReadDocument",
           "raw PDF font-resource checks",
           "visual review gallery"
+        ]
+      }
+    },
+    {
+      "id": "pdf-logical-diagnostics-readback",
+      "path": "pdf-logical-diagnostics-readback",
+      "converter": "OfficeIMO.Pdf, OfficeIMO.Html.Pdf",
+      "sourceFormat": "pdf",
+      "targetFormat": "logical-read-model/html",
+      "status": "supported",
+      "sourceFeatures": [
+        "headings",
+        "links",
+        "table-structure",
+        "numeric-column-profile",
+        "column-confidence",
+        "image-geometry",
+        "image-placement",
+        "positioned-review-html"
+      ],
+      "expectedSimplifications": [
+        "logical readback remains parser-supported for born-digital PDFs and does not OCR scanned pages"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "pdf-logical-diagnostics-source.pdf",
+        "pdf-logical-diagnostics-positioned-review.html",
+        "pdf-logical-diagnostics-summary.json"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Revenue Readback Diagnostics",
+          "Image geometry and table confidence marker"
+        ],
+        "logicalSignals": [
+          "heading",
+          "image-placement",
+          "image-dimensions",
+          "reader-visual-geometry",
+          "numeric-column-kind",
+          "column-confidence",
+          "table-confidence",
+          "positioned-review-html"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfLogicalDocument",
+          "PdfLogicalTableAnalysis",
+          "OfficeIMO.Reader.Pdf",
+          "PdfHtmlConverter"
+        ]
+      }
+    },
+    {
+      "id": "pdf-reader-degradation-corpus",
+      "path": "pdf-reader-degradation-corpus",
+      "converter": "OfficeIMO.Pdf, OfficeIMO.Reader.Pdf",
+      "sourceFormat": "pdf",
+      "targetFormat": "reader-chunks/logical-read-model",
+      "status": "supported",
+      "sourceFeatures": [
+        "born-digital-text",
+        "uri-link-annotation",
+        "acroform-text-widget",
+        "page-open-javascript-action",
+        "accepted-degradation-summary"
+      ],
+      "expectedSimplifications": [
+        "active PDF actions are surfaced only as passive diagnostics and action summaries, and are not executed or exposed as script payload text",
+        "Reader chunks expose safe structural counters and typed form metadata rather than attempting editable PDF reconstruction"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "pdf-reader-degradation-corpus.pdf",
+        "pdf-reader-degradation-summary.json"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Reader Degradation Corpus",
+          "Accepted degradation marker",
+          "Form and active-content marker"
+        ],
+        "logicalSignals": [
+          "page-text",
+          "safe-link",
+          "typed-form-field",
+          "passive-action-summary",
+          "active-content-diagnostics",
+          "accepted-degradation-summary"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfLogicalDocument",
+          "DocumentReaderPdfExtensions",
+          "ReaderChunk.Diagnostics",
+          "ReaderChunk.FormFields"
+        ]
+      }
+    },
+    {
+      "id": "pdf-reader-hostile-layout-corpus",
+      "path": "pdf-reader-hostile-layout-corpus",
+      "converter": "OfficeIMO.Pdf, OfficeIMO.Reader.Pdf",
+      "sourceFormat": "pdf",
+      "targetFormat": "reader-chunks/logical-read-model",
+      "status": "supported",
+      "sourceFeatures": [
+        "born-digital-text",
+        "close-two-column-layout",
+        "rotated-text",
+        "skewed-image-placement",
+        "accepted-degradation-summary"
+      ],
+      "expectedSimplifications": [
+        "hostile layout readback exposes text and geometry signals without promising perfect human reading order",
+        "skewed image placement is reported as non-axis-aligned geometry rather than normalized into editable Office layout"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "pdf-reader-hostile-layout-corpus.pdf",
+        "pdf-reader-hostile-layout-summary.json"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Hostile Layout Corpus",
+          "Left column marker",
+          "Right column marker",
+          "Rotated note marker"
+        ],
+        "logicalSignals": [
+          "page-text",
+          "reader-chunk-diagnostics",
+          "skewed-image-geometry",
+          "non-axis-aligned-placement",
+          "accepted-degradation-summary"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfLogicalDocument",
+          "DocumentReaderPdfExtensions",
+          "ReaderChunk.Diagnostics",
+          "ReaderChunk.Visuals"
+        ]
+      }
+    },
+    {
+      "id": "pdf-reader-hostile-table-corpus",
+      "path": "pdf-reader-hostile-table-corpus",
+      "converter": "OfficeIMO.Pdf, OfficeIMO.Reader.Pdf",
+      "sourceFormat": "pdf",
+      "targetFormat": "reader-chunks/logical-read-model",
+      "status": "supported",
+      "sourceFeatures": [
+        "born-digital-text",
+        "headerless-table-like-band",
+        "jittered-column-positions",
+        "numeric-column-profile",
+        "table-confidence-diagnostics",
+        "accepted-degradation-summary"
+      ],
+      "expectedSimplifications": [
+        "headerless table-like bands are exposed with fallback column names and confidence diagnostics",
+        "jittered column positions are preserved as best-effort logical table geometry rather than editable spreadsheet reconstruction"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "pdf-reader-hostile-table-corpus.pdf",
+        "pdf-reader-hostile-table-summary.json"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Hostile Table Corpus",
+          "Jittered table marker",
+          "Alpha team",
+          "Gamma team"
+        ],
+        "logicalSignals": [
+          "page-text",
+          "detected-table",
+          "fallback-column-names",
+          "numeric-column-kind",
+          "table-confidence-diagnostics",
+          "reader-chunk-diagnostics",
+          "accepted-degradation-summary"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfLogicalDocument",
+          "PdfLogicalTableAnalysis",
+          "DocumentReaderPdfExtensions",
+          "ReaderChunk.Diagnostics",
+          "ReaderTable.Diagnostics"
         ]
       }
     },

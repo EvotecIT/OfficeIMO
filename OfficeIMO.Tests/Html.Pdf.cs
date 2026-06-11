@@ -347,6 +347,54 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlPdfSaveOptions_TrustedDocumentProfile_ExposesResourcePolicySummary() {
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
+        options.WordHtmlOptions!.AllowedStylesheetHosts.Add("cdn.example.test");
+        options.WordHtmlOptions.MaxCssBytes = 4096;
+        options.WordHtmlOptions.MaxTotalCssBytes = 8192;
+
+        HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
+
+        Assert.Equal(HtmlPdfProfile.Document, policy.Profile);
+        Assert.True(policy.UsesWordHtmlPolicy);
+        Assert.True(policy.AllowDocumentStylesheetLinks);
+        Assert.Contains(Uri.UriSchemeFile, policy.AllowedStylesheetUriSchemes);
+        Assert.Contains(Uri.UriSchemeHttps, policy.AllowedStylesheetUriSchemes);
+        Assert.Equal(new[] { "cdn.example.test" }, policy.AllowedStylesheetHosts);
+        Assert.True(policy.ValidateStylesheetContentTypes);
+        Assert.Contains("text/css", policy.AllowedStylesheetContentTypes);
+        Assert.Equal(4096, policy.MaxCssBytes);
+        Assert.Equal(8192, policy.MaxTotalCssBytes);
+        Assert.Equal("Embed", policy.ImageProcessing);
+        Assert.Contains("data", policy.AllowedImageUriSchemes);
+    }
+
+    [Fact]
+    public void Html_SaveAsPdf_DocumentProfile_ForwardsHtmlImportDiagnosticsToSharedReport() {
+        HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
+        options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");
+
+        byte[] pdf = """
+<html>
+<head>
+  <link rel="stylesheet" href="https://blocked.example.test/site.css">
+</head>
+<body>
+  <h1>HTML policy diagnostic</h1>
+</body>
+</html>
+""".SaveAsPdf(options);
+
+        Assert.True(pdf.Length > 0);
+        Assert.Contains(options.WordHtmlOptions.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
+        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
+        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
+        Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
+        Assert.Contains("Stylesheet host", warning.Details["Detail"], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlPdf_ProfileContracts_CoverSupportedProfiles() {
         HtmlPdfProfileContract semantic = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Semantic);
         HtmlPdfProfileContract document = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Document);
