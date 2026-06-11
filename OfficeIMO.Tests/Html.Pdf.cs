@@ -595,15 +595,40 @@ public sealed class HtmlPdfTests {
             }
         };
 
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-html-result-" + Guid.NewGuid().ToString("N") + ".pdf");
+        File.WriteAllBytes(path, pdf);
         PdfHtmlConversionResult byteResult = PdfHtmlConverter.ToHtmlResult(pdf, options);
+        PdfHtmlConversionResult streamResult;
+        using (var stream = new MemoryStream(pdf, writable: false)) {
+            streamResult = PdfHtmlConverter.ToHtmlResult(stream, options);
+        }
+
+        PdfHtmlConversionResult pathResult = PdfHtmlConverter.ToHtmlResult(path, options);
+        PdfHtmlConversionResult readDocumentResult = PdfCore.PdfReadDocument.Load(pdf).ToHtmlResult(options);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
         PdfHtmlConversionResult logicalResult = logical.ToHtmlResult(options);
+        File.Delete(path);
 
         Assert.Equal(2, byteResult.Summary.SourcePageCount);
         Assert.Equal(1, byteResult.Summary.RenderedPageCount);
         Assert.Equal(new[] { 2 }, byteResult.Summary.PageNumbers);
         Assert.Equal(1, byteResult.Summary.FormFieldCount);
         Assert.Equal(1, byteResult.Summary.FormWidgetCount);
+        Assert.Equal(2, streamResult.Summary.SourcePageCount);
+        Assert.Equal(1, streamResult.Summary.RenderedPageCount);
+        Assert.Equal(new[] { 2 }, streamResult.Summary.PageNumbers);
+        Assert.Equal(1, streamResult.Summary.FormFieldCount);
+        Assert.Equal(1, streamResult.Summary.FormWidgetCount);
+        Assert.Equal(2, pathResult.Summary.SourcePageCount);
+        Assert.Equal(1, pathResult.Summary.RenderedPageCount);
+        Assert.Equal(new[] { 2 }, pathResult.Summary.PageNumbers);
+        Assert.Equal(1, pathResult.Summary.FormFieldCount);
+        Assert.Equal(1, pathResult.Summary.FormWidgetCount);
+        Assert.Equal(2, readDocumentResult.Summary.SourcePageCount);
+        Assert.Equal(1, readDocumentResult.Summary.RenderedPageCount);
+        Assert.Equal(new[] { 2 }, readDocumentResult.Summary.PageNumbers);
+        Assert.Equal(1, readDocumentResult.Summary.FormFieldCount);
+        Assert.Equal(1, readDocumentResult.Summary.FormWidgetCount);
         Assert.Equal(2, logicalResult.Summary.SourcePageCount);
         Assert.Equal(1, logicalResult.Summary.RenderedPageCount);
         Assert.Equal(new[] { 2 }, logicalResult.Summary.PageNumbers);

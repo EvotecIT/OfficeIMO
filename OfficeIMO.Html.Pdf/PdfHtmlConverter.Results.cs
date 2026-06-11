@@ -14,7 +14,7 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return RenderLogicalDocumentResult(LoadFullLogical(pdf, options), options, applyPageRanges: true);
+        return RenderLogicalDocumentResult(LoadLogicalResult(pdf, options), options, applyPageRanges: false);
     }
 
     /// <summary>
@@ -27,7 +27,7 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return RenderLogicalDocumentResult(LoadFullLogical(path, options), options, applyPageRanges: true);
+        return RenderLogicalDocumentResult(LoadLogicalResult(path, options), options, applyPageRanges: false);
     }
 
     /// <summary>
@@ -40,7 +40,7 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return RenderLogicalDocumentResult(LoadFullLogical(stream, options), options, applyPageRanges: true);
+        return RenderLogicalDocumentResult(LoadLogicalResult(stream, options), options, applyPageRanges: false);
     }
 
     /// <summary>
@@ -53,7 +53,7 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return RenderLogicalDocumentResult(LoadFullLogical(document, options), options, applyPageRanges: true);
+        return RenderLogicalDocumentResult(LoadLogicalResult(document, options), options, applyPageRanges: false);
     }
 
     /// <summary>
@@ -66,10 +66,11 @@ public static partial class PdfHtmlConverter {
 
         options ??= new PdfHtmlSaveOptions();
         options.ResetExportState();
-        return RenderLogicalDocumentResult(document, options, applyPageRanges: true);
+        return RenderLogicalDocumentResult(new LogicalResultSource(document, document.PageCount), options, applyPageRanges: true);
     }
 
-    private static PdfHtmlConversionResult RenderLogicalDocumentResult(PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options, bool applyPageRanges) {
+    private static PdfHtmlConversionResult RenderLogicalDocumentResult(LogicalResultSource source, PdfHtmlSaveOptions options, bool applyPageRanges) {
+        PdfCore.PdfLogicalDocument document = source.Document;
         IReadOnlyList<PdfCore.PdfLogicalPage> pages = applyPageRanges
             ? GetRenderPages(document, options)
             : document.Pages;
@@ -78,26 +79,30 @@ public static partial class PdfHtmlConverter {
             PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
             _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
         };
-        return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options), options.ConversionReport);
+        return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, source.SourcePageCount), options.ConversionReport);
     }
 
-    private static PdfCore.PdfLogicalDocument LoadFullLogical(byte[] pdf, PdfHtmlSaveOptions options) {
-        return PdfCore.PdfLogicalDocument.Load(pdf, options.LayoutOptions);
+    private static LogicalResultSource LoadLogicalResult(byte[] pdf, PdfHtmlSaveOptions options) {
+        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(pdf), options);
     }
 
-    private static PdfCore.PdfLogicalDocument LoadFullLogical(string path, PdfHtmlSaveOptions options) {
-        return PdfCore.PdfLogicalDocument.Load(path, options.LayoutOptions);
+    private static LogicalResultSource LoadLogicalResult(string path, PdfHtmlSaveOptions options) {
+        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(path), options);
     }
 
-    private static PdfCore.PdfLogicalDocument LoadFullLogical(Stream stream, PdfHtmlSaveOptions options) {
-        return PdfCore.PdfLogicalDocument.Load(stream, options.LayoutOptions);
+    private static LogicalResultSource LoadLogicalResult(Stream stream, PdfHtmlSaveOptions options) {
+        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(stream), options);
     }
 
-    private static PdfCore.PdfLogicalDocument LoadFullLogical(PdfCore.PdfReadDocument document, PdfHtmlSaveOptions options) {
-        return PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
+    private static LogicalResultSource LoadLogicalResult(PdfCore.PdfReadDocument document, PdfHtmlSaveOptions options) {
+        PdfCore.PdfPageRange[] ranges = CopyPageRanges(options);
+        PdfCore.PdfLogicalDocument logical = ranges.Length > 0
+            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
+            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
+        return new LogicalResultSource(logical, document.Pages.Count);
     }
 
-    private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
+    private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options, int sourcePageCount) {
         int textBlockCount = 0;
         int headingCount = 0;
         int listItemCount = 0;
@@ -133,7 +138,7 @@ public static partial class PdfHtmlConverter {
             options.Profile,
             contract.Id,
             pageNumbers,
-            document.PageCount,
+            sourcePageCount,
             pages.Count,
             textBlockCount,
             headingCount,
@@ -149,5 +154,16 @@ public static partial class PdfHtmlConverter {
             options.ImageExportMode,
             contract.FidelityContract,
             contract.UnsupportedScope);
+    }
+
+    private readonly struct LogicalResultSource {
+        public LogicalResultSource(PdfCore.PdfLogicalDocument document, int sourcePageCount) {
+            Document = document;
+            SourcePageCount = sourcePageCount;
+        }
+
+        public PdfCore.PdfLogicalDocument Document { get; }
+
+        public int SourcePageCount { get; }
     }
 }
