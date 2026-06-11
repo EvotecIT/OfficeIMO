@@ -70,11 +70,11 @@ public sealed class HtmlPdfResourcePolicySummary {
             Profile = options.Profile
         };
 
-        WordHtml.HtmlToWordOptions? wordOptions = options.WordHtmlOptions;
-        if (options.Profile != HtmlPdfProfile.Document || wordOptions is null) {
+        if (options.Profile != HtmlPdfProfile.Document) {
             return summary;
         }
 
+        WordHtml.HtmlToWordOptions wordOptions = options.WordHtmlOptions ?? WordHtml.HtmlToWordOptions.CreateOfficeIMOProfile();
         summary.UsesWordHtmlPolicy = true;
         summary.AllowDocumentStylesheetLinks = wordOptions.AllowDocumentStylesheetLinks;
         summary.AllowedStylesheetUriSchemes = CopySorted(wordOptions.AllowedStylesheetUriSchemes);

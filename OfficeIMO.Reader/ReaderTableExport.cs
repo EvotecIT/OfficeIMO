@@ -79,6 +79,7 @@ public static class ReaderTableExport {
             ReaderJsonWriter.WriteLocation(writer, table.Location);
             writer.WriteNumber("totalRowCount", table.TotalRowCount);
             writer.WriteBoolean("truncated", table.Truncated);
+            WriteDiagnostics(writer, table.Diagnostics);
             WriteStringArray(writer, "columns", BuildHeaders(table, columnCount));
             WriteRows(writer, table.Rows ?? Array.Empty<IReadOnlyList<string>>(), columnCount);
             WriteColumnProfiles(writer, table.ColumnProfiles ?? Array.Empty<ReaderTableColumnProfile>());
@@ -86,6 +87,31 @@ public static class ReaderTableExport {
         }
 
         return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static void WriteDiagnostics(Utf8JsonWriter writer, ReaderTableDiagnostics? diagnostics) {
+        if (diagnostics == null) {
+            return;
+        }
+
+        writer.WritePropertyName("diagnostics");
+        writer.WriteStartObject();
+        writer.WriteNumber("confidence", diagnostics.Confidence);
+        writer.WriteNumber("schemaConfidence", diagnostics.SchemaConfidence);
+        writer.WriteNumber("cellCompleteness", diagnostics.CellCompleteness);
+        writer.WriteNumber("columnGeometryConfidence", diagnostics.ColumnGeometryConfidence);
+        writer.WriteNumber("sourceRowCount", diagnostics.SourceRowCount);
+        writer.WriteNumber("expectedCellCount", diagnostics.ExpectedCellCount);
+        writer.WriteNumber("filledCellCount", diagnostics.FilledCellCount);
+        writer.WriteNumber("missingCellCount", diagnostics.MissingCellCount);
+        writer.WriteNumber("xStart", diagnostics.XStart);
+        writer.WriteNumber("xEnd", diagnostics.XEnd);
+        writer.WriteNumber("yTop", diagnostics.YTop);
+        writer.WriteNumber("yBottom", diagnostics.YBottom);
+        writer.WriteNumber("width", diagnostics.Width);
+        writer.WriteNumber("height", diagnostics.Height);
+        writer.WriteBoolean("hasGeometry", diagnostics.HasGeometry);
+        writer.WriteEndObject();
     }
 
     private static int GetColumnCount(ReaderTable table) {

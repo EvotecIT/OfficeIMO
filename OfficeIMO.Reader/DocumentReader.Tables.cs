@@ -141,6 +141,7 @@ public static partial class DocumentReader {
             Location = MergeLocation(table.Location, chunkLocation, fallbackTableIndex),
             Columns = table.Columns,
             ColumnProfiles = table.ColumnProfiles,
+            Diagnostics = table.Diagnostics,
             Rows = table.Rows,
             TotalRowCount = table.TotalRowCount,
             Truncated = table.Truncated

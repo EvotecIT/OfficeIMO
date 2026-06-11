@@ -117,7 +117,7 @@ internal static class TableDetector {
             }
             // Build table for [start..end], including a compatible header-only band immediately above it.
             var groupLines = new List<TextLayoutEngine.TextLine>();
-            IReadOnlyList<TextLayoutEngine.TextLine>? headerLines = TryGetPrecedingHeaderLines(
+            List<TextLayoutEngine.TextLine>? headerLines = TryGetPrecedingHeaderLines(
                 bands,
                 bandSplits[start].idx,
                 baseSplits);
@@ -133,7 +133,7 @@ internal static class TableDetector {
         return result;
     }
 
-    private static IReadOnlyList<TextLayoutEngine.TextLine>? TryGetPrecedingHeaderLines(
+    private static List<TextLayoutEngine.TextLine>? TryGetPrecedingHeaderLines(
         List<List<TextLayoutEngine.TextLine>> bands,
         int bodyBandIndex,
         List<double> bodySplits) {

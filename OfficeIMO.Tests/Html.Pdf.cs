@@ -370,6 +370,22 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlPdfSaveOptions_DocumentProfileSummaryReportsDefaultWordPolicyBeforeConversion() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Document
+        };
+
+        HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
+
+        Assert.Equal(HtmlPdfProfile.Document, policy.Profile);
+        Assert.True(policy.UsesWordHtmlPolicy);
+        Assert.False(policy.AllowDocumentStylesheetLinks);
+        Assert.Contains("data", policy.AllowedImageUriSchemes);
+        Assert.Equal("Embed", policy.ImageProcessing);
+        Assert.Null(options.WordHtmlOptions);
+    }
+
+    [Fact]
     public void Html_SaveAsPdf_DocumentProfile_ForwardsHtmlImportDiagnosticsToSharedReport() {
         HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
         options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");
@@ -413,6 +429,31 @@ public sealed class HtmlPdfTests {
         Assert.NotNull(pdf);
         Assert.Contains(options.WordHtmlOptions.Diagnostics, diagnostic => diagnostic.Code == "StylesheetResourceRejectedByPolicy");
         PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "StylesheetResourceRejectedByPolicy");
+        Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
+        Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Html_ToPdfDocument_DocumentProfileWithDefaultWordOptions_ForwardsHtmlImportDiagnostics() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Document
+        };
+
+        PdfCore.PdfDocument pdf = """
+<html>
+<head>
+  <link rel="stylesheet" href="https://blocked.example.test/site.css">
+</head>
+<body>
+  <h1>HTML default profile diagnostic</h1>
+</body>
+</html>
+""".ToPdfDocument(options);
+
+        Assert.NotNull(pdf);
+        Assert.NotNull(options.WordHtmlOptions);
+        Assert.Contains(options.WordHtmlOptions!.Diagnostics, diagnostic => diagnostic.Code == "HtmlStylesheetLinkSkipped");
+        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "HtmlStylesheetLinkSkipped");
         Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
         Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
     }

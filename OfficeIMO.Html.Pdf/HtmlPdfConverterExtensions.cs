@@ -115,9 +115,11 @@ public static class HtmlPdfConverterExtensions {
 
     private static PdfCore.PdfDocument ConvertDocument(string html, HtmlPdfSaveOptions options) {
         PdfSaveOptions wordPdfOptions = options.WordPdfOptions ?? new PdfSaveOptions();
+        HtmlToWordOptions wordHtmlOptions = options.WordHtmlOptions ?? new HtmlToWordOptions();
         options.WordPdfOptions = wordPdfOptions;
-        options.WordHtmlOptions?.Diagnostics.Clear();
-        using WordDocument document = html.LoadFromHtml(options.WordHtmlOptions);
+        options.WordHtmlOptions = wordHtmlOptions;
+        wordHtmlOptions.Diagnostics.Clear();
+        using WordDocument document = html.LoadFromHtml(wordHtmlOptions);
         PdfCore.PdfDocument pdf = document.ToPdfDocument(wordPdfOptions);
         options.ConversionReport.LinkReport(wordPdfOptions.ConversionReport);
         return pdf;
