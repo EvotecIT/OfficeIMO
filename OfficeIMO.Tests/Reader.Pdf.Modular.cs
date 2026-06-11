@@ -104,6 +104,33 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfLogicalDocument_FiltersOpenActionToSelectedPages() {
+        byte[] pdf = PdfDocument.Create()
+            .OpenAction(pageNumber: 1, destinationMode: PdfOpenActionDestinationMode.Fit)
+            .H1("Reader PDF page one")
+            .Paragraph(p => p.Text("First page body."))
+            .PageBreak()
+            .H1("Reader PDF page two")
+            .Paragraph(p => p.Text("Second page body."))
+            .ToBytes();
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            logical,
+            sourceName: "logical-open-action-ranges.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] { PdfPageRange.From(2, 2) }
+            }).ToList());
+
+        Assert.Equal(2, chunk.Location.Page);
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.False(chunk.Diagnostics!.HasOpenAction);
+        Assert.Null(chunk.Actions);
+        Assert.Contains("Reader PDF page two", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reader PDF page one", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_MapsLogicalPagesChunksAndBlocks() {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
@@ -777,6 +804,32 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(new[] { "Off", "Yes" }, widget.NormalAppearanceStates);
         Assert.True(widget.IsPrint);
         Assert.False(widget.IsHidden);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ChunkHashIncludesActionMetadata() {
+        ReaderOptions readerOptions = new() {
+            MaxChars = 8_000,
+            ComputeHashes = true
+        };
+
+        ReaderChunk first = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            new MemoryStream(BuildOpenActionHashPdf(120), writable: false),
+            sourceName: "action-hash.pdf",
+            readerOptions: readerOptions).ToList());
+        ReaderChunk second = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            new MemoryStream(BuildOpenActionHashPdf(160), writable: false),
+            sourceName: "action-hash.pdf",
+            readerOptions: readerOptions).ToList());
+
+        Assert.Equal(first.Text, second.Text);
+        Assert.NotNull(first.Actions);
+        Assert.NotNull(second.Actions);
+        Assert.Equal(120D, Assert.Single(first.Actions!).DestinationTop);
+        Assert.Equal(160D, Assert.Single(second.Actions!).DestinationTop);
+        Assert.False(string.IsNullOrWhiteSpace(first.ChunkHash));
+        Assert.False(string.IsNullOrWhiteSpace(second.ChunkHash));
+        Assert.NotEqual(first.ChunkHash, second.ChunkHash);
     }
 
     [Fact]
@@ -1558,6 +1611,44 @@ public sealed class ReaderPdfModularTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 11 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildOpenActionHashPdf(double destinationTop) {
+        string destinationTopText = destinationTop.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string content = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Action hash marker) Tj",
+            "ET"
+        });
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /FitH " + destinationTopText + "] >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
             "%%EOF"
         }) + "\n";
 

@@ -4,9 +4,10 @@ namespace OfficeIMO.Reader.Pdf;
 
 public static partial class DocumentReaderPdfExtensions {
     private static IReadOnlyList<ReaderActionSummary>? BuildActions(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page) {
-        bool hasOpenAction = document.OpenAction is not null;
-        bool hasCatalogActions = document.CatalogActions.Count > 0;
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
+        PdfDocumentOpenAction? scopedOpenAction = GetScopedOpenAction(document.OpenAction, scope);
+        bool hasOpenAction = scopedOpenAction is not null;
+        bool hasCatalogActions = document.CatalogActions.Count > 0;
         int selectedPageActionCount = CountPageActions(scope);
         int selectedAnnotationActionCount = CountAnnotationActions(scope);
         if (!hasOpenAction && !hasCatalogActions && selectedPageActionCount == 0 && selectedAnnotationActionCount == 0) {
@@ -14,8 +15,8 @@ public static partial class DocumentReaderPdfExtensions {
         }
 
         var actions = new List<ReaderActionSummary>();
-        if (document.OpenAction is not null) {
-            actions.Add(BuildOpenAction(document.OpenAction));
+        if (scopedOpenAction is not null) {
+            actions.Add(BuildOpenAction(scopedOpenAction));
         }
 
         for (int i = 0; i < document.CatalogActions.Count; i++) {
@@ -34,6 +35,25 @@ public static partial class DocumentReaderPdfExtensions {
         }
 
         return actions.Count == 0 ? null : actions.AsReadOnly();
+    }
+
+    private static PdfDocumentOpenAction? GetScopedOpenAction(PdfDocumentOpenAction? openAction, IReadOnlyList<PdfLogicalPage> scope) {
+        if (openAction is null) {
+            return null;
+        }
+
+        if (!openAction.PageNumber.HasValue) {
+            return openAction;
+        }
+
+        int pageNumber = openAction.PageNumber.Value;
+        for (int i = 0; i < scope.Count; i++) {
+            if (scope[i].PageNumber == pageNumber) {
+                return openAction;
+            }
+        }
+
+        return null;
     }
 
     private static ReaderActionSummary BuildOpenAction(PdfDocumentOpenAction action) {

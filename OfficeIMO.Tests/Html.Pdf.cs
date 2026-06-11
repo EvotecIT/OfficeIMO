@@ -418,6 +418,31 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Html_ToPdfDocument_DocumentProfileWithDefaultWordOptions_ForwardsHtmlImportDiagnostics() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Document
+        };
+
+        PdfCore.PdfDocument pdf = """
+<html>
+<head>
+  <link rel="stylesheet" href="https://blocked.example.test/site.css">
+</head>
+<body>
+  <h1>HTML default profile diagnostic</h1>
+</body>
+</html>
+""".ToPdfDocument(options);
+
+        Assert.NotNull(pdf);
+        Assert.NotNull(options.WordHtmlOptions);
+        Assert.Contains(options.WordHtmlOptions!.Diagnostics, diagnostic => diagnostic.Code == "HtmlStylesheetLinkSkipped");
+        PdfCore.PdfConversionWarning warning = Assert.Single(options.ConversionReport.Warnings, item => item.Code == "HtmlStylesheetLinkSkipped");
+        Assert.Equal("OfficeIMO.Word.Html", warning.Converter);
+        Assert.Contains("blocked.example.test", warning.Source, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Html_SaveAsPdf_DocumentProfile_DoesNotReuseStaleHtmlImportDiagnostics() {
         HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
         string blocked = """

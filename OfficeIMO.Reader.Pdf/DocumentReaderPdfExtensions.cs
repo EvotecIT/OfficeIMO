@@ -260,6 +260,7 @@ public static partial class DocumentReaderPdfExtensions {
     private static ReaderChunkDiagnostics BuildChunkDiagnostics(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, IReadOnlyList<PdfLogicalTableExtraction> tableExtractions) {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
         PdfDocumentSecurityInfo security = document.Security;
+        bool hasScopedOpenAction = GetScopedOpenAction(document.OpenAction, scope) is not null;
         int selectedPageActionCount = CountPageActions(scope);
         int selectedAnnotationActionCount = CountAnnotationActions(scope);
         int imageCount = CountImages(scope);
@@ -281,7 +282,7 @@ public static partial class DocumentReaderPdfExtensions {
             ImageGeometryCount = imageGeometryCount,
             ImageGeometryCoverage = GetCoverage(imageGeometryCount, imageCount),
             LinkCount = CountLinks(scope),
-            HasOpenAction = document.HasReadableOpenAction,
+            HasOpenAction = hasScopedOpenAction,
             HasCatalogActions = document.HasCatalogActions,
             HasPageActions = selectedPageActionCount > 0,
             HasAnnotationActions = selectedAnnotationActionCount > 0,
@@ -759,7 +760,8 @@ public static partial class DocumentReaderPdfExtensions {
             chunk.Location.BlockAnchor ?? string.Empty,
             chunk.Location.Page?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
             chunk.Text ?? string.Empty,
-            chunk.Markdown ?? string.Empty);
+            chunk.Markdown ?? string.Empty,
+            BuildChunkMetadataHashInput(chunk));
 
         return ComputeSha256Hex(data);
     }
