@@ -154,6 +154,7 @@ public static partial class DocumentReader {
         var sheets = ResolveSheetNames(reader, opt.ExcelSheetName);
 
         int outIndex = 0;
+        int tableIndex = 0;
         foreach (var sheet in sheets) {
             ct.ThrowIfCancellationRequested();
 
@@ -174,7 +175,7 @@ public static partial class DocumentReader {
 
                 IReadOnlyList<ReaderTable>? tables = null;
                 if (c.Tables != null && c.Tables.Count > 0) {
-                    tables = c.Tables.Select(MapTable).ToArray();
+                    tables = MapTables(c.Tables, c.Location, ref tableIndex);
                 }
 
                 yield return new ReaderChunk {
@@ -209,6 +210,7 @@ public static partial class DocumentReader {
         var sheets = ResolveSheetNames(reader, opt.ExcelSheetName);
 
         int outIndex = 0;
+        int tableIndex = 0;
         foreach (var sheet in sheets) {
             ct.ThrowIfCancellationRequested();
 
@@ -229,7 +231,7 @@ public static partial class DocumentReader {
 
                 IReadOnlyList<ReaderTable>? tables = null;
                 if (c.Tables != null && c.Tables.Count > 0) {
-                    tables = c.Tables.Select(MapTable).ToArray();
+                    tables = MapTables(c.Tables, c.Location, ref tableIndex);
                 }
 
                 yield return new ReaderChunk {
@@ -421,15 +423,33 @@ public static partial class DocumentReader {
         return reader.GetSheetNames();
     }
 
-    private static ReaderTable MapTable(ExcelExtractTable t) {
+    private static ReaderTable MapTable(ExcelExtractTable t, ExcelExtractLocation location, int tableIndex) {
         return new ReaderTable {
             Title = t.Title,
+            Location = new ReaderLocation {
+                Path = location.Path,
+                Sheet = location.Sheet,
+                A1Range = location.A1Range,
+                SourceBlockIndex = location.BlockIndex,
+                SourceBlockKind = "table",
+                TableIndex = tableIndex
+            },
             Columns = t.Columns,
             ColumnProfiles = ReaderTableProfiler.CreateProfiles(t.Columns, t.Rows),
             Rows = t.Rows,
             TotalRowCount = t.TotalRowCount,
             Truncated = t.Truncated
         };
+    }
+
+    private static IReadOnlyList<ReaderTable> MapTables(IReadOnlyList<ExcelExtractTable> tables, ExcelExtractLocation location, ref int nextTableIndex) {
+        var mapped = new ReaderTable[tables.Count];
+        for (int i = 0; i < tables.Count; i++) {
+            mapped[i] = MapTable(tables[i], location, nextTableIndex);
+            nextTableIndex++;
+        }
+
+        return mapped;
     }
 
     private static ReaderTable MapTable(TableBlock t, ReaderOptions opt) {

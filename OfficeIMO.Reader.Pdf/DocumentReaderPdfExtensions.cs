@@ -5,7 +5,7 @@ namespace OfficeIMO.Reader.Pdf;
 /// <summary>
 /// PDF ingestion adapter for <see cref="DocumentReader"/>.
 /// </summary>
-public static class DocumentReaderPdfExtensions {
+public static partial class DocumentReaderPdfExtensions {
     /// <summary>
     /// Reads a PDF file and emits normalized page-aware chunks.
     /// </summary>
@@ -294,6 +294,7 @@ public static class DocumentReaderPdfExtensions {
                 Location = new ReaderLocation {
                     Page = table.PageNumber,
                     TableIndex = table.TableIndex,
+                    SourceBlockIndex = selectionIndex,
                     SourceBlockKind = "table",
                     BlockAnchor = "page-" + table.PageNumber.ToString(CultureInfo.InvariantCulture)
                         + "-selection-" + selectionIndex.ToString("D4", CultureInfo.InvariantCulture)
@@ -477,6 +478,12 @@ public static class DocumentReaderPdfExtensions {
         using var sha = System.Security.Cryptography.SHA256.Create();
         var bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
         var hash = sha.ComputeHash(bytes);
+        return ConvertToHexLower(hash);
+    }
+
+    private static string ComputeSha256Hex(byte[] bytes) {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var hash = sha.ComputeHash(bytes ?? Array.Empty<byte>());
         return ConvertToHexLower(hash);
     }
 
