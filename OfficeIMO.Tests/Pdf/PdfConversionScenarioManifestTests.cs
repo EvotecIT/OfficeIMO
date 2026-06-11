@@ -1,5 +1,8 @@
 using System.Text.Json;
+using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Word.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -13,7 +16,8 @@ public sealed class PdfConversionScenarioManifestTests {
         "html-to-pdf",
         "powerpoint-to-pdf",
         "pdf-to-logical",
-        "pdf-to-html"
+        "pdf-to-html",
+        "pdf-to-editable-office-tables"
     };
 
     [Fact]
@@ -148,6 +152,58 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("Київ", text, StringComparison.Ordinal);
 
         WriteReviewArtifact("multilingual-business-report.pdf", pdf);
+    }
+
+    [Fact]
+    public void PdfTableImportProfiles_ProduceManifestedEditableOfficeProof() {
+        byte[] pdf = CreateLogicalProofPdf();
+        var layoutOptions = new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
+
+        using var wordStream = new MemoryStream();
+        IReadOnlyList<PdfWordTableImportResult> wordResults = PdfWordTableConverterExtensions.SavePdfTablesAsWord(
+            pdf,
+            wordStream,
+            new PdfWordTableImportOptions {
+                LayoutOptions = layoutOptions
+            });
+
+        using var excelStream = new MemoryStream();
+        IReadOnlyList<PdfExcelTableImportResult> excelResults = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+            pdf,
+            excelStream,
+            new PdfExcelTableImportOptions {
+                LayoutOptions = layoutOptions,
+                AutoFitColumns = false
+            });
+
+        using var powerPointStream = new MemoryStream();
+        IReadOnlyList<PdfPowerPointTableImportResult> powerPointResults = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+            pdf,
+            powerPointStream,
+            new PdfPowerPointTableImportOptions {
+                LayoutOptions = layoutOptions
+            });
+
+        PdfWordTableImportResult wordResult = Assert.Single(wordResults);
+        PdfExcelTableImportResult excelResult = Assert.Single(excelResults);
+        PdfPowerPointTableImportResult powerPointResult = Assert.Single(powerPointResults);
+
+        Assert.Equal(3, wordResult.ColumnCount);
+        Assert.Equal(3, excelResult.ColumnCount);
+        Assert.Equal(3, powerPointResult.ColumnCount);
+        Assert.Equal(2, wordResult.RowCount);
+        Assert.Equal(2, excelResult.RowCount);
+        Assert.Equal(2, powerPointResult.RowCount);
+        Assert.True(wordStream.Length > 0);
+        Assert.True(excelStream.Length > 0);
+        Assert.True(powerPointStream.Length > 0);
+
+        WriteReviewArtifact("pdf-table-import-source.pdf", pdf);
+        WriteReviewArtifact("pdf-table-import-word.docx", wordStream.ToArray());
+        WriteReviewArtifact("pdf-table-import-excel.xlsx", excelStream.ToArray());
+        WriteReviewArtifact("pdf-table-import-powerpoint.pptx", powerPointStream.ToArray());
     }
 
     private static string RequireString(JsonElement element, string propertyName) {

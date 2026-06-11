@@ -259,7 +259,9 @@ Available now:
   column profiles for safely typed Excel cells, Word/PowerPoint numeric
   body-cell alignment, and row/column slide segmentation for wide or long
   tables, or emit table-only Markdown/semantic HTML with page ranges and row
-  caps.
+  caps. The visual review gallery now carries a declared reverse-direction
+  proof scenario with the source PDF plus editable DOCX, XLSX, and PPTX table
+  artifacts so this table-only reconstruction boundary is reviewable.
 - `OfficeIMO.Markdown.Pdf`: Markdown-to-PDF path for headings, outlines, rich
   inline text, links, lists, task lists, tables, code/semantic panels, callouts,
   front matter, images, themes, and warnings.
@@ -312,10 +314,16 @@ Available now:
   and PowerPoint scenarios.
 - `Build/Export-PdfVisualReviewGallery.ps1` exports the current visual review
   PDFs and an index under `artifacts/pdf-visual-review` by default.
+- `.github/workflows/pdf-visual-review-gallery.yml` generates the same gallery
+  in CI for PDF/converter changes and uploads the review index, scenario
+  manifest, proof summary, PDFs, positioned-review HTML, and editable
+  reverse-conversion Office artifacts as a PR artifact. CI artifact generation
+  skips strict Poppler raster comparison by default so reviewers still receive
+  proof bundles when visual baselines drift; manual dispatch can opt into the
+  strict raster lane.
 
 Important gaps:
 
-- CI artifact upload for the visual gallery.
 - More multilingual, compliance, form-heavy, dashboard, invoice/statement,
   technical document, slide, spreadsheet, and hostile-layout scenarios.
 - A release workflow that attaches the same gallery reviewers inspect locally.
@@ -543,9 +551,9 @@ Make conversion accuracy observable instead of implied:
   hashes, extracted text, logical objects, raster pages, and optional validator
   evidence,
 - make `Build/Export-PdfVisualReviewGallery.ps1` emit machine-readable scenario
-  metadata beside the current PDF gallery,
-- add a CI artifact upload for the visual review gallery so reviewers inspect
-  the same PDFs that the tests generated,
+  metadata beside the current PDF gallery and publish that gallery through the
+  `PDF Visual Review Gallery` workflow so reviewers inspect the same PDFs that
+  the tests generated,
 - keep editable PDF-to-Office reconstruction out of scope until logical readback
   has enough table, coordinate, image, and form evidence to make it honest.
 

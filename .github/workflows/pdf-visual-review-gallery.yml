@@ -1,0 +1,163 @@
+name: PDF Visual Review Gallery
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Word/**'
+      - 'OfficeIMO.Word.Pdf/**'
+      - 'OfficeIMO.Excel/**'
+      - 'OfficeIMO.Excel.Pdf/**'
+      - 'OfficeIMO.Markdown/**'
+      - 'OfficeIMO.Markdown.Pdf/**'
+      - 'OfficeIMO.Markdown.Html/**'
+      - 'OfficeIMO.Html.Pdf/**'
+      - 'OfficeIMO.PowerPoint/**'
+      - 'OfficeIMO.PowerPoint.Pdf/**'
+      - 'OfficeIMO.Reader.Pdf/**'
+      - 'OfficeIMO.Tests/Pdf/**'
+      - 'OfficeIMO.Tests/Markdown.Pdf.cs'
+      - 'OfficeIMO.Tests/Html.Pdf.cs'
+      - 'OfficeIMO.Tests/Reader.Pdf.Modular.cs'
+      - 'Build/Export-PdfVisualReviewGallery.ps1'
+      - 'Docs/officeimo.pdf.current-state.md'
+      - 'Docs/pdf-conversion-scenarios.json'
+      - '.github/workflows/pdf-visual-review-gallery.yml'
+  push:
+    branches:
+      - master
+    paths:
+      - 'OfficeIMO.Pdf/**'
+      - 'OfficeIMO.Drawing/**'
+      - 'OfficeIMO.Word/**'
+      - 'OfficeIMO.Word.Pdf/**'
+      - 'OfficeIMO.Excel/**'
+      - 'OfficeIMO.Excel.Pdf/**'
+      - 'OfficeIMO.Markdown/**'
+      - 'OfficeIMO.Markdown.Pdf/**'
+      - 'OfficeIMO.Markdown.Html/**'
+      - 'OfficeIMO.Html.Pdf/**'
+      - 'OfficeIMO.PowerPoint/**'
+      - 'OfficeIMO.PowerPoint.Pdf/**'
+      - 'OfficeIMO.Reader.Pdf/**'
+      - 'OfficeIMO.Tests/Pdf/**'
+      - 'OfficeIMO.Tests/Markdown.Pdf.cs'
+      - 'OfficeIMO.Tests/Html.Pdf.cs'
+      - 'OfficeIMO.Tests/Reader.Pdf.Modular.cs'
+      - 'Build/Export-PdfVisualReviewGallery.ps1'
+      - 'Docs/officeimo.pdf.current-state.md'
+      - 'Docs/pdf-conversion-scenarios.json'
+      - '.github/workflows/pdf-visual-review-gallery.yml'
+  workflow_dispatch:
+    inputs:
+      run_raster_baselines:
+        description: 'Run strict Poppler raster baseline comparisons before publishing the gallery'
+        required: false
+        default: false
+        type: boolean
+      require_rasterizer:
+        description: 'Fail if the Poppler rasterizer is unavailable'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: |
+    8.0.418
+    10.0.103
+  BUILD_CONFIGURATION: Release
+  GALLERY_PATH: artifacts/pdf-visual-review
+
+jobs:
+  pdf-visual-review-gallery:
+    name: Generate visual review gallery
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Restore dependencies
+        run: dotnet restore OfficeIMO.sln
+
+      - name: Generate PDF visual review gallery
+        shell: pwsh
+        env:
+          RUN_RASTER_BASELINES: ${{ github.event_name == 'workflow_dispatch' && inputs.run_raster_baselines || false }}
+          REQUIRE_RASTERIZER: ${{ github.event_name == 'workflow_dispatch' && inputs.require_rasterizer || false }}
+        run: |
+          $parameters = @{
+            OutputDirectory = '${{ env.GALLERY_PATH }}'
+            Configuration = '${{ env.BUILD_CONFIGURATION }}'
+            Framework = 'net8.0'
+            NoRestore = $true
+          }
+
+          if ($env:RUN_RASTER_BASELINES -ne 'true') {
+            $parameters.SkipRasterBaselines = $true
+          }
+
+          if ($env:REQUIRE_RASTERIZER -eq 'true') {
+            $parameters.RequireRasterizer = $true
+          }
+
+          ./Build/Export-PdfVisualReviewGallery.ps1 @parameters
+
+      - name: Summarize visual review gallery
+        shell: pwsh
+        run: |
+          $summaryPath = '${{ env.GALLERY_PATH }}/conversion-proof-summary.json'
+          $proof = Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json
+          $lines = [System.Collections.Generic.List[string]]::new()
+          $lines.Add('## PDF Visual Review Gallery')
+          $lines.Add('')
+          $lines.Add("- Commit: ``$($proof.commit)``")
+          $lines.Add("- Scenarios: ``$(@($proof.scenarios).Count)``")
+          $lines.Add("- Output: ``${{ env.GALLERY_PATH }}``")
+          $lines.Add('')
+          $lines.Add('### Conversion Scenarios')
+          $lines.Add('')
+          $lines.Add('| Scenario | Path | Converter | Artifacts |')
+          $lines.Add('| --- | --- | --- | ---: |')
+          foreach ($scenario in @($proof.scenarios)) {
+            $lines.Add("| $($scenario.id) | $($scenario.path) | $($scenario.converter) | $(@($scenario.artifacts).Count) |")
+          }
+          $lines.Add('')
+          $lines.Add('Open `index.md` from the uploaded `officeimo-pdf-visual-review-gallery` artifact for reviewer links, hashes, and checklist.')
+          $lines | Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY
+
+      - name: Upload PDF visual review gallery
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: officeimo-pdf-visual-review-gallery
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            ${{ env.GALLERY_PATH }}/index.md
+            ${{ env.GALLERY_PATH }}/conversion-scenarios.json
+            ${{ env.GALLERY_PATH }}/conversion-proof-summary.json
+            ${{ env.GALLERY_PATH }}/*.pdf
+            ${{ env.GALLERY_PATH }}/*.html
+            ${{ env.GALLERY_PATH }}/*.docx
+            ${{ env.GALLERY_PATH }}/*.xlsx
+            ${{ env.GALLERY_PATH }}/*.pptx

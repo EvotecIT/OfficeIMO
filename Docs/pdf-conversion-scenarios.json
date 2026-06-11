@@ -353,6 +353,54 @@
           "PdfLogicalDocument"
         ]
       }
+    },
+    {
+      "id": "pdf-table-import-editable-office",
+      "path": "pdf-to-editable-office-tables",
+      "converter": "OfficeIMO.Word.Pdf, OfficeIMO.Excel.Pdf, OfficeIMO.PowerPoint.Pdf",
+      "sourceFormat": "pdf",
+      "targetFormat": "docx/xlsx/pptx",
+      "status": "supported",
+      "sourceFeatures": [
+        "born-digital-table",
+        "logical-table-analysis",
+        "column-profiles",
+        "numeric-column-detection",
+        "source-page-metadata"
+      ],
+      "expectedSimplifications": [
+        "only detected logical tables are reconstructed; full PDF-to-Office document reconstruction remains out of scope"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "pdf-table-import-source.pdf",
+        "pdf-table-import-word.docx",
+        "pdf-table-import-excel.xlsx",
+        "pdf-table-import-powerpoint.pptx"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Logical PDF sample",
+          "Code",
+          "A-100",
+          "B-200"
+        ],
+        "logicalSignals": [
+          "detected-table",
+          "word-table-package",
+          "excel-table-package",
+          "powerpoint-table-package",
+          "numeric-column-profile"
+        ],
+        "visualPages": 1,
+        "validatorEvidence": [
+          "PdfLogicalTableAnalysis",
+          "WordprocessingDocument",
+          "SpreadsheetDocument",
+          "PresentationDocument"
+        ]
+      }
     }
   ]
 }
