@@ -575,6 +575,43 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_PageRanges_PreserveSourcePageCountAndSelectedFormFields() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .TextField("FirstPageField", width: 120, value: "first")
+            .PageBreak()
+            .TextField("SecondPageField", width: 120, value: "second")
+            .ToBytes();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            PageRanges = new[] {
+                PdfCore.PdfPageRange.From(2, 2)
+            }
+        };
+
+        PdfHtmlConversionResult byteResult = PdfHtmlConverter.ToHtmlResult(pdf, options);
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfHtmlConversionResult logicalResult = logical.ToHtmlResult(options);
+
+        Assert.Equal(2, byteResult.Summary.SourcePageCount);
+        Assert.Equal(1, byteResult.Summary.RenderedPageCount);
+        Assert.Equal(new[] { 2 }, byteResult.Summary.PageNumbers);
+        Assert.Equal(1, byteResult.Summary.FormFieldCount);
+        Assert.Equal(1, byteResult.Summary.FormWidgetCount);
+        Assert.Equal(2, logicalResult.Summary.SourcePageCount);
+        Assert.Equal(1, logicalResult.Summary.RenderedPageCount);
+        Assert.Equal(new[] { 2 }, logicalResult.Summary.PageNumbers);
+        Assert.Equal(1, logicalResult.Summary.FormFieldCount);
+        Assert.Equal(1, logicalResult.Summary.FormWidgetCount);
+    }
+
+    [Fact]
     public void Pdf_ToHtml_PositionedReviewFragment_IncludesPositioningCss() {
         byte[] pdf = CreateLogicalSamplePdf();
         var options = new PdfHtmlSaveOptions {
