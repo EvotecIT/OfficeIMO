@@ -23,12 +23,35 @@ public static class ReaderVisualExport {
             ReaderJsonWriter.WriteNullableString(writer, "kind", visual.Kind);
             ReaderJsonWriter.WriteNullableString(writer, "language", visual.Language);
             ReaderJsonWriter.WriteNullableString(writer, "payloadHash", visual.PayloadHash);
+            ReaderJsonWriter.WriteNullableString(writer, "sourceName", visual.SourceName);
+            ReaderJsonWriter.WriteNullableString(writer, "mimeType", visual.MimeType);
+            WriteNullableNumber(writer, "width", visual.Width);
+            WriteNullableNumber(writer, "height", visual.Height);
+            WriteNullableNumber(writer, "x", visual.X);
+            WriteNullableNumber(writer, "y", visual.Y);
+            WriteNullableNumber(writer, "placedWidth", visual.PlacedWidth);
+            WriteNullableNumber(writer, "placedHeight", visual.PlacedHeight);
+            writer.WriteNumber("placementCount", visual.PlacementCount);
+            writer.WriteBoolean("hasGeometry", visual.HasGeometry);
+            WriteNullableBoolean(writer, "isAxisAligned", visual.IsAxisAligned);
             ReaderJsonWriter.WriteNullableString(writer, "content", visual.Content);
             ReaderJsonWriter.WriteLocation(writer, visual.Location);
             writer.WriteEndObject();
         }
 
         return Encoding.UTF8.GetString(stream.ToArray());
+    }
+
+    private static void WriteNullableNumber(Utf8JsonWriter writer, string propertyName, double? value) {
+        if (value.HasValue) {
+            writer.WriteNumber(propertyName, value.Value);
+        }
+    }
+
+    private static void WriteNullableBoolean(Utf8JsonWriter writer, string propertyName, bool? value) {
+        if (value.HasValue) {
+            writer.WriteBoolean(propertyName, value.Value);
+        }
     }
 
     /// <summary>

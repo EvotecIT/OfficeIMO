@@ -247,6 +247,28 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfDocumentJson_EmitsStructuredChunkMetadata() {
+        byte[] pdf = BuildOpenAndCatalogActionsPdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        string json = DocumentReaderPdfExtensions.ReadPdfDocumentJson(
+            stream,
+            sourceName: "open-catalog-actions.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement chunk = document.RootElement.GetProperty("chunks")[0];
+        Assert.True(chunk.GetProperty("diagnostics").GetProperty("hasCatalogActions").GetBoolean());
+        Assert.Equal(1, chunk.GetProperty("diagnostics").GetProperty("catalogActionCount").GetInt32());
+        Assert.Contains(chunk.GetProperty("actions").EnumerateArray(), action =>
+            action.GetProperty("scope").GetString() == "DocumentOpen" &&
+            action.GetProperty("destinationPageNumber").GetInt32() == 1);
+        Assert.Contains(chunk.GetProperty("actions").EnumerateArray(), action =>
+            action.GetProperty("scope").GetString() == "Catalog" &&
+            action.GetProperty("name").GetString() == "Startup");
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_PreservesLogicalPageRangeOrder() {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPagePdf());
 
@@ -542,6 +564,30 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfLogicalDocument_RangedReadOmitsCatalogActions() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPageCatalogActionsPdf());
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            logical,
+            sourceName: "partial-catalog-actions.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] {
+                    PdfPageRange.From(2, 2)
+                }
+            },
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.Equal(2, chunk.Location.Page);
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.False(chunk.Diagnostics!.HasCatalogActions);
+        Assert.False(chunk.Diagnostics.HasActiveContent);
+        Assert.Equal(0, chunk.Diagnostics.CatalogActionCount);
+        Assert.Null(chunk.Actions);
+        Assert.Contains("Second catalog-safe page", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("First catalog page", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesDetectedTables() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
@@ -698,6 +744,9 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal("tables-only.pdf", table.Location?.Path);
         Assert.Equal(1, table.Location?.Page);
         Assert.Equal(new[] { "Code", "Name", "Qty" }, table.Columns);
+        Assert.NotNull(table.Diagnostics);
+        Assert.True(table.Diagnostics!.HasGeometry);
+        Assert.True(table.Diagnostics.Confidence >= 0.95D);
         Assert.Equal(2, table.TotalRowCount);
         Assert.Equal(new[] { "B-200", "Beta", "14" }, table.Rows[1]);
 
@@ -712,6 +761,8 @@ public sealed class ReaderPdfModularTests {
             }));
         Assert.Equal("tables-only-page-0001-table-0000", export.Id);
         Assert.Contains("A-100,Alpha,2", export.Csv, StringComparison.Ordinal);
+        using JsonDocument exportJson = JsonDocument.Parse(export.Json);
+        Assert.True(exportJson.RootElement.GetProperty("diagnostics").GetProperty("hasGeometry").GetBoolean());
     }
 
     [Fact]
@@ -773,6 +824,15 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(1, country.SelectedOptionCount);
         Assert.Equal(1, country.WidgetCount);
         Assert.Contains("Reader PDF form marker", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+
+        using JsonDocument document = JsonDocument.Parse(new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Pdf,
+            Chunks = new[] { chunk }
+        }.ToJson());
+        JsonElement jsonChunk = document.RootElement.GetProperty("chunks")[0];
+        Assert.Equal(2, jsonChunk.GetProperty("formFields").GetArrayLength());
+        Assert.Equal("Contact.Email", jsonChunk.GetProperty("formFields")[0].GetProperty("name").GetString());
+        Assert.Equal(2, jsonChunk.GetProperty("diagnostics").GetProperty("formFieldCount").GetInt32());
     }
 
     [Fact]
@@ -880,6 +940,18 @@ public sealed class ReaderPdfModularTests {
         Assert.True(visual.IsAxisAligned);
         Assert.False(string.IsNullOrWhiteSpace(visual.PayloadHash));
         Assert.Contains("Reader PDF visual marker", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+
+        ReaderVisual extracted = Assert.Single(DocumentReader.ExtractVisuals(new[] { chunk }));
+        Assert.Equal("image-visual.pdf", extracted.Location?.Path);
+        Assert.Equal("image/png", extracted.MimeType);
+        Assert.Equal(48D, extracted.PlacedWidth!.Value, 3);
+        Assert.Equal(32D, extracted.PlacedHeight!.Value, 3);
+        Assert.Equal(1, extracted.PlacementCount);
+        Assert.True(extracted.HasGeometry);
+        Assert.True(extracted.IsAxisAligned);
+        using JsonDocument visualJson = JsonDocument.Parse(extracted.ToJson());
+        Assert.Equal("image/png", visualJson.RootElement.GetProperty("mimeType").GetString());
+        Assert.True(visualJson.RootElement.GetProperty("hasGeometry").GetBoolean());
     }
 
     [Fact]
@@ -1538,6 +1610,61 @@ public sealed class ReaderPdfModularTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTwoPageCatalogActionsPdf() {
+        string first = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(First catalog page) Tj",
+            "ET"
+        });
+        string second = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Second catalog-safe page) Tj",
+            "ET"
+        });
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Startup) 7 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 8 0 R >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 8 0 R >> >> /Contents 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(first).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            first,
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(second).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            second,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /S /JavaScript /JS (app.alert('OfficeIMO')) >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
             "%%EOF"
         }) + "\n";
 

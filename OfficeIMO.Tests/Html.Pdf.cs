@@ -370,6 +370,22 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void HtmlPdfSaveOptions_DocumentProfileSummaryReportsDefaultWordPolicyBeforeConversion() {
+        var options = new HtmlPdfSaveOptions {
+            Profile = HtmlPdfProfile.Document
+        };
+
+        HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
+
+        Assert.Equal(HtmlPdfProfile.Document, policy.Profile);
+        Assert.True(policy.UsesWordHtmlPolicy);
+        Assert.False(policy.AllowDocumentStylesheetLinks);
+        Assert.Contains("data", policy.AllowedImageUriSchemes);
+        Assert.Equal("Embed", policy.ImageProcessing);
+        Assert.Null(options.WordHtmlOptions);
+    }
+
+    [Fact]
     public void Html_SaveAsPdf_DocumentProfile_ForwardsHtmlImportDiagnosticsToSharedReport() {
         HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
         options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");

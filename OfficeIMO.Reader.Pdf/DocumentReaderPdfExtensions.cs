@@ -261,6 +261,7 @@ public static partial class DocumentReaderPdfExtensions {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
         PdfDocumentSecurityInfo security = document.Security;
         bool hasScopedOpenAction = GetScopedOpenAction(document.OpenAction, scope) is not null;
+        int selectedCatalogActionCount = GetScopedCatalogActions(document, selectedPages).Count;
         int selectedPageActionCount = CountPageActions(scope);
         int selectedAnnotationActionCount = CountAnnotationActions(scope);
         int imageCount = CountImages(scope);
@@ -283,11 +284,11 @@ public static partial class DocumentReaderPdfExtensions {
             ImageGeometryCoverage = GetCoverage(imageGeometryCount, imageCount),
             LinkCount = CountLinks(scope),
             HasOpenAction = hasScopedOpenAction,
-            HasCatalogActions = document.HasCatalogActions,
+            HasCatalogActions = selectedCatalogActionCount > 0,
             HasPageActions = selectedPageActionCount > 0,
             HasAnnotationActions = selectedAnnotationActionCount > 0,
-            HasActiveContent = document.HasCatalogActions || selectedPageActionCount > 0 || selectedAnnotationActionCount > 0,
-            CatalogActionCount = document.CatalogActionCount,
+            HasActiveContent = selectedCatalogActionCount > 0 || selectedPageActionCount > 0 || selectedAnnotationActionCount > 0,
+            CatalogActionCount = selectedCatalogActionCount,
             PageActionCount = document.PageActionCount,
             SelectedPageActionCount = selectedPageActionCount,
             AnnotationActionCount = CountAnnotationActions(document.Pages),
