@@ -457,10 +457,18 @@ public sealed class HtmlPdfTests {
         Assert.Contains("Markdown", semantic.Pipeline, StringComparison.Ordinal);
         Assert.Contains("semantic HTML", semantic.IntendedUse, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Not a browser renderer", semantic.UnsupportedScope, StringComparison.Ordinal);
+        Assert.Contains("tables", semantic.SupportedHtmlFeatures);
+        Assert.Contains("table-cell-alignment", semantic.SupportedCssFeatures);
+        Assert.Contains("unsupported-image-warning", semantic.DiagnosticGuarantees);
+        Assert.Contains("no-browser-layout-engine", semantic.RendererBoundaries);
         Assert.Equal("html-pdf-document", document.Id);
         Assert.Contains("WordDocument", document.Pipeline, StringComparison.Ordinal);
         Assert.Contains("print-oriented HTML", document.IntendedUse, StringComparison.Ordinal);
         Assert.Contains("Word HTML", document.UnsupportedScope, StringComparison.Ordinal);
+        Assert.Contains("page-break-hints", document.SupportedHtmlFeatures);
+        Assert.Contains("linked-stylesheets-when-enabled", document.SupportedCssFeatures);
+        Assert.Contains("resource-policy-summary", document.SupportedResourceFeatures);
+        Assert.Contains("no-css-grid-or-flex-layout-contract", document.RendererBoundaries);
         Assert.Throws<ArgumentOutOfRangeException>(() => HtmlPdfProfileContracts.Get((HtmlPdfProfile)99));
     }
 
@@ -474,10 +482,16 @@ public sealed class HtmlPdfTests {
         Assert.Contains("logical model", semantic.Pipeline, StringComparison.Ordinal);
         Assert.Contains("Search", semantic.IntendedUse, StringComparison.Ordinal);
         Assert.Contains("OCR", semantic.UnsupportedScope, StringComparison.Ordinal);
+        Assert.Contains("tables", semantic.PreservedSignals);
+        Assert.Contains("export-summary", semantic.OutputArtifacts);
+        Assert.Contains("no-editable-office-reconstruction", semantic.RendererBoundaries);
         Assert.Equal("pdf-html-positioned-review", positioned.Id);
         Assert.Contains("positioned review hints", positioned.Pipeline, StringComparison.Ordinal);
         Assert.Contains("browser", positioned.IntendedUse, StringComparison.Ordinal);
         Assert.Contains("not a full PDF renderer", positioned.UnsupportedScope, StringComparison.Ordinal);
+        Assert.Contains("image-placements", positioned.ReviewSignals);
+        Assert.Contains("unsafe-link-sanitization", positioned.DiagnosticGuarantees);
+        Assert.Contains("no-full-graphics-renderer", positioned.RendererBoundaries);
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfHtmlProfileContracts.Get((PdfHtmlProfile)99));
     }
 
@@ -524,6 +538,40 @@ public sealed class HtmlPdfTests {
         Assert.Contains("class=\"pdf-text pdf-heading\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:", html, StringComparison.Ordinal);
         Assert.Contains("Logical Heading", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_PositionedReviewProfile_ReportsExportSummary() {
+        byte[] pdf = CreatePdfHtmlSummarySamplePdf("https://example.com/summary");
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true,
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+
+        Assert.Same(options.ConversionReport, result.ConversionReport);
+        Assert.Contains("Logical Heading", result.Html, StringComparison.Ordinal);
+        Assert.Equal(PdfHtmlProfile.PositionedReview, result.Summary.Profile);
+        Assert.Equal("pdf-html-positioned-review", result.Summary.ProfileId);
+        Assert.Equal(1, result.Summary.SourcePageCount);
+        Assert.Equal(1, result.Summary.RenderedPageCount);
+        Assert.Equal(new[] { 1 }, result.Summary.PageNumbers);
+        Assert.True(result.Summary.TextBlockCount > 0);
+        Assert.True(result.Summary.HeadingCount > 0);
+        Assert.True(result.Summary.ListItemCount > 0);
+        Assert.Equal(0, result.Summary.TableCount);
+        Assert.True(result.Summary.ImageCount > 0);
+        Assert.True(result.Summary.ImagePlacementCount > 0);
+        Assert.True(result.Summary.LinkCount > 0);
+        Assert.Equal(0, result.Summary.WarningCount);
+        Assert.True(result.Summary.EmitsDocumentShell);
+        Assert.Equal(PdfHtmlImageExportMode.EmbeddedDataUri, result.Summary.ImageExportMode);
+        Assert.Contains("positioned", result.Summary.FidelityContract, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("not a full PDF renderer", result.Summary.UnsupportedScope, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -863,6 +911,32 @@ public sealed class HtmlPdfTests {
                 CellPaddingX = 6,
                 CellPaddingY = 4
             })
+            .ToBytes();
+    }
+
+    private static byte[] CreatePdfHtmlSummarySamplePdf(string linkUri) {
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 420,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Meta(title: "PDF to HTML summary sample", author: "OfficeIMO")
+            .H1("Logical Heading")
+            .Paragraph(paragraph => paragraph.Text("Logical readback marker."))
+            .Bullets(new[] { "Detected logical bullet" })
+            .Table(new[] {
+                new[] { "Code", "Name", "Qty" },
+                new[] { "A-100", "Alpha", "2" }
+            }, style: new PdfCore.PdfTableStyle {
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, PdfCore.PdfAlign.Left, null, null, 6, 0, null, linkUri, "Summary link")
             .ToBytes();
     }
 

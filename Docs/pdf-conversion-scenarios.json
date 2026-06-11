@@ -277,6 +277,60 @@
       }
     },
     {
+      "id": "html-pdf-roundtrip-profile-contract",
+      "path": "html-pdf-roundtrip",
+      "converter": "OfficeIMO.Html.Pdf",
+      "sourceFormat": "html/pdf",
+      "targetFormat": "pdf/html/json",
+      "status": "supported",
+      "sourceFeatures": [
+        "document-profile",
+        "semantic-pdf-html-profile",
+        "positioned-review-profile",
+        "profile-contracts",
+        "export-summary",
+        "links",
+        "images",
+        "page-breaks"
+      ],
+      "expectedSimplifications": [
+        "round-trip proof validates OfficeIMO logical/review contracts rather than browser-grade or pixel-perfect HTML rendering"
+      ],
+      "expectedWarnings": [],
+      "visualReviewFiles": [
+        "html-pdf-roundtrip-source.pdf",
+        "html-pdf-roundtrip-semantic.html",
+        "html-pdf-roundtrip-positioned.html",
+        "html-pdf-roundtrip-summary.json"
+      ],
+      "proof": {
+        "hash": true,
+        "textMarkers": [
+          "Practical HTML",
+          "Report link",
+          "Second page marker"
+        ],
+        "logicalSignals": [
+          "html-pdf-profile-contract",
+          "pdf-html-profile-contract",
+          "semantic-html",
+          "positioned-review-html",
+          "export-summary",
+          "image-placement-count",
+          "link-count"
+        ],
+        "visualPages": 2,
+        "validatorEvidence": [
+          "HtmlPdfProfileContracts",
+          "PdfHtmlProfileContracts",
+          "PdfHtmlConverter.ToHtmlResult",
+          "PdfHtmlExportSummary",
+          "PdfLogicalDocument",
+          "PdfImageExtractor"
+        ]
+      }
+    },
+    {
       "id": "markdown-invoice-statement",
       "path": "markdown-invoice-to-pdf",
       "converter": "OfficeIMO.Markdown.Pdf",

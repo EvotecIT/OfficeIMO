@@ -364,6 +364,12 @@ Available now:
   document profile to allow a local stylesheet, embed a data URI image, and
   report a blocked remote stylesheet through the shared conversion report. Its
   summary artifact records the declared stylesheet/image resource policy.
+- The HTML/PDF round-trip proof now includes
+  `html-pdf-roundtrip-source.pdf`, semantic HTML, positioned review HTML, and a
+  JSON export summary. This proves the declared profile contracts, logical
+  PDF-to-HTML preservation, positioned image/link review hints, and explicit
+  renderer boundaries without claiming browser-grade or pixel-perfect HTML
+  rendering.
 
 Important gaps:
 

@@ -24,6 +24,7 @@ public sealed class PdfConversionScenarioManifestTests {
         "markdown-invoice-to-pdf",
         "html-to-pdf",
         "html-css-resource-policy-to-pdf",
+        "html-pdf-roundtrip",
         "powerpoint-to-pdf",
         "powerpoint-layout-theme-groups-to-pdf",
         "pdf-to-logical",
@@ -669,6 +670,76 @@ public sealed class PdfConversionScenarioManifestTests {
         } finally {
             Directory.Delete(tempDirectory, recursive: true);
         }
+    }
+
+    [Fact]
+    public void HtmlPdfRoundTripProfiles_ProduceManifestedReviewProof() {
+        const string linkUri = "https://example.com/html-pdf-roundtrip";
+        HtmlPdfSaveOptions htmlOptions = HtmlPdfSaveOptions.CreateDocumentProfile();
+        byte[] pdf = CreatePracticalHtmlSample(linkUri).SaveAsPdf(htmlOptions);
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        var semanticOptions = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            IncludeLinkAnnotations = true,
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+        var positionedOptions = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true,
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        PdfHtmlConversionResult semantic = PdfHtmlConverter.ToHtmlResult(logical, semanticOptions);
+        PdfHtmlConversionResult positioned = PdfHtmlConverter.ToHtmlResult(logical, positionedOptions);
+
+        Assert.True(pdf.Length > 0);
+        Assert.True(logical.PageCount >= 2);
+        Assert.Contains(logical.TextBlocks, block => block.Text.Contains("Practical HTML", StringComparison.Ordinal));
+        Assert.Contains(logical.GetLinksByUri(linkUri), link => link.Contents == "Report link");
+        Assert.Contains(logical.Images, image => image.PlacementCount > 0);
+        Assert.Contains("Practical HTML", semantic.Html, StringComparison.Ordinal);
+        Assert.Contains("Report link", semantic.Html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", positioned.Html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-image-placeholder\"", positioned.Html, StringComparison.Ordinal);
+        Assert.Equal(PdfHtmlProfile.Semantic, semantic.Summary.Profile);
+        Assert.Equal(PdfHtmlProfile.PositionedReview, positioned.Summary.Profile);
+        Assert.True(semantic.Summary.RenderedPageCount >= 2);
+        Assert.True(positioned.Summary.RenderedPageCount >= 2);
+        Assert.True(positioned.Summary.TextBlockCount > 0);
+        Assert.True(positioned.Summary.ImagePlacementCount > 0);
+        Assert.True(positioned.Summary.LinkCount > 0);
+        Assert.False(semantic.ConversionReport.HasWarnings);
+        Assert.False(positioned.ConversionReport.HasWarnings);
+
+        var summary = new {
+            scenario = "html-pdf-roundtrip-profile-contract",
+            htmlToPdfProfile = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Document),
+            pdfToSemanticProfile = PdfHtmlProfileContracts.Get(PdfHtmlProfile.Semantic),
+            pdfToPositionedProfile = PdfHtmlProfileContracts.Get(PdfHtmlProfile.PositionedReview),
+            htmlToPdfWarnings = htmlOptions.ConversionReport.Warnings.Select(warning => new {
+                warning.Converter,
+                warning.Code,
+                warning.Source,
+                warning.Message,
+                Severity = warning.Severity.ToString(),
+                warning.Details
+            }).ToArray(),
+            semantic = semantic.Summary,
+            positioned = positioned.Summary
+        };
+
+        WriteReviewArtifact("html-pdf-roundtrip-source.pdf", pdf);
+        WriteReviewArtifact("html-pdf-roundtrip-semantic.html", Encoding.UTF8.GetBytes(semantic.Html));
+        WriteReviewArtifact("html-pdf-roundtrip-positioned.html", Encoding.UTF8.GetBytes(positioned.Html));
+        WriteReviewArtifact("html-pdf-roundtrip-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions {
+            WriteIndented = true
+        }));
     }
 
     [Fact]
