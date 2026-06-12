@@ -668,6 +668,34 @@ namespace OfficeIMO.Excel {
             return columnCount > 0;
         }
 
+        /// <summary>
+        /// Returns the pending used range for a clean direct-tabular save candidate before the package is materialized.
+        /// </summary>
+        /// <param name="sheet">Worksheet whose pending direct-tabular range should be reported.</param>
+        /// <param name="range">The candidate worksheet range in A1 notation when available.</param>
+        /// <returns><c>true</c> when the workbook has a valid single-sheet direct-tabular candidate for the worksheet.</returns>
+        internal bool TryGetDirectTabularSaveCandidateRange(ExcelSheet sheet, out string range) {
+            range = string.Empty;
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            if (!ReferenceEquals(sheet.Document, this)) {
+                return false;
+            }
+
+            var candidate = _directDataSetSaveCandidate;
+            if (candidate == null || !candidate.IsValid || candidate.Model.Sheets.Count != 1) {
+                return false;
+            }
+
+            var sheetModel = candidate.Model.Sheets[0];
+            if (!string.Equals(sheetModel.SheetName, sheet.Name, StringComparison.Ordinal)
+                || string.IsNullOrWhiteSpace(sheetModel.Range)) {
+                return false;
+            }
+
+            range = sheetModel.Range;
+            return true;
+        }
+
         internal bool TryGetDeferredDirectTabularPivotSource(
             ExcelSheet sheet,
             int startRow,
