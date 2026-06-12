@@ -403,7 +403,7 @@
     "@types/node": "^20.19.40",
     "@types/vscode": "1.107.0",
     "@vscode/vsce": "^3.6.0",
-    "esbuild": "^0.28.0",
+    "esbuild": "^0.28.1",
     "typescript": "^6.0.3"
   }
 }
