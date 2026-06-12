@@ -449,6 +449,7 @@ namespace OfficeIMO.Excel {
 
                 int lastDirectRow = sheetModel.Table.RowCount + (sheetModel.IncludeHeaders ? 1 : 0);
                 if (row > lastDirectRow || column > sheetModel.Table.ColumnCount) {
+                    _directDataSetMetadataSourceSheet = sheet;
                     _directDataSetSaveCandidatePreservationDepth++;
                     _materializedDirectDataSetFastSaveModelPreservationDepth++;
                     _directDataSetExternalCellMutationPreservationDepth++;

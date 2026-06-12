@@ -692,8 +692,34 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            range = sheetModel.Range;
+            DirectWorksheetMetadata? metadata = sheetModel.Metadata;
+            if (!TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? capturedMetadata, out _, metadataSourceOverride: sheet)) {
+                return false;
+            }
+
+            metadata = MergeDirectWorksheetMetadata(metadata, capturedMetadata, replaceOverlayCells: true);
+            range = GetDirectTabularSaveCandidateUsedRange(sheetModel, metadata);
             return true;
+        }
+
+        private static string GetDirectTabularSaveCandidateUsedRange(DirectDataSetSheetModel sheetModel, DirectWorksheetMetadata? metadata) {
+            string range = sheetModel.Range;
+            var overlayCells = metadata?.OverlayCells;
+            if (overlayCells == null || overlayCells.Count == 0 || !A1.TryParseRange(range, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return range;
+            }
+
+            for (int i = 0; i < overlayCells.Count; i++) {
+                var cell = overlayCells[i];
+                if (cell.IsDeleted) {
+                    continue;
+                }
+
+                lastRow = Math.Max(lastRow, cell.Row);
+                lastColumn = Math.Max(lastColumn, cell.Column);
+            }
+
+            return A1.CellReference(firstRow, firstColumn) + ":" + A1.CellReference(lastRow, lastColumn);
         }
 
         internal bool TryGetDeferredDirectTabularPivotSource(

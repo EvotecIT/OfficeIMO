@@ -57,5 +57,40 @@ namespace OfficeIMO.Tests {
             Assert.Equal(CellValues.Boolean, cells["D3"].DataType!.Value);
             Assert.Equal("0", cells["D3"].CellValue!.Text);
         }
+
+        [Fact]
+        public void InsertObjects_GetUsedRangeIncludesOverlayCells() {
+            using var memory = new MemoryStream();
+            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
+                var sheet = document.AddWorkSheet("Data");
+                object?[] rows = {
+                    new Dictionary<string, object?> {
+                        ["Region"] = "NA",
+                        ["Revenue"] = 100
+                    },
+                    new Dictionary<string, object?> {
+                        ["Region"] = "EMEA",
+                        ["Revenue"] = 200
+                    }
+                };
+
+                sheet.InsertObjects(rows);
+                sheet.CellValue(10, 5, "note");
+
+                Assert.Equal("A1:E10", sheet.GetUsedRangeA1());
+
+                document.Save(memory);
+                Assert.Equal(ExcelSavePackageWriter.DirectDataSetPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
+            }
+
+            memory.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(memory, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet;
+            Assert.NotNull(worksheet);
+            var dimension = worksheet!.SheetDimension;
+            Assert.NotNull(dimension);
+            Assert.Equal("A1:E10", dimension!.Reference?.Value);
+        }
     }
 }
