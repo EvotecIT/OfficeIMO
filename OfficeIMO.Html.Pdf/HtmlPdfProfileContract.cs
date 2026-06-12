@@ -8,7 +8,19 @@ namespace OfficeIMO.Html.Pdf;
 /// Describes the product contract for one HTML to PDF adapter profile.
 /// </summary>
 public sealed class HtmlPdfProfileContract {
-    internal HtmlPdfProfileContract(HtmlPdfProfile profile, string id, string displayName, string pipeline, string intendedUse, string fidelityContract, string unsupportedScope) {
+    internal HtmlPdfProfileContract(
+        HtmlPdfProfile profile,
+        string id,
+        string displayName,
+        string pipeline,
+        string intendedUse,
+        string fidelityContract,
+        string unsupportedScope,
+        IReadOnlyList<string> supportedHtmlFeatures,
+        IReadOnlyList<string> supportedCssFeatures,
+        IReadOnlyList<string> supportedResourceFeatures,
+        IReadOnlyList<string> diagnosticGuarantees,
+        IReadOnlyList<string> rendererBoundaries) {
         Profile = profile;
         Id = id;
         DisplayName = displayName;
@@ -16,6 +28,11 @@ public sealed class HtmlPdfProfileContract {
         IntendedUse = intendedUse;
         FidelityContract = fidelityContract;
         UnsupportedScope = unsupportedScope;
+        SupportedHtmlFeatures = supportedHtmlFeatures;
+        SupportedCssFeatures = supportedCssFeatures;
+        SupportedResourceFeatures = supportedResourceFeatures;
+        DiagnosticGuarantees = diagnosticGuarantees;
+        RendererBoundaries = rendererBoundaries;
     }
 
     /// <summary>Adapter profile represented by this contract.</summary>
@@ -38,6 +55,21 @@ public sealed class HtmlPdfProfileContract {
 
     /// <summary>Known unsupported or intentionally simplified scope.</summary>
     public string UnsupportedScope { get; }
+
+    /// <summary>HTML structures this profile treats as part of its supported v1 contract.</summary>
+    public IReadOnlyList<string> SupportedHtmlFeatures { get; }
+
+    /// <summary>CSS features this profile treats as part of its supported v1 contract.</summary>
+    public IReadOnlyList<string> SupportedCssFeatures { get; }
+
+    /// <summary>Resource loading and embedding behavior this profile exposes as a supported v1 contract.</summary>
+    public IReadOnlyList<string> SupportedResourceFeatures { get; }
+
+    /// <summary>Diagnostics callers can rely on when content is simplified, rejected, or degraded.</summary>
+    public IReadOnlyList<string> DiagnosticGuarantees { get; }
+
+    /// <summary>Explicit non-goals that prevent callers from treating this adapter as a browser-grade renderer.</summary>
+    public IReadOnlyList<string> RendererBoundaries { get; }
 }
 
 /// <summary>
@@ -52,7 +84,12 @@ public static class HtmlPdfProfileContracts {
             "HTML -> OfficeIMO.Markdown.Html -> MarkdownDoc -> OfficeIMO.Markdown.Pdf -> OfficeIMO.Pdf",
             "Articles, documentation, simple reports, and semantic HTML where clean structure matters more than authored CSS layout.",
             "Preserves headings, paragraphs, lists, links, tables, local/data images supported by the Markdown PDF path, and shared conversion warnings.",
-            "Not a browser renderer; CSS layout, scripts, forms, media, complex paged media, and unsupported resources are simplified or reported through conversion diagnostics."),
+            "Not a browser renderer; CSS layout, scripts, forms, media, complex paged media, and unsupported resources are simplified or reported through conversion diagnostics.",
+            new[] { "headings", "paragraphs", "lists", "links", "tables", "local-and-data-images" },
+            new[] { "table-cell-alignment", "table-cell-background", "inline-emphasis", "inline-color" },
+            new[] { "local-image-files", "data-uri-images", "markdown-resource-policy" },
+            new[] { "shared-markdown-pdf-warnings", "unsupported-image-warning" },
+            new[] { "no-browser-layout-engine", "no-script-execution", "no-interactive-html", "no-paged-media-engine" }),
         new HtmlPdfProfileContract(
             HtmlPdfProfile.Document,
             "html-pdf-document",
@@ -60,7 +97,12 @@ public static class HtmlPdfProfileContracts {
             "HTML -> OfficeIMO.Word.Html -> WordDocument -> OfficeIMO.Word.Pdf -> OfficeIMO.Pdf",
             "Trusted or controlled print-oriented HTML with CSS, images, links, tables, and page-break hints where the Word model is the best intermediate document shape.",
             "Preserves the Word HTML adapter's supported document structure, styling, images, links, tables, page-break hints, and first-party Word PDF diagnostics.",
-            "Not a browser renderer; unsupported CSS, script behavior, media, interactive HTML, and complex layout are simplified according to Word HTML and Word PDF adapter diagnostics.")
+            "Not a browser renderer; unsupported CSS, script behavior, media, interactive HTML, and complex layout are simplified according to Word HTML and Word PDF adapter diagnostics.",
+            new[] { "headings", "paragraphs", "lists", "links", "tables", "images", "page-break-hints" },
+            new[] { "inline-css", "linked-stylesheets-when-enabled", "table-styles", "font-styles", "colors", "page-break-before-after" },
+            new[] { "base-path-resolution", "trusted-stylesheet-policy", "trusted-image-policy", "resource-policy-summary" },
+            new[] { "html-import-diagnostics", "word-pdf-warnings", "shared-conversion-report" },
+            new[] { "no-browser-layout-engine", "no-script-execution", "no-css-grid-or-flex-layout-contract", "no-interactive-html" })
     });
 
     /// <summary>All supported HTML to PDF profile contracts.</summary>
