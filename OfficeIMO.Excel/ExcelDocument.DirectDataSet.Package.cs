@@ -322,13 +322,21 @@ namespace OfficeIMO.Excel {
             out DirectWorksheetMetadata? metadata,
             out string? skipReason,
             bool allowDrawings = false,
-            bool allowUnsupportedOverlayStyles = false) {
+            bool allowUnsupportedOverlayStyles = false,
+            ExcelSheet? metadataSourceOverride = null) {
             metadata = null;
             skipReason = null;
 
             ExcelSheet? sheet = null;
+            if (metadataSourceOverride != null
+                && ReferenceEquals(metadataSourceOverride.Document, this)
+                && string.Equals(metadataSourceOverride.Name, sheetModel.SheetName, StringComparison.Ordinal)) {
+                sheet = metadataSourceOverride;
+            }
+
             var metadataSourceSheet = _directDataSetMetadataSourceSheet;
-            if (metadataSourceSheet != null
+            if (sheet == null
+                && metadataSourceSheet != null
                 && ReferenceEquals(metadataSourceSheet.Document, this)
                 && string.Equals(metadataSourceSheet.Name, sheetModel.SheetName, StringComparison.Ordinal)) {
                 sheet = metadataSourceSheet;
