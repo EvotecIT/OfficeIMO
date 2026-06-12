@@ -47,8 +47,10 @@ public static class PdfLogicalTableAnalysis {
         PdfLogicalTableStructure structure = Analyze(table);
         IReadOnlyList<IReadOnlyList<string>> rows = GetBodyRows(table, structure, maxRows);
         IReadOnlyList<bool> numericColumns = DetectNumericColumns(table, structure);
+        PdfLogicalTableDiagnostics diagnostics = PdfLogicalTableDiagnostics.Create(table, structure);
         return new PdfLogicalTableData(
             structure,
+            diagnostics,
             rows,
             numericColumns,
             rows.Count < structure.TotalBodyRowCount);

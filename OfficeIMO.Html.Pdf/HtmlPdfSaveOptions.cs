@@ -69,6 +69,11 @@ public sealed class HtmlPdfSaveOptions {
     /// </summary>
     public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
 
+    /// <summary>
+    /// Returns a source-neutral snapshot of the active HTML resource policy for manifest, wrapper, and diagnostics callers.
+    /// </summary>
+    public HtmlPdfResourcePolicySummary GetResourcePolicySummary() => HtmlPdfResourcePolicySummary.From(this);
+
     internal void ResetExportState() {
         ConversionReport.Clear();
         ConversionReport.ClearLinkedReports();

@@ -115,14 +115,60 @@ internal static class TableDetector {
                    && AreSplitsSimilar(baseSplits, bandSplits[end + 1].splits)) {
                 end++;
             }
-            // Build table for [start..end]
+            // Build table for [start..end], including a compatible header-only band immediately above it.
             var groupLines = new List<TextLayoutEngine.TextLine>();
+            List<TextLayoutEngine.TextLine>? headerLines = TryGetPrecedingHeaderLines(
+                bands,
+                bandSplits[start].idx,
+                baseSplits);
+            if (headerLines is not null) {
+                groupLines.AddRange(headerLines);
+            }
+
             for (int i = start; i <= end; i++) groupLines.AddRange(bandSplits[i].lines);
             var table = BuildTableFromLinesAndSplits(groupLines, baseSplits, "band-group");
             if (table != null && table.Rows.Count >= 3) result.Add(table);
             k = end + 1;
         }
         return result;
+    }
+
+    private static List<TextLayoutEngine.TextLine>? TryGetPrecedingHeaderLines(
+        List<List<TextLayoutEngine.TextLine>> bands,
+        int bodyBandIndex,
+        List<double> bodySplits) {
+        int headerBandIndex = bodyBandIndex - 1;
+        if (headerBandIndex < 0 || bodySplits.Count == 0) {
+            return null;
+        }
+
+        List<TextLayoutEngine.TextLine> headerBand = bands[headerBandIndex];
+        if (headerBand.Count != 1 || IsLeaderBand(headerBand)) {
+            return null;
+        }
+
+        string[] headerCells = SplitBySplits(headerBand[0], bodySplits);
+        if (!LooksLikeHeaderRow(headerCells)) {
+            return null;
+        }
+
+        return headerBand;
+    }
+
+    private static bool LooksLikeHeaderRow(string[] cells) {
+        if (cells.Length < 2) {
+            return false;
+        }
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < cells.Length; i++) {
+            string cell = cells[i].Trim();
+            if (cell.Length == 0 || !seen.Add(cell) || HasManyDigits(cell)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static bool AreSplitsSimilar(List<double> a, List<double> b) {

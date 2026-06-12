@@ -139,9 +139,134 @@ public sealed class ReaderChunk {
     public IReadOnlyList<ReaderVisual>? Visuals { get; set; }
 
     /// <summary>
+    /// Optional structured form fields extracted from this chunk.
+    /// </summary>
+    public IReadOnlyList<ReaderFormField>? FormFields { get; set; }
+
+    /// <summary>
+    /// Optional passive action summaries extracted from this chunk.
+    /// </summary>
+    public IReadOnlyList<ReaderActionSummary>? Actions { get; set; }
+
+    /// <summary>
+    /// Optional source-specific diagnostics and structural counters for this chunk.
+    /// </summary>
+    public ReaderChunkDiagnostics? Diagnostics { get; set; }
+
+    /// <summary>
     /// Optional warnings about truncation or unsupported content.
     /// </summary>
     public IReadOnlyList<string>? Warnings { get; set; }
+}
+
+/// <summary>
+/// Optional source diagnostics and structural counters attached to a reader chunk.
+/// </summary>
+public sealed class ReaderChunkDiagnostics {
+    /// <summary>Source adapter that produced the diagnostics, for example "pdf".</summary>
+    public string SourceKind { get; set; } = string.Empty;
+
+    /// <summary>Total logical page count in the loaded source document.</summary>
+    public int PageCount { get; set; }
+
+    /// <summary>Number of pages selected for this read operation.</summary>
+    public int SelectedPageCount { get; set; }
+
+    /// <summary>One-based PDF page number for page-scoped chunks, when applicable.</summary>
+    public int? PageNumber { get; set; }
+
+    /// <summary>Number of logical tables in the selected scope.</summary>
+    public int TableCount { get; set; }
+
+    /// <summary>Number of logical tables in the selected scope that expose placement geometry.</summary>
+    public int TableGeometryCount { get; set; }
+
+    /// <summary>Ratio of tables with placement geometry to all tables in the selected scope.</summary>
+    public double TableGeometryCoverage { get; set; }
+
+    /// <summary>Lowest table detection confidence in the selected scope, when tables are present.</summary>
+    public double? MinTableConfidence { get; set; }
+
+    /// <summary>Average table detection confidence in the selected scope, when tables are present.</summary>
+    public double? AverageTableConfidence { get; set; }
+
+    /// <summary>Number of logical images in the selected scope.</summary>
+    public int ImageCount { get; set; }
+
+    /// <summary>Number of logical images in the selected scope that expose placement geometry.</summary>
+    public int ImageGeometryCount { get; set; }
+
+    /// <summary>Ratio of images with placement geometry to all images in the selected scope.</summary>
+    public double ImageGeometryCoverage { get; set; }
+
+    /// <summary>Number of logical link annotations in the selected scope.</summary>
+    public int LinkCount { get; set; }
+
+    /// <summary>True when the source exposes a readable document open action.</summary>
+    public bool HasOpenAction { get; set; }
+
+    /// <summary>True when the source exposes active catalog-level actions.</summary>
+    public bool HasCatalogActions { get; set; }
+
+    /// <summary>True when the selected chunk scope exposes page-level actions.</summary>
+    public bool HasPageActions { get; set; }
+
+    /// <summary>True when the selected chunk scope exposes annotation-level actions.</summary>
+    public bool HasAnnotationActions { get; set; }
+
+    /// <summary>True when the source exposes active catalog, selected page, or selected annotation actions.</summary>
+    public bool HasActiveContent { get; set; }
+
+    /// <summary>Number of active catalog-level actions in the loaded source document.</summary>
+    public int CatalogActionCount { get; set; }
+
+    /// <summary>Number of page-level actions in the loaded source document.</summary>
+    public int PageActionCount { get; set; }
+
+    /// <summary>Number of page-level actions in this chunk's selected page scope.</summary>
+    public int SelectedPageActionCount { get; set; }
+
+    /// <summary>Number of annotation-level actions in the loaded source document.</summary>
+    public int AnnotationActionCount { get; set; }
+
+    /// <summary>Number of annotation-level actions in this chunk's selected page scope.</summary>
+    public int SelectedAnnotationActionCount { get; set; }
+
+    /// <summary>Total form field count in the loaded source document.</summary>
+    public int FormFieldCount { get; set; }
+
+    /// <summary>Total form widget count in the loaded source document.</summary>
+    public int FormWidgetCount { get; set; }
+
+    /// <summary>Number of form widgets in this chunk's selected page scope.</summary>
+    public int SelectedFormWidgetCount { get; set; }
+
+    /// <summary>Number of selected form widgets that expose a current appearance state.</summary>
+    public int SelectedFormWidgetAppearanceStateCount { get; set; }
+
+    /// <summary>Ratio of selected form widgets with a current appearance state to all selected form widgets.</summary>
+    public double SelectedFormWidgetAppearanceStateCoverage { get; set; }
+
+    /// <summary>Total readable normal appearance states across selected form widgets.</summary>
+    public int SelectedFormWidgetNormalAppearanceStateCount { get; set; }
+
+    /// <summary>True when the source exposes encryption, signature, permission, or incremental-update markers.</summary>
+    public bool HasSecurityState { get; set; }
+
+    /// <summary>True when the source PDF contains an encryption marker.</summary>
+    public bool HasEncryption { get; set; }
+
+    /// <summary>True when the source PDF contains signature markers, fields, or values.</summary>
+    public bool HasSignatures { get; set; }
+
+    /// <summary>True when the source PDF contains incremental-update markers.</summary>
+    public bool HasIncrementalUpdates { get; set; }
+
+    /// <summary>Number of readable PDF revision markers.</summary>
+    public int RevisionCount { get; set; }
+
+    /// <summary>True when mutation should preserve the existing PDF by appending a new revision.</summary>
+    public bool RequiresAppendOnlyMutation { get; set; }
 }
 
 /// <summary>

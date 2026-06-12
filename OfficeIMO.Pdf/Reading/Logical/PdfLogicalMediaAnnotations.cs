@@ -25,8 +25,26 @@ public sealed class PdfLogicalImage : IPdfLogicalElement {
     /// <summary>Placement invocations for this image resource on the page.</summary>
     public IReadOnlyList<PdfImagePlacement> Placements { get; }
 
+    /// <summary>Number of placement invocations detected for this image resource.</summary>
+    public int PlacementCount => Placements.Count;
+
     /// <summary>True when at least one placement invocation was detected for this image.</summary>
     public bool HasPlacements => Placements.Count > 0;
+
+    /// <summary>First detected placement invocation for this image resource, or null when placement geometry is unavailable.</summary>
+    public PdfImagePlacement? PrimaryPlacement => Placements.Count > 0 ? Placements[0] : null;
+
+    /// <summary>Left edge of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
+    public double? PlacedX => PrimaryPlacement?.X;
+
+    /// <summary>Bottom edge of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
+    public double? PlacedY => PrimaryPlacement?.Y;
+
+    /// <summary>Width of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
+    public double? PlacedWidth => PrimaryPlacement?.Width;
+
+    /// <summary>Height of the first detected placement in PDF points, or null when placement geometry is unavailable.</summary>
+    public double? PlacedHeight => PrimaryPlacement?.Height;
 
     /// <summary>PDF image resource name.</summary>
     public string ResourceName => SourceImage.ResourceName;

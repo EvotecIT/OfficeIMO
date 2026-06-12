@@ -31,7 +31,7 @@ ReaderHostBootstrapResult result = DocumentReader.BootstrapHostFromAssemblies(
 string manifestJson = result.ManifestJson;
 ```
 
-The adapter uses `OfficeIMO.Pdf`'s logical read model and emits page-aware chunks with `ReaderLocation.Page`, Markdown text, detected tables with column profiles, image placeholders, link annotations, and form widget summaries when available.
+The adapter uses `OfficeIMO.Pdf`'s logical read model and emits page-aware chunks with `ReaderLocation.Page`, Markdown text, detected tables with column profiles and diagnostics, source/security/form/open-action/active-content counters in `ReaderChunk.Diagnostics`, table confidence aggregates, table/image geometry coverage, selected form-widget appearance coverage, passive action summaries in `ReaderChunk.Actions`, image placeholders plus image visual geometry in `ReaderChunk.Visuals`, link annotations, and typed form fields with widget geometry, current appearance state names, and normal appearance state names when available. Action summaries identify document-open, catalog, page, and annotation sources plus scope, trigger, path, and action type without exposing JavaScript bodies or other executable payloads.
 
 ```csharp
 using OfficeIMO.Reader.Pdf;

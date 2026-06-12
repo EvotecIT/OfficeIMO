@@ -3,7 +3,8 @@ param(
     [string] $Configuration = "Debug",
     [string] $Framework = "net8.0",
     [switch] $NoRestore,
-    [switch] $RequireRasterizer
+    [switch] $RequireRasterizer,
+    [switch] $SkipRasterBaselines
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,10 +36,28 @@ $generatedReviewFileNames = @(
     'native-powerpoint-slide.pdf',
     'native-powerpoint-dense-layout.pdf',
     'native-excel-daily-workbook.pdf',
+    'excel-dashboard-report.pdf',
     'markdown-technical-document.pdf',
+    'markdown-invoice-statement.pdf',
     'practical-html.pdf',
+    'html-css-resource-policy.pdf',
+    'html-css-resource-policy-summary.json',
     'pdf-to-html-logical-source.pdf',
     'pdf-to-html-positioned-review.html',
+    'pdf-logical-diagnostics-source.pdf',
+    'pdf-logical-diagnostics-positioned-review.html',
+    'pdf-logical-diagnostics-summary.json',
+    'pdf-reader-degradation-corpus.pdf',
+    'pdf-reader-degradation-summary.json',
+    'pdf-reader-hostile-layout-corpus.pdf',
+    'pdf-reader-hostile-layout-summary.json',
+    'pdf-reader-hostile-table-corpus.pdf',
+    'pdf-reader-hostile-table-summary.json',
+    'powerpoint-layout-theme-groups.pdf',
+    'pdf-table-import-source.pdf',
+    'pdf-table-import-word.docx',
+    'pdf-table-import-excel.xlsx',
+    'pdf-table-import-powerpoint.pptx',
     'multilingual-business-report.pdf',
     'multilingual-word-to-pdf.pdf',
     'multilingual-excel-to-pdf.pdf',
@@ -84,6 +103,7 @@ $indexPath = Join-Path $resolvedOutputPath 'index.md'
 
 $previousReviewOutput = $env:OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT
 $previousRequireRasterizer = $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER
+$previousSkipRasterAssertions = $env:OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS
 
 try {
     $env:OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT = $resolvedOutputPath
@@ -91,6 +111,12 @@ try {
         $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER = '1'
     } else {
         $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER = $null
+    }
+
+    if ($SkipRasterBaselines) {
+        $env:OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS = '1'
+    } else {
+        $env:OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS = $null
     }
 
     $testArgs = @(
@@ -119,6 +145,7 @@ try {
 } finally {
     $env:OFFICEIMO_PDF_VISUAL_REVIEW_OUTPUT = $previousReviewOutput
     $env:OFFICEIMO_REQUIRE_PDF_RASTERIZER = $previousRequireRasterizer
+    $env:OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS = $previousSkipRasterAssertions
 }
 
 $commit = (& git -C $repoRoot rev-parse --short HEAD).Trim()
@@ -207,6 +234,10 @@ $lines.Add('')
 $lines.Add('```powershell')
 $lines.Add("Build/Export-PdfVisualReviewGallery.ps1 -OutputDirectory `"$OutputDirectory`" -Configuration `"$Configuration`" -Framework `"$Framework`"")
 $lines.Add('```')
+if ($SkipRasterBaselines) {
+    $lines.Add('')
+    $lines.Add('Raster baseline assertions were skipped for this artifact run; PDFs were still generated for review.')
+}
 $lines.Add('')
 $lines.Add('## Review Checklist')
 $lines.Add('')

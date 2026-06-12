@@ -262,6 +262,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         }
 
         WriteReviewPdfArtifact(scenarioName, pdfBytes);
+        if (SkipRasterAssertions()) {
+            return;
+        }
 
         if (!TryFindPdftoppm(out string rasterizerPath)) {
             if (IsRequired()) {

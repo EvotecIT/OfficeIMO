@@ -197,6 +197,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     private static bool IsRequired() =>
         string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_REQUIRE_PDF_RASTERIZER"), "1", StringComparison.Ordinal);
 
+    private static bool SkipRasterAssertions() =>
+        string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_PDF_VISUAL_REVIEW_SKIP_RASTER_ASSERTIONS"), "1", StringComparison.Ordinal);
+
     private static string Quote(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
 
     private sealed class RasterComparison {

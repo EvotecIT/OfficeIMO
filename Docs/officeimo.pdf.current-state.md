@@ -196,10 +196,17 @@ Available now:
 
 - Probe, inspect, preflight, text extraction, structured/logical readback,
   image extraction, attachment extraction, page metadata, outline/navigation
-  readback, link annotations, form widget summaries, security/revision markers,
+  readback, link annotations, form widget summaries, Reader/PDF typed form
+  fields with widget geometry, passive open-action, catalog, page, and
+  annotation action summaries plus
+  active-content diagnostics, security/revision markers,
   signature metadata, DSS/VRI evidence summaries, tagged-structure summaries,
   optional-content summaries, catalog actions, page actions, XMP metadata,
   output-intent metadata, viewer metadata, and diagnostics.
+- Logical table readback exposes `PdfLogicalTableDiagnostics` with schema,
+  cell-completeness, column-geometry, and overall confidence signals, while
+  logical images expose first-placement convenience geometry for adapter and
+  review surfaces.
 - Read and rewrite blockers for unsupported or risky inputs.
 - Capability flags for wrapper dispatch, including text extraction, logical
   objects, images, page manipulation, simple form fill, and simple flattening.
@@ -259,7 +266,9 @@ Available now:
   column profiles for safely typed Excel cells, Word/PowerPoint numeric
   body-cell alignment, and row/column slide segmentation for wide or long
   tables, or emit table-only Markdown/semantic HTML with page ranges and row
-  caps.
+  caps. The visual review gallery now carries a declared reverse-direction
+  proof scenario with the source PDF plus editable DOCX, XLSX, and PPTX table
+  artifacts so this table-only reconstruction boundary is reviewable.
 - `OfficeIMO.Markdown.Pdf`: Markdown-to-PDF path for headings, outlines, rich
   inline text, links, lists, task lists, tables, code/semantic panels, callouts,
   front matter, images, themes, and warnings.
@@ -267,7 +276,8 @@ Available now:
   semantic/positioned-review PDF-to-HTML profiles over first-party pipelines.
 - `OfficeIMO.Reader.Pdf`: PDF ingestion registration for `DocumentReader`
   chunks with page-aware locations, Markdown text, detected tables, image
-  placeholders, links, form summaries, security and metadata summaries, hashes,
+  placeholders, links, typed form fields, passive action summaries,
+  active-content diagnostics, security and metadata summaries, hashes,
   split warnings, and table column profiles where the PDF read model can expose
   them.
 
@@ -280,7 +290,7 @@ Current conversion matrix:
 | Markdown -> PDF | Native first-party adapter through Markdown string/file/document `ToPdfDocument(...)` and `SaveAsPdf(...)` APIs. | Structured Markdown maps to PDF headings, links, lists, task lists, tables, panels, front matter, images, themes, and warnings. | Add paginated nested-panel, long technical-document, image/resource policy, and front-matter/theme fixture families. |
 | HTML -> PDF | Thin bridge with semantic and document profiles over Markdown/Word pipelines. | Good for structured HTML and practical trusted print HTML; intentionally not a browser-grade CSS renderer. | Publish a declared CSS/resource subset and add profile-specific fixtures for trusted/untrusted resources, page breaks, tables, images, and link preservation. |
 | PowerPoint -> PDF | Native first-party adapter through `PowerPointPresentation.ToPdfDocument(...)` and `SaveAsPdf(...)`. | One slide per page, backgrounds, text boxes, pictures, tables, supported charts, simple shapes, group-shape geometry, and warnings. | Add master/layout inheritance, theme resolution, grouped transforms, richer table style, media placeholder, and SmartArt fallback fixtures. |
-| PDF -> Markdown/Reader chunks | `OfficeIMO.Pdf` logical model plus `OfficeIMO.Reader.Pdf` page-aware chunks and `PdfLogicalDocument.ToMarkdown(...)`. | Born-digital/simple PDFs can expose page text, headings, paragraphs, lists, tables, images, links, forms, and warnings. | Build a real-world PDF corpus with accepted degradation notes, table-confidence checks, coordinates, image placement, source diagnostics, and OCR hand-off boundaries. |
+| PDF -> Markdown/Reader chunks | `OfficeIMO.Pdf` logical model plus `OfficeIMO.Reader.Pdf` page-aware chunks and `PdfLogicalDocument.ToMarkdown(...)`. | Born-digital/simple PDFs can expose page text, headings, paragraphs, lists, tables, image visual geometry, links, typed form fields with widget geometry and appearance states, passive document-open/catalog/page/annotation action summaries without executable payloads, warnings, table diagnostics, active-content counters, table confidence aggregates, table/image geometry coverage, selected form-widget appearance coverage, and stable chunk diagnostics for source/security/form counters. | Expand the degradation corpus with hostile-layout cases, richer form appearance rendering semantics, and OCR hand-off boundaries. |
 | PDF -> HTML | `OfficeIMO.Html.Pdf` semantic and positioned-review profiles over the logical PDF model. | Semantic export for search/indexing and positioned review HTML for page-oriented inspection; image placeholders/data URIs and link/form hints are available. | Add round-trip review fixtures that compare PDF logical objects, positioned HTML geometry, embedded image policy, and unsafe-action handling. |
 | PDF -> editable Word/Excel/PowerPoint | Not a supported reconstruction path yet. | The current truthful path is PDF -> logical model/Markdown/HTML/Reader chunks, not editable Office package recovery. | Only add editable reconstruction after the logical model has stable table, coordinates, images, form metadata, and source diagnostics; start with Word-like document reconstruction before spreadsheet or slide reconstruction. |
 
@@ -296,8 +306,8 @@ Important gaps:
   scaling, media, and SmartArt fallbacks.
 - Markdown/HTML: stronger paginated panels, declared CSS subset maturity,
   resource-policy examples, and more visual fixture families.
-- Reader/PDF: richer coordinates, image placement metadata, table confidence,
-  form metadata, source diagnostics, and a real-world PDF corpus.
+- Reader/PDF: richer form appearance semantics, hostile-layout corpus cases,
+  and OCR hand-off boundaries.
 - Cross-converter: a shared conversion proof contract that records source
   features, emitted PDF features, warnings, raster/text/logical checks, and
   accepted degradations for each scenario.
@@ -312,12 +322,54 @@ Available now:
   and PowerPoint scenarios.
 - `Build/Export-PdfVisualReviewGallery.ps1` exports the current visual review
   PDFs and an index under `artifacts/pdf-visual-review` by default.
+- `.github/workflows/pdf-visual-review-gallery.yml` generates the same gallery
+  in CI for PDF/converter changes and uploads the review index, scenario
+  manifest, proof summary, PDFs, positioned-review HTML, and editable
+  reverse-conversion Office artifacts as a PR artifact. CI artifact generation
+  skips strict Poppler raster comparison by default so reviewers still receive
+  proof bundles when visual baselines drift; manual dispatch can opt into the
+  strict raster lane.
+- The gallery now includes a first invoice/statement proof generated through
+  the Markdown-to-PDF adapter, with line-item and summary tables, right-aligned
+  numeric columns, payment-term list items, and explicit readback markers.
+- The dashboard proof is now covered by `excel-dashboard-report.pdf`, generated
+  from a workbook with a chart snapshot, worksheet image, conditional
+  formatting, header/footer, print area, and fit-to-page setup.
+- The PowerPoint proof now includes `powerpoint-layout-theme-groups.pdf`, which
+  exercises custom slide size, theme colors, a gradient background, text boxes,
+  grouped shapes, and a group transform with raw PDF geometry checks.
+- The readback proof now includes `pdf-logical-diagnostics-source.pdf` and a
+  positioned review HTML companion, with explicit logical-image placement
+  geometry, named numeric table-column profiles, and
+  `PdfLogicalTableDiagnostics` confidence checks. Its summary artifact also
+  records Reader/PDF image visual geometry, table confidence, and chunk-level
+  table/image geometry coverage.
+- The Reader/PDF degradation corpus now includes
+  `pdf-reader-degradation-corpus.pdf` and a JSON accepted-degradation summary,
+  proving readable page text, a safe URI link, typed form metadata, passive
+  document-open, page, and annotation action summaries plus active-content
+  diagnostics without emitting script
+  payload text.
+- The Reader/PDF hostile-layout corpus now includes
+  `pdf-reader-hostile-layout-corpus.pdf` and a JSON accepted-degradation
+  summary, proving close-column text readback, rotated text readback, and
+  non-axis-aligned image geometry without claiming perfect reading order or
+  editable layout reconstruction.
+- The Reader/PDF hostile-table corpus now includes
+  `pdf-reader-hostile-table-corpus.pdf` and a JSON accepted-degradation
+  summary, proving headerless/jittered table-like bands can surface fallback
+  columns, numeric-column hints, table geometry, and less-than-perfect
+  confidence diagnostics without claiming editable spreadsheet reconstruction.
+- The HTML proof now includes `html-css-resource-policy.pdf`, using the trusted
+  document profile to allow a local stylesheet, embed a data URI image, and
+  report a blocked remote stylesheet through the shared conversion report. Its
+  summary artifact records the declared stylesheet/image resource policy.
 
 Important gaps:
 
-- CI artifact upload for the visual gallery.
-- More multilingual, compliance, form-heavy, dashboard, invoice/statement,
-  technical document, slide, spreadsheet, and hostile-layout scenarios.
+- More multilingual, compliance, form-heavy, additional dashboard,
+  invoice/statement, technical document, slide, spreadsheet, and external
+  corpus scenarios.
 - A release workflow that attaches the same gallery reviewers inspect locally.
 
 ### Compliance Proof
@@ -525,7 +577,7 @@ Make the adapter lanes clear and safe:
 - declare the supported CSS/resource subset,
 - add trusted/untrusted examples,
 - publish Reader.Pdf chunk metadata expectations,
-- build a small real-world PDF/HTML corpus with accepted degradation notes,
+- expand the small PDF/HTML corpus with accepted degradation notes,
 - document security and active-content handling for Reader/PDF and PDF-to-HTML
   review workflows.
 
@@ -543,9 +595,9 @@ Make conversion accuracy observable instead of implied:
   hashes, extracted text, logical objects, raster pages, and optional validator
   evidence,
 - make `Build/Export-PdfVisualReviewGallery.ps1` emit machine-readable scenario
-  metadata beside the current PDF gallery,
-- add a CI artifact upload for the visual review gallery so reviewers inspect
-  the same PDFs that the tests generated,
+  metadata beside the current PDF gallery and publish that gallery through the
+  `PDF Visual Review Gallery` workflow so reviewers inspect the same PDFs that
+  the tests generated,
 - keep editable PDF-to-Office reconstruction out of scope until logical readback
   has enough table, coordinate, image, and form evidence to make it honest.
 
@@ -598,8 +650,8 @@ adapters:
   scaling, media, and SmartArt fallbacks.
 - Markdown/HTML: declared CSS subset, stronger paginated panels, resource-policy
   examples, and broader visual fixture families.
-- Reader/PDF: richer table confidence, image geometry, form metadata, source
-  diagnostics, and security metadata exposed in stable chunk contracts.
+- Reader/PDF: richer form appearance rendering semantics and hostile-layout
+  cases exposed in stable chunk contracts.
 
 Exit criterion: each converter improvement either lands in `OfficeIMO.Pdf` or
 `OfficeIMO.Drawing` as reusable behavior first, or documents why it is genuinely

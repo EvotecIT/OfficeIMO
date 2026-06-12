@@ -1,6 +1,7 @@
 using OfficeIMO.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Tests.Pdf;
 using System.Text;
 using System.Text.Json;
 using Xunit;
@@ -28,6 +29,40 @@ public sealed class ReaderPdfModularTests {
             Assert.True(c.TokenEstimate.HasValue && c.TokenEstimate.Value >= 1);
             Assert.Equal(pdf.Length, c.SourceLengthBytes);
             Assert.Null(c.SourceLastWriteUtc);
+            Assert.NotNull(c.Diagnostics);
+            Assert.Equal("pdf", c.Diagnostics!.SourceKind);
+            Assert.Equal(2, c.Diagnostics.PageCount);
+            Assert.Equal(2, c.Diagnostics.SelectedPageCount);
+            Assert.Equal(c.Location.Page, c.Diagnostics.PageNumber);
+            Assert.False(c.Diagnostics.HasSecurityState);
+            Assert.False(c.Diagnostics.HasEncryption);
+            Assert.False(c.Diagnostics.HasSignatures);
+            Assert.False(c.Diagnostics.HasIncrementalUpdates);
+            Assert.False(c.Diagnostics.RequiresAppendOnlyMutation);
+            Assert.False(c.Diagnostics.HasOpenAction);
+            Assert.False(c.Diagnostics.HasCatalogActions);
+            Assert.False(c.Diagnostics.HasPageActions);
+            Assert.False(c.Diagnostics.HasAnnotationActions);
+            Assert.False(c.Diagnostics.HasActiveContent);
+            Assert.Equal(0, c.Diagnostics.CatalogActionCount);
+            Assert.Equal(0, c.Diagnostics.PageActionCount);
+            Assert.Equal(0, c.Diagnostics.SelectedPageActionCount);
+            Assert.Equal(0, c.Diagnostics.AnnotationActionCount);
+            Assert.Equal(0, c.Diagnostics.SelectedAnnotationActionCount);
+            Assert.Equal(0, c.Diagnostics.TableCount);
+            Assert.Equal(0, c.Diagnostics.TableGeometryCount);
+            Assert.Equal(0D, c.Diagnostics.TableGeometryCoverage);
+            Assert.Null(c.Diagnostics.MinTableConfidence);
+            Assert.Null(c.Diagnostics.AverageTableConfidence);
+            Assert.Equal(0, c.Diagnostics.ImageCount);
+            Assert.Equal(0, c.Diagnostics.ImageGeometryCount);
+            Assert.Equal(0D, c.Diagnostics.ImageGeometryCoverage);
+            Assert.Equal(0, c.Diagnostics.FormFieldCount);
+            Assert.Equal(0, c.Diagnostics.FormWidgetCount);
+            Assert.Equal(0, c.Diagnostics.SelectedFormWidgetCount);
+            Assert.Equal(0, c.Diagnostics.SelectedFormWidgetAppearanceStateCount);
+            Assert.Equal(0D, c.Diagnostics.SelectedFormWidgetAppearanceStateCoverage);
+            Assert.Equal(0, c.Diagnostics.SelectedFormWidgetNormalAppearanceStateCount);
         });
         Assert.Contains(chunks, c => c.Location.Page == 1 && (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Location.Page == 2 && (c.Markdown ?? c.Text).Contains("Reader PDF page two", StringComparison.Ordinal));
@@ -64,6 +99,33 @@ public sealed class ReaderPdfModularTests {
 
         var chunk = Assert.Single(chunks);
         Assert.Equal(2, chunk.Location.Page);
+        Assert.Contains("Reader PDF page two", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Reader PDF page one", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfLogicalDocument_FiltersOpenActionToSelectedPages() {
+        byte[] pdf = PdfDocument.Create()
+            .OpenAction(pageNumber: 1, destinationMode: PdfOpenActionDestinationMode.Fit)
+            .H1("Reader PDF page one")
+            .Paragraph(p => p.Text("First page body."))
+            .PageBreak()
+            .H1("Reader PDF page two")
+            .Paragraph(p => p.Text("Second page body."))
+            .ToBytes();
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            logical,
+            sourceName: "logical-open-action-ranges.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] { PdfPageRange.From(2, 2) }
+            }).ToList());
+
+        Assert.Equal(2, chunk.Location.Page);
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.False(chunk.Diagnostics!.HasOpenAction);
+        Assert.Null(chunk.Actions);
         Assert.Contains("Reader PDF page two", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("Reader PDF page one", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
     }
@@ -182,6 +244,28 @@ public sealed class ReaderPdfModularTests {
         Assert.Contains(root.GetProperty("blocks").EnumerateArray(), block =>
             block.GetProperty("location").GetProperty("page").GetInt32() == 2 &&
             block.GetProperty("text").GetString()!.Contains("Reader PDF page two", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocumentJson_EmitsStructuredChunkMetadata() {
+        byte[] pdf = BuildOpenAndCatalogActionsPdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        string json = DocumentReaderPdfExtensions.ReadPdfDocumentJson(
+            stream,
+            sourceName: "open-catalog-actions.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement chunk = document.RootElement.GetProperty("chunks")[0];
+        Assert.True(chunk.GetProperty("diagnostics").GetProperty("hasCatalogActions").GetBoolean());
+        Assert.Equal(1, chunk.GetProperty("diagnostics").GetProperty("catalogActionCount").GetInt32());
+        Assert.Contains(chunk.GetProperty("actions").EnumerateArray(), action =>
+            action.GetProperty("scope").GetString() == "DocumentOpen" &&
+            action.GetProperty("destinationPageNumber").GetInt32() == 1);
+        Assert.Contains(chunk.GetProperty("actions").EnumerateArray(), action =>
+            action.GetProperty("scope").GetString() == "Catalog" &&
+            action.GetProperty("name").GetString() == "Startup");
     }
 
     [Fact]
@@ -480,6 +564,30 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfLogicalDocument_RangedReadOmitsCatalogActions() {
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPageCatalogActionsPdf());
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            logical,
+            sourceName: "partial-catalog-actions.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                PageRanges = new[] {
+                    PdfPageRange.From(2, 2)
+                }
+            },
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.Equal(2, chunk.Location.Page);
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.False(chunk.Diagnostics!.HasCatalogActions);
+        Assert.False(chunk.Diagnostics.HasActiveContent);
+        Assert.Equal(0, chunk.Diagnostics.CatalogActionCount);
+        Assert.Null(chunk.Actions);
+        Assert.Contains("Second catalog-safe page", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("First catalog page", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ExposesDetectedTables() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
@@ -514,6 +622,14 @@ public sealed class ReaderPdfModularTests {
             },
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
 
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.Equal(1, chunk.Diagnostics!.TableCount);
+        Assert.Equal(1, chunk.Diagnostics.TableGeometryCount);
+        Assert.Equal(1D, chunk.Diagnostics.TableGeometryCoverage, 3);
+        Assert.True(chunk.Diagnostics.MinTableConfidence >= 0.95D);
+        Assert.True(chunk.Diagnostics.AverageTableConfidence >= 0.95D);
+        Assert.Equal(0, chunk.Diagnostics.ImageCount);
+        Assert.Equal(0D, chunk.Diagnostics.ImageGeometryCoverage);
         Assert.NotNull(chunk.Tables);
         var table = Assert.Single(chunk.Tables!);
         Assert.NotNull(table.Location);
@@ -531,6 +647,14 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(2, table.ColumnProfiles[2].NonEmptyCellCount);
         Assert.Equal(2, table.ColumnProfiles[2].NumericCellCount);
         Assert.Equal(1d, table.ColumnProfiles[2].Confidence);
+        Assert.NotNull(table.Diagnostics);
+        Assert.True(table.Diagnostics!.HasGeometry);
+        Assert.True(table.Diagnostics.Width > 0);
+        Assert.True(table.Diagnostics.Height > 0);
+        Assert.Equal(1D, table.Diagnostics.SchemaConfidence, 3);
+        Assert.Equal(1D, table.Diagnostics.CellCompleteness, 3);
+        Assert.Equal(1D, table.Diagnostics.ColumnGeometryConfidence, 3);
+        Assert.True(table.Diagnostics.Confidence >= 0.95D);
         Assert.Equal(2, table.TotalRowCount);
         Assert.False(table.Truncated);
         Assert.Equal(2, table.Rows.Count);
@@ -620,6 +744,9 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal("tables-only.pdf", table.Location?.Path);
         Assert.Equal(1, table.Location?.Page);
         Assert.Equal(new[] { "Code", "Name", "Qty" }, table.Columns);
+        Assert.NotNull(table.Diagnostics);
+        Assert.True(table.Diagnostics!.HasGeometry);
+        Assert.True(table.Diagnostics.Confidence >= 0.95D);
         Assert.Equal(2, table.TotalRowCount);
         Assert.Equal(new[] { "B-200", "Beta", "14" }, table.Rows[1]);
 
@@ -634,6 +761,332 @@ public sealed class ReaderPdfModularTests {
             }));
         Assert.Equal("tables-only-page-0001-table-0000", export.Id);
         Assert.Contains("A-100,Alpha,2", export.Csv, StringComparison.Ordinal);
+        using JsonDocument exportJson = JsonDocument.Parse(export.Json);
+        Assert.True(exportJson.RootElement.GetProperty("diagnostics").GetProperty("hasGeometry").GetBoolean());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ExposesFormAndSourceDiagnostics() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 240,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Reader PDF form marker."))
+            .TextField("Contact.Email", value: "info@example.com", width: 180, height: 24)
+            .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
+            .ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "form.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                LayoutOptions = new PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                }
+            },
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.Equal(1, chunk.Diagnostics!.PageCount);
+        Assert.Equal(1, chunk.Diagnostics.SelectedPageCount);
+        Assert.Equal(1, chunk.Diagnostics.PageNumber);
+        Assert.Equal(2, chunk.Diagnostics.FormFieldCount);
+        Assert.Equal(2, chunk.Diagnostics.FormWidgetCount);
+        Assert.Equal(2, chunk.Diagnostics.SelectedFormWidgetCount);
+        Assert.False(chunk.Diagnostics.HasSecurityState);
+        Assert.NotNull(chunk.FormFields);
+        Assert.Equal(2, chunk.FormFields!.Count);
+
+        ReaderFormField email = Assert.Single(chunk.FormFields, field => field.Name == "Contact.Email");
+        Assert.Equal(ReaderFormFieldKind.Text, email.Kind);
+        Assert.Equal("Tx", email.FieldType);
+        Assert.Equal("info@example.com", email.Value);
+        Assert.Equal(new[] { "info@example.com" }, email.Values);
+        Assert.Equal(1, email.WidgetCount);
+        Assert.Equal(new[] { 1 }, email.PageNumbers);
+        ReaderFormWidget emailWidget = Assert.Single(email.Widgets);
+        Assert.Equal(1, emailWidget.PageNumber);
+        Assert.True(emailWidget.Width > 0);
+        Assert.True(emailWidget.Height > 0);
+
+        ReaderFormField country = Assert.Single(chunk.FormFields, field => field.Name == "Contact.Country");
+        Assert.Equal(ReaderFormFieldKind.Choice, country.Kind);
+        Assert.Equal("Ch", country.FieldType);
+        Assert.Equal("PL", country.Value);
+        Assert.Equal(new[] { "PL" }, country.Values);
+        Assert.Equal(2, country.OptionCount);
+        Assert.Equal(1, country.SelectedOptionCount);
+        Assert.Equal(1, country.WidgetCount);
+        Assert.Contains("Reader PDF form marker", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+
+        using JsonDocument document = JsonDocument.Parse(new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Pdf,
+            Chunks = new[] { chunk }
+        }.ToJson());
+        JsonElement jsonChunk = document.RootElement.GetProperty("chunks")[0];
+        Assert.Equal(2, jsonChunk.GetProperty("formFields").GetArrayLength());
+        Assert.Equal("Contact.Email", jsonChunk.GetProperty("formFields")[0].GetProperty("name").GetString());
+        Assert.Equal(2, jsonChunk.GetProperty("diagnostics").GetProperty("formFieldCount").GetInt32());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ExposesFormWidgetAppearanceStates() {
+        byte[] pdf = BuildWidgetAppearanceFormPdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "widget-appearance.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.Equal(1, chunk.Diagnostics!.FormFieldCount);
+        Assert.Equal(1, chunk.Diagnostics.FormWidgetCount);
+        Assert.Equal(1, chunk.Diagnostics.SelectedFormWidgetCount);
+        Assert.Equal(1, chunk.Diagnostics.SelectedFormWidgetAppearanceStateCount);
+        Assert.Equal(1D, chunk.Diagnostics.SelectedFormWidgetAppearanceStateCoverage, 3);
+        Assert.Equal(2, chunk.Diagnostics.SelectedFormWidgetNormalAppearanceStateCount);
+
+        Assert.NotNull(chunk.FormFields);
+        ReaderFormField field = Assert.Single(chunk.FormFields!);
+        Assert.Equal("AcceptTerms", field.Name);
+        Assert.Equal(ReaderFormFieldKind.Button, field.Kind);
+        Assert.Equal("Yes", field.Value);
+        ReaderFormWidget widget = Assert.Single(field.Widgets);
+        Assert.Equal("Yes", widget.AppearanceState);
+        Assert.Equal(2, widget.NormalAppearanceStateCount);
+        Assert.Equal(new[] { "Off", "Yes" }, widget.NormalAppearanceStates);
+        Assert.True(widget.IsPrint);
+        Assert.False(widget.IsHidden);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ChunkHashIncludesActionMetadata() {
+        ReaderOptions readerOptions = new() {
+            MaxChars = 8_000,
+            ComputeHashes = true
+        };
+
+        ReaderChunk first = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            new MemoryStream(BuildOpenActionHashPdf(120), writable: false),
+            sourceName: "action-hash.pdf",
+            readerOptions: readerOptions).ToList());
+        ReaderChunk second = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            new MemoryStream(BuildOpenActionHashPdf(160), writable: false),
+            sourceName: "action-hash.pdf",
+            readerOptions: readerOptions).ToList());
+
+        Assert.Equal(first.Text, second.Text);
+        Assert.NotNull(first.Actions);
+        Assert.NotNull(second.Actions);
+        Assert.Equal(120D, Assert.Single(first.Actions!).DestinationTop);
+        Assert.Equal(160D, Assert.Single(second.Actions!).DestinationTop);
+        Assert.False(string.IsNullOrWhiteSpace(first.ChunkHash));
+        Assert.False(string.IsNullOrWhiteSpace(second.ChunkHash));
+        Assert.NotEqual(first.ChunkHash, second.ChunkHash);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ExposesImageVisualGeometry() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 300,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Reader PDF visual marker."))
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 48, 32, alternativeText: "Reader visual badge")
+            .ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "image-visual.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.Equal(1, chunk.Diagnostics!.ImageCount);
+        Assert.Equal(1, chunk.Diagnostics.ImageGeometryCount);
+        Assert.Equal(1D, chunk.Diagnostics.ImageGeometryCoverage, 3);
+        Assert.Equal(0, chunk.Diagnostics.TableCount);
+        Assert.Equal(0, chunk.Diagnostics.TableGeometryCount);
+        Assert.Equal(0D, chunk.Diagnostics.TableGeometryCoverage);
+        Assert.Null(chunk.Diagnostics.MinTableConfidence);
+        Assert.Null(chunk.Diagnostics.AverageTableConfidence);
+        Assert.NotNull(chunk.Visuals);
+        ReaderVisual visual = Assert.Single(chunk.Visuals!);
+        Assert.Equal("image", visual.Kind);
+        Assert.Equal("pdf-image", visual.Language);
+        Assert.Equal(1, visual.Location!.Page);
+        Assert.Equal("image", visual.Location.SourceBlockKind);
+        Assert.Equal("page-1-selection-0000-image-0", visual.Location.BlockAnchor);
+        Assert.False(string.IsNullOrWhiteSpace(visual.SourceName));
+        Assert.Equal("image/png", visual.MimeType);
+        Assert.Equal(3D, visual.Width);
+        Assert.Equal(2D, visual.Height);
+        Assert.Equal(48D, visual.PlacedWidth!.Value, 3);
+        Assert.Equal(32D, visual.PlacedHeight!.Value, 3);
+        Assert.Equal(1, visual.PlacementCount);
+        Assert.True(visual.HasGeometry);
+        Assert.True(visual.IsAxisAligned);
+        Assert.False(string.IsNullOrWhiteSpace(visual.PayloadHash));
+        Assert.Contains("Reader PDF visual marker", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+
+        ReaderVisual extracted = Assert.Single(DocumentReader.ExtractVisuals(new[] { chunk }));
+        Assert.Equal("image-visual.pdf", extracted.Location?.Path);
+        Assert.Equal("image/png", extracted.MimeType);
+        Assert.Equal(48D, extracted.PlacedWidth!.Value, 3);
+        Assert.Equal(32D, extracted.PlacedHeight!.Value, 3);
+        Assert.Equal(1, extracted.PlacementCount);
+        Assert.True(extracted.HasGeometry);
+        Assert.True(extracted.IsAxisAligned);
+        using JsonDocument visualJson = JsonDocument.Parse(extracted.ToJson());
+        Assert.Equal("image/png", visualJson.RootElement.GetProperty("mimeType").GetString());
+        Assert.True(visualJson.RootElement.GetProperty("hasGeometry").GetBoolean());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ExposesActiveContentDiagnostics() {
+        byte[] pdf = BuildPageAdditionalActionsPdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "active.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.Equal(1, chunk.Diagnostics!.PageCount);
+        Assert.Equal(1, chunk.Diagnostics.PageNumber);
+        Assert.False(chunk.Diagnostics.HasOpenAction);
+        Assert.False(chunk.Diagnostics.HasCatalogActions);
+        Assert.True(chunk.Diagnostics.HasPageActions);
+        Assert.False(chunk.Diagnostics.HasAnnotationActions);
+        Assert.True(chunk.Diagnostics.HasActiveContent);
+        Assert.Equal(0, chunk.Diagnostics.CatalogActionCount);
+        Assert.Equal(2, chunk.Diagnostics.PageActionCount);
+        Assert.Equal(2, chunk.Diagnostics.SelectedPageActionCount);
+        Assert.Equal(0, chunk.Diagnostics.AnnotationActionCount);
+        Assert.Equal(0, chunk.Diagnostics.SelectedAnnotationActionCount);
+        Assert.NotNull(chunk.Actions);
+        Assert.Equal(2, chunk.Actions!.Count);
+        ReaderActionSummary openAction = Assert.Single(chunk.Actions, action => action.ActionPath == "O");
+        Assert.Equal(ReaderActionScope.Page, openAction.Scope);
+        Assert.Equal("JavaScript", openAction.ActionType);
+        Assert.Equal("Page/AA", openAction.Source);
+        Assert.Equal("O", openAction.TriggerName);
+        Assert.Equal(1, openAction.PageNumber);
+        Assert.False(openAction.IsChainedAction);
+        ReaderActionSummary closeAction = Assert.Single(chunk.Actions, action => action.ActionPath == "C");
+        Assert.Equal("Launch", closeAction.ActionType);
+        Assert.Equal("C", closeAction.TriggerName);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ExposesOpenAndCatalogActionSummaries() {
+        byte[] pdf = BuildOpenAndCatalogActionsPdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "open-catalog-actions.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.True(chunk.Diagnostics!.HasOpenAction);
+        Assert.True(chunk.Diagnostics.HasCatalogActions);
+        Assert.False(chunk.Diagnostics.HasPageActions);
+        Assert.False(chunk.Diagnostics.HasAnnotationActions);
+        Assert.True(chunk.Diagnostics.HasActiveContent);
+        Assert.Equal(1, chunk.Diagnostics.CatalogActionCount);
+        Assert.Equal(0, chunk.Diagnostics.PageActionCount);
+        Assert.Equal(0, chunk.Diagnostics.SelectedPageActionCount);
+        Assert.Equal(0, chunk.Diagnostics.AnnotationActionCount);
+        Assert.Equal(0, chunk.Diagnostics.SelectedAnnotationActionCount);
+        Assert.NotNull(chunk.Actions);
+        Assert.Equal(2, chunk.Actions!.Count);
+
+        ReaderActionSummary openAction = Assert.Single(chunk.Actions, action => action.Scope == ReaderActionScope.DocumentOpen);
+        Assert.Equal("Destination", openAction.ActionType);
+        Assert.Equal("OpenAction", openAction.Source);
+        Assert.Equal(1, openAction.DestinationPageNumber);
+        Assert.Equal("FitHorizontal", openAction.DestinationMode);
+        Assert.Equal(180D, openAction.DestinationTop);
+        Assert.Null(openAction.Name);
+        Assert.Null(openAction.TriggerName);
+        Assert.Null(openAction.ActionPath);
+
+        ReaderActionSummary catalogAction = Assert.Single(chunk.Actions, action => action.Scope == ReaderActionScope.Catalog);
+        Assert.Equal("JavaScript", catalogAction.ActionType);
+        Assert.Equal("Names/JavaScript", catalogAction.Source);
+        Assert.Equal("Startup", catalogAction.Name);
+        Assert.Null(catalogAction.TriggerName);
+        Assert.Null(catalogAction.ActionPath);
+        Assert.Null(catalogAction.DestinationPageNumber);
+        Assert.DoesNotContain("app.alert", catalogAction.Name ?? string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain("app.alert", catalogAction.ActionType, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ExposesAnnotationActionSummariesWithoutPayloads() {
+        byte[] pdf = BuildAnnotationActionsPdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "annotation-actions.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.False(chunk.Diagnostics!.HasCatalogActions);
+        Assert.False(chunk.Diagnostics.HasPageActions);
+        Assert.True(chunk.Diagnostics.HasAnnotationActions);
+        Assert.True(chunk.Diagnostics.HasActiveContent);
+        Assert.Equal(3, chunk.Diagnostics.AnnotationActionCount);
+        Assert.Equal(3, chunk.Diagnostics.SelectedAnnotationActionCount);
+        Assert.NotNull(chunk.Actions);
+        Assert.Equal(3, chunk.Actions!.Count);
+
+        ReaderActionSummary primaryAction = Assert.Single(chunk.Actions, action => action.Source == "Annotation/A");
+        Assert.Equal(ReaderActionScope.Annotation, primaryAction.Scope);
+        Assert.Equal("JavaScript", primaryAction.ActionType);
+        Assert.Equal("Link", primaryAction.Name);
+        Assert.Equal("A", primaryAction.ActionPath);
+        Assert.Equal(1, primaryAction.PageNumber);
+        Assert.False(primaryAction.IsChainedAction);
+
+        ReaderActionSummary additionalAction = Assert.Single(chunk.Actions, action => action.Source == "Annotation/AA");
+        Assert.Equal("Launch", additionalAction.ActionType);
+        Assert.Equal("Text", additionalAction.Name);
+        Assert.Equal("E", additionalAction.TriggerName);
+        Assert.Equal("AA.E", additionalAction.ActionPath);
+        Assert.Equal(1, additionalAction.PageNumber);
+        Assert.False(additionalAction.IsChainedAction);
+
+        ReaderActionSummary chainedAction = Assert.Single(chunk.Actions, action => action.Source == "Annotation/Next");
+        Assert.Equal("Launch", chainedAction.ActionType);
+        Assert.Equal("A", chainedAction.TriggerName);
+        Assert.Equal("A.Next", chainedAction.ActionPath);
+        Assert.True(chainedAction.IsChainedAction);
+
+        string markdown = chunk.Markdown ?? chunk.Text;
+        Assert.DoesNotContain("app.alert", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("tool.exe", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("chain.exe", markdown, StringComparison.Ordinal);
+        Assert.All(chunk.Actions, action => {
+            Assert.DoesNotContain("app.alert", action.ActionType, StringComparison.Ordinal);
+            Assert.DoesNotContain("tool.exe", action.ActionType, StringComparison.Ordinal);
+            Assert.DoesNotContain("chain.exe", action.ActionType, StringComparison.Ordinal);
+        });
     }
 
     [Fact]
@@ -1157,6 +1610,258 @@ public sealed class ReaderPdfModularTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTwoPageCatalogActionsPdf() {
+        string first = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(First catalog page) Tj",
+            "ET"
+        });
+        string second = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Second catalog-safe page) Tj",
+            "ET"
+        });
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /Names << /JavaScript << /Names [(Startup) 7 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 8 0 R >> >> /Contents 5 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 8 0 R >> >> /Contents 6 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(first).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            first,
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(second).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            second,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /S /JavaScript /JS (app.alert('OfficeIMO')) >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildPageAdditionalActionsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /AA << /O << /S /JavaScript /JS (app.alert('Page open')) >> /C << /S /Launch /F (tool.exe) >> >> >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 5 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildWidgetAppearanceFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Btn /T (AcceptTerms) /V /Yes /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 36 116] /F 4 /AS /Yes /AP << /N << /Off 9 0 R /Yes 10 0 R >> >> >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "10 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 11 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildOpenActionHashPdf(double destinationTop) {
+        string destinationTopText = destinationTop.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string content = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Action hash marker) Tj",
+            "ET"
+        });
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /FitH " + destinationTopText + "] >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildOpenAndCatalogActionsPdf() {
+        string content = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Open and catalog action marker) Tj",
+            "ET"
+        });
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /FitH 180] /Names << /JavaScript << /Names [(Startup) 5 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 6 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /S /JavaScript /JS (app.alert('OfficeIMO')) >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildAnnotationActionsPdf() {
+        string content = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Annotation action marker) Tj",
+            "ET"
+        });
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 8 0 R >> >> /Contents 4 0 R /Annots [5 0 R 7 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [40 150 180 172] /A << /S /JavaScript /JS (app.alert('Annotation')) /Next 6 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /Launch /F (chain.exe) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Annot /Subtype /Text /Rect [40 120 80 150] /Contents (Review note) /AA << /E << /S /Launch /F (tool.exe) >> >> >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
             "%%EOF"
         }) + "\n";
 

@@ -116,15 +116,65 @@ public partial class PdfLogicalDocumentTests {
 
         PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
         Assert.Equal(3, data.ColumnProfiles.Count);
+        Assert.Equal(new[] { "Code", "Qty", "Mixed" }, data.Columns);
         Assert.Equal(PdfLogicalTableColumnKind.Text, data.ColumnProfiles[0].Kind);
         Assert.Equal(PdfLogicalTableColumnKind.Numeric, data.ColumnProfiles[1].Kind);
         Assert.Equal(PdfLogicalTableColumnKind.Mixed, data.ColumnProfiles[2].Kind);
+        Assert.Equal("Qty", data.ColumnProfiles[1].Name);
         Assert.False(data.IsNumericColumn(0));
         Assert.True(data.IsNumericColumn(1));
         Assert.False(data.IsNumericColumn(2));
         Assert.Equal(2, data.ColumnProfiles[1].NonEmptyCellCount);
         Assert.Equal(2, data.ColumnProfiles[1].NumericCellCount);
         Assert.Equal(0.5d, data.ColumnProfiles[2].Confidence);
+    }
+
+    [Fact]
+    public void TableAnalysis_RecoversGeneratedHeaderBandForColumnProfiles() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 460,
+                PageHeight = 380,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .H1("Revenue Readback Diagnostics")
+            .Paragraph(paragraph => paragraph.Text("Image geometry and table confidence marker."))
+            .Table(new[] {
+                new[] { "Metric", "Score", "Owner" },
+                new[] { "Renewal quality", "97", "Finance" },
+                new[] { "Pipeline coverage", "84", "Sales" },
+                new[] { "Risk burn-down", "76", "Operations" }
+            }, style: new PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 150, 70, 110 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+
+        PdfLogicalTable table = Assert.Single(PdfLogicalDocument.Load(pdf, new PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        }).Pages[0].Tables);
+
+        PdfLogicalTableData data = PdfLogicalTableAnalysis.Extract(table);
+        PdfLogicalTableColumnProfile scoreProfile = Assert.Single(data.ColumnProfiles, profile => profile.Name == "Score");
+
+        Assert.Equal(new[] { "Metric", "Score", "Owner" }, data.Columns);
+        Assert.Equal(3, data.Rows.Count);
+        Assert.Equal(new[] { "Renewal quality", "97", "Finance" }, data.Rows[0]);
+        Assert.True(data.Diagnostics.HasGeometry);
+        Assert.True(data.Diagnostics.Width > 0);
+        Assert.True(data.Diagnostics.Height > 0);
+        Assert.True(data.Diagnostics.Confidence >= 0.95D);
+        Assert.Equal(1D, data.Diagnostics.SchemaConfidence, 3);
+        Assert.Equal(1D, data.Diagnostics.CellCompleteness, 3);
+        Assert.Equal(1D, data.Diagnostics.ColumnGeometryConfidence, 3);
+        Assert.Equal(PdfLogicalTableColumnKind.Numeric, scoreProfile.Kind);
+        Assert.Equal(3, scoreProfile.NumericCellCount);
+        Assert.Equal(1D, scoreProfile.Confidence, 3);
     }
 
     [Fact]

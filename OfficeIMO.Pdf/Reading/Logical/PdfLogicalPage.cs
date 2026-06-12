@@ -20,6 +20,7 @@ public sealed class PdfLogicalPage {
         IReadOnlyList<PdfLogicalTable> tables,
         IReadOnlyList<PdfLogicalImage> images,
         IReadOnlyList<PdfLogicalLinkAnnotation> links,
+        IReadOnlyList<PdfAnnotation> annotations,
         IReadOnlyList<PdfLinkAnnotation> linkAnnotations,
         IReadOnlyList<PdfLogicalFormWidget> formWidgets,
         IReadOnlyList<PdfPageAction> pageActions) {
@@ -36,6 +37,7 @@ public sealed class PdfLogicalPage {
         Tables = tables;
         Images = images;
         Links = links;
+        Annotations = annotations;
         LinkAnnotations = linkAnnotations;
         FormWidgets = formWidgets;
         PageActions = pageActions;
@@ -153,6 +155,15 @@ public sealed class PdfLogicalPage {
     /// <summary>URI, named-destination, direct-destination, named-action, and remote GoTo link annotations on the page.</summary>
     public IReadOnlyList<PdfLogicalLinkAnnotation> Links { get; }
 
+    /// <summary>Generic page annotations read from the page, including any primary, additional, or chained actions.</summary>
+    public IReadOnlyList<PdfAnnotation> Annotations { get; }
+
+    /// <summary>Number of generic page annotations read from the page.</summary>
+    public int AnnotationCount => Annotations.Count;
+
+    /// <summary>True when the page has at least one generic annotation.</summary>
+    public bool HasAnnotations => AnnotationCount > 0;
+
     /// <summary>Simple link annotations read from the page.</summary>
     public IReadOnlyList<PdfLinkAnnotation> LinkAnnotations { get; }
 
@@ -228,6 +239,12 @@ public sealed class PdfLogicalPage {
             elements.Add(logicalLink);
         }
 
+        IReadOnlyList<PdfAnnotation> readAnnotations = page.GetAnnotations();
+        var annotations = new List<PdfAnnotation>(readAnnotations.Count);
+        for (int i = 0; i < readAnnotations.Count; i++) {
+            annotations.Add(readAnnotations[i].WithPageNumber(pageNumber));
+        }
+
         if (formFields is not null) {
             for (int fieldIndex = 0; fieldIndex < formFields.Count; fieldIndex++) {
                 PdfFormField field = formFields[fieldIndex];
@@ -262,6 +279,7 @@ public sealed class PdfLogicalPage {
             tables.AsReadOnly(),
             images.AsReadOnly(),
             links.AsReadOnly(),
+            annotations.AsReadOnly(),
             linkAnnotations.AsReadOnly(),
             formWidgets.AsReadOnly(),
             pageActions.AsReadOnly());

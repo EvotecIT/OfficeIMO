@@ -133,7 +133,18 @@ public static partial class DocumentReader {
             Language = visual.Language,
             Content = visual.Content,
             PayloadHash = visual.PayloadHash,
-            Location = MergeVisualLocation(visual.Location, chunkLocation)
+            Location = MergeVisualLocation(visual.Location, chunkLocation),
+            SourceName = visual.SourceName,
+            MimeType = visual.MimeType,
+            Width = visual.Width,
+            Height = visual.Height,
+            X = visual.X,
+            Y = visual.Y,
+            PlacedWidth = visual.PlacedWidth,
+            PlacedHeight = visual.PlacedHeight,
+            PlacementCount = visual.PlacementCount,
+            HasGeometry = visual.HasGeometry,
+            IsAxisAligned = visual.IsAxisAligned
         };
     }
 

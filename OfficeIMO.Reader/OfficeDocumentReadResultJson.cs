@@ -102,6 +102,9 @@ public static class OfficeDocumentReadResultJson {
             markdown = chunk.Markdown,
             tables = ProjectNullableCollection(chunk.Tables, ProjectTable),
             visuals = ProjectNullableCollection(chunk.Visuals, ProjectVisual),
+            formFields = ProjectNullableCollection(chunk.FormFields, ProjectFormField),
+            actions = ProjectNullableCollection(chunk.Actions, ProjectAction),
+            diagnostics = ProjectChunkDiagnostics(chunk.Diagnostics),
             warnings = chunk.Warnings
         };
     }
@@ -145,6 +148,7 @@ public static class OfficeDocumentReadResultJson {
             location = ProjectLocation(table.Location),
             columns = OrEmpty(table.Columns),
             columnProfiles = ProjectCollection(table.ColumnProfiles, ProjectColumnProfile),
+            diagnostics = ProjectTableDiagnostics(table.Diagnostics),
             rows = ProjectRows(table.Rows),
             totalRowCount = table.TotalRowCount,
             truncated = table.Truncated
@@ -227,7 +231,147 @@ public static class OfficeDocumentReadResultJson {
             language = visual.Language,
             content = visual.Content,
             payloadHash = visual.PayloadHash,
+            sourceName = visual.SourceName,
+            mimeType = visual.MimeType,
+            width = visual.Width,
+            height = visual.Height,
+            x = visual.X,
+            y = visual.Y,
+            placedWidth = visual.PlacedWidth,
+            placedHeight = visual.PlacedHeight,
+            placementCount = visual.PlacementCount,
+            hasGeometry = visual.HasGeometry,
+            isAxisAligned = visual.IsAxisAligned,
             location = ProjectLocation(visual.Location)
+        };
+    }
+
+    private static object ProjectFormField(ReaderFormField field) {
+        return new {
+            name = field.Name,
+            partialName = field.PartialName,
+            alternateName = field.AlternateName,
+            mappingName = field.MappingName,
+            fieldType = field.FieldType,
+            kind = field.Kind.ToString(),
+            value = field.Value,
+            values = OrEmpty(field.Values),
+            defaultValue = field.DefaultValue,
+            defaultValues = OrEmpty(field.DefaultValues),
+            maxLength = field.MaxLength,
+            isReadOnly = field.IsReadOnly,
+            isRequired = field.IsRequired,
+            isNoExport = field.IsNoExport,
+            isMultiline = field.IsMultiline,
+            isPassword = field.IsPassword,
+            isComb = field.IsComb,
+            optionCount = field.OptionCount,
+            selectedOptionCount = field.SelectedOptionCount,
+            widgetCount = field.WidgetCount,
+            pageNumbers = OrEmpty(field.PageNumbers),
+            widgets = ProjectCollection(field.Widgets, ProjectFormWidget)
+        };
+    }
+
+    private static object ProjectFormWidget(ReaderFormWidget widget) {
+        return new {
+            fieldName = widget.FieldName,
+            pageNumber = widget.PageNumber,
+            x1 = widget.X1,
+            y1 = widget.Y1,
+            x2 = widget.X2,
+            y2 = widget.Y2,
+            width = widget.Width,
+            height = widget.Height,
+            appearanceState = widget.AppearanceState,
+            isHidden = widget.IsHidden,
+            isPrint = widget.IsPrint,
+            isReadOnly = widget.IsReadOnly,
+            normalAppearanceStateCount = widget.NormalAppearanceStateCount,
+            normalAppearanceStates = OrEmpty(widget.NormalAppearanceStates)
+        };
+    }
+
+    private static object ProjectAction(ReaderActionSummary action) {
+        return new {
+            scope = action.Scope.ToString(),
+            actionType = action.ActionType,
+            source = action.Source,
+            name = action.Name,
+            triggerName = action.TriggerName,
+            actionPath = action.ActionPath,
+            pageNumber = action.PageNumber,
+            isChainedAction = action.IsChainedAction,
+            destinationPageNumber = action.DestinationPageNumber,
+            destinationMode = action.DestinationMode,
+            destinationTop = action.DestinationTop,
+            destinationLeft = action.DestinationLeft,
+            destinationBottom = action.DestinationBottom,
+            destinationRight = action.DestinationRight
+        };
+    }
+
+    private static object? ProjectChunkDiagnostics(ReaderChunkDiagnostics? diagnostics) {
+        if (diagnostics == null) return null;
+
+        return new {
+            sourceKind = diagnostics.SourceKind,
+            pageCount = diagnostics.PageCount,
+            selectedPageCount = diagnostics.SelectedPageCount,
+            pageNumber = diagnostics.PageNumber,
+            tableCount = diagnostics.TableCount,
+            tableGeometryCount = diagnostics.TableGeometryCount,
+            tableGeometryCoverage = diagnostics.TableGeometryCoverage,
+            minTableConfidence = diagnostics.MinTableConfidence,
+            averageTableConfidence = diagnostics.AverageTableConfidence,
+            imageCount = diagnostics.ImageCount,
+            imageGeometryCount = diagnostics.ImageGeometryCount,
+            imageGeometryCoverage = diagnostics.ImageGeometryCoverage,
+            linkCount = diagnostics.LinkCount,
+            hasOpenAction = diagnostics.HasOpenAction,
+            hasCatalogActions = diagnostics.HasCatalogActions,
+            hasPageActions = diagnostics.HasPageActions,
+            hasAnnotationActions = diagnostics.HasAnnotationActions,
+            hasActiveContent = diagnostics.HasActiveContent,
+            catalogActionCount = diagnostics.CatalogActionCount,
+            pageActionCount = diagnostics.PageActionCount,
+            selectedPageActionCount = diagnostics.SelectedPageActionCount,
+            annotationActionCount = diagnostics.AnnotationActionCount,
+            selectedAnnotationActionCount = diagnostics.SelectedAnnotationActionCount,
+            formFieldCount = diagnostics.FormFieldCount,
+            formWidgetCount = diagnostics.FormWidgetCount,
+            selectedFormWidgetCount = diagnostics.SelectedFormWidgetCount,
+            selectedFormWidgetAppearanceStateCount = diagnostics.SelectedFormWidgetAppearanceStateCount,
+            selectedFormWidgetAppearanceStateCoverage = diagnostics.SelectedFormWidgetAppearanceStateCoverage,
+            selectedFormWidgetNormalAppearanceStateCount = diagnostics.SelectedFormWidgetNormalAppearanceStateCount,
+            hasSecurityState = diagnostics.HasSecurityState,
+            hasEncryption = diagnostics.HasEncryption,
+            hasSignatures = diagnostics.HasSignatures,
+            hasIncrementalUpdates = diagnostics.HasIncrementalUpdates,
+            revisionCount = diagnostics.RevisionCount,
+            requiresAppendOnlyMutation = diagnostics.RequiresAppendOnlyMutation
+        };
+    }
+
+    private static object? ProjectTableDiagnostics(ReaderTableDiagnostics? diagnostics) {
+        if (diagnostics == null) return null;
+
+        return new {
+            confidence = diagnostics.Confidence,
+            schemaConfidence = diagnostics.SchemaConfidence,
+            cellCompleteness = diagnostics.CellCompleteness,
+            columnGeometryConfidence = diagnostics.ColumnGeometryConfidence,
+            sourceRowCount = diagnostics.SourceRowCount,
+            expectedCellCount = diagnostics.ExpectedCellCount,
+            filledCellCount = diagnostics.FilledCellCount,
+            missingCellCount = diagnostics.MissingCellCount,
+            xStart = diagnostics.XStart,
+            xEnd = diagnostics.XEnd,
+            yTop = diagnostics.YTop,
+            yBottom = diagnostics.YBottom,
+            width = diagnostics.Width,
+            height = diagnostics.Height,
+            hasGeometry = diagnostics.HasGeometry
         };
     }
 
