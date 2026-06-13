@@ -2,6 +2,12 @@
 
 This folder contains runnable HTML conversion examples for `OfficeIMO.Word.Html`.
 
+## Run
+
+```powershell
+dotnet run --project ..\..\OfficeIMO.Examples.csproj -f net10.0
+```
+
 ## Examples
 
 - `Html00_AllInOne`: comprehensive input (`all.html`) to DOCX and round-trip HTML.

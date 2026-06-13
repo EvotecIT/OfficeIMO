@@ -21,6 +21,41 @@ var options = IntelligenceXMarkdownRenderer.CreateTranscriptDesktopShell();
 string html = MarkdownRenderer.RenderBodyHtml(markdownText, options);
 ```
 
+## Examples
+
+### Render transcript Markdown in the desktop shell profile
+
+````csharp
+using OfficeIMO.MarkdownRenderer;
+using OfficeIMO.MarkdownRenderer.IntelligenceX;
+
+string transcript = """
+# Incident timeline
+
+```ix-chart title="Events"
+{"type":"bar","labels":["09:00","09:15"],"values":[3,8]}
+```
+""";
+
+var options = IntelligenceXMarkdownRenderer.CreateTranscriptDesktopShell();
+string shell = MarkdownRenderer.BuildShellHtml("Investigation", options);
+string update = MarkdownRenderer.RenderUpdateScript(transcript, options);
+````
+
+### Parse with IntelligenceX compatibility transforms
+
+```csharp
+using OfficeIMO.MarkdownRenderer;
+using OfficeIMO.MarkdownRenderer.IntelligenceX;
+
+var options = IntelligenceXMarkdownRenderer.CreateTranscriptDesktopShell();
+MarkdownRendererParseResult result = MarkdownRenderer.ParseDocumentResult(transcript, options);
+
+foreach (var diagnostic in result.TransformDiagnostics) {
+    Console.WriteLine($"{diagnostic.Source}: {diagnostic.TransformName}");
+}
+```
+
 ## What it adds
 
 - IntelligenceX transcript presets and desktop-shell defaults.

@@ -14,9 +14,54 @@ dotnet add package OfficeIMO.Reader.Epub
 ## Register
 
 ```csharp
+using OfficeIMO.Epub;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Epub;
+
+DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(new EpubReadOptions {
+    PreferSpineOrder = true,
+    IncludeRawHtml = false,
+    MaxChapters = 100
+});
+```
+
+## Examples
+
+### Read chapters as Reader chunks
+
+```csharp
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 
 DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler();
+
+foreach (var chunk in DocumentReader.Read("book.epub", new ReaderOptions {
+    MaxChars = 6_000,
+    ComputeHashes = true
+})) {
+    Console.WriteLine($"{chunk.Id}: {chunk.Location.Path}");
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+}
+```
+
+### Read from a stream and surface warnings
+
+```csharp
+using OfficeIMO.Epub;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Epub;
+
+DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(new EpubReadOptions {
+    FallbackToHtmlScan = true,
+    MaxChapterBytes = 2L * 1024L * 1024L
+}, replaceExisting: true);
+
+await using var stream = File.OpenRead("upload.epub");
+var chunks = DocumentReader.Read(stream, "upload.epub").ToList();
+
+foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>())) {
+    Console.WriteLine(warning);
+}
 ```
 
 ## What it emits

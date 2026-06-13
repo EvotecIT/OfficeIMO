@@ -38,6 +38,62 @@ foreach (ZipTraversalWarning warning in result.Warnings) {
 - Enforces depth, entry-count, uncompressed-size, per-entry-size, and compression-ratio limits.
 - Reports traversal warnings for rejected or limited entries.
 
+## Examples
+
+### Enumerate accepted files only
+
+```csharp
+using OfficeIMO.Zip;
+
+IReadOnlyList<ZipEntryDescriptor> entries = ZipTraversal.Enumerate("evidence.zip",
+    new ZipTraversalOptions {
+        DeterministicOrder = true,
+        IncludeDirectoryEntries = false,
+        MaxEntries = 2500
+    });
+
+foreach (var entry in entries.Where(entry => !entry.IsDirectory)) {
+    Console.WriteLine($"{entry.FullName} depth={entry.Depth} bytes={entry.UncompressedLength}");
+}
+```
+
+### Traverse a stream with defensive limits
+
+```csharp
+using OfficeIMO.Zip;
+
+await using var upload = File.OpenRead("upload.zip");
+
+ZipTraversalResult result = ZipTraversal.Traverse(upload, new ZipTraversalOptions {
+    MaxDepth = 6,
+    MaxEntries = 500,
+    MaxEntryUncompressedBytes = 20L * 1024L * 1024L,
+    MaxTotalUncompressedBytes = 100L * 1024L * 1024L,
+    MaxCompressionRatio = 100
+});
+
+if (result.Warnings.Count > 0) {
+    foreach (var warning in result.Warnings) {
+        Console.WriteLine($"{warning.EntryPath}: {warning.Warning}");
+    }
+}
+```
+
+### Use traversal output before extraction
+
+```csharp
+using OfficeIMO.Zip;
+
+var traversal = ZipTraversal.Traverse("incoming.zip");
+var safeJsonEntries = traversal.Entries
+    .Where(entry => entry.FullName.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+    .ToList();
+
+foreach (var entry in safeJsonEntries) {
+    Console.WriteLine($"Queue {entry.FullName} for a separate extraction step.");
+}
+```
+
 ## Boundaries
 
 - This package owns ZIP traversal policy primitives.

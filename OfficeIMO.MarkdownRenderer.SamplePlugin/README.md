@@ -23,6 +23,40 @@ options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
 string html = MarkdownRenderer.RenderBodyHtml(markdownText, options);
 ```
 
+## Examples
+
+### Render a custom status panel fence
+
+````csharp
+using OfficeIMO.MarkdownRenderer;
+using OfficeIMO.MarkdownRenderer.SamplePlugin;
+
+string markdown = """
+# Deployment
+
+```status-panel title="Production" status="green"
+All deployment checks passed.
+```
+""";
+
+var options = MarkdownRendererPresets.CreateStrict();
+SampleMarkdownRenderer.ApplyStatusPanelFeaturePack(options);
+
+string html = MarkdownRenderer.RenderBodyHtml(markdown, options);
+````
+
+### Register matching HTML round-trip hints
+
+```csharp
+using OfficeIMO.Markdown.Html;
+using OfficeIMO.MarkdownRenderer.SamplePlugin;
+
+var htmlOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
+SampleMarkdownRenderer.ApplyHtmlRoundTripHints(htmlOptions);
+
+string markdown = html.ToMarkdown(htmlOptions);
+```
+
 ## What it demonstrates
 
 - Keeping host or product-specific visuals in a plug-in package.

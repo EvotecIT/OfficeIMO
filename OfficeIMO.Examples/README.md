@@ -8,6 +8,14 @@
 dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0
 ```
 
+Run a focused group when you are checking one package:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --pdf-showcase
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --visio-showcase
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint
+```
+
 ## Useful switches
 
 - `--pdf`: run the first-party PDF example set.

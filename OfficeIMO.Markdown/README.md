@@ -81,6 +81,67 @@ See **CPU** in [dashboard](https://example.com).
 var snapshot = native.ToSnapshot();
 ```
 
+### Front matter, task lists, callouts, details, and TOC
+
+```csharp
+var document = MarkdownDoc.Create()
+    .FrontMatter(new {
+        title = "Deployment checklist",
+        owner = "Platform",
+        tags = new[] { "runbook", "deployment" }
+    })
+    .H1("Deployment checklist")
+    .Toc(options => {
+        options.Title = "Contents";
+        options.MinLevel = 2;
+        options.MaxLevel = 3;
+    })
+    .H2("Pre-flight")
+    .Ul(list => list
+        .ItemTask("Packages published", done: true)
+        .ItemTask("Change approved")
+        .ItemTask("Rollback plan attached"))
+    .Callout("warning", "Freeze window", "Do not deploy outside the approved window.")
+    .Details("Rollback commands", body => body
+        .Code("powershell", "dotnet nuget locals all --clear"));
+
+string markdown = document.ToMarkdown();
+```
+
+### HTML fragments, full documents, and parts
+
+```csharp
+var document = MarkdownDoc.Create()
+    .H1("Status")
+    .P(p => p.Text("Generated ").Bold("today").Text(" for the portal."))
+    .TableAuto(table => table
+        .Headers("Service", "Status", "Latency")
+        .Row("API", "Green", "42")
+        .Row("Jobs", "Yellow", "210"));
+
+string fragment = document.ToHtmlFragment();
+string fullPage = document.ToHtmlDocument();
+HtmlRenderParts parts = document.ToHtmlParts();
+```
+
+### Parse, inspect, and rewrite a document
+
+```csharp
+var parsed = MarkdownReader.Parse(File.ReadAllText("README.md"),
+    MarkdownReaderOptions.CreateOfficeIMOProfile());
+
+if (!parsed.HasHeading("Install")) {
+    parsed.H2("Install")
+          .Code("powershell", "dotnet add package OfficeIMO.Markdown");
+}
+
+foreach (var heading in parsed.GetHeadingInfos()) {
+    Console.WriteLine($"{heading.Level}: {heading.Text} -> #{heading.Anchor}");
+}
+
+File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
+```
+
 ## Adjacent packages
 
 | Package | Use it for |

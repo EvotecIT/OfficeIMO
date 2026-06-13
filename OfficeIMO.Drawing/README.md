@@ -52,6 +52,76 @@ if (metrics.WidthPixels > 240) {
 }
 ```
 
+## Examples
+
+### Build a reusable vector scene
+
+```csharp
+using OfficeIMO.Drawing;
+
+var drawing = new OfficeDrawing(width: 420, height: 180)
+    .AddShape(new OfficeShape {
+        Kind = OfficeShapeKind.Rectangle,
+        Width = 420,
+        Height = 180,
+        FillGradient = OfficeLinearGradient.Horizontal(
+            OfficeColor.Parse("#F8FBFF"),
+            OfficeColor.Parse("#EAF4FF")),
+        StrokeColor = OfficeColor.Parse("#B7D7F5"),
+        StrokeWidth = 1
+    }, x: 0, y: 0)
+    .AddText("OfficeIMO.Drawing", 20, 18, 380, 32,
+        new OfficeFontInfo("Aptos", 18, OfficeFontStyle.Bold),
+        OfficeColor.Parse("#1F2937"),
+        OfficeTextAlignment.Left)
+    .AddShape(OfficeShape.RoundedRectangle(140, 44, 10), 20, 86)
+    .AddText("Shared vector intent", 34, 98, 240, 24);
+
+OfficeDrawingQualityReport report = OfficeDrawingQualityAnalyzer.Analyze(drawing);
+if (report.HasIssues) {
+    foreach (var issue in report.Issues) {
+        Console.WriteLine($"{issue.Kind}: {issue.Message}");
+    }
+}
+```
+
+### Render a chart snapshot to drawing primitives
+
+```csharp
+using OfficeIMO.Drawing;
+
+var snapshot = new OfficeChartSnapshot(
+    name: "RevenueChart",
+    title: "Revenue by quarter",
+    chartKind: OfficeChartKind.ColumnClustered,
+    data: new OfficeChartData(
+        new[] { "Q1", "Q2", "Q3", "Q4" },
+        new[] {
+            new OfficeChartSeries("Revenue", new[] { 10d, 18d, 24d, 30d }),
+            new OfficeChartSeries("Forecast", new[] { 12d, 19d, 25d, 33d })
+        }),
+    widthPoints: 420,
+    heightPoints: 260);
+
+OfficeChartRenderingResult rendered = OfficeChartDrawingRenderer.RenderWithQuality(snapshot);
+OfficeDrawing chartDrawing = rendered.Drawing;
+
+foreach (var issue in rendered.QualityReport.Issues) {
+    Console.WriteLine(issue.Message);
+}
+```
+
+### Read TrueType outlines for renderers
+
+```csharp
+using OfficeIMO.Drawing;
+
+OfficeTrueTypeFont? font = OfficeTrueTypeFont.TryLoadDefault(out string? path);
+if (font != null) {
+    Console.WriteLine($"Loaded {path}");
+}
+```
+
 ## What it provides
 
 - `OfficeColor` immutable RGBA values with named colors and hex parsing.

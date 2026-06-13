@@ -44,6 +44,57 @@ theme: evotec-modern
 Open with the top-line result.
 ```
 
+## Examples
+
+### Parse and validate semantic markup
+
+```csharp
+using OfficeIMO.Markup;
+
+OfficeMarkupParseResult result = OfficeMarkupParser.Parse(File.ReadAllText("quarterly-review.omd"));
+
+foreach (OfficeMarkupDiagnostic diagnostic in result.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Severity}: {diagnostic.Message}");
+}
+
+if (result.HasErrors) {
+    throw new InvalidOperationException("Markup contains validation errors.");
+}
+
+Console.WriteLine(result.Document.Profile);
+Console.WriteLine(result.Document.Metadata["title"]);
+```
+
+### Emit starter C# for handoff
+
+```csharp
+using OfficeIMO.Markup;
+
+OfficeMarkupParseResult result = OfficeMarkupParser.Parse(File.ReadAllText("document.omd"));
+
+string csharp = new OfficeMarkupCSharpEmitter().Emit(result.Document,
+    new OfficeMarkupEmitterOptions {
+        FilePathVariable = "outputPath",
+        IncludeHeader = true
+    });
+
+File.WriteAllText("document.generated.cs", csharp);
+```
+
+### Export the same semantic document to an Office file
+
+```csharp
+using OfficeIMO.Markup;
+using OfficeIMO.Markup.Word;
+
+OfficeMarkupParseResult result = OfficeMarkupParser.Parse(File.ReadAllText("status-brief.omd"));
+
+new OfficeMarkupWordExporter().Export(result.Document,
+    new OfficeMarkupWordExportOptions {
+        OutputPath = "status-brief.docx"
+    });
+```
+
 ## What it understands
 
 - Common Markdown structure through `OfficeIMO.Markdown`: headings, paragraphs, lists, fenced code, images, and pipe tables.

@@ -43,6 +43,55 @@ webView.NavigateToString(MarkdownRenderer.BuildShellHtml("Markdown", options));
 await webView.ExecuteScriptAsync(MarkdownRenderer.RenderUpdateScript(markdownText, options));
 ```
 
+## Examples
+
+### Parse with renderer preprocessing and diagnostics
+
+```csharp
+using OfficeIMO.Markdown;
+using OfficeIMO.MarkdownRenderer;
+
+var options = MarkdownRendererPresets.CreateRelaxed();
+MarkdownRendererParseResult result = MarkdownRenderer.ParseDocumentResult(markdownText, options);
+
+foreach (var diagnostic in result.PreProcessorDiagnostics) {
+    Console.WriteLine($"{diagnostic.Stage}: {diagnostic.ProcessorName} changed={diagnostic.Changed}");
+}
+
+MarkdownDoc document = result.Document;
+foreach (var heading in document.GetHeadingInfos()) {
+    Console.WriteLine($"{heading.Text} -> {heading.Anchor}");
+}
+```
+
+### Render bounded HTML for a host-owned shell
+
+```csharp
+using OfficeIMO.MarkdownRenderer;
+
+var options = MarkdownRendererPresets.CreateStrict();
+options.MaxBodyHtmlBytes = 512 * 1024;
+options.BodyHtmlOverflowHandling = OverflowHandling.RenderError;
+
+string bodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, options);
+```
+
+### Enable visual fences in a shell
+
+```csharp
+using OfficeIMO.MarkdownRenderer;
+
+var options = MarkdownRendererPresets.CreateStrict();
+options.Mermaid.Enabled = true;
+options.HtmlOptions.Prism ??= new PrismOptions();
+options.HtmlOptions.Prism.Enabled = true;
+options.EnableCodeCopyButtons = true;
+options.EnableTableCopyButtons = true;
+
+string shellHtml = MarkdownRenderer.BuildShellHtml("Investigation", options);
+string updateScript = MarkdownRenderer.RenderUpdateScript(markdownText, options);
+```
+
 ## What it does
 
 - Builds a complete HTML shell for Markdown surfaces.

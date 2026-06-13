@@ -14,9 +14,34 @@ dotnet add package OfficeIMO.Reader.Text
 ## Register
 
 ```csharp
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Text;
 
 DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
+```
+
+## Examples
+
+### Keep one compatibility registration for CSV, JSON, and XML
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Text;
+
+DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(
+    new StructuredTextReadOptions {
+        CsvChunkRows = 100,
+        JsonChunkRows = 100,
+        XmlChunkRows = 100,
+        JsonMaxDepth = 16
+    },
+    replaceExisting: true);
+
+foreach (string path in Directory.EnumerateFiles("imports")) {
+    foreach (var chunk in DocumentReader.Read(path)) {
+        Console.WriteLine($"{chunk.Kind}: {chunk.Id}");
+    }
+}
 ```
 
 ## What it delegates

@@ -14,9 +14,45 @@ dotnet add package OfficeIMO.Reader.Json
 ## Register
 
 ```csharp
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Json;
 
 DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: true);
+```
+
+## Examples
+
+### Convert JSON paths into chunks
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Json;
+
+DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(new JsonReadOptions {
+    ChunkRows = 100,
+    MaxDepth = 16,
+    IncludeMarkdown = true
+}, replaceExisting: true);
+
+foreach (var chunk in DocumentReader.Read("appsettings.json", new ReaderOptions {
+    MaxInputBytes = 5L * 1024L * 1024L
+})) {
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+}
+```
+
+### Read a JSON stream
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Json;
+
+DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler();
+
+await using var stream = File.OpenRead("payload.json");
+var chunks = DocumentReader.Read(stream, "payload.json", new ReaderOptions {
+    MaxChars = 3_000
+}).ToList();
 ```
 
 ## What it emits

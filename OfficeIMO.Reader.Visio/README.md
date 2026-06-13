@@ -24,6 +24,47 @@ IReadOnlyList<ReaderChunk> chunks = DocumentReader
     .ToList();
 ```
 
+## Examples
+
+### Inspect pages, shapes, and Shape Data
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Visio;
+
+DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
+
+foreach (var chunk in DocumentReader.Read("architecture.vsdx")) {
+    Console.WriteLine($"Page {chunk.Location.Page}: {chunk.Id}");
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+
+    foreach (var table in chunk.Tables ?? Array.Empty<ReaderTable>()) {
+        Console.WriteLine($"Shape Data table: {table.Rows.Count} row(s)");
+    }
+}
+```
+
+### Read Visio files from a folder with other formats
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.Visio;
+
+DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
+DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
+
+var chunks = DocumentReader.ReadFolder("Architecture",
+    new ReaderFolderOptions {
+        Extensions = new[] { ".vsdx", ".pdf" },
+        Recurse = true,
+        DeterministicOrder = true
+    },
+    new ReaderOptions {
+        MaxChars = 8_000
+    }).ToList();
+```
+
 ## What it emits
 
 - Page-aware chunks for `.vsdx`, `.vsdm`, `.vstx`, and `.vstm` files.

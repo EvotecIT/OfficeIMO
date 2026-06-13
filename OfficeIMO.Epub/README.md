@@ -43,6 +43,65 @@ foreach (string warning in book.Warnings) {
 - Extracts chapter text from XHTML/XML ASTs.
 - Emits extraction warnings for malformed or unreadable content.
 
+## Examples
+
+### Read metadata and spine-ordered chapters
+
+```csharp
+using OfficeIMO.Epub;
+
+EpubDocument book = EpubReader.Read("handbook.epub", new EpubReadOptions {
+    PreferSpineOrder = true,
+    IncludeNonLinearSpineItems = false,
+    MaxChapters = 50
+});
+
+Console.WriteLine(book.Title);
+Console.WriteLine(book.Creator);
+Console.WriteLine(book.Language);
+
+foreach (var chapter in book.Chapters) {
+    Console.WriteLine($"{chapter.Order}. {chapter.Title ?? chapter.Path}");
+}
+```
+
+### Keep raw chapter HTML when building a converter
+
+```csharp
+using OfficeIMO.Epub;
+
+var book = EpubReader.Read("book.epub", new EpubReadOptions {
+    IncludeRawHtml = true,
+    MaxChapterBytes = 2L * 1024L * 1024L
+});
+
+foreach (var chapter in book.Chapters) {
+    File.WriteAllText(
+        $"chapter-{chapter.Order:000}.txt",
+        chapter.Text);
+
+    if (chapter.Html != null) {
+        File.WriteAllText($"chapter-{chapter.Order:000}.xhtml", chapter.Html);
+    }
+}
+```
+
+### Read from a stream and report warnings
+
+```csharp
+using OfficeIMO.Epub;
+
+await using var stream = File.OpenRead("upload.epub");
+EpubDocument book = EpubReader.Read(stream, new EpubReadOptions {
+    FallbackToHtmlScan = true,
+    DeterministicOrder = true
+});
+
+foreach (string warning in book.Warnings) {
+    Console.WriteLine(warning);
+}
+```
+
 ## Boundaries
 
 - This package owns reusable EPUB parsing primitives.

@@ -14,9 +14,65 @@ dotnet add package OfficeIMO.Reader.Zip
 ## Register
 
 ```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Zip;
+using OfficeIMO.Zip;
+
+DocumentReaderZipRegistrationExtensions.RegisterZipHandler(
+    zipOptions: new ZipTraversalOptions {
+        MaxEntries = 1000,
+        MaxDepth = 8,
+        MaxTotalUncompressedBytes = 100L * 1024L * 1024L
+    });
+```
+
+## Examples
+
+### Read supported files inside an archive
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Csv;
+using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Zip;
 
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler();
+DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler();
+DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler();
+DocumentReaderZipRegistrationExtensions.RegisterZipHandler(new ReaderZipOptions {
+    ReadNestedZipEntries = true,
+    MaxNestedDepth = 2
+});
+
+foreach (var chunk in DocumentReader.Read("evidence.zip", new ReaderOptions {
+    MaxInputBytes = 200L * 1024L * 1024L
+})) {
+    Console.WriteLine($"{chunk.Kind}: {chunk.Location.Path}");
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+}
+```
+
+### Surface archive warnings
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Zip;
+using OfficeIMO.Zip;
+
+DocumentReaderZipRegistrationExtensions.RegisterZipHandler(
+    zipOptions: new ZipTraversalOptions {
+        MaxEntries = 100,
+        MaxCompressionRatio = 50,
+        MaxEntryUncompressedBytes = 10L * 1024L * 1024L
+    },
+    readerZipOptions: new ReaderZipOptions {
+        ReadNestedZipEntries = false
+    },
+    replaceExisting: true);
+
+var chunks = DocumentReader.Read("upload.zip").ToList();
+foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>())) {
+    Console.WriteLine(warning);
+}
 ```
 
 ## What it emits

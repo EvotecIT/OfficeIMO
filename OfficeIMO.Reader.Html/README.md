@@ -14,6 +14,7 @@ dotnet add package OfficeIMO.Reader.Html
 ## Register
 
 ```csharp
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 
 DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
@@ -25,6 +26,45 @@ For untrusted or size-sensitive HTML:
 DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
     htmlOptions: ReaderHtmlOptions.CreateUntrustedHtmlProfile(maxInputCharacters: 100_000),
     replaceExisting: true);
+```
+
+## Examples
+
+### Convert HTML to Markdown chunks
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Html;
+
+DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
+    htmlOptions: ReaderHtmlOptions.CreatePortableProfile(),
+    replaceExisting: true);
+
+foreach (var chunk in DocumentReader.Read("page.html", new ReaderOptions {
+    MarkdownChunkByHeadings = true,
+    MaxChars = 5_000
+})) {
+    Console.WriteLine($"{chunk.Id}: {chunk.Location.HeadingPath}");
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+}
+```
+
+### Extract tables from HTML
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Html;
+
+DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
+
+IReadOnlyList<ReaderTable> tables = DocumentReader.ReadTables("report.html",
+    new ReaderOptions {
+        MaxTableRows = 250
+    });
+
+foreach (var table in tables) {
+    Console.WriteLine($"{table.Rows.Count} row(s), {table.ColumnProfiles.Count} column profile(s)");
+}
 ```
 
 ## What it emits

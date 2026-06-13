@@ -14,9 +14,44 @@ dotnet add package OfficeIMO.Reader.Xml
 ## Register
 
 ```csharp
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Xml;
 
 DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true);
+```
+
+## Examples
+
+### Convert XML elements and attributes into chunks
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Xml;
+
+DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(new XmlReadOptions {
+    ChunkRows = 150,
+    IncludeMarkdown = true
+}, replaceExisting: true);
+
+foreach (var chunk in DocumentReader.Read("configuration.xml")) {
+    Console.WriteLine($"{chunk.Id}: {chunk.Location.Path}");
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+}
+```
+
+### Read XML from a bounded stream
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Xml;
+
+DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler();
+
+await using var stream = File.OpenRead("upload.xml");
+var chunks = DocumentReader.Read(stream, "upload.xml", new ReaderOptions {
+    MaxInputBytes = 10L * 1024L * 1024L,
+    MaxChars = 4_000
+}).ToList();
 ```
 
 ## What it emits

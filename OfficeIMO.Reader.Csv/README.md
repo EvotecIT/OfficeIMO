@@ -14,9 +14,54 @@ dotnet add package OfficeIMO.Reader.Csv
 ## Register
 
 ```csharp
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Csv;
 
 DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
+```
+
+## Examples
+
+### Read CSV as table-aware chunks
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Csv;
+
+DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(
+    csvOptions: new CsvReadOptions {
+        ChunkRows = 100,
+        HeadersInFirstRow = true,
+        IncludeMarkdown = true
+    },
+    replaceExisting: true);
+
+foreach (var chunk in DocumentReader.Read("people.csv", new ReaderOptions {
+    MaxInputBytes = 25L * 1024L * 1024L,
+    MaxTableRows = 100
+})) {
+    Console.WriteLine($"{chunk.Id}: {chunk.Location.StartLine}-{chunk.Location.EndLine}");
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+}
+```
+
+### Read a stream from an upload
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Csv;
+
+DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler();
+
+await using var stream = File.OpenRead("upload.tsv");
+var chunks = DocumentReader.Read(stream, "upload.tsv", new ReaderOptions {
+    MaxChars = 4_000,
+    ComputeHashes = true
+}).ToList();
+
+foreach (var table in chunks.SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>())) {
+    Console.WriteLine($"{table.Rows.Count} row(s)");
+}
 ```
 
 ## What it emits

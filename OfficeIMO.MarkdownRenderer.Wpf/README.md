@@ -48,6 +48,32 @@ Preview.ConfigureRendererOptions = options =>
 };
 ```
 
+## Examples
+
+### Handle external navigation
+
+```csharp
+using System.Diagnostics;
+
+Preview.NavigationRequested += (_, args) =>
+{
+    Process.Start(new ProcessStartInfo(args.Uri.AbsoluteUri) {
+        UseShellExecute = true
+    });
+    args.Handled = true;
+};
+```
+
+### Use pre-rendered body HTML
+
+```csharp
+using OfficeIMO.MarkdownRenderer;
+
+var options = MarkdownRendererPresets.CreateStrict();
+Preview.BodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, options);
+Preview.Markdown = string.Empty;
+```
+
 ## What it does
 
 - Hosts the OfficeIMO Markdown shell in a WPF/WebView2 control.
