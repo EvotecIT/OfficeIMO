@@ -39,6 +39,37 @@ namespace OfficeIMO.Word.Markdown {
         public bool FallbackExternalImagesToLinks { get; set; } = true;
 
         /// <summary>
+        /// Controls how Word page breaks are represented in Markdown.
+        /// Default is <see cref="MarkdownPageBreakMode.SemanticBlock"/> so the break can round-trip.
+        /// </summary>
+        public MarkdownPageBreakMode PageBreakMode { get; set; } = MarkdownPageBreakMode.SemanticBlock;
+
+        /// <summary>
+        /// Controls how converter-detected Word content without a native Markdown representation is handled.
+        /// Default is <see cref="MarkdownUnsupportedContentMode.WarnOnly"/>.
+        /// </summary>
+        public MarkdownUnsupportedContentMode UnsupportedContentMode { get; set; } = MarkdownUnsupportedContentMode.WarnOnly;
+
+        /// <summary>
+        /// Controls whether supported visual content, such as charts, is rendered as Markdown image fallbacks.
+        /// Default is <see cref="MarkdownVisualFallbackMode.None"/> to keep Markdown semantic unless requested.
+        /// </summary>
+        public MarkdownVisualFallbackMode VisualFallbackMode { get; set; } = MarkdownVisualFallbackMode.None;
+
+        /// <summary>
+        /// Directory used for generated visual fallback resources when <see cref="VisualFallbackMode"/>
+        /// is <see cref="MarkdownVisualFallbackMode.SvgFile"/>. When saving to a Markdown file and this
+        /// is not set, resources are written to a sidecar folder next to the Markdown file.
+        /// </summary>
+        public string? VisualFallbackDirectory { get; set; }
+
+        /// <summary>
+        /// Optional path prefix used in Markdown image links for generated visual fallback resources.
+        /// When saving to a Markdown file and this is not set, the sidecar folder name is used.
+        /// </summary>
+        public string? VisualFallbackPathPrefix { get; set; }
+
+        /// <summary>
         /// Optional callback for non-fatal conversion warnings, such as external image fallback.
         /// </summary>
         public Action<string>? OnWarning { get; set; }

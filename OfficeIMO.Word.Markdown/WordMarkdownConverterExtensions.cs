@@ -37,11 +37,8 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A task representing the asynchronous save operation.</returns>
         public static async Task SaveAsMarkdownAsync(this WordDocument document, string path, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
-            options ??= new WordToMarkdownOptions();
-            if (options.ImageExportMode == ImageExportMode.File && string.IsNullOrEmpty(options.ImageDirectory)) {
-                options.ImageDirectory = Path.GetDirectoryName(path) ?? Directory.GetCurrentDirectory();
-            }
-            var markdown = await document.ToMarkdownAsync(options, cancellationToken).ConfigureAwait(false);
+            var effectiveOptions = CreateFileSaveOptions(path, options);
+            var markdown = await document.ToMarkdownAsync(effectiveOptions, cancellationToken).ConfigureAwait(false);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             await File.WriteAllTextAsync(path, markdown, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
 #else
@@ -67,6 +64,72 @@ namespace OfficeIMO.Word.Markdown {
 #else
             await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
 #endif
+        }
+
+        private static WordToMarkdownOptions CreateFileSaveOptions(string markdownPath, WordToMarkdownOptions? options) {
+            var effectiveOptions = CopyOptions(options ?? new WordToMarkdownOptions());
+            if (effectiveOptions.ImageExportMode == ImageExportMode.File && string.IsNullOrEmpty(effectiveOptions.ImageDirectory)) {
+                effectiveOptions.ImageDirectory = Path.GetDirectoryName(markdownPath) ?? Directory.GetCurrentDirectory();
+            }
+
+            if (effectiveOptions.VisualFallbackMode != MarkdownVisualFallbackMode.SvgFile) {
+                return effectiveOptions;
+            }
+
+            string markdownDirectory = Path.GetDirectoryName(markdownPath) ?? Directory.GetCurrentDirectory();
+            if (string.IsNullOrEmpty(effectiveOptions.VisualFallbackDirectory)) {
+                string markdownFileName = Path.GetFileNameWithoutExtension(markdownPath);
+                string sidecarDirectoryName = string.IsNullOrEmpty(markdownFileName) ? "assets" : markdownFileName + ".assets";
+                effectiveOptions.VisualFallbackDirectory = Path.Combine(markdownDirectory, sidecarDirectoryName);
+                if (string.IsNullOrEmpty(effectiveOptions.VisualFallbackPathPrefix)) {
+                    effectiveOptions.VisualFallbackPathPrefix = sidecarDirectoryName;
+                }
+                return effectiveOptions;
+            }
+
+            if (string.IsNullOrEmpty(effectiveOptions.VisualFallbackPathPrefix)) {
+                effectiveOptions.VisualFallbackPathPrefix = MakeMarkdownRelativePath(markdownDirectory, effectiveOptions.VisualFallbackDirectory!);
+            }
+
+            return effectiveOptions;
+        }
+
+        private static WordToMarkdownOptions CopyOptions(WordToMarkdownOptions source) {
+            return new WordToMarkdownOptions {
+                FontFamily = source.FontFamily,
+                EnableUnderline = source.EnableUnderline,
+                EnableHighlight = source.EnableHighlight,
+                ImageExportMode = source.ImageExportMode,
+                ImageDirectory = source.ImageDirectory,
+                FallbackExternalImagesToLinks = source.FallbackExternalImagesToLinks,
+                PageBreakMode = source.PageBreakMode,
+                UnsupportedContentMode = source.UnsupportedContentMode,
+                VisualFallbackMode = source.VisualFallbackMode,
+                VisualFallbackDirectory = source.VisualFallbackDirectory,
+                VisualFallbackPathPrefix = source.VisualFallbackPathPrefix,
+                OnWarning = source.OnWarning,
+                IncludeHeadersAndFootersAsSemanticBlocks = source.IncludeHeadersAndFootersAsSemanticBlocks
+            };
+        }
+
+        private static string MakeMarkdownRelativePath(string baseDirectory, string targetDirectory) {
+            try {
+                string baseFullPath = Path.GetFullPath(baseDirectory);
+                if (!baseFullPath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) &&
+                    !baseFullPath.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+                    baseFullPath += Path.DirectorySeparatorChar;
+                }
+
+                string targetFullPath = Path.GetFullPath(targetDirectory);
+                var baseUri = new Uri(baseFullPath);
+                var targetUri = new Uri(targetFullPath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                    ? targetFullPath
+                    : targetFullPath + Path.DirectorySeparatorChar);
+                string relative = Uri.UnescapeDataString(baseUri.MakeRelativeUri(targetUri).ToString());
+                return relative.TrimEnd('/').Replace('\\', '/');
+            } catch {
+                return Path.GetFileName(targetDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            }
         }
 
         /// <summary>

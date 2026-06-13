@@ -83,6 +83,67 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWord_RestoresDataUriImagesExportedByWordToMarkdown() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            using var source = WordDocument.Create();
+            source.AddParagraph("Before ");
+            source.AddParagraph().AddImage(imagePath, description: "Logo");
+            source.AddParagraph("After");
+
+            string markdown = source.ToMarkdown(new WordToMarkdownOptions());
+            using var restored = markdown.LoadFromMarkdown();
+
+            Assert.Contains("data:image/png;base64", markdown, StringComparison.Ordinal);
+            Assert.Single(restored.Images);
+            Assert.Equal("Logo", restored.Images[0].Description);
+        }
+
+        [Fact]
+        public void MarkdownToWord_Rejects_Oversized_DataUri_Before_Decoding() {
+            var warnings = new List<string>();
+            const string markdown = "![Too large](data:image/png;base64,AAAA)";
+
+            using var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+                MaxDataUriImageBytes = 1,
+                OnWarning = warnings.Add
+            });
+
+            Assert.Empty(doc.Images);
+            Assert.Contains(warnings, warning => warning.Contains("exceeding the configured limit", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownToWord_Invalid_DataUri_Image_Falls_Back_With_Warning() {
+            var warnings = new List<string>();
+            const string markdown = "![Bad image](data:image/png;base64,AAAA)";
+
+            using var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+                OnWarning = warnings.Add
+            });
+
+            Assert.Empty(doc.Images);
+            Assert.Contains(doc.Paragraphs, paragraph => paragraph.Text.Contains("Bad image", StringComparison.Ordinal));
+            Assert.Contains(warnings, warning => warning.Contains("could not be inserted", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void MarkdownToWord_RendersInlineLocalImagesInsideParagraphs() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"Before ![Logo]({imagePath}) after";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true
+            });
+
+            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions());
+
+            Assert.Single(doc.Images);
+            Assert.Contains("Before", roundTrip, StringComparison.Ordinal);
+            Assert.Contains("![Logo](data:image/png;base64", roundTrip, StringComparison.Ordinal);
+            Assert.Contains("after", roundTrip, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void MarkdownToWord_FitsImageToPageContentWidthWhenEnabled() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";
@@ -98,6 +159,23 @@ namespace OfficeIMO.Tests {
             Assert.Single(doc.Images);
             Assert.InRange(doc.Images[0].Width ?? 0, 623, 625);
             Assert.InRange(doc.Images[0].Height ?? 0, 155, 157);
+        }
+
+        [Fact]
+        public void MarkdownToWord_FitsInlineListImagesToIndentedContextWidth() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"- ![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                FitImagesToContextWidth = true,
+                ImageLayout = {
+                    AllowUpscale = true
+                },
+                DefaultPageSize = WordPageSize.Letter
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Width ?? 0, 488, 490);
         }
 
         [Fact]

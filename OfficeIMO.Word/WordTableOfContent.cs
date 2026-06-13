@@ -61,34 +61,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string Text {
             get {
-                var contentBlock = _sdtBlock?.SdtContentBlock;
-                if (contentBlock != null) {
-                    foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
-                        var text = paragraph
-                            .OfType<Run>()
-                            .FirstOrDefault()?
-                            .OfType<Text>()
-                            .FirstOrDefault()?.Text;
-                        if (text != null) {
-                            return text;
-                        }
-                    }
-                }
-                return string.Empty;
+                return GetTitleTextElement()?.Text ?? string.Empty;
             }
             set {
-                var contentBlock = _sdtBlock?.SdtContentBlock;
-                if (contentBlock != null) {
-                    foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
-                        var text = paragraph
-                            .OfType<Run>()
-                            .FirstOrDefault()?
-                            .OfType<Text>()
-                            .FirstOrDefault();
-                        if (text != null) {
-                            text.Text = value;
-                        }
-                    }
+                var text = GetTitleTextElement();
+                if (text != null) {
+                    text.Text = value;
                 }
             }
         }
@@ -132,6 +110,26 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+        }
+
+        private Text? GetTitleTextElement() {
+            var contentBlock = _sdtBlock?.SdtContentBlock;
+            if (contentBlock == null) {
+                return null;
+            }
+
+            foreach (var paragraph in contentBlock.ChildElements.OfType<Paragraph>()) {
+                if (paragraph.Descendants<SimpleField>().Any()) {
+                    continue;
+                }
+
+                var text = paragraph.Descendants<Text>().FirstOrDefault();
+                if (text != null) {
+                    return text;
+                }
+            }
+
+            return null;
         }
 
 

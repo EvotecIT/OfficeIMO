@@ -127,6 +127,118 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersBarChartPointColors() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Point colors",
+            "Per Point",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Actual",
+                        new[] { 10D, 20D },
+                        null,
+                        OfficeColor.Black,
+                        new OfficeColor?[] { OfficeColor.ParseHex("#2FB344"), OfficeColor.ParseHex("#F76707") })
+                }),
+            widthPoints: 220D,
+            heightPoints: 140D));
+
+        var barColors = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.StrokeWidth == 0D)
+            .Select(shape => shape.Shape.FillColor)
+            .ToList();
+
+        Assert.Contains(OfficeColor.ParseHex("#2FB344"), barColors);
+        Assert.Contains(OfficeColor.ParseHex("#F76707"), barColors);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersPieChartSeriesColorWhenPointColorsAreMissing() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#CC3366");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie series color",
+            "Pie Series",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Outcome",
+                        new[] { 42D, 30D },
+                        null,
+                        seriesColor)
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.FillColor == seriesColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.FillColor == seriesColor &&
+            shape.Shape.StrokeWidth == 0D);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersDoughnutChartSeriesColorWhenPointColorsAreMissing() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#CC3366");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Doughnut series color",
+            "Doughnut Series",
+            OfficeChartKind.Doughnut,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Outcome",
+                        new[] { 42D, 30D },
+                        null,
+                        seriesColor)
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.FillColor == seriesColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.FillColor == seriesColor &&
+            shape.Shape.StrokeWidth == 0D);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersLineChartPointColorsOnMarkers() {
+        OfficeColor highlight = OfficeColor.ParseHex("#F76707");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line point colors",
+            "Line Points",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Actual",
+                        new[] { 10D, 20D, 14D },
+                        null,
+                        OfficeColor.ParseHex("#2563EB"),
+                        new OfficeColor?[] { null, highlight, null })
+                }),
+            widthPoints: 260D,
+            heightPoints: 160D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.Width == 4D &&
+            shape.Shape.Height == 4D &&
+            shape.Shape.FillColor == highlight &&
+            shape.Shape.StrokeColor == highlight);
+    }
+
+    [Fact]
     public void FlowDrawing_SkipsNonFiniteScatterXCoordinates() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter",
@@ -145,6 +257,38 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.Width == 5D &&
             shape.Shape.Height == 5D);
         Assert.Equal(2, markerCount);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersScatterPointColorsUsingSourcePointIndex() {
+        OfficeColor highlight = OfficeColor.ParseHex("#2FB344");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Scatter point colors",
+            "Scatter Points",
+            OfficeChartKind.Scatter,
+            new OfficeChartData(
+                new[] { "1", "2", "3" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Actual",
+                        new[] { 3D, 4D, 5D },
+                        new[] { 1D, double.NaN, 3D },
+                        OfficeColor.ParseHex("#2563EB"),
+                        new OfficeColor?[] { null, highlight, OfficeColor.ParseHex("#F76707") })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.Width == 5D &&
+            shape.Shape.Height == 5D &&
+            shape.Shape.FillColor == highlight);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.Width == 5D &&
+            shape.Shape.Height == 5D &&
+            shape.Shape.FillColor == OfficeColor.ParseHex("#F76707"));
     }
 
     [Fact]
@@ -323,6 +467,25 @@ public class PdfDocumentChartDrawingTests {
             widthPoints: 320D,
             heightPoints: 190D));
 
+        var categoryLabels = drawing.Elements
+            .OfType<OfficeDrawingText>()
+            .Where(text => text.Text == "Low" || text.Text == "Medium" || text.Text == "High")
+            .ToDictionary(text => text.Text);
+        Assert.True(categoryLabels["High"].Y < categoryLabels["Medium"].Y && categoryLabels["Medium"].Y < categoryLabels["Low"].Y, "Expected horizontal bar chart categories to render in Word display order.");
+
+        int verticalGridLines = drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeWidth == 0.5D &&
+            shape.Shape.Width <= 1D &&
+            shape.Shape.Height > 20D);
+        int horizontalGridLines = drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeWidth == 0.5D &&
+            shape.Shape.Width > 20D &&
+            shape.Shape.Height <= 1D);
+        Assert.Equal(3, verticalGridLines);
+        Assert.Equal(0, horizontalGridLines);
+
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
                 PageHeight = 280,
@@ -382,6 +545,34 @@ public class PdfDocumentChartDrawingTests {
         Assert.Contains("Security", text, System.StringComparison.Ordinal);
         Assert.Contains("Reliability", text, System.StringComparison.Ordinal);
         Assert.Contains("Speed", text, System.StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersRadarPointColorsOnMarkers() {
+        OfficeColor highlight = OfficeColor.ParseHex("#F76707");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Radar point colors",
+            "Radar Points",
+            OfficeChartKind.Radar,
+            new OfficeChartData(
+                new[] { "Security", "Reliability", "UX", "Speed" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Current",
+                        new[] { 7D, 6D, 5D, 8D },
+                        null,
+                        OfficeColor.ParseHex("#2563EB"),
+                        new OfficeColor?[] { null, null, highlight, null })
+                }),
+            widthPoints: 300D,
+            heightPoints: 190D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.Width == 4D &&
+            shape.Shape.Height == 4D &&
+            shape.Shape.FillColor == highlight &&
+            shape.Shape.StrokeColor == highlight);
     }
 
 }

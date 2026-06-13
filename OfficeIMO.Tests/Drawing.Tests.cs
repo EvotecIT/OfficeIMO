@@ -299,6 +299,81 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsRootDimensionsInPoints() {
+        var drawing = new OfficeDrawing(120, 80);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120pt\" height=\"80pt\" viewBox=\"0 0 120 80\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_AppliesTransformsInShapeLocalCoordinates() {
+        var drawing = new OfficeDrawing(120, 120);
+        var shape = OfficeShape.Rectangle(10, 20);
+        shape.FillColor = OfficeColor.Red;
+        shape.Transform = OfficeTransform.RotateDegrees(90, 5, 10);
+        drawing.AddShape(shape, 40, 50);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<rect x=\"0\" y=\"0\" width=\"10\" height=\"20\"", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(0 1 -1 0 55 55)\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("<rect x=\"40\" y=\"50\" width=\"10\" height=\"20\" transform=", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsLinearGradientFillDefinitions() {
+        var drawing = new OfficeDrawing(120, 60);
+        var shape = OfficeShape.Rectangle(100, 40);
+        shape.FillGradient = OfficeLinearGradient.Horizontal(
+            OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0x00),
+            OfficeColor.SteelBlue);
+        drawing.AddShape(shape, 10, 10);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<linearGradient id=\"officeimo-gradient-1\" x1=\"0%\" y1=\"50%\" x2=\"100%\" y2=\"50%\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<stop offset=\"0%\" stop-color=\"#FF0000\" stop-opacity=\"0\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<stop offset=\"100%\" stop-color=\"#4682B4\"", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("fill=\"url(#officeimo-gradient-1)\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("fill=\"none\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsClipPathInShapeLocalCoordinates() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.RoundedRectangle(80, 40, 8);
+        shape.FillColor = OfficeColor.SteelBlue;
+        shape.ClipPath = OfficeClipPath.Rectangle(40, 20);
+        shape.Transform = OfficeTransform.RotateDegrees(15, 40, 20);
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<clipPath id=\"officeimo-clip-1\"><rect x=\"0\" y=\"0\" width=\"40\" height=\"20\"/></clipPath>", svg, StringComparison.Ordinal);
+        Assert.Contains("<g clip-path=\"url(#officeimo-clip-1)\" transform=\"matrix(", svg, StringComparison.Ordinal);
+        Assert.Contains("<rect x=\"0\" y=\"0\" width=\"80\" height=\"40\" rx=\"8\" ry=\"8\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("<rect x=\"10\" y=\"12\" width=\"80\" height=\"40\" rx=\"8\" ry=\"8\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingSvgExporter_EmitsShapeShadowBehindForegroundShape() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.Rectangle(80, 30);
+        shape.FillColor = OfficeColor.SteelBlue;
+        shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.25, 3, 4);
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        int shadowIndex = svg.IndexOf("<rect x=\"13\" y=\"16\" width=\"80\" height=\"30\" fill=\"#000000\" fill-opacity=\"0.25\" stroke=\"none\"/>", StringComparison.Ordinal);
+        int foregroundIndex = svg.IndexOf("<rect x=\"10\" y=\"12\" width=\"80\" height=\"30\" fill=\"#4682B4\" stroke=\"none\"/>", StringComparison.Ordinal);
+        Assert.True(shadowIndex >= 0, svg);
+        Assert.True(foregroundIndex > shadowIndex, svg);
+    }
+
+    [Fact]
     public void OfficeClipPathStoresReusablePathIntent() {
         var clipPath = OfficeClipPath.Path(
             OfficePathCommand.MoveTo(10, 30),
@@ -678,6 +753,17 @@ public class DrawingTests {
         Assert.Equal(OfficeImageFormat.Svg, image.Format);
         Assert.Equal(96, image.Width);
         Assert.Equal(96, image.Height);
+    }
+
+    [Fact]
+    public void OfficeImageReaderReadsSvgPointUnitsAsCssPixels() {
+        var svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"72pt\" height=\"36pt\"></svg>");
+
+        Assert.True(OfficeImageReader.TryIdentify(svg, "points.svg", out var image));
+
+        Assert.Equal(OfficeImageFormat.Svg, image.Format);
+        Assert.Equal(96, image.Width);
+        Assert.Equal(48, image.Height);
     }
 
     [Fact]

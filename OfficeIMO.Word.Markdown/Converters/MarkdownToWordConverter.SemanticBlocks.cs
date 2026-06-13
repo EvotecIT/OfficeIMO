@@ -120,6 +120,28 @@ namespace OfficeIMO.Word.Markdown {
             return true;
         }
 
+        private static bool TryRenderWordPageBreakSemanticBlock(
+            Omd.SemanticFencedBlock block,
+            IWordBlockRenderHost host,
+            int quoteDepth,
+            Omd.ColumnAlignment alignment) {
+            if (block == null ||
+                !string.Equals(block.SemanticKind, WordMarkdownSemanticBlocks.PageBreakSemanticKind, StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            var paragraph = host.CreateParagraph();
+            ApplyBlockParagraphFormatting(paragraph, quoteDepth, alignment);
+            paragraph.AddBreak(BreakValues.Page);
+            if (!string.IsNullOrWhiteSpace(block.Caption)) {
+                var captionParagraph = host.CreateParagraph();
+                ApplyBlockParagraphFormatting(captionParagraph, quoteDepth, alignment);
+                captionParagraph.AddText(block.Caption!);
+            }
+
+            return true;
+        }
+
         private static bool TryResolveWordHeaderFooterTarget(
             Omd.SemanticFencedBlock block,
             WordDocument document,

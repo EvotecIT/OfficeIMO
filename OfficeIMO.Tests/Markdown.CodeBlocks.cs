@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using Xunit;
@@ -25,6 +26,35 @@ namespace OfficeIMO.Tests {
             string markdown = doc.ToMarkdown(options);
 
             Assert.Equal("```java\nSystem.out.println(\"Hello\");\n```", markdown);
+        }
+
+        [Fact]
+        public void WordToMarkdown_CodeParagraph_Preserves_PageBreaks() {
+            using var doc = WordDocument.Create();
+            var paragraph = doc.AddParagraph();
+            paragraph.SetStyleId("CodeLang_csharp");
+            paragraph.PageBreakBefore = true;
+            paragraph._paragraph.Append(new Run(
+                new Text("Before"),
+                new Break { Type = BreakValues.Page },
+                new Text("After")));
+
+            OfficeIMO.Markdown.MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+
+            Assert.Collection(
+                markdown.Blocks,
+                block => Assert.IsType<OfficeIMO.Markdown.SemanticFencedBlock>(block),
+                block => {
+                    var code = Assert.IsType<OfficeIMO.Markdown.CodeBlock>(block);
+                    Assert.Equal("csharp", code.Language);
+                    Assert.Equal("Before", code.Content);
+                },
+                block => Assert.IsType<OfficeIMO.Markdown.SemanticFencedBlock>(block),
+                block => {
+                    var code = Assert.IsType<OfficeIMO.Markdown.CodeBlock>(block);
+                    Assert.Equal("csharp", code.Language);
+                    Assert.Equal("After", code.Content);
+                });
         }
     }
 }

@@ -44,14 +44,14 @@ public static partial class OfficeChartDrawingRenderer {
         for (int i = 0; i < series.Count && i < visibleRows; i++) {
             double rowY = startY + i * rowHeight;
             double swatchOffset = Math.Max(0D, (rowHeight - layout.LegendSwatchSize) / 2D);
-            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetSeriesColor(style, i), null, 0D);
+            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetSeriesColor(style, series, i), null, 0D);
             string name = string.IsNullOrWhiteSpace(series[i].Name) ? "Series " + (i + 1).ToString(CultureInfo.InvariantCulture) : series[i].Name;
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
             AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, style.TextColor, OfficeTextAlignment.Left, style);
         }
     }
 
-    private static void AddCategoryLegend(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddCategoryLegend(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null) {
         if (categories.Count == 0 || width < 28D) {
             return;
         }
@@ -62,7 +62,7 @@ public static partial class OfficeChartDrawingRenderer {
         for (int i = 0; i < categories.Count && i < visibleRows; i++) {
             double rowY = startY + i * rowHeight;
             double swatchOffset = Math.Max(0D, (rowHeight - layout.LegendSwatchSize) / 2D);
-            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetSeriesColor(style, i), null, 0D);
+            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetPointColor(style, pointColors, i), null, 0D);
             string name = string.IsNullOrWhiteSpace(categories[i]) ? "Category " + (i + 1).ToString(CultureInfo.InvariantCulture) : categories[i];
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
             AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, style.TextColor, OfficeTextAlignment.Left, style);
@@ -111,7 +111,8 @@ public static partial class OfficeChartDrawingRenderer {
                 continue;
             }
 
-            double centerY = plotTop + slot * i + slot / 2D;
+            int categorySlot = categories.Count - 1 - i;
+            double centerY = plotTop + slot * categorySlot + slot / 2D;
             AddChartText(drawing, label, 2D, centerY - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
         }
     }
