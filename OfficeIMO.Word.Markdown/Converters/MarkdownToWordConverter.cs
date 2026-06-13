@@ -48,8 +48,7 @@ namespace OfficeIMO.Word.Markdown {
             // Parse using OfficeIMO.Markdown reader.
             var readerOptions = CreateEffectiveReaderOptions(options);
             var omd = Omd.MarkdownReader.Parse(markdown, readerOptions);
-            var blocks = omd.GetBlocksAndHeadingSlugs().Blocks ?? new List<Omd.IMarkdownBlock>();
-            RemoveDuplicateNativeTocTitleHeadings(blocks);
+            var blocks = GetRenderableBlocks(omd);
             // Build footnote definitions map for this document
             _currentFootnotes = blocks
                 .OfType<Omd.FootnoteDefinitionBlock>()
@@ -78,8 +77,7 @@ namespace OfficeIMO.Word.Markdown {
             var document = WordDocument.Create();
             options.ApplyDefaults(document);
             var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-            var blocks = markdown.GetBlocksAndHeadingSlugs().Blocks ?? new List<Omd.IMarkdownBlock>();
-            RemoveDuplicateNativeTocTitleHeadings(blocks);
+            var blocks = GetRenderableBlocks(markdown);
 
             _currentFootnotes = blocks
                 .OfType<Omd.FootnoteDefinitionBlock>()
@@ -139,6 +137,12 @@ namespace OfficeIMO.Word.Markdown {
                     i--;
                 }
             }
+        }
+
+        private static IReadOnlyList<Omd.IMarkdownBlock> GetRenderableBlocks(Omd.MarkdownDoc markdown) {
+            var blocks = markdown.GetBlocksAndHeadingSlugs().Blocks ?? new List<Omd.IMarkdownBlock>();
+            RemoveDuplicateNativeTocTitleHeadings(blocks);
+            return blocks;
         }
 
     }

@@ -137,6 +137,14 @@ public static partial class OfficeChartDrawingRenderer {
         return GetSeriesColor(style, index);
     }
 
+    private static OfficeColor GetPointColor(IReadOnlyList<OfficeColor?>? pointColors, int index, OfficeColor fallbackColor) {
+        if (pointColors != null && index >= 0 && index < pointColors.Count && pointColors[index].HasValue) {
+            return pointColors[index]!.Value;
+        }
+
+        return fallbackColor;
+    }
+
     private static IReadOnlyList<OfficeColor?>? GetLegendPointColors(IReadOnlyList<OfficeChartSeries> series) {
         for (int i = 0; i < series.Count; i++) {
             if (series[i].PointColors != null) {
@@ -325,7 +333,8 @@ public static partial class OfficeChartDrawingRenderer {
             for (int i = 0; i < categories.Count; i++) {
                 double x = points[i].X - 2D;
                 double y = points[i].Y - 2D;
-                AddShape(drawing, OfficeShape.Ellipse(4D, 4D), x, y, OfficeColor.White, color, 1D);
+                OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);
+                AddShape(drawing, OfficeShape.Ellipse(4D, 4D), x, y, pointColor, pointColor, 1D);
             }
 
             if (stacked) {
@@ -355,7 +364,7 @@ public static partial class OfficeChartDrawingRenderer {
             OfficeColor color = GetSeriesColor(style, series, s);
             IReadOnlyList<double> xValues = series[s].XValues ?? sharedXValues;
             int pointCount = Math.Min(xValues.Count, series[s].Values.Count);
-            var points = new List<OfficePoint>(pointCount);
+            var points = new List<(OfficePoint Point, int SourceIndex)>(pointCount);
             for (int i = 0; i < pointCount; i++) {
                 double yValue = GetSeriesValue(series[s], i);
                 double xValue = xValues[i];
@@ -365,13 +374,19 @@ public static partial class OfficeChartDrawingRenderer {
 
                 double x = ToPlotX(xValue, xRange.Min, xRange.Max, plotLeft, plotWidth);
                 double y = ToPlotY(yValue, yRange.Min, yRange.Max, plotTop, plotHeight);
-                points.Add(new OfficePoint(x, y));
+                points.Add((new OfficePoint(x, y), i));
             }
 
-            AddPointLine(drawing, points, color, 1.25D);
+            var linePoints = new List<OfficePoint>(points.Count);
             for (int i = 0; i < points.Count; i++) {
-                OfficePoint point = points[i];
-                AddShape(drawing, OfficeShape.Ellipse(5D, 5D), point.X - 2.5D, point.Y - 2.5D, OfficeColor.White, color, 1.25D);
+                linePoints.Add(points[i].Point);
+            }
+
+            AddPointLine(drawing, linePoints, color, 1.25D);
+            for (int i = 0; i < points.Count; i++) {
+                OfficePoint point = points[i].Point;
+                OfficeColor pointColor = GetPointColor(series[s].PointColors, points[i].SourceIndex, color);
+                AddShape(drawing, OfficeShape.Ellipse(5D, 5D), point.X - 2.5D, point.Y - 2.5D, pointColor, pointColor, 1.25D);
             }
         }
     }
@@ -424,7 +439,8 @@ public static partial class OfficeChartDrawingRenderer {
             AddPolygonShape(drawing, points, color, color, 1D, 0.18D);
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i];
-                AddShape(drawing, OfficeShape.Ellipse(4D, 4D), point.X - 2D, point.Y - 2D, OfficeColor.White, color, 1D);
+                OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);
+                AddShape(drawing, OfficeShape.Ellipse(4D, 4D), point.X - 2D, point.Y - 2D, pointColor, pointColor, 1D);
             }
         }
 

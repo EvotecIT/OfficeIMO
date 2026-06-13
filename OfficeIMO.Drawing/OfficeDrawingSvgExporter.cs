@@ -30,6 +30,7 @@ public static class OfficeDrawingSvgExporter {
             .Append("\" role=\"img\">");
 
         int gradientId = 0;
+        int clipPathId = 0;
         for (int i = 0; i < drawing.Elements.Count; i++) {
             switch (drawing.Elements[i]) {
                 case OfficeDrawingShape drawingShape:
@@ -39,7 +40,13 @@ public static class OfficeDrawingSvgExporter {
                         AppendGradientDefinition(sb, fillGradientId, drawingShape.Shape.FillGradient);
                     }
 
-                    AppendShape(sb, drawingShape, fillGradientId);
+                    string? shapeClipPathId = null;
+                    if (drawingShape.Shape.ClipPath != null) {
+                        shapeClipPathId = "officeimo-clip-" + (++clipPathId).ToString(CultureInfo.InvariantCulture);
+                        AppendClipPathDefinition(sb, shapeClipPathId, drawingShape.Shape.ClipPath);
+                    }
+
+                    AppendShape(sb, drawingShape, fillGradientId, shapeClipPathId);
                     break;
                 case OfficeDrawingText drawingText:
                     AppendText(sb, drawingText);
@@ -58,13 +65,23 @@ public static class OfficeDrawingSvgExporter {
     /// <returns>UTF-8 encoded SVG bytes.</returns>
     public static byte[] ToSvgBytes(OfficeDrawing drawing) => Encoding.UTF8.GetBytes(ToSvg(drawing));
 
-    private static void AppendShape(StringBuilder sb, OfficeDrawingShape drawingShape, string? fillGradientId) {
+    private static void AppendShape(StringBuilder sb, OfficeDrawingShape drawingShape, string? fillGradientId, string? clipPathId) {
         OfficeShape shape = drawingShape.Shape;
         string paint = BuildPaintAttributes(shape, fillGradientId);
-        bool useLocalCoordinates = HasNonIdentityTransform(shape.Transform);
+        bool useLocalCoordinates = clipPathId != null || HasNonIdentityTransform(shape.Transform);
         double originX = useLocalCoordinates ? 0D : drawingShape.X;
         double originY = useLocalCoordinates ? 0D : drawingShape.Y;
-        string transform = BuildTransformAttribute(shape.Transform, drawingShape.X, drawingShape.Y);
+        string transform = clipPathId == null
+            ? BuildTransformAttribute(shape.Transform, drawingShape.X, drawingShape.Y)
+            : string.Empty;
+
+        if (clipPathId != null) {
+            sb.Append("<g clip-path=\"url(#")
+                .Append(Escape(clipPathId))
+                .Append(")\"")
+                .Append(BuildPlacementTransformAttribute(shape.Transform, drawingShape.X, drawingShape.Y))
+                .Append('>');
+        }
 
         switch (shape.Kind) {
             case OfficeShapeKind.Rectangle:
@@ -99,6 +116,10 @@ public static class OfficeDrawingSvgExporter {
             case OfficeShapeKind.Path:
                 AppendPath(sb, drawingShape, paint, transform, originX, originY);
                 break;
+        }
+
+        if (clipPathId != null) {
+            sb.Append("</g>");
         }
     }
 
@@ -245,6 +266,64 @@ public static class OfficeDrawingSvgExporter {
         sb.Append("</linearGradient></defs>");
     }
 
+    private static void AppendClipPathDefinition(StringBuilder sb, string id, OfficeClipPath clipPath) {
+        sb.Append("<defs><clipPath id=\"")
+            .Append(Escape(id))
+            .Append("\">");
+
+        switch (clipPath.Kind) {
+            case OfficeClipPathKind.Rectangle:
+                sb.Append("<rect x=\"0\" y=\"0\" width=\"")
+                    .Append(Format(clipPath.Width))
+                    .Append("\" height=\"")
+                    .Append(Format(clipPath.Height))
+                    .Append("\"/>");
+                break;
+            case OfficeClipPathKind.RoundedRectangle:
+                sb.Append("<rect x=\"0\" y=\"0\" width=\"")
+                    .Append(Format(clipPath.Width))
+                    .Append("\" height=\"")
+                    .Append(Format(clipPath.Height))
+                    .Append("\" rx=\"")
+                    .Append(Format(clipPath.CornerRadius))
+                    .Append("\" ry=\"")
+                    .Append(Format(clipPath.CornerRadius))
+                    .Append("\"/>");
+                break;
+            case OfficeClipPathKind.Path:
+                AppendClipPathPath(sb, clipPath);
+                break;
+        }
+
+        sb.Append("</clipPath></defs>");
+    }
+
+    private static void AppendClipPathPath(StringBuilder sb, OfficeClipPath clipPath) {
+        sb.Append("<path d=\"");
+        for (int i = 0; i < clipPath.Commands.Count; i++) {
+            OfficePathCommand command = clipPath.Commands[i];
+            switch (command.Kind) {
+                case OfficePathCommandKind.MoveTo:
+                    sb.Append('M').Append(Format(command.Point.X)).Append(' ').Append(Format(command.Point.Y));
+                    break;
+                case OfficePathCommandKind.LineTo:
+                    sb.Append('L').Append(Format(command.Point.X)).Append(' ').Append(Format(command.Point.Y));
+                    break;
+                case OfficePathCommandKind.CubicBezierTo:
+                    sb.Append('C')
+                        .Append(Format(command.ControlPoint1.X)).Append(' ').Append(Format(command.ControlPoint1.Y)).Append(' ')
+                        .Append(Format(command.ControlPoint2.X)).Append(' ').Append(Format(command.ControlPoint2.Y)).Append(' ')
+                        .Append(Format(command.Point.X)).Append(' ').Append(Format(command.Point.Y));
+                    break;
+                case OfficePathCommandKind.Close:
+                    sb.Append('Z');
+                    break;
+            }
+        }
+
+        sb.Append("\"/>");
+    }
+
     private static string BuildPaintAttributes(OfficeShape shape, string? fillGradientId) {
         var sb = new StringBuilder();
         if (fillGradientId != null) {
@@ -313,6 +392,19 @@ public static class OfficeDrawingSvgExporter {
         }
 
         OfficeTransform value = transform!.Value;
+        return BuildMatrixTransformAttribute(value, placementX, placementY);
+    }
+
+    private static string BuildPlacementTransformAttribute(OfficeTransform? transform, double placementX, double placementY) {
+        OfficeTransform value = transform ?? OfficeTransform.Identity;
+        if (value == OfficeTransform.Identity && placementX == 0D && placementY == 0D) {
+            return string.Empty;
+        }
+
+        return BuildMatrixTransformAttribute(value, placementX, placementY);
+    }
+
+    private static string BuildMatrixTransformAttribute(OfficeTransform value, double placementX, double placementY) {
         return " transform=\"matrix(" +
             Format(value.M11) + " " +
             Format(value.M12) + " " +

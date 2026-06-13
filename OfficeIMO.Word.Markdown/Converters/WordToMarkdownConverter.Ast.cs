@@ -45,6 +45,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private void BuildMarkdownDocument(WordDocument document, MarkdownDoc markdown, WordToMarkdownOptions options, CancellationToken cancellationToken) {
             _visualFallbackResourceIndex = 0;
+            var listIndices = DocumentTraversal.BuildListIndices(document);
             int sectionIndex = 0;
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -63,6 +64,7 @@ namespace OfficeIMO.Word.Markdown {
                     elements,
                     block => markdown.Add(block),
                     options,
+                    listIndices,
                     cancellationToken,
                     allowQuoteHeuristic: true,
                     trimBoundaryWhitespace: false);
@@ -116,6 +118,7 @@ namespace OfficeIMO.Word.Markdown {
                 headerFooter.Elements,
                 block => blocks.Add(block),
                 options,
+                null,
                 cancellationToken,
                 allowQuoteHeuristic: true,
                 trimBoundaryWhitespace: false);
@@ -157,6 +160,7 @@ namespace OfficeIMO.Word.Markdown {
             WordParagraph paragraph,
             DocumentTraversal.ListInfo listInfo,
             WordToMarkdownOptions options,
+            IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             bool hasCheckbox,
             bool checkboxChecked,
             bool trimBoundaryWhitespace) {
@@ -171,9 +175,22 @@ namespace OfficeIMO.Word.Markdown {
                 paragraphBlocks = extendedBlocks;
             }
 
-            EnsureListFrame(addRootBlock, listStack, listInfo);
+            EnsureListFrame(addRootBlock, listStack, listInfo, GetListStartForCurrentItem(paragraph, listInfo, listIndices));
             var item = CreateListItem(paragraphBlocks, listInfo.Level, hasCheckbox, checkboxChecked);
             listStack[listStack.Count - 1].AddItem(item);
+        }
+
+        private static int GetListStartForCurrentItem(
+            WordParagraph paragraph,
+            DocumentTraversal.ListInfo listInfo,
+            IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices) {
+            if (!listInfo.Ordered || listIndices == null) {
+                return listInfo.Start;
+            }
+
+            return listIndices.TryGetValue(paragraph, out var current) && current.Level == listInfo.Level
+                ? current.Index
+                : listInfo.Start;
         }
 
         private static IReadOnlyList<IMarkdownBlock> LiftLeadingPageBreakBlocks(
@@ -218,7 +235,7 @@ namespace OfficeIMO.Word.Markdown {
             return block is HorizontalRuleBlock;
         }
 
-        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, DocumentTraversal.ListInfo listInfo) {
+        private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, DocumentTraversal.ListInfo listInfo, int start) {
             int targetDepth = Math.Max(0, listInfo.Level) + 1;
 
             while (listStack.Count > targetDepth) {
@@ -233,7 +250,7 @@ namespace OfficeIMO.Word.Markdown {
                 bool ordered = listInfo.Ordered;
                 IMarkdownListBlock block = ordered ? new OrderedListBlock() : new UnorderedListBlock();
                 if (block is OrderedListBlock orderedList && listStack.Count == targetDepth - 1) {
-                    orderedList.Start = listInfo.Start;
+                    orderedList.Start = start;
                 }
 
                 if (listStack.Count == 0) {
@@ -289,6 +306,7 @@ namespace OfficeIMO.Word.Markdown {
             IReadOnlyList<WordElement> elements,
             Action<IMarkdownBlock> addRootBlock,
             WordToMarkdownOptions options,
+            IReadOnlyDictionary<WordParagraph, (int Level, int Index)>? listIndices,
             CancellationToken cancellationToken,
             bool allowQuoteHeuristic,
             bool trimBoundaryWhitespace) {
@@ -305,6 +323,7 @@ namespace OfficeIMO.Word.Markdown {
                             paragraph.TextBox.Elements,
                             addRootBlock,
                             options,
+                            listIndices,
                             cancellationToken,
                             allowQuoteHeuristic: allowQuoteHeuristic,
                             trimBoundaryWhitespace: true);
@@ -346,7 +365,7 @@ namespace OfficeIMO.Word.Markdown {
 
                     var listInfo = DocumentTraversal.GetListInfo(paragraph);
                     if (listInfo != null) {
-                        AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, hasCheckbox, checkboxChecked, trimBoundaryWhitespace);
+                        AddListParagraph(addRootBlock, listStack, paragraph, listInfo.Value, options, listIndices, hasCheckbox, checkboxChecked, trimBoundaryWhitespace);
                         continue;
                     }
 
@@ -448,9 +467,10 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             foreach (var run in paragraph.GetRuns()) {
+                bool containsPageBreak = RunContainsPageBreak(run);
                 string? text = run.Text;
                 if (string.IsNullOrEmpty(text)) {
-                    if (run.PageBreak != null) {
+                    if (containsPageBreak) {
                         AddCodeBlockIfNeeded(blocks, language, code);
                         AddPageBreakBlock(blocks, options);
                     }
@@ -458,7 +478,7 @@ namespace OfficeIMO.Word.Markdown {
                     continue;
                 }
 
-                if (run.PageBreak != null && text.IndexOf('\u2028') >= 0) {
+                if (containsPageBreak && text.IndexOf('\u2028') >= 0) {
                     int start = 0;
                     for (int i = 0; i < text.Length; i++) {
                         if (text[i] != '\u2028') {
@@ -481,7 +501,7 @@ namespace OfficeIMO.Word.Markdown {
                     continue;
                 }
 
-                if (run.PageBreak != null) {
+                if (containsPageBreak) {
                     AddCodeBlockIfNeeded(blocks, language, code);
                     AddPageBreakBlock(blocks, options);
                     text = text.Replace("\u2028", string.Empty);
@@ -530,7 +550,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             foreach (var run in paragraph.GetRuns()) {
-                if (run.PageBreak != null) {
+                if (RunContainsPageBreak(run)) {
                     if (TryAppendRunWithEmbeddedPageBreaks(
                         blocks,
                         paragraph,
@@ -640,12 +660,20 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             foreach (var run in paragraph.GetRuns()) {
-                if (run.PageBreak != null) {
+                if (RunContainsPageBreak(run)) {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static bool RunContainsPageBreak(WordParagraph run) {
+            if (run.PageBreak != null) {
+                return true;
+            }
+
+            return run._run?.Descendants<Break>().Any(br => br.Type?.Value == BreakValues.Page) == true;
         }
 
         private void AppendParagraphBlocksFromSegment(
@@ -1407,7 +1435,7 @@ namespace OfficeIMO.Word.Markdown {
         private OmdTableCell BuildTableCell(WordTableCell cell, WordToMarkdownOptions options) {
             var blocks = new List<IMarkdownBlock>();
             var elements = cell.Elements;
-            AppendBlocksFromElements(elements, block => blocks.Add(block), options, CancellationToken.None, allowQuoteHeuristic: true, trimBoundaryWhitespace: false);
+            AppendBlocksFromElements(elements, block => blocks.Add(block), options, null, CancellationToken.None, allowQuoteHeuristic: true, trimBoundaryWhitespace: false);
 
             return new OmdTableCell(blocks);
         }

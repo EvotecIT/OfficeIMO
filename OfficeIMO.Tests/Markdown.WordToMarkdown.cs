@@ -291,6 +291,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_Preserves_Ordered_List_Number_After_Lifted_PageBreak() {
+            using var doc = WordDocument.Create();
+            WordList list = doc.AddList(WordListStyle.Numbered);
+            list.AddItem("One");
+            list.AddItem("Two");
+            WordParagraph third = list.AddItem("Three");
+            third.PageBreakBefore = true;
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                PageBreakMode = MarkdownPageBreakMode.SemanticBlock
+            });
+
+            int pageBreakIndex = markdown.IndexOf("```officeimo-word-page-break", StringComparison.Ordinal);
+            int thirdItemIndex = markdown.IndexOf("3. Three", StringComparison.Ordinal);
+
+            Assert.True(pageBreakIndex >= 0, markdown);
+            Assert.True(thirdItemIndex > pageBreakIndex, markdown);
+            Assert.DoesNotContain("1. Three", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordToMarkdown_Preserves_Unsupported_Content_In_List_Item() {
             const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>x=1</m:t></m:r></m:oMath></m:oMathPara>";
             using var doc = WordDocument.Create();
@@ -377,6 +398,31 @@ namespace OfficeIMO.Tests {
             Assert.Collection(
                 markdown.Blocks,
                 block => Assert.Equal("Before", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<SemanticFencedBlock>(block),
+                block => Assert.Equal("After", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+        }
+
+        [Fact]
+        public void WordToMarkdown_Detects_PageBreak_After_TextWrapping_Break_In_Same_Run() {
+            using var doc = WordDocument.Create();
+            var paragraph = doc.AddParagraph();
+            paragraph._paragraph.Append(new Run(
+                new Text("Before"),
+                new Break(),
+                new Text("Middle"),
+                new Break { Type = BreakValues.Page },
+                new Text("After")));
+
+            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+
+            Assert.Collection(
+                markdown.Blocks,
+                block => {
+                    string text = Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown();
+                    Assert.Contains("Before", text, StringComparison.Ordinal);
+                    Assert.Contains("Middle", text, StringComparison.Ordinal);
+                    Assert.DoesNotContain("\u2028", text, StringComparison.Ordinal);
+                },
                 block => Assert.IsType<SemanticFencedBlock>(block),
                 block => Assert.Equal("After", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
         }
@@ -596,6 +642,41 @@ namespace OfficeIMO.Tests {
                 Assert.True(Array.IndexOf(paragraphTexts, "Inserted body.") < Array.IndexOf(paragraphTexts, "After template content"));
                 Assert.Contains(document.Paragraphs, paragraph => paragraph.Style == WordParagraphStyles.Heading1 && paragraph.Text.Trim() == "Inserted heading");
                 Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Trim() == "First" && paragraph.IsListItem);
+            } finally {
+                if (File.Exists(templatePath)) {
+                    File.Delete(templatePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void MarkdownToWord_LoadFromMarkdownTemplate_Realizes_Toc_Placeholders() {
+            string templatePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
+            try {
+                using (var template = WordDocument.Create(templatePath)) {
+                    template.AddParagraph("Before template content");
+                    template.AddParagraph("PLACEHOLDER").AddBookmark("MainContent");
+                    template.Save();
+                }
+
+                const string markdown = """
+                    # Report
+
+                    [TOC title="Contents" min=1 max=3]
+
+                    ## Details
+                    """;
+
+                using var document = markdown.LoadFromMarkdownTemplate(
+                    templatePath,
+                    new MarkdownToWordTemplateOptions {
+                        BookmarkName = "MainContent"
+                    });
+
+                Assert.NotNull(document.TableOfContent);
+                Assert.Equal("Contents", document.TableOfContent!.Text);
+                Assert.Equal(1, document.TableOfContent.MinLevel);
+                Assert.Equal(3, document.TableOfContent.MaxLevel);
             } finally {
                 if (File.Exists(templatePath)) {
                     File.Delete(templatePath);

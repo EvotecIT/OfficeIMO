@@ -64,7 +64,7 @@ namespace OfficeIMO.Word.Markdown {
             MarkdownToWordOptions options,
             double pageContentWidthPixels,
             CancellationToken cancellationToken) {
-            var blocks = markdown.Blocks ?? Array.Empty<Omd.IMarkdownBlock>();
+            var blocks = GetRenderableBlocks(markdown);
 
             _currentFootnotes = blocks
                 .OfType<Omd.FootnoteDefinitionBlock>()

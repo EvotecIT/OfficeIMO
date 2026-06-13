@@ -332,6 +332,23 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsClipPathInShapeLocalCoordinates() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.RoundedRectangle(80, 40, 8);
+        shape.FillColor = OfficeColor.SteelBlue;
+        shape.ClipPath = OfficeClipPath.Rectangle(40, 20);
+        shape.Transform = OfficeTransform.RotateDegrees(15, 40, 20);
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<clipPath id=\"officeimo-clip-1\"><rect x=\"0\" y=\"0\" width=\"40\" height=\"20\"/></clipPath>", svg, StringComparison.Ordinal);
+        Assert.Contains("<g clip-path=\"url(#officeimo-clip-1)\" transform=\"matrix(", svg, StringComparison.Ordinal);
+        Assert.Contains("<rect x=\"0\" y=\"0\" width=\"80\" height=\"40\" rx=\"8\" ry=\"8\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("<rect x=\"10\" y=\"12\" width=\"80\" height=\"40\" rx=\"8\" ry=\"8\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeClipPathStoresReusablePathIntent() {
         var clipPath = OfficeClipPath.Path(
             OfficePathCommand.MoveTo(10, 30),
