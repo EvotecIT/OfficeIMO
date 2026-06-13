@@ -806,6 +806,23 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Vml_TextBox_Run_Fonts() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeVmlTextRunFonts.docx"));
+        var paragraph = new Paragraph(
+            new Run(
+                new RunProperties(new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }),
+                new Text("Monospace VML text")));
+        Paragraph textBoxParagraph = CreateNativeVmlTextBoxParagraph(paragraph);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var runs = (IReadOnlyList<TextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
+
+        TextRun run = Assert.Single(runs);
+        Assert.Equal("Monospace VML text", run.Text);
+        Assert.Equal(PdfStandardFont.Courier, run.Font);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Normalizes_Direct_Heading_Text_LineBreaks() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDirectHeadingLineBreak.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDirectHeadingLineBreak.pdf");

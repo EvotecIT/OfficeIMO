@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (WordTabStop tabStop in paragraph.TabStops
-                .Where(tabStop => tabStop.Position > 0 && tabStop.Alignment != W.TabStopValues.Bar)
+                .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
                 .OrderBy(tabStop => tabStop.Position)) {
                 double? position = ConvertNativeTwipsToPoints(tabStop.Position);
                 if (!position.HasValue) {
@@ -79,6 +79,10 @@ namespace OfficeIMO.Word.Pdf {
             return style;
         }
 
+        private static bool IsNativeRenderableTextTabStop(W.TabStopValues alignment) =>
+            alignment != W.TabStopValues.Bar &&
+            alignment != W.TabStopValues.Clear;
+
         private static double ResolveNativeParagraphLineHeight(WordParagraph paragraph, double fontSize) {
             if (paragraph.LineSpacing.HasValue && paragraph.LineSpacingRule == W.LineSpacingRuleValues.Auto) {
                 return Math.Max(0.01D, paragraph.LineSpacing.Value / 240D);
@@ -93,7 +97,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static double? GetNativeDefaultTabStopWidth(WordParagraph paragraph) {
             int firstTabStop = paragraph.TabStops
-                .Where(tabStop => tabStop.Position > 0)
+                .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
                 .Select(tabStop => tabStop.Position)
                 .DefaultIfEmpty(0)
                 .Min();

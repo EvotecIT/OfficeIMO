@@ -175,6 +175,7 @@ namespace OfficeIMO.Word.Pdf {
             var series = new List<OfficeChartSeries>();
             var categoryList = new List<string>();
             bool isScatter = chartKind == OfficeChartKind.Scatter;
+            bool varyColorsByPoint = !isScatter && !IsNativeWordPieLikeChart(chartKind) && IsNativeWordChartVaryColorsEnabled(chartElement);
 
             int seriesIndex = 0;
             foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
@@ -217,6 +218,10 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 IReadOnlyList<OfficeColor?>? pointColors = ExtractNativeWordChartPointColors(seriesElement, values.Count);
+                if (pointColors == null && varyColorsByPoint && seriesIndex == 0) {
+                    pointColors = CreateNativeWordChartVaryPointColors(values.Count);
+                }
+
                 series.Add(new OfficeChartSeries(
                     GetNativeWordChartSeriesName(seriesElement, seriesIndex),
                     values,
@@ -261,6 +266,18 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return categories;
+        }
+
+        private static bool IsNativeWordChartVaryColorsEnabled(OpenXmlElement chartElement) =>
+            IsNativeWordChartBooleanOn(chartElement.GetFirstChild<VaryColors>());
+
+        private static IReadOnlyList<OfficeColor?> CreateNativeWordChartVaryPointColors(int valueCount) {
+            var colors = new OfficeColor?[valueCount];
+            for (int index = 0; index < colors.Length; index++) {
+                colors[index] = OfficeChartStyle.Default.GetSeriesColor(index);
+            }
+
+            return colors;
         }
 
         private static IReadOnlyList<string> ExtractNativeWordChartStringValues(OpenXmlElement? container) {

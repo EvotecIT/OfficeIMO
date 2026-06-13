@@ -785,7 +785,8 @@ namespace OfficeIMO.Word.Pdf {
                 color: ParseNativeColor(properties?.Color?.Val?.Value),
                 italic: HasNativeOnOff(properties?.Italic),
                 strike: HasNativeOnOff(properties?.Strike),
-                fontSize: GetNativeVmlRunFontSize(properties)));
+                fontSize: GetNativeVmlRunFontSize(properties),
+                font: GetNativeVmlRunFont(properties)));
         }
 
         private static string ResolveNativeVmlRunText(WordDocument document, W.Run run, W.Text textElement) {
@@ -1165,6 +1166,26 @@ namespace OfficeIMO.Word.Pdf {
             return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints) && halfPoints > 0D
                 ? halfPoints / 2D
                 : null;
+        }
+
+        private static PdfCore.PdfStandardFont? GetNativeVmlRunFont(W.RunProperties? properties) {
+            W.RunFonts? fonts = properties?.RunFonts;
+            if (fonts == null) {
+                return null;
+            }
+
+            foreach (string? family in new[] {
+                fonts.Ascii?.Value,
+                fonts.HighAnsi?.Value,
+                fonts.EastAsia?.Value,
+                fonts.ComplexScript?.Value
+            }) {
+                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(family, out PdfCore.PdfStandardFont font)) {
+                    return font;
+                }
+            }
+
+            return null;
         }
 
         private static double GetNativeVmlDefaultFontSize(IReadOnlyList<PdfCore.TextRun> runs) {

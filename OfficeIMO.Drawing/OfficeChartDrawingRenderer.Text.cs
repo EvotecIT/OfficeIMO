@@ -369,11 +369,7 @@ public static partial class OfficeChartDrawingRenderer {
             return false;
         }
 
-        string format = numberFormat!.Trim();
-        int sectionIndex = format.IndexOf(';');
-        if (sectionIndex >= 0) {
-            format = format.Substring(0, sectionIndex).Trim();
-        }
+        string format = SelectSignedNumberFormatSection(numberFormat!, value);
 
         if (format.Length == 0) {
             return false;
@@ -383,13 +379,30 @@ public static partial class OfficeChartDrawingRenderer {
         bool grouped = HasDataLabelGrouping(format);
         int decimals = GetDataLabelDecimalPlaces(format);
         double displayValue = percent ? value * 100D : value;
+        bool useAbsoluteNegative = displayValue < 0D && numberFormat!.IndexOf(';') >= 0;
         string numericFormat = (grouped ? "N" : "F") + decimals.ToString(CultureInfo.InvariantCulture);
-        formatted = displayValue.ToString(numericFormat, CultureInfo.InvariantCulture);
+        formatted = (useAbsoluteNegative ? Math.Abs(displayValue) : displayValue).ToString(numericFormat, CultureInfo.InvariantCulture);
+        if (useAbsoluteNegative && format.IndexOf('(') >= 0 && format.IndexOf(')') > format.IndexOf('(')) {
+            formatted = "(" + formatted + ")";
+        }
+
         if (percent) {
             formatted += "%";
         }
 
         return true;
+    }
+
+    private static string SelectSignedNumberFormatSection(string numberFormat, double value) {
+        string[] sections = numberFormat.Split(';');
+        string format = sections[0].Trim();
+        if (value < 0D && sections.Length > 1) {
+            format = sections[1].Trim();
+        } else if (Math.Abs(value) < 0.0000001D && sections.Length > 2) {
+            format = sections[2].Trim();
+        }
+
+        return format;
     }
 
     private static bool HasDataLabelGrouping(string format) {

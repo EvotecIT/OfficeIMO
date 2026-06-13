@@ -15,9 +15,6 @@ public sealed partial class PdfOptions {
         set {
             _firstPageTextWatermark = value?.Clone();
             _suppressFirstPageTextWatermark = false;
-            if (value != null) {
-                DifferentFirstPageHeaderFooter = true;
-            }
         }
     }
     /// <summary>Optional even-page text watermark rendered behind page content when odd/even variants are enabled.</summary>
@@ -26,18 +23,27 @@ public sealed partial class PdfOptions {
         set {
             _evenPageTextWatermark = value?.Clone();
             _suppressEvenPageTextWatermark = false;
-            if (value != null) {
-                DifferentOddAndEvenPagesHeaderFooter = true;
-            }
         }
     }
     internal PdfTextWatermark? GetTextWatermarkForPage(int pageNumber) {
+        if (pageNumber == 1 && (_firstPageTextWatermark != null || _suppressFirstPageTextWatermark)) {
+            return _suppressFirstPageTextWatermark
+                ? null
+                : _firstPageTextWatermark?.Clone();
+        }
+
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             if (_suppressFirstPageTextWatermark) {
                 return null;
             }
 
             return (_firstPageTextWatermark ?? _textWatermark)?.Clone();
+        }
+
+        if (pageNumber > 0 && pageNumber % 2 == 0 && (_evenPageTextWatermark != null || _suppressEvenPageTextWatermark)) {
+            return _suppressEvenPageTextWatermark
+                ? null
+                : _evenPageTextWatermark?.Clone();
         }
 
         if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
@@ -62,9 +68,6 @@ public sealed partial class PdfOptions {
         set {
             _firstPageImageWatermark = value?.Clone();
             _suppressFirstPageImageWatermark = false;
-            if (value != null) {
-                DifferentFirstPageHeaderFooter = true;
-            }
         }
     }
     /// <summary>Optional even-page image watermark rendered behind page content when odd/even variants are enabled.</summary>
@@ -73,18 +76,27 @@ public sealed partial class PdfOptions {
         set {
             _evenPageImageWatermark = value?.Clone();
             _suppressEvenPageImageWatermark = false;
-            if (value != null) {
-                DifferentOddAndEvenPagesHeaderFooter = true;
-            }
         }
     }
     internal PdfImageWatermark? GetImageWatermarkForPage(int pageNumber) {
+        if (pageNumber == 1 && (_firstPageImageWatermark != null || _suppressFirstPageImageWatermark)) {
+            return _suppressFirstPageImageWatermark
+                ? null
+                : _firstPageImageWatermark?.Clone();
+        }
+
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
             if (_suppressFirstPageImageWatermark) {
                 return null;
             }
 
             return (_firstPageImageWatermark ?? _imageWatermark)?.Clone();
+        }
+
+        if (pageNumber > 0 && pageNumber % 2 == 0 && (_evenPageImageWatermark != null || _suppressEvenPageImageWatermark)) {
+            return _suppressEvenPageImageWatermark
+                ? null
+                : _evenPageImageWatermark?.Clone();
         }
 
         if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {

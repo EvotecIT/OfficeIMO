@@ -148,6 +148,31 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void WatermarkVariants_DoNotEnableHeaderFooterVariantsByThemselves() {
+        var options = new PdfOptions {
+            ShowHeader = true,
+            HeaderFormat = "DEFAULT HEADER",
+            FirstPageTextWatermark = new PdfTextWatermark("FIRST") {
+                Opacity = 0.18,
+                FontSize = 30
+            }
+        };
+
+        Assert.False(options.DifferentFirstPageHeaderFooter);
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("First page body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second page body."))
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains("FIRST", text);
+        Assert.Equal(2, Regex.Matches(text, "DEFAULT HEADER").Count);
+    }
+
+    [Fact]
     public void WatermarkVariants_FallBackToGlobalWatermarksWhenUnset() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfOptions {

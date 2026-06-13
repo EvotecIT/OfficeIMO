@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 namespace OfficeIMO.Drawing;
 
@@ -243,7 +244,7 @@ public static partial class OfficeChartDrawingRenderer {
             double negativeBase = 0D;
             for (int s = 0; s < series.Count; s++) {
                 double value = GetSeriesValue(series[s], category);
-                if (value == 0D) {
+                if (value == 0D && !layout.ShowDataLabels) {
                     continue;
                 }
 
@@ -500,11 +501,14 @@ public static partial class OfficeChartDrawingRenderer {
                 }
 
                 int pointIndex = points[i].SourceIndex;
+                string labelCategory = series[s].XValues != null && pointIndex < xValues.Count
+                    ? xValues[pointIndex].ToString("0.####", CultureInfo.InvariantCulture)
+                    : pointIndex < categories.Count ? categories[pointIndex] : string.Empty;
                 AddPointDataLabel(
                     drawing,
                     layout,
                     style,
-                    pointIndex < categories.Count ? categories[pointIndex] : string.Empty,
+                    labelCategory,
                     series[s],
                     GetSeriesValue(series[s], pointIndex),
                     GetDataLabelCategoryTotal(series, pointIndex),
@@ -567,6 +571,19 @@ public static partial class OfficeChartDrawingRenderer {
                     OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);
                     AddShape(drawing, OfficeShape.Ellipse(4D, 4D), point.X - 2D, point.Y - 2D, pointColor, pointColor, 1D);
                 }
+            }
+
+            for (int i = 0; i < points.Count; i++) {
+                AddPointDataLabel(
+                    drawing,
+                    layout,
+                    style,
+                    categories[i],
+                    series[s],
+                    GetSeriesValue(series[s], i),
+                    GetDataLabelCategoryTotal(series, i),
+                    points[i].X,
+                    points[i].Y);
             }
         }
 
