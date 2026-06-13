@@ -278,7 +278,10 @@ public static partial class OfficeChartDrawingRenderer {
                     double x2 = ToPlotX(stacked ? baseline + plottedValue : plottedValue, min, max, plotLeft, plotWidth);
                     double x = Math.Min(x1, x2);
                     double w = Math.Max(1D, Math.Abs(x2 - x1));
-                    AddShape(drawing, OfficeShape.Rectangle(w, rowHeight), x, y, color, null, 0D);
+                    if (value != 0D) {
+                        AddShape(drawing, OfficeShape.Rectangle(w, rowHeight), x, y, color, null, 0D);
+                    }
+
                     AddHorizontalDataLabel(
                         drawing,
                         layout,
@@ -297,7 +300,10 @@ public static partial class OfficeChartDrawingRenderer {
                     double y2 = ToPlotY(stacked ? baseline + plottedValue : plottedValue, min, max, plotTop, plotHeight);
                     double y = Math.Min(y1, y2);
                     double h = Math.Max(1D, Math.Abs(y2 - y1));
-                    AddShape(drawing, OfficeShape.Rectangle(barWidth * 0.88D, h), x, y, color, null, 0D);
+                    if (value != 0D) {
+                        AddShape(drawing, OfficeShape.Rectangle(barWidth * 0.88D, h), x, y, color, null, 0D);
+                    }
+
                     AddVerticalDataLabel(
                         drawing,
                         layout,

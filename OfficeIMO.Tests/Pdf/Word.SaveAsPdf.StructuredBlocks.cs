@@ -74,6 +74,28 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_DoesNotDoubleBreakAfterCoverPageWithManualPageBreak() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageManualBreak.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageManualBreak.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlock("Cover with existing separator"));
+            document.AddPageBreak();
+            document.AddParagraph("Body after existing separator");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.Contains("Cover with existing separator", pdf.GetPage(1).Text);
+        Assert.Contains("Body after existing separator", pdf.GetPage(2).Text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Toc_Entries_Use_Content_Right_Edge_Tab_Stop() {
         object level1Style = CreateNativeTableOfContentsEntryStyle(relativeLevel: 0, contentWidth: 468D);
         object level2Style = CreateNativeTableOfContentsEntryStyle(relativeLevel: 1, contentWidth: 468D);

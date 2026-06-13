@@ -664,6 +664,10 @@ public class PdfDocumentChartDrawingTests {
                 showDataLabelValues: true)));
 
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "0");
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.StrokeWidth == 0D &&
+            shape.Shape.FillColor.HasValue);
     }
 
     [Fact]

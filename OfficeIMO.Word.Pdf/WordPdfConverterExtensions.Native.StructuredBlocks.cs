@@ -124,8 +124,14 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                if (next is W.Paragraph paragraph && IsNativeEmptyParagraph(paragraph)) {
-                    continue;
+                if (next is W.Paragraph paragraph) {
+                    if (IsNativePageBreakSeparator(paragraph)) {
+                        return false;
+                    }
+
+                    if (IsNativeEmptyParagraph(paragraph)) {
+                        continue;
+                    }
                 }
 
                 return true;
@@ -142,6 +148,10 @@ namespace OfficeIMO.Word.Pdf {
 
             return !paragraph.Descendants<W.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text));
         }
+
+        private static bool IsNativePageBreakSeparator(W.Paragraph paragraph) =>
+            paragraph.ParagraphProperties?.PageBreakBefore != null ||
+            paragraph.Descendants<W.Break>().Any(breakElement => breakElement.Type?.Value == W.BreakValues.Page);
 
         private static string? GetNativeBuiltInPropertyValue(WordDocument document, W.SdtProperties? properties) {
             if (properties == null) {
