@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
+using V = DocumentFormat.OpenXml.Vml;
 using W = DocumentFormat.OpenXml.Wordprocessing;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using W15 = DocumentFormat.OpenXml.Office2013.Word;
@@ -271,6 +272,7 @@ namespace OfficeIMO.Word.Pdf {
         private static string? AppendNativeHeaderFooterSupplementalText(string? text, WordParagraph paragraph) {
             text = AppendNativeHeaderFooterEquationText(text, paragraph);
             text = AppendNativeHeaderFooterFormControlText(text, paragraph);
+            text = AppendNativeHeaderFooterTextPathText(text, paragraph);
             return AppendNativeHeaderFooterRepeatingSectionText(text, paragraph);
         }
 
@@ -313,6 +315,25 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 AppendNativeHeaderFooterSupplementalValue(builder, ref currentText, value, skipIfPresent: true);
+            }
+
+            return builder.Length == 0 ? text : builder.ToString();
+        }
+
+        private static string? AppendNativeHeaderFooterTextPathText(string? text, WordParagraph paragraph) {
+            IEnumerable<V.TextPath> textPaths = paragraph._paragraph?.Descendants<V.TextPath>() ?? Enumerable.Empty<V.TextPath>();
+            var builder = new StringBuilder(text ?? string.Empty);
+            string currentText = builder.ToString();
+            foreach (V.TextPath textPath in textPaths) {
+                if (!IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(textPath, "on"))) {
+                    continue;
+                }
+
+                AppendNativeHeaderFooterSupplementalValue(
+                    builder,
+                    ref currentText,
+                    textPath.String?.Value ?? GetNativeOpenXmlAttribute(textPath, "string"),
+                    skipIfPresent: true);
             }
 
             return builder.Length == 0 ? text : builder.ToString();

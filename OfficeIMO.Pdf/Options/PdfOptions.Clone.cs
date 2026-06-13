@@ -11,6 +11,8 @@ public sealed partial class PdfOptions {
             FirstPageTextWatermark = _firstPageTextWatermark?.Clone(),
             EvenPageTextWatermark = _evenPageTextWatermark?.Clone(),
             ImageWatermark = _imageWatermark?.Clone(),
+            FirstPageImageWatermark = _firstPageImageWatermark?.Clone(),
+            EvenPageImageWatermark = _evenPageImageWatermark?.Clone(),
             PageBorder = _pageBorder?.Clone(),
             PageBackgroundImage = _pageBackgroundImage?.Clone(),
             PageBackgroundShapes = ClonePageBackgroundShapes(_pageBackgroundShapes),

@@ -31,6 +31,8 @@ public sealed class OfficeChartStyle {
     /// <param name="textColor">Primary chart text color.</param>
     /// <param name="mutedTextColor">Secondary chart text color for axis and category labels.</param>
     /// <param name="titleColor">Chart title color.</param>
+    /// <param name="plotAreaBackgroundColor">Optional plot area fill.</param>
+    /// <param name="plotAreaBorderColor">Optional plot area border color.</param>
     public OfficeChartStyle(
         IEnumerable<OfficeColor>? palette = null,
         string? fontFamily = null,
@@ -40,7 +42,9 @@ public sealed class OfficeChartStyle {
         OfficeColor? gridLineColor = null,
         OfficeColor? textColor = null,
         OfficeColor? mutedTextColor = null,
-        OfficeColor? titleColor = null) {
+        OfficeColor? titleColor = null,
+        OfficeColor? plotAreaBackgroundColor = null,
+        OfficeColor? plotAreaBorderColor = null) {
         var colors = palette == null ? new List<OfficeColor>() : new List<OfficeColor>(palette);
         if (colors.Count == 0) {
             colors.AddRange(DefaultPaletteValues);
@@ -55,6 +59,8 @@ public sealed class OfficeChartStyle {
         TextColor = textColor ?? OfficeColor.FromRgb(51, 65, 85);
         MutedTextColor = mutedTextColor ?? OfficeColor.FromRgb(100, 116, 139);
         TitleColor = titleColor ?? OfficeColor.FromRgb(31, 78, 121);
+        PlotAreaBackgroundColor = plotAreaBackgroundColor;
+        PlotAreaBorderColor = plotAreaBorderColor;
     }
 
     /// <summary>Default premium OfficeIMO chart style.</summary>
@@ -86,6 +92,12 @@ public sealed class OfficeChartStyle {
 
     /// <summary>Chart title color.</summary>
     public OfficeColor TitleColor { get; }
+
+    /// <summary>Optional plot area fill.</summary>
+    public OfficeColor? PlotAreaBackgroundColor { get; }
+
+    /// <summary>Optional plot area border color.</summary>
+    public OfficeColor? PlotAreaBorderColor { get; }
 
     /// <summary>Gets a palette color for the zero-based series or slice index.</summary>
     public OfficeColor GetSeriesColor(int index) {

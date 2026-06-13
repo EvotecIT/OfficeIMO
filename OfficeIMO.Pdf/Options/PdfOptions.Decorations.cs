@@ -42,6 +42,33 @@ public sealed partial class PdfOptions {
         set => _imageWatermark = value?.Clone();
     }
     internal PdfImageWatermark? ImageWatermarkSnapshot => _imageWatermark?.Clone();
+    /// <summary>Optional first-page image watermark rendered behind page content when first-page variants are enabled.</summary>
+    public PdfImageWatermark? FirstPageImageWatermark {
+        get => _firstPageImageWatermark?.Clone();
+        set {
+            _firstPageImageWatermark = value?.Clone();
+            DifferentFirstPageHeaderFooter = true;
+        }
+    }
+    /// <summary>Optional even-page image watermark rendered behind page content when odd/even variants are enabled.</summary>
+    public PdfImageWatermark? EvenPageImageWatermark {
+        get => _evenPageImageWatermark?.Clone();
+        set {
+            _evenPageImageWatermark = value?.Clone();
+            DifferentOddAndEvenPagesHeaderFooter = true;
+        }
+    }
+    internal PdfImageWatermark? GetImageWatermarkForPage(int pageNumber) {
+        if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            return _firstPageImageWatermark?.Clone();
+        }
+
+        if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
+            return _evenPageImageWatermark?.Clone();
+        }
+
+        return _imageWatermark?.Clone();
+    }
     /// <summary>Optional reusable page border rendered as a page decoration.</summary>
     public PdfPageBorder? PageBorder {
         get => _pageBorder?.Clone();

@@ -169,6 +169,25 @@ public class PdfDocumentImageValidationTests {
     }
 
     [Fact]
+    public void RepeatedIdenticalImages_ReuseImageXObjectAcrossPages() {
+        byte[] png = CreateMinimalRgbPng();
+
+        byte[] bytes = PdfDocument.Create()
+            .Image(png, 24, 24)
+            .Image(png, 12, 12)
+            .PageBreak()
+            .Image(png, 18, 18)
+            .ToBytes();
+
+        string pdfContent = System.Text.Encoding.ASCII.GetString(bytes);
+        int imageObjectCount = CountOccurrences(pdfContent, "/Subtype /Image");
+        int imageDrawCount = CountOccurrences(pdfContent, "/Im1 Do");
+
+        Assert.Equal(1, imageObjectCount);
+        Assert.True(imageDrawCount >= 3, "Expected all repeated image placements to draw the shared XObject.");
+    }
+
+    [Fact]
     public void TableCellImage_WithScaleDownToFit_ReducesOversizedImageIntoCellFrame() {
         byte[] jpeg = CreateMinimalJpeg(400, 200);
         var tableStyle = new PdfTableStyle {
@@ -1003,6 +1022,9 @@ public class PdfDocumentImageValidationTests {
 
         throw new InvalidOperationException("Could not find word '" + word + "' in rendered PDF text.");
     }
+
+    private static int CountOccurrences(string text, string value) =>
+        text.Split(new[] { value }, StringSplitOptions.None).Length - 1;
 
     private static byte[] CreateMinimalRgbPng() {
         return new byte[] {

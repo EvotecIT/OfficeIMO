@@ -107,6 +107,26 @@ internal static partial class PdfWriter {
         int totalPages = layout.Pages.Count;
         var pageNumberInfos = BuildPageNumberInfos(layout.Pages);
         int nextStructParentIndex = 0;
+        var imageXObjectIds = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        int EnsureImageXObject(PdfImageStream imageStream) {
+            string cacheKey = BuildImageXObjectCacheKey(imageStream);
+            if (imageXObjectIds.TryGetValue(cacheKey, out int existingImageId)) {
+                return existingImageId;
+            }
+
+            int? softMaskId = null;
+            if (imageStream.SoftMask != null) {
+                string softMaskDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream.SoftMask);
+                softMaskId = AddStreamObject(objects, softMaskDictionary, imageStream.SoftMask.Data);
+            }
+
+            string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId);
+            int imageId = AddStreamObject(objects, imageDictionary, imageStream.Data);
+            imageXObjectIds[cacheKey] = imageId;
+            return imageId;
+        }
+
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
             var page = layout.Pages[pageIndex];
             // Make a resources dict that references the fonts we declared
@@ -164,7 +184,7 @@ internal static partial class PdfWriter {
             if (pageBackgroundImage != null && pageBackgroundImage.Opacity > 0D) {
                 AddPageBackgroundImage(page, pageOpts, pageBackgroundImage);
             }
-            PdfImageWatermark? imageWatermark = pageOpts.ImageWatermarkSnapshot;
+            PdfImageWatermark? imageWatermark = pageOpts.GetImageWatermarkForPage(headerFooterVariantPageNumber);
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 AddImageWatermark(page, pageOpts, imageWatermark);
             }
@@ -223,24 +243,22 @@ internal static partial class PdfWriter {
 
             var xobjects = new List<(string Name, int Id)>();
             if (page.Images.Count > 0) {
+                var pageImageResourceNames = new Dictionary<int, string>();
                 for (int i = 0; i < page.Images.Count; i++) {
                     var img = page.Images[i];
-                    string name = "/Im" + (i + 1).ToString(CultureInfo.InvariantCulture);
                     if (!TryBuildImageStream(img, out var imageStream, out string? unsupportedReason)) {
                         throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
                     }
 
-                    int? softMaskId = null;
-                    if (imageStream.SoftMask != null) {
-                        string softMaskDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream.SoftMask);
-                        softMaskId = AddStreamObject(objects, softMaskDictionary, imageStream.SoftMask.Data);
+                    int imgId = EnsureImageXObject(imageStream);
+                    if (!pageImageResourceNames.TryGetValue(imgId, out string? name)) {
+                        name = "/Im" + (pageImageResourceNames.Count + 1).ToString(CultureInfo.InvariantCulture);
+                        pageImageResourceNames[imgId] = name;
+                        xobjects.Add((name, imgId));
                     }
 
-                    string imageDictionary = PdfImageXObjectDictionaryBuilder.BuildStreamDictionary(imageStream, softMaskId);
-                    int imgId = AddStreamObject(objects, imageDictionary, imageStream.Data);
                     img.ObjectId = imgId;
                     img.Name = name;
-                    xobjects.Add((name, imgId));
                 }
             }
 

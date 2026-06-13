@@ -1,6 +1,8 @@
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Vml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using System.IO;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
 using Paragraph = DocumentFormat.OpenXml.Wordprocessing.Paragraph;
 using ParagraphProperties = DocumentFormat.OpenXml.Wordprocessing.ParagraphProperties;
@@ -302,6 +304,93 @@ namespace OfficeIMO.Word {
         }
 
         private V.TextPath? _textPath => _shape?.GetFirstChild<V.TextPath>();
+
+        internal bool HasImage {
+            get {
+                string? relationshipId = GetImageRelationshipId();
+                return !string.IsNullOrWhiteSpace(relationshipId);
+            }
+        }
+
+        internal bool TryGetImageBytes(out byte[] bytes, out string? unsupportedReason) {
+            bytes = Array.Empty<byte>();
+            unsupportedReason = null;
+
+            string? relationshipId = GetImageRelationshipId();
+            if (string.IsNullOrWhiteSpace(relationshipId)) {
+                unsupportedReason = "Watermark image relationship is missing.";
+                return false;
+            }
+
+            if (!TryGetImagePart(relationshipId!, out ImagePart? imagePart) || imagePart == null) {
+                unsupportedReason = "Watermark image relationship '" + relationshipId + "' could not be resolved.";
+                return false;
+            }
+
+            using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+            using var memoryStream = new MemoryStream();
+            stream.CopyTo(memoryStream);
+            bytes = memoryStream.ToArray();
+            if (bytes.Length == 0) {
+                unsupportedReason = "Watermark image part is empty.";
+                return false;
+            }
+
+            return true;
+        }
+
+        private string? GetImageRelationshipId() =>
+            _shape?.GetFirstChild<V.ImageData>()?.RelationshipId?.Value;
+
+        private bool TryGetImagePart(string relationshipId, out ImagePart? imagePart) {
+            imagePart = null;
+
+            HeaderPart? containingHeaderPart = _shape?.Ancestors<Header>().FirstOrDefault()?.HeaderPart ??
+                                               _wordHeader?._header?.HeaderPart;
+            if (TryGetImagePart(containingHeaderPart, relationshipId, out imagePart)) {
+                return true;
+            }
+
+            FooterPart? containingFooterPart = _shape?.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
+            if (TryGetImagePart(containingFooterPart, relationshipId, out imagePart)) {
+                return true;
+            }
+
+            MainDocumentPart? mainPart = _document?._wordprocessingDocument?.MainDocumentPart;
+            if (TryGetImagePart(mainPart, relationshipId, out imagePart)) {
+                return true;
+            }
+
+            if (mainPart != null) {
+                foreach (HeaderPart headerPart in mainPart.HeaderParts) {
+                    if (TryGetImagePart(headerPart, relationshipId, out imagePart)) {
+                        return true;
+                    }
+                }
+
+                foreach (FooterPart footerPart in mainPart.FooterParts) {
+                    if (TryGetImagePart(footerPart, relationshipId, out imagePart)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static bool TryGetImagePart(OpenXmlPartContainer? container, string relationshipId, out ImagePart? imagePart) {
+            imagePart = null;
+            if (container == null) {
+                return false;
+            }
+
+            try {
+                imagePart = container.GetPartById(relationshipId) as ImagePart;
+                return imagePart != null;
+            } catch (ArgumentOutOfRangeException) {
+                return false;
+            }
+        }
 
         private string? GetShapeStyleComponent(string key) =>
             GetStyleComponent(_shape?.Style?.Value, key);

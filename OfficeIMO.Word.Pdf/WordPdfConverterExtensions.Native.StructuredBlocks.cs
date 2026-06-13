@@ -173,27 +173,34 @@ namespace OfficeIMO.Word.Pdf {
                 : text.Replace(placeholder, value);
         }
 
-        private static void ApplyNativeSectionWatermark(PdfCore.PdfPageCompose page, WordSection section) {
+        private static void ApplyNativeSectionWatermark(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options) {
             if (HasNativeHeaderSpecificWatermarks(section)) {
-                ApplyNativeWatermark(page.Watermark, section.Header?.Default?.Watermarks.FirstOrDefault(mark => !string.IsNullOrWhiteSpace(mark.Text)));
+                ApplyNativeWatermark(page.Watermark, page.ImageWatermark, section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark), options, "default header watermark");
                 if (section.DifferentFirstPage) {
-                    ApplyNativeWatermark(page.FirstPageWatermark, section.Header?.First?.Watermarks.FirstOrDefault(mark => !string.IsNullOrWhiteSpace(mark.Text)));
+                    ApplyNativeWatermark(page.FirstPageWatermark, page.FirstPageImageWatermark, section.Header?.First?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark), options, "first header watermark");
                 }
 
                 if (section.DifferentOddAndEvenPages) {
-                    ApplyNativeWatermark(page.EvenPagesWatermark, section.Header?.Even?.Watermarks.FirstOrDefault(mark => !string.IsNullOrWhiteSpace(mark.Text)));
+                    ApplyNativeWatermark(page.EvenPagesWatermark, page.EvenPagesImageWatermark, section.Header?.Even?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark), options, "even header watermark");
                 }
 
                 return;
             }
 
-            WordWatermark? watermark = section.Watermarks.FirstOrDefault(mark => !string.IsNullOrWhiteSpace(mark.Text));
-            ApplyNativeWatermark(page.Watermark, watermark);
+            WordWatermark? watermark = section.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+            ApplyNativeWatermark(page.Watermark, page.ImageWatermark, watermark, options, "section watermark");
         }
 
-        private static void ApplyNativeWatermark(Func<PdfCore.PdfTextWatermark?, PdfCore.PdfPageCompose> apply, WordWatermark? watermark) {
-            PdfCore.PdfTextWatermark? pdfWatermark = CreateNativeTextWatermark(watermark);
-            apply(pdfWatermark);
+        private static void ApplyNativeWatermark(
+            Func<PdfCore.PdfTextWatermark?, PdfCore.PdfPageCompose> applyText,
+            Func<PdfCore.PdfImageWatermark?, PdfCore.PdfPageCompose> applyImage,
+            WordWatermark? watermark,
+            PdfSaveOptions? options,
+            string source) {
+            PdfCore.PdfTextWatermark? textWatermark = CreateNativeTextWatermark(watermark);
+            PdfCore.PdfImageWatermark? imageWatermark = CreateNativeImageWatermark(watermark, options, source);
+            applyText(textWatermark);
+            applyImage(imageWatermark);
         }
 
         private static PdfCore.PdfTextWatermark? CreateNativeTextWatermark(WordWatermark? watermark) {
@@ -234,6 +241,50 @@ namespace OfficeIMO.Word.Pdf {
             return pdfWatermark;
         }
 
+        private static PdfCore.PdfImageWatermark? CreateNativeImageWatermark(WordWatermark? watermark, PdfSaveOptions? options, string source) {
+            if (watermark == null || !watermark.HasImage) {
+                return null;
+            }
+
+            if (!watermark.TryGetImageBytes(out byte[] bytes, out string? unsupportedReason)) {
+                if (options != null) {
+                    AddNativeExportWarning(
+                        options,
+                        "NativeWatermarkImageUnsupported",
+                        source,
+                        "Word image watermark was not exported because the image part could not be read. " + unsupportedReason);
+                }
+
+                return null;
+            }
+
+            if (!IsNativePdfSupportedImageBytes(bytes, out unsupportedReason)) {
+                if (options != null) {
+                    AddNativeExportWarning(
+                        options,
+                        "NativeWatermarkImageUnsupported",
+                        source,
+                        "Word image watermark was not exported because the first-party PDF image writer supports JPEG and simple PNG images only. " + unsupportedReason);
+                }
+
+                return null;
+            }
+
+            double width = watermark.Width is > 0D ? watermark.Width.Value : 144D;
+            double height = watermark.Height is > 0D ? watermark.Height.Value : 144D;
+            var pdfWatermark = new PdfCore.PdfImageWatermark(bytes, width, height);
+            if (watermark.Rotation.HasValue) {
+                pdfWatermark.RotationAngle = watermark.Rotation.Value;
+            }
+
+            double? opacity = watermark.Opacity;
+            if (opacity.HasValue) {
+                pdfWatermark.Opacity = opacity.Value;
+            }
+
+            return pdfWatermark;
+        }
+
         private static bool HasNativeHeaderSpecificWatermarks(WordSection section) {
             if (!section.DifferentFirstPage && !section.DifferentOddAndEvenPages) {
                 return false;
@@ -245,7 +296,10 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool HasNativeWatermark(WordHeaderFooter? headerFooter) =>
-            headerFooter?.Watermarks.Any(mark => !string.IsNullOrWhiteSpace(mark.Text)) == true;
+            headerFooter?.Watermarks.Any(IsNativeRenderableWatermark) == true;
+
+        private static bool IsNativeRenderableWatermark(WordWatermark mark) =>
+            !string.IsNullOrWhiteSpace(mark.Text) || mark.HasImage;
 
         private static double? ResolveNativeWatermarkFontSize(WordWatermark watermark) {
             double? fontSize = watermark.FontSize;

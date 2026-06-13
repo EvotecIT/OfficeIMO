@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Pdf {
         private static bool HasNativeVmlCoverDrawing(OpenXmlElement element) {
             foreach (OpenXmlElement descendant in element.Descendants()) {
                 string localName = descendant.LocalName;
-                if ((localName == "group" || localName == "shape" || localName == "rect" || localName == "line") &&
+                if ((localName == "group" || localName == "shape" || localName == "rect" || localName == "line" || localName == "oval" || localName == "roundrect") &&
                     descendant.NamespaceUri == "urn:schemas-microsoft-com:vml" &&
                     IsNativeVmlPositionedCoverElement(descendant)) {
                     return true;
@@ -48,11 +48,11 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool RenderNativeVmlCoverChildren(PdfCore.PdfPageCanvas canvas, WordDocument document, IEnumerable<OpenXmlElement> children, NativeVmlFrame frame, double pageWidth, double pageHeight) {
             bool rendered = false;
-            foreach (OpenXmlElement child in children) {
+            foreach (OpenXmlElement child in OrderNativeVmlCoverChildren(children)) {
                 if (child.NamespaceUri == "urn:schemas-microsoft-com:vml") {
                     if (child.LocalName == "group") {
                         rendered = RenderNativeVmlGroup(canvas, document, child, frame, pageWidth, pageHeight) || rendered;
-                    } else if (child.LocalName == "shape" || child.LocalName == "rect" || child.LocalName == "line") {
+                    } else if (child.LocalName == "shape" || child.LocalName == "rect" || child.LocalName == "line" || child.LocalName == "oval" || child.LocalName == "roundrect") {
                         rendered = RenderNativeVmlShape(canvas, document, child, frame, pageWidth, pageHeight) || rendered;
                     }
 
@@ -63,6 +63,33 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return rendered;
+        }
+
+        private static IEnumerable<OpenXmlElement> OrderNativeVmlCoverChildren(IEnumerable<OpenXmlElement> children) {
+            List<OpenXmlElement> childList = children.ToList();
+            if (childList.Count <= 1 ||
+                childList.Any(child => child.NamespaceUri != "urn:schemas-microsoft-com:vml")) {
+                return childList;
+            }
+
+            return childList
+                .Select((Element, Index) => new {
+                    Element,
+                    Index,
+                    ZIndex = GetNativeVmlZIndex(Element)
+                })
+                .OrderBy(item => item.ZIndex ?? 0D)
+                .ThenBy(item => item.Index)
+                .Select(item => item.Element);
+        }
+
+        private static double? GetNativeVmlZIndex(OpenXmlElement element) {
+            if (element.NamespaceUri != "urn:schemas-microsoft-com:vml") {
+                return null;
+            }
+
+            Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
+            return style.TryGetValue("z-index", out string? value) ? ParseNativeVmlDouble(value) : null;
         }
 
         private static bool RenderNativeVmlGroup(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement group, NativeVmlFrame parentFrame, double pageWidth, double pageHeight) {
@@ -96,8 +123,9 @@ namespace OfficeIMO.Word.Pdf {
             IReadOnlyList<PdfCore.TextRun> textRuns = GetNativeVmlTextRuns(document, element);
             if (textRuns.Count > 0) {
                 PdfCore.PdfCanvasTextBoxStyle style = CreateNativeVmlTextBoxStyle(element, textRuns);
+                double textRotation = GetNativeVmlRotationDegrees(element) ?? 0D;
                 if (IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
-                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.TextBox(textRuns, box.X, box.Y, box.Width, box.Height, style));
+                    RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.TextBox(textRuns, box.X, box.Y, box.Width, box.Height, style, textRotation));
                     rendered = true;
                 }
             }
@@ -116,16 +144,14 @@ namespace OfficeIMO.Word.Pdf {
                 shape = OfficeShape.Line(x1 - minX, y1 - minY, x2 - minX, y2 - minY);
             } else if (localName == "rect") {
                 shape = OfficeShape.Rectangle(width, height);
+            } else if (localName == "oval") {
+                shape = OfficeShape.Ellipse(width, height);
+            } else if (localName == "roundrect") {
+                shape = OfficeShape.RoundedRectangle(width, height, GetNativeVmlRoundRectCornerRadius(element, width, height));
             } else if (IsNativeVmlTextBoxShape(element) && string.IsNullOrWhiteSpace(GetNativeOpenXmlAttribute(element, "fillcolor")) && GetNativeVmlChild(element, "fill") == null) {
                 return false;
             } else if (TryCreateNativeVmlPathShape(element, width, height, out shape)) {
-            } else if (IsNativeVmlPentagonShape(element)) {
-                shape = OfficeShape.Polygon(
-                    new OfficePoint(0D, 0D),
-                    new OfficePoint(width * 0.88D, 0D),
-                    new OfficePoint(width, height / 2D),
-                    new OfficePoint(width * 0.88D, height),
-                    new OfficePoint(0D, height));
+            } else if (TryCreateNativeVmlBuiltInShapeType(element, width, height, out shape)) {
             } else {
                 shape = OfficeShape.Rectangle(width, height);
             }
@@ -135,7 +161,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             ApplyNativeVmlShapeStyle(shape, element);
-            bool hasFill = shape.Kind != OfficeShapeKind.Line && shape.FillColor.HasValue;
+            ApplyNativeVmlShapeTransform(shape, element);
+            bool hasFill = shape.Kind != OfficeShapeKind.Line && (shape.FillColor.HasValue || shape.FillGradient != null);
             bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0D;
             if (!hasFill && !hasStroke) {
                 shape = null;
@@ -147,17 +174,24 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool TryCreateNativeVmlPathShape(OpenXmlElement element, double width, double height, out OfficeShape? shape) {
             shape = null;
+            OpenXmlElement? shapeType = GetNativeVmlReferencedShapeTypeElement(element);
             string? path = GetNativeOpenXmlAttribute(element, "path");
+            if (string.IsNullOrWhiteSpace(path) && shapeType != null) {
+                path = GetNativeOpenXmlAttribute(shapeType, "path") ?? GetNativeOpenXmlAttribute(shapeType, "edgepath");
+            }
+
             if (string.IsNullOrWhiteSpace(path)) {
                 return false;
             }
 
-            (double coordWidth, double coordHeight) = GetNativeVmlCoordSize(element, width, height);
-            if (TryCreateNativeVmlCommandPath(path!, coordWidth, coordHeight, width, height, out shape)) {
+            (double coordWidth, double coordHeight) = GetNativeVmlCoordSize(element, shapeType, width, height);
+            IReadOnlyDictionary<string, double> formulaValues = GetNativeVmlFormulaValues(element, shapeType, coordWidth, coordHeight);
+            if (TryCreateNativeVmlCommandPath(path!, coordWidth, coordHeight, width, height, formulaValues, out shape)) {
                 return true;
             }
 
-            MatchCollection matches = Regex.Matches(path!, @"-?\d+(?:\.\d+)?");
+            string resolvedPath = ResolveNativeVmlFormulaReferences(path!, formulaValues);
+            MatchCollection matches = Regex.Matches(resolvedPath, NativeVmlNumberPattern);
             if (matches.Count < 6) {
                 return false;
             }
@@ -185,7 +219,29 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static bool TryCreateNativeVmlCommandPath(string path, double coordWidth, double coordHeight, double width, double height, out OfficeShape? shape) {
+        private static bool TryCreateNativeVmlBuiltInShapeType(OpenXmlElement element, double width, double height, out OfficeShape? shape) {
+            shape = null;
+            string? type = GetNativeOpenXmlAttribute(element, "type");
+            if (!string.Equals(type, "#_x0000_t15", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            (double coordWidth, _) = GetNativeVmlCoordSize(element, 21600D, 21600D);
+            double adjustment = GetNativeVmlFirstAdjustment(element, 16200D);
+            double adjustedX = coordWidth > 0D
+                ? Math.Max(0D, Math.Min(coordWidth, adjustment)) / coordWidth * width
+                : width * 0.75D;
+
+            shape = OfficeShape.Polygon(
+                new OfficePoint(adjustedX, 0D),
+                new OfficePoint(0D, 0D),
+                new OfficePoint(0D, height),
+                new OfficePoint(adjustedX, height),
+                new OfficePoint(width, height / 2D));
+            return true;
+        }
+
+        private static bool TryCreateNativeVmlCommandPath(string path, double coordWidth, double coordHeight, double width, double height, IReadOnlyDictionary<string, double> formulaValues, out OfficeShape? shape) {
             shape = null;
             var commands = new List<OfficePathCommand>();
             double currentX = 0D;
@@ -202,9 +258,7 @@ namespace OfficeIMO.Word.Pdf {
 
                 index++;
                 int start = index;
-                while (index < path.Length && !IsNativeVmlPathCommand(char.ToLowerInvariant(path[index]))) {
-                    index++;
-                }
+                index = FindNativeVmlPathSegmentEnd(path, index, formulaValues);
 
                 string segment = path.Substring(start, index - start);
                 if (command == 'e') {
@@ -216,7 +270,7 @@ namespace OfficeIMO.Word.Pdf {
                     continue;
                 }
 
-                List<(double X, double Y)> pairs = ParseNativeVmlPathPairs(segment);
+                List<(double X, double Y)> pairs = ParseNativeVmlPathPairs(segment, formulaValues);
                 if (command == 'm' && pairs.Count == 0) {
                     pairs.Add((0D, 0D));
                 }
@@ -225,6 +279,13 @@ namespace OfficeIMO.Word.Pdf {
                     if (command == 'm') {
                         currentX = x;
                         currentY = y;
+                        commands.Add(OfficePathCommand.MoveTo(
+                            ScaleNativeVmlPathX(currentX, coordWidth, width),
+                            ScaleNativeVmlPathY(currentY, coordHeight, height)));
+                        moved = true;
+                    } else if (command == 't') {
+                        currentX += x;
+                        currentY += y;
                         commands.Add(OfficePathCommand.MoveTo(
                             ScaleNativeVmlPathX(currentX, coordWidth, width),
                             ScaleNativeVmlPathY(currentY, coordHeight, height)));
@@ -251,12 +312,85 @@ namespace OfficeIMO.Word.Pdf {
                         commands.Add(OfficePathCommand.LineTo(
                             ScaleNativeVmlPathX(currentX, coordWidth, width),
                             ScaleNativeVmlPathY(currentY, coordHeight, height)));
+                    } else if (command == 'c') {
+                        if (!moved) {
+                            commands.Add(OfficePathCommand.MoveTo(0D, 0D));
+                            moved = true;
+                        }
+
+                        if (pairs.Count < 3) {
+                            continue;
+                        }
+
+                        for (int i = 0; i + 2 < pairs.Count; i += 3) {
+                            (double control1X, double control1Y) = pairs[i];
+                            (double control2X, double control2Y) = pairs[i + 1];
+                            (double endX, double endY) = pairs[i + 2];
+                            commands.Add(OfficePathCommand.CubicBezierTo(
+                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
+                            currentX = endX;
+                            currentY = endY;
+                        }
+                    } else if (command == 'v') {
+                        if (!moved) {
+                            commands.Add(OfficePathCommand.MoveTo(0D, 0D));
+                            moved = true;
+                        }
+
+                        if (pairs.Count < 3) {
+                            continue;
+                        }
+
+                        for (int i = 0; i + 2 < pairs.Count; i += 3) {
+                            (double control1OffsetX, double control1OffsetY) = pairs[i];
+                            (double control2OffsetX, double control2OffsetY) = pairs[i + 1];
+                            (double endOffsetX, double endOffsetY) = pairs[i + 2];
+                            double control1X = currentX + control1OffsetX;
+                            double control1Y = currentY + control1OffsetY;
+                            double control2X = currentX + control2OffsetX;
+                            double control2Y = currentY + control2OffsetY;
+                            double endX = currentX + endOffsetX;
+                            double endY = currentY + endOffsetY;
+                            commands.Add(OfficePathCommand.CubicBezierTo(
+                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
+                            currentX = endX;
+                            currentY = endY;
+                        }
+                    } else if (command == 'q') {
+                        if (!moved) {
+                            commands.Add(OfficePathCommand.MoveTo(0D, 0D));
+                            moved = true;
+                        }
+
+                        if (pairs.Count < 2) {
+                            continue;
+                        }
+
+                        for (int i = 0; i + 1 < pairs.Count; i += 2) {
+                            (double controlX, double controlY) = pairs[i];
+                            (double endX, double endY) = pairs[i + 1];
+                            double control1X = currentX + (controlX - currentX) * 2D / 3D;
+                            double control1Y = currentY + (controlY - currentY) * 2D / 3D;
+                            double control2X = endX + (controlX - endX) * 2D / 3D;
+                            double control2Y = endY + (controlY - endY) * 2D / 3D;
+
+                            commands.Add(OfficePathCommand.CubicBezierTo(
+                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
+                            currentX = endX;
+                            currentY = endY;
+                        }
                     }
                 }
             }
 
             int drawingCommands = commands.Count(command => command.Kind != OfficePathCommandKind.Close);
-            if (drawingCommands < 3) {
+            if (drawingCommands < 2) {
                 return false;
             }
 
@@ -270,22 +404,24 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool IsNativeVmlPathCommand(char value) =>
-            value is 'm' or 'l' or 'r' or 'x' or 'e';
+            value is 'm' or 't' or 'l' or 'r' or 'c' or 'v' or 'q' or 'x' or 'e';
 
-        private static List<(double X, double Y)> ParseNativeVmlPathPairs(string segment) {
+        private static List<(double X, double Y)> ParseNativeVmlPathPairs(string segment, IReadOnlyDictionary<string, double> formulaValues) {
             var pairs = new List<(double X, double Y)>();
-            MatchCollection matches = Regex.Matches(segment, @"-?\d+(?:\.\d+)?");
-            for (int i = 0; i < matches.Count; i += 2) {
-                double x = ParseNativeVmlPathPart(matches[i].Value);
-                double y = i + 1 < matches.Count ? ParseNativeVmlPathPart(matches[i + 1].Value) : 0D;
+            IReadOnlyList<string> parts = TokenizeNativeVmlPathParts(segment, formulaValues);
+            for (int i = 0; i < parts.Count; i += 2) {
+                double x = ParseNativeVmlPathPart(parts[i], formulaValues);
+                double y = i + 1 < parts.Count ? ParseNativeVmlPathPart(parts[i + 1], formulaValues) : 0D;
                 pairs.Add((x, y));
             }
 
             return pairs;
         }
 
-        private static double ParseNativeVmlPathPart(string value) =>
-            ParseNativeVmlDouble(value) ?? 0D;
+        private static double ParseNativeVmlPathPart(string value, IReadOnlyDictionary<string, double> formulaValues) =>
+            formulaValues.TryGetValue(value, out double resolved)
+                ? resolved
+                : ParseNativeVmlDouble(value) ?? 0D;
 
         private static double ScaleNativeVmlPathX(double value, double coordWidth, double width) =>
             coordWidth > 0D ? value / coordWidth * width : value;
@@ -296,21 +432,32 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeVmlShapeStyle(OfficeShape shape, OpenXmlElement element) {
             if (shape.Kind != OfficeShapeKind.Line) {
                 OpenXmlElement? fillElement = GetNativeVmlChild(element, "fill");
-                string? childFillColor = fillElement is not null ? GetNativeOpenXmlAttribute(fillElement, "color") : null;
-                PdfCore.PdfColor? fill = ParseNativeColor(NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(element, "fillcolor") ?? childFillColor));
-                if (fill.HasValue) {
-                    shape.FillColor = fill.Value.ToOfficeColor();
-                }
+                bool fillEnabled = IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(element, "filled")) &&
+                                   (fillElement == null || IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(fillElement, "on")));
+                if (fillEnabled) {
+                    string? childFillColor = fillElement is not null ? GetNativeOpenXmlAttribute(fillElement, "color") : null;
+                    PdfCore.PdfColor? fill = ParseNativeColor(NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(element, "fillcolor") ?? childFillColor));
+                    if (fill.HasValue) {
+                        shape.FillColor = fill.Value.ToOfficeColor();
+                    }
 
-                double? fillOpacity = fillElement is not null ? ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(fillElement, "opacity")) : null;
-                if (fillOpacity.HasValue) {
-                    shape.FillOpacity = fillOpacity.Value;
+                    if (TryGetNativeVmlGradientFill(fillElement, fill, out OfficeLinearGradient? gradient)) {
+                        shape.FillGradient = gradient;
+                    }
+
+                    double? fillOpacity = fillElement is not null ? ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(fillElement, "opacity")) : null;
+                    if (fillOpacity.HasValue) {
+                        shape.FillOpacity = fillOpacity.Value;
+                    }
                 }
             }
 
-            string? strokeColor = NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(element, "strokecolor"));
-            bool stroked = !string.Equals(GetNativeOpenXmlAttribute(element, "stroked"), "f", StringComparison.OrdinalIgnoreCase) &&
-                           !string.Equals(GetNativeOpenXmlAttribute(element, "stroked"), "false", StringComparison.OrdinalIgnoreCase);
+            ApplyNativeVmlShapeShadow(shape, element);
+            OpenXmlElement? strokeElement = GetNativeVmlChild(element, "stroke");
+            string? childStrokeColor = strokeElement is not null ? GetNativeOpenXmlAttribute(strokeElement, "color") : null;
+            string? strokeColor = NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(element, "strokecolor") ?? childStrokeColor);
+            bool stroked = IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(element, "stroked")) &&
+                           (strokeElement == null || IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(strokeElement, "on")));
             if (shape.Kind != OfficeShapeKind.Line && string.IsNullOrWhiteSpace(strokeColor)) {
                 shape.StrokeColor = null;
                 shape.StrokeWidth = 0D;
@@ -325,6 +472,266 @@ namespace OfficeIMO.Word.Pdf {
 
             shape.StrokeColor = (ParseNativeColor(strokeColor) ?? PdfCore.PdfColor.Black).ToOfficeColor();
             shape.StrokeWidth = ParseNativeVmlStrokeWeight(GetNativeOpenXmlAttribute(element, "strokeweight")) ?? 1D;
+            shape.StrokeDashStyle = MapNativeVmlStrokeDashStyle(GetNativeOpenXmlAttribute(strokeElement ?? element, "dashstyle"));
+            shape.StrokeLineCap = MapNativeVmlStrokeLineCap(GetNativeOpenXmlAttribute(strokeElement ?? element, "endcap"));
+            shape.StrokeLineJoin = MapNativeVmlStrokeLineJoin(GetNativeOpenXmlAttribute(strokeElement ?? element, "joinstyle"));
+            double? strokeOpacity = strokeElement is not null ? ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(strokeElement, "opacity")) : null;
+            if (strokeOpacity.HasValue) {
+                shape.StrokeOpacity = strokeOpacity.Value;
+            }
+        }
+
+        private static OfficeStrokeDashStyle MapNativeVmlStrokeDashStyle(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return OfficeStrokeDashStyle.Solid;
+            }
+
+            string normalized = value!.Replace(" ", string.Empty).Replace("-", string.Empty);
+            bool hasDash = normalized.IndexOf("dash", StringComparison.OrdinalIgnoreCase) >= 0;
+            bool hasDot = normalized.IndexOf("dot", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (hasDash && hasDot) {
+                return OfficeStrokeDashStyle.DashDot;
+            }
+
+            if (hasDot) {
+                return OfficeStrokeDashStyle.Dot;
+            }
+
+            return hasDash ? OfficeStrokeDashStyle.Dash : OfficeStrokeDashStyle.Solid;
+        }
+
+        private static OfficeStrokeLineCap? MapNativeVmlStrokeLineCap(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            if (value!.Equals("round", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeStrokeLineCap.Round;
+            }
+
+            if (value.Equals("square", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeStrokeLineCap.Square;
+            }
+
+            return value.Equals("flat", StringComparison.OrdinalIgnoreCase) ||
+                   value.Equals("butt", StringComparison.OrdinalIgnoreCase)
+                ? OfficeStrokeLineCap.Butt
+                : null;
+        }
+
+        private static OfficeStrokeLineJoin? MapNativeVmlStrokeLineJoin(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            if (value!.Equals("round", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeStrokeLineJoin.Round;
+            }
+
+            if (value.Equals("bevel", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeStrokeLineJoin.Bevel;
+            }
+
+            return value.Equals("miter", StringComparison.OrdinalIgnoreCase)
+                ? OfficeStrokeLineJoin.Miter
+                : null;
+        }
+
+        private static void ApplyNativeVmlShapeShadow(OfficeShape shape, OpenXmlElement element) {
+            OpenXmlElement? shadowElement = GetNativeVmlChild(element, "shadow");
+            if (shadowElement == null ||
+                !IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(shadowElement, "on"))) {
+                return;
+            }
+
+            PdfCore.PdfColor shadowColor = ParseNativeColor(NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(shadowElement, "color"))) ?? PdfCore.PdfColor.Black;
+            double opacity = ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(shadowElement, "opacity")) ?? 0.5D;
+            (double offsetX, double offsetY) = ParseNativeVmlOffset(GetNativeOpenXmlAttribute(shadowElement, "offset")) ?? (2D, 2D);
+            shape.Shadow = new OfficeShadow(shadowColor.ToOfficeColor(), opacity, offsetX, offsetY);
+        }
+
+        private static (double X, double Y)? ParseNativeVmlOffset(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            string[] parts = value!.Split(',');
+            if (parts.Length != 2) {
+                return null;
+            }
+
+            double? x = ResolveNativeVmlLength(parts[0], 1D, 1D);
+            double? y = ResolveNativeVmlLength(parts[1], 1D, 1D);
+            return x.HasValue && y.HasValue ? (x.Value, y.Value) : null;
+        }
+
+        private static void ApplyNativeVmlShapeTransform(OfficeShape shape, OpenXmlElement element) {
+            OfficeTransform? transform = null;
+
+            string? flip = GetNativeVmlFlip(element);
+            if (!string.IsNullOrWhiteSpace(flip)) {
+                bool horizontal = flip!.IndexOf("x", StringComparison.OrdinalIgnoreCase) >= 0;
+                bool vertical = flip.IndexOf("y", StringComparison.OrdinalIgnoreCase) >= 0;
+                if (horizontal || vertical) {
+                    OfficeTransform flipTransform = CreateNativeVmlCenterScaleTransform(
+                        shape.Width,
+                        shape.Height,
+                        horizontal ? -1D : 1D,
+                        vertical ? -1D : 1D);
+                    transform = transform.HasValue ? transform.Value.Then(flipTransform) : flipTransform;
+                }
+            }
+
+            double? rotation = GetNativeVmlRotationDegrees(element);
+            if (rotation.HasValue && Math.Abs(rotation.Value) > 0.0001D) {
+                OfficeTransform rotationTransform = OfficeTransform.RotateDegrees(rotation.Value, shape.Width / 2D, shape.Height / 2D);
+                transform = transform.HasValue ? transform.Value.Then(rotationTransform) : rotationTransform;
+            }
+
+            if (transform.HasValue) {
+                shape.Transform = shape.Transform.HasValue ? shape.Transform.Value.Then(transform.Value) : transform.Value;
+            }
+        }
+
+        private static OfficeTransform CreateNativeVmlCenterScaleTransform(double width, double height, double scaleX, double scaleY) {
+            double centerX = width / 2D;
+            double centerY = height / 2D;
+            return OfficeTransform.Translate(-centerX, -centerY)
+                .Then(OfficeTransform.Scale(scaleX, scaleY))
+                .Then(OfficeTransform.Translate(centerX, centerY));
+        }
+
+        private static double? GetNativeVmlRotationDegrees(OpenXmlElement element) {
+            Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
+            string? value = style.TryGetValue("rotation", out string? styleRotation)
+                ? styleRotation
+                : GetNativeOpenXmlAttribute(element, "rotation");
+
+            if (string.IsNullOrWhiteSpace(value)) {
+                return null;
+            }
+
+            string normalized = value!.Trim();
+            if (normalized.EndsWith("fd", StringComparison.OrdinalIgnoreCase)) {
+                double? fixedPoint = ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 2));
+                return fixedPoint.HasValue ? fixedPoint.Value / 65536D : null;
+            }
+
+            if (normalized.EndsWith("deg", StringComparison.OrdinalIgnoreCase)) {
+                normalized = normalized.Substring(0, normalized.Length - 3);
+            }
+
+            return ParseNativeVmlDouble(normalized);
+        }
+
+        private static string? GetNativeVmlFlip(OpenXmlElement element) {
+            Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
+            return style.TryGetValue("flip", out string? styleFlip)
+                ? styleFlip
+                : GetNativeOpenXmlAttribute(element, "flip");
+        }
+
+        private static bool TryGetNativeVmlGradientFill(OpenXmlElement? fillElement, PdfCore.PdfColor? startFill, out OfficeLinearGradient? gradient) {
+            gradient = null;
+            if (fillElement == null) {
+                return false;
+            }
+
+            string? type = GetNativeOpenXmlAttribute(fillElement, "type");
+            if (string.IsNullOrWhiteSpace(type) ||
+                type!.IndexOf("gradient", StringComparison.OrdinalIgnoreCase) < 0) {
+                return false;
+            }
+
+            string? color2Value = NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(fillElement, "color2"));
+            TryGetNativeVmlGradientStopColors(fillElement, out PdfCore.PdfColor? stopStartFill, out PdfCore.PdfColor? stopEndFill);
+            PdfCore.PdfColor? gradientStartFill = startFill ?? stopStartFill;
+            PdfCore.PdfColor? endFill = ParseNativeColor(color2Value);
+            if (!endFill.HasValue) {
+                endFill = stopEndFill;
+            }
+
+            if (!gradientStartFill.HasValue || !endFill.HasValue) {
+                return false;
+            }
+
+            gradient = CreateNativeVmlLinearGradient(
+                gradientStartFill.Value.ToOfficeColor(),
+                endFill.Value.ToOfficeColor(),
+                GetNativeOpenXmlAttribute(fillElement, "angle"));
+            return true;
+        }
+
+        private static bool TryGetNativeVmlGradientStopColors(OpenXmlElement fillElement, out PdfCore.PdfColor? startFill, out PdfCore.PdfColor? endFill) {
+            startFill = null;
+            endFill = null;
+            string? colors = GetNativeOpenXmlAttribute(fillElement, "colors");
+            if (string.IsNullOrWhiteSpace(colors)) {
+                return false;
+            }
+
+            var stops = new List<(double Offset, PdfCore.PdfColor Color)>();
+            foreach (string entry in colors!.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)) {
+                Match match = Regex.Match(entry.Trim(), "^(" + NativeVmlNumberPattern + "(?:%|f)?)\\s+(.+)$", RegexOptions.IgnoreCase);
+                if (!match.Success) {
+                    continue;
+                }
+
+                string offsetValue = match.Groups[1].Value;
+                string offsetText = offsetValue.TrimEnd('%', 'f', 'F');
+                if (!double.TryParse(offsetText, NumberStyles.Float, CultureInfo.InvariantCulture, out double offset)) {
+                    continue;
+                }
+
+                if (offsetValue.EndsWith("%", StringComparison.OrdinalIgnoreCase)) {
+                    offset /= 100D;
+                } else if (offsetValue.EndsWith("f", StringComparison.OrdinalIgnoreCase)) {
+                    offset /= 65536D;
+                }
+
+                string? colorValue = NormalizeNativeVmlColor(match.Groups[2].Value);
+                PdfCore.PdfColor? color = ParseNativeColor(colorValue);
+                if (!color.HasValue) {
+                    continue;
+                }
+
+                stops.Add((Math.Max(0D, Math.Min(1D, offset)), color.Value));
+            }
+
+            if (stops.Count < 2) {
+                return false;
+            }
+
+            stops.Sort((left, right) => left.Offset.CompareTo(right.Offset));
+            startFill = stops[0].Color;
+            endFill = stops[stops.Count - 1].Color;
+            return true;
+        }
+
+        private static OfficeLinearGradient CreateNativeVmlLinearGradient(OfficeColor startColor, OfficeColor endColor, string? angleValue) {
+            double angle = NormalizeNativeVmlAngleDegrees(ParseNativeVmlDouble(angleValue ?? string.Empty));
+            if (IsNativeVmlAngleNear(angle, 0D) || IsNativeVmlAngleNear(angle, 180D)) {
+                return OfficeLinearGradient.Horizontal(startColor, endColor);
+            }
+
+            return IsNativeVmlAngleNear(angle, 90D) || IsNativeVmlAngleNear(angle, 270D)
+                ? OfficeLinearGradient.Vertical(startColor, endColor)
+                : OfficeLinearGradient.DiagonalDown(startColor, endColor);
+        }
+
+        private static double NormalizeNativeVmlAngleDegrees(double? angle) {
+            if (!angle.HasValue) {
+                return 0D;
+            }
+
+            double degrees = angle.Value % 360D;
+            return degrees < 0D ? degrees + 360D : degrees;
+        }
+
+        private static bool IsNativeVmlAngleNear(double angle, double target) {
+            double distance = Math.Abs(angle - target);
+            distance = Math.Min(distance, 360D - distance);
+            return distance <= 22.5D;
         }
 
         private static OpenXmlElement? GetNativeVmlChild(OpenXmlElement? element, string localName) {
@@ -444,6 +851,8 @@ namespace OfficeIMO.Word.Pdf {
 
             double? xPercent = ResolveNativeVmlPercent(style, "mso-left-percent", pageWidth);
             double? yPercent = ResolveNativeVmlPercent(style, "mso-top-percent", pageHeight);
+            bool hasExplicitX = xPercent.HasValue || style.ContainsKey("left") || style.ContainsKey("margin-left");
+            bool hasExplicitY = yPercent.HasValue || style.ContainsKey("top") || style.ContainsKey("margin-top");
             double x = xPercent ??
                        ResolveNativeVmlPosition(style.TryGetValue("left", out string? left) ? left : null, frame.Width, frame.CoordWidth, frame.CoordOriginX) ??
                        ResolveNativeVmlPosition(style.TryGetValue("margin-left", out string? marginLeft) ? marginLeft : null, frame.Width, frame.CoordWidth, frame.CoordOriginX) ?? 0D;
@@ -460,11 +869,21 @@ namespace OfficeIMO.Word.Pdf {
                 height = Math.Max(height, lineHeight);
             }
 
+            if (style.TryGetValue("mso-position-horizontal", out string? horizontalPosition) && !hasExplicitX) {
+                if (horizontalPosition.Equals("center", StringComparison.OrdinalIgnoreCase)) {
+                    x = (pageWidth - width) / 2D;
+                } else if (horizontalPosition.Equals("right", StringComparison.OrdinalIgnoreCase)) {
+                    x = pageWidth - width;
+                }
+            }
+
             if (style.TryGetValue("mso-position-vertical", out string? verticalPosition) &&
-                verticalPosition.Equals("center", StringComparison.OrdinalIgnoreCase) &&
-                !yPercent.HasValue &&
-                !style.ContainsKey("top")) {
-                y = (pageHeight - height) / 2D;
+                !hasExplicitY) {
+                if (verticalPosition.Equals("center", StringComparison.OrdinalIgnoreCase)) {
+                    y = (pageHeight - height) / 2D;
+                } else if (verticalPosition.Equals("bottom", StringComparison.OrdinalIgnoreCase)) {
+                    y = pageHeight - height;
+                }
             }
 
             box = new NativeVmlBox(frame.X + x, frame.Y + y, width, height);
@@ -624,6 +1043,12 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
+        private static bool IsNativeVmlSwitchEnabled(string? value) =>
+            string.IsNullOrWhiteSpace(value) ||
+            (!value!.Trim().Equals("f", StringComparison.OrdinalIgnoreCase) &&
+             !value.Trim().Equals("false", StringComparison.OrdinalIgnoreCase) &&
+             !value.Trim().Equals("0", StringComparison.OrdinalIgnoreCase));
+
         private static bool IsNativeVmlHidden(OpenXmlElement element) {
             Dictionary<string, string> style = ParseNativeVmlStyle(GetNativeOpenXmlAttribute(element, "style"));
             return style.TryGetValue("visibility", out string? value) &&
@@ -633,11 +1058,28 @@ namespace OfficeIMO.Word.Pdf {
         private static bool IsNativeVmlTextBoxShape(OpenXmlElement element) =>
             string.Equals(GetNativeOpenXmlAttribute(element, "type"), "#_x0000_t202", StringComparison.OrdinalIgnoreCase);
 
-        private static bool IsNativeVmlPentagonShape(OpenXmlElement element) =>
-            string.Equals(GetNativeOpenXmlAttribute(element, "type"), "#_x0000_t15", StringComparison.OrdinalIgnoreCase);
-
         private static double? ParseNativeVmlStrokeWeight(string? value) =>
             ResolveNativeVmlLength(value, 1D, 1D);
+
+        private static double GetNativeVmlFirstAdjustment(OpenXmlElement element, double fallback) {
+            string? value = GetNativeOpenXmlAttribute(element, "adj");
+            if (string.IsNullOrWhiteSpace(value)) {
+                return fallback;
+            }
+
+            string[] parts = value!.Split(new[] { ',', ';', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            double? adjustment = parts.Length > 0 ? ParseNativeVmlDouble(parts[0]) : null;
+            return adjustment.HasValue
+                ? adjustment.Value
+                : fallback;
+        }
+
+        private static double GetNativeVmlRoundRectCornerRadius(OpenXmlElement element, double width, double height) {
+            const double defaultArcSize = 0.2D;
+            double fraction = ParseNativeVmlOpacity(GetNativeOpenXmlAttribute(element, "arcsize")) ?? defaultArcSize;
+            fraction = Math.Max(0D, Math.Min(0.5D, fraction));
+            return Math.Min(width, height) * fraction;
+        }
 
         private static double? ParseNativeVmlDouble(string value) =>
             double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out double result)
@@ -657,6 +1099,11 @@ namespace OfficeIMO.Word.Pdf {
                 parsed = ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 1));
                 if (parsed.HasValue) {
                     parsed /= 100D;
+                }
+            } else if (normalized.EndsWith("f", StringComparison.OrdinalIgnoreCase)) {
+                parsed = ParseNativeVmlDouble(normalized.Substring(0, normalized.Length - 1));
+                if (parsed.HasValue) {
+                    parsed /= 65536D;
                 }
             } else {
                 parsed = ParseNativeVmlDouble(normalized);

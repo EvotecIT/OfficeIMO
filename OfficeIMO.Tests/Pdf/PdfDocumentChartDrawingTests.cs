@@ -113,6 +113,143 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersOptInCartesianDataLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Column labels",
+            "Revenue Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 300D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true)));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().ToList();
+        OfficeDrawingText q1DataLabel = Assert.Single(labels, label => label.Text == "Q1; 10");
+        OfficeDrawingText q2DataLabel = Assert.Single(labels, label => label.Text == "Q2; 20");
+        OfficeDrawingText q1AxisLabel = Assert.Single(labels, label => label.Text == "Q1");
+
+        Assert.True(q1DataLabel.Y < q1AxisLabel.Y, "Expected column data labels to sit near the plotted values, not on the category axis.");
+        Assert.True(q2DataLabel.Y < q1AxisLabel.Y, "Expected column data labels to sit near the plotted values, not on the category axis.");
+    }
+
+    [Fact]
+    public void FlowDrawing_FormatsDataLabelValuesWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Formatted labels",
+            "Formatted Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1234.5D, 9876.5D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true,
+                dataLabelNumberFormat: "#,##0.0")));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToList();
+
+        Assert.Contains("Q1; 1,234.5", labels);
+        Assert.Contains("Q2; 9,876.5", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_FormatsValueAxisLabelsWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Formatted axis",
+            "Formatted Axis",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1000D, 2000D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(axisNumberFormat: "#,##0.0")));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToList();
+
+        Assert.Contains("0.0", labels);
+        Assert.Contains("2,000.0", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersAxisTitlesWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Axis titles",
+            "Axis Titles",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                categoryAxisTitle: "Quarter",
+                valueAxisTitle: "Revenue")));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().ToList();
+        OfficeDrawingText categoryTitle = Assert.Single(labels, label => label.Text == "Quarter");
+        OfficeDrawingText valueTitle = Assert.Single(labels, label => label.Text == "Revenue");
+
+        Assert.True(categoryTitle.Y > valueTitle.Y, "Expected horizontal axis title below the plot and value axis title near the value-axis labels.");
+        Assert.Equal(OfficeTextAlignment.Center, categoryTitle.Alignment);
+        Assert.Equal(OfficeTextAlignment.Left, valueTitle.Alignment);
+    }
+
+    [Fact]
+    public void FlowDrawing_UsesRequestedCartesianDataLabelPosition() {
+        var data = new OfficeChartData(
+            new[] { "Q1", "Q2" },
+            new[] {
+                new OfficeChartSeries("Actual", new[] { 10D, 20D })
+            });
+        var outsideDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Outside labels",
+            "Outside Labels",
+            OfficeChartKind.ColumnClustered,
+            data,
+            widthPoints: 300D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true,
+                dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd)));
+        var centerDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Center labels",
+            "Center Labels",
+            OfficeChartKind.ColumnClustered,
+            data,
+            widthPoints: 300D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelCategoryNames: true,
+                dataLabelPosition: OfficeChartDataLabelPosition.Center)));
+
+        OfficeDrawingText outsideLabel = outsideDrawing.Elements.OfType<OfficeDrawingText>().Single(label => label.Text == "Q2; 20");
+        OfficeDrawingText centerLabel = centerDrawing.Elements.OfType<OfficeDrawingText>().Single(label => label.Text == "Q2; 20");
+
+        Assert.True(centerLabel.Y > outsideLabel.Y + 10D, "Expected centered data labels to move inside the plotted column.");
+    }
+
+    [Fact]
     public void FlowDrawing_RendersSinglePointLineChartMarker() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Single point",
@@ -130,6 +267,36 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.Kind == OfficeShapeKind.Ellipse &&
             shape.Shape.Width == 4D &&
             shape.Shape.Height == 4D);
+    }
+
+    [Fact]
+    public void FlowDrawing_CanSuppressLineChartMarkers() {
+        OfficeChartData data = new OfficeChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D })
+            });
+        OfficeDrawing defaultDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line markers",
+            "Line Markers",
+            OfficeChartKind.Line,
+            data,
+            widthPoints: 300D,
+            heightPoints: 180D));
+        OfficeDrawing suppressedDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line no markers",
+            "Line No Markers",
+            OfficeChartKind.Line,
+            data,
+            widthPoints: 300D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(showMarkers: false)));
+
+        int defaultMarkers = defaultDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
+        int suppressedMarkers = suppressedDrawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 4D && shape.Shape.Height == 4D);
+
+        Assert.Equal(3, defaultMarkers);
+        Assert.Equal(0, suppressedMarkers);
     }
 
     [Fact]
@@ -152,6 +319,65 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.Height > 2D &&
             shape.Shape.FillColor.HasValue &&
             shape.Shape.StrokeWidth == 0D);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersPlotAreaFillAndBorderWhenRequested() {
+        OfficeColor plotFill = OfficeColor.ParseHex("#fff2cc");
+        OfficeColor plotBorder = OfficeColor.ParseHex("#7f6000");
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Plot style",
+            "Plot Style",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            style: new OfficeChartStyle(
+                plotAreaBackgroundColor: plotFill,
+                plotAreaBorderColor: plotBorder)));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width > 100D &&
+            shape.Shape.Height > 50D &&
+            shape.Shape.FillColor == plotFill &&
+            shape.Shape.StrokeColor == plotBorder &&
+            shape.Shape.StrokeWidth > 0D);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersCustomAxisAndGridLineColors() {
+        OfficeColor axisColor = OfficeColor.ParseHex("#ff0000");
+        OfficeColor gridLineColor = OfficeColor.ParseHex("#00ff00");
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Axis style",
+            "Axis Style",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 20D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            style: new OfficeChartStyle(
+                axisColor: axisColor,
+                gridLineColor: gridLineColor)));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == axisColor &&
+            shape.Shape.StrokeWidth == 0.75D);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == gridLineColor &&
+            shape.Shape.StrokeWidth == 0.5D);
     }
 
     [Fact]
@@ -334,6 +560,54 @@ public class PdfDocumentChartDrawingTests {
         Assert.Contains("Actual", text, System.StringComparison.Ordinal);
         Assert.Contains("Target", text, System.StringComparison.Ordinal);
         Assert.Contains("Q1", text, System.StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FlowDrawing_PlacesSeriesLegendAtBottomWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Bottom legend chart",
+            "Bottom Legend",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
+                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Bottom)));
+
+        OfficeDrawingText actual = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Actual");
+        OfficeDrawingText target = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Target");
+
+        Assert.True(actual.Y > 160D, "Expected bottom legend text to be placed below the plot area.");
+        Assert.True(target.Y > 160D, "Expected bottom legend text to be placed below the plot area.");
+        Assert.True(actual.X < 180D, "Expected bottom legend text to use a horizontal band instead of the right-side legend strip.");
+        Assert.True(target.X < 260D, "Expected bottom legend text to use a horizontal band instead of the right-side legend strip.");
+    }
+
+    [Fact]
+    public void FlowDrawing_PlacesSeriesLegendAtLeftWhenRequested() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Left legend chart",
+            "Left Legend",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
+                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Left)));
+
+        OfficeDrawingText actual = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Actual");
+        OfficeDrawingText q1 = drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Q1");
+
+        Assert.True(actual.X < 40D, "Expected left legend text to be placed in the left-side legend strip.");
+        Assert.True(q1.X > actual.X + 60D, "Expected the plot area to move right when a left legend is present.");
     }
 
     [Fact]

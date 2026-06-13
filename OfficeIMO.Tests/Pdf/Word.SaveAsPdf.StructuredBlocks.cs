@@ -1,4 +1,6 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -9,6 +11,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
+using A = DocumentFormat.OpenXml.Drawing;
+using V = DocumentFormat.OpenXml.Vml;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -212,6 +217,7 @@ public partial class Word {
 
         string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
         Assert.Contains(" re", pageContent);
+        Assert.Contains("1 1 0 rg", pageContent, StringComparison.Ordinal);
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
     }
 
@@ -237,6 +243,409 @@ public partial class Word {
 
         string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.8 0.333 0 rg", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Gradient_And_Fixed_Opacity() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlGradient.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlGradient.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlGradientCoverDrawingParagraph()));
+            document.AddParagraph("After VML gradient cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML gradient cover", pdf.GetPage(2).Text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/ShadingType 2", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/C0 [0.267 0.447 0.769] /C1 [0.929 0.49 0.192]", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/Type /ExtGState /ca 0.5 /CA 1", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/SH1 sh", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Gradient_Stops() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlGradientStops.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlGradientStops.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlGradientStopsCoverDrawingParagraph()));
+            document.AddParagraph("After VML gradient stops cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML gradient stops cover", pdf.GetPage(2).Text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/ShadingType 2", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/C0 [0.267 0.447 0.769] /C1 [0.929 0.49 0.192]", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/SH1 sh", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Vml_CoverPage_Fill_And_Stroke_Switches() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlSwitches.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlSwitches.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlStrokeOnlyCoverDrawingParagraph()));
+            document.AddParagraph("After VML stroke-only cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML stroke-only cover", pdf.GetPage(2).Text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.DoesNotContain("0.267 0.447 0.769 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.929 0.49 0.192 RG", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("/Type /ExtGState /ca 1 /CA 0.5", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Oval_And_RoundRect() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlOvalRoundRect.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlOvalRoundRect.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlOvalAndRoundRectCoverDrawingParagraph()));
+            document.AddParagraph("After VML oval and roundrect cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML oval and roundrect cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.184 0.702 0.267 rg", pageContent, StringComparison.Ordinal);
+        Assert.Contains("0.929 0.49 0.192 rg", pageContent, StringComparison.Ordinal);
+        Assert.Contains(" c", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Vml_CoverPage_BuiltIn_Adjustment() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlBuiltInAdjustment.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlBuiltInAdjustment.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlAdjustedBuiltInShapeParagraph()));
+            document.AddParagraph("After VML adjusted built-in cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML adjusted built-in cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("132 720 m", pageContent, StringComparison.Ordinal);
+        Assert.Contains("132 648 l", pageContent, StringComparison.Ordinal);
+        Assert.Contains("192 684 l", pageContent, StringComparison.Ordinal);
+        Assert.Contains("0.267 0.447 0.769 rg", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Formula_Path() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlFormulaPath.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlFormulaPath.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlFormulaPathCoverDrawingParagraph()));
+            document.AddParagraph("After VML formula cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML formula cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("132 720 m", pageContent, StringComparison.Ordinal);
+        Assert.Contains("72 648 l", pageContent, StringComparison.Ordinal);
+        Assert.Contains("192 684 l", pageContent, StringComparison.Ordinal);
+        Assert.Contains("132 648 l", pageContent, StringComparison.Ordinal);
+        Assert.Contains("72 720 l", pageContent, StringComparison.Ordinal);
+        Assert.Contains("0.267 0.447 0.769 rg", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Vml_CoverPage_Position_Alignment() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlPositionAlignment.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlPositionAlignment.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlAlignedCoverDrawingParagraph()));
+            document.AddParagraph("After VML aligned cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML aligned cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("234 648 144 72 re", pageContent, StringComparison.Ordinal);
+        Assert.Contains("540 0 72 36 re", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Vml_CoverPage_Transforms() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlTransforms.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlTransforms.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlTransformedCoverDrawingParagraph()));
+            document.AddParagraph("After VML transformed cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML transformed cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0 -1 -1 0 147 745 cm", pageContent, StringComparison.Ordinal);
+        Assert.Contains("-1 0 0 -1 316 720 cm", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Vml_CoverPage_ZIndex_Order() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlZIndex.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlZIndex.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlZIndexCoverDrawingParagraph()));
+            document.AddParagraph("After VML z-index cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML z-index cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        int lowerLayer = pageContent.IndexOf("0.184 0.702 0.267 rg", StringComparison.Ordinal);
+        int upperLayer = pageContent.IndexOf("0.929 0.49 0.192 rg", StringComparison.Ordinal);
+        Assert.True(lowerLayer >= 0, "Expected lower z-index VML fill to be emitted.");
+        Assert.True(upperLayer >= 0, "Expected higher z-index VML fill to be emitted.");
+        Assert.True(lowerLayer < upperLayer, "Expected VML siblings to be painted from lower z-index to higher z-index.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Shadow() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlShadow.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlShadow.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlShadowCoverDrawingParagraph()));
+            document.AddParagraph("After VML shadow cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML shadow cover", pdf.GetPage(2).Text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/Type /ExtGState /ca 0.25 /CA 0.25", rawPdf, StringComparison.Ordinal);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        int shadow = pageContent.IndexOf("78 640 120 72 re", StringComparison.Ordinal);
+        int fill = pageContent.IndexOf("72 648 120 72 re", StringComparison.Ordinal);
+        Assert.True(shadow >= 0, "Expected VML shadow geometry to be offset from the source shape.");
+        Assert.True(fill >= 0, "Expected the source VML shape geometry to be rendered.");
+        Assert.True(shadow < fill, "Expected VML shadow to be painted behind the source shape.");
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Vml_CoverPage_Stroke_Style() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlStrokeStyle.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlStrokeStyle.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlStrokeStyleCoverDrawingParagraph()));
+            document.AddParagraph("After VML stroke style cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML stroke style cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.929 0.49 0.192 RG", pageContent, StringComparison.Ordinal);
+        Assert.Contains("4 w", pageContent, StringComparison.Ordinal);
+        Assert.Contains("1 J", pageContent, StringComparison.Ordinal);
+        Assert.Contains("2 j", pageContent, StringComparison.Ordinal);
+        Assert.Contains("[12 6] 0 d", pageContent, StringComparison.Ordinal);
+        Assert.Contains("72 648 144 72 re S", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Line_Unit_Points() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlLineUnits.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlLineUnits.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlUnitLineCoverDrawingParagraph()));
+            document.AddParagraph("After VML unit line cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML unit line cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.929 0.49 0.192 RG", pageContent, StringComparison.Ordinal);
+        Assert.Contains("3 w", pageContent, StringComparison.Ordinal);
+        Assert.Contains("72 720 m 144 691.654 l S", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Cubic_Path() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlCubicPath.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlCubicPath.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlCubicPathCoverDrawingParagraph()));
+            document.AddParagraph("After VML cubic path cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML cubic path cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("72 648 m", pageContent, StringComparison.Ordinal);
+        Assert.Contains("102 720 162 720 192 648 c", pageContent, StringComparison.Ordinal);
+        Assert.Contains("0.267 0.447 0.769 rg", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Quadratic_Path() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlQuadraticPath.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlQuadraticPath.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlQuadraticPathCoverDrawingParagraph()));
+            document.AddParagraph("After VML quadratic path cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML quadratic path cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("72 648 m", pageContent, StringComparison.Ordinal);
+        Assert.Contains("112 696 152 696 192 648 c", pageContent, StringComparison.Ordinal);
+        Assert.Contains("0.267 0.447 0.769 rg", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Relative_Cubic_Path() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlRelativeCubicPath.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlRelativeCubicPath.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlRelativeCubicPathCoverDrawingParagraph()));
+            document.AddParagraph("After VML relative cubic path cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML relative cubic path cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("72 648 m", pageContent, StringComparison.Ordinal);
+        Assert.Contains("102 720 162 720 192 648 c", pageContent, StringComparison.Ordinal);
+        Assert.Contains("0.267 0.447 0.769 rg", pageContent, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -266,6 +675,34 @@ public partial class Word {
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("\nC", text);
         Assert.Contains("Native watermark body text", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_Image_Watermark_To_Pdf_Watermark() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeImageWatermark.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeImageWatermark.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            WordWatermark watermark = header.AddWatermark(WordWatermarkStyle.Image, imagePath);
+            watermark.Opacity = 0.35;
+            document.AddParagraph("Native image watermark body text");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeWatermarkImageUnsupported");
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/Im", pageContent, StringComparison.Ordinal);
+
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Native image watermark body text", text);
     }
 
     [Fact]
@@ -377,6 +814,495 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Cartesian_DataLabels() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordCartesianDataLabels.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordCartesianDataLabels.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Bar Labels", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
+            chart.AddBar("Actual", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
+            document.AddParagraph("After bar labels");
+
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            DataLabels labels = chartPart.ChartSpace!.Descendants<DataLabels>().First();
+            labels.GetFirstChild<ShowCategoryName>()!.Val = true;
+            labels.InsertBefore(new DataLabelPosition { Val = DataLabelPositionValues.Center }, labels.GetFirstChild<ShowLegendKey>());
+            labels.InsertBefore(new DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat {
+                FormatCode = "0.0",
+                SourceLinked = false
+            }, labels.GetFirstChild<ShowLegendKey>());
+            ValueAxis valueAxis = chartPart.ChartSpace.Descendants<ValueAxis>().First();
+            valueAxis.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat>()!.FormatCode = "#,##0.0";
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+            Assert.True((bool)layout.GetType().GetProperty("ShowDataLabels")!.GetValue(layout)!);
+            Assert.True((bool)layout.GetType().GetProperty("ShowDataLabelValues")!.GetValue(layout)!);
+            Assert.True((bool)layout.GetType().GetProperty("ShowDataLabelCategoryNames")!.GetValue(layout)!);
+            Assert.False((bool)layout.GetType().GetProperty("ShowDataLabelPercentages")!.GetValue(layout)!);
+            Assert.Equal(OfficeChartDataLabelPosition.Center, layout.GetType().GetProperty("DataLabelPosition")!.GetValue(layout));
+            Assert.Equal("0.0", layout.GetType().GetProperty("DataLabelNumberFormat")!.GetValue(layout));
+            Assert.Equal("#,##0.0", layout.GetType().GetProperty("AxisNumberFormat")!.GetValue(layout));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Q1; 10.0", text);
+        Assert.Contains("Q2; 20.0", text);
+        Assert.Contains("After bar labels", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Word_Chart_AxisTitles() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisTitles.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisTitles.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Axis Titles", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
+            chart.AddBar("Actual", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
+            chart.SetXAxisTitle("Quarter Axis");
+            chart.SetYAxisTitle("Score Axis");
+            document.AddParagraph("After axis titles");
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+            Assert.Equal("Quarter Axis", layout.GetType().GetProperty("CategoryAxisTitle")!.GetValue(layout));
+            Assert.Equal("Score Axis", layout.GetType().GetProperty("ValueAxisTitle")!.GetValue(layout));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Quarter Axis", text);
+        Assert.Contains("Score Axis", text);
+        Assert.Contains("After axis titles", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Line_Chart_NoMarkers() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordLineNoMarkers.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordLineNoMarkers.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Line No Markers", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddLine("Trend", new List<int> { 10, 15, 20 }, OfficeColor.ParseHex("#4472c4"));
+            document.AddParagraph("After line no markers");
+
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            LineChartSeries series = chartPart.ChartSpace!.Descendants<LineChartSeries>().First();
+            series.InsertBefore(new Marker(new Symbol { Val = MarkerStyleValues.None }), series.GetFirstChild<CategoryAxisData>());
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+            Assert.False((bool)layout.GetType().GetProperty("ShowMarkers")!.GetValue(layout)!);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After line no markers", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Bar_Chart_Series_Colors() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordBarChartColors.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordBarChartColors.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Bar Colors", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddBar("EMEA", new[] { 10, 12, 14 }, OfficeColor.Black);
+            chart.AddBar("APAC", new[] { 9, 11, 15 }, OfficeColor.Black);
+            chart.ApplyPalette(WordChart.WordChartPalette.ColorBlindSafe);
+            document.AddParagraph("After bar colors");
+
+            List<OfficeColor> palette = GetNativeWordChartPalette(CreateNativeWordChartSnapshot(chart));
+            Assert.Equal(OfficeColor.ParseHex("#0072B2"), palette[0]);
+            Assert.Equal(OfficeColor.ParseHex("#E69F00"), palette[1]);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After bar colors", text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0 0.447 0.698 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.902 0.624 0 rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Area_And_Plot_Area_Colors() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAreaColors.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAreaColors.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Chart Area Colors", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddBar("Actual", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
+            document.AddParagraph("After chart area colors");
+
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            Chart chartElement = chartPart.ChartSpace!.GetFirstChild<Chart>()!;
+            chartElement.Append(CreateNativeChartShapeProperties("FFF2CC", "7F6000"));
+            chartElement.PlotArea!.Append(CreateNativeChartShapeProperties("D9EAF7", "1F4E79"));
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object style = snapshot.GetType().GetProperty("Style")!.GetValue(snapshot)!;
+            Assert.Equal(OfficeColor.ParseHex("#fff2cc"), style.GetType().GetProperty("BackgroundColor")!.GetValue(style));
+            Assert.Equal(OfficeColor.ParseHex("#7f6000"), style.GetType().GetProperty("BorderColor")!.GetValue(style));
+            Assert.Equal(OfficeColor.ParseHex("#d9eaf7"), style.GetType().GetProperty("PlotAreaBackgroundColor")!.GetValue(style));
+            Assert.Equal(OfficeColor.ParseHex("#1f4e79"), style.GetType().GetProperty("PlotAreaBorderColor")!.GetValue(style));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After chart area colors", text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("1 0.949 0.8 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.498 0.376 0 RG", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.851 0.918 0.969 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.122 0.306 0.475 RG", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Axis_And_Gridline_Colors() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisGridColors.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartAxisGridColors.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Axis Grid Colors", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddBar("Actual", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
+            document.AddParagraph("After axis grid colors");
+
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            ValueAxis valueAxis = chartPart.ChartSpace!.Descendants<ValueAxis>().First();
+            valueAxis.RemoveAllChildren<ChartShapeProperties>();
+            valueAxis.Append(CreateNativeChartOutlineShapeProperties("FF0000"));
+            MajorGridlines gridlines = valueAxis.GetFirstChild<MajorGridlines>() ?? new MajorGridlines();
+            if (gridlines.Parent == null) {
+                valueAxis.InsertAfter(gridlines, valueAxis.GetFirstChild<AxisPosition>());
+            }
+
+            gridlines.RemoveAllChildren<ChartShapeProperties>();
+            gridlines.Append(CreateNativeChartOutlineShapeProperties("00FF00"));
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object style = snapshot.GetType().GetProperty("Style")!.GetValue(snapshot)!;
+            Assert.Equal(OfficeColor.ParseHex("#ff0000"), style.GetType().GetProperty("AxisColor")!.GetValue(style));
+            Assert.Equal(OfficeColor.ParseHex("#00ff00"), style.GetType().GetProperty("GridLineColor")!.GetValue(style));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After axis grid colors", text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("1 0 0 RG", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0 1 0 RG", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Title_Color() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleColor.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleColor.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Styled Title", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddBar("Actual", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
+            document.AddParagraph("After chart title color");
+
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            A.DefaultRunProperties titleRunProperties = chartPart.ChartSpace!
+                .GetFirstChild<Chart>()!
+                .Title!
+                .Descendants<A.DefaultRunProperties>()
+                .First();
+            titleRunProperties.RemoveAllChildren<A.SolidFill>();
+            titleRunProperties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "CC0066" }));
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object style = snapshot.GetType().GetProperty("Style")!.GetValue(snapshot)!;
+            Assert.Equal(OfficeColor.ParseHex("#cc0066"), style.GetType().GetProperty("TitleColor")!.GetValue(style));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After chart title color", text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.8 0 0.4 rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Category_Label_Skip() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLabelSkip.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLabelSkip.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Label Skip", false, 360, 220);
+            chart.AddCategories(Enumerable.Range(1, 12).Select(index => "Q" + index.ToString()).ToList());
+            chart.AddBar("Volume", Enumerable.Range(1, 12).Select(index => index * 2).ToArray(), OfficeColor.ParseHex("#4472c4"));
+            document.AddParagraph("After label skip chart");
+
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            CategoryAxis axis = chartPart.ChartSpace!.Descendants<CategoryAxis>().First();
+            axis.Append(new TickLabelSkip { Val = 3 });
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+            Assert.Equal(4, (int)layout.GetType().GetProperty("MaximumHorizontalCategoryAxisLabels")!.GetValue(layout)!);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After label skip chart", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Does_Not_Invent_Word_Chart_Legend() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartNoLegend.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartNoLegend.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF No Legend", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddBar("NoLegendSeries", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
+            document.AddParagraph("After no legend chart");
+
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            chartPart.ChartSpace!.Descendants<Legend>().ToList().ForEach(legend => legend.Remove());
+            chartPart.ChartSpace.Descendants<DataLabels>().ToList().ForEach(labels => labels.Remove());
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+            Assert.False((bool)layout.GetType().GetProperty("ShowLegend")!.GetValue(layout)!);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After no legend chart", text);
+        Assert.DoesNotContain("NoLegendSeries", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Bottom_Legend_Position() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartBottomLegend.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartBottomLegend.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Bottom Legend", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddBar("BottomLegendSeries", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            chartPart.ChartSpace!.Descendants<Legend>().ToList().ForEach(legend => legend.Remove());
+            chart.AddLegend(LegendPositionValues.Bottom);
+            document.AddParagraph("After bottom legend chart");
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+            Assert.True((bool)layout.GetType().GetProperty("ShowLegend")!.GetValue(layout)!);
+            Assert.Equal(OfficeChartLegendPosition.Bottom, layout.GetType().GetProperty("LegendPosition")!.GetValue(layout));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After bottom legend chart", text);
+        Assert.Contains("BottomLegendSeries", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Left_Legend_Position() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLeftLegend.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartLeftLegend.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Left Legend", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddBar("LeftLegendSeries", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            chartPart.ChartSpace!.Descendants<Legend>().ToList().ForEach(legend => legend.Remove());
+            chart.AddLegend(LegendPositionValues.Left);
+            document.AddParagraph("After left legend chart");
+
+            object snapshot = CreateNativeWordChartSnapshot(chart);
+            object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+            Assert.True((bool)layout.GetType().GetProperty("ShowLegend")!.GetValue(layout)!);
+            Assert.Equal(OfficeChartLegendPosition.Left, layout.GetType().GetProperty("LegendPosition")!.GetValue(layout));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After left legend chart", text);
+        Assert.Contains("LeftLegendSeries", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Scheme_Series_Colors() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartSchemeColors.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartSchemeColors.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Scheme Colors", false, 360, 220);
+            chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+            chart.AddBar("EMEA", new[] { 10, 12, 14 }, OfficeColor.Black);
+            document.AddParagraph("After scheme chart colors");
+
+            ChartPart chartPart = (ChartPart)typeof(WordChart)
+                .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+                .GetValue(chart)!;
+            BarChartSeries series = chartPart.ChartSpace!.Descendants<BarChartSeries>().First();
+            ChartShapeProperties shapeProperties = series.GetFirstChild<ChartShapeProperties>() ?? new ChartShapeProperties();
+            if (shapeProperties.Parent == null) {
+                series.InsertAt(shapeProperties, 2);
+            }
+
+            shapeProperties.RemoveAllChildren<A.SolidFill>();
+            shapeProperties.Append(new A.SolidFill(
+                new A.SchemeColor(
+                    new A.LuminanceModulation() { Val = 50000 }) { Val = A.SchemeColorValues.Accent1 }));
+
+            List<OfficeColor> palette = GetNativeWordChartPalette(CreateNativeWordChartSnapshot(chart));
+            Assert.Equal(OfficeColor.ParseHex("#223962"), palette[0]);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After scheme chart colors", text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.133 0.224 0.384 rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Pie_Chart_Slice_Colors() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieChartColors.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordPieChartColors.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordChart chart = document.AddChart("Word PDF Pie Colors", false, 360, 220);
+            chart.AddPie("Passed", 4);
+            chart.AddPie("Failed", 1);
+            chart.AddPie("Skipped", 1);
+            chart.ApplyPalette(WordChart.WordChartPalette.Professional, semanticOutcomes: true, applyToPies: true, applyToSeries: false);
+            document.AddParagraph("After pie colors");
+
+            List<OfficeColor> palette = GetNativeWordChartPalette(CreateNativeWordChartSnapshot(chart));
+            Assert.Equal(OfficeColor.ParseHex("#2fb344"), palette[0]);
+            Assert.Equal(OfficeColor.ParseHex("#f76707"), palette[1]);
+            Assert.Equal(OfficeColor.ParseHex("#868e96"), palette[2]);
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("After pie colors", text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.184 0.702 0.267 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.969 0.404 0.027 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.525 0.557 0.588 rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Uses_Embedded_Fallback_For_Word_Symbol_Text() {
         if (!PdfEmbeddedFontFamily.TryFromSystem("Segoe UI Symbol", out _) &&
             !PdfEmbeddedFontFamily.TryFromSystem("DejaVu Sans", out _)) {
@@ -425,6 +1351,22 @@ public partial class Word {
         bool result = (bool)method.Invoke(null, arguments)!;
         Assert.True(result, (string?)arguments[2]);
         return arguments[1]!;
+    }
+
+    private static List<OfficeColor> GetNativeWordChartPalette(object snapshot) {
+        object style = snapshot.GetType().GetProperty("Style")!.GetValue(snapshot)!;
+        return ((IEnumerable<OfficeColor>)style.GetType().GetProperty("Palette")!.GetValue(style)!).ToList();
+    }
+
+    private static ChartShapeProperties CreateNativeChartShapeProperties(string fillHex, string outlineHex) {
+        return new ChartShapeProperties(
+            new A.SolidFill(new A.RgbColorModelHex { Val = fillHex }),
+            new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = outlineHex })));
+    }
+
+    private static ChartShapeProperties CreateNativeChartOutlineShapeProperties(string outlineHex) {
+        return new ChartShapeProperties(
+            new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = outlineHex })));
     }
 
     private static SdtBlock CreateNativeCoverPageBlockWithChildren(params OpenXmlElement[] children) {
@@ -493,6 +1435,13 @@ public partial class Word {
     }
 
     private static Paragraph CreateNativeVmlCoverDrawingParagraph() {
+        var taggedNamedColorPanel = new DocumentFormat.OpenXml.Vml.Rectangle {
+            Id = "NativeCoverTaggedNamedColorPanel",
+            Style = "position:absolute;left:210;top:140;width:18;height:36",
+            FillColor = "yellow [3213]",
+            Stroked = false
+        };
+
         var leftBand = new DocumentFormat.OpenXml.Vml.Rectangle {
             Id = "NativeCoverLeftBand",
             Style = "position:absolute;left:24;top:24;width:18;height:720",
@@ -531,7 +1480,7 @@ public partial class Word {
             CoordinateSize = "240,760"
         };
 
-        return new Paragraph(new Run(new Picture(group, titleShape)));
+        return new Paragraph(new Run(new Picture(group, taggedNamedColorPanel, titleShape)));
     }
 
     private static Paragraph CreateNativeVmlCoordOriginDrawingParagraph() {
@@ -557,6 +1506,255 @@ public partial class Word {
         };
 
         return new Paragraph(new Run(new Picture(outer)));
+    }
+
+    private static Paragraph CreateNativeVmlGradientCoverDrawingParagraph() {
+        var fill = new DocumentFormat.OpenXml.Vml.Fill();
+        fill.SetAttribute(new OpenXmlAttribute("type", string.Empty, "gradient"));
+        fill.SetAttribute(new OpenXmlAttribute("color2", string.Empty, "#ed7d31"));
+        fill.SetAttribute(new OpenXmlAttribute("angle", string.Empty, "90"));
+        fill.SetAttribute(new OpenXmlAttribute("opacity", string.Empty, "32768f"));
+
+        var panel = new DocumentFormat.OpenXml.Vml.Rectangle(fill) {
+            Id = "NativeCoverGradientPanel",
+            Style = "position:absolute;left:72;top:72;width:360;height:180",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+
+        return new Paragraph(new Run(new Picture(panel)));
+    }
+
+    private static Paragraph CreateNativeVmlGradientStopsCoverDrawingParagraph() {
+        var fill = new DocumentFormat.OpenXml.Vml.Fill();
+        fill.SetAttribute(new OpenXmlAttribute("type", string.Empty, "gradient"));
+        fill.SetAttribute(new OpenXmlAttribute("color", string.Empty, "#4472c4"));
+        fill.SetAttribute(new OpenXmlAttribute("colors", string.Empty, "0 #4472c4; 32768f #70ad47; 1 #ed7d31"));
+
+        var panel = new DocumentFormat.OpenXml.Vml.Rectangle(fill) {
+            Id = "NativeCoverGradientStopsPanel",
+            Style = "position:absolute;left:72;top:72;width:360;height:180",
+            Stroked = false
+        };
+
+        return new Paragraph(new Run(new Picture(panel)));
+    }
+
+    private static Paragraph CreateNativeVmlStrokeOnlyCoverDrawingParagraph() {
+        var fill = new DocumentFormat.OpenXml.Vml.Fill();
+        fill.SetAttribute(new OpenXmlAttribute("on", string.Empty, "f"));
+
+        var stroke = new DocumentFormat.OpenXml.Vml.Stroke();
+        stroke.SetAttribute(new OpenXmlAttribute("color", string.Empty, "#ed7d31"));
+        stroke.SetAttribute(new OpenXmlAttribute("opacity", string.Empty, "50%"));
+
+        var panel = new DocumentFormat.OpenXml.Vml.Rectangle(fill, stroke) {
+            Id = "NativeCoverStrokeOnlyPanel",
+            Style = "position:absolute;left:72;top:72;width:360;height:180",
+            FillColor = "#4472c4",
+            StrokeWeight = "4pt"
+        };
+        panel.SetAttribute(new OpenXmlAttribute("filled", string.Empty, "f"));
+
+        return new Paragraph(new Run(new Picture(panel)));
+    }
+
+    private static Paragraph CreateNativeVmlOvalAndRoundRectCoverDrawingParagraph() {
+        var oval = new DocumentFormat.OpenXml.Vml.Oval {
+            Id = "NativeCoverOval",
+            Style = "position:absolute;left:72;top:72;width:120;height:72",
+            FillColor = "#2fb344",
+            Stroked = false
+        };
+
+        var roundRect = new DocumentFormat.OpenXml.Vml.RoundRectangle {
+            Id = "NativeCoverRoundRect",
+            Style = "position:absolute;left:216;top:72;width:144;height:72",
+            FillColor = "#ed7d31",
+            Stroked = false
+        };
+        roundRect.SetAttribute(new OpenXmlAttribute("arcsize", string.Empty, "32768f"));
+
+        return new Paragraph(new Run(new Picture(oval, roundRect)));
+    }
+
+    private static Paragraph CreateNativeVmlAdjustedBuiltInShapeParagraph() {
+        var shape = new DocumentFormat.OpenXml.Vml.Shape {
+            Id = "NativeCoverAdjustedBuiltIn",
+            Type = "#_x0000_t15",
+            Style = "position:absolute;left:72;top:72;width:120;height:72",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+        shape.SetAttribute(new OpenXmlAttribute("adj", string.Empty, "10800"));
+
+        return new Paragraph(new Run(new Picture(shape)));
+    }
+
+    private static Paragraph CreateNativeVmlFormulaPathCoverDrawingParagraph() {
+        var shapeType = new V.Shapetype {
+            Id = "_x0000_t990",
+            CoordinateSize = "21600,21600",
+            Adjustment = "10800",
+            EdgePath = "m@0,top l,bottom right,@1 @0,bottom left,top x e"
+        };
+        shapeType.Append(new V.Formulas(
+            new V.Formula { Equation = "val center" },
+            new V.Formula { Equation = "val middle" }));
+
+        var shape = new V.Shape {
+            Id = "NativeCoverFormulaPath",
+            Type = "#_x0000_t990",
+            Style = "position:absolute;left:72;top:72;width:120;height:72",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+        shape.SetAttribute(new OpenXmlAttribute("adj", string.Empty, "10800"));
+
+        return new Paragraph(new Run(new Picture(shapeType, shape)));
+    }
+
+    private static Paragraph CreateNativeVmlAlignedCoverDrawingParagraph() {
+        var centered = new DocumentFormat.OpenXml.Vml.Rectangle {
+            Id = "NativeCoverCentered",
+            Style = "position:absolute;top:72;width:144;height:72;mso-position-horizontal:center;mso-position-horizontal-relative:page",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+
+        var bottomRight = new DocumentFormat.OpenXml.Vml.Rectangle {
+            Id = "NativeCoverBottomRight",
+            Style = "position:absolute;width:72;height:36;mso-position-horizontal:right;mso-position-horizontal-relative:page;mso-position-vertical:bottom;mso-position-vertical-relative:page",
+            FillColor = "#ed7d31",
+            Stroked = false
+        };
+
+        return new Paragraph(new Run(new Picture(centered, bottomRight)));
+    }
+
+    private static Paragraph CreateNativeVmlTransformedCoverDrawingParagraph() {
+        var rotated = new DocumentFormat.OpenXml.Vml.Rectangle {
+            Id = "NativeCoverRotated",
+            Style = "position:absolute;left:72;top:72;width:100;height:50;rotation:90",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+
+        var flipped = new DocumentFormat.OpenXml.Vml.Rectangle {
+            Id = "NativeCoverFlipped",
+            Style = "position:absolute;left:216;top:72;width:100;height:50;flip:x",
+            FillColor = "#ed7d31",
+            Stroked = false
+        };
+
+        return new Paragraph(new Run(new Picture(rotated, flipped)));
+    }
+
+    private static Paragraph CreateNativeVmlZIndexCoverDrawingParagraph() {
+        var foreground = new DocumentFormat.OpenXml.Vml.Rectangle {
+            Id = "NativeCoverForeground",
+            Style = "position:absolute;left:72;top:72;width:180;height:120;z-index:2",
+            FillColor = "#ed7d31",
+            Stroked = false
+        };
+
+        var background = new DocumentFormat.OpenXml.Vml.Rectangle {
+            Id = "NativeCoverBackground",
+            Style = "position:absolute;left:96;top:96;width:180;height:120;z-index:1",
+            FillColor = "#2fb344",
+            Stroked = false
+        };
+
+        return new Paragraph(new Run(new Picture(foreground, background)));
+    }
+
+    private static Paragraph CreateNativeVmlShadowCoverDrawingParagraph() {
+        var shadow = new DocumentFormat.OpenXml.Vml.Shadow();
+        shadow.SetAttribute(new OpenXmlAttribute("on", string.Empty, "t"));
+        shadow.SetAttribute(new OpenXmlAttribute("color", string.Empty, "#000000"));
+        shadow.SetAttribute(new OpenXmlAttribute("opacity", string.Empty, "25%"));
+        shadow.SetAttribute(new OpenXmlAttribute("offset", string.Empty, "6pt,8pt"));
+
+        var panel = new DocumentFormat.OpenXml.Vml.Rectangle(shadow) {
+            Id = "NativeCoverShadowPanel",
+            Style = "position:absolute;left:72;top:72;width:120;height:72",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+
+        return new Paragraph(new Run(new Picture(panel)));
+    }
+
+    private static Paragraph CreateNativeVmlStrokeStyleCoverDrawingParagraph() {
+        var fill = new DocumentFormat.OpenXml.Vml.Fill();
+        fill.SetAttribute(new OpenXmlAttribute("on", string.Empty, "f"));
+
+        var stroke = new DocumentFormat.OpenXml.Vml.Stroke();
+        stroke.SetAttribute(new OpenXmlAttribute("color", string.Empty, "#ed7d31"));
+        stroke.SetAttribute(new OpenXmlAttribute("dashstyle", string.Empty, "dash"));
+        stroke.SetAttribute(new OpenXmlAttribute("endcap", string.Empty, "round"));
+        stroke.SetAttribute(new OpenXmlAttribute("joinstyle", string.Empty, "bevel"));
+
+        var panel = new DocumentFormat.OpenXml.Vml.Rectangle(fill, stroke) {
+            Id = "NativeCoverStrokeStylePanel",
+            Style = "position:absolute;left:72;top:72;width:144;height:72",
+            StrokeWeight = "4pt"
+        };
+        panel.SetAttribute(new OpenXmlAttribute("filled", string.Empty, "f"));
+
+        return new Paragraph(new Run(new Picture(panel)));
+    }
+
+    private static Paragraph CreateNativeVmlUnitLineCoverDrawingParagraph() {
+        var line = new DocumentFormat.OpenXml.Vml.Line {
+            Id = "NativeCoverUnitLine",
+            Style = "position:absolute;left:72pt;top:72pt",
+            From = "0pt,0pt",
+            To = "1in,10mm",
+            StrokeColor = "#ed7d31",
+            StrokeWeight = "3pt"
+        };
+
+        return new Paragraph(new Run(new Picture(line)));
+    }
+
+    private static Paragraph CreateNativeVmlCubicPathCoverDrawingParagraph() {
+        var shape = new DocumentFormat.OpenXml.Vml.Shape {
+            Id = "NativeCoverCubicPath",
+            Style = "position:absolute;left:72;top:72;width:120;height:72",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+        shape.SetAttribute(new OpenXmlAttribute("coordsize", string.Empty, "120,72"));
+        shape.SetAttribute(new OpenXmlAttribute("path", string.Empty, "m 0,72 c 30,0 90,0 120,72 l 120,0 l 0,0 x e"));
+
+        return new Paragraph(new Run(new Picture(shape)));
+    }
+
+    private static Paragraph CreateNativeVmlQuadraticPathCoverDrawingParagraph() {
+        var shape = new DocumentFormat.OpenXml.Vml.Shape {
+            Id = "NativeCoverQuadraticPath",
+            Style = "position:absolute;left:72;top:72;width:120;height:72",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+        shape.SetAttribute(new OpenXmlAttribute("coordsize", string.Empty, "120,72"));
+        shape.SetAttribute(new OpenXmlAttribute("path", string.Empty, "m 0,72 qb 60,0 120,72 l 120,0 l 0,0 x e"));
+
+        return new Paragraph(new Run(new Picture(shape)));
+    }
+
+    private static Paragraph CreateNativeVmlRelativeCubicPathCoverDrawingParagraph() {
+        var shape = new DocumentFormat.OpenXml.Vml.Shape {
+            Id = "NativeCoverRelativeCubicPath",
+            Style = "position:absolute;left:72;top:72;width:120;height:72",
+            FillColor = "#4472c4",
+            Stroked = false
+        };
+        shape.SetAttribute(new OpenXmlAttribute("coordsize", string.Empty, "120,72"));
+        shape.SetAttribute(new OpenXmlAttribute("path", string.Empty, "t 0,72 v 30,-72 90,-72 120,0 r 0,-72 r -120,0 x e"));
+
+        return new Paragraph(new Run(new Picture(shape)));
     }
 
     private static object BuildNativeTableOfContentsEntries(WordDocument document) {

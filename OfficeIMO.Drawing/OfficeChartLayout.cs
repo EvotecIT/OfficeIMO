@@ -24,6 +24,8 @@ public sealed class OfficeChartLayout {
     /// <param name="maximumHorizontalCategoryAxisLabels">Maximum number of category-axis labels to render on horizontal bar charts.</param>
     /// <param name="maximumRadarCategoryLabels">Maximum number of category labels to render on radar charts.</param>
     /// <param name="preventLabelOverlap">Whether axis/category label stride should increase automatically to avoid obvious label overlap.</param>
+    /// <param name="showLegend">Whether series or category legends should be rendered.</param>
+    /// <param name="legendPosition">Preferred legend placement when legends are rendered.</param>
     /// <param name="showDataLabels">Whether point data labels should be rendered when supported by a chart family.</param>
     /// <param name="showDataLabelValues">Whether point data labels should include values.</param>
     /// <param name="showDataLabelPercentages">Whether point data labels should include percentages.</param>
@@ -31,6 +33,12 @@ public sealed class OfficeChartLayout {
     /// <param name="showDataLabelSeriesNames">Whether point data labels should include series names.</param>
     /// <param name="dataLabelSeparator">Separator used between enabled data label parts.</param>
     /// <param name="dataLabelFontSize">Data label font size.</param>
+    /// <param name="dataLabelPosition">Preferred data label position when labels are rendered.</param>
+    /// <param name="dataLabelNumberFormat">Optional numeric format for data-label values.</param>
+    /// <param name="showMarkers">Whether point markers should be rendered for marker-capable chart families.</param>
+    /// <param name="axisNumberFormat">Optional numeric format for value-axis labels.</param>
+    /// <param name="categoryAxisTitle">Optional category or horizontal axis title.</param>
+    /// <param name="valueAxisTitle">Optional value or vertical axis title.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -45,13 +53,21 @@ public sealed class OfficeChartLayout {
         int? maximumHorizontalCategoryAxisLabels = null,
         int? maximumRadarCategoryLabels = null,
         bool preventLabelOverlap = true,
+        bool showLegend = true,
+        OfficeChartLegendPosition legendPosition = OfficeChartLegendPosition.Right,
         bool showDataLabels = false,
         bool showDataLabelValues = false,
         bool showDataLabelPercentages = false,
         bool showDataLabelCategoryNames = false,
         bool showDataLabelSeriesNames = false,
         string? dataLabelSeparator = null,
-        double? dataLabelFontSize = null) {
+        double? dataLabelFontSize = null,
+        OfficeChartDataLabelPosition dataLabelPosition = OfficeChartDataLabelPosition.Auto,
+        string? dataLabelNumberFormat = null,
+        bool showMarkers = true,
+        string? axisNumberFormat = null,
+        string? categoryAxisTitle = null,
+        string? valueAxisTitle = null) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -65,6 +81,8 @@ public sealed class OfficeChartLayout {
         MaximumHorizontalCategoryAxisLabels = ValidatePositive(maximumHorizontalCategoryAxisLabels ?? 7, nameof(maximumHorizontalCategoryAxisLabels));
         MaximumRadarCategoryLabels = ValidatePositive(maximumRadarCategoryLabels ?? 8, nameof(maximumRadarCategoryLabels));
         PreventLabelOverlap = preventLabelOverlap;
+        ShowLegend = showLegend;
+        LegendPosition = legendPosition;
         ShowDataLabels = showDataLabels;
         ShowDataLabelValues = showDataLabelValues;
         ShowDataLabelPercentages = showDataLabelPercentages;
@@ -72,6 +90,12 @@ public sealed class OfficeChartLayout {
         ShowDataLabelSeriesNames = showDataLabelSeriesNames;
         DataLabelSeparator = string.IsNullOrEmpty(dataLabelSeparator) ? "; " : dataLabelSeparator!;
         DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? 7D, nameof(dataLabelFontSize));
+        DataLabelPosition = dataLabelPosition;
+        DataLabelNumberFormat = string.IsNullOrWhiteSpace(dataLabelNumberFormat) ? null : dataLabelNumberFormat;
+        ShowMarkers = showMarkers;
+        AxisNumberFormat = string.IsNullOrWhiteSpace(axisNumberFormat) ? null : axisNumberFormat;
+        CategoryAxisTitle = string.IsNullOrWhiteSpace(categoryAxisTitle) ? null : categoryAxisTitle;
+        ValueAxisTitle = string.IsNullOrWhiteSpace(valueAxisTitle) ? null : valueAxisTitle;
     }
 
     /// <summary>Default premium OfficeIMO chart layout.</summary>
@@ -116,6 +140,12 @@ public sealed class OfficeChartLayout {
     /// <summary>Whether axis/category label stride should increase automatically to avoid obvious label overlap.</summary>
     public bool PreventLabelOverlap { get; }
 
+    /// <summary>Whether series or category legends should be rendered.</summary>
+    public bool ShowLegend { get; }
+
+    /// <summary>Preferred legend placement when legends are rendered.</summary>
+    public OfficeChartLegendPosition LegendPosition { get; }
+
     /// <summary>Whether point data labels should be rendered when supported by a chart family.</summary>
     public bool ShowDataLabels { get; }
 
@@ -136,6 +166,24 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Data label font size.</summary>
     public double DataLabelFontSize { get; }
+
+    /// <summary>Preferred data label position when labels are rendered.</summary>
+    public OfficeChartDataLabelPosition DataLabelPosition { get; }
+
+    /// <summary>Optional numeric format for data-label values.</summary>
+    public string? DataLabelNumberFormat { get; }
+
+    /// <summary>Whether point markers should be rendered for marker-capable chart families.</summary>
+    public bool ShowMarkers { get; }
+
+    /// <summary>Optional numeric format for value-axis labels.</summary>
+    public string? AxisNumberFormat { get; }
+
+    /// <summary>Optional category or horizontal axis title.</summary>
+    public string? CategoryAxisTitle { get; }
+
+    /// <summary>Optional value or vertical axis title.</summary>
+    public string? ValueAxisTitle { get; }
 
     private static double ValidateRatio(double value, string paramName) {
         ValidatePositiveFinite(value, paramName);

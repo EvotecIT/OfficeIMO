@@ -78,6 +78,8 @@ public sealed partial class PdfOptions {
     private PdfTextWatermark? _firstPageTextWatermark;
     private PdfTextWatermark? _evenPageTextWatermark;
     private PdfImageWatermark? _imageWatermark;
+    private PdfImageWatermark? _firstPageImageWatermark;
+    private PdfImageWatermark? _evenPageImageWatermark;
     private PdfPageBorder? _pageBorder;
     private PdfPageBackgroundImage? _pageBackgroundImage;
     private System.Collections.Generic.List<PdfPageBackgroundShape>? _pageBackgroundShapes;

@@ -114,6 +114,40 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void ImageWatermark_FirstAndEvenVariantsUseMatchingPageVariant() {
+        byte[] image = CreateMinimalRgbPng();
+        var options = new PdfOptions {
+            DifferentFirstPageHeaderFooter = true,
+            DifferentOddAndEvenPagesHeaderFooter = true,
+            ImageWatermark = new PdfImageWatermark(image, width: 20, height: 20) {
+                Opacity = 0.18
+            },
+            FirstPageImageWatermark = new PdfImageWatermark(image, width: 21, height: 21) {
+                Opacity = 0.18
+            },
+            EvenPageImageWatermark = new PdfImageWatermark(image, width: 22, height: 22) {
+                Opacity = 0.18
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("Page one body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Page two body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Page three body."))
+            .ToBytes();
+
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+        string thirdPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 3));
+
+        Assert.Contains("21 0 0 21", firstPageStream, StringComparison.Ordinal);
+        Assert.Contains("22 0 0 22", secondPageStream, StringComparison.Ordinal);
+        Assert.Contains("20 0 0 20", thirdPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImageWatermark_ValidatesAndClonesOptions() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfOptions {

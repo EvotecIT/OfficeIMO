@@ -440,18 +440,17 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string value = hex.Trim();
-            if (value.StartsWith("#", StringComparison.Ordinal)) {
-                value = value.Substring(1);
+            int metadataSeparator = value.IndexOf(' ');
+            if (metadataSeparator > 0) {
+                value = value.Substring(0, metadataSeparator);
             }
 
-            if (value.Length != 6 ||
-                !byte.TryParse(value.Substring(0, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte r) ||
-                !byte.TryParse(value.Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte g) ||
-                !byte.TryParse(value.Substring(4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out byte b)) {
+            if (value.Equals("none", StringComparison.OrdinalIgnoreCase) ||
+                !OfficeColor.TryParse(value, out OfficeColor color)) {
                 return null;
             }
 
-            return PdfCore.PdfColor.FromRgb(r, g, b);
+            return PdfCore.PdfColor.FromOfficeColor(color);
         }
 
         private static PdfCore.PdfColor? MapNativeHighlight(W.HighlightColorValues? highlight) {

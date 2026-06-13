@@ -54,7 +54,7 @@ namespace OfficeIMO.Word.Pdf {
             RecordNativeHeaderFooterDiagnostics(section.Footer?.Default, options, "default footer");
             RecordNativeHeaderFooterDiagnostics(section.Footer?.First, options, "first footer");
             RecordNativeHeaderFooterDiagnostics(section.Footer?.Even, options, "even footer");
-            ApplyNativeSectionWatermark(page, section);
+            ApplyNativeSectionWatermark(page, section, options);
 
             NativeHeaderFooterText? defaultHeader = GetNativeHeaderFooterText(section.Header?.Default);
             NativeHeaderFooterText? firstHeader = section.DifferentFirstPage ? GetNativeHeaderFooterText(section.Header?.First) : null;

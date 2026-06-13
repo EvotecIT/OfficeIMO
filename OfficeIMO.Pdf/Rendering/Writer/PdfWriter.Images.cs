@@ -561,6 +561,71 @@ internal static partial class PdfWriter {
         return TryBuildImageStream(img.Data, img.Info, img.W, img.H, out image, out unsupportedReason);
     }
 
+    private static string BuildImageXObjectCacheKey(PdfImageStream image) {
+        using var hash = System.Security.Cryptography.SHA256.Create();
+        AppendImageStreamHash(hash, image);
+        hash.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+        return ToHex(hash.Hash ?? Array.Empty<byte>());
+    }
+
+    private static void AppendImageStreamHash(System.Security.Cryptography.HashAlgorithm hash, PdfImageStream image) {
+        AppendHashInt(hash, image.PixelWidth);
+        AppendHashInt(hash, image.PixelHeight);
+        AppendHashString(hash, image.DictionarySuffix);
+        AppendHashBytes(hash, image.Data);
+        if (image.SoftMask == null) {
+            AppendHashByte(hash, 0);
+            return;
+        }
+
+        AppendHashByte(hash, 1);
+        AppendImageStreamHash(hash, image.SoftMask);
+    }
+
+    private static void AppendHashString(System.Security.Cryptography.HashAlgorithm hash, string value) =>
+        AppendHashBytes(hash, Encoding.UTF8.GetBytes(value ?? string.Empty));
+
+    private static void AppendHashByte(System.Security.Cryptography.HashAlgorithm hash, byte value) =>
+        AppendHashBytes(hash, new[] { value });
+
+    private static void AppendHashInt(System.Security.Cryptography.HashAlgorithm hash, int value) {
+        byte[] bytes = new byte[] {
+            (byte)((value >> 24) & 0xFF),
+            (byte)((value >> 16) & 0xFF),
+            (byte)((value >> 8) & 0xFF),
+            (byte)(value & 0xFF)
+        };
+        AppendHashBytes(hash, bytes);
+    }
+
+    private static void AppendHashBytes(System.Security.Cryptography.HashAlgorithm hash, byte[] data) {
+        AppendHashLength(hash, data.Length);
+        if (data.Length > 0) {
+            hash.TransformBlock(data, 0, data.Length, data, 0);
+        }
+    }
+
+    private static void AppendHashLength(System.Security.Cryptography.HashAlgorithm hash, int length) {
+        byte[] bytes = new byte[] {
+            (byte)((length >> 24) & 0xFF),
+            (byte)((length >> 16) & 0xFF),
+            (byte)((length >> 8) & 0xFF),
+            (byte)(length & 0xFF)
+        };
+        hash.TransformBlock(bytes, 0, bytes.Length, bytes, 0);
+    }
+
+    private static string ToHex(byte[] bytes) {
+        char[] chars = new char[bytes.Length * 2];
+        const string hex = "0123456789abcdef";
+        for (int i = 0; i < bytes.Length; i++) {
+            chars[i * 2] = hex[bytes[i] >> 4];
+            chars[i * 2 + 1] = hex[bytes[i] & 0xF];
+        }
+
+        return new string(chars);
+    }
+
     internal static bool TryBuildImageStream(byte[] data, OfficeImageInfo info, double fallbackWidth, double fallbackHeight, out PdfImageStream image, out string? unsupportedReason) {
         unsupportedReason = null;
 

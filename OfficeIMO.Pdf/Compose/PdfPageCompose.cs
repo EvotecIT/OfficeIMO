@@ -106,6 +106,32 @@ public class PdfPageCompose {
         Options.ImageWatermark = watermark;
         return this;
     }
+    /// <summary>Sets or clears the first-page image watermark rendered behind page content.</summary>
+    public PdfPageCompose FirstPageImageWatermark(PdfImageWatermark? watermark) {
+        Options.FirstPageImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets a first-page image watermark rendered behind page content.</summary>
+    public PdfPageCompose FirstPageImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+        var watermark = new PdfImageWatermark(imageBytes, width, height);
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        Options.FirstPageImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets or clears the even-page image watermark rendered behind page content.</summary>
+    public PdfPageCompose EvenPagesImageWatermark(PdfImageWatermark? watermark) {
+        Options.EvenPageImageWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets an even-page image watermark rendered behind page content.</summary>
+    public PdfPageCompose EvenPagesImageWatermark(byte[] imageBytes, double width, double height, double? opacity = null, double? rotationAngle = null) {
+        var watermark = new PdfImageWatermark(imageBytes, width, height);
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        Options.EvenPageImageWatermark = watermark;
+        return this;
+    }
     /// <summary>Sets or clears the page-scoped page border.</summary>
     public PdfPageCompose PageBorder(PdfPageBorder? border) {
         Options.PageBorder = border;

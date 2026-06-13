@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
@@ -112,6 +113,30 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Vml_TextPath_Text() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVmlTextPath.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterVmlTextPath.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.AddHeadersAndFooters();
+            WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            header._header.Append(CreateNativeHeaderFooterTextPathParagraph("Native WordArt header"));
+
+            document.AddParagraph("Native textpath body");
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("Native WordArt header", text);
+        Assert.Contains("Native textpath body", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_HeaderFooter_Shapes() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterShapes.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHeaderFooterShapes.pdf");
@@ -176,7 +201,9 @@ public partial class Word {
         byte[] bytes = File.ReadAllBytes(pdfPath);
         string rawPdf = Encoding.ASCII.GetString(bytes);
         int imageObjectCount = rawPdf.Split(new[] { "/Subtype /Image" }, StringSplitOptions.None).Length - 1;
-        Assert.True(imageObjectCount >= 2, "Expected native header and footer images to be emitted as image XObjects.");
+        int imageDrawCount = ReadPdfPageContent(bytes).Split(new[] { "/Im" }, StringSplitOptions.None).Length - 1;
+        Assert.True(imageObjectCount >= 1, "Expected native header and footer images to be emitted as image XObjects.");
+        Assert.True(imageDrawCount >= 2, "Expected native header and footer image placements to draw image XObjects.");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         string text = pdf.GetPage(1).Text;
@@ -213,7 +240,9 @@ public partial class Word {
         byte[] bytes = File.ReadAllBytes(pdfPath);
         string rawPdf = Encoding.ASCII.GetString(bytes);
         int imageObjectCount = rawPdf.Split(new[] { "/Subtype /Image" }, StringSplitOptions.None).Length - 1;
-        Assert.True(imageObjectCount >= 2, "Expected native header and footer picture controls to be emitted as image XObjects.");
+        int imageDrawCount = ReadPdfPageContent(bytes).Split(new[] { "/Im" }, StringSplitOptions.None).Length - 1;
+        Assert.True(imageObjectCount >= 1, "Expected native header and footer picture controls to be emitted as image XObjects.");
+        Assert.True(imageDrawCount >= 2, "Expected native header and footer picture-control placements to draw image XObjects.");
 
         using PdfPigDocument pdf = PdfPigDocument.Open(bytes);
         string text = pdf.GetPage(1).Text;
@@ -299,5 +328,25 @@ public partial class Word {
         Assert.Contains("Native footer status:", text);
         Assert.Contains("Blue", text);
         Assert.Contains("Native header/footer form-control body", text);
+    }
+
+    private static Paragraph CreateNativeHeaderFooterTextPathParagraph(string text) {
+        var textPath = new DocumentFormat.OpenXml.Vml.TextPath {
+            On = true,
+            FitShape = true,
+            Style = "font-family:\"Calibri\";font-size:1pt",
+            String = text
+        };
+
+        var shape = new DocumentFormat.OpenXml.Vml.Shape(textPath) {
+            Id = "NativeHeaderFooterTextPath",
+            Type = "#_x0000_t136",
+            Style = "position:absolute;margin-left:0;margin-top:0;width:320pt;height:72pt;rotation:315;mso-position-horizontal:center;mso-position-horizontal-relative:margin;mso-position-vertical:center;mso-position-vertical-relative:margin",
+            FillColor = "silver",
+            Stroked = false
+        };
+        shape.SetAttribute(new OpenXmlAttribute("allowincell", "urn:schemas-microsoft-com:office:office", "false"));
+
+        return new Paragraph(new Run(new Picture(shape)));
     }
 }

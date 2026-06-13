@@ -139,6 +139,48 @@ namespace OfficeIMO.Word.Pdf {
                     new OfficePoint(0, height / 2D));
             }
 
+            if (preset == A.ShapeTypeValues.Parallelogram) {
+                return OfficeShape.Polygon(
+                    new OfficePoint(width * 0.2D, 0),
+                    new OfficePoint(width, 0),
+                    new OfficePoint(width * 0.8D, height),
+                    new OfficePoint(0, height));
+            }
+
+            if (preset == A.ShapeTypeValues.Trapezoid) {
+                return OfficeShape.Polygon(
+                    new OfficePoint(width * 0.2D, 0),
+                    new OfficePoint(width * 0.8D, 0),
+                    new OfficePoint(width, height),
+                    new OfficePoint(0, height));
+            }
+
+            if (preset == A.ShapeTypeValues.Chevron) {
+                return OfficeShape.Polygon(
+                    new OfficePoint(0, 0),
+                    new OfficePoint(width * 0.68D, 0),
+                    new OfficePoint(width, height / 2D),
+                    new OfficePoint(width * 0.68D, height),
+                    new OfficePoint(0, height),
+                    new OfficePoint(width * 0.32D, height / 2D));
+            }
+
+            if (preset == A.ShapeTypeValues.Plus) {
+                return OfficeShape.Polygon(
+                    new OfficePoint(width * 0.35D, 0),
+                    new OfficePoint(width * 0.65D, 0),
+                    new OfficePoint(width * 0.65D, height * 0.35D),
+                    new OfficePoint(width, height * 0.35D),
+                    new OfficePoint(width, height * 0.65D),
+                    new OfficePoint(width * 0.65D, height * 0.65D),
+                    new OfficePoint(width * 0.65D, height),
+                    new OfficePoint(width * 0.35D, height),
+                    new OfficePoint(width * 0.35D, height * 0.65D),
+                    new OfficePoint(0, height * 0.65D),
+                    new OfficePoint(0, height * 0.35D),
+                    new OfficePoint(width * 0.35D, height * 0.35D));
+            }
+
             if (preset == A.ShapeTypeValues.RightArrow) {
                 return OfficeShape.Polygon(
                     new OfficePoint(0, height * 0.25D),
@@ -181,6 +223,21 @@ namespace OfficeIMO.Word.Pdf {
                     new OfficePoint(width, height * 0.6D),
                     new OfficePoint(width * 0.75D, height * 0.6D),
                     new OfficePoint(width * 0.75D, 0));
+            }
+
+            if (preset == A.ShapeTypeValues.LeftRightArrow) {
+                return OfficeShape.Polygon(
+                    new OfficePoint(0, height / 2D),
+                    new OfficePoint(width * 0.25D, 0),
+                    new OfficePoint(width * 0.25D, height * 0.25D),
+                    new OfficePoint(width * 0.75D, height * 0.25D),
+                    new OfficePoint(width * 0.75D, 0),
+                    new OfficePoint(width, height / 2D),
+                    new OfficePoint(width * 0.75D, height),
+                    new OfficePoint(width * 0.75D, height * 0.75D),
+                    new OfficePoint(width * 0.25D, height * 0.75D),
+                    new OfficePoint(width * 0.25D, height),
+                    new OfficePoint(0, height / 2D));
             }
 
             if (preset == A.ShapeTypeValues.Star5) {
@@ -351,15 +408,34 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void ApplyNativeShapeStyle(OfficeShape nativeShape, WordShape wordShape) {
+            Wps.ShapeProperties? shapeProperties = wordShape._wpsShape?.GetFirstChild<Wps.ShapeProperties>();
             if (nativeShape.Kind != OfficeShapeKind.Line) {
-                PdfCore.PdfColor? fill = ParseNativeColor(wordShape.FillColorHex);
-                if (fill.HasValue) {
-                    nativeShape.FillColor = fill.Value.ToOfficeColor();
+                if (TryGetNativeDrawingGradientFill(shapeProperties, out OfficeLinearGradient? drawingGradient)) {
+                    nativeShape.FillGradient = drawingGradient;
+                } else if (TryGetNativeDrawingSolidFillColor(shapeProperties, out OfficeColor drawingFill)) {
+                    nativeShape.FillColor = drawingFill;
+                } else {
+                    PdfCore.PdfColor? fill = ParseNativeColor(wordShape.FillColorHex);
+                    if (fill.HasValue) {
+                        nativeShape.FillColor = fill.Value.ToOfficeColor();
+                    }
+                }
+
+                if (TryGetNativeDrawingFillOpacity(shapeProperties, out double fillOpacity)) {
+                    nativeShape.FillOpacity = fillOpacity;
+                } else if (nativeShape.FillColor.HasValue && nativeShape.FillColor.Value.A < byte.MaxValue) {
+                    nativeShape.FillOpacity = nativeShape.FillColor.Value.A / 255D;
                 }
             }
 
+            A.Outline? drawingOutline = shapeProperties?.GetFirstChild<A.Outline>();
+            bool drawingOutlineNoFill = drawingOutline?.GetFirstChild<A.NoFill>() != null;
+            bool hasDrawingStroke = drawingOutline != null && !drawingOutlineNoFill;
+            OfficeColor drawingStroke = default;
+            bool hasDrawingStrokeColor = hasDrawingStroke && TryGetNativeDrawingSolidFillColor(drawingOutline, out drawingStroke);
             bool drawStroke = nativeShape.Kind == OfficeShapeKind.Line ||
                               wordShape.Stroked == true ||
+                              hasDrawingStrokeColor ||
                               (wordShape._wpsShape != null && !string.IsNullOrWhiteSpace(wordShape.StrokeColorHex));
             if (!drawStroke) {
                 nativeShape.StrokeColor = null;
@@ -367,9 +443,36 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfColor? stroke = ParseNativeColor(wordShape.StrokeColorHex);
+            PdfCore.PdfColor? stroke = hasDrawingStrokeColor ? PdfCore.PdfColor.FromOfficeColor(drawingStroke) : ParseNativeColor(wordShape.StrokeColorHex);
             nativeShape.StrokeColor = (stroke ?? PdfCore.PdfColor.Black).ToOfficeColor();
             nativeShape.StrokeWidth = Math.Max(0D, wordShape.StrokeWeight ?? 1D);
+            nativeShape.StrokeDashStyle = MapNativeDrawingPresetDash(drawingOutline);
+            if (TryGetNativeDrawingFillOpacity(drawingOutline, out double strokeOpacity)) {
+                nativeShape.StrokeOpacity = strokeOpacity;
+            } else if (hasDrawingStrokeColor && drawingStroke.A < byte.MaxValue) {
+                nativeShape.StrokeOpacity = drawingStroke.A / 255D;
+            }
+        }
+
+        private static OfficeStrokeDashStyle MapNativeDrawingPresetDash(A.Outline? outline) {
+            A.PresetDash? presetDash = outline?.GetFirstChild<A.PresetDash>();
+            string? value = presetDash?.GetAttribute("val", string.Empty).Value;
+            if (string.IsNullOrWhiteSpace(value)) {
+                return OfficeStrokeDashStyle.Solid;
+            }
+
+            if (value!.IndexOf("Dot", StringComparison.OrdinalIgnoreCase) >= 0 &&
+                value.IndexOf("Dash", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return OfficeStrokeDashStyle.DashDot;
+            }
+
+            if (value.IndexOf("Dot", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return OfficeStrokeDashStyle.Dot;
+            }
+
+            return value.IndexOf("Dash", StringComparison.OrdinalIgnoreCase) >= 0
+                ? OfficeStrokeDashStyle.Dash
+                : OfficeStrokeDashStyle.Solid;
         }
 
         private static (double X, double Y) ParseNativeShapePoint(string value) {
@@ -382,7 +485,16 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double ParseNativeShapePointPart(string value) {
-            string normalized = value.Trim().Replace("pt", string.Empty);
+            string normalized = value.Trim();
+            if (string.IsNullOrWhiteSpace(normalized)) {
+                return 0D;
+            }
+
+            double? resolved = ResolveNativeVmlLength(normalized, 0D, 0D);
+            if (resolved.HasValue) {
+                return resolved.Value;
+            }
+
             return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double result) ? result : 0D;
         }
 

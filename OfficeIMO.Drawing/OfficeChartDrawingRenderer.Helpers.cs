@@ -53,6 +53,19 @@ public static partial class OfficeChartDrawingRenderer {
         return total;
     }
 
+    private static double GetDataLabelCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex) {
+        double total = GetPositiveCategoryTotal(series, categoryIndex);
+        if (total > 0D) {
+            return total;
+        }
+
+        for (int s = 0; s < series.Count; s++) {
+            total += Math.Abs(GetSeriesValue(series[s], categoryIndex));
+        }
+
+        return total;
+    }
+
     private static double GetPercentStackedCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex, bool positive) {
         double total = 0D;
         for (int s = 0; s < series.Count; s++) {

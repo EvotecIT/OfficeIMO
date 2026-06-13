@@ -98,7 +98,7 @@ internal static partial class PdfWriter {
                 images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText: false, isDecorativeArtifact: true));
             }
 
-            PdfImageWatermark? imageWatermark = pageOptions.ImageWatermarkSnapshot;
+            PdfImageWatermark? imageWatermark = pageOptions.GetImageWatermarkForPage(variantPageNumber);
             if (imageWatermark != null && imageWatermark.Opacity > 0D) {
                 images.Add(new PdfGeneratedImageAccessibilityEvidence(hasAlternativeText: false, isDecorativeArtifact: true));
             }
