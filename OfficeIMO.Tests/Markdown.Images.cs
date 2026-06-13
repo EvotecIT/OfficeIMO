@@ -99,6 +99,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWord_Rejects_Oversized_DataUri_Before_Decoding() {
+            var warnings = new List<string>();
+            const string markdown = "![Too large](data:image/png;base64,AAAA)";
+
+            using var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+                MaxDataUriImageBytes = 1,
+                OnWarning = warnings.Add
+            });
+
+            Assert.Empty(doc.Images);
+            Assert.Contains(warnings, warning => warning.Contains("exceeding the configured limit", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void MarkdownToWord_RendersInlineLocalImagesInsideParagraphs() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"Before ![Logo]({imagePath}) after";

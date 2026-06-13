@@ -252,6 +252,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_Exports_Titleless_Native_TableOfContents_Without_Default_Title() {
+            using var doc = WordDocument.Create();
+            WordTableOfContent toc = doc.AddTableOfContent(minLevel: 2, maxLevel: 9);
+            toc.Text = string.Empty;
+            doc.AddParagraph("Deep heading").Style = WordParagraphStyles.Heading9;
+
+            MarkdownDoc markdownDocument = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+            var marker = Assert.IsType<TocMarkerBlock>(markdownDocument.Blocks[0]);
+            Assert.False(marker.IncludeTitle);
+            Assert.Equal(2, marker.MinLevel);
+            Assert.Equal(9, marker.MaxLevel);
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions());
+            Assert.Contains("[TOC min=2 max=9]", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("Table of Contents", markdown, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("title=", markdown, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void WordToMarkdown_CreateReaderOptions_Parses_Header_And_Footer_Semantic_Blocks() {
             using var doc = WordDocument.Create();
             doc.AddHeadersAndFooters();
@@ -658,6 +677,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_VisualFallbackMode_Keeps_Sparse_Explicit_Chart_Colors_Aligned() {
+            using var doc = WordDocument.Create();
+            var chart = doc.AddChart("Sparse Color", width: 400, height: 240);
+            chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
+            chart.AddBar("Default", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.Black);
+            chart.AddBar("Explicit", new System.Collections.Generic.List<int> { 8, 14 }, OfficeColor.ParseHex("#CC3366"));
+
+            var seriesElements = doc._wordprocessingDocument.MainDocumentPart!
+                .ChartParts
+                .First()
+                .ChartSpace
+                .GetFirstChild<C.Chart>()!
+                .PlotArea!
+                .GetFirstChild<C.BarChart>()!
+                .Elements<C.BarChartSeries>()
+                .ToList();
+            C.ChartShapeProperties firstShapeProperties = seriesElements[0].GetFirstChild<C.ChartShapeProperties>()!;
+            firstShapeProperties.RemoveAllChildren<A.SolidFill>();
+            firstShapeProperties.RemoveAllChildren<A.Outline>();
+
+            Assert.True(chart.TryGetSnapshot(out var snapshot));
+            Assert.Null(snapshot.Data.Series[0].Color);
+            Assert.Equal(OfficeColor.ParseHex("#CC3366"), snapshot.Data.Series[1].Color);
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri
+            });
+
+            const string prefix = "data:image/svg+xml;base64,";
+            int sourceStart = markdown.IndexOf(prefix, StringComparison.Ordinal);
+            Assert.True(sourceStart >= 0, markdown);
+            int payloadStart = sourceStart + prefix.Length;
+            int payloadEnd = markdown.IndexOf(')', payloadStart);
+            Assert.True(payloadEnd > payloadStart, markdown);
+            string svg = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(markdown.Substring(payloadStart, payloadEnd - payloadStart)));
+
+            string defaultColor = "#" + OfficeChartDrawingRenderer.GetSeriesColor(0).ToRgbHex();
+            Assert.False(string.Equals("#CC3366", defaultColor, StringComparison.OrdinalIgnoreCase));
+            Assert.Contains("fill=\"" + defaultColor + "\"", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("fill=\"#CC3366\"", svg, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void WordToMarkdown_VisualFallbackMode_Uses_Line_Outline_Color() {
             using var doc = WordDocument.Create();
             var chart = doc.AddChart("Trend", width: 400, height: 240);
@@ -780,6 +842,36 @@ namespace OfficeIMO.Tests {
                 string svg = File.ReadAllText(resourcePath);
                 Assert.Contains("<svg", svg, StringComparison.Ordinal);
                 Assert.Contains("Regional Pipeline", svg, StringComparison.Ordinal);
+            } finally {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+
+        [Fact]
+        public void SaveAsMarkdown_VisualFallbackMode_Derives_Sidecar_Resources_Per_Save_When_Options_Are_Reused() {
+            string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO-Markdown-ReusedChartResources-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tempDir);
+            try {
+                using var doc = WordDocument.Create();
+                var chart = doc.AddChart("Reusable Options", width: 400, height: 240);
+                chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
+                chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
+
+                var options = new WordToMarkdownOptions {
+                    VisualFallbackMode = MarkdownVisualFallbackMode.SvgFile
+                };
+                string firstPath = Path.Combine(tempDir, "First.md");
+                string secondPath = Path.Combine(tempDir, "Second.md");
+
+                doc.SaveAsMarkdown(firstPath, options);
+                doc.SaveAsMarkdown(secondPath, options);
+
+                Assert.Null(options.VisualFallbackDirectory);
+                Assert.Null(options.VisualFallbackPathPrefix);
+                Assert.True(File.Exists(Path.Combine(tempDir, "First.assets", "01-reusable-options.svg")));
+                Assert.True(File.Exists(Path.Combine(tempDir, "Second.assets", "01-reusable-options.svg")));
+                Assert.Contains("First.assets/01-reusable-options.svg", File.ReadAllText(firstPath), StringComparison.Ordinal);
+                Assert.Contains("Second.assets/01-reusable-options.svg", File.ReadAllText(secondPath), StringComparison.Ordinal);
             } finally {
                 Directory.Delete(tempDir, recursive: true);
             }

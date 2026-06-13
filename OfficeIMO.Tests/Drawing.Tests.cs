@@ -299,6 +299,21 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_AppliesTransformsInShapeLocalCoordinates() {
+        var drawing = new OfficeDrawing(120, 120);
+        var shape = OfficeShape.Rectangle(10, 20);
+        shape.FillColor = OfficeColor.Red;
+        shape.Transform = OfficeTransform.RotateDegrees(90, 5, 10);
+        drawing.AddShape(shape, 40, 50);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<rect x=\"0\" y=\"0\" width=\"10\" height=\"20\"", svg, StringComparison.Ordinal);
+        Assert.Contains("transform=\"matrix(0 1 -1 0 55 55)\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("<rect x=\"40\" y=\"50\" width=\"10\" height=\"20\" transform=", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeClipPathStoresReusablePathIntent() {
         var clipPath = OfficeClipPath.Path(
             OfficePathCommand.MoveTo(10, 30),

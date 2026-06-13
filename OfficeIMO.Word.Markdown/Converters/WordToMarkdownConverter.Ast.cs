@@ -561,6 +561,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static TocMarkerBlock BuildTableOfContentsMarkerBlock(WordTableOfContent tableOfContent) {
             var block = new TocMarkerBlock {
+                IncludeTitle = false,
                 MinLevel = NormalizeTableOfContentsLevel(tableOfContent.MinLevel, TocOptions.DefaultMinLevel),
                 MaxLevel = NormalizeTableOfContentsLevel(tableOfContent.MaxLevel, TocOptions.DefaultMaxLevel)
             };
@@ -771,11 +772,15 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static OfficeChartStyle? CreateOfficeChartStyle(WordChartSnapshot snapshot) {
+            bool hasExplicitColor = snapshot.Data.Series.Any(item => item.Color.HasValue);
+            if (!hasExplicitColor) {
+                return null;
+            }
+
             var palette = snapshot.Data.Series
-                .Where(item => item.Color.HasValue)
-                .Select(item => item.Color!.Value)
+                .Select((item, index) => item.Color ?? OfficeChartDrawingRenderer.GetSeriesColor(index))
                 .ToList();
-            return palette.Count == 0 ? null : new OfficeChartStyle(palette: palette);
+            return new OfficeChartStyle(palette: palette);
         }
 
         private static OfficeChartKind MapChartKind(WordChartSnapshotKind kind) {

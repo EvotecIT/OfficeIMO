@@ -132,5 +132,20 @@ code
             Assert.Equal("Contents", document.TableOfContent.Text);
             Assert.True(document.Settings.UpdateFieldsOnOpen);
         }
+
+        [Fact]
+        public void TocMarkerBlock_Renders_Word_Toc_Levels_Above_Markdown_Heading_Six() {
+            var marker = new OfficeIMO.Markdown.TocMarkerBlock {
+                MinLevel = 7,
+                MaxLevel = 9,
+                IncludeTitle = true,
+                Title = "Deep contents",
+                TitleLevel = 9
+            };
+
+            string markdown = ((OfficeIMO.Markdown.IMarkdownBlock)marker).RenderMarkdown();
+
+            Assert.Equal("[TOC min=7 max=9 title=\"Deep contents\" titleLevel=6]", markdown);
+        }
     }
 }

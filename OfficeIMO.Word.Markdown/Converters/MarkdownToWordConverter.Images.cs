@@ -274,6 +274,13 @@ namespace OfficeIMO.Word.Markdown {
                 return false;
             }
 
+            if (options.MaxDataUriImageBytes >= 0 &&
+                TryEstimateBase64DecodedLength(payload, out long estimatedBytes) &&
+                estimatedBytes > options.MaxDataUriImageBytes) {
+                warning = $"Data URI image payload is at least {estimatedBytes} bytes, exceeding the configured limit of {options.MaxDataUriImageBytes} bytes.";
+                return false;
+            }
+
             try {
                 bytes = System.Convert.FromBase64String(payload);
             } catch (FormatException ex) {
@@ -288,6 +295,49 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             fileName = "image" + ResolveImageExtension(contentType);
+            return true;
+        }
+
+        private static bool TryEstimateBase64DecodedLength(string payload, out long decodedLength) {
+            decodedLength = 0;
+            long meaningfulLength = 0;
+            int padding = 0;
+            bool countingPadding = true;
+            for (int i = payload.Length - 1; i >= 0 && countingPadding; i--) {
+                char c = payload[i];
+                if (char.IsWhiteSpace(c)) {
+                    continue;
+                }
+
+                if (c == '=' && padding < 2) {
+                    padding++;
+                    continue;
+                }
+
+                countingPadding = false;
+            }
+
+            for (int i = 0; i < payload.Length; i++) {
+                if (!char.IsWhiteSpace(payload[i])) {
+                    meaningfulLength++;
+                }
+            }
+
+            if (meaningfulLength == 0) {
+                return true;
+            }
+
+            long groups = (meaningfulLength + 3) / 4;
+            if (groups > long.MaxValue / 3) {
+                decodedLength = long.MaxValue;
+                return true;
+            }
+
+            decodedLength = groups * 3 - padding;
+            if (decodedLength < 0) {
+                decodedLength = 0;
+            }
+
             return true;
         }
 

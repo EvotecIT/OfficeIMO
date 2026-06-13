@@ -22,11 +22,11 @@ public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkd
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
         var sb = new StringBuilder("[TOC");
-        sb.Append(" min=").Append(ClampHeadingLevel(MinLevel));
-        sb.Append(" max=").Append(ClampHeadingLevel(MaxLevel));
+        sb.Append(" min=").Append(ClampTocLevel(MinLevel));
+        sb.Append(" max=").Append(ClampTocLevel(MaxLevel));
         if (IncludeTitle && !string.IsNullOrWhiteSpace(Title)) {
             sb.Append(" title=\"").Append(EscapeAttributeValue(Title.Trim())).Append('"');
-            sb.Append(" titleLevel=").Append(ClampHeadingLevel(TitleLevel));
+            sb.Append(" titleLevel=").Append(ClampTitleLevel(TitleLevel));
         }
 
         sb.Append(']');
@@ -40,7 +40,9 @@ public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkd
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
         new MarkdownSyntaxNode(MarkdownSyntaxKind.TocPlaceholder, span, ((IMarkdownBlock)this).RenderMarkdown(), associatedObject: this);
 
-    private static int ClampHeadingLevel(int level) => level < 1 ? 1 : (level > 6 ? 6 : level);
+    private static int ClampTocLevel(int level) => level < 1 ? 1 : (level > 9 ? 9 : level);
+
+    private static int ClampTitleLevel(int level) => level < 1 ? 1 : (level > 6 ? 6 : level);
 
     private static string EscapeAttributeValue(string value) =>
         value.Replace("\\", "\\\\").Replace("\"", "\\\"");
