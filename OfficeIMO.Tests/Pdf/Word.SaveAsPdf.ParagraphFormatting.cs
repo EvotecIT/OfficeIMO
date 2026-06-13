@@ -354,6 +354,10 @@ namespace OfficeIMO.Tests {
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
             Assert.Equal(72D, style.DefaultTabStopWidth);
+            PdfTabStop tabStop = Assert.Single(style.TabStops);
+            Assert.Equal(72D, tabStop.Position);
+            Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
+            Assert.Equal(PdfTabLeaderStyle.Dots, tabStop.Leader);
             Assert.Equal(1.15D, style.LineHeight);
             Assert.Equal(8D, style.SpacingAfter);
             Assert.True(style.KeepTogether);

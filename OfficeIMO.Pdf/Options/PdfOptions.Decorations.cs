@@ -9,6 +9,33 @@ public sealed partial class PdfOptions {
         set => _textWatermark = value?.Clone();
     }
     internal PdfTextWatermark? TextWatermarkSnapshot => _textWatermark?.Clone();
+    /// <summary>Optional first-page text watermark rendered behind page content when first-page variants are enabled.</summary>
+    public PdfTextWatermark? FirstPageTextWatermark {
+        get => _firstPageTextWatermark?.Clone();
+        set {
+            _firstPageTextWatermark = value?.Clone();
+            DifferentFirstPageHeaderFooter = true;
+        }
+    }
+    /// <summary>Optional even-page text watermark rendered behind page content when odd/even variants are enabled.</summary>
+    public PdfTextWatermark? EvenPageTextWatermark {
+        get => _evenPageTextWatermark?.Clone();
+        set {
+            _evenPageTextWatermark = value?.Clone();
+            DifferentOddAndEvenPagesHeaderFooter = true;
+        }
+    }
+    internal PdfTextWatermark? GetTextWatermarkForPage(int pageNumber) {
+        if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            return _firstPageTextWatermark?.Clone();
+        }
+
+        if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
+            return _evenPageTextWatermark?.Clone();
+        }
+
+        return _textWatermark?.Clone();
+    }
     /// <summary>Optional reusable image watermark rendered behind all page content.</summary>
     public PdfImageWatermark? ImageWatermark {
         get => _imageWatermark?.Clone();

@@ -75,6 +75,8 @@ public sealed partial class PdfOptions {
     private int _outlineExpansionLevel = int.MaxValue;
     private PdfFormFieldTextAlignment? _acroFormDefaultTextAlignment;
     private PdfTextWatermark? _textWatermark;
+    private PdfTextWatermark? _firstPageTextWatermark;
+    private PdfTextWatermark? _evenPageTextWatermark;
     private PdfImageWatermark? _imageWatermark;
     private PdfPageBorder? _pageBorder;
     private PdfPageBackgroundImage? _pageBackgroundImage;

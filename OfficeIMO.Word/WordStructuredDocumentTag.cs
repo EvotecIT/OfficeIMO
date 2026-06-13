@@ -12,6 +12,16 @@ namespace OfficeIMO.Word {
         private SdtBlock? _sdtBlock;
 
         /// <summary>
+        /// Gets the underlying block-level structured document tag for internal converters.
+        /// </summary>
+        internal SdtBlock? SdtBlock => _sdtBlock;
+
+        /// <summary>
+        /// Gets the parent document for internal converters.
+        /// </summary>
+        internal WordDocument Document => _document;
+
+        /// <summary>
         /// Gets the alias associated with this content control.
         /// </summary>
         public string? Alias {

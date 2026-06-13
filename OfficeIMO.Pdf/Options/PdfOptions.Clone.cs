@@ -8,6 +8,8 @@ public sealed partial class PdfOptions {
             PageHeight = PageHeight,
             BackgroundColor = BackgroundColor,
             TextWatermark = _textWatermark?.Clone(),
+            FirstPageTextWatermark = _firstPageTextWatermark?.Clone(),
+            EvenPageTextWatermark = _evenPageTextWatermark?.Clone(),
             ImageWatermark = _imageWatermark?.Clone(),
             PageBorder = _pageBorder?.Clone(),
             PageBackgroundImage = _pageBackgroundImage?.Clone(),

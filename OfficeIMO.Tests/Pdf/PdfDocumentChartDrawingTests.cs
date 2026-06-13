@@ -85,6 +85,34 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersOptInPieDataLabelsIncludingZeroValues() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie labels",
+            "Rule Results",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed", "Skipped" },
+                new[] {
+                    new OfficeChartSeries("Results", new[] { 1D, 0D, 0D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                showDataLabelPercentages: true)));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().ToList();
+
+        OfficeDrawingText positiveLabel = Assert.Single(labels, label => label.Text == "1; 100%");
+        var zeroLabels = labels.Where(label => label.Text == "0; 0%").ToList();
+        Assert.Equal(2, zeroLabels.Count);
+        Assert.Equal(OfficeColor.White, positiveLabel.Color);
+        Assert.All(zeroLabels, label => Assert.Equal(OfficeColor.White, label.Color));
+        Assert.All(zeroLabels, label => Assert.True(label.Y < positiveLabel.Y, "Zero-value pie labels should stay separated from the dominant-slice label."));
+    }
+
+    [Fact]
     public void FlowDrawing_RendersSinglePointLineChartMarker() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Single point",

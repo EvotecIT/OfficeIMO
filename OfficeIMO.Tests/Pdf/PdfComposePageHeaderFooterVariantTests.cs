@@ -127,6 +127,44 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void DifferentFirstAndEvenPageWatermarks_UseMatchingPageVariant() {
+            var options = new PdfOptions {
+                DifferentFirstPageHeaderFooter = true,
+                DifferentOddAndEvenPagesHeaderFooter = true,
+                TextWatermark = new PdfTextWatermark("Odd watermark") { Opacity = 0.18 },
+                FirstPageTextWatermark = new PdfTextWatermark("First watermark") { Opacity = 0.18 },
+                EvenPageTextWatermark = new PdfTextWatermark("Even watermark") { Opacity = 0.18 }
+            };
+
+            byte[] bytes = PdfDocument.Create(options)
+                .Paragraph(p => p.Text("Page one body."))
+                .PageBreak()
+                .Paragraph(p => p.Text("Page two body."))
+                .PageBreak()
+                .Paragraph(p => p.Text("Page three body."))
+                .ToBytes();
+
+            using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+            Assert.Equal(3, pdf.NumberOfPages);
+
+            string page1Text = Normalize(pdf.GetPage(1).Text);
+            string page2Text = Normalize(pdf.GetPage(2).Text);
+            string page3Text = Normalize(pdf.GetPage(3).Text);
+
+            Assert.Contains("Firstwatermark", page1Text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Evenwatermark", page1Text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Oddwatermark", page1Text, StringComparison.OrdinalIgnoreCase);
+
+            Assert.Contains("Evenwatermark", page2Text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Firstwatermark", page2Text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Oddwatermark", page2Text, StringComparison.OrdinalIgnoreCase);
+
+            Assert.Contains("Oddwatermark", page3Text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Firstwatermark", page3Text, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Evenwatermark", page3Text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void DifferentOddAndEvenPagesHeaderFooter_BlankEvenPagesSuppressRunningContent() {
             var options = new PdfOptions {
                 ShowHeader = true,

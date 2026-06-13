@@ -27,6 +27,8 @@ namespace OfficeIMO.Word.Pdf {
             void ChoiceField(string name, IEnumerable<string> options, string? value, double width, double height, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfCore.PdfFormFieldStyle? style = null);
             void CheckBox(string name, bool isChecked, double size, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName = "Yes", PdfCore.PdfFormFieldStyle? style = null);
             void Shape(OfficeShape shape, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null);
+            void Drawing(OfficeDrawing drawing, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null);
+            void Canvas(Action<PdfCore.PdfPageCanvas> build);
             void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style);
             void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null);
         }
@@ -54,14 +56,18 @@ namespace OfficeIMO.Word.Pdf {
             public void ChoiceField(string name, IEnumerable<string> options, string? value, double width, double height, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfCore.PdfFormFieldStyle? style) => _pdf.ChoiceField(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, style);
             public void CheckBox(string name, bool isChecked, double size, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName, PdfCore.PdfFormFieldStyle? style) => _pdf.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style);
             public void Shape(OfficeShape shape, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
+            public void Drawing(OfficeDrawing drawing, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _pdf.Drawing(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
+            public void Canvas(Action<PdfCore.PdfPageCanvas> build) => _pdf.Canvas(build);
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style) => _pdf.Table(rows, align, style);
             public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _pdf.Image(bytes, width, height, align, style: CreateNativeImageStyle());
         }
 
         private sealed class NativePdfColumnFlow : INativePdfFlow {
+            private readonly PdfCore.PdfPageCompose _page;
             private readonly PdfCore.PdfRowColumnCompose _column;
 
-            public NativePdfColumnFlow(PdfCore.PdfRowColumnCompose column) {
+            public NativePdfColumnFlow(PdfCore.PdfPageCompose page, PdfCore.PdfRowColumnCompose column) {
+                _page = page;
                 _column = column;
             }
 
@@ -81,6 +87,8 @@ namespace OfficeIMO.Word.Pdf {
             public void ChoiceField(string name, IEnumerable<string> options, string? value, double width, double height, PdfCore.PdfAlign align, double fontSize, double spacingBefore, double spacingAfter, bool isComboBox, PdfCore.PdfFormFieldStyle? style) => _column.ChoiceField(name, options, value, width, height, align, fontSize, spacingBefore, spacingAfter, isComboBox, style);
             public void CheckBox(string name, bool isChecked, double size, PdfCore.PdfAlign align, double spacingBefore, double spacingAfter, string checkedValueName, PdfCore.PdfFormFieldStyle? style) => _column.CheckBox(name, isChecked, size, align, spacingBefore, spacingAfter, checkedValueName, style);
             public void Shape(OfficeShape shape, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Shape(shape, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
+            public void Drawing(OfficeDrawing drawing, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) => _column.Drawing(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
+            public void Canvas(Action<PdfCore.PdfPageCanvas> build) => _page.Canvas(build);
             public void Table(IEnumerable<PdfCore.PdfTableCell[]> rows, PdfCore.PdfAlign align, PdfCore.PdfTableStyle? style) => _column.Table(rows, align, style);
             public void Image(byte[] bytes, double width, double height, PdfCore.PdfAlign? align = null) => _column.Image(bytes, width, height, align, style: CreateNativeImageStyle());
         }
@@ -108,9 +116,12 @@ namespace OfficeIMO.Word.Pdf {
             foreach (WordSection section in document.Sections) {
                 IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(section.Elements);
                 List<PdfFootnote> footnotes = CollectNativeFootnotes(elements, footnoteNumbersById);
+                PdfCore.PageSize sectionPageSize = GetNativePageSize(section, options);
+                PdfCore.PageMargins sectionMargins = GetNativeMargins(section, options);
+                double sectionContentWidth = Math.Max(72D, sectionPageSize.Width - sectionMargins.Left - sectionMargins.Right);
                 pdf.Section(page => {
-                    page.Size(GetNativePageSize(section, options));
-                    page.Margin(GetNativeMargins(section, options));
+                    page.Size(sectionPageSize);
+                    page.Margin(sectionMargins);
                     ConfigureNativePageNumbering(page, section);
                     ConfigureNativeHeaderFooter(page, section, options);
                     var flow = new NativePdfDocumentFlow(pdf);
@@ -153,7 +164,8 @@ namespace OfficeIMO.Word.Pdf {
                             footnoteNumbersById,
                             options,
                             tableOfContentsEntries,
-                            headingDestinations);
+                            headingDestinations,
+                            sectionContentWidth);
                     }
 
                     RenderNativeFootnotes(flow, footnotes);

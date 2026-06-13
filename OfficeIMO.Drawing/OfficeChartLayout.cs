@@ -24,6 +24,13 @@ public sealed class OfficeChartLayout {
     /// <param name="maximumHorizontalCategoryAxisLabels">Maximum number of category-axis labels to render on horizontal bar charts.</param>
     /// <param name="maximumRadarCategoryLabels">Maximum number of category labels to render on radar charts.</param>
     /// <param name="preventLabelOverlap">Whether axis/category label stride should increase automatically to avoid obvious label overlap.</param>
+    /// <param name="showDataLabels">Whether point data labels should be rendered when supported by a chart family.</param>
+    /// <param name="showDataLabelValues">Whether point data labels should include values.</param>
+    /// <param name="showDataLabelPercentages">Whether point data labels should include percentages.</param>
+    /// <param name="showDataLabelCategoryNames">Whether point data labels should include category names.</param>
+    /// <param name="showDataLabelSeriesNames">Whether point data labels should include series names.</param>
+    /// <param name="dataLabelSeparator">Separator used between enabled data label parts.</param>
+    /// <param name="dataLabelFontSize">Data label font size.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -37,7 +44,14 @@ public sealed class OfficeChartLayout {
         int? maximumCategoryAxisLabels = null,
         int? maximumHorizontalCategoryAxisLabels = null,
         int? maximumRadarCategoryLabels = null,
-        bool preventLabelOverlap = true) {
+        bool preventLabelOverlap = true,
+        bool showDataLabels = false,
+        bool showDataLabelValues = false,
+        bool showDataLabelPercentages = false,
+        bool showDataLabelCategoryNames = false,
+        bool showDataLabelSeriesNames = false,
+        string? dataLabelSeparator = null,
+        double? dataLabelFontSize = null) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -51,6 +65,13 @@ public sealed class OfficeChartLayout {
         MaximumHorizontalCategoryAxisLabels = ValidatePositive(maximumHorizontalCategoryAxisLabels ?? 7, nameof(maximumHorizontalCategoryAxisLabels));
         MaximumRadarCategoryLabels = ValidatePositive(maximumRadarCategoryLabels ?? 8, nameof(maximumRadarCategoryLabels));
         PreventLabelOverlap = preventLabelOverlap;
+        ShowDataLabels = showDataLabels;
+        ShowDataLabelValues = showDataLabelValues;
+        ShowDataLabelPercentages = showDataLabelPercentages;
+        ShowDataLabelCategoryNames = showDataLabelCategoryNames;
+        ShowDataLabelSeriesNames = showDataLabelSeriesNames;
+        DataLabelSeparator = string.IsNullOrEmpty(dataLabelSeparator) ? "; " : dataLabelSeparator!;
+        DataLabelFontSize = ValidatePositiveFinite(dataLabelFontSize ?? 7D, nameof(dataLabelFontSize));
     }
 
     /// <summary>Default premium OfficeIMO chart layout.</summary>
@@ -94,6 +115,27 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Whether axis/category label stride should increase automatically to avoid obvious label overlap.</summary>
     public bool PreventLabelOverlap { get; }
+
+    /// <summary>Whether point data labels should be rendered when supported by a chart family.</summary>
+    public bool ShowDataLabels { get; }
+
+    /// <summary>Whether point data labels should include values.</summary>
+    public bool ShowDataLabelValues { get; }
+
+    /// <summary>Whether point data labels should include percentages.</summary>
+    public bool ShowDataLabelPercentages { get; }
+
+    /// <summary>Whether point data labels should include category names.</summary>
+    public bool ShowDataLabelCategoryNames { get; }
+
+    /// <summary>Whether point data labels should include series names.</summary>
+    public bool ShowDataLabelSeriesNames { get; }
+
+    /// <summary>Separator used between enabled data label parts.</summary>
+    public string DataLabelSeparator { get; }
+
+    /// <summary>Data label font size.</summary>
+    public double DataLabelFontSize { get; }
 
     private static double ValidateRatio(double value, string paramName) {
         ValidatePositiveFinite(value, paramName);

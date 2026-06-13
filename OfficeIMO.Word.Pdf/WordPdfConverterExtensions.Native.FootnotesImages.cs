@@ -66,6 +66,18 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     break;
+                case WordCoverPage coverPage:
+                    foreach (WordElement coverElement in GetNativeStructuredBlockElements(coverPage.Document, coverPage.SdtBlock)) {
+                        CollectNativeFootnotes(coverElement, footnotes, footnoteNumbersById);
+                    }
+
+                    break;
+                case WordStructuredDocumentTag structuredDocumentTag:
+                    foreach (WordElement structuredElement in GetNativeStructuredBlockElements(structuredDocumentTag.Document, structuredDocumentTag.SdtBlock)) {
+                        CollectNativeFootnotes(structuredElement, footnotes, footnoteNumbersById);
+                    }
+
+                    break;
             }
         }
 
@@ -193,7 +205,7 @@ namespace OfficeIMO.Word.Pdf {
                     builder.Baseline(PdfCore.PdfTextBaseline.Normal);
                     if (!string.IsNullOrWhiteSpace(footnote.Text)) {
                         builder.Text(" ");
-                        builder.Text(footnote.Text);
+                        builder.Text(NormalizeNativeDirectText(footnote.Text));
                     }
                 });
             }

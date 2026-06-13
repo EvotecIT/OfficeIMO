@@ -70,8 +70,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = widthValue.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(widthValue);
             }
             set => SetShapeStyleComponent("width", value + "pt");
         }
@@ -86,8 +85,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = heightValue.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(heightValue);
             }
             set => SetShapeStyleComponent("height", value + "pt");
         }
@@ -102,8 +100,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = value.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(value);
             }
             set => SetShapeStyleComponent("margin-left", value + "pt");
         }
@@ -118,8 +115,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = value.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(value);
             }
             set => SetShapeStyleComponent("margin-top", value + "pt");
         }
@@ -145,8 +141,7 @@ namespace OfficeIMO.Word {
                     return null;
                 }
 
-                string stringValue = value.Replace("pt", "");
-                return double.Parse(stringValue, CultureInfo.InvariantCulture);
+                return ParseWatermarkStylePoint(value);
             }
             set => SetTextPathStyleComponent("font-size", value + "pt");
         }
@@ -157,7 +152,7 @@ namespace OfficeIMO.Word {
         public double? Opacity {
             get {
                 if (_shape?.GetFirstChild<V.Fill>()?.Opacity?.Value is string opacity) {
-                    return double.Parse(opacity, CultureInfo.InvariantCulture);
+                    return ParseOpacity(opacity);
                 }
                 return null;
             }
@@ -168,6 +163,29 @@ namespace OfficeIMO.Word {
                 }
             }
         }
+
+        private static double? ParseOpacity(string? opacity) {
+            if (string.IsNullOrWhiteSpace(opacity)) {
+                return null;
+            }
+
+            string value = opacity!.Trim();
+            double? parsed;
+            if (value.EndsWith("%", StringComparison.OrdinalIgnoreCase)) {
+                parsed = TryParseDouble(value.Substring(0, value.Length - 1), out double percent) ? percent / 100D : null;
+            } else if (value.EndsWith("f", StringComparison.OrdinalIgnoreCase) &&
+                       TryParseDouble(value.Substring(0, value.Length - 1), out double fixedPoint)) {
+                parsed = fixedPoint / 65536D;
+            } else {
+                parsed = TryParseDouble(value, out double numeric) ? numeric : null;
+            }
+
+            return parsed.HasValue ? Math.Max(0D, Math.Min(1D, parsed.Value)) : null;
+        }
+
+        private static bool TryParseDouble(string value, out double result) =>
+            double.TryParse(value.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out result) ||
+            double.TryParse(value.Trim().Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
 
         /// <summary>
         /// Get or Set if watermark is stroked.
@@ -335,6 +353,22 @@ namespace OfficeIMO.Word {
             style.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(part => part.Split(':'))
                 .ToDictionary(part => part[0], part => part.Length > 1 ? part[1] : string.Empty);
+
+        private static double? ParseWatermarkStylePoint(string value) {
+            string stringValue = value.Trim();
+            if (stringValue.EndsWith("pt", StringComparison.OrdinalIgnoreCase)) {
+                stringValue = stringValue.Substring(0, stringValue.Length - 2);
+            }
+
+            if (double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double result)) {
+                return result;
+            }
+
+            stringValue = stringValue.Replace(',', '.');
+            return double.TryParse(stringValue, NumberStyles.Float, CultureInfo.InvariantCulture, out result)
+                ? result
+                : null;
+        }
 
         private SdtBlock GetStyle(WordWatermarkStyle style) {
             switch (style) {

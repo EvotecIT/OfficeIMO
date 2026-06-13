@@ -55,6 +55,44 @@ public class PdfPageCompose {
         Options.TextWatermark = watermark;
         return this;
     }
+    /// <summary>Sets or clears the first-page text watermark rendered behind page content.</summary>
+    public PdfPageCompose FirstPageWatermark(PdfTextWatermark? watermark) {
+        Options.FirstPageTextWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets a first-page text watermark rendered behind page content.</summary>
+    public PdfPageCompose FirstPageWatermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+        var watermark = new PdfTextWatermark(text) {
+            Bold = bold,
+            Italic = italic
+        };
+        if (fontSize.HasValue) watermark.FontSize = fontSize.Value;
+        if (color.HasValue) watermark.Color = color.Value;
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        if (font.HasValue) watermark.Font = font.Value;
+        Options.FirstPageTextWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets or clears the even-page text watermark rendered behind page content.</summary>
+    public PdfPageCompose EvenPagesWatermark(PdfTextWatermark? watermark) {
+        Options.EvenPageTextWatermark = watermark;
+        return this;
+    }
+    /// <summary>Sets an even-page text watermark rendered behind page content.</summary>
+    public PdfPageCompose EvenPagesWatermark(string text, double? fontSize = null, PdfColor? color = null, double? opacity = null, double? rotationAngle = null, PdfStandardFont? font = null, bool bold = true, bool italic = false) {
+        var watermark = new PdfTextWatermark(text) {
+            Bold = bold,
+            Italic = italic
+        };
+        if (fontSize.HasValue) watermark.FontSize = fontSize.Value;
+        if (color.HasValue) watermark.Color = color.Value;
+        if (opacity.HasValue) watermark.Opacity = opacity.Value;
+        if (rotationAngle.HasValue) watermark.RotationAngle = rotationAngle.Value;
+        if (font.HasValue) watermark.Font = font.Value;
+        Options.EvenPageTextWatermark = watermark;
+        return this;
+    }
     /// <summary>Sets or clears the page-scoped image watermark rendered behind page content.</summary>
     public PdfPageCompose ImageWatermark(PdfImageWatermark? watermark) {
         Options.ImageWatermark = watermark;

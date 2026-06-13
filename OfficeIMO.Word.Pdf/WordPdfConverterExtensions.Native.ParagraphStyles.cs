@@ -54,6 +54,25 @@ namespace OfficeIMO.Word.Pdf {
                 style.DefaultTabStopWidth = defaultTabStopWidth.Value;
             }
 
+            foreach (WordTabStop tabStop in paragraph.TabStops
+                .Where(tabStop => tabStop.Position > 0)
+                .OrderBy(tabStop => tabStop.Position)) {
+                double? position = ConvertNativeTwipsToPoints(tabStop.Position);
+                if (!position.HasValue) {
+                    continue;
+                }
+
+                double framePosition = position.Value - style.LeftIndent;
+                if (framePosition <= 0D) {
+                    continue;
+                }
+
+                style.TabStops.Add(new PdfCore.PdfTabStop(
+                    framePosition,
+                    MapNativeTabAlignment(tabStop.Alignment),
+                    MapNativeTabLeader(tabStop.Leader)));
+            }
+
             style.KeepTogether = paragraph.KeepLinesTogether;
             style.KeepWithNext = paragraph.KeepWithNext;
             style.WidowControl = paragraph.AvoidWidowAndOrphan;

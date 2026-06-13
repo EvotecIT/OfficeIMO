@@ -830,6 +830,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             private string Append(string? current, string text, PdfCore.PdfPageNumberStyle? pageNumberStyle) {
+                text = NormalizeNativeDirectText(text);
                 if (text.IndexOf("{page}", StringComparison.OrdinalIgnoreCase) >= 0 ||
                     text.IndexOf("{pages}", StringComparison.OrdinalIgnoreCase) >= 0) {
                     HasPageTokens = true;

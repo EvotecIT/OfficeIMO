@@ -187,6 +187,42 @@ public static partial class OfficeChartDrawingRenderer {
         return value.ToString("0.##", CultureInfo.InvariantCulture);
     }
 
+    private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeChartSeries series, double value, double total) {
+        var parts = new List<string>(4);
+        if (layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(series.Name)) {
+            parts.Add(series.Name);
+        }
+
+        if (layout.ShowDataLabelCategoryNames && !string.IsNullOrWhiteSpace(category)) {
+            parts.Add(category);
+        }
+
+        if (layout.ShowDataLabelValues) {
+            parts.Add(FormatDataLabelValue(value));
+        }
+
+        if (layout.ShowDataLabelPercentages) {
+            double ratio = total > 0D && !double.IsNaN(value) && !double.IsInfinity(value)
+                ? Math.Max(0D, value) / total
+                : 0D;
+            parts.Add(FormatDataLabelPercent(ratio));
+        }
+
+        return string.Join(layout.DataLabelSeparator, parts);
+    }
+
+    private static string FormatDataLabelValue(double value) {
+        double rounded = Math.Round(value);
+        if (Math.Abs(value - rounded) < 0.0000001D) {
+            return rounded.ToString("0", CultureInfo.InvariantCulture);
+        }
+
+        return value.ToString("0.##", CultureInfo.InvariantCulture);
+    }
+
+    private static string FormatDataLabelPercent(double ratio) =>
+        ratio.ToString("0.#%", CultureInfo.InvariantCulture);
+
     private static int EnsureLabelStride(int stride, double unitStep, double minimumStep) {
         int safeStride = Math.Max(1, stride);
         while (unitStep * safeStride < minimumStep) {

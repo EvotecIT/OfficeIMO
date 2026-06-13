@@ -516,12 +516,14 @@ Zażółć gęślą jaźń
 
     private static bool IsMissingEmbeddedGlyphFailure(ArgumentException exception) {
         if (exception.Data["code"] is string code &&
-            string.Equals(code, "missing-embedded-font-glyph", StringComparison.Ordinal)) {
+            (string.Equals(code, "missing-embedded-font-glyph", StringComparison.Ordinal) ||
+             string.Equals(code, "missing-embedded-font-fallback-glyph", StringComparison.Ordinal))) {
             return true;
         }
 
         return exception.Message.Contains("not covered by the embedded TrueType font", StringComparison.Ordinal) ||
-               exception.Message.Contains("cannot be encoded with embedded TrueType font", StringComparison.Ordinal);
+               exception.Message.Contains("cannot be encoded with embedded TrueType font", StringComparison.Ordinal) ||
+               exception.Message.Contains("not covered by any embedded font fallback candidate", StringComparison.Ordinal);
     }
 
     private static void WriteReviewArtifact(string fileName, byte[] bytes) {

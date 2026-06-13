@@ -61,6 +61,40 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_UsesExplicitParagraphTabStopsBeforeDefaultTabWidth() {
+            var result = InvokeWrapRichRuns(new[] {
+                new TextRun("A\tB\tC")
+            }, 240, 12, PdfStandardFont.Helvetica, tabStopWidth: 36, tabStops: new[] {
+                new PdfTabStop(90),
+                new PdfTabStop(150)
+            });
+
+            var line = Assert.Single(ExtractLines(result));
+            Assert.Equal(new[] { "A", "B", "C" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.InRange(ExtractLeadingAdvance(line[1]), 81, 83);
+            Assert.InRange(ExtractLeadingAdvance(line[2]), 51, 53);
+        }
+
+        [Fact]
+        public void WrapRichRuns_UsesExplicitRightAlignedTabStopAndLeader() {
+            var result = InvokeWrapRichRuns(new[] {
+                new TextRun("Revenue"),
+                TextRun.Tab(),
+                new TextRun("123")
+            }, 240, 12, PdfStandardFont.Helvetica, tabStops: new[] {
+                new PdfTabStop(180, PdfTabAlignment.Right, PdfTabLeaderStyle.Dots)
+            });
+
+            var line = Assert.Single(ExtractLines(result));
+            Assert.Equal(new[] { "Revenue", "123" }, line.ConvertAll(ExtractText).ToArray());
+            double revenueWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "Revenue", PdfStandardFont.Helvetica, 12.0);
+            double valueWidth = InvokePrivateFontMethod<double>("EstimateSimpleTextWidth", "123", PdfStandardFont.Helvetica, 12.0);
+
+            Assert.Equal(PdfTabLeaderStyle.Dots, ExtractLeadingTabLeader(line[1]));
+            Assert.Equal(180D, revenueWidth + ExtractLeadingAdvance(line[1]) + valueWidth, 1);
+        }
+
+        [Fact]
         public void WrapRichRuns_CarriesDotLeaderFromExplicitTabRun() {
             var result = InvokeWrapRichRuns(new[] {
                 new TextRun("A"),

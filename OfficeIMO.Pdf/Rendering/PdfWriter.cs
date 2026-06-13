@@ -150,7 +150,7 @@ internal static partial class PdfWriter {
             foreach (PdfStandardFont usedFont in page.UsedFonts) {
                 EnsurePageFontResource(usedFont, GetStandardFontResourceName(usedFont, normalFont));
             }
-            PdfTextWatermark? textWatermark = pageOpts.TextWatermarkSnapshot;
+            PdfTextWatermark? textWatermark = pageOpts.GetTextWatermarkForPage(headerFooterVariantPageNumber);
             string? watermarkFontAlias = null;
             string? textWatermarkGraphicsStateName = null;
             if (textWatermark != null && textWatermark.Opacity > 0D) {

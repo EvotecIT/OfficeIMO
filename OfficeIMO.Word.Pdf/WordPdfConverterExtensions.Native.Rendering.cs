@@ -11,13 +11,13 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void RenderNativeElement(INativePdfFlow pdf, WordElement element, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations) {
+        private static void RenderNativeElement(INativePdfFlow pdf, WordElement element, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth) {
             switch (element) {
                 case WordParagraph paragraph:
                     RenderNativeParagraph(pdf, paragraph, getMarker(paragraph), footnoteNumbers, footnoteNumbersById, options, headingDestinations);
                     break;
                 case WordTableOfContent tableOfContent:
-                    RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries);
+                    RenderNativeTableOfContents(pdf, tableOfContent, tableOfContentsEntries, contentWidth);
                     break;
                 case WordTable table:
                     RenderNativeTable(pdf, table, getMarker, footnoteNumbersById, options);
@@ -33,6 +33,14 @@ namespace OfficeIMO.Word.Pdf {
                     break;
                 case WordShape shape:
                     RenderNativeShape(pdf, shape);
+                    break;
+                case WordCoverPage coverPage:
+                    RenderNativeCoverPage(pdf, coverPage, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth);
+                    break;
+                case WordStructuredDocumentTag structuredDocumentTag:
+                    RenderNativeStructuredDocumentTag(pdf, structuredDocumentTag, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth);
+                    break;
+                case WordWatermark:
                     break;
                 case WordEmbeddedDocument:
                     if (options != null) {
@@ -91,6 +99,8 @@ namespace OfficeIMO.Word.Pdf {
                 RenderNativeTextBox(pdf, textBox, footnoteNumbersById, options, textBoxFallbackText);
                 return;
             }
+
+            bool renderedChart = RenderNativeChart(pdf, paragraph.Chart, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body paragraph chart");
 
             if (paragraph.Shape != null) {
                 RenderNativeShape(pdf, paragraph.Shape);
@@ -253,7 +263,7 @@ namespace OfficeIMO.Word.Pdf {
                         continue;
                     }
 
-                    pdf.Paragraph(builder => builder.Text(itemText), align, color);
+                    pdf.Paragraph(builder => builder.Text(NormalizeNativeDirectText(itemText)), align, color);
                 }
             }
         }
@@ -491,14 +501,14 @@ namespace OfficeIMO.Word.Pdf {
                 parts.AddRange(textBox.Descendants<W.Text>().Select(text => text.Text));
             }
 
-            string textBoxText = string.Concat(parts);
+            string textBoxText = ResolveNativeBuiltInPropertyPlaceholders(paragraph._document, string.Concat(parts));
             return string.IsNullOrWhiteSpace(textBoxText) ? null : textBoxText;
         }
 
         private static void RenderNativeTextBox(INativePdfFlow pdf, WordTextBox textBox, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, string? fallbackText = null) {
             if (!string.IsNullOrWhiteSpace(fallbackText)) {
                 PdfCore.PanelStyle fallbackStyle = CreateNativeTextBoxPanelStyle(textBox);
-                pdf.PanelParagraph(builder => builder.Text(fallbackText!), fallbackStyle, PdfCore.PdfAlign.Left);
+                pdf.PanelParagraph(builder => builder.Text(NormalizeNativeDirectText(fallbackText)), fallbackStyle, PdfCore.PdfAlign.Left);
                 return;
             }
 
@@ -593,7 +603,19 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void RenderNativeHeading(INativePdfFlow pdf, int level, string text, PdfCore.PdfAlign align, PdfCore.PdfColor? color, string? linkUri = null, string? linkDestinationName = null, string? linkContents = null) {
             PdfCore.PdfHeadingStyle style = CreateNativeWordHeadingStyle(level);
-            pdf.Heading(level, text, align, color, style, linkUri, linkDestinationName, linkContents);
+            pdf.Heading(level, NormalizeNativeDirectText(text), align, color, style, linkUri, linkDestinationName, linkContents);
+        }
+
+        private static string NormalizeNativeDirectText(string? text) {
+            if (string.IsNullOrEmpty(text)) {
+                return string.Empty;
+            }
+
+            return text!
+                .Replace("\r\n", " ")
+                .Replace('\r', ' ')
+                .Replace('\n', ' ')
+                .Replace('\t', ' ');
         }
 
         private static PdfCore.PdfHeadingStyle CreateNativeWordHeadingStyle(int level) {
