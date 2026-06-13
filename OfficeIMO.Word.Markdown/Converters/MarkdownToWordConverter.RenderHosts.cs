@@ -138,7 +138,18 @@ namespace OfficeIMO.Word.Markdown {
                 }
             }
 
-            public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) => false;
+            public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) {
+                var toc = _document.AddTableOfContent(minLevel: minLevel, maxLevel: maxLevel);
+                toc.Text = string.IsNullOrWhiteSpace(title) ? string.Empty : title!;
+
+                var block = toc.SdtBlock;
+                block.Remove();
+                _anchor.InsertBeforeSelf(block);
+
+                var body = _document.BodyRoot;
+                _document._tableOfContentIndex = body.ChildElements.ToList().IndexOf(block);
+                return true;
+            }
 
             public bool SupportsHtmlInsertion => false;
             public void InsertHtml(string html) { }
