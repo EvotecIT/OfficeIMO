@@ -212,7 +212,10 @@ namespace OfficeIMO.Word.Markdown {
             WordParagraph paragraph,
             MarkdownToWordOptions options,
             WordDocument document,
-            IReadOnlyDictionary<string, string>? footnoteDefs = null
+            IReadOnlyDictionary<string, string>? footnoteDefs = null,
+            double pageContentWidthPixels = 0,
+            int listLevel = 0,
+            int quoteDepth = 0
         ) {
             if (inlines == null) return;
 
@@ -223,7 +226,10 @@ namespace OfficeIMO.Word.Markdown {
                 document,
                 footnoteDefs,
                 CreateDefaultInlineFormatState(),
-                defaultFont)
+                defaultFont,
+                pageContentWidthPixels,
+                listLevel,
+                quoteDepth)
                 .Visit(inlines);
         }
 
@@ -234,6 +240,9 @@ namespace OfficeIMO.Word.Markdown {
             private readonly IReadOnlyDictionary<string, string>? _footnoteDefs;
             private readonly InlineFormatState _fmt;
             private readonly string? _defaultFont;
+            private readonly double _pageContentWidthPixels;
+            private readonly int _listLevel;
+            private readonly int _quoteDepth;
 
             public ParagraphInlineWriter(
                 WordParagraph paragraph,
@@ -241,13 +250,19 @@ namespace OfficeIMO.Word.Markdown {
                 WordDocument document,
                 IReadOnlyDictionary<string, string>? footnoteDefs,
                 InlineFormatState fmt,
-                string? defaultFont) {
+                string? defaultFont,
+                double pageContentWidthPixels,
+                int listLevel,
+                int quoteDepth) {
                 _paragraph = paragraph;
                 _options = options;
                 _document = document;
                 _footnoteDefs = footnoteDefs;
                 _fmt = fmt;
                 _defaultFont = defaultFont;
+                _pageContentWidthPixels = pageContentWidthPixels;
+                _listLevel = listLevel;
+                _quoteDepth = quoteDepth;
             }
 
             private void VisitNested(Omd.MarkdownObject? node, InlineFormatState format) {
@@ -255,7 +270,7 @@ namespace OfficeIMO.Word.Markdown {
                     return;
                 }
 
-                new ParagraphInlineWriter(_paragraph, _options, _document, _footnoteDefs, format, _defaultFont).Visit(node);
+                new ParagraphInlineWriter(_paragraph, _options, _document, _footnoteDefs, format, _defaultFont, _pageContentWidthPixels, _listLevel, _quoteDepth).Visit(node);
             }
 
             protected override void VisitTextRun(Omd.TextRun inline) =>
@@ -312,7 +327,17 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitImageInline(Omd.ImageInline inline) =>
-                AddRun(_paragraph, inline.Alt ?? string.Empty, _fmt, _defaultFont);
+                RenderMarkdownImageIntoParagraph(
+                    _paragraph,
+                    inline.Src,
+                    inline.PlainAlt,
+                    null,
+                    null,
+                    _options,
+                    _pageContentWidthPixels,
+                    _listLevel,
+                    _quoteDepth,
+                    "inline");
 
             protected override void VisitFootnoteRefInline(Omd.FootnoteRefInline inline) {
                 string text = inline.Label;

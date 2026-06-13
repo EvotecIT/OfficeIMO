@@ -61,9 +61,16 @@ public static partial class OfficeChartDrawingRenderer {
 
         AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, plotBottomY, null, style.AxisColor, 0.75D);
         AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), plotLeft, plotTop, null, style.AxisColor, 0.75D);
-        for (int i = 1; i <= 3; i++) {
-            double y = plotTop + plotHeight * i / 4D;
-            AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, y, null, style.GridLineColor, 0.5D);
+        if (IsBarChart(snapshot.ChartKind)) {
+            for (int i = 1; i <= 3; i++) {
+                double x = plotLeft + plotWidth * i / 4D;
+                AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), x, plotTop, null, style.GridLineColor, 0.5D);
+            }
+        } else {
+            for (int i = 1; i <= 3; i++) {
+                double y = plotTop + plotHeight * i / 4D;
+                AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, y, null, style.GridLineColor, 0.5D);
+            }
         }
 
         if (IsAreaChart(snapshot.ChartKind)) {
@@ -114,6 +121,32 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static OfficeColor GetSeriesColor(OfficeChartStyle style, int index) => style.GetSeriesColor(index);
 
+    private static OfficeColor GetSeriesColor(OfficeChartStyle style, IReadOnlyList<OfficeChartSeries> series, int index) {
+        if (index >= 0 && index < series.Count && series[index].Color.HasValue) {
+            return series[index].Color!.Value;
+        }
+
+        return GetSeriesColor(style, index);
+    }
+
+    private static OfficeColor GetPointColor(OfficeChartStyle style, IReadOnlyList<OfficeColor?>? pointColors, int index) {
+        if (pointColors != null && index >= 0 && index < pointColors.Count && pointColors[index].HasValue) {
+            return pointColors[index]!.Value;
+        }
+
+        return GetSeriesColor(style, index);
+    }
+
+    private static IReadOnlyList<OfficeColor?>? GetLegendPointColors(IReadOnlyList<OfficeChartSeries> series) {
+        for (int i = 0; i < series.Count; i++) {
+            if (series[i].PointColors != null) {
+                return series[i].PointColors;
+            }
+        }
+
+        return null;
+    }
+
     private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
@@ -162,11 +195,13 @@ public static partial class OfficeChartDrawingRenderer {
                     }
                 }
 
-                OfficeColor color = GetSeriesColor(style, s);
+                OfficeColor color = GetSeriesColor(style, series, s);
                 if (horizontal) {
                     double categoryHeight = plotHeight / categories.Count;
                     double rowHeight = Math.Max(2D, categoryHeight * 0.68D / (stacked ? 1D : series.Count));
-                    double y = plotTop + categoryHeight * category + categoryHeight * 0.16D + (stacked ? 0D : rowHeight * s);
+                    int categorySlot = categories.Count - 1 - category;
+                    int seriesSlot = stacked ? 0 : series.Count - 1 - s;
+                    double y = plotTop + categoryHeight * categorySlot + categoryHeight * 0.16D + (stacked ? 0D : rowHeight * seriesSlot);
                     double x1 = ToPlotX(baseline, min, max, plotLeft, plotWidth);
                     double x2 = ToPlotX(stacked ? baseline + plottedValue : plottedValue, min, max, plotLeft, plotWidth);
                     double x = Math.Min(x1, x2);
@@ -203,7 +238,7 @@ public static partial class OfficeChartDrawingRenderer {
         var negativeCumulative = new double[categories.Count];
 
         for (int s = 0; s < series.Count; s++) {
-            OfficeColor color = GetSeriesColor(style, s);
+            OfficeColor color = GetSeriesColor(style, series, s);
             var topPoints = new List<OfficePoint>(categories.Count);
             var bottomPoints = new List<OfficePoint>(categories.Count);
 
@@ -260,7 +295,7 @@ public static partial class OfficeChartDrawingRenderer {
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
         for (int s = 0; s < series.Count; s++) {
-            OfficeColor color = GetSeriesColor(style, s);
+            OfficeColor color = GetSeriesColor(style, series, s);
             var points = new OfficePoint[categories.Count];
             for (int i = 0; i < categories.Count; i++) {
                 double value = GetSeriesValue(series[s], i);
@@ -313,7 +348,7 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange xRange = GetScatterXRange(series, sharedXValues);
         ValueRange yRange = GetFiniteSeriesRange(series);
         for (int s = 0; s < series.Count; s++) {
-            OfficeColor color = GetSeriesColor(style, s);
+            OfficeColor color = GetSeriesColor(style, series, s);
             IReadOnlyList<double> xValues = series[s].XValues ?? sharedXValues;
             int pointCount = Math.Min(xValues.Count, series[s].Values.Count);
             var points = new List<OfficePoint>(pointCount);
@@ -374,7 +409,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         for (int s = 0; s < series.Count; s++) {
-            OfficeColor color = GetSeriesColor(style, s);
+            OfficeColor color = GetSeriesColor(style, series, s);
             var points = new List<OfficePoint>(categories.Count);
             for (int i = 0; i < categories.Count; i++) {
                 double value = GetSeriesValue(series[s], i);
@@ -444,11 +479,11 @@ public static partial class OfficeChartDrawingRenderer {
                     centerY + Math.Sin(angle) * radius));
             }
 
-            AddPolygonShape(drawing, points, GetSeriesColor(style, i), OfficeColor.White, 0.5D);
+            AddPolygonShape(drawing, points, GetPointColor(style, values.PointColors, i), OfficeColor.White, 0.5D);
             start = end;
         }
 
-        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout);
+        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout, values.PointColors);
     }
 
     private static void AddDoughnutSeries(OfficeDrawing drawing, IReadOnlyList<string> categories, IReadOnlyList<OfficeChartSeries> series, double width, double height, double contentTop, OfficeChartStyle style, OfficeChartLayout layout) {
@@ -485,7 +520,7 @@ public static partial class OfficeChartDrawingRenderer {
 
                 double sweep = value / total * Math.PI * 2D;
                 double end = start + sweep;
-                AddPieSlice(drawing, centerX, centerY, outerRadius, start, sweep, GetSeriesColor(style, i));
+                AddPieSlice(drawing, centerX, centerY, outerRadius, start, sweep, GetPointColor(style, values.PointColors, i));
                 start = end;
             }
 
@@ -502,7 +537,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout);
+        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout, GetLegendPointColors(renderableSeries));
     }
 
     private static double GetPositiveSeriesTotal(OfficeChartSeries values, int categoryCount) {

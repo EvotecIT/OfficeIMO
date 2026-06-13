@@ -83,6 +83,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWord_RestoresDataUriImagesExportedByWordToMarkdown() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            using var source = WordDocument.Create();
+            source.AddParagraph("Before ");
+            source.AddParagraph().AddImage(imagePath, description: "Logo");
+            source.AddParagraph("After");
+
+            string markdown = source.ToMarkdown(new WordToMarkdownOptions());
+            using var restored = markdown.LoadFromMarkdown();
+
+            Assert.Contains("data:image/png;base64", markdown, StringComparison.Ordinal);
+            Assert.Single(restored.Images);
+            Assert.Equal("Logo", restored.Images[0].Description);
+        }
+
+        [Fact]
+        public void MarkdownToWord_RendersInlineLocalImagesInsideParagraphs() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"Before ![Logo]({imagePath}) after";
+
+            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true
+            });
+
+            string roundTrip = doc.ToMarkdown(new WordToMarkdownOptions());
+
+            Assert.Single(doc.Images);
+            Assert.Contains("Before", roundTrip, StringComparison.Ordinal);
+            Assert.Contains("![Logo](data:image/png;base64", roundTrip, StringComparison.Ordinal);
+            Assert.Contains("after", roundTrip, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void MarkdownToWord_FitsImageToPageContentWidthWhenEnabled() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";

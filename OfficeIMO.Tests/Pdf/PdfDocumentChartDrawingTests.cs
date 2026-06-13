@@ -323,6 +323,25 @@ public class PdfDocumentChartDrawingTests {
             widthPoints: 320D,
             heightPoints: 190D));
 
+        var categoryLabels = drawing.Elements
+            .OfType<OfficeDrawingText>()
+            .Where(text => text.Text == "Low" || text.Text == "Medium" || text.Text == "High")
+            .ToDictionary(text => text.Text);
+        Assert.True(categoryLabels["High"].Y < categoryLabels["Medium"].Y && categoryLabels["Medium"].Y < categoryLabels["Low"].Y, "Expected horizontal bar chart categories to render in Word display order.");
+
+        int verticalGridLines = drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeWidth == 0.5D &&
+            shape.Shape.Width <= 1D &&
+            shape.Shape.Height > 20D);
+        int horizontalGridLines = drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeWidth == 0.5D &&
+            shape.Shape.Width > 20D &&
+            shape.Shape.Height <= 1D);
+        Assert.Equal(3, verticalGridLines);
+        Assert.Equal(0, horizontalGridLines);
+
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,
                 PageHeight = 280,

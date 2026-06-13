@@ -79,106 +79,30 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitHeadingBlock(Omd.HeadingBlock block) {
                 var headingParagraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
-                ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _currentFootnotes);
+                ProcessInlinesOmd(block.Inlines, headingParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(block.Level);
             }
 
             protected override void VisitParagraphBlock(Omd.ParagraphBlock block) {
                 var paragraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
-                ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _currentFootnotes);
+                ProcessInlinesOmd(block.Inlines, paragraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
             }
 
             protected override void VisitImageBlock(Omd.ImageBlock block) {
                 var paragraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
-                var pathOrUrl = block.Path ?? string.Empty;
-                var contextWidthLimit = ResolveContextWidthLimitPixels(_options.ImageLayout, _pageContentWidthPixels, _listLevel, _quoteDepth);
-
-                if (System.IO.File.Exists(pathOrUrl)) {
-                    if (_options.AllowLocalImages && LocalPathAllowed(pathOrUrl, _options)) {
-                        double? naturalW = null;
-                        double? naturalH = null;
-                        if (TryGetImageDimensionsFromFile(pathOrUrl, out var fileW, out var fileH)) {
-                            naturalW = fileW;
-                            naturalH = fileH;
-                        }
-
-                        ResolveImageDimensions(
-                            _options,
-                            source: pathOrUrl,
-                            context: "block-local",
-                            requestedWidth: block.Width,
-                            requestedHeight: block.Height,
-                            naturalWidth: naturalW,
-                            naturalHeight: naturalH,
-                            pageContentWidthPixels: _pageContentWidthPixels,
-                            contextWidthLimitPixels: contextWidthLimit,
-                            out var finalW,
-                            out var finalH,
-                            out _);
-
-                        paragraph.AddImage(pathOrUrl, finalW, finalH, description: block.Alt ?? string.Empty);
-                    } else {
-                        var text = paragraph.AddText(block.Alt ?? System.IO.Path.GetFileName(pathOrUrl));
-                        var defaultFont = ResolveDefaultFontFamily(_options);
-                        if (!string.IsNullOrEmpty(defaultFont)) {
-                            text.SetFontFamily(defaultFont!);
-                        }
-                    }
-                } else if (System.Uri.TryCreate(pathOrUrl, System.UriKind.Absolute, out var uri)) {
-                    if (_options.AllowedImageSchemes.Contains(uri.Scheme) &&
-                        (_options.ImageUrlValidator == null || _options.ImageUrlValidator(uri))) {
-                        if (_options.AllowRemoteImages) {
-                            try {
-                                var bytes = DownloadRemoteImageBytes(uri, _options);
-                                var fileName = System.IO.Path.GetFileName(uri.LocalPath);
-                                if (string.IsNullOrWhiteSpace(fileName)) {
-                                    fileName = "image";
-                                }
-
-                                double? naturalW = null;
-                                double? naturalH = null;
-                                if (TryGetImageDimensionsFromBytes(bytes, out var remoteW, out var remoteH)) {
-                                    naturalW = remoteW;
-                                    naturalH = remoteH;
-                                }
-
-                                ResolveImageDimensions(
-                                    _options,
-                                    source: uri.ToString(),
-                                    context: "block-remote",
-                                    requestedWidth: block.Width,
-                                    requestedHeight: block.Height,
-                                    naturalWidth: naturalW,
-                                    naturalHeight: naturalH,
-                                    pageContentWidthPixels: _pageContentWidthPixels,
-                                    contextWidthLimitPixels: contextWidthLimit,
-                                    out var finalW,
-                                    out var finalH,
-                                    out _);
-
-                                using var stream = new System.IO.MemoryStream(bytes, writable: false);
-                                paragraph.AddImage(stream, fileName, finalW, finalH, description: block.Alt ?? string.Empty);
-                            } catch (Exception ex) {
-                                _options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
-                                if (_options.FallbackRemoteImagesToHyperlinks) {
-                                    paragraph.AddHyperLink(block.Alt ?? uri.ToString(), uri);
-                                }
-                            }
-                        } else if (_options.FallbackRemoteImagesToHyperlinks) {
-                            paragraph.AddHyperLink(block.Alt ?? uri.ToString(), uri);
-                        }
-                    } else if (_options.FallbackRemoteImagesToHyperlinks) {
-                        paragraph.AddHyperLink(block.Alt ?? uri.ToString(), uri);
-                    }
-                } else {
-                    var text = paragraph.AddText(block.Alt ?? pathOrUrl);
-                    var defaultFont = ResolveDefaultFontFamily(_options);
-                    if (!string.IsNullOrEmpty(defaultFont)) {
-                        text.SetFontFamily(defaultFont!);
-                    }
-                }
+                RenderMarkdownImageIntoParagraph(
+                    paragraph,
+                    block.Path ?? string.Empty,
+                    block.Alt,
+                    block.Width,
+                    block.Height,
+                    _options,
+                    _pageContentWidthPixels,
+                    _listLevel,
+                    _quoteDepth,
+                    "block");
 
                 if (!string.IsNullOrWhiteSpace(block.Caption)) {
                     var captionParagraph = _host.CreateParagraph();
@@ -200,6 +124,10 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitSemanticFencedBlock(Omd.SemanticFencedBlock block) {
+                if (TryRenderWordPageBreakSemanticBlock(block, _host, _quoteDepth, _alignment)) {
+                    return;
+                }
+
                 if (TryRenderWordHeaderFooterSemanticBlock(block, _host, _options, _document, _pageContentWidthPixels)) {
                     return;
                 }
@@ -224,7 +152,25 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitOrderedListBlock(Omd.OrderedListBlock block) =>
                 RenderListBlock(block.Items, WordListStyle.Numbered, block.Start);
 
-            protected override void VisitTocBlock(Omd.TocBlock block) { }
+            protected override void VisitTocBlock(Omd.TocBlock block) {
+                int minLevel = NormalizeTocLevel(block.MinLevel, Omd.TocOptions.DefaultMinLevel);
+                int maxLevel = NormalizeTocLevel(block.MaxLevel, Omd.TocOptions.DefaultMaxLevel);
+                if (maxLevel < minLevel) {
+                    maxLevel = minLevel;
+                }
+
+                string? title = block.IncludeTitle && !string.IsNullOrWhiteSpace(block.Title)
+                    ? block.Title.Trim()
+                    : null;
+
+                if (_host.TryAddTableOfContents(minLevel, maxLevel, title)) {
+                    return;
+                }
+
+                if (block.Entries.Count > 0) {
+                    RenderFallback(block);
+                }
+            }
 
             protected override void VisitHtmlCommentBlock(Omd.HtmlCommentBlock block) {
                 if (_host.SupportsHtmlInsertion) {
@@ -283,7 +229,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (block.Summary != null) {
                     var summaryParagraph = _host.CreateParagraph();
                     ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment);
-                    ProcessInlinesOmd(block.Summary.Inlines, summaryParagraph, _options, _document, _currentFootnotes);
+                    ProcessInlinesOmd(block.Summary.Inlines, summaryParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                     foreach (var run in summaryParagraph.GetRuns()) {
                         run.SetBold();
                     }
@@ -297,7 +243,7 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitSummaryBlock(Omd.SummaryBlock block) {
                 var summaryParagraph = _host.CreateParagraph();
                 ApplyBlockParagraphFormatting(summaryParagraph, _quoteDepth, _alignment);
-                ProcessInlinesOmd(block.Inlines, summaryParagraph, _options, _document, _currentFootnotes);
+                ProcessInlinesOmd(block.Inlines, summaryParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, _listLevel, _quoteDepth);
                 foreach (var run in summaryParagraph.GetRuns()) {
                     run.SetBold();
                 }
@@ -316,6 +262,15 @@ namespace OfficeIMO.Word.Markdown {
                     ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
                     paragraph.AddFormattedText(lines[i]).SetFontFamily(monoFont);
                 }
+            }
+
+            private static int NormalizeTocLevel(int level, int fallback) {
+                int normalized = level <= 0 ? fallback : level;
+                if (normalized < 1) {
+                    return 1;
+                }
+
+                return normalized > 9 ? 9 : normalized;
             }
 
             private void RenderListBlock(IReadOnlyList<Omd.ListItem> items, WordListStyle style, int? startNumber) {
@@ -337,7 +292,7 @@ namespace OfficeIMO.Word.Markdown {
                             }
 
                             ApplyBlockParagraphFormatting(listItemParagraph, _quoteDepth, _alignment);
-                            ProcessInlinesOmd(paragraph.Inlines, listItemParagraph, _options, _document, _currentFootnotes);
+                            ProcessInlinesOmd(paragraph.Inlines, listItemParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, effectiveLevel, _quoteDepth);
                             firstParagraph = false;
                             continue;
                         }

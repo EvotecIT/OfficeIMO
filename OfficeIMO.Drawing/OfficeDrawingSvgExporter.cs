@@ -1,0 +1,315 @@
+using System;
+using System.Globalization;
+using System.Text;
+
+namespace OfficeIMO.Drawing;
+
+/// <summary>
+/// Exports dependency-free OfficeIMO drawings to SVG for consumers that need a portable visual fallback.
+/// </summary>
+public static class OfficeDrawingSvgExporter {
+    /// <summary>
+    /// Converts a drawing to an SVG document.
+    /// </summary>
+    /// <param name="drawing">Drawing to export.</param>
+    /// <returns>SVG markup representing the drawing.</returns>
+    public static string ToSvg(OfficeDrawing drawing) {
+        if (drawing == null) {
+            throw new ArgumentNullException(nameof(drawing));
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
+            .Append(Format(drawing.Width))
+            .Append("\" height=\"")
+            .Append(Format(drawing.Height))
+            .Append("\" viewBox=\"0 0 ")
+            .Append(Format(drawing.Width))
+            .Append(' ')
+            .Append(Format(drawing.Height))
+            .Append("\" role=\"img\">");
+
+        for (int i = 0; i < drawing.Elements.Count; i++) {
+            switch (drawing.Elements[i]) {
+                case OfficeDrawingShape drawingShape:
+                    AppendShape(sb, drawingShape);
+                    break;
+                case OfficeDrawingText drawingText:
+                    AppendText(sb, drawingText);
+                    break;
+            }
+        }
+
+        sb.Append("</svg>");
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Converts a drawing to UTF-8 SVG bytes.
+    /// </summary>
+    /// <param name="drawing">Drawing to export.</param>
+    /// <returns>UTF-8 encoded SVG bytes.</returns>
+    public static byte[] ToSvgBytes(OfficeDrawing drawing) => Encoding.UTF8.GetBytes(ToSvg(drawing));
+
+    private static void AppendShape(StringBuilder sb, OfficeDrawingShape drawingShape) {
+        OfficeShape shape = drawingShape.Shape;
+        string paint = BuildPaintAttributes(shape);
+        string transform = BuildTransformAttribute(shape.Transform);
+
+        switch (shape.Kind) {
+            case OfficeShapeKind.Rectangle:
+                sb.Append("<rect x=\"").Append(Format(drawingShape.X))
+                    .Append("\" y=\"").Append(Format(drawingShape.Y))
+                    .Append("\" width=\"").Append(Format(shape.Width))
+                    .Append("\" height=\"").Append(Format(shape.Height))
+                    .Append('"').Append(paint).Append(transform).Append("/>");
+                break;
+            case OfficeShapeKind.RoundedRectangle:
+                sb.Append("<rect x=\"").Append(Format(drawingShape.X))
+                    .Append("\" y=\"").Append(Format(drawingShape.Y))
+                    .Append("\" width=\"").Append(Format(shape.Width))
+                    .Append("\" height=\"").Append(Format(shape.Height))
+                    .Append("\" rx=\"").Append(Format(shape.CornerRadius))
+                    .Append("\" ry=\"").Append(Format(shape.CornerRadius))
+                    .Append('"').Append(paint).Append(transform).Append("/>");
+                break;
+            case OfficeShapeKind.Ellipse:
+                sb.Append("<ellipse cx=\"").Append(Format(drawingShape.X + shape.Width / 2D))
+                    .Append("\" cy=\"").Append(Format(drawingShape.Y + shape.Height / 2D))
+                    .Append("\" rx=\"").Append(Format(shape.Width / 2D))
+                    .Append("\" ry=\"").Append(Format(shape.Height / 2D))
+                    .Append('"').Append(paint).Append(transform).Append("/>");
+                break;
+            case OfficeShapeKind.Line:
+                AppendLine(sb, drawingShape, paint, transform);
+                break;
+            case OfficeShapeKind.Polygon:
+                AppendPolygon(sb, drawingShape, paint, transform);
+                break;
+            case OfficeShapeKind.Path:
+                AppendPath(sb, drawingShape, paint, transform);
+                break;
+        }
+    }
+
+    private static void AppendLine(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform) {
+        OfficeShape shape = drawingShape.Shape;
+        if (shape.Points.Count != 2) {
+            return;
+        }
+
+        sb.Append("<line x1=\"").Append(Format(drawingShape.X + shape.Points[0].X))
+            .Append("\" y1=\"").Append(Format(drawingShape.Y + shape.Points[0].Y))
+            .Append("\" x2=\"").Append(Format(drawingShape.X + shape.Points[1].X))
+            .Append("\" y2=\"").Append(Format(drawingShape.Y + shape.Points[1].Y))
+            .Append('"').Append(paint).Append(transform).Append("/>");
+    }
+
+    private static void AppendPolygon(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform) {
+        OfficeShape shape = drawingShape.Shape;
+        if (shape.Points.Count < 3) {
+            return;
+        }
+
+        sb.Append("<polygon points=\"");
+        for (int i = 0; i < shape.Points.Count; i++) {
+            if (i > 0) {
+                sb.Append(' ');
+            }
+
+            sb.Append(Format(drawingShape.X + shape.Points[i].X))
+                .Append(',')
+                .Append(Format(drawingShape.Y + shape.Points[i].Y));
+        }
+
+        sb.Append('"').Append(paint).Append(transform).Append("/>");
+    }
+
+    private static void AppendPath(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform) {
+        OfficeShape shape = drawingShape.Shape;
+        if (shape.PathCommands.Count == 0) {
+            return;
+        }
+
+        sb.Append("<path d=\"");
+        for (int i = 0; i < shape.PathCommands.Count; i++) {
+            OfficePathCommand command = shape.PathCommands[i];
+            switch (command.Kind) {
+                case OfficePathCommandKind.MoveTo:
+                    sb.Append('M').Append(Format(drawingShape.X + command.Point.X)).Append(' ').Append(Format(drawingShape.Y + command.Point.Y));
+                    break;
+                case OfficePathCommandKind.LineTo:
+                    sb.Append('L').Append(Format(drawingShape.X + command.Point.X)).Append(' ').Append(Format(drawingShape.Y + command.Point.Y));
+                    break;
+                case OfficePathCommandKind.CubicBezierTo:
+                    sb.Append('C')
+                        .Append(Format(drawingShape.X + command.ControlPoint1.X)).Append(' ').Append(Format(drawingShape.Y + command.ControlPoint1.Y)).Append(' ')
+                        .Append(Format(drawingShape.X + command.ControlPoint2.X)).Append(' ').Append(Format(drawingShape.Y + command.ControlPoint2.Y)).Append(' ')
+                        .Append(Format(drawingShape.X + command.Point.X)).Append(' ').Append(Format(drawingShape.Y + command.Point.Y));
+                    break;
+                case OfficePathCommandKind.Close:
+                    sb.Append('Z');
+                    break;
+            }
+        }
+
+        sb.Append('"').Append(paint).Append(transform).Append("/>");
+    }
+
+    private static void AppendText(StringBuilder sb, OfficeDrawingText text) {
+        double x = text.X;
+        string anchor = "start";
+        if (text.Alignment == OfficeTextAlignment.Center) {
+            x += text.Width / 2D;
+            anchor = "middle";
+        } else if (text.Alignment == OfficeTextAlignment.Right) {
+            x += text.Width;
+            anchor = "end";
+        }
+
+        double fontSize = text.Font.Size > 0 ? text.Font.Size : 10D;
+        double y = text.Y + fontSize;
+
+        sb.Append("<text x=\"").Append(Format(x))
+            .Append("\" y=\"").Append(Format(y))
+            .Append("\" font-family=\"").Append(Escape(text.Font.FamilyName ?? "Arial"))
+            .Append("\" font-size=\"").Append(Format(fontSize))
+            .Append("\" text-anchor=\"").Append(anchor)
+            .Append("\" fill=\"").Append(ToCssColor(text.Color ?? OfficeColor.Black)).Append('"');
+
+        if (text.Font.IsBold || text.Font.IsItalic) {
+            if (text.Font.IsBold) {
+                sb.Append(" font-weight=\"700\"");
+            }
+
+            if (text.Font.IsItalic) {
+                sb.Append(" font-style=\"italic\"");
+            }
+        }
+
+        sb.Append('>');
+        string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        double lineHeight = text.LineHeight ?? fontSize * 1.2D;
+        for (int i = 0; i < lines.Length; i++) {
+            if (i == 0) {
+                sb.Append(Escape(lines[i]));
+            } else {
+                sb.Append("<tspan x=\"").Append(Format(x))
+                    .Append("\" dy=\"").Append(Format(lineHeight))
+                    .Append("\">").Append(Escape(lines[i])).Append("</tspan>");
+            }
+        }
+
+        sb.Append("</text>");
+    }
+
+    private static string BuildPaintAttributes(OfficeShape shape) {
+        var sb = new StringBuilder();
+        OfficeColor? fillColor = shape.FillGradient != null ? shape.FillGradient.Stops[0].Color : shape.FillColor;
+        if (fillColor.HasValue && fillColor.Value.A > 0) {
+            sb.Append(" fill=\"").Append(ToCssColor(fillColor.Value)).Append('"');
+            double fillOpacity = shape.FillOpacity ?? ToOpacity(fillColor.Value);
+            if (fillOpacity < 1D) {
+                sb.Append(" fill-opacity=\"").Append(Format(fillOpacity)).Append('"');
+            }
+        } else {
+            sb.Append(" fill=\"none\"");
+        }
+
+        if (shape.StrokeColor.HasValue && shape.StrokeWidth > 0 && shape.StrokeColor.Value.A > 0) {
+            sb.Append(" stroke=\"").Append(ToCssColor(shape.StrokeColor.Value)).Append('"')
+                .Append(" stroke-width=\"").Append(Format(shape.StrokeWidth)).Append('"');
+            double strokeOpacity = shape.StrokeOpacity ?? ToOpacity(shape.StrokeColor.Value);
+            if (strokeOpacity < 1D) {
+                sb.Append(" stroke-opacity=\"").Append(Format(strokeOpacity)).Append('"');
+            }
+
+            AppendStrokeStyle(sb, shape);
+        } else {
+            sb.Append(" stroke=\"none\"");
+        }
+
+        return sb.ToString();
+    }
+
+    private static void AppendStrokeStyle(StringBuilder sb, OfficeShape shape) {
+        switch (shape.StrokeDashStyle) {
+            case OfficeStrokeDashStyle.Dash:
+                sb.Append(" stroke-dasharray=\"").Append(Format(shape.StrokeWidth * 4D)).Append(' ').Append(Format(shape.StrokeWidth * 2D)).Append('"');
+                break;
+            case OfficeStrokeDashStyle.Dot:
+                sb.Append(" stroke-dasharray=\"").Append(Format(shape.StrokeWidth)).Append(' ').Append(Format(shape.StrokeWidth * 2D)).Append('"');
+                break;
+            case OfficeStrokeDashStyle.DashDot:
+                sb.Append(" stroke-dasharray=\"")
+                    .Append(Format(shape.StrokeWidth * 4D)).Append(' ')
+                    .Append(Format(shape.StrokeWidth * 2D)).Append(' ')
+                    .Append(Format(shape.StrokeWidth)).Append(' ')
+                    .Append(Format(shape.StrokeWidth * 2D)).Append('"');
+                break;
+        }
+
+        if (shape.StrokeLineCap.HasValue) {
+            sb.Append(" stroke-linecap=\"").Append(MapLineCap(shape.StrokeLineCap.Value)).Append('"');
+        }
+
+        if (shape.StrokeLineJoin.HasValue) {
+            sb.Append(" stroke-linejoin=\"").Append(MapLineJoin(shape.StrokeLineJoin.Value)).Append('"');
+        }
+    }
+
+    private static string BuildTransformAttribute(OfficeTransform? transform) {
+        if (!transform.HasValue || transform.Value == OfficeTransform.Identity) {
+            return string.Empty;
+        }
+
+        OfficeTransform value = transform.Value;
+        return " transform=\"matrix(" +
+            Format(value.M11) + " " +
+            Format(value.M12) + " " +
+            Format(value.M21) + " " +
+            Format(value.M22) + " " +
+            Format(value.OffsetX) + " " +
+            Format(value.OffsetY) + ")\"";
+    }
+
+    private static string MapLineCap(OfficeStrokeLineCap cap) {
+        switch (cap) {
+            case OfficeStrokeLineCap.Round:
+                return "round";
+            case OfficeStrokeLineCap.Square:
+                return "square";
+            default:
+                return "butt";
+        }
+    }
+
+    private static string MapLineJoin(OfficeStrokeLineJoin join) {
+        switch (join) {
+            case OfficeStrokeLineJoin.Bevel:
+                return "bevel";
+            case OfficeStrokeLineJoin.Round:
+                return "round";
+            default:
+                return "miter";
+        }
+    }
+
+    private static string ToCssColor(OfficeColor color) => "#" + color.ToRgbHex();
+
+    private static double ToOpacity(OfficeColor color) => color.A / 255D;
+
+    private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    private static string Escape(string? value) {
+        if (string.IsNullOrEmpty(value)) {
+            return string.Empty;
+        }
+
+        return value!
+            .Replace("&", "&amp;")
+            .Replace("<", "&lt;")
+            .Replace(">", "&gt;")
+            .Replace("\"", "&quot;");
+    }
+}

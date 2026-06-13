@@ -41,6 +41,8 @@ namespace OfficeIMO.Word.Markdown {
             if (options.ImageExportMode == ImageExportMode.File && string.IsNullOrEmpty(options.ImageDirectory)) {
                 options.ImageDirectory = Path.GetDirectoryName(path) ?? Directory.GetCurrentDirectory();
             }
+
+            ConfigureVisualFallbackResources(path, options);
             var markdown = await document.ToMarkdownAsync(options, cancellationToken).ConfigureAwait(false);
 #if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
             await File.WriteAllTextAsync(path, markdown, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
@@ -67,6 +69,47 @@ namespace OfficeIMO.Word.Markdown {
 #else
             await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
 #endif
+        }
+
+        private static void ConfigureVisualFallbackResources(string markdownPath, WordToMarkdownOptions options) {
+            if (options.VisualFallbackMode != MarkdownVisualFallbackMode.SvgFile) {
+                return;
+            }
+
+            string markdownDirectory = Path.GetDirectoryName(markdownPath) ?? Directory.GetCurrentDirectory();
+            if (string.IsNullOrEmpty(options.VisualFallbackDirectory)) {
+                string markdownFileName = Path.GetFileNameWithoutExtension(markdownPath);
+                string sidecarDirectoryName = string.IsNullOrEmpty(markdownFileName) ? "assets" : markdownFileName + ".assets";
+                options.VisualFallbackDirectory = Path.Combine(markdownDirectory, sidecarDirectoryName);
+                if (string.IsNullOrEmpty(options.VisualFallbackPathPrefix)) {
+                    options.VisualFallbackPathPrefix = sidecarDirectoryName;
+                }
+                return;
+            }
+
+            if (string.IsNullOrEmpty(options.VisualFallbackPathPrefix)) {
+                options.VisualFallbackPathPrefix = MakeMarkdownRelativePath(markdownDirectory, options.VisualFallbackDirectory!);
+            }
+        }
+
+        private static string MakeMarkdownRelativePath(string baseDirectory, string targetDirectory) {
+            try {
+                string baseFullPath = Path.GetFullPath(baseDirectory);
+                if (!baseFullPath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) &&
+                    !baseFullPath.EndsWith(Path.AltDirectorySeparatorChar.ToString(), StringComparison.Ordinal)) {
+                    baseFullPath += Path.DirectorySeparatorChar;
+                }
+
+                string targetFullPath = Path.GetFullPath(targetDirectory);
+                var baseUri = new Uri(baseFullPath);
+                var targetUri = new Uri(targetFullPath.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal)
+                    ? targetFullPath
+                    : targetFullPath + Path.DirectorySeparatorChar);
+                string relative = Uri.UnescapeDataString(baseUri.MakeRelativeUri(targetUri).ToString());
+                return relative.TrimEnd('/').Replace('\\', '/');
+            } catch {
+                return Path.GetFileName(targetDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            }
         }
 
         /// <summary>

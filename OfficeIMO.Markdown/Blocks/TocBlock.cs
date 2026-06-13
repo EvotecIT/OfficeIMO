@@ -24,6 +24,10 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
     public string Title { get; set; } = "Table of Contents";
     /// <summary>Heading level for the title when an output format renders it as a heading.</summary>
     public int TitleLevel { get; set; } = 2;
+    /// <summary>Minimum heading level included by the table of contents.</summary>
+    public int MinLevel { get; set; } = TocOptions.DefaultMinLevel;
+    /// <summary>Maximum heading level included by the table of contents.</summary>
+    public int MaxLevel { get; set; } = TocOptions.DefaultMaxLevel;
     /// <summary>Preferred visual layout for output formats that support TOC chrome.</summary>
     public TocLayout Layout { get; set; } = TocLayout.List;
     /// <summary>Preferred visual chrome for output formats that support TOC containers.</summary>

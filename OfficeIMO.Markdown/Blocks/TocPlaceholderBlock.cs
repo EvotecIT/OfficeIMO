@@ -41,6 +41,8 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
             IncludeTitle = Options.IncludeTitle,
             Title = Options.Title,
             TitleLevel = Options.TitleLevel,
+            MinLevel = Options.MinLevel,
+            MaxLevel = Options.MaxLevel,
             Layout = Options.Layout,
             Chrome = Options.Chrome
         };

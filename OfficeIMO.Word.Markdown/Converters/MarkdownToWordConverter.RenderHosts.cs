@@ -14,6 +14,7 @@ namespace OfficeIMO.Word.Markdown {
             WordParagraph CreateParagraph();
             WordList CreateList(WordListStyle style);
             WordTable CreateTable(int rows, int columns);
+            bool TryAddTableOfContents(int minLevel, int maxLevel, string? title);
             bool SupportsHtmlInsertion { get; }
             void InsertHtml(string html);
             bool SupportsHorizontalRule { get; }
@@ -31,6 +32,15 @@ namespace OfficeIMO.Word.Markdown {
             public WordParagraph CreateParagraph() => _document.AddParagraph(string.Empty);
             public WordList CreateList(WordListStyle style) => _document.AddList(style);
             public WordTable CreateTable(int rows, int columns) => _document.AddTable(rows, columns);
+            public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) {
+                var toc = _document.AddTableOfContent(minLevel: minLevel, maxLevel: maxLevel);
+                if (!string.IsNullOrWhiteSpace(title)) {
+                    toc.Text = title!;
+                }
+
+                return true;
+            }
+
             public bool SupportsHtmlInsertion => true;
             public void InsertHtml(string html) => _document.AddHtmlToBody(html);
             public bool SupportsHorizontalRule => true;
@@ -69,6 +79,8 @@ namespace OfficeIMO.Word.Markdown {
                 return _cell.AddTable(rows, columns);
             }
 
+            public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) => false;
+
             public bool SupportsHtmlInsertion => false;
             public void InsertHtml(string html) { }
             public bool SupportsHorizontalRule => false;
@@ -86,6 +98,7 @@ namespace OfficeIMO.Word.Markdown {
             public WordParagraph CreateParagraph() => _headerFooter.AddParagraph(string.Empty);
             public WordList CreateList(WordListStyle style) => _headerFooter.AddList(style);
             public WordTable CreateTable(int rows, int columns) => _headerFooter.AddTable(rows, columns);
+            public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) => false;
             public bool SupportsHtmlInsertion => false;
             public void InsertHtml(string html) { }
             public bool SupportsHorizontalRule => true;
@@ -126,6 +139,8 @@ namespace OfficeIMO.Word.Markdown {
                     seed.Remove();
                 }
             }
+
+            public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) => false;
 
             public bool SupportsHtmlInsertion => false;
             public void InsertHtml(string html) { }

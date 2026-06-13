@@ -111,5 +111,26 @@ code
             Assert.Equal("---", paragraphs[3]);
             Assert.Contains("Body text", paragraphs);
         }
+
+        [Fact]
+        public void MarkdownToWord_Renders_Toc_Marker_As_Native_Word_TableOfContents() {
+            const string markdown = """
+                [TOC min=2 max=4 title="Contents"]
+
+                # Report
+
+                ## Region
+
+                ### Pipeline
+                """;
+
+            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            Assert.NotNull(document.TableOfContent);
+            Assert.Equal(2, document.TableOfContent!.MinLevel);
+            Assert.Equal(4, document.TableOfContent.MaxLevel);
+            Assert.Equal("Contents", document.TableOfContent.Text);
+            Assert.True(document.Settings.UpdateFieldsOnOpen);
+        }
     }
 }

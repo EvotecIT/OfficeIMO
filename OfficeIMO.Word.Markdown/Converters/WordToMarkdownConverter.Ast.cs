@@ -2,12 +2,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
 using OmdListItem = OfficeIMO.Markdown.ListItem;
 using OmdTableCell = OfficeIMO.Markdown.TableCell;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
+        private int _visualFallbackResourceIndex;
+
         private sealed class PendingListFrame {
             public PendingListFrame(int level, bool ordered, IMarkdownListBlock block) {
                 Level = level;
@@ -34,6 +37,7 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private void BuildMarkdownDocument(WordDocument document, MarkdownDoc markdown, WordToMarkdownOptions options, CancellationToken cancellationToken) {
+            _visualFallbackResourceIndex = 0;
             int sectionIndex = 0;
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -289,13 +293,27 @@ namespace OfficeIMO.Word.Markdown {
                     }
 
                     listStack.Clear();
-                    foreach (var block in BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic, trimBoundaryWhitespace)) {
+                    var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic, trimBoundaryWhitespace);
+                    foreach (var block in paragraphBlocks) {
                         addRootBlock(block);
+                    }
+
+                    if (paragraphBlocks.Count == 0 && TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
+                        if (TryCreateVisualFallbackBlock(paragraph, options, out var visualBlock)) {
+                            addRootBlock(visualBlock);
+                        } else {
+                            AddUnsupportedContentBlock(addRootBlock, options, unsupportedParagraphKind);
+                        }
                     }
                     continue;
                 }
 
                 listStack.Clear();
+
+                if (element is WordTableOfContent tableOfContent) {
+                    addRootBlock(BuildTableOfContentsMarkerBlock(tableOfContent));
+                    continue;
+                }
 
                 if (element is WordTable table) {
                     addRootBlock(BuildTableBlock(table, options));
@@ -306,8 +324,13 @@ namespace OfficeIMO.Word.Markdown {
                     var html = embeddedDocument.GetHtml();
                     if (!string.IsNullOrWhiteSpace(html)) {
                         addRootBlock(new HtmlRawBlock(html!.TrimEnd()));
+                    } else {
+                        AddUnsupportedContentBlock(addRootBlock, options, "embedded document");
                     }
+                    continue;
                 }
+
+                AddUnsupportedContentBlock(addRootBlock, options, element.GetType().Name);
             }
         }
 
@@ -335,9 +358,116 @@ namespace OfficeIMO.Word.Markdown {
                 }
             }
 
+            if (ParagraphContainsPageBreak(paragraph)) {
+                return BuildParagraphBlocksWithPageBreaks(
+                    paragraph,
+                    options,
+                    hasCheckbox,
+                    allowQuoteHeuristic,
+                    trimBoundaryWhitespace);
+            }
+
             var inlines = BuildParagraphInlines(paragraph, options, trimBoundaryWhitespace);
+            return BuildParagraphBlocksFromInlines(
+                paragraph,
+                inlines,
+                hasCheckbox,
+                allowQuoteHeuristic,
+                trimBoundaryWhitespace);
+        }
+
+        private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithPageBreaks(
+            WordParagraph paragraph,
+            WordToMarkdownOptions options,
+            bool hasCheckbox,
+            bool allowQuoteHeuristic,
+            bool trimBoundaryWhitespace) {
+            var blocks = new List<IMarkdownBlock>();
+            var segment = CreateInlineSequence();
+            string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
+            string? implicitCodeFont = ResolveImplicitCodeFont();
+            bool checkboxPending = hasCheckbox;
+
+            foreach (var run in paragraph.GetRuns()) {
+                if (run.PageBreak != null) {
+                    AppendParagraphBlocksFromSegment(
+                        blocks,
+                        paragraph,
+                        segment,
+                        checkboxPending,
+                        allowQuoteHeuristic,
+                        trimBoundaryWhitespace);
+                    checkboxPending = false;
+                    segment = CreateInlineSequence();
+
+                    var pageBreakBlock = CreatePageBreakBlock(options);
+                    if (pageBreakBlock != null) {
+                        blocks.Add(pageBreakBlock);
+                    }
+                }
+
+                AppendRunInlines(segment, run, options, preferredCodeFont, implicitCodeFont);
+            }
+
+            AppendParagraphBlocksFromSegment(
+                blocks,
+                paragraph,
+                segment,
+                checkboxPending,
+                allowQuoteHeuristic,
+                trimBoundaryWhitespace);
+
+            if (blocks.Count == 0 && hasCheckbox) {
+                blocks.Add(new ParagraphBlock(new InlineSequence { AutoSpacing = false }));
+            }
+
+            return blocks;
+        }
+
+        private static InlineSequence CreateInlineSequence() {
+            return new InlineSequence { AutoSpacing = false };
+        }
+
+        private static bool ParagraphContainsPageBreak(WordParagraph paragraph) {
+            foreach (var run in paragraph.GetRuns()) {
+                if (run.PageBreak != null) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private void AppendParagraphBlocksFromSegment(
+            List<IMarkdownBlock> blocks,
+            WordParagraph paragraph,
+            InlineSequence segment,
+            bool hasCheckbox,
+            bool allowQuoteHeuristic,
+            bool trimBoundaryWhitespace) {
+            foreach (var block in BuildParagraphBlocksFromInlines(
+                paragraph,
+                segment,
+                hasCheckbox,
+                allowQuoteHeuristic,
+                trimBoundaryWhitespace)) {
+                blocks.Add(block);
+            }
+        }
+
+        private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksFromInlines(
+            WordParagraph paragraph,
+            InlineSequence inlines,
+            bool hasCheckbox,
+            bool allowQuoteHeuristic,
+            bool trimBoundaryWhitespace) {
+            var blocks = new List<IMarkdownBlock>();
             if (inlines.Nodes.Count == 0 && !hasCheckbox) {
                 return blocks;
+            }
+
+            if (trimBoundaryWhitespace) {
+                TrimBoundaryWhitespace(inlines);
             }
 
             int headingLevel = paragraph.Style.HasValue
@@ -360,31 +490,12 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private InlineSequence BuildParagraphInlines(WordParagraph paragraph, WordToMarkdownOptions options, bool trimBoundaryWhitespace = false) {
-            var sequence = new InlineSequence { AutoSpacing = false };
+            var sequence = CreateInlineSequence();
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
 
             foreach (var run in paragraph.GetRuns()) {
-                if (run.Break != null && run.PageBreak == null) {
-                    sequence.HardBreak();
-                }
-
-                if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
-                    sequence.FootnoteRef(run.FootNote.ReferenceId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                    continue;
-                }
-
-                if (run.IsImage && run.Image != null) {
-                    sequence.AddRaw(CreateImageInline(run.Image, options));
-                    continue;
-                }
-
-                string? text = run.Text;
-                if (string.IsNullOrEmpty(text)) {
-                    continue;
-                }
-
-                AppendFormattedTextRun(sequence, run, text, options, preferredCodeFont, implicitCodeFont);
+                AppendRunInlines(sequence, run, options, preferredCodeFont, implicitCodeFont);
             }
 
             if (trimBoundaryWhitespace) {
@@ -392,6 +503,334 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             return sequence;
+        }
+
+        private void AppendRunInlines(
+            InlineSequence sequence,
+            WordParagraph run,
+            WordToMarkdownOptions options,
+            string? preferredCodeFont,
+            string? implicitCodeFont) {
+            if (run.Break != null && run.PageBreak == null) {
+                sequence.HardBreak();
+            }
+
+            if (run.IsFootNote && run.FootNote != null && run.FootNote.ReferenceId.HasValue) {
+                sequence.FootnoteRef(run.FootNote.ReferenceId.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                return;
+            }
+
+            if (run.IsImage && run.Image != null) {
+                sequence.AddRaw(CreateImageInline(run.Image, options));
+                return;
+            }
+
+            string? text = run.Text;
+            if (run.PageBreak != null && !string.IsNullOrEmpty(text)) {
+                text = text!.Replace("\u2028", string.Empty);
+            }
+
+            if (string.IsNullOrEmpty(text)) {
+                return;
+            }
+
+            AppendFormattedTextRun(sequence, run, text, options, preferredCodeFont, implicitCodeFont);
+        }
+
+        private static IMarkdownBlock? CreatePageBreakBlock(WordToMarkdownOptions options) {
+            switch (options.PageBreakMode) {
+                case MarkdownPageBreakMode.SemanticBlock:
+                    return new SemanticFencedBlock(
+                        WordMarkdownSemanticBlocks.PageBreakSemanticKind,
+                        WordMarkdownSemanticBlocks.PageBreakFenceLanguage,
+                        string.Empty);
+                case MarkdownPageBreakMode.Html:
+                    return new HtmlRawBlock("<div style=\"page-break-after: always;\"></div>");
+                case MarkdownPageBreakMode.HorizontalRule:
+                    return new HorizontalRuleBlock();
+                case MarkdownPageBreakMode.Omit:
+                    return null;
+                default:
+                    options.OnWarning?.Invoke($"Unsupported page break mode '{options.PageBreakMode}'. Emitting a semantic page-break block.");
+                    return new SemanticFencedBlock(
+                        WordMarkdownSemanticBlocks.PageBreakSemanticKind,
+                        WordMarkdownSemanticBlocks.PageBreakFenceLanguage,
+                        string.Empty);
+            }
+        }
+
+        private static TocMarkerBlock BuildTableOfContentsMarkerBlock(WordTableOfContent tableOfContent) {
+            var block = new TocMarkerBlock {
+                MinLevel = NormalizeTableOfContentsLevel(tableOfContent.MinLevel, TocOptions.DefaultMinLevel),
+                MaxLevel = NormalizeTableOfContentsLevel(tableOfContent.MaxLevel, TocOptions.DefaultMaxLevel)
+            };
+
+            if (block.MaxLevel < block.MinLevel) {
+                block.MaxLevel = block.MinLevel;
+            }
+
+            string title = tableOfContent.Text?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(title)) {
+                block.IncludeTitle = true;
+                block.Title = title;
+            }
+
+            return block;
+        }
+
+        private static int NormalizeTableOfContentsLevel(int level, int fallback) {
+            int normalized = level <= 0 ? fallback : level;
+            if (normalized < 1) {
+                return 1;
+            }
+
+            return normalized > 9 ? 9 : normalized;
+        }
+
+        private static bool TryGetUnsupportedParagraphContentKind(WordParagraph paragraph, out string kind) {
+            if (paragraph.IsChart) {
+                kind = "chart";
+                return true;
+            }
+
+            if (paragraph.IsSmartArt) {
+                kind = "SmartArt";
+                return true;
+            }
+
+            if (paragraph.IsShape) {
+                kind = "shape";
+                return true;
+            }
+
+            if (paragraph.IsEmbeddedObject) {
+                kind = "embedded object";
+                return true;
+            }
+
+            if (paragraph.IsEquation) {
+                kind = "equation";
+                return true;
+            }
+
+            kind = string.Empty;
+            return false;
+        }
+
+        private static void AddUnsupportedContentBlock(
+            Action<IMarkdownBlock> addRootBlock,
+            WordToMarkdownOptions options,
+            string contentKind) {
+            string normalizedKind = string.IsNullOrWhiteSpace(contentKind) ? "content" : contentKind.Trim();
+            string message = $"Unsupported Word {normalizedKind} has no native Markdown representation.";
+
+            switch (options.UnsupportedContentMode) {
+                case MarkdownUnsupportedContentMode.WarnOnly:
+                    options.OnWarning?.Invoke(message);
+                    return;
+                case MarkdownUnsupportedContentMode.Placeholder:
+                    options.OnWarning?.Invoke(message);
+                    addRootBlock(new ParagraphBlock(CreateInlineSequence().Text($"Unsupported Word content: {normalizedKind}")));
+                    return;
+                case MarkdownUnsupportedContentMode.HtmlComment:
+                    options.OnWarning?.Invoke(message);
+                    addRootBlock(new HtmlCommentBlock($"<!-- Unsupported Word content: {EscapeHtmlCommentText(normalizedKind)} -->"));
+                    return;
+                case MarkdownUnsupportedContentMode.Omit:
+                    return;
+                default:
+                    options.OnWarning?.Invoke($"Unsupported content mode '{options.UnsupportedContentMode}'. Falling back to warning-only handling. {message}");
+                    return;
+            }
+        }
+
+        private bool TryCreateVisualFallbackBlock(
+            WordParagraph paragraph,
+            WordToMarkdownOptions options,
+            out IMarkdownBlock block) {
+            block = null!;
+
+            switch (options.VisualFallbackMode) {
+                case MarkdownVisualFallbackMode.None:
+                    return false;
+                case MarkdownVisualFallbackMode.SvgDataUri:
+                    if (paragraph.Chart != null && TryCreateChartSvgFallbackBlock(paragraph.Chart, options, out block)) {
+                        return true;
+                    }
+
+                    return false;
+                case MarkdownVisualFallbackMode.SvgFile:
+                    if (paragraph.Chart != null && TryCreateChartSvgFallbackBlock(paragraph.Chart, options, out block)) {
+                        return true;
+                    }
+
+                    return false;
+                default:
+                    options.OnWarning?.Invoke($"Unsupported visual fallback mode '{options.VisualFallbackMode}'. Falling back to unsupported-content handling.");
+                    return false;
+            }
+        }
+
+        private bool TryCreateChartSvgFallbackBlock(
+            WordChart chart,
+            WordToMarkdownOptions options,
+            out IMarkdownBlock block) {
+            block = null!;
+
+            if (!chart.TryGetSnapshot(out var snapshot)) {
+                options.OnWarning?.Invoke("Word chart could not be rendered as an SVG Markdown image because its cached chart data could not be read.");
+                return false;
+            }
+
+            try {
+                OfficeChartSnapshot officeSnapshot = CreateOfficeChartSnapshot(snapshot);
+                OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(officeSnapshot);
+                if (rendering.QualityReport.HasIssues) {
+                    options.OnWarning?.Invoke("Rendered Word chart '" + GetChartDisplayName(snapshot) + "' with shared drawing quality warnings: " + FormatQualityIssues(rendering.QualityReport));
+                }
+
+                byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(rendering.Drawing);
+                string displayName = GetChartDisplayName(snapshot);
+                string source = options.VisualFallbackMode == MarkdownVisualFallbackMode.SvgFile
+                    ? WriteVisualFallbackSvgResource(svgBytes, displayName, options)
+                    : "data:image/svg+xml;base64," + System.Convert.ToBase64String(svgBytes);
+                string alt = string.IsNullOrWhiteSpace(snapshot.Title) ? "Word chart" : snapshot.Title!;
+                var sequence = new InlineSequence { AutoSpacing = false };
+                sequence.AddRaw(new ImageInline(alt, source, title: null, plainAlt: alt));
+                block = new ParagraphBlock(sequence);
+                options.OnWarning?.Invoke("Rendered Word chart '" + displayName + "' as an SVG Markdown image fallback.");
+                return true;
+            } catch (Exception ex) {
+                options.OnWarning?.Invoke("Word chart could not be rendered as an SVG Markdown image fallback. " + ex.Message);
+                return false;
+            }
+        }
+
+        private string WriteVisualFallbackSvgResource(byte[] svgBytes, string displayName, WordToMarkdownOptions options) {
+            string directory = string.IsNullOrWhiteSpace(options.VisualFallbackDirectory)
+                ? Directory.GetCurrentDirectory()
+                : options.VisualFallbackDirectory!;
+            Directory.CreateDirectory(directory);
+
+            int index = ++_visualFallbackResourceIndex;
+            string slug = CreateResourceSlug(displayName);
+            if (string.IsNullOrEmpty(slug)) {
+                slug = "visual-fallback";
+            }
+
+            string fileName = index.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + "-" + slug + ".svg";
+            string targetPath = Path.Combine(directory, fileName);
+            File.WriteAllBytes(targetPath, svgBytes);
+
+            string prefix = NormalizeMarkdownPath(options.VisualFallbackPathPrefix);
+            return string.IsNullOrEmpty(prefix) ? fileName : prefix + "/" + fileName;
+        }
+
+        private static string CreateResourceSlug(string value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return string.Empty;
+            }
+
+            var builder = new System.Text.StringBuilder(value.Length);
+            bool previousWasSeparator = false;
+            foreach (char c in value.Trim().ToLowerInvariant()) {
+                if (c >= 'a' && c <= 'z' || c >= '0' && c <= '9') {
+                    builder.Append(c);
+                    previousWasSeparator = false;
+                } else if (!previousWasSeparator) {
+                    builder.Append('-');
+                    previousWasSeparator = true;
+                }
+            }
+
+            return builder.ToString().Trim('-');
+        }
+
+        private static string NormalizeMarkdownPath(string? path) {
+            if (string.IsNullOrWhiteSpace(path)) {
+                return string.Empty;
+            }
+
+            return path!.Trim().TrimEnd('/', '\\').Replace('\\', '/');
+        }
+
+        private static OfficeChartSnapshot CreateOfficeChartSnapshot(WordChartSnapshot snapshot) {
+            var series = snapshot.Data.Series
+                .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color, item.PointColors))
+                .ToList();
+            var data = new OfficeChartData(snapshot.Data.Categories, series);
+            var style = CreateOfficeChartStyle(snapshot);
+            return new OfficeChartSnapshot(
+                snapshot.Name,
+                snapshot.Title,
+                MapChartKind(snapshot.ChartKind),
+                data,
+                snapshot.WidthPoints,
+                snapshot.HeightPoints,
+                style);
+        }
+
+        private static OfficeChartStyle? CreateOfficeChartStyle(WordChartSnapshot snapshot) {
+            var palette = snapshot.Data.Series
+                .Where(item => item.Color.HasValue)
+                .Select(item => item.Color!.Value)
+                .ToList();
+            return palette.Count == 0 ? null : new OfficeChartStyle(palette: palette);
+        }
+
+        private static OfficeChartKind MapChartKind(WordChartSnapshotKind kind) {
+            switch (kind) {
+                case WordChartSnapshotKind.ClusteredColumn:
+                    return OfficeChartKind.ColumnClustered;
+                case WordChartSnapshotKind.StackedColumn:
+                    return OfficeChartKind.ColumnStacked;
+                case WordChartSnapshotKind.StackedColumn100:
+                    return OfficeChartKind.ColumnStacked100;
+                case WordChartSnapshotKind.ClusteredBar:
+                    return OfficeChartKind.BarClustered;
+                case WordChartSnapshotKind.StackedBar:
+                    return OfficeChartKind.BarStacked;
+                case WordChartSnapshotKind.StackedBar100:
+                    return OfficeChartKind.BarStacked100;
+                case WordChartSnapshotKind.Line:
+                    return OfficeChartKind.Line;
+                case WordChartSnapshotKind.StackedLine:
+                    return OfficeChartKind.LineStacked;
+                case WordChartSnapshotKind.StackedLine100:
+                    return OfficeChartKind.LineStacked100;
+                case WordChartSnapshotKind.Area:
+                    return OfficeChartKind.Area;
+                case WordChartSnapshotKind.StackedArea:
+                    return OfficeChartKind.AreaStacked;
+                case WordChartSnapshotKind.StackedArea100:
+                    return OfficeChartKind.AreaStacked100;
+                case WordChartSnapshotKind.Radar:
+                    return OfficeChartKind.Radar;
+                case WordChartSnapshotKind.Scatter:
+                    return OfficeChartKind.Scatter;
+                case WordChartSnapshotKind.Pie:
+                    return OfficeChartKind.Pie;
+                case WordChartSnapshotKind.Doughnut:
+                    return OfficeChartKind.Doughnut;
+                default:
+                    throw new NotSupportedException("Word chart kind '" + kind + "' is not supported by the shared OfficeIMO chart renderer.");
+            }
+        }
+
+        private static string FormatQualityIssues(OfficeDrawingQualityReport qualityReport) {
+            return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
+        }
+
+        private static string GetChartDisplayName(WordChartSnapshot snapshot) {
+            if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
+                return snapshot.Title!;
+            }
+
+            return string.IsNullOrWhiteSpace(snapshot.Name) ? "Chart" : snapshot.Name;
+        }
+
+        private static string EscapeHtmlCommentText(string text) {
+            return (text ?? string.Empty).Replace("--", "- -");
         }
 
         private static void ResolveParagraphCheckboxState(WordParagraph paragraph, out bool hasCheckbox, out bool checkboxChecked) {

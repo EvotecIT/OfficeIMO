@@ -48,20 +48,18 @@ namespace OfficeIMO.Word.Markdown {
             // Parse using OfficeIMO.Markdown reader.
             var readerOptions = CreateEffectiveReaderOptions(options);
             var omd = Omd.MarkdownReader.Parse(markdown, readerOptions);
-            var blocks = omd.Blocks;
+            var blocks = omd.GetBlocksAndHeadingSlugs().Blocks ?? new List<Omd.IMarkdownBlock>();
             // Build footnote definitions map for this document
-            _currentFootnotes = blocks is not null
-                ? blocks
-                    .OfType<Omd.FootnoteDefinitionBlock>()
-                    .GroupBy(f => f.Label)
-                    .ToDictionary(g => g.Key, g => g.Last().Text)
-                : null;
+            _currentFootnotes = blocks
+                .OfType<Omd.FootnoteDefinitionBlock>()
+                .GroupBy(f => f.Label)
+                .ToDictionary(g => g.Key, g => g.Last().Text);
 
             if (omd.DocumentHeader != null) {
                 ProcessBlockOmd(omd.DocumentHeader, document, options, quoteDepth: 0, pageContentWidthPixels: pageContentWidthPixels);
             }
 
-            foreach (var block in blocks ?? Array.Empty<Omd.IMarkdownBlock>()) {
+            foreach (var block in blocks) {
                 cancellationToken.ThrowIfCancellationRequested();
                 ProcessBlockOmd(block, document, options, quoteDepth: 0, pageContentWidthPixels: pageContentWidthPixels);
             }
@@ -79,7 +77,7 @@ namespace OfficeIMO.Word.Markdown {
             var document = WordDocument.Create();
             options.ApplyDefaults(document);
             var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-            var blocks = markdown.Blocks ?? Array.Empty<Omd.IMarkdownBlock>();
+            var blocks = markdown.GetBlocksAndHeadingSlugs().Blocks ?? new List<Omd.IMarkdownBlock>();
 
             _currentFootnotes = blocks
                 .OfType<Omd.FootnoteDefinitionBlock>()
