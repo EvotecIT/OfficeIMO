@@ -1,4 +1,4 @@
-## Detect list style for paragraphs
+# Detect list style for paragraphs
 
 This example shows how to determine the style of a paragraph that belongs to a list
 and how to read the style directly from a list instance.

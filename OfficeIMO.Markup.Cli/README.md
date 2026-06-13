@@ -1,8 +1,8 @@
-# OfficeIMO.Markup.Cli
+# OfficeIMO.Markup.Cli - markup command-line tooling
 
 `OfficeIMO.Markup.Cli` is the command-line entry point for parsing, validating, emitting starter code from, and exporting OfficeIMO Markup files.
 
-It is primarily a repository/development tool and a bundled runtime for the VS Code extension. It targets modern .NET only and depends on the markup exporter packages.
+It is primarily a repository/development tool and a bundled runtime for the VS Code extension. It targets modern .NET and depends on the markup exporter packages.
 
 ## Commands
 
@@ -18,21 +18,26 @@ dotnet run --project OfficeIMO.Markup.Cli -- export OfficeIMO.Markup\Examples\do
 
 ## Export targets
 
-- `pptx`: uses `OfficeIMO.Markup.PowerPoint`
-- `xlsx`: uses `OfficeIMO.Markup.Excel`
-- `docx`: uses `OfficeIMO.Markup.Word`
+- `pptx`: uses `OfficeIMO.Markup.PowerPoint`.
+- `xlsx`: uses `OfficeIMO.Markup.Excel`.
+- `docx`: uses `OfficeIMO.Markup.Word`.
 
 ## Useful switches
 
-- `--mermaid-renderer <path-to-mmdc>`: render Mermaid diagrams during PowerPoint export
-- `--no-mermaid`: keep Mermaid blocks as text fallback
-- `--no-safe-preflight`: disable Excel save-time preflight
-- `--no-defined-name-repair`: disable Excel defined-name repair
-- `--no-openxml-validation`: disable Excel Open XML validation
+- `--mermaid-renderer <path-to-mmdc>`: render Mermaid diagrams during PowerPoint export.
+- `--no-mermaid`: keep Mermaid blocks as text fallback.
+- `--no-safe-preflight`: disable Excel save-time preflight.
+- `--no-defined-name-repair`: disable Excel defined-name repair.
+- `--no-openxml-validation`: disable Excel Open XML validation.
 
-## Targets
+## Boundaries
 
-- `net8.0`
-- `net10.0`
+- CLI orchestration belongs here.
+- Parser and AST behavior belongs in `OfficeIMO.Markup`.
+- Export behavior belongs in the target exporter packages.
+- VS Code extension packaging belongs in `OfficeIMO.Markup.VSCode`.
 
-License: MIT
+## Targets and license
+
+- Targets: `net8.0`, `net10.0`.
+- License: MIT.

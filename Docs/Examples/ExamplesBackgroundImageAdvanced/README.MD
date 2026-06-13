@@ -1,4 +1,4 @@
-## Background image from stream with custom size
+# Background image from stream with custom size
 
 This advanced example loads the image from a stream and specifies the width and height.
 

@@ -1,4 +1,6 @@
-﻿`OfficeIMO` supports builtin Microsoft Office Table styles. That means once can create new table and specify one of the builtin 105 styles.
+# Adding Tables With Styles and Borders
+
+`OfficeIMO` supports builtin Microsoft Office Table styles. That means once can create new table and specify one of the builtin 105 styles.
 One can also modify style of an existing table. Missing styles will be added to the document.
 
 Below example shows how easily one can create table with builtin style and how to modify it, if the built-in style is not enough.

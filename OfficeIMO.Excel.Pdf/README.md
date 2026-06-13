@@ -1,34 +1,143 @@
-# OfficeIMO.Excel.Pdf
+# OfficeIMO.Excel.Pdf - Excel to PDF export
 
-First-party Excel workbook to PDF export using `OfficeIMO.Pdf`, plus logical PDF table import into editable Excel worksheets.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel.Pdf)](https://www.nuget.org/packages/OfficeIMO.Excel.Pdf)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel.Pdf)
 
-The initial exporter maps everyday worksheet used ranges into reusable PDF tables. It is intentionally thin: workbook reading stays in `OfficeIMO.Excel`, layout and PDF writing stay in `OfficeIMO.Pdf`, and this package only translates worksheet data into PDF document primitives.
+`OfficeIMO.Excel.Pdf` exports `OfficeIMO.Excel` workbooks to PDF through the first-party `OfficeIMO.Pdf` engine. It also imports logical PDF tables into editable Excel worksheets.
 
-PDF table import uses `OfficeIMO.Pdf` logical table analysis and writes detected tables as real Excel tables. Numeric PDF columns are converted to numeric Excel cells by default when every non-empty value parses successfully; set `PdfExcelTableImportOptions.ConvertNumericColumns` to `false` to preserve all imported cells as text.
+## Install
 
-Current scope:
+```powershell
+dotnet add package OfficeIMO.Excel.Pdf
+```
 
-- Logical PDF table import from paths, streams, byte arrays, or existing `PdfLogicalDocument` instances.
-- One worksheet table per detected PDF table, with source page/table metadata returned to callers.
-- Optional page ranges and maximum imported body rows for direct PDF loading overloads.
-- Duplicate/empty PDF headers normalized into valid Excel table column names.
-- Detected numeric PDF table columns written as numeric Excel cells when parsing is safe, including simple currency symbols, grouping separators, decimals, and parenthesized negatives.
-- All workbook sheets, or a selected sheet list.
-- Worksheet used range detection through the existing Excel reader bridge.
-- Worksheet print areas when configured.
-- Worksheet orientation and margins when configured, with explicit PDF options still available for overrides.
-- Hidden workbook worksheets omitted from default all-sheets exports, while explicitly selected hidden sheets can still be exported.
-- Hidden worksheet rows and columns omitted by default.
-- Repeated print-title rows mapped to PDF table header rows, including repeat-on-page behavior for long tables.
-- Manual worksheet row and column page breaks mapped to explicit PDF page breaks between exported table chunks, preserving repeated header/title rows, with `ExcelPdfSaveOptions.UseWorksheetPageBreaks` available to disable that behavior.
-- Simple worksheet header/footer text zones, first-page and even-page text variants, and supported header/footer images, including page number, total page count, sheet-name, date, time, workbook file-name, and workbook path tokens. Simple line-level header/footer font family/style uses the shared `OfficeIMO.Pdf` standard-font mapper for common office aliases such as Aptos, Calibri, Arial, Times New Roman, and Consolas, with font size and RGB text color mapped when the styled text can be represented by one first-party PDF header/footer line style.
-- Sheet names as PDF headings.
-- Cell display values rendered as PDF table cells, with common number formats, basic cell font emphasis, font color, fill color, two-color conditional color-scale fills, conditional data bars as proportional in-cell PDF table overlays, conditional icon-set indicators as first-party table-cell vector icons, horizontal/vertical alignment, simple cell borders including dashed, dotted, dash-dot, double, and diagonal strokes, external cell hyperlinks, internal workbook links mapped only when their target cell is exported as an exact PDF named destination, explicit worksheet column widths, explicit worksheet row heights, manual worksheet print scale, fit-to-width table sizing against effective page margins, and worksheet merged cells mapped through first-party rich table cells, per-cell table fills, per-cell table data bars, per-cell table icons, per-cell table alignment/border/padding overrides, relative table column widths, table max-width caps, row minimum heights, visible-row/column filtering, cell-owned URI and named-destination annotations, and table row/column spans.
-- Supported worksheet drawing images anchored into exported PDF table cells when the anchor cell is exported and otherwise emitted as first-party PDF flow images in worksheet anchor order.
-- Supported worksheet column, bar, line, area, scatter, radar, pie, and doughnut chart families exported as first-party vector drawing snapshots when the chart data can be read from the workbook, with optional `ExcelPdfSaveOptions.ChartStyle` and `ChartLayout` pass-through to the shared `OfficeIMO.Drawing` chart renderer and generated chart legend tables.
-- `ExcelPdfSaveOptions.Warnings` reports workbook features that are skipped or simplified during export, including mixed or rich per-run header/footer formatting, unsupported header/footer fields, unsupported or unreadable worksheet/header/footer images, unsupported or unreadable chart snapshots, shared chart drawing quality warnings, and row truncation when `MaxRowsPerSheet` is used.
-- First row styling through the reusable PDF table header model.
-- Page size and margin options through first-party `OfficeIMO.Pdf` geometry types.
-- Poppler visual baseline coverage for a daily two-sheet workbook with worksheet header/footer text and images, orientation/margins, merged title cells, fills/borders, number formats, explicit row/column sizing, hidden row/column filtering, worksheet images anchored into exported table cells, chart snapshots, and internal/external links.
+## Quick start
 
-Planned scope includes richer worksheet header/footer formatting beyond the current line-level style mapping, richer fit-to-height and automatic multi-page pagination/scaling, richer merged-cell edge cases, richer worksheet image placement fidelity beyond exported table-cell anchors, richer chart fidelity beyond the initial column/bar/line/area/scatter/radar/pie/doughnut snapshots, richer cell style fidelity such as additional conditional formats and locale-specific formats, and broader diagnostics for workbook features that still cannot be mapped faithfully.
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+
+using var workbook = ExcelDocument.Load("report.xlsx");
+workbook.SaveAsPdf("report.pdf");
+```
+
+## Examples
+
+### Export selected sheets with worksheet print settings
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Pdf;
+
+using var workbook = ExcelDocument.Load("monthly-report.xlsx");
+
+var options = new ExcelPdfSaveOptions {
+    SheetNames = new[] { "Summary", "Revenue", "Costs" },
+    UseWorksheetPrintAreas = true,
+    UseWorksheetPageSetup = true,
+    UseWorksheetHeadersAndFooters = true,
+    UseWorksheetPageBreaks = true,
+    PageSize = PageSizes.A4.Landscape(),
+    Margins = PageMargins.UniformCentimeters(1.2)
+};
+
+workbook.SaveAsPdf("monthly-report.pdf", options);
+```
+
+### Export a workbook to bytes or a stream
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+
+using var workbook = ExcelDocument.Load("statement.xlsx");
+
+byte[] pdfBytes = workbook.SaveAsPdf();
+
+using var stream = File.Create("statement.pdf");
+workbook.SaveAsPdf(stream);
+```
+
+### Surface mapping warnings
+
+```csharp
+using OfficeIMO.Excel;
+using OfficeIMO.Excel.Pdf;
+
+using var workbook = ExcelDocument.Load("dashboard.xlsx");
+var options = new ExcelPdfSaveOptions {
+    IncludeSheetHeadings = true,
+    RespectWorksheetHiddenRowsAndColumns = true,
+    UseWorksheetCharts = true
+};
+
+var result = workbook.TrySaveAsPdf("dashboard.pdf", options);
+if (!result.Succeeded) {
+    foreach (string diagnostic in result.Diagnostics) {
+        Console.WriteLine(diagnostic);
+    }
+}
+
+foreach (var warning in options.ConversionReport.Warnings) {
+    Console.WriteLine($"{warning.Source}: {warning.Message}");
+}
+```
+
+## Import PDF tables
+
+```csharp
+using OfficeIMO.Excel.Pdf;
+
+var results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+    "statement.pdf",
+    "statement-tables.xlsx");
+
+foreach (var table in results) {
+    Console.WriteLine($"{table.SheetName}: page {table.PageNumber}");
+}
+```
+
+### Import only selected PDF pages
+
+```csharp
+using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Pdf;
+
+var results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+    "bank-statement.pdf",
+    "bank-statement-q1.xlsx",
+    new PdfExcelTableImportOptions {
+        PageRanges = new[] { new PdfPageRange(1, 3) },
+        MaxRows = 250
+    });
+
+Console.WriteLine($"Imported {results.Count} table(s).");
+```
+
+## What it maps
+
+- Workbook sheets, selected sheet lists, visible used ranges, print areas, page setup, margins, orientation, and worksheet page breaks.
+- Repeated print-title rows, headers, footers, page/date/time/sheet/workbook tokens, and supported header/footer images.
+- Cell display values, common number formats, fills, font emphasis, alignment, borders, merged cells, links, row heights, column widths, conditional fills/data bars/icons, and table layout primitives.
+- Supported worksheet images and common chart snapshots through shared OfficeIMO drawing primitives.
+- Conversion warnings through `ExcelPdfSaveOptions.Warnings` and `ExcelPdfSaveOptions.ConversionReport`.
+
+## Boundaries
+
+- Workbook reading stays in `OfficeIMO.Excel`.
+- PDF layout and writing stay in `OfficeIMO.Pdf`.
+- This package should remain a translation adapter, not a second PDF engine.
+- Fidelity gaps should be documented as warnings or deeper current-state notes, not hidden in marketing text.
+
+## Related packages
+
+- [OfficeIMO.Excel](../OfficeIMO.Excel/README.md) - Excel workbook model.
+- [OfficeIMO.Pdf](../OfficeIMO.Pdf/README.md) - PDF engine.
+- [OfficeIMO.Html.Pdf](../OfficeIMO.Html.Pdf/README.md) - HTML/PDF bridge.
+
+## Targets and license
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

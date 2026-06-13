@@ -1,22 +1,20 @@
 # OfficeIMO Markup for VS Code
 
-Author Office documents from a Markdown-inspired format, preview the structure while you write, and export directly to PowerPoint, Excel, or Word using OfficeIMO.
+OfficeIMO Markup for VS Code helps author Office documents from a Markdown-inspired `.omd` or `.office.md` format. It previews structure while you write and exports through the OfficeIMO Markup CLI to PowerPoint, Excel, or Word.
 
-OfficeIMO Markup is useful when you want repeatable document generation without opening Office first: meeting decks, workbook reports, narrative documents, generated examples, or source-controlled Office content.
+## What it provides
 
-## What You Get
-
-- Syntax highlighting and snippets for `.omd` and `.office.md` files.
+- Syntax highlighting and snippets for `.omd` and `.office.md`.
 - Live preview for presentation, document, workbook, layout, chart, card, column, textbox, and Mermaid blocks.
 - Inline validation while editing.
-- Commands to generate C# or PowerShell code from markup.
+- Commands to generate C# or PowerShell starter code from markup.
 - Export commands for `.pptx`, `.xlsx`, and `.docx`.
 - Self-contained bundled CLI builds for Windows, Linux, and macOS on x64 and arm64.
-- Optional Mermaid CLI integration for rendering diagrams during PowerPoint export.
+- Optional Mermaid CLI integration for PowerPoint diagram export.
 
-## Quick Start
+## Quick start
 
-1. Create a file named `deck.office.md` or `deck.omd`.
+1. Create `deck.office.md` or `deck.omd`.
 2. Add OfficeIMO front matter and content.
 3. Run `OfficeIMO Markup: Open Preview`.
 4. Run an export command such as `OfficeIMO Markup: Export PowerPoint`.
@@ -29,13 +27,13 @@ title: Quarterly Update
 
 # Quarterly Update
 
-::: slide
-## Highlights
+@slide {
+  layout: title-and-content
+}
 
 - Revenue grew 18 percent
 - Support backlog dropped
 - Next quarter focuses on automation
-:::
 ```
 
 ## Commands
@@ -44,8 +42,6 @@ title: Quarterly Update
 - `OfficeIMO Markup: Validate`
 - `OfficeIMO Markup: Generate C#`
 - `OfficeIMO Markup: Generate PowerShell`
-- `OfficeIMO Markup: Generate C# File`
-- `OfficeIMO Markup: Generate PowerShell File`
 - `OfficeIMO Markup: Generate Artifacts`
 - `OfficeIMO Markup: Export Office Document`
 - `OfficeIMO Markup: Export and Open Office Document`
@@ -53,38 +49,13 @@ title: Quarterly Update
 - `OfficeIMO Markup: Export Excel Workbook`
 - `OfficeIMO Markup: Export Word Document`
 - `OfficeIMO Markup: Open Output Folder`
-- `OfficeIMO Markup: Open Generated C#`
-- `OfficeIMO Markup: Open Generated PowerShell`
 - `OfficeIMO Markup: Install Mermaid Renderer`
-
-## Supported Files
-
-The extension activates for:
-
-- `.omd`
-- `.office.md`
-- Markdown files that contain OfficeIMO front matter or directives
-
-Plain `.md` files keep the built-in VS Code Markdown preview unless the document looks like OfficeIMO Markup.
 
 ## Requirements
 
-For normal packaged installs, no separate .NET runtime is required on the bundled platforms. The VSIX includes self-contained CLI executables for `win-x64`, `win-arm64`, `linux-x64`, `linux-arm64`, `osx-x64`, and `osx-arm64`.
+Packaged installs include self-contained CLI executables for supported platforms. Advanced users can set `officeimoMarkup.cliPath` to a custom CLI executable, DLL, or `.csproj`; DLL and project paths require a local .NET SDK or runtime.
 
-Advanced users can set `officeimoMarkup.cliPath` to a custom `OfficeIMO.Markup.Cli` executable, DLL, or `.csproj`. DLL and project paths require a local .NET SDK or runtime.
-
-Mermaid preview rendering is bundled in the extension. PowerPoint export can render Mermaid diagrams to PNG images when Mermaid CLI is available. Run `OfficeIMO Markup: Install Mermaid Renderer` to install `@mermaid-js/mermaid-cli` into the current VS Code profile's extension storage.
-
-## Settings
-
-- `officeimoMarkup.defaultProfile` - fallback profile when a file does not include front matter.
-- `officeimoMarkup.cliPath` - optional custom CLI path.
-- `officeimoMarkup.outputDirectoryMode` - write generated files beside the source file or into a generated subfolder.
-- `officeimoMarkup.outputSubfolderName` - subfolder name for generated outputs.
-- `officeimoMarkup.previewAutoRefresh` - refresh preview automatically while editing.
-- `officeimoMarkup.renderMermaidInPreview` - render Mermaid diagrams in the preview webview.
-- `officeimoMarkup.renderMermaidOnExport` - render Mermaid diagrams during PowerPoint export.
-- `officeimoMarkup.mermaidCliPath` - optional path to `mmdc`.
+Mermaid preview rendering is bundled in the extension. PowerPoint export can render Mermaid diagrams to PNG when Mermaid CLI is available. Run `OfficeIMO Markup: Install Mermaid Renderer` to install `@mermaid-js/mermaid-cli` into the current VS Code profile storage.
 
 ## Development
 
@@ -94,24 +65,13 @@ npm run compile
 .\scripts\dev-install.ps1 -Insiders -Force
 ```
 
-Development links use the source tree and fall back to the sibling `OfficeIMO.Markup.Cli` project. Set `officeimoMarkup.cliPath` to an executable, DLL, or `.csproj` when testing another CLI build.
-
 ## Package
 
 ```powershell
 npm run package
 ```
 
-`npm run package` calls `scripts/package-vsix.cjs`, which:
-
-- installs extension dependencies with `npm ci`
-- publishes self-contained `OfficeIMO.Markup.Cli` builds for Windows, Linux, and macOS
-- publishes a framework-dependent CLI fallback for unsupported runtimes with .NET installed
-- replaces the bundled CLI runtime folders under `tools/OfficeIMO.Markup.Cli`
-- compiles the extension JavaScript
-- writes `dist/officeimo-markup-<version>.vsix`
-
-Use `npm run package` instead of running raw `vsce package`; the raw VSCE command does not refresh the bundled CLI and can ship stale dependencies. The npm package command uses the cross-platform Node wrapper in `scripts/package-vsix.cjs`; `scripts/package-vsix.ps1` remains available for CI and PowerShell users.
+`npm run package` refreshes the bundled `OfficeIMO.Markup.Cli` runtimes, compiles the extension JavaScript, and writes `dist/officeimo-markup-<version>.vsix`. Use it instead of raw `vsce package` so the bundled CLI does not go stale.
 
 For packaged Insiders installation:
 
@@ -119,9 +79,9 @@ For packaged Insiders installation:
 .\scripts\install-insiders.ps1 -Force
 ```
 
-## Marketplace Publishing
+## Publishing
 
-Local publish requires a Visual Studio Marketplace personal access token in `VSCE_PAT`:
+Local Marketplace publish requires `VSCE_PAT`:
 
 ```powershell
 $env:VSCE_PAT = '<token>'
@@ -130,14 +90,11 @@ npm run publish:marketplace
 
 CI packaging and publishing are handled by `.github/workflows/vscode-extension.yml`.
 
-- Pull requests and pushes touching the extension or its runtime dependencies package the VSIX and upload it as the `officeimo-markup-vsix` artifact.
-- Manual `workflow_dispatch` can set `publish_marketplace=true` to publish to the Visual Studio Marketplace.
-- Publishing a normal OfficeIMO GitHub Release named `OfficeIMO-vYYYYMMDDHHMMSS` from a commit contained in `master` stamps the extension version from the release tag, publishes it to the Visual Studio Marketplace, and attaches the packaged VSIX to the release. For example, `OfficeIMO-v20260507115122` becomes extension version `2026.507.115122`.
-- If that exact extension version already exists in the Visual Studio Marketplace, CI still packages and attaches the VSIX to the GitHub Release but skips Marketplace publishing.
-- Mark the GitHub Release as pre-release to publish a VS Code pre-release build.
-- `VSCE_PAT` must be configured as a repository or organization secret before marketplace publishing is enabled.
-- `pre_release=true` packages and publishes the extension as a VS Code pre-release.
+## Boundaries
 
-## Support
+- Extension UI, packaging, and VS Code commands belong here.
+- Markup parsing and semantic behavior belongs in `OfficeIMO.Markup`.
+- Command-line parse/export behavior belongs in `OfficeIMO.Markup.Cli`.
+- Export fidelity belongs in the target exporter packages.
 
-Report bugs and feature requests in the [OfficeIMO issue tracker](https://github.com/EvotecIT/OfficeIMO/issues). Include the OfficeIMO Markup file, the command you ran, and the generated output or error message when possible.
+Report bugs and feature requests in the [OfficeIMO issue tracker](https://github.com/EvotecIT/OfficeIMO/issues).

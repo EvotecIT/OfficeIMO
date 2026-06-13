@@ -1,17 +1,41 @@
-# OfficeIMO.Examples — Runnable Samples
+# OfficeIMO.Examples - runnable samples
 
-This project contains small, focused samples that demonstrate usage across Word, Excel, PowerPoint, PDF, and Visio packages.
+`OfficeIMO.Examples` contains focused samples for Word, Excel, PowerPoint, PDF, Visio, Markdown, Markup, Reader, and conversion packages. It is executable documentation, not a runtime package.
 
-- Build and run to explore features end-to-end.
-- Output is designed to be human-readable and PowerShell-friendly where applicable.
-- Run `dotnet run --project OfficeIMO.Examples -- --pdf-professional` to generate a professional `OfficeIMO.Pdf` report sample, `--pdf-table-styles` for the Word-like table style gallery, `--pdf-showcase` for richer statement/dashboard/manipulation PDFs, or `--pdf` for the full first-party PDF example set.
-- PowerPoint examples include direct slide building plus designer decks, design-brief recommendations, and semantic deck-plan scoring.
-- Run `dotnet run --project OfficeIMO.Examples --framework net8.0 -- --visio-showcase` to generate a curated Visio set from basic fluent shapes through advanced flowchart, block, swimlane, sequence, network, architecture, editing, data-driven inventory, identity, privileged access review, Kubernetes/service-mesh, application dependency, data-platform lineage, hybrid network operations, process governance, incident/runbook sequence, network segmentation, and quality-gallery diagrams.
-- The showcase writes `showcase-summary.md`, machine-readable `showcase-summary.json`, and browsable `showcase-gallery.html` artifact metadata under `Documents/Visio Showcase`; the JSON and HTML outputs include top-level proof and evidence totals plus diagram review records that pair each `.vsdx` with its available preview and review proof artifacts, including file sizes, SHA-256 hashes, structural shape/connector and Shape Data rollups, stencil-backed/basic-geometry mix, connection-point coverage, parsed visual-quality counts, stencil catalog proof summaries, and catalog coverage showing which diagrams exercise each catalog.
-- The JSON summary includes `schemaVersion`, `artifactCount`, `proofTotals`, and `evidenceTotals` fields so CI and downstream review tooling can detect incompatible summary changes, verify the flat artifact list, show executive rollups for generated shape/connector/stencil/Shape Data/semantic-kind/connection-point coverage, and prove which diagrams have native SVG, native PNG, inspection, stencil-profile, visual-quality, clean visual-quality, complete structural, and complete review evidence.
-- Every showcase run writes deterministic inspection, stencil-profile, and visual-quality text proofs under `Documents/Visio Showcase/Structural Proof` so reviewers can compare shape/connector structure, Shape Data usage, semantic kinds, stencil usage, and `quality.*` issue counts beside visual previews.
-- Add `--visio-native-preview` to export dependency-free OfficeIMO-native `.svg` and `.png` previews beside the generated VSDX files and include those preview artifacts in the JSON summary; the CI validator can require both native preview formats per diagram with `-RequireNativePreviewFormatsPerDiagram`.
-- Add `--visio-export` or `--visio-preview` when Microsoft Visio desktop is installed to export first-page `.png` and `.svg` previews plus a browseable `index.html` into `Documents/Visio Showcase/Preview`; those artifacts are classified as `DesktopPreview` in the JSON summary and the top-level HTML gallery.
-- Run `dotnet run --project OfficeIMO.Examples --framework net8.0 -- --visio-integration-stencils C:\StencilPacks\Microsoft-Integration-and-Azure-Stencils-Pack-for-Visio` to generate a real graph from an external multi-`.vssx` Microsoft Integration/Azure stencil pack. The same example can be included in the Visio showcase by setting `OFFICEIMO_VISIO_INTEGRATION_STENCILS` to that pack root before running `--visio-showcase`.
-- Run `dotnet run --project OfficeIMO.Examples --framework net8.0 -- --visio-stencil-gallery C:\StencilPacks\Microsoft-Integration-and-Azure-Stencils-Pack-for-Visio` to generate a contact-sheet VSDX that shows which masters OfficeIMO can load from an external stencil pack or pack directory.
-- Stencil catalogs can resolve friendly fallback queries with `catalog.FindBest("API Management Services", "Application Gateway")`, and graph diagrams can place catalog-backed nodes directly with `graph.StencilNode("gateway", "API gateway", catalog, "API Management Services", "Application Gateway")`.
+## Run
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0
+```
+
+Run a focused group when you are checking one package:
+
+```powershell
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --pdf-showcase
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --visio-showcase
+dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- --powerpoint
+```
+
+## Useful switches
+
+- `--pdf`: run the first-party PDF example set.
+- `--pdf-professional`: generate a professional `OfficeIMO.Pdf` report sample.
+- `--pdf-table-styles`: generate the Word-like table style gallery.
+- `--pdf-showcase`: generate richer statement, dashboard, and manipulation PDF samples.
+- `--powerpoint`: run PowerPoint examples.
+- `--modern-powerpoint`: generate the modern PowerPoint validation deck.
+- `--powerpoint-design-brief`: generate PowerPoint design-brief recommendations.
+- `--powerpoint-deck-plan`: generate a semantic deck-plan sample.
+- `--visio-showcase`: generate the curated Visio showcase set.
+- `--visio-native-preview`: add dependency-free native SVG and PNG previews to the Visio showcase.
+- `--visio-export` or `--visio-preview`: use Microsoft Visio desktop, when installed, to export preview artifacts.
+
+## Output
+
+Examples write generated files to the examples `Documents` output folder. Showcase modes may also write machine-readable summaries and browsable HTML galleries for review.
+
+## Boundaries
+
+- Runnable examples belong here.
+- Package README files should point to examples instead of embedding long sample catalogs.
+- Visual proof artifacts should be generated by examples/tests and cited from docs when needed, not pasted into package READMEs.
