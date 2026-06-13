@@ -1,62 +1,27 @@
-# OfficeIMO.Markdown.Html
+# OfficeIMO.Markdown.Html - HTML to Markdown conversion
 
-HTML to Markdown conversion for `OfficeIMO.Markdown`.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Markdown.Html)](https://www.nuget.org/packages/OfficeIMO.Markdown.Html)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markdown.Html?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Markdown.Html)
 
-`OfficeIMO.Markdown.Html` is the HTML ingestion layer for the OfficeIMO markdown stack. It converts HTML fragments or full documents into:
+`OfficeIMO.Markdown.Html` converts HTML fragments or full HTML documents into Markdown text and `OfficeIMO.Markdown` document models.
 
-- Markdown text
-- `MarkdownDoc` block models from `OfficeIMO.Markdown`
+## Install
 
-The goal is not just "good looking output", but a structural conversion that keeps as much meaningful ordering and block shape as the current markdown AST allows.
+```powershell
+dotnet add package OfficeIMO.Markdown.Html
+```
 
-## Design goals
-
-- Convert HTML into a real `MarkdownDoc` first, then render Markdown text from that model.
-- Preserve block ordering whenever HTML mixes paragraphs with quotes, nested lists, details blocks, and other supported structures.
-- Resolve links and images consistently when a base URI is supplied.
-- Preserve unsupported HTML explicitly when requested instead of silently flattening everything away.
-
-## Current conversion model
-
-Supported block-level mappings include:
-
-- headings
-- paragraphs
-- ordered and unordered lists
-- block quotes
-- fenced code blocks from `pre` / `code`
-- horizontal rules
-- tables
-- images and figures
-- details / summary
-- definition lists
-- shared `data-omd-*` visual host elements back into semantic fenced blocks
-- raw HTML fallback blocks for unsupported elements
-
-Supported inline mappings include:
-
-- emphasis and strong emphasis
-- strike-through
-- code spans
-- links
-- images
-- hard line breaks
-- typed inline HTML wrappers for `q`, `u`, `ins`, `sub`, and `sup`
-- a conservative raw/passthrough fallback for unsupported inline HTML when preservation is enabled
-
-## Usage
-
-### Convert to Markdown text
+## Quick start
 
 ```csharp
 using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 
-var markdown = "<h1>Hello</h1><p>Body</p>".ToMarkdown();
-var document = "<h1>Hello</h1><p>Body</p>".LoadFromHtml();
+string markdown = "<h1>Hello</h1><p>Body</p>".ToMarkdown();
+MarkdownDoc document = "<h1>Hello</h1><p>Body</p>".LoadFromHtml();
 ```
 
-### Convert with options
+## Options
 
 ```csharp
 using OfficeIMO.Markdown.Html;
@@ -71,129 +36,32 @@ var options = new HtmlToMarkdownOptions {
 string markdown = "<p><a href=\"guide/start\">Docs</a></p>".ToMarkdown(options);
 ```
 
-### Convert with portable markdown output
+## What it maps
+
+- Headings, paragraphs, ordered and unordered lists, block quotes, code blocks, horizontal rules, tables, images, figures, details/summary, definition lists, and raw HTML fallback blocks.
+- Emphasis, strong emphasis, strike-through, code spans, links, images, line breaks, and selected inline HTML wrappers.
+- Relative links and image targets when a base URI is supplied.
+- Shared `data-omd-*` visual host elements back into semantic fenced blocks when host hints are registered.
+- Custom block and inline converters for host or plug-in packages.
+
+## Profiles
+
+- Use the OfficeIMO profile when the downstream consumer is `OfficeIMO.Markdown` or `OfficeIMO.MarkdownRenderer`.
+- Use the portable profile when output should remain friendly to generic Markdown engines.
 
 ```csharp
-using OfficeIMO.Markdown.Html;
-
 var options = HtmlToMarkdownOptions.CreatePortableProfile();
-
-string markdown = """
-<blockquote>
-  <p><strong>Example</strong></p>
-  <p>Body text</p>
-</blockquote>
-""".ToMarkdown(options);
+string portable = "<blockquote><p><strong>Example</strong></p></blockquote>".ToMarkdown(options);
 ```
 
-Use the portable profile when HTML ingestion should produce generic markdown output instead of OfficeIMO-specific block syntax.
+## Boundaries
 
-### Convert to `MarkdownDoc`, then choose the markdown writer profile explicitly
+- This package owns HTML ingestion into Markdown.
+- It does not render Markdown to a host shell; that belongs in `OfficeIMO.MarkdownRenderer`.
+- It does not export to PDF; that belongs in `OfficeIMO.Markdown.Pdf` and `OfficeIMO.Pdf`.
 
-```csharp
-using OfficeIMO.Markdown;
-using OfficeIMO.Markdown.Html;
+## Targets and license
 
-var converter = new HtmlToMarkdownConverter();
-var document = converter.ConvertToDocument("""
-<table>
-  <tr><th>Name</th><th>Notes</th></tr>
-  <tr><td>Alice</td><td><p>Line one</p><blockquote><p>Line two</p></blockquote></td></tr>
-</table>
-""");
-
-var officeMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
-var portableMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreatePortableProfile());
-```
-
-This is the cleanest path when HTML ingestion fidelity matters first and the markdown serialization contract is a separate downstream decision.
-
-### Use the converter directly
-
-```csharp
-using OfficeIMO.Markdown.Html;
-
-var converter = new HtmlToMarkdownConverter();
-var document = converter.ConvertToDocument("<article><h1>Hello</h1><p>Body</p></article>");
-```
-
-## Options
-
-- `BaseUri`
-  Resolves relative link and image targets against a document base.
-- `UseBodyContentsOnly`
-  Uses `<body>` content when present instead of converting the whole HTML document node tree.
-- `RemoveScriptsAndStyles`
-  Drops `script`, `style`, `noscript`, and `template`.
-- `PreserveUnsupportedBlocks`
-  Emits unsupported block elements as `HtmlRawBlock` instead of dropping them.
-- `PreserveUnsupportedInlineHtml`
-  Emits unsupported inline elements as raw HTML instead of flattening them to plain text only.
-- `MarkdownWriteOptions`
-  Controls how the intermediate `MarkdownDoc` is serialized back to markdown text.
-  Use `HtmlToMarkdownOptions.CreatePortableProfile()` when portability matters more than preserving OfficeIMO-style output.
-- `VisualElementRoundTripHints`
-  Ordered hint list for hosts/plugins that want to reinterpret shared `data-omd-*` visual elements into richer `SemanticFencedBlock` nodes during HTML ingestion.
-  When the host also references `OfficeIMO.MarkdownRenderer`, prefer `htmlOptions.ApplyPlugin(...)` or `htmlOptions.ApplyFeaturePack(...)` so plugin-carried hint registration stays idempotent and aligned with the renderer contract.
-- `DocumentTransforms`
-  Ordered post-conversion AST transforms for hosts/plugins that want HTML ingestion to normalize or upgrade the recovered `MarkdownDoc` before markdown writing.
-  When the host also references `OfficeIMO.MarkdownRenderer`, `htmlOptions.ApplyPlugin(...)` and `htmlOptions.ApplyFeaturePack(...)` now carry plugin-owned document transforms too.
-- `ElementBlockConverters`
-  Ordered custom HTML element decoders that run before the base converter falls back to generic block handling.
-  Use these when a host/plugin package needs to recover semantic markdown blocks from vendor-specific HTML that never used the shared `data-omd-*` visual contract.
-  When the host also references `OfficeIMO.MarkdownRenderer`, `htmlOptions.ApplyPlugin(...)` and `htmlOptions.ApplyFeaturePack(...)` now carry plugin-owned element converters too.
-- `InlineElementConverters`
-  Ordered custom HTML inline decoders that run before the base converter falls back to generic inline handling.
-  Use these when a host/plugin package needs to recover richer inline AST, such as vendor badges or semantic spans, instead of preserving raw HTML or flattening to plain text.
-  When the host also references `OfficeIMO.MarkdownRenderer`, `htmlOptions.ApplyPlugin(...)` and `htmlOptions.ApplyFeaturePack(...)` now carry plugin-owned inline converters too.
-
-## Profile guidance
-
-- `CreateOfficeIMOProfile()`
-  Best when the downstream consumer is `OfficeIMO.Markdown`/`OfficeIMO.MarkdownRenderer` and can benefit from richer OfficeIMO block syntax.
-- `CreatePortableProfile()`
-  Best when the downstream consumer is a generic markdown engine, HTML reconversion flow, or another parser that should not depend on OfficeIMO-only syntax.
-
-The important split is:
-
-- `HtmlToMarkdownOptions`
-  Controls HTML ingestion behavior and preservation choices.
-- `MarkdownWriteOptions`
-  Controls how the intermediate AST is written back to markdown text.
-
-That means `OfficeIMO.Markdown.Html` is no longer just a text flattener. It is an HTML-to-AST bridge with a configurable markdown writer on the output side.
-
-## Structural notes
-
-- Mixed block order inside list items is preserved.
-- Multiple `dd` values for the same `dt` are preserved.
-- Multiple `dt` terms sharing the same `dd` group are preserved.
-- Block-rich `dd` values are preserved as typed block content instead of being forced through inline-only conversion.
-- Table cells preserve typed block content in the intermediate `MarkdownDoc` AST instead of collapsing immediately to strings.
-- Supported inline HTML such as `q`, `u`, `ins`, `sub`, and `sup` is preserved as typed AST wrappers instead of being flattened to plain text.
-- Unsupported custom/container elements are treated as block-level content when they are structurally block-like or when raw block preservation is enabled.
-- Shared renderer visual hosts that carry the `data-omd-*` contract are decoded back into `SemanticFencedBlock` nodes, which lets `OfficeIMO.MarkdownRenderer` HTML round-trip into semantic markdown fences.
-- Shared renderer visual hosts now preserve explicit fence metadata such as `#id`, extra `.class` values, `title="..."`, and plugin-defined flags through `data-omd-fence-*` attributes, so HTML round-trips can rebuild richer semantic fence info strings instead of dropping back to language-only fences.
-- Shared visual hosts wrapped as richer HTML, such as `<figure>` with a `<figcaption>`, now preserve that caption on the recovered semantic fenced block instead of dropping it.
-- Host/plugin packages can register custom `ElementBlockConverters` when richer vendor HTML should decode into semantic markdown blocks before generic fallback or raw-HTML preservation.
-- Host/plugin packages can register custom `InlineElementConverters` when richer vendor inline HTML should decode into semantic inline AST before generic fallback or raw-HTML preservation.
-- Host/plugin packages can register `VisualElementRoundTripHints` when they need to recover extra semantic details from shared visual host HTML without hard-coding vendor logic into the base converter.
-- Host/plugin packages can also register `DocumentTransforms` when recovered HTML should be normalized or upgraded into richer AST shapes after parsing.
-- When those hosts already use `OfficeIMO.MarkdownRenderer` plugins or feature packs, they can apply the same contract directly on `HtmlToMarkdownOptions` instead of copying converter, transform, and hint lists by hand.
-- Conversion happens through the `OfficeIMO.Markdown` AST, so the effective fidelity is bounded by that model.
-
-For the current stack, this means HTML ingestion can preserve more structure than plain markdown text can always express directly. The AST is the source of truth; markdown emission is the profile-driven projection of that model.
-
-## Current limitations
-
-- Markdown text emission is still constrained by markdown syntax itself, so rich table-cell and definition-list AST content may be flattened when serialized for engines that only accept plain markdown text.
-- Downstream converters may still choose deliberate degradations for AST-preserved HTML wrappers when the target format has no native equivalent. For example, the Word converter keeps `u/sub/sup` structurally but intentionally degrades `ins` and `q`.
-- Portable output intentionally degrades OfficeIMO-specific constructs instead of preserving host-specific syntax.
-- Unsupported HTML is preserved best when `PreserveUnsupportedBlocks` / `PreserveUnsupportedInlineHtml` are enabled.
-
-## Related packages
-
-- `OfficeIMO.Markdown`
-  Core markdown AST, reader, and writer.
-- `OfficeIMO.Reader.Html`
-  HTML ingestion and chunking built on top of this converter.
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

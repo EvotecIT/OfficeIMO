@@ -24,10 +24,22 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
     public string Title { get; set; } = "Table of Contents";
     /// <summary>Heading level for the title when an output format renders it as a heading.</summary>
     public int TitleLevel { get; set; } = 2;
+    /// <summary>Minimum heading level included by the table of contents.</summary>
+    public int MinLevel { get; set; } = TocOptions.DefaultMinLevel;
+    /// <summary>Maximum heading level included by the table of contents.</summary>
+    public int MaxLevel { get; set; } = TocOptions.DefaultMaxLevel;
     /// <summary>Preferred visual layout for output formats that support TOC chrome.</summary>
     public TocLayout Layout { get; set; } = TocLayout.List;
     /// <summary>Preferred visual chrome for output formats that support TOC containers.</summary>
     public TocChrome Chrome { get; set; } = TocChrome.Default;
+    /// <summary>Scope used when the TOC entries were realized from a placeholder.</summary>
+    public TocScope Scope { get; set; } = TocScope.Document;
+    /// <summary>Heading title used when <see cref="Scope"/> is <see cref="TocScope.HeadingTitle"/>.</summary>
+    public string? ScopeHeadingTitle { get; set; }
+    /// <summary>When true, top-level headings are included even when <see cref="MinLevel"/> starts deeper.</summary>
+    public bool RequireTopLevel { get; set; } = true;
+    /// <summary>True when a TOC builder already emitted the title as the preceding heading.</summary>
+    public bool TitleHeadingAlreadyRendered { get; set; }
     /// <summary>Entries included in the TOC.</summary>
     public List<Entry> Entries { get; } = new List<Entry>();
 

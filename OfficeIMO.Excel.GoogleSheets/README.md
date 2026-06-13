@@ -1,13 +1,15 @@
-# OfficeIMO.Excel.GoogleSheets
+# OfficeIMO.Excel.GoogleSheets - Excel to Google Sheets export
 
-Excel to Google Sheets planning, batch compilation, and export helpers built on top of `OfficeIMO.Excel` and `OfficeIMO.GoogleWorkspace`.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel.GoogleSheets)](https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel.GoogleSheets?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets)
 
-## Highlights
+`OfficeIMO.Excel.GoogleSheets` builds translation plans and export requests for sending `OfficeIMO.Excel` workbooks to Google Sheets through `OfficeIMO.GoogleWorkspace`.
 
-- Build a translation plan before sending anything to Google Sheets.
-- Export to a new spreadsheet or replace an existing spreadsheet via `ExistingFileId`.
-- Apply session-level default Drive and folder placement through `GoogleWorkspaceSessionOptions`.
-- Automatically retry transient Google API failures and surface successful retries in `TranslationReport`.
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Excel.GoogleSheets
+```
 
 ## Quick start
 
@@ -28,60 +30,36 @@ var session = new GoogleWorkspaceSession(
     new GoogleWorkspaceSessionOptions {
         DefaultFolderId = "reports-folder-id",
         MaxRetryCount = 5,
-        RetryBaseDelay = TimeSpan.FromMilliseconds(250),
-        RetryMaxDelay = TimeSpan.FromSeconds(10),
-        DiagnosticSink = entry => Console.WriteLine($"{entry.Severity}: {entry.Feature} [{entry.FailureKind}] - {entry.Message}"),
+        DiagnosticSink = entry => Console.WriteLine($"{entry.Severity}: {entry.Feature} - {entry.Message}")
     });
 
 var options = new GoogleSheetsSaveOptions {
-    Title = "Quarterly revenue",
+    Title = "Quarterly revenue"
 };
 
 var plan = workbook.CreateGoogleSheetsTranslationPlan(options);
-foreach (var notice in plan.Report.Notices) {
-    Console.WriteLine($"{notice.Severity}: {notice.Feature} - {notice.Message}");
-}
-
 var result = await workbook.ExportToGoogleSheetsAsync(session, options);
+
 Console.WriteLine(result.SpreadsheetId);
 Console.WriteLine(result.WebViewLink);
 ```
 
-`StaticAccessTokenCredentialSource` is provided by [OfficeIMO.GoogleWorkspace](../OfficeIMO.GoogleWorkspace/README.md).
+## What it does
 
-## Handling failures
+- Builds a translation plan before network export.
+- Exports to a new Google Sheets spreadsheet or replaces an existing spreadsheet through `Location.ExistingFileId`.
+- Uses session-level default Drive and folder placement.
+- Preserves retry, warning, and failure detail through `TranslationReport`.
+- Throws Google Workspace export exceptions that retain failure category and diagnostics.
 
-```csharp
-try {
-    var result = await workbook.ExportToGoogleSheetsAsync(session, options);
-    Console.WriteLine(result.SpreadsheetId);
-} catch (GoogleWorkspaceExportException exception) {
-    foreach (var entry in exception.ToDiagnosticEntries()) {
-        Console.WriteLine($"{entry.Severity}: {entry.Feature} [{entry.FailureKind}] - {entry.Message}");
-    }
-}
-```
+## Boundaries
 
-## Replace an existing spreadsheet
+- Workbook modeling belongs in `OfficeIMO.Excel`.
+- Credentials, sessions, retry, Drive placement, and report primitives belong in `OfficeIMO.GoogleWorkspace`.
+- This package owns Excel-to-Google-Sheets mapping and export request construction.
 
-```csharp
-var result = await workbook.ExportToGoogleSheetsAsync(
-    session,
-    new GoogleSheetsSaveOptions {
-        Title = "Quarterly revenue",
-        Location = new GoogleDriveFileLocation {
-            ExistingFileId = "spreadsheet-id",
-        },
-    });
-```
+## Targets and license
 
-## Operational notes
-
-- If `Location.FolderId` is omitted, the exporter falls back to `GoogleWorkspaceSessionOptions.DefaultFolderId`.
-- If `Location.DriveId` is omitted, the exporter falls back to `GoogleWorkspaceSessionOptions.DefaultDriveId`.
-- Successful retries are recorded as `ApiRetries` notices on `GoogleSpreadsheetReference.Report`.
-- `GoogleWorkspaceSessionOptions.DiagnosticSink` can stream retry and failure diagnostics while the export is still running.
-- Failed exports throw `GoogleWorkspaceExportException`, which preserves `FailureKind` and the collected `TranslationReport`.
-- Caller cancellation throws `GoogleWorkspaceExportCanceledException`, so cancellation can still be handled separately from timeout or API instability.
-- API failures prefer parsed Google status and reason codes when Google returns a structured JSON error body.
-- Use `CreateGoogleSheetsBatch(...)` when you want the provider-neutral request model without making network calls.
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

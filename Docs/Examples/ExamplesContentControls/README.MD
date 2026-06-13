@@ -1,4 +1,4 @@
-## Using Content Controls (Structured Document Tags)
+# Using Content Controls (Structured Document Tags)
 
 `OfficeIMO` allows inserting and editing simple content controls.
 The example below creates a document with a single control, assigns a tag and updates its text.

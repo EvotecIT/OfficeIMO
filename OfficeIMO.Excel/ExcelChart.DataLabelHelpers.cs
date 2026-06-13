@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
             ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
 
             if (position != null) {
-                ReplaceChild(labels, new C.DataLabelPosition { Val = NormalizeDataLabelPosition(chartElement, position.Value) });
+                ApplyDataLabelPosition(labels, chartElement, position.Value);
             }
 
             if (numberFormat != null) {
@@ -408,7 +408,7 @@ namespace OfficeIMO.Excel {
                 ReplaceChild(label, new C.ShowBubbleSize { Val = showBubbleSize.Value });
             }
             if (position != null) {
-                ReplaceChild(label, new C.DataLabelPosition { Val = NormalizeDataLabelPosition(label, position.Value) });
+                ApplyDataLabelPosition(label, label, position.Value);
             }
             if (numberFormat != null) {
                 ReplaceChild(label, new C.NumberingFormat {
@@ -441,19 +441,39 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static C.DataLabelPositionValues NormalizeDataLabelPosition(OpenXmlElement context, C.DataLabelPositionValues position) {
-            if (position != C.DataLabelPositionValues.OutsideEnd) {
-                return position;
+        private static void ApplyDataLabelPosition(OpenXmlCompositeElement labelContainer, OpenXmlElement context, C.DataLabelPositionValues position) {
+            if (TryNormalizeDataLabelPosition(context, position, out var normalizedPosition)) {
+                ReplaceChild(labelContainer, new C.DataLabelPosition { Val = normalizedPosition });
+                return;
             }
 
-            // Excel repairs line charts that contain an outEnd data label position.
+            labelContainer.RemoveAllChildren<C.DataLabelPosition>();
+        }
+
+        private static bool TryNormalizeDataLabelPosition(OpenXmlElement context, C.DataLabelPositionValues position, out C.DataLabelPositionValues normalizedPosition) {
+            normalizedPosition = position;
+
             for (OpenXmlElement? current = context; current != null; current = current.Parent) {
-                if (current is C.LineChart || current is C.Line3DChart || current is C.LineChartSeries) {
-                    return C.DataLabelPositionValues.Top;
+                if (current is C.DoughnutChart) {
+                    return position != C.DataLabelPositionValues.BestFit;
+                }
+
+                if (position == C.DataLabelPositionValues.OutsideEnd
+                    && (current is C.LineChart || current is C.Line3DChart || current is C.LineChartSeries)) {
+                    normalizedPosition = C.DataLabelPositionValues.Top;
+                    return true;
+                }
+
+                if (position == C.DataLabelPositionValues.OutsideEnd && current is C.BarChart barChart) {
+                    var grouping = barChart.BarGrouping?.Val?.Value;
+                    if (grouping == C.BarGroupingValues.Stacked || grouping == C.BarGroupingValues.PercentStacked) {
+                        normalizedPosition = C.DataLabelPositionValues.Center;
+                        return true;
+                    }
                 }
             }
 
-            return position;
+            return true;
         }
 
         private static void ApplyDataLabelTemplate(OpenXmlCompositeElement series, ExcelChartDataLabelTemplate template) {

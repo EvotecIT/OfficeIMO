@@ -1,4 +1,4 @@
-## Custom bullet lists with colors
+# Custom bullet lists with colors
 
 This example shows how to create bullet lists using `AddCustomBulletList` and set the bullet color and font.
 

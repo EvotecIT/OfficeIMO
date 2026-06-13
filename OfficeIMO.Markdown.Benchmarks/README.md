@@ -1,21 +1,18 @@
 # OfficeIMO.Markdown.Benchmarks
 
-Internal benchmark harness for `OfficeIMO.Markdown`.
+`OfficeIMO.Markdown.Benchmarks` contains benchmark and comparison workloads for the Markdown builder, reader, renderer, and related conversion paths. It is not a NuGet-facing runtime package.
 
-It measures representative parse and HTML-render workloads for:
+## Use
 
-- OfficeIMO default reader behavior
-- OfficeIMO portable reader profile
-- the internal comparison baseline used in parity work
-
-Run with:
+Run benchmarks from the repository root with the repo's normal .NET SDK:
 
 ```powershell
-dotnet run -c Release --project .\OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj
+dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release
 ```
 
-Filter a specific benchmark class with:
+## Boundaries
 
-```powershell
-dotnet run -c Release --project .\OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj -- --filter *MarkdownParseBenchmarks*
-```
+- Benchmark scenarios belong here.
+- Runtime Markdown behavior belongs in `OfficeIMO.Markdown`.
+- Renderer host behavior belongs in `OfficeIMO.MarkdownRenderer`.
+- Release decisions should use benchmark evidence together with correctness tests and representative document fixtures.

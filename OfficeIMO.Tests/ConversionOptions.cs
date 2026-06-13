@@ -182,8 +182,28 @@ public class ConversionOptionsTests {
 
     [Fact]
     public void WordToMarkdownOptions_ExposeFontFamily() {
-        var options = new WordToMarkdownOptions { FontFamily = "Arial" };
+        var options = new WordToMarkdownOptions {
+            FontFamily = "Arial",
+            PageBreakMode = MarkdownPageBreakMode.HorizontalRule,
+            UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder,
+            VisualFallbackMode = MarkdownVisualFallbackMode.SvgFile,
+            VisualFallbackDirectory = "assets",
+            VisualFallbackPathPrefix = "assets"
+        };
         Assert.Equal("Arial", options.FontFamily);
+        Assert.Equal(MarkdownPageBreakMode.HorizontalRule, options.PageBreakMode);
+        Assert.Equal(MarkdownUnsupportedContentMode.Placeholder, options.UnsupportedContentMode);
+        Assert.Equal(MarkdownVisualFallbackMode.SvgFile, options.VisualFallbackMode);
+        Assert.Equal("assets", options.VisualFallbackDirectory);
+        Assert.Equal("assets", options.VisualFallbackPathPrefix);
+    }
+
+    [Fact]
+    public void MarkdownToWordOptions_EnableBoundedDataUriImagesByDefault() {
+        var options = new MarkdownToWordOptions();
+
+        Assert.True(options.AllowDataUriImages);
+        Assert.Equal(32L * 1024L * 1024L, options.MaxDataUriImageBytes);
     }
 
     [Fact]

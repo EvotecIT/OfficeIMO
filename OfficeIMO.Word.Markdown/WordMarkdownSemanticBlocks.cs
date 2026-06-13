@@ -12,11 +12,17 @@ public static class WordMarkdownSemanticBlocks {
     /// <summary>Semantic kind used for Word footer payloads.</summary>
     public const string FooterSemanticKind = "word-footer";
 
+    /// <summary>Semantic kind used for Word page-break payloads.</summary>
+    public const string PageBreakSemanticKind = "word-page-break";
+
     /// <summary>Fence language used for Word header payloads.</summary>
     public const string HeaderFenceLanguage = "officeimo-word-header";
 
     /// <summary>Fence language used for Word footer payloads.</summary>
     public const string FooterFenceLanguage = "officeimo-word-footer";
+
+    /// <summary>Fence language used for Word page-break payloads.</summary>
+    public const string PageBreakFenceLanguage = "officeimo-word-page-break";
 
     /// <summary>
     /// Creates reader options with the Word header/footer semantic fenced-block extensions registered.
@@ -47,6 +53,12 @@ public static class WordMarkdownSemanticBlocks {
             FooterFenceLanguage,
             FooterSemanticKind,
             "Word footer semantic block");
+
+        AddExtensionIfMissing(
+            options,
+            PageBreakFenceLanguage,
+            PageBreakSemanticKind,
+            "Word page-break semantic block");
     }
 
     private static void AddExtensionIfMissing(

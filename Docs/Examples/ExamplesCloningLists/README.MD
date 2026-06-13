@@ -1,4 +1,4 @@
-## Cloning lists with numbering settings
+# Cloning lists with numbering settings
 
 This snippet demonstrates how `WordList.Clone` duplicates a list while keeping restart numbering and level overrides intact.
 

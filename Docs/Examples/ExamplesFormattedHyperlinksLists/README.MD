@@ -1,4 +1,4 @@
-## Hyperlink lists with formatting reuse
+# Hyperlink lists with formatting reuse
 
 This example demonstrates how to build two bullet lists of hyperlinks where the second list reuses the formatting from the first one.
 

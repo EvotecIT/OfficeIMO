@@ -187,6 +187,11 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--markdown-advanced") || HasArgument(args, "--markdown-visual-fallback")) {
+                Word.Converters.Markdown06_AdvancedWordRoundTrip.Example(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
             if (HasArgument(args, "--visio-premium") || HasArgument(args, "--premium-visio")) {
                 Visio.PremiumVisioShowcase.Example_PremiumVisioShowcase(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"));
                 return;

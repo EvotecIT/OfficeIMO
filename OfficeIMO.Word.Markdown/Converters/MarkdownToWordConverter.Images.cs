@@ -86,6 +86,294 @@ namespace OfficeIMO.Word.Markdown {
             return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
         }
 
+        private static void RenderMarkdownImageIntoParagraph(
+            WordParagraph paragraph,
+            string pathOrUrl,
+            string? alt,
+            double? requestedWidth,
+            double? requestedHeight,
+            MarkdownToWordOptions options,
+            double pageContentWidthPixels,
+            int listLevel,
+            int quoteDepth,
+            string contextPrefix) {
+            var imageSource = pathOrUrl ?? string.Empty;
+            var contextWidthLimit = ResolveContextWidthLimitPixels(options.ImageLayout, pageContentWidthPixels, listLevel, quoteDepth);
+
+            if (TryRenderDataUriImage(paragraph, imageSource, alt, requestedWidth, requestedHeight, options, pageContentWidthPixels, contextWidthLimit, contextPrefix)) {
+                return;
+            }
+
+            if (System.IO.File.Exists(imageSource)) {
+                if (options.AllowLocalImages && LocalPathAllowed(imageSource, options)) {
+                    double? naturalW = null;
+                    double? naturalH = null;
+                    if (TryGetImageDimensionsFromFile(imageSource, out var fileW, out var fileH)) {
+                        naturalW = fileW;
+                        naturalH = fileH;
+                    }
+
+                    ResolveImageDimensions(
+                        options,
+                        source: imageSource,
+                        context: contextPrefix + "-local",
+                        requestedWidth: requestedWidth,
+                        requestedHeight: requestedHeight,
+                        naturalWidth: naturalW,
+                        naturalHeight: naturalH,
+                        pageContentWidthPixels: pageContentWidthPixels,
+                        contextWidthLimitPixels: contextWidthLimit,
+                        out var finalW,
+                        out var finalH,
+                        out _);
+
+                    paragraph.AddImage(imageSource, finalW, finalH, description: alt ?? string.Empty);
+                } else {
+                    AddImageFallbackText(paragraph, alt, System.IO.Path.GetFileName(imageSource), options);
+                }
+
+                return;
+            }
+
+            if (System.Uri.TryCreate(imageSource, System.UriKind.Absolute, out var uri)) {
+                if (options.AllowedImageSchemes.Contains(uri.Scheme) &&
+                    (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
+                    if (options.AllowRemoteImages) {
+                        try {
+                            var bytes = DownloadRemoteImageBytes(uri, options);
+                            var fileName = System.IO.Path.GetFileName(uri.LocalPath);
+                            if (string.IsNullOrWhiteSpace(fileName)) {
+                                fileName = "image";
+                            }
+
+                            double? naturalW = null;
+                            double? naturalH = null;
+                            if (TryGetImageDimensionsFromBytes(bytes, out var remoteW, out var remoteH)) {
+                                naturalW = remoteW;
+                                naturalH = remoteH;
+                            }
+
+                            ResolveImageDimensions(
+                                options,
+                                source: uri.ToString(),
+                                context: contextPrefix + "-remote",
+                                requestedWidth: requestedWidth,
+                                requestedHeight: requestedHeight,
+                                naturalWidth: naturalW,
+                                naturalHeight: naturalH,
+                                pageContentWidthPixels: pageContentWidthPixels,
+                                contextWidthLimitPixels: contextWidthLimit,
+                                out var finalW,
+                                out var finalH,
+                                out _);
+
+                            using var stream = new System.IO.MemoryStream(bytes, writable: false);
+                            paragraph.AddImage(stream, fileName, finalW, finalH, description: alt ?? string.Empty);
+                        } catch (Exception ex) {
+                            options.OnWarning?.Invoke($"Remote image '{uri}' could not be downloaded. {ex.Message}");
+                            if (options.FallbackRemoteImagesToHyperlinks) {
+                                paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
+                            }
+                        }
+                    } else if (options.FallbackRemoteImagesToHyperlinks) {
+                        paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
+                    }
+                } else if (options.FallbackRemoteImagesToHyperlinks) {
+                    paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
+                }
+
+                return;
+            }
+
+            AddImageFallbackText(paragraph, alt, imageSource, options);
+        }
+
+        private static bool TryRenderDataUriImage(
+            WordParagraph paragraph,
+            string source,
+            string? alt,
+            double? requestedWidth,
+            double? requestedHeight,
+            MarkdownToWordOptions options,
+            double pageContentWidthPixels,
+            double? contextWidthLimit,
+            string contextPrefix) {
+            if (!source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if (!options.AllowDataUriImages) {
+                options.OnWarning?.Invoke("Data URI image was skipped because AllowDataUriImages is disabled.");
+                AddImageFallbackText(paragraph, alt, string.Empty, options);
+                return true;
+            }
+
+            if (!TryDecodeDataUriImage(source, options, out var bytes, out var fileName, out var warning)) {
+                if (!string.IsNullOrWhiteSpace(warning)) {
+                    options.OnWarning?.Invoke(warning!);
+                }
+
+                AddImageFallbackText(paragraph, alt, string.Empty, options);
+                return true;
+            }
+
+            double? naturalW = null;
+            double? naturalH = null;
+            if (TryGetImageDimensionsFromBytes(bytes, out var dataW, out var dataH)) {
+                naturalW = dataW;
+                naturalH = dataH;
+            }
+
+            ResolveImageDimensions(
+                options,
+                source: "data:image",
+                context: contextPrefix + "-data-uri",
+                requestedWidth: requestedWidth,
+                requestedHeight: requestedHeight,
+                naturalWidth: naturalW,
+                naturalHeight: naturalH,
+                pageContentWidthPixels: pageContentWidthPixels,
+                contextWidthLimitPixels: contextWidthLimit,
+                out var finalW,
+                out var finalH,
+                out _);
+
+            using var stream = new System.IO.MemoryStream(bytes, writable: false);
+            try {
+                paragraph.AddImage(stream, fileName, finalW, finalH, description: alt ?? string.Empty);
+            } catch (Exception ex) when (IsRecoverableDataUriImageInsertionException(ex)) {
+                options.OnWarning?.Invoke($"Data URI image could not be inserted as a supported Word image. {ex.Message}");
+                AddImageFallbackText(paragraph, alt, string.Empty, options);
+            }
+
+            return true;
+        }
+
+        private static bool IsRecoverableDataUriImageInsertionException(Exception ex) =>
+            ex is ImageFormatNotSupportedException ||
+            ex is System.IO.InvalidDataException ||
+            ex is ArgumentException ||
+            ex is DocumentFormat.OpenXml.Packaging.OpenXmlPackageException;
+
+        private static bool TryDecodeDataUriImage(
+            string source,
+            MarkdownToWordOptions options,
+            out byte[] bytes,
+            out string fileName,
+            out string? warning) {
+            bytes = Array.Empty<byte>();
+            fileName = "image.png";
+            warning = null;
+
+            int commaIndex = source.IndexOf(',');
+            if (commaIndex < 0) {
+                warning = "Data URI image is missing a payload separator.";
+                return false;
+            }
+
+            string metadata = source.Substring(5, commaIndex - 5);
+            string payload = source.Substring(commaIndex + 1);
+            var metadataParts = metadata.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries);
+            string contentType = metadataParts.Length > 0 ? metadataParts[0].Trim() : string.Empty;
+            if (!contentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
+                warning = $"Data URI content type '{contentType}' is not an image.";
+                return false;
+            }
+
+            bool base64 = metadataParts.Any(part => string.Equals(part.Trim(), "base64", StringComparison.OrdinalIgnoreCase));
+            if (!base64) {
+                warning = "Data URI image payload must be base64 encoded.";
+                return false;
+            }
+
+            if (options.MaxDataUriImageBytes >= 0 &&
+                TryEstimateBase64DecodedLength(payload, out long estimatedBytes) &&
+                estimatedBytes > options.MaxDataUriImageBytes) {
+                warning = $"Data URI image payload is at least {estimatedBytes} bytes, exceeding the configured limit of {options.MaxDataUriImageBytes} bytes.";
+                return false;
+            }
+
+            try {
+                bytes = System.Convert.FromBase64String(payload);
+            } catch (FormatException ex) {
+                warning = $"Data URI image payload could not be decoded. {ex.Message}";
+                return false;
+            }
+
+            if (options.MaxDataUriImageBytes >= 0 && bytes.LongLength > options.MaxDataUriImageBytes) {
+                warning = $"Data URI image payload is {bytes.LongLength} bytes, exceeding the configured limit of {options.MaxDataUriImageBytes} bytes.";
+                bytes = Array.Empty<byte>();
+                return false;
+            }
+
+            fileName = "image" + ResolveImageExtension(contentType);
+            return true;
+        }
+
+        private static bool TryEstimateBase64DecodedLength(string payload, out long decodedLength) {
+            decodedLength = 0;
+            long meaningfulLength = 0;
+            int padding = 0;
+            bool countingPadding = true;
+            for (int i = payload.Length - 1; i >= 0 && countingPadding; i--) {
+                char c = payload[i];
+                if (char.IsWhiteSpace(c)) {
+                    continue;
+                }
+
+                if (c == '=' && padding < 2) {
+                    padding++;
+                    continue;
+                }
+
+                countingPadding = false;
+            }
+
+            for (int i = 0; i < payload.Length; i++) {
+                if (!char.IsWhiteSpace(payload[i])) {
+                    meaningfulLength++;
+                }
+            }
+
+            if (meaningfulLength == 0) {
+                return true;
+            }
+
+            long groups = (meaningfulLength + 3) / 4;
+            if (groups > long.MaxValue / 3) {
+                decodedLength = long.MaxValue;
+                return true;
+            }
+
+            decodedLength = groups * 3 - padding;
+            if (decodedLength < 0) {
+                decodedLength = 0;
+            }
+
+            return true;
+        }
+
+        private static string ResolveImageExtension(string contentType) {
+            return contentType.ToLowerInvariant() switch {
+                "image/jpeg" => ".jpg",
+                "image/jpg" => ".jpg",
+                "image/gif" => ".gif",
+                "image/bmp" => ".bmp",
+                "image/svg+xml" => ".svg",
+                "image/webp" => ".webp",
+                _ => ".png"
+            };
+        }
+
+        private static void AddImageFallbackText(WordParagraph paragraph, string? alt, string fallback, MarkdownToWordOptions options) {
+            var fallbackText = !string.IsNullOrEmpty(alt) ? alt! : fallback ?? string.Empty;
+            var text = paragraph.AddText(fallbackText);
+            var defaultFont = ResolveDefaultFontFamily(options);
+            if (!string.IsNullOrEmpty(defaultFont)) {
+                text.SetFontFamily(defaultFont!);
+            }
+        }
+
         private static double? ResolveContextWidthLimitPixels(
             MarkdownImageLayoutOptions layout,
             double pageContentWidthPixels,

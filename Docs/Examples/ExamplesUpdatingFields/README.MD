@@ -1,4 +1,4 @@
-## Updating fields programmatically
+# Updating fields programmatically
 
 `WordDocument` allows two approaches to refresh fields like page numbers or table of contents.
 

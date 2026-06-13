@@ -125,7 +125,8 @@ namespace OfficeIMO.Tests {
                 CreateDesktopExcelValuesWorkbook(Path.Combine(directory, "Values.Formulas.xlsx")),
                 CreateDesktopExcelTableWorkbook(Path.Combine(directory, "Table.Filter.Freeze.xlsx")),
                 CreateDesktopExcelFormattingWorkbook(Path.Combine(directory, "Formatting.Validation.xlsx")),
-                CreateDesktopExcelChartWorkbook(Path.Combine(directory, "Charts.ComboScatter.xlsx"))
+                CreateDesktopExcelChartWorkbook(Path.Combine(directory, "Charts.ComboScatter.xlsx")),
+                CreateDesktopExcelRecipeChartWorkbook(Path.Combine(directory, "Charts.Recipes.xlsx"))
             };
 
             AssertWorkbooksOpenViaExcelComWhenAvailable(files,
@@ -194,6 +195,35 @@ namespace OfficeIMO.Tests {
                 type: ExcelChartType.ColumnClustered, title: "Sales vs Trend");
             chart.SetSeriesDataLabels(1, showValue: true, position: DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues.Top)
                  .SetSeriesDataLabelForPoint(1, 2, showValue: true, position: DocumentFormat.OpenXml.Drawing.Charts.DataLabelPositionValues.OutsideEnd);
+
+            document.Save();
+            return filePath;
+        }
+
+        private static string CreateDesktopExcelRecipeChartWorkbook(string filePath) {
+            using var document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Revenue");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 10d);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 16d);
+            sheet.CellValue(4, 1, "Mar");
+            sheet.CellValue(4, 2, 13d);
+            sheet.AddTable("A1:B4", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9);
+
+            sheet.AddRevenueTrendChart("A1:B4", row: 1, column: 5);
+            sheet.AddTopNBarChart("A1:B4", row: 18, column: 5, title: "Top Revenue");
+            sheet.AddVarianceColumnChart("A1:B4", row: 35, column: 5, title: "Revenue Variance");
+            sheet.AddKpiScorecardChart("A1:B4", row: 52, column: 5, title: "Revenue KPI");
+            sheet.AddContributionChart("A1:B4", row: 69, column: 5, title: "Revenue Mix");
+            sheet.ChartFromTable("RevenueData")
+                .StatusBreakdown("Revenue Mix")
+                .At(86, 5);
+            sheet.ChartFromTable("RevenueData")
+                .VarianceWaterfall("Revenue Bridge")
+                .At(103, 5);
 
             document.Save();
             return filePath;

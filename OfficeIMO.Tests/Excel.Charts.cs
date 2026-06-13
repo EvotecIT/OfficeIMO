@@ -1288,6 +1288,120 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_ChartLayoutPlacesRecipeChartsWithoutOverlap() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.ChartLayout.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Dashboard");
+                sheet.CellValue(1, 1, "Status");
+                sheet.CellValue(1, 2, "Rules");
+                sheet.CellValue(2, 1, "High");
+                sheet.CellValue(2, 2, 5);
+                sheet.CellValue(3, 1, "Medium");
+                sheet.CellValue(3, 2, 3);
+                sheet.AddTable("A1:B3", hasHeader: true, name: "StatusData", style: OfficeIMO.Excel.TableStyle.TableStyleMedium4);
+
+                ExcelChartGridLayout layout = sheet.ChartLayout(row: 12, column: 4, widthPixels: 520, heightPixels: 300);
+                ExcelChartPlacement statusPlacement = layout.Next();
+                ExcelChartPlacement contributionPlacement = layout.Next();
+
+                sheet.AddStatusBreakdownChart("A1:B3", statusPlacement.Row, statusPlacement.Column, widthPixels: statusPlacement.WidthPixels, heightPixels: statusPlacement.HeightPixels);
+                sheet.AddContributionChart("A1:B3", contributionPlacement.Row, contributionPlacement.Column, widthPixels: contributionPlacement.WidthPixels, heightPixels: contributionPlacement.HeightPixels);
+                document.Save();
+
+                Assert.Equal(12, statusPlacement.Row);
+                Assert.Equal(4, statusPlacement.Column);
+                Assert.Equal(12, contributionPlacement.Row);
+                Assert.Equal(13, contributionPlacement.Column);
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
+                var anchors = wsPart.DrawingsPart!.WorksheetDrawing!
+                    .Elements<Xdr.OneCellAnchor>()
+                    .ToList();
+
+                Assert.Equal(2, anchors.Count);
+                Assert.Equal("3", anchors[0].FromMarker!.ColumnId!.Text);
+                Assert.Equal("12", anchors[1].FromMarker!.ColumnId!.Text);
+                Assert.Equal(4953000L, anchors[0].Extent!.Cx!.Value);
+                Assert.Equal(2857500L, anchors[0].Extent!.Cy!.Value);
+                Assert.Equal(4953000L, anchors[1].Extent!.Cx!.Value);
+                Assert.Equal(2857500L, anchors[1].Extent!.Cy!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_PieOutsideEndDataLabelsArePreserved() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.PieOutsideEndLabels.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Pie");
+                sheet.CellValue(1, 1, "Status");
+                sheet.CellValue(1, 2, "Rules");
+                sheet.CellValue(2, 1, "High");
+                sheet.CellValue(2, 2, 5);
+                sheet.CellValue(3, 1, "Medium");
+                sheet.CellValue(3, 2, 3);
+
+                sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 480, heightPixels: 300, type: ExcelChartType.Pie, title: "Status")
+                    .SetDataLabels(
+                        showValue: false,
+                        showCategoryName: true,
+                        showSeriesName: false,
+                        showLegendKey: false,
+                        showPercent: true,
+                        position: C.DataLabelPositionValues.OutsideEnd,
+                        numberFormat: "0%");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
+                C.DataLabelPosition position = wsPart.DrawingsPart!.ChartParts
+                    .SelectMany(part => part.ChartSpace.Descendants<C.DataLabelPosition>())
+                    .Single();
+
+                Assert.Equal(C.DataLabelPositionValues.OutsideEnd, position.Val!.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_PieBestFitDataLabelsArePreserved() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.PieBestFitLabels.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Pie");
+                sheet.CellValue(1, 1, "Status");
+                sheet.CellValue(1, 2, "Rules");
+                sheet.CellValue(2, 1, "High");
+                sheet.CellValue(2, 2, 5);
+                sheet.CellValue(3, 1, "Medium");
+                sheet.CellValue(3, 2, 3);
+
+                sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 480, heightPixels: 300, type: ExcelChartType.Pie, title: "Status")
+                    .SetDataLabels(
+                        showValue: false,
+                        showCategoryName: true,
+                        showSeriesName: false,
+                        showLegendKey: false,
+                        showPercent: true,
+                        position: C.DataLabelPositionValues.BestFit,
+                        numberFormat: "0%");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
+                C.DataLabelPosition position = wsPart.DrawingsPart!.ChartParts
+                    .SelectMany(part => part.ChartSpace.Descendants<C.DataLabelPosition>())
+                    .Single();
+
+                Assert.Equal(C.DataLabelPositionValues.BestFit, position.Val!.Value);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_RecipeCustomizationDoesNotLeakToNextBuilderChart() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RecipeBuilderReuse.xlsx");
 

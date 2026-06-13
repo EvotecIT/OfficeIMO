@@ -54,6 +54,15 @@ namespace OfficeIMO.Word.Markdown {
         public System.Collections.Generic.HashSet<string> AllowedImageDirectories { get; } = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         /// <summary>Allow downloading remote images. Default: false.</summary>
         public bool AllowRemoteImages { get; set; }
+        /// <summary>
+        /// Allow embedding base64 <c>data:image/*</c> Markdown images. Default: true so the
+        /// default Word-to-Markdown image export mode can round-trip back into Word.
+        /// </summary>
+        public bool AllowDataUriImages { get; set; } = true;
+        /// <summary>
+        /// Maximum decoded size for a single base64 data URI image. Default: 32 MiB.
+        /// </summary>
+        public long MaxDataUriImageBytes { get; set; } = 32L * 1024L * 1024L;
         /// <summary>Allowed URL schemes for remote images. Default: http, https.</summary>
         public System.Collections.Generic.HashSet<string> AllowedImageSchemes { get; } = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { "http", "https" };
         /// <summary>Optional custom validator for remote image URLs.</summary>
