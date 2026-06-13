@@ -98,11 +98,11 @@ foreach (var warning in options.ConversionReport.Warnings) {
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-var pdf = PdfLogicalDocument.Load("financial-statement.pdf");
-var imported = pdf.SavePdfTablesAsPowerPoint(
+var imported = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+    "financial-statement.pdf",
     "financial-statement-tables.pptx",
     new PdfPowerPointTableImportOptions {
-        PageRanges = new[] { new PdfPageRange(2, 5) },
+        PageRanges = new[] { PdfPageRange.From(2, 5) },
         MaxRows = 400,
         MaxRowsPerSlide = 18,
         MaxColumnsPerSlide = 6
