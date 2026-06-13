@@ -74,12 +74,7 @@ foreach (var error in errors) {
 Mapping is explicit and delegate-based, so it stays predictable for trimming and NativeAOT-sensitive applications.
 
 ```csharp
-public sealed class Person {
-    public int Id { get; set; }
-    public string Name { get; set; } = "";
-    public int Age { get; set; }
-    public string City { get; set; } = "";
-}
+using OfficeIMO.CSV;
 
 List<Person> people = CsvDocument.Load("people.csv")
     .Map<Person>(map => map
@@ -100,21 +95,30 @@ List<Person> people = CsvDocument.Load("people.csv")
             return person;
         }))
     .ToList();
+
+public sealed class Person {
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public int Age { get; set; }
+    public string City { get; set; } = "";
+}
 ```
 
 For immutable models, return a new instance from each assignment:
 
 ```csharp
-public sealed record PersonRecord {
-    public int Id { get; init; }
-    public string Name { get; init; } = "";
-}
+using OfficeIMO.CSV;
 
 var people = CsvDocument.Load("people.csv")
     .Map<PersonRecord>(map => map
         .FromColumn<int>("Id", (person, value) => person with { Id = value })
         .FromColumn<string>("Name", (person, value) => person with { Name = value }))
     .ToList();
+
+public sealed record PersonRecord {
+    public int Id { get; init; }
+    public string Name { get; init; } = "";
+}
 ```
 
 ## Streaming and materializing

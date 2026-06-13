@@ -201,6 +201,8 @@ document.Save("report.xlsx", openExcel: false, options: new ExcelSaveOptions {
 ### CSV and JSON exchange
 
 ```csharp
+using System.Data;
+
 using var document = ExcelDocument.Load("data.xlsx");
 var sheet = document["Data"];
 

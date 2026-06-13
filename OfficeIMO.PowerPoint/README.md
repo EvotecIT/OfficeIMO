@@ -107,7 +107,7 @@ slide.AddLine(
 ### Tables from data
 
 ```csharp
-record SalesRow(string Product, int Q1, int Q2);
+using OfficeIMO.PowerPoint;
 
 var rows = new[] {
     new SalesRow("Alpha", 12, 15),
@@ -125,6 +125,8 @@ slide.AddTable(rows, columns,
     top: PowerPointUnits.Cm(4),
     width: PowerPointUnits.Cm(20),
     height: PowerPointUnits.Cm(6));
+
+record SalesRow(string Product, int Q1, int Q2);
 ```
 
 ### Charts from data

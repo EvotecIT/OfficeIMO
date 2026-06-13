@@ -147,11 +147,6 @@ workbook.Save();
 ```csharp
 using OfficeIMO.CSV;
 
-public sealed class Person {
-    public int Id { get; set; }
-    public string Name { get; set; } = "";
-}
-
 List<Person> people = CsvDocument.Load("people.csv")
     .EnsureSchema(schema => schema
         .Column("Id").AsInt32().Required()
@@ -161,6 +156,11 @@ List<Person> people = CsvDocument.Load("people.csv")
         .FromColumn<int>("Id", (person, value) => { person.Id = value; return person; })
         .FromColumn<string>("Name", (person, value) => { person.Name = value; return person; }))
     .ToList();
+
+public sealed class Person {
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+}
 ```
 
 ### Export Word to PDF
