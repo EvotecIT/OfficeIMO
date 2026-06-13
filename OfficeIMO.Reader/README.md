@@ -100,15 +100,15 @@ string manifestJson = DocumentReader.GetCapabilityManifestJson();
 using OfficeIMO.Reader;
 
 DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
-    Id = "custom-log",
-    DisplayName = "Custom log reader",
+    Id = "custom-audit",
+    DisplayName = "Custom audit reader",
     Kind = ReaderInputKind.Text,
-    Extensions = new[] { ".log" },
+    Extensions = new[] { ".auditx" },
     ReadPath = (path, options, cancellationToken) => {
         string text = File.ReadAllText(path);
         return new[] {
             new ReaderChunk {
-                Id = "log:1",
+                Id = "audit:1",
                 Kind = ReaderInputKind.Text,
                 Text = text,
                 Location = new ReaderLocation { Path = path }

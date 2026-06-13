@@ -132,7 +132,6 @@ document.Save();
 ### Pivot tables and pivot-backed charts
 
 ```csharp
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using System.Linq;
 

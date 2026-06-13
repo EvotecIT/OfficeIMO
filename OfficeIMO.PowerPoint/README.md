@@ -72,6 +72,8 @@ agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 ### Images and SVGs
 
 ```csharp
+using OfficeIMO.PowerPoint;
+
 slide.AddPicture("logo.png",
     PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2),
     PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
@@ -129,8 +131,6 @@ slide.AddTable(rows, columns,
 ```csharp
 using DocumentFormat.OpenXml.Drawing.Charts;
 
-record MetricRow(string Quarter, double Revenue, double Margin);
-
 var metrics = new[] {
     new MetricRow("Q1", 120, 32),
     new MetricRow("Q2", 145, 36),
@@ -151,6 +151,8 @@ slide.AddChartCm(metrics, row => row.Quarter,
     .SetLegend(LegendPositionValues.Bottom)
     .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "D9E2F3")
     .SetPlotAreaStyle(fillColor: "F8FAFC", lineColor: "D9E2F3");
+
+record MetricRow(string Quarter, double Revenue, double Margin);
 ```
 
 ```csharp
@@ -166,8 +168,6 @@ slide.AddDoughnutChartCm(mix, leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 
 ### Table and chart together
 
 ```csharp
-record SegmentRow(string Segment, int Q1, int Q2, int Q3, int Q4);
-
 var segments = new[] {
     new SegmentRow("Enterprise", 18, 22, 29, 35),
     new SegmentRow("SMB", 12, 14, 18, 21),
@@ -194,6 +194,8 @@ dashboard.AddLineChartCm(segments, row => row.Segment,
         new PowerPointChartSeriesDefinition<SegmentRow>("Q4", row => row.Q4))
     .SetTitle("Segment trend")
     .SetLegend(LegendPositionValues.Bottom);
+
+record SegmentRow(string Segment, int Q1, int Q2, int Q3, int Q4);
 ```
 
 ### Slides, notes, and duplication

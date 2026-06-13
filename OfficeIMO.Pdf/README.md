@@ -132,7 +132,7 @@ foreach (var table in logical.Tables) {
     Console.WriteLine($"Table on page {table.PageNumber}: {table.Rows.Count} rows");
 }
 
-string markdownTables = PdfLogicalTableTextExport.ExtractMarkdownTables("statement.pdf");
+string markdownTables = PdfLogicalTableTextExportExtensions.ExtractMarkdownTables("statement.pdf");
 IReadOnlyList<PdfExtractedImage> images = pdf.Read.Images();
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Read.Attachments();
 ```

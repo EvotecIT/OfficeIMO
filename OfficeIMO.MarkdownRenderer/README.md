@@ -67,6 +67,7 @@ foreach (var heading in document.GetHeadingInfos()) {
 ### Render bounded HTML for a host-owned shell
 
 ```csharp
+using OfficeIMO.Markdown;
 using OfficeIMO.MarkdownRenderer;
 
 var options = MarkdownRendererPresets.CreateStrict();

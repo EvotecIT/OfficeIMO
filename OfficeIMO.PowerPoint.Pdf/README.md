@@ -98,8 +98,8 @@ foreach (var warning in options.ConversionReport.Warnings) {
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-var imported = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
-    "financial-statement.pdf",
+var pdf = PdfLogicalDocument.Load("financial-statement.pdf");
+var imported = pdf.SavePdfTablesAsPowerPoint(
     "financial-statement-tables.pptx",
     new PdfPowerPointTableImportOptions {
         PageRanges = new[] { new PdfPageRange(2, 5) },
