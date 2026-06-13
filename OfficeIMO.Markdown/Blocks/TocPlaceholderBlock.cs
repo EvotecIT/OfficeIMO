@@ -5,7 +5,11 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, ITocPlaceholderMarkdownBlock {
     public TocOptions Options { get; }
-    public TocPlaceholderBlock(TocOptions options) { Options = options; }
+    public bool TitleHeadingAlreadyInserted { get; }
+    public TocPlaceholderBlock(TocOptions options, bool titleHeadingAlreadyInserted = false) {
+        Options = options;
+        TitleHeadingAlreadyInserted = titleHeadingAlreadyInserted;
+    }
     string IMarkdownBlock.RenderMarkdown() => string.Empty; // Replaced during render
     string IMarkdownBlock.RenderHtml() => string.Empty; // Replaced during render
 
@@ -46,7 +50,8 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
             Layout = Options.Layout,
             Chrome = Options.Chrome,
             Scope = Options.Scope,
-            ScopeHeadingTitle = Options.ScopeHeadingTitle
+            ScopeHeadingTitle = Options.ScopeHeadingTitle,
+            TitleHeadingAlreadyRendered = TitleHeadingAlreadyInserted
         };
         string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(blocks, placeholderIndex, Options);
         foreach (var entry in headingCatalog.BuildTocEntries(blocks, placeholderIndex, Options, titleAnchor)) {

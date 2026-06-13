@@ -56,7 +56,7 @@ public static partial class MarkdownReader {
             foreach (var tok in Tokenize(inner)) {
                 int eq = tok.IndexOf('=');
                 string key = eq > 0 ? tok.Substring(0, eq).Trim() : tok.Trim();
-                string val = eq > 0 ? tok.Substring(eq + 1).Trim().Trim('"') : "true";
+                string val = eq > 0 ? ParseAttributeValue(tok.Substring(eq + 1)) : "true";
                 switch (key.ToLowerInvariant()) {
                     case "min": if (int.TryParse(val, out var mi)) o.MinLevel = mi; break;
                     case "max": if (int.TryParse(val, out var ma)) o.MaxLevel = ma; break;
@@ -102,12 +102,48 @@ public static partial class MarkdownReader {
             var sb = new System.Text.StringBuilder(); bool inQuotes = false;
             for (int i = 0; i < inner.Length; i++) {
                 char ch = inner[i];
+                if (ch == '\\' && inQuotes && i + 1 < inner.Length) {
+                    sb.Append(ch);
+                    i++;
+                    sb.Append(inner[i]);
+                    continue;
+                }
+
                 if (ch == '"') { inQuotes = !inQuotes; sb.Append(ch); continue; }
                 if (!inQuotes && char.IsWhiteSpace(ch)) { if (sb.Length > 0) { tokens.Add(sb.ToString()); sb.Clear(); } continue; }
                 sb.Append(ch);
             }
             if (sb.Length > 0) tokens.Add(sb.ToString());
             return tokens;
+        }
+
+        private static string ParseAttributeValue(string value) {
+            string trimmed = value.Trim();
+            if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[trimmed.Length - 1] == '"') {
+                trimmed = trimmed.Substring(1, trimmed.Length - 2);
+            }
+
+            return UnescapeAttributeValue(trimmed);
+        }
+
+        private static string UnescapeAttributeValue(string value) {
+            if (value.IndexOf('\\') < 0) {
+                return value;
+            }
+
+            var sb = new System.Text.StringBuilder(value.Length);
+            for (int i = 0; i < value.Length; i++) {
+                char ch = value[i];
+                if (ch == '\\' && i + 1 < value.Length && (value[i + 1] == '\\' || value[i + 1] == '"')) {
+                    i++;
+                    sb.Append(value[i]);
+                    continue;
+                }
+
+                sb.Append(ch);
+            }
+
+            return sb.ToString();
         }
     }
 }

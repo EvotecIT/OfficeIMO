@@ -630,7 +630,7 @@ public class MarkdownDoc : MarkdownObject {
         var opts = new TocOptions();
         configure?.Invoke(opts);
 
-        var placeholder = new TocPlaceholderBlock(opts);
+        var placeholder = new TocPlaceholderBlock(opts, titleHeadingAlreadyInserted: opts.IncludeTitle);
         if (opts.IncludeTitle) {
             // Insert a title heading above the TOC
             var heading = new HeadingBlock(opts.TitleLevel, opts.Title);

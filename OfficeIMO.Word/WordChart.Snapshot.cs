@@ -8,6 +8,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Word {
     public partial class WordChart {
+        private const uint MaxCachedChartPoints = 10000U;
+
         /// <summary>
         /// Tries to create a dependency-free chart snapshot from cached Word chart data.
         /// </summary>
@@ -650,6 +652,10 @@ namespace OfficeIMO.Word {
 
             uint indexedLength = hasIndexedPoint ? maxIndex + 1U : (uint)points.Count;
             uint length = Math.Max(pointCount ?? 0U, indexedLength);
+            if (length > MaxCachedChartPoints) {
+                length = Math.Min(indexedLength, MaxCachedChartPoints);
+            }
+
             if (length > int.MaxValue) {
                 return points.Count;
             }

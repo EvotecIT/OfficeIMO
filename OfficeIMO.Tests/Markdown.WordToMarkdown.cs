@@ -666,6 +666,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordChart_TryGetSnapshot_Clamps_Inflated_Cache_PointCounts() {
+            using var doc = WordDocument.Create();
+            var chart = doc.AddChart("Inflated cache", width: 400, height: 240);
+            chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
+            chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
+
+            C.ChartSpace chartSpace = doc._wordprocessingDocument.MainDocumentPart!
+                .ChartParts
+                .First()
+                .ChartSpace;
+            foreach (C.PointCount pointCount in chartSpace.Descendants<C.PointCount>()) {
+                pointCount.Val = 1_000_000U;
+            }
+
+            Assert.True(chart.TryGetSnapshot(out var snapshot));
+
+            Assert.Equal(new[] { "Q1", "Q2" }, snapshot.Data.Categories);
+            var series = Assert.Single(snapshot.Data.Series);
+            Assert.Equal(new[] { 10D, 20D }, series.Values);
+        }
+
+        [Fact]
         public void WordToMarkdown_VisualFallbackMode_Resolves_Theme_Series_Colors() {
             using var doc = WordDocument.Create();
             var chart = doc.AddChart("Theme Revenue", width: 400, height: 240);

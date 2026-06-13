@@ -167,6 +167,50 @@ code
         }
 
         [Fact]
+        public void TocMarkerBlock_RoundTrips_Escaped_Title_Attributes() {
+            const string title = "A \"quoted\" \\ title";
+            var marker = new OfficeIMO.Markdown.TocMarkerBlock {
+                MinLevel = 2,
+                MaxLevel = 4,
+                IncludeTitle = true,
+                Title = title
+            };
+
+            string markdown = ((OfficeIMO.Markdown.IMarkdownBlock)marker).RenderMarkdown();
+
+            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            Assert.Contains("title=\"A \\\"quoted\\\" \\\\ title\"", markdown, StringComparison.Ordinal);
+            Assert.NotNull(document.TableOfContent);
+            Assert.Equal(title, document.TableOfContent!.Text);
+        }
+
+        [Fact]
+        public void MarkdownToWord_Renders_TocBuilder_Title_Only_As_Native_Toc_Title() {
+            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+                .H1("Report")
+                .Toc(options => {
+                    options.IncludeTitle = true;
+                    options.Title = "Contents";
+                    options.TitleLevel = 2;
+                    options.MinLevel = 2;
+                    options.MaxLevel = 4;
+                }, placeAtTop: true)
+                .H2("Region");
+
+            using var document = markdown.ToWordDocument();
+
+            var body = document._wordprocessingDocument.MainDocumentPart!.Document.Body!;
+            int topLevelTitleParagraphs = body
+                .Elements<Paragraph>()
+                .Count(paragraph => string.Equals(paragraph.InnerText.Trim(), "Contents", StringComparison.Ordinal));
+
+            Assert.NotNull(document.TableOfContent);
+            Assert.Equal("Contents", document.TableOfContent!.Text);
+            Assert.Equal(0, topLevelTitleParagraphs);
+        }
+
+        [Fact]
         public void MarkdownToWord_Renders_Typed_TocMarkerBlock_As_Native_Word_TableOfContents() {
             var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
                 .Add(new OfficeIMO.Markdown.TocMarkerBlock {

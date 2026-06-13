@@ -49,6 +49,7 @@ namespace OfficeIMO.Word.Markdown {
             var readerOptions = CreateEffectiveReaderOptions(options);
             var omd = Omd.MarkdownReader.Parse(markdown, readerOptions);
             var blocks = omd.GetBlocksAndHeadingSlugs().Blocks ?? new List<Omd.IMarkdownBlock>();
+            RemoveDuplicateNativeTocTitleHeadings(blocks);
             // Build footnote definitions map for this document
             _currentFootnotes = blocks
                 .OfType<Omd.FootnoteDefinitionBlock>()
@@ -78,6 +79,7 @@ namespace OfficeIMO.Word.Markdown {
             options.ApplyDefaults(document);
             var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
             var blocks = markdown.GetBlocksAndHeadingSlugs().Blocks ?? new List<Omd.IMarkdownBlock>();
+            RemoveDuplicateNativeTocTitleHeadings(blocks);
 
             _currentFootnotes = blocks
                 .OfType<Omd.FootnoteDefinitionBlock>()
@@ -117,6 +119,26 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             return Task.FromResult(document);
+        }
+
+        private static void RemoveDuplicateNativeTocTitleHeadings(List<Omd.IMarkdownBlock> blocks) {
+            for (int i = 1; i < blocks.Count; i++) {
+                if (blocks[i] is not Omd.TocBlock toc ||
+                    !toc.TitleHeadingAlreadyRendered ||
+                    !toc.IncludeTitle ||
+                    string.IsNullOrWhiteSpace(toc.Title) ||
+                    toc.Scope != Omd.TocScope.Document ||
+                    blocks[i - 1] is not Omd.HeadingBlock heading) {
+                    continue;
+                }
+
+                int titleLevel = toc.TitleLevel < 1 ? 1 : (toc.TitleLevel > 6 ? 6 : toc.TitleLevel);
+                if (heading.Level == titleLevel &&
+                    string.Equals(heading.Text.Trim(), toc.Title.Trim(), StringComparison.Ordinal)) {
+                    blocks.RemoveAt(i - 1);
+                    i--;
+                }
+            }
         }
 
     }

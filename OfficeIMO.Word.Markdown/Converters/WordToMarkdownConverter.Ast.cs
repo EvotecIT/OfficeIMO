@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
@@ -352,6 +353,10 @@ namespace OfficeIMO.Word.Markdown {
 
                 if (runs.Count > 0) {
                     string language = sid.Substring(codeLangPrefix.Length);
+                    if (ParagraphContainsPageBreak(paragraph)) {
+                        return BuildCodeParagraphBlocksWithPageBreaks(paragraph, options, language);
+                    }
+
                     string code = string.Concat(runs.Select(run => run.Text));
                     blocks.Add(new CodeBlock(language, code));
                     return blocks;
@@ -374,6 +379,81 @@ namespace OfficeIMO.Word.Markdown {
                 hasCheckbox,
                 allowQuoteHeuristic,
                 trimBoundaryWhitespace);
+        }
+
+        private static IReadOnlyList<IMarkdownBlock> BuildCodeParagraphBlocksWithPageBreaks(
+            WordParagraph paragraph,
+            WordToMarkdownOptions options,
+            string language) {
+            var blocks = new List<IMarkdownBlock>();
+            var code = new StringBuilder();
+
+            if (paragraph.PageBreakBefore) {
+                AddCodeBlockIfNeeded(blocks, language, code);
+                AddPageBreakBlock(blocks, options);
+            }
+
+            foreach (var run in paragraph.GetRuns()) {
+                string? text = run.Text;
+                if (string.IsNullOrEmpty(text)) {
+                    if (run.PageBreak != null) {
+                        AddCodeBlockIfNeeded(blocks, language, code);
+                        AddPageBreakBlock(blocks, options);
+                    }
+
+                    continue;
+                }
+
+                if (run.PageBreak != null && text.IndexOf('\u2028') >= 0) {
+                    int start = 0;
+                    for (int i = 0; i < text.Length; i++) {
+                        if (text[i] != '\u2028') {
+                            continue;
+                        }
+
+                        if (i > start) {
+                            code.Append(text.Substring(start, i - start));
+                        }
+
+                        AddCodeBlockIfNeeded(blocks, language, code);
+                        AddPageBreakBlock(blocks, options);
+                        start = i + 1;
+                    }
+
+                    if (start < text.Length) {
+                        code.Append(text.Substring(start));
+                    }
+
+                    continue;
+                }
+
+                if (run.PageBreak != null) {
+                    AddCodeBlockIfNeeded(blocks, language, code);
+                    AddPageBreakBlock(blocks, options);
+                    text = text.Replace("\u2028", string.Empty);
+                }
+
+                code.Append(text);
+            }
+
+            AddCodeBlockIfNeeded(blocks, language, code);
+            return blocks;
+        }
+
+        private static void AddCodeBlockIfNeeded(List<IMarkdownBlock> blocks, string language, StringBuilder code) {
+            if (code.Length == 0) {
+                return;
+            }
+
+            blocks.Add(new CodeBlock(language, code.ToString()));
+            code.Clear();
+        }
+
+        private static void AddPageBreakBlock(List<IMarkdownBlock> blocks, WordToMarkdownOptions options) {
+            var pageBreakBlock = CreatePageBreakBlock(options);
+            if (pageBreakBlock != null) {
+                blocks.Add(pageBreakBlock);
+            }
         }
 
         private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithPageBreaks(
