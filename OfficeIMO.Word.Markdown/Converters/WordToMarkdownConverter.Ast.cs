@@ -2,6 +2,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
+using M = DocumentFormat.OpenXml.Math;
+using Ovml = DocumentFormat.OpenXml.Vml.Office;
+using V = DocumentFormat.OpenXml.Vml;
+using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
 using OfficeIMO.Markdown;
@@ -154,11 +160,62 @@ namespace OfficeIMO.Word.Markdown {
             bool hasCheckbox,
             bool checkboxChecked,
             bool trimBoundaryWhitespace) {
-            EnsureListFrame(addRootBlock, listStack, listInfo);
-
             var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic: false, trimBoundaryWhitespace: trimBoundaryWhitespace);
+            paragraphBlocks = LiftLeadingPageBreakBlocks(addRootBlock, listStack, paragraphBlocks);
+
+            var unsupportedContentBlock = CreateUnsupportedParagraphContentBlock(paragraph, options);
+            if (unsupportedContentBlock != null) {
+                var extendedBlocks = new List<IMarkdownBlock>(paragraphBlocks.Count + 1);
+                extendedBlocks.AddRange(paragraphBlocks);
+                extendedBlocks.Add(unsupportedContentBlock);
+                paragraphBlocks = extendedBlocks;
+            }
+
+            EnsureListFrame(addRootBlock, listStack, listInfo);
             var item = CreateListItem(paragraphBlocks, listInfo.Level, hasCheckbox, checkboxChecked);
             listStack[listStack.Count - 1].AddItem(item);
+        }
+
+        private static IReadOnlyList<IMarkdownBlock> LiftLeadingPageBreakBlocks(
+            Action<IMarkdownBlock> addRootBlock,
+            List<PendingListFrame> listStack,
+            IReadOnlyList<IMarkdownBlock> paragraphBlocks) {
+            int firstContentIndex = 0;
+            while (firstContentIndex < paragraphBlocks.Count && IsPageBreakBlock(paragraphBlocks[firstContentIndex])) {
+                firstContentIndex++;
+            }
+
+            if (firstContentIndex == 0) {
+                return paragraphBlocks;
+            }
+
+            listStack.Clear();
+            for (int i = 0; i < firstContentIndex; i++) {
+                addRootBlock(paragraphBlocks[i]);
+            }
+
+            if (firstContentIndex == paragraphBlocks.Count) {
+                return Array.Empty<IMarkdownBlock>();
+            }
+
+            var remainingBlocks = new List<IMarkdownBlock>(paragraphBlocks.Count - firstContentIndex);
+            for (int i = firstContentIndex; i < paragraphBlocks.Count; i++) {
+                remainingBlocks.Add(paragraphBlocks[i]);
+            }
+
+            return remainingBlocks;
+        }
+
+        private static bool IsPageBreakBlock(IMarkdownBlock block) {
+            if (block is SemanticFencedBlock semanticBlock) {
+                return string.Equals(semanticBlock.SemanticKind, WordMarkdownSemanticBlocks.PageBreakSemanticKind, StringComparison.Ordinal);
+            }
+
+            if (block is HtmlRawBlock htmlBlock) {
+                return string.Equals(htmlBlock.Html, "<div style=\"page-break-after: always;\"></div>", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return block is HorizontalRuleBlock;
         }
 
         private static void EnsureListFrame(Action<IMarkdownBlock> addRootBlock, List<PendingListFrame> listStack, DocumentTraversal.ListInfo listInfo) {
@@ -299,12 +356,9 @@ namespace OfficeIMO.Word.Markdown {
                         addRootBlock(block);
                     }
 
-                    if (TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
-                        if (TryCreateVisualFallbackBlock(paragraph, options, out var visualBlock)) {
-                            addRootBlock(visualBlock);
-                        } else {
-                            AddUnsupportedContentBlock(addRootBlock, options, unsupportedParagraphKind);
-                        }
+                    var unsupportedContentBlock = CreateUnsupportedParagraphContentBlock(paragraph, options);
+                    if (unsupportedContentBlock != null) {
+                        addRootBlock(unsupportedContentBlock);
                     }
                     continue;
                 }
@@ -745,27 +799,27 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static bool TryGetUnsupportedParagraphContentKind(WordParagraph paragraph, out string kind) {
-            if (paragraph.IsChart) {
+            if (paragraph.IsChart || paragraph._paragraph.Descendants<C.ChartReference>().Any()) {
                 kind = "chart";
                 return true;
             }
 
-            if (paragraph.IsSmartArt) {
+            if (paragraph.IsSmartArt || paragraph._paragraph.Descendants<A.GraphicData>().Any(data => string.Equals(data.Uri, "http://schemas.openxmlformats.org/drawingml/2006/diagram", StringComparison.Ordinal))) {
                 kind = "SmartArt";
                 return true;
             }
 
-            if (paragraph.IsShape) {
+            if (paragraph.IsShape || paragraph._paragraph.Descendants<Wps.WordprocessingShape>().Any() || paragraph._paragraph.Descendants<V.Shape>().Any()) {
                 kind = "shape";
                 return true;
             }
 
-            if (paragraph.IsEmbeddedObject) {
+            if (paragraph.IsEmbeddedObject || paragraph._paragraph.Descendants<Ovml.OleObject>().Any()) {
                 kind = "embedded object";
                 return true;
             }
 
-            if (paragraph.IsEquation) {
+            if (paragraph.IsEquation || paragraph._paragraph.Descendants<M.OfficeMath>().Any() || paragraph._paragraph.Descendants<M.Paragraph>().Any()) {
                 kind = "equation";
                 return true;
             }
@@ -778,26 +832,43 @@ namespace OfficeIMO.Word.Markdown {
             Action<IMarkdownBlock> addRootBlock,
             WordToMarkdownOptions options,
             string contentKind) {
+            var block = CreateUnsupportedContentBlock(options, contentKind);
+            if (block != null) {
+                addRootBlock(block);
+            }
+        }
+
+        private IMarkdownBlock? CreateUnsupportedParagraphContentBlock(WordParagraph paragraph, WordToMarkdownOptions options) {
+            if (!TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
+                return null;
+            }
+
+            if (TryCreateVisualFallbackBlock(paragraph, options, out var visualBlock)) {
+                return visualBlock;
+            }
+
+            return CreateUnsupportedContentBlock(options, unsupportedParagraphKind);
+        }
+
+        private static IMarkdownBlock? CreateUnsupportedContentBlock(WordToMarkdownOptions options, string contentKind) {
             string normalizedKind = string.IsNullOrWhiteSpace(contentKind) ? "content" : contentKind.Trim();
             string message = $"Unsupported Word {normalizedKind} has no native Markdown representation.";
 
             switch (options.UnsupportedContentMode) {
                 case MarkdownUnsupportedContentMode.WarnOnly:
                     options.OnWarning?.Invoke(message);
-                    return;
+                    return null;
                 case MarkdownUnsupportedContentMode.Placeholder:
                     options.OnWarning?.Invoke(message);
-                    addRootBlock(new ParagraphBlock(CreateInlineSequence().Text($"Unsupported Word content: {normalizedKind}")));
-                    return;
+                    return new ParagraphBlock(CreateInlineSequence().Text($"Unsupported Word content: {normalizedKind}"));
                 case MarkdownUnsupportedContentMode.HtmlComment:
                     options.OnWarning?.Invoke(message);
-                    addRootBlock(new HtmlCommentBlock($"<!-- Unsupported Word content: {EscapeHtmlCommentText(normalizedKind)} -->"));
-                    return;
+                    return new HtmlCommentBlock($"<!-- Unsupported Word content: {EscapeHtmlCommentText(normalizedKind)} -->");
                 case MarkdownUnsupportedContentMode.Omit:
-                    return;
+                    return null;
                 default:
                     options.OnWarning?.Invoke($"Unsupported content mode '{options.UnsupportedContentMode}'. Falling back to warning-only handling. {message}");
-                    return;
+                    return null;
             }
         }
 

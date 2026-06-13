@@ -154,10 +154,7 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitTocBlock(Omd.TocBlock block) {
                 if (block.Scope != Omd.TocScope.Document) {
-                    if (block.Entries.Count > 0) {
-                        RenderFallback(block);
-                    }
-
+                    RenderTocFallback(block);
                     return;
                 }
 
@@ -179,9 +176,26 @@ namespace OfficeIMO.Word.Markdown {
                     return;
                 }
 
+                RenderTocFallback(block);
+            }
+
+            private void RenderTocFallback(Omd.TocBlock block) {
+                RenderTocFallbackTitle(block);
+
                 if (block.Entries.Count > 0) {
                     RenderFallback(block);
                 }
+            }
+
+            private void RenderTocFallbackTitle(Omd.TocBlock block) {
+                if (!block.IncludeTitle || block.TitleHeadingAlreadyRendered || string.IsNullOrWhiteSpace(block.Title)) {
+                    return;
+                }
+
+                var headingParagraph = _host.CreateParagraph();
+                ApplyBlockParagraphFormatting(headingParagraph, _quoteDepth, _alignment);
+                headingParagraph.AddText(block.Title.Trim());
+                headingParagraph.Style = HeadingStyleMapper.GetHeadingStyleForLevel(NormalizeTocTitleLevel(block.TitleLevel));
             }
 
             protected override void VisitTocMarkerBlock(Omd.TocMarkerBlock block) {
@@ -299,6 +313,14 @@ namespace OfficeIMO.Word.Markdown {
                 }
 
                 return normalized > 9 ? 9 : normalized;
+            }
+
+            private static int NormalizeTocTitleLevel(int level) {
+                if (level < 1) {
+                    return Omd.TocOptions.DefaultTitleLevel;
+                }
+
+                return level > 6 ? 6 : level;
             }
 
             private void RenderListBlock(IReadOnlyList<Omd.ListItem> items, WordListStyle style, int? startNumber) {

@@ -271,6 +271,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_Keeps_PageBreakBefore_Outside_List_Item() {
+            using var doc = WordDocument.Create();
+            WordList list = doc.AddList(WordListStyle.Bulleted);
+            WordParagraph item = list.AddItem("Starts new page");
+            item.PageBreakBefore = true;
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                PageBreakMode = MarkdownPageBreakMode.SemanticBlock
+            });
+
+            int pageBreakIndex = markdown.IndexOf("```officeimo-word-page-break", StringComparison.Ordinal);
+            int listItemIndex = markdown.IndexOf("- Starts new page", StringComparison.Ordinal);
+
+            Assert.True(pageBreakIndex >= 0, markdown);
+            Assert.True(listItemIndex > pageBreakIndex, markdown);
+            Assert.DoesNotContain("- \r\n  ```officeimo-word-page-break", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("- \n  ```officeimo-word-page-break", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordToMarkdown_Preserves_Unsupported_Content_In_List_Item() {
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>x=1</m:t></m:r></m:oMath></m:oMathPara>";
+            using var doc = WordDocument.Create();
+            WordList list = doc.AddList(WordListStyle.Bulleted);
+            WordParagraph item = list.AddItem("Formula:");
+            item.AddEquation(omml);
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
+            });
+
+            Assert.Contains("- Formula:", markdown, StringComparison.Ordinal);
+            Assert.Contains("Unsupported Word content: equation", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordToMarkdown_CreateReaderOptions_Parses_Header_And_Footer_Semantic_Blocks() {
             using var doc = WordDocument.Create();
             doc.AddHeadersAndFooters();
@@ -685,6 +721,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "Q1", "Q2" }, snapshot.Data.Categories);
             var series = Assert.Single(snapshot.Data.Series);
             Assert.Equal(new[] { 10D, 20D }, series.Values);
+        }
+
+        [Fact]
+        public void WordChart_TryGetSnapshot_Rejects_Mixed_Unsupported_Chart_Plots() {
+            using var doc = WordDocument.Create();
+            var chart = doc.AddChart("Mixed plots", width: 400, height: 240);
+            chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
+            chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
+
+            C.PlotArea plotArea = doc._wordprocessingDocument.MainDocumentPart!
+                .ChartParts
+                .First()
+                .ChartSpace
+                .GetFirstChild<C.Chart>()!
+                .PlotArea!;
+            plotArea.Append(new C.BubbleChart());
+
+            Assert.False(chart.TryGetSnapshot(out _));
         }
 
         [Fact]

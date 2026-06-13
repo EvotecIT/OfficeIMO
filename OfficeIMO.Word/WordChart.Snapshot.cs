@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
 
                 Dictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors = GetThemeColors();
 
-                if (CountSupportedChartElements(plotArea) > 1) {
+                if (!HasSingleSupportedChartElement(plotArea)) {
                     snapshot = null!;
                     return false;
                 }
@@ -158,18 +158,41 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static int CountSupportedChartElements(C.PlotArea plotArea) {
-            return plotArea.Elements<C.BarChart>().Count()
-                + plotArea.Elements<C.Bar3DChart>().Count()
-                + plotArea.Elements<C.LineChart>().Count()
-                + plotArea.Elements<C.Line3DChart>().Count()
-                + plotArea.Elements<C.AreaChart>().Count()
-                + plotArea.Elements<C.Area3DChart>().Count()
-                + plotArea.Elements<C.RadarChart>().Count()
-                + plotArea.Elements<C.ScatterChart>().Count()
-                + plotArea.Elements<C.PieChart>().Count()
-                + plotArea.Elements<C.Pie3DChart>().Count()
-                + plotArea.Elements<C.DoughnutChart>().Count();
+        private static bool HasSingleSupportedChartElement(C.PlotArea plotArea) {
+            int chartElementCount = 0;
+            int supportedChartElementCount = 0;
+
+            foreach (OpenXmlElement child in plotArea.ChildElements) {
+                if (!IsChartPlotElement(child)) {
+                    continue;
+                }
+
+                chartElementCount++;
+                if (IsSupportedChartPlotElement(child)) {
+                    supportedChartElementCount++;
+                }
+            }
+
+            return chartElementCount == 1 && supportedChartElementCount == 1;
+        }
+
+        private static bool IsChartPlotElement(OpenXmlElement element) =>
+            element != null &&
+            element.LocalName != null &&
+            element.LocalName.EndsWith("Chart", StringComparison.OrdinalIgnoreCase);
+
+        private static bool IsSupportedChartPlotElement(OpenXmlElement element) {
+            return element is C.BarChart
+                || element is C.Bar3DChart
+                || element is C.LineChart
+                || element is C.Line3DChart
+                || element is C.AreaChart
+                || element is C.Area3DChart
+                || element is C.RadarChart
+                || element is C.ScatterChart
+                || element is C.PieChart
+                || element is C.Pie3DChart
+                || element is C.DoughnutChart;
         }
 
         private WordChartSnapshot CreateSnapshot(C.Chart chart, WordChartSnapshotKind kind, WordChartData data) {

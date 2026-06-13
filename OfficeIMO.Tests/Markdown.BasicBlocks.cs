@@ -201,6 +201,31 @@ code
         }
 
         [Fact]
+        public void TocMarkerBlock_ToHtmlFragment_Generates_Toc_From_Typed_Ast() {
+            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+                .Add(new OfficeIMO.Markdown.TocMarkerBlock {
+                    MinLevel = 2,
+                    MaxLevel = 3,
+                    IncludeTitle = true,
+                    Title = "Contents"
+                })
+                .H1("Report")
+                .H2("Region")
+                .H3("Pipeline");
+
+            string html = markdown.ToHtmlFragment(new OfficeIMO.Markdown.HtmlOptions {
+                Style = OfficeIMO.Markdown.HtmlStyle.Plain,
+                CssDelivery = OfficeIMO.Markdown.CssDelivery.None,
+                BodyClass = null
+            });
+
+            Assert.Contains("<h2>Contents</h2>", html, StringComparison.Ordinal);
+            Assert.Contains("<a href=\"#region\">Region</a>", html, StringComparison.Ordinal);
+            Assert.Contains("<a href=\"#pipeline\">Pipeline</a>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("<a href=\"#report\">Report</a>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void MarkdownToWord_Renders_TocBuilder_Title_Only_As_Native_Toc_Title() {
             var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
                 .H1("Report")
@@ -268,6 +293,8 @@ code
             var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
                 .H1("Section")
                 .TocHere(options => {
+                    options.IncludeTitle = true;
+                    options.Title = "Contents";
                     options.Scope = OfficeIMO.Markdown.TocScope.PreviousHeading;
                     options.MinLevel = 2;
                     options.MaxLevel = 3;
@@ -280,6 +307,7 @@ code
             string text = string.Join("\n", document.Paragraphs.Select(paragraph => paragraph.Text));
 
             Assert.Null(document.TableOfContent);
+            Assert.Contains("Contents", text, StringComparison.Ordinal);
             Assert.Contains("[Inside](#inside)", text, StringComparison.Ordinal);
             Assert.DoesNotContain("[Outside](#outside)", text, StringComparison.Ordinal);
         }

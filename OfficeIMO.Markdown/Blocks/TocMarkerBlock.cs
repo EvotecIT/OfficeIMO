@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Markdown table-of-contents marker that preserves a semantic TOC placeholder when rendering back to Markdown.
 /// </summary>
-public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlock, IContextualHtmlMarkdownBlock {
     /// <summary>Minimum heading level included by the table of contents.</summary>
     public int MinLevel { get; set; } = TocOptions.DefaultMinLevel;
 
@@ -35,6 +35,59 @@ public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkd
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() => string.Empty;
+
+    /// <inheritdoc />
+    string IContextualHtmlMarkdownBlock.RenderHtml(MarkdownBodyRenderContext context) {
+        var options = new TocOptions {
+            IncludeTitle = IncludeTitle,
+            Title = Title,
+            TitleLevel = TitleLevel,
+            MinLevel = ClampTocLevel(MinLevel),
+            MaxLevel = ClampTocLevel(MaxLevel),
+            RequireTopLevel = false
+        };
+
+        if (options.MaxLevel < options.MinLevel) {
+            options.MaxLevel = options.MinLevel;
+        }
+
+        int blockIndex = context.GetBlockIndex(this);
+        var entries = context.BuildTocEntries(blockIndex, options);
+        if (entries.Count == 0) {
+            return string.Empty;
+        }
+
+        var overridden = context.Options.TocHtmlRenderer?.Invoke(options, entries, context.Options);
+        if (overridden != null) {
+            return overridden;
+        }
+
+        var toc = new TocBlock {
+            Ordered = options.Ordered,
+            NormalizeLevels = options.NormalizeToMinLevel,
+            IncludeTitle = false,
+            MinLevel = options.MinLevel,
+            MaxLevel = options.MaxLevel,
+            RequireTopLevel = false
+        };
+
+        for (int i = 0; i < entries.Count; i++) {
+            toc.Entries.Add(entries[i]);
+        }
+
+        string listHtml = ((IMarkdownBlock)toc).RenderHtml();
+        if (!IncludeTitle || string.IsNullOrWhiteSpace(Title)) {
+            return listHtml;
+        }
+
+        int titleLevel = ClampTitleLevel(TitleLevel);
+        return new StringBuilder()
+            .Append("<h").Append(titleLevel).Append('>')
+            .Append(System.Net.WebUtility.HtmlEncode(Title.Trim()))
+            .Append("</h").Append(titleLevel).Append('>')
+            .Append(listHtml)
+            .ToString();
+    }
 
     /// <inheritdoc />
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
