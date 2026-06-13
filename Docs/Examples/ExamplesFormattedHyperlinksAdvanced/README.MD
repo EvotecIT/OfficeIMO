@@ -1,4 +1,4 @@
-## Advanced formatted hyperlinks
+# Advanced formatted hyperlinks
 
 This example demonstrates how to duplicate hyperlinks, insert new links around an existing one and reuse the formatting.
 It also shows that the helper methods work in headers and footers.

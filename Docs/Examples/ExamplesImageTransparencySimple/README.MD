@@ -1,4 +1,4 @@
-## Setting image transparency
+# Setting image transparency
 
 This example demonstrates how to create a document with an image and apply a simple transparency value.
 

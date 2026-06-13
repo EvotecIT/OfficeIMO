@@ -1,4 +1,4 @@
-## Lists with picture bullets
+# Lists with picture bullets
 
 Small example:
 

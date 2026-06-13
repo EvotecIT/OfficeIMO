@@ -1,4 +1,4 @@
-﻿## Adding Headers and Footers to Sections
+# Adding Headers and Footers to Sections
 
 Using OfficeIMO to add headers and footers to a Word document is a simple exercise.
 Library fully supports adding headers and footers to different sections.

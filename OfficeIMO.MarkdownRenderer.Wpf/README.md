@@ -1,24 +1,25 @@
-# OfficeIMO.MarkdownRenderer.Wpf
+# OfficeIMO.MarkdownRenderer.Wpf - WPF MarkdownView host
+
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.MarkdownRenderer.Wpf)](https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.Wpf)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.MarkdownRenderer.Wpf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.Wpf)
 
 `OfficeIMO.MarkdownRenderer.Wpf` provides a reusable WPF `MarkdownView` control built on WebView2 and `OfficeIMO.MarkdownRenderer`.
 
-## What It Solves
+## Install
 
-- renders Markdown through the existing OfficeIMO HTML shell/update pipeline
-- keeps host apps in control of presets, CSS overrides, and link handling
-- supports clipboard copy messages from the shell for code/table actions
-- stays safe for the main OfficeIMO cross-platform CI by only compiling the WPF surface on Windows targets
-- can optionally host pre-rendered HTML bodies for advanced app-specific layouts
+```powershell
+dotnet add package OfficeIMO.MarkdownRenderer.Wpf
+```
 
 ## Requirements
 
-- Windows desktop application using WPF
-- WebView2 runtime available on the target machine
-- `OfficeIMO.MarkdownRenderer.Wpf` plus its `OfficeIMO.MarkdownRenderer` dependency
+- Windows desktop application using WPF.
+- WebView2 runtime available on the target machine.
+- `OfficeIMO.MarkdownRenderer.Wpf` and its `OfficeIMO.MarkdownRenderer` dependency.
 
-If you deploy to machines that may not already have WebView2 installed, ship or bootstrap the Evergreen WebView2 Runtime as part of your installer strategy.
+If target machines may not already have WebView2 installed, ship or bootstrap the Evergreen WebView2 Runtime as part of your installer strategy.
 
-## Quick Start
+## Quick start
 
 ```xml
 <Window
@@ -28,8 +29,7 @@ If you deploy to machines that may not already have WebView2 installed, ship or 
     <Grid>
         <omd:MarkdownView x:Name="Preview"
                           Preset="Relaxed"
-                          DocumentTitle="README"
-                          ShellCss=":root { color-scheme: dark; }" />
+                          DocumentTitle="README" />
     </Grid>
 </Window>
 ```
@@ -46,51 +46,24 @@ Preview.ConfigureRendererOptions = options =>
     options.EnableCodeCopyButtons = true;
     options.EnableTableCopyButtons = true;
 };
-
-Preview.ErrorOccurred += (_, args) =>
-{
-    Debug.WriteLine($"Markdown preview error during {args.Context}: {args.Exception}");
-};
 ```
 
-## Advanced Hosts
+## What it does
 
-For hosts that need to compose richer layouts, such as timelines or card-based discussion views, set `BodyHtml` directly instead of `Markdown`. This keeps WebView shell hosting inside `OfficeIMO.MarkdownRenderer.Wpf` while still allowing the app to build custom HTML from multiple rendered markdown fragments.
+- Hosts the OfficeIMO Markdown shell in a WPF/WebView2 control.
+- Lets host apps choose presets, CSS overrides, renderer options, and link handling.
+- Supports clipboard copy messages from shell actions.
+- Allows advanced hosts to set pre-rendered `BodyHtml` instead of `Markdown`.
+- Implements `IDisposable` so long-lived hosts can release WebView2 resources explicitly.
 
-## Host Theming
+## Boundaries
 
-The control is intentionally host-driven:
+- This package owns the WPF control surface.
+- Generic rendering behavior belongs in `OfficeIMO.MarkdownRenderer`.
+- Application-specific navigation, telemetry, fallback UI, and installer/runtime policy stay in the host app.
 
-- use `Preset` to choose the baseline renderer profile
-- use `ShellCss` to append host-specific CSS variables and overrides
-- use `ConfigureRendererOptions` for advanced renderer customization
-- handle `NavigationRequested` to intercept external links before the default shell launch behavior
-- handle `ErrorOccurred` if the host wants telemetry, fallback UI, or structured diagnostics
+## Targets and license
 
-Example:
-
-```csharp
-Preview.ShellCss = """
-:root {
-  color-scheme: dark;
-  --omd-bg: #12141d;
-  --omd-fg: #e5e9f0;
-  --omd-link: #6cb6ff;
-}
-
-body {
-  background: var(--omd-bg);
-  color: var(--omd-fg);
-}
-
-a {
-  color: var(--omd-link);
-}
-""";
-```
-
-## Notes
-
-- `BaseHref` expects an absolute URI and is ignored when invalid
-- `Markdown` is the normal content path; `BodyHtml` is meant for advanced hosts that render multiple markdown fragments into one composed surface
-- the control implements `IDisposable` so long-lived hosts can release WebView2 resources explicitly when the view is no longer needed
+- Targets: Windows WPF/WebView2 package targets.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

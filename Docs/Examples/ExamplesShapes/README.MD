@@ -1,4 +1,4 @@
-## Drawing VML Shapes
+# Drawing VML Shapes
 
 `WordShape` exposes factory methods for creating simple VML shapes directly on a paragraph.
 

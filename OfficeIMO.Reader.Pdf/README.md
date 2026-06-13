@@ -1,6 +1,17 @@
-# OfficeIMO.Reader.Pdf
+# OfficeIMO.Reader.Pdf - PDF reader adapter
 
-Thin PDF adapter for `OfficeIMO.Reader`.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Pdf)](https://www.nuget.org/packages/OfficeIMO.Reader.Pdf)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Pdf)
+
+`OfficeIMO.Reader.Pdf` registers a PDF adapter for `OfficeIMO.Reader` using the `OfficeIMO.Pdf` logical read model.
+
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Reader.Pdf
+```
+
+## Register
 
 ```csharp
 using OfficeIMO.Reader;
@@ -13,35 +24,76 @@ IReadOnlyList<ReaderChunk> chunks = DocumentReader
     .ToList();
 ```
 
-For service hosts that load modular reader adapters by assembly, bootstrap the
-PDF adapter and export the merged capability manifest in one step:
+## Examples
+
+### Read page-aware Markdown chunks
 
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 
-ReaderHostBootstrapResult result = DocumentReader.BootstrapHostFromAssemblies(
-    new[] { typeof(DocumentReaderPdfRegistrationExtensions).Assembly },
-    new ReaderHostBootstrapOptions {
-        ReplaceExistingHandlers = true,
-        IncludeBuiltInCapabilities = true,
-        IncludeCustomCapabilities = true
-    });
+DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
 
-string manifestJson = result.ManifestJson;
+foreach (var chunk in DocumentReader.Read("manual.pdf")) {
+    Console.WriteLine($"Page {chunk.Location.Page}: {chunk.Id}");
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+}
 ```
 
-The adapter uses `OfficeIMO.Pdf`'s logical read model and emits page-aware chunks with `ReaderLocation.Page`, Markdown text, detected tables with column profiles and diagnostics, source/security/form/open-action/active-content counters in `ReaderChunk.Diagnostics`, table confidence aggregates, table/image geometry coverage, selected form-widget appearance coverage, passive action summaries in `ReaderChunk.Actions`, image placeholders plus image visual geometry in `ReaderChunk.Visuals`, link annotations, and typed form fields with widget geometry, current appearance state names, and normal appearance state names when available. Action summaries identify document-open, catalog, page, and annotation sources plus scope, trigger, path, and action type without exposing JavaScript bodies or other executable payloads.
+### Read a stream with input limits
 
 ```csharp
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
 
-ReaderPdfProfileContract contract = ReaderPdfProfileContracts.OfficeIMO;
+DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
 
-Console.WriteLine(contract.Id);
-Console.WriteLine(contract.OutputContract);
+using var stream = File.OpenRead("large-report.pdf");
+var chunks = DocumentReader.Read(stream, "large-report.pdf", new ReaderOptions {
+    MaxChars = 12_000,
+    MaxInputBytes = 100L * 1024L * 1024L
+}).ToList();
+
+foreach (var chunk in chunks.Where(chunk => chunk.Diagnostics != null)) {
+    Console.WriteLine($"{chunk.Id}: {chunk.Diagnostics!.TableCount} table(s)");
+}
 ```
 
-`ReaderPdfProfileContracts.OfficeIMO` exposes the stable handler identifier,
-pipeline, chunk metadata contract, safety behavior, and unsupported scope for
-hosts that need a capability manifest or user-facing adapter description.
+### Register alongside other ingestion adapters
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.Zip;
+
+DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
+DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
+DocumentReaderZipRegistrationExtensions.RegisterZipHandler();
+
+var chunks = DocumentReader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
+    Recurse = true,
+    DeterministicOrder = true,
+    MaxFiles = 500
+}).ToList();
+```
+
+## What it emits
+
+- Page-aware chunks with `ReaderLocation.Page`.
+- Markdown text, logical tables, column profiles, table diagnostics, and confidence signals.
+- Source/security/form/open-action/active-content counters in `ReaderChunk.Diagnostics`.
+- Passive action summaries without executable payloads.
+- Image placeholders and visual geometry when available.
+- Link annotations and typed form fields when available.
+
+## Boundaries
+
+- Reader adapter registration belongs here.
+- PDF parsing, logical readback, and safety behavior belongs in `OfficeIMO.Pdf`.
+- Shared extraction contracts belong in `OfficeIMO.Reader`.
+
+## Targets and license
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.

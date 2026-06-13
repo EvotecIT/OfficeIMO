@@ -1,16 +1,19 @@
-Consolidated HTML conversion examples
+# HTML conversion examples
 
-0. Html00_AllInOne – Use comprehensive input (all.html) → DOCX → round-trip HTML.
-1. Html01_LoadAndRoundTripBasics – Load basic HTML → DOCX, round-trip to HTML.
-2. Html02_SaveAsHtmlFromWord – Build a Word document programmatically and export to HTML with options.
-3. Html03_TextFormatting – Inline styles and tags: underline/strike, sup/sub, transforms, spacing.
-4. Html04_ListsAndNumbering – Nested lists, custom starts, roman/alpha types.
-5. Html05_TablesComplex – thead/tbody/tfoot, caption, rowspan/colspan.
-6. Html06_ImagesAllModes – Data URI, relative, absolute image references.
-7. Html07_LinksAndAnchors – External links and internal anchors/ids.
-8. Html08_SemanticsAndCitations – blockquote/cite, abbr/dfn, figure/figcaption.
-9. Html09_CodePreWhitespace – code vs pre, whitespace handling.
-10. Html10_OptionsAndAsync – Additional head tags, style options, async round-trip.
+This folder contains runnable HTML conversion examples for `OfficeIMO.Word.Html`.
 
-All examples share the signature: Example(string folderPath, bool openWord)
-and write outputs to the runner’s Documents folder.
+## Examples
+
+- `Html00_AllInOne`: comprehensive input (`all.html`) to DOCX and round-trip HTML.
+- `Html01_LoadAndRoundTripBasics`: basic HTML to DOCX and back to HTML.
+- `Html02_SaveAsHtmlFromWord`: build a Word document and export to HTML with options.
+- `Html03_TextFormatting`: inline styles and tags.
+- `Html04_ListsAndNumbering`: nested lists, custom starts, roman and alpha list types.
+- `Html05_TablesComplex`: table sections, captions, rowspan, and colspan.
+- `Html06_ImagesAllModes`: data URI, relative, and absolute images.
+- `Html07_LinksAndAnchors`: external links and internal anchors.
+- `Html08_SemanticsAndCitations`: semantic HTML and citations.
+- `Html09_CodePreWhitespace`: code, preformatted text, and whitespace handling.
+- `Html10_OptionsAndAsync`: additional head tags, style options, and async round-trip.
+
+All examples share the `Example(string folderPath, bool openWord)` signature and write outputs to the runner's Documents folder.

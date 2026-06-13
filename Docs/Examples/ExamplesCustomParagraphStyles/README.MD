@@ -1,4 +1,4 @@
-## Custom Paragraph Styles
+# Custom Paragraph Styles
 
 Custom paragraph styles can be registered globally before creating a document.
 

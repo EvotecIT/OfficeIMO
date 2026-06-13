@@ -1,4 +1,4 @@
-## Working with threaded comments
+# Working with threaded comments
 
 OfficeIMO supports threaded comments that mirror the model used in Word. Replies are linked to their parent via unique `ParaId` identifiers.
 

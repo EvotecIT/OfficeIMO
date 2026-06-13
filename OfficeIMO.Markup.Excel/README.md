@@ -1,8 +1,9 @@
-# OfficeIMO.Markup.Excel
+# OfficeIMO.Markup.Excel - Markup to Excel export
+
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Markup.Excel)](https://www.nuget.org/packages/OfficeIMO.Markup.Excel)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markup.Excel?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Markup.Excel)
 
 `OfficeIMO.Markup.Excel` exports the semantic `OfficeIMO.Markup` workbook model to editable Excel `.xlsx` files through `OfficeIMO.Excel`.
-
-Use it when a `.omd` or Markdown-inspired authoring file has `profile: workbook` and should become a native workbook with sheets, ranges, formulas, tables, formatting, and charts.
 
 ## Install
 
@@ -42,22 +43,21 @@ new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExp
 });
 ```
 
-## What exports today
+## What it exports
 
-- Sheets, sheet-qualified ranges, and formulas
-- Named tables and styled cell formatting
-- Dashboard charts from inline CSV data, worksheet ranges, or sheet-qualified table sources
-- Safe workbook defaults including gridline handling, table header freeze panes, auto-fit columns, defined-name repair, and Open XML validation controls
+- Sheets, sheet-qualified ranges, and formulas.
+- Named tables and styled cell formatting.
+- Dashboard charts from inline CSV data, worksheet ranges, or sheet-qualified table sources.
+- Safe workbook defaults including gridline handling, table header freeze panes, auto-fit columns, defined-name repair, and Open XML validation controls.
 
-## Related packages
+## Boundaries
 
-- `OfficeIMO.Markup`: parser, semantic AST, validation, and emitters
-- `OfficeIMO.Markup.Cli`: command-line parse, validate, emit, and export workflow
-- `OfficeIMO.Excel`: Excel workbook object model used by this exporter
+- Markup parsing and validation stay in `OfficeIMO.Markup`.
+- Workbook creation and save behavior stay in `OfficeIMO.Excel`.
+- This package maps semantic workbook nodes into editable Excel output.
 
-## Targets
+## Targets and license
 
-- `netstandard2.0`, `net8.0`, `net10.0`
-- `net472` when building on Windows
-
-License: MIT
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

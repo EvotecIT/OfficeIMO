@@ -1,12 +1,17 @@
-# OfficeIMO.Reader.Xml (Preview)
+# OfficeIMO.Reader.Xml - XML reader adapter
 
-`OfficeIMO.Reader.Xml` is a modular XML ingestion adapter for `OfficeIMO.Reader`:
-- XML tree traversal to element/attribute path rows
-- chunked structured output with optional markdown tables
-- path and stream dispatch
-- warning chunks for malformed XML
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Xml)](https://www.nuget.org/packages/OfficeIMO.Reader.Xml)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Xml?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Xml)
 
-Registration into `OfficeIMO.Reader`:
+`OfficeIMO.Reader.Xml` registers a modular XML ingestion adapter for `OfficeIMO.Reader`.
+
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Reader.Xml
+```
+
+## Register
 
 ```csharp
 using OfficeIMO.Reader.Xml;
@@ -14,6 +19,20 @@ using OfficeIMO.Reader.Xml;
 DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true);
 ```
 
-Status:
-- packaged as `OfficeIMO.Reader.Xml`
-- preview-scoped modular adapter for `OfficeIMO.Reader`
+## What it emits
+
+- XML tree traversal to element/attribute path rows.
+- Chunked structured output with optional Markdown tables.
+- Path and stream dispatch.
+- Warning chunks for malformed XML.
+
+## Boundaries
+
+- Reader adapter registration belongs here.
+- Shared extraction contracts belong in `OfficeIMO.Reader`.
+- `OfficeIMO.Reader.Text` exists only as a compatibility orchestrator for structured text adapters.
+
+## Targets and license
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.

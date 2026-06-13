@@ -1,46 +1,37 @@
-# OfficeIMO.MarkdownRenderer.SamplePlugin
+# OfficeIMO.MarkdownRenderer.SamplePlugin - renderer plug-in example
 
-`OfficeIMO.MarkdownRenderer.SamplePlugin` is a small sample package that demonstrates how a third-party plugin can build on top of `OfficeIMO.MarkdownRenderer` and `OfficeIMO.Markdown.Html`.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.MarkdownRenderer.SamplePlugin)](https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.SamplePlugin)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.MarkdownRenderer.SamplePlugin?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.SamplePlugin)
 
-It shows one complete contract:
+`OfficeIMO.MarkdownRenderer.SamplePlugin` is a sample plug-in package for `OfficeIMO.MarkdownRenderer`. It shows how a third-party-style package can register visual features, HTML round-trip hints, and renderer options without changing the renderer core.
 
-- a fenced-block renderer plugin
-- a reusable feature pack built from that plugin
-- source-side reader document transforms for plugin-owned inline/AST upgrades
-- HTML-to-markdown document transforms for non-shared visual HTML paths
-- custom HTML element block converters for vendor HTML that never used the shared visual contract
-- custom HTML inline element converters for vendor inline HTML that should recover semantic inline AST
-- shared `data-omd-*` visual host HTML
-- plugin-owned HTML round-trip hints for `HtmlToMarkdownOptions`
+## Install
 
-## Example
+```powershell
+dotnet add package OfficeIMO.MarkdownRenderer.SamplePlugin
+```
+
+## Use it from a renderer host
 
 ```csharp
-using OfficeIMO.Markdown;
-using OfficeIMO.Markdown.Html;
 using OfficeIMO.MarkdownRenderer;
 using OfficeIMO.MarkdownRenderer.SamplePlugin;
 
-var renderOptions = MarkdownRendererPresets.CreateStrictMinimal();
-renderOptions.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
+var options = MarkdownRendererPresets.CreateStrict();
+options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
 
-var html = MarkdownRenderer.RenderBodyHtml("""
-```status-panel
-{"title":"Operations Overview","summary":"All checks passing","status":"healthy","caption":"Panel caption"}
-```
-""", renderOptions);
-
-var htmlToMarkdown = new HtmlToMarkdownOptions();
-htmlToMarkdown.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
-var document = html.LoadFromHtml(htmlToMarkdown);
-
-var readerOptions = MarkdownReaderOptions.CreatePortableProfile();
-readerOptions.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
-var parsed = MarkdownReader.Parse("System {{status:Healthy}} now", readerOptions);
+string html = MarkdownRenderer.RenderBodyHtml(markdownText, options);
 ```
 
-The sample pack also carries HTML-ingestion helpers, so both plain `<pre><code class="language-status-panel">...</code></pre>` input and vendor-specific `<section class="sample-status-panel" ...>` HTML can recover back into a semantic `status-panel` fenced block without touching core converter logic.
-It also shows inline recovery through `<span class="sample-status-badge">Healthy</span>`, which round-trips into typed markdown highlight inline AST instead of raw HTML.
-On the source side, it also upgrades plain `{{status:Healthy}}` tokens into typed highlight inline AST through the same plugin/feature-pack contract.
+## What it demonstrates
 
-Use this package as a reference implementation when building external plugin packs that want renderer behavior, HTML ingestion, and HTML round-trip fidelity to stay aligned through the same reusable feature-pack contract.
+- Keeping host or product-specific visuals in a plug-in package.
+- Registering renderer assets and Markdown document transforms.
+- Carrying matching HTML round-trip hints for `OfficeIMO.Markdown.Html`.
+- Preserving the generic renderer boundary.
+
+## Targets and license
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

@@ -1,17 +1,17 @@
-# OfficeIMO.Reader.Epub (Preview)
+# OfficeIMO.Reader.Epub - EPUB reader adapter
+
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Epub)](https://www.nuget.org/packages/OfficeIMO.Reader.Epub)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Epub?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Epub)
 
 `OfficeIMO.Reader.Epub` bridges `OfficeIMO.Epub` output into `OfficeIMO.Reader` chunk contracts.
 
-Current scope:
-- chapter-to-chunk projection
-- max-char chunk splitting
-- markdown + text chunk payloads
-- warning chunks propagated from EPUB parser warnings
-- virtual source paths (`.epub::chapter.xhtml`) for traceability
-- path and stream dispatch via `DocumentReader` handler registration
-- non-seekable stream support (adapter snapshots input when required)
+## Install
 
-Registration into `OfficeIMO.Reader`:
+```powershell
+dotnet add package OfficeIMO.Reader.Epub
+```
+
+## Register
 
 ```csharp
 using OfficeIMO.Reader.Epub;
@@ -19,6 +19,22 @@ using OfficeIMO.Reader.Epub;
 DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler();
 ```
 
-Status:
-- packaged as `OfficeIMO.Reader.Epub`
-- preview-scoped modular adapter for `OfficeIMO.Reader`
+## What it emits
+
+- Chapter-to-chunk projection.
+- Max-character chunk splitting.
+- Markdown and text chunk payloads.
+- Warning chunks propagated from EPUB parser warnings.
+- Virtual source paths such as `.epub::chapter.xhtml` for traceability.
+- Path and stream dispatch, including non-seekable stream support.
+
+## Boundaries
+
+- Reader adapter registration belongs here.
+- EPUB parsing belongs in `OfficeIMO.Epub`.
+- Shared extraction contracts belong in `OfficeIMO.Reader`.
+
+## Targets and license
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
