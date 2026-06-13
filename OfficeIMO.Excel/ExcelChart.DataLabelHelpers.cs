@@ -454,8 +454,7 @@ namespace OfficeIMO.Excel {
             normalizedPosition = position;
 
             for (OpenXmlElement? current = context; current != null; current = current.Parent) {
-                if (current is C.PieChart || current is C.Pie3DChart || current is C.OfPieChart || current is C.DoughnutChart
-                    || current is C.PieChartSeries) {
+                if (current is C.DoughnutChart) {
                     return position != C.DataLabelPositionValues.BestFit;
                 }
 
