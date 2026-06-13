@@ -31,9 +31,7 @@ namespace OfficeIMO.Excel {
             ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
 
             if (position != null) {
-                if (TryNormalizeDataLabelPosition(chartElement, position.Value, out var normalizedPosition)) {
-                    ReplaceChild(labels, new C.DataLabelPosition { Val = normalizedPosition });
-                }
+                ApplyDataLabelPosition(labels, chartElement, position.Value);
             }
 
             if (numberFormat != null) {
@@ -410,9 +408,7 @@ namespace OfficeIMO.Excel {
                 ReplaceChild(label, new C.ShowBubbleSize { Val = showBubbleSize.Value });
             }
             if (position != null) {
-                if (TryNormalizeDataLabelPosition(label, position.Value, out var normalizedPosition)) {
-                    ReplaceChild(label, new C.DataLabelPosition { Val = normalizedPosition });
-                }
+                ApplyDataLabelPosition(label, label, position.Value);
             }
             if (numberFormat != null) {
                 ReplaceChild(label, new C.NumberingFormat {
@@ -445,13 +441,22 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private static void ApplyDataLabelPosition(OpenXmlCompositeElement labelContainer, OpenXmlElement context, C.DataLabelPositionValues position) {
+            if (TryNormalizeDataLabelPosition(context, position, out var normalizedPosition)) {
+                ReplaceChild(labelContainer, new C.DataLabelPosition { Val = normalizedPosition });
+                return;
+            }
+
+            labelContainer.RemoveAllChildren<C.DataLabelPosition>();
+        }
+
         private static bool TryNormalizeDataLabelPosition(OpenXmlElement context, C.DataLabelPositionValues position, out C.DataLabelPositionValues normalizedPosition) {
             normalizedPosition = position;
 
             for (OpenXmlElement? current = context; current != null; current = current.Parent) {
                 if (current is C.PieChart || current is C.Pie3DChart || current is C.OfPieChart || current is C.DoughnutChart
                     || current is C.PieChartSeries) {
-                    return false;
+                    return position != C.DataLabelPositionValues.BestFit;
                 }
 
                 if (position == C.DataLabelPositionValues.OutsideEnd

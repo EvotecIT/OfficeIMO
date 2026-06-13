@@ -1332,6 +1332,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_PieOutsideEndDataLabelsArePreserved() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.PieOutsideEndLabels.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Pie");
+                sheet.CellValue(1, 1, "Status");
+                sheet.CellValue(1, 2, "Rules");
+                sheet.CellValue(2, 1, "High");
+                sheet.CellValue(2, 2, 5);
+                sheet.CellValue(3, 1, "Medium");
+                sheet.CellValue(3, 2, 3);
+
+                sheet.AddChartFromRange("A1:B3", row: 1, column: 4, widthPixels: 480, heightPixels: 300, type: ExcelChartType.Pie, title: "Status")
+                    .SetDataLabels(
+                        showValue: false,
+                        showCategoryName: true,
+                        showSeriesName: false,
+                        showLegendKey: false,
+                        showPercent: true,
+                        position: C.DataLabelPositionValues.OutsideEnd,
+                        numberFormat: "0%");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart wsPart = GetWorksheetPartWithCharts(spreadsheet);
+                C.DataLabelPosition position = wsPart.DrawingsPart!.ChartParts
+                    .SelectMany(part => part.ChartSpace.Descendants<C.DataLabelPosition>())
+                    .Single();
+
+                Assert.Equal(C.DataLabelPositionValues.OutsideEnd, position.Val!.Value);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_RecipeCustomizationDoesNotLeakToNextBuilderChart() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RecipeBuilderReuse.xlsx");
 

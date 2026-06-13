@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Produces sequential chart placements for worksheet dashboards.
+    /// Produces sequential chart placements for worksheet dashboards that use the default Excel row and column grid.
     /// </summary>
     public sealed class ExcelChartGridLayout {
         private const int DefaultColumnPixels = 64;
@@ -25,8 +25,8 @@ namespace OfficeIMO.Excel {
         /// <param name="widthPixels">Chart width in pixels.</param>
         /// <param name="heightPixels">Chart height in pixels.</param>
         /// <param name="chartsPerRow">Number of charts to place before wrapping to the next row.</param>
-        /// <param name="horizontalGapPixels">Minimum horizontal gap between chart slots, in pixels.</param>
-        /// <param name="verticalGapRows">Minimum vertical gap between chart rows, in worksheet rows.</param>
+        /// <param name="horizontalGapPixels">Minimum horizontal gap between chart slots, in pixels, calculated against default-width Excel columns.</param>
+        /// <param name="verticalGapRows">Minimum vertical gap between chart rows, in worksheet rows, calculated against default-height Excel rows.</param>
         public ExcelChartGridLayout(
             int row,
             int column,
