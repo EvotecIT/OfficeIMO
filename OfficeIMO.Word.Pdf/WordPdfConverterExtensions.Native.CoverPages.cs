@@ -2,8 +2,10 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using W = DocumentFormat.OpenXml.Wordprocessing;
+using V = DocumentFormat.OpenXml.Vml;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
@@ -112,7 +114,9 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             bool rendered = false;
-            if (TryCreateNativeVmlShape(element, box.Width, box.Height, out OfficeShape? shape) && shape != null) {
+            if (TryRenderNativeVmlImage(canvas, document, element, box, pageWidth, pageHeight)) {
+                rendered = true;
+            } else if (TryCreateNativeVmlShape(element, box.Width, box.Height, out OfficeShape? shape) && shape != null) {
                 if (IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
                     RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Shape(shape, box.X, box.Y, new PdfCore.PdfDrawingStyle { Decorative = true }));
                     rendered = true;
@@ -130,6 +134,103 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return rendered;
+        }
+
+        private static bool TryRenderNativeVmlImage(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement element, NativeVmlBox box, double pageWidth, double pageHeight) {
+            V.ImageData? imageData = element.GetFirstChild<V.ImageData>();
+            if (imageData == null ||
+                !IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight) ||
+                !TryGetNativeVmlImageBytes(document, element, imageData, out byte[]? imageBytes) ||
+                imageBytes == null ||
+                !IsNativePdfSupportedImageBytes(imageBytes, out _)) {
+                return false;
+            }
+
+            double rotation = GetNativeVmlRotationDegrees(element) ?? 0D;
+            bool horizontalFlip = false;
+            bool verticalFlip = false;
+            string? flip = GetNativeVmlFlip(element);
+            if (!string.IsNullOrWhiteSpace(flip)) {
+                horizontalFlip = flip!.IndexOf("x", StringComparison.OrdinalIgnoreCase) >= 0;
+                verticalFlip = flip.IndexOf("y", StringComparison.OrdinalIgnoreCase) >= 0;
+            }
+
+            RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Image(
+                imageBytes,
+                box.X,
+                box.Y,
+                box.Width,
+                box.Height,
+                new PdfCore.PdfImageStyle {
+                    Fit = OfficeImageFit.Stretch
+                },
+                rotationAngle: rotation,
+                horizontalFlip: horizontalFlip,
+                verticalFlip: verticalFlip));
+            return true;
+        }
+
+        private static bool TryGetNativeVmlImageBytes(WordDocument document, OpenXmlElement element, V.ImageData imageData, out byte[]? imageBytes) {
+            imageBytes = null;
+            string? relationshipId = imageData.RelationshipId?.Value ?? GetNativeOpenXmlAttribute(imageData, "id");
+            if (string.IsNullOrWhiteSpace(relationshipId)) {
+                return false;
+            }
+
+            if (!TryGetNativeVmlImagePart(document, element, relationshipId!, out ImagePart? imagePart) || imagePart == null) {
+                return false;
+            }
+
+            using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            imageBytes = memory.ToArray();
+            return imageBytes.Length > 0;
+        }
+
+        private static bool TryGetNativeVmlImagePart(WordDocument document, OpenXmlElement element, string relationshipId, out ImagePart? imagePart) {
+            imagePart = null;
+            MainDocumentPart? mainPart = document._wordprocessingDocument?.MainDocumentPart;
+            if (TryGetNativeVmlImagePart(mainPart, relationshipId, out imagePart)) {
+                return true;
+            }
+
+            if (mainPart == null) {
+                return false;
+            }
+
+            foreach (HeaderPart headerPart in mainPart.HeaderParts) {
+                if (TryGetNativeVmlImagePart(headerPart, relationshipId, out imagePart)) {
+                    return true;
+                }
+            }
+
+            foreach (FooterPart footerPart in mainPart.FooterParts) {
+                if (TryGetNativeVmlImagePart(footerPart, relationshipId, out imagePart)) {
+                    return true;
+                }
+            }
+
+            OpenXmlPartRootElement? root = element.Ancestors<OpenXmlPartRootElement>().FirstOrDefault();
+            if (TryGetNativeVmlImagePart(root?.OpenXmlPart, relationshipId, out imagePart)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryGetNativeVmlImagePart(OpenXmlPartContainer? container, string relationshipId, out ImagePart? imagePart) {
+            imagePart = null;
+            if (container == null) {
+                return false;
+            }
+
+            try {
+                imagePart = container.GetPartById(relationshipId) as ImagePart;
+                return imagePart != null;
+            } catch (ArgumentOutOfRangeException) {
+                return false;
+            }
         }
 
         private static bool TryCreateNativeVmlShape(OpenXmlElement element, double width, double height, out OfficeShape? shape) {

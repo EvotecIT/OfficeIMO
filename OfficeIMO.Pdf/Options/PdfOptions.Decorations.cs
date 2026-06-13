@@ -112,25 +112,21 @@ public sealed partial class PdfOptions {
     internal void SuppressFirstPageTextWatermark() {
         _firstPageTextWatermark = null;
         _suppressFirstPageTextWatermark = true;
-        DifferentFirstPageHeaderFooter = true;
     }
 
     internal void SuppressEvenPageTextWatermark() {
         _evenPageTextWatermark = null;
         _suppressEvenPageTextWatermark = true;
-        DifferentOddAndEvenPagesHeaderFooter = true;
     }
 
     internal void SuppressFirstPageImageWatermark() {
         _firstPageImageWatermark = null;
         _suppressFirstPageImageWatermark = true;
-        DifferentFirstPageHeaderFooter = true;
     }
 
     internal void SuppressEvenPageImageWatermark() {
         _evenPageImageWatermark = null;
         _suppressEvenPageImageWatermark = true;
-        DifferentOddAndEvenPagesHeaderFooter = true;
     }
     /// <summary>Optional reusable page border rendered as a page decoration.</summary>
     public PdfPageBorder? PageBorder {

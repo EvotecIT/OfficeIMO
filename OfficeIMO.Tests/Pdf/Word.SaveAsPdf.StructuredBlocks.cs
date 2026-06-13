@@ -425,6 +425,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_ImageData() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlImageData.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlImageData.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+            ImagePart imagePart = mainPart.AddImagePart(ImagePartType.Png);
+            using (var stream = new MemoryStream(CreateNativeMinimalRgbPng())) {
+                imagePart.FeedData(stream);
+            }
+
+            string relationshipId = mainPart.GetIdOfPart(imagePart);
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlImageCoverDrawingParagraph(relationshipId)));
+            document.AddParagraph("After VML image cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        IReadOnlyList<PdfImagePlacement> placements = PdfImageExtractor.ExtractImagePlacements(pdfPath);
+
+        Assert.Contains(placements, placement =>
+            placement.PageNumber == 1 &&
+            Math.Abs(placement.Width - 144D) < 0.1D &&
+            Math.Abs(placement.Height - 72D) < 0.1D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Oval_And_RoundRect() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlOvalRoundRect.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlOvalRoundRect.pdf");
@@ -1686,6 +1717,22 @@ public partial class Word {
         return new Paragraph(new Run(new Picture(panel)));
     }
 
+    private static Paragraph CreateNativeVmlImageCoverDrawingParagraph(string relationshipId) {
+        var imageData = new V.ImageData {
+            RelationshipId = relationshipId,
+            Title = "Cover image"
+        };
+        var shape = new V.Shape(imageData) {
+            Id = "NativeCoverImageData",
+            Type = "#_x0000_t75",
+            Style = "position:absolute;left:72;top:72;width:144;height:72",
+            Filled = false,
+            Stroked = false
+        };
+
+        return new Paragraph(new Run(new Picture(shape)));
+    }
+
     private static Paragraph CreateNativeVmlOvalAndRoundRectCoverDrawingParagraph() {
         var oval = new DocumentFormat.OpenXml.Vml.Oval {
             Id = "NativeCoverOval",
@@ -1902,4 +1949,7 @@ public partial class Word {
         object? value = style.GetType().GetProperty(propertyName)!.GetValue(style);
         return Assert.IsType<double>(value);
     }
+
+    private static byte[] CreateNativeMinimalRgbPng() =>
+        Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADUlEQVR42mP8z8BQDwAFgwJ/l2hYtQAAAABJRU5ErkJggg==");
 }

@@ -235,6 +235,37 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void WatermarkSuppression_DoesNotEnableHeaderFooterVariantsByItself() {
+        var options = new PdfOptions {
+            ShowHeader = true,
+            HeaderFormat = "DEFAULT HEADER",
+            TextWatermark = new PdfTextWatermark("GLOBAL") {
+                Opacity = 0.18,
+                FontSize = 30
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Page(page => {
+                page.SuppressFirstPageWatermark();
+                page.Content(content => content.Column(column => {
+                    column.Item().Paragraph(p => p.Text("First page body."));
+                    column.Item().PageBreak();
+                    column.Item().Paragraph(p => p.Text("Second page body."));
+                }));
+            })
+            .ToBytes();
+
+        PdfReadDocument readDocument = PdfReadDocument.Load(bytes);
+        string text = readDocument.ExtractText();
+        string firstPageText = readDocument.Pages[0].ExtractText();
+
+        Assert.False(options.DifferentFirstPageHeaderFooter);
+        Assert.Equal(2, Regex.Matches(text, "DEFAULT HEADER").Count);
+        Assert.DoesNotContain("GLOBAL", firstPageText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void ImageWatermark_ValidatesAndClonesOptions() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfOptions {

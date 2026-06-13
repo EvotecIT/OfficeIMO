@@ -382,11 +382,13 @@ public static partial class OfficeChartDrawingRenderer {
         bool useAbsoluteNegative = displayValue < 0D && numberFormat!.IndexOf(';') >= 0;
         string numericFormat = (grouped ? "N" : "F") + decimals.ToString(CultureInfo.InvariantCulture);
         formatted = (useAbsoluteNegative ? Math.Abs(displayValue) : displayValue).ToString(numericFormat, CultureInfo.InvariantCulture);
-        if (useAbsoluteNegative && format.IndexOf('(') >= 0 && format.IndexOf(')') > format.IndexOf('(')) {
-            formatted = "(" + formatted + ")";
-        }
+        if (TryGetDataLabelFormatAffixes(format, out string prefix, out string suffix)) {
+            if (percent && suffix.IndexOf('%') < 0) {
+                suffix += "%";
+            }
 
-        if (percent) {
+            formatted = prefix + formatted + suffix;
+        } else if (percent) {
             formatted += "%";
         }
 
@@ -404,6 +406,100 @@ public static partial class OfficeChartDrawingRenderer {
 
         return format;
     }
+
+    private static bool TryGetDataLabelFormatAffixes(string format, out string prefix, out string suffix) {
+        prefix = string.Empty;
+        suffix = string.Empty;
+        int firstPlaceholder = -1;
+        int lastPlaceholder = -1;
+        bool inQuotedLiteral = false;
+        bool escaped = false;
+        for (int i = 0; i < format.Length; i++) {
+            char c = format[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"') {
+                inQuotedLiteral = !inQuotedLiteral;
+                continue;
+            }
+
+            if (!inQuotedLiteral && (c == '0' || c == '#' || c == '?')) {
+                firstPlaceholder = firstPlaceholder < 0 ? i : firstPlaceholder;
+                lastPlaceholder = i;
+            }
+        }
+
+        if (firstPlaceholder < 0 || lastPlaceholder < firstPlaceholder) {
+            return false;
+        }
+
+        prefix = NormalizeDataLabelFormatLiteral(format.Substring(0, firstPlaceholder));
+        suffix = NormalizeDataLabelFormatLiteral(format.Substring(lastPlaceholder + 1));
+        return true;
+    }
+
+    private static string NormalizeDataLabelFormatLiteral(string value) {
+        if (string.IsNullOrEmpty(value)) {
+            return string.Empty;
+        }
+
+        var builder = new System.Text.StringBuilder(value.Length);
+        bool inQuotedLiteral = false;
+        bool escaped = false;
+        for (int i = 0; i < value.Length; i++) {
+            char c = value[i];
+            if (escaped) {
+                builder.Append(c);
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"') {
+                inQuotedLiteral = !inQuotedLiteral;
+                continue;
+            }
+
+            if (!inQuotedLiteral && (c == '_' || c == '*')) {
+                if (i + 1 < value.Length) {
+                    i++;
+                }
+
+                continue;
+            }
+
+            if (!inQuotedLiteral && c == '%') {
+                builder.Append('%');
+                continue;
+            }
+
+            if (inQuotedLiteral || !IsDataLabelFormatSyntax(c)) {
+                builder.Append(c);
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool IsDataLabelFormatSyntax(char c) =>
+        c == ',' ||
+        c == '.' ||
+        c == '0' ||
+        c == '#' ||
+        c == '?' ||
+        c == ';';
 
     private static bool HasDataLabelGrouping(string format) {
         int decimalIndex = format.IndexOf('.');

@@ -49,11 +49,6 @@ namespace OfficeIMO.Word.Pdf {
                 style.SpacingAfter = NativeDefaultParagraphSpacingAfter;
             }
 
-            double? defaultTabStopWidth = GetNativeDefaultTabStopWidth(paragraph);
-            if (defaultTabStopWidth.HasValue) {
-                style.DefaultTabStopWidth = defaultTabStopWidth.Value;
-            }
-
             foreach (WordTabStop tabStop in paragraph.TabStops
                 .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
                 .OrderBy(tabStop => tabStop.Position)) {
@@ -93,16 +88,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return NativeDefaultParagraphLineHeight;
-        }
-
-        private static double? GetNativeDefaultTabStopWidth(WordParagraph paragraph) {
-            int firstTabStop = paragraph.TabStops
-                .Where(tabStop => tabStop.Position > 0 && IsNativeRenderableTextTabStop(tabStop.Alignment))
-                .Select(tabStop => tabStop.Position)
-                .DefaultIfEmpty(0)
-                .Min();
-
-            return firstTabStop > 0 ? ConvertNativeTwipsToPoints(firstTabStop) : null;
         }
 
         private static PdfCore.PdfTabLeaderStyle MapNativeTabLeader(W.TabStopLeaderCharValues leader) {

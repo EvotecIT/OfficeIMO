@@ -377,9 +377,23 @@ namespace OfficeIMO.Tests {
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
             PdfTabStop tabStop = Assert.Single(style.TabStops);
-            Assert.Equal(108D, style.DefaultTabStopWidth);
+            Assert.Null(style.DefaultTabStopWidth);
             Assert.Equal(108D, tabStop.Position);
             Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);
+        }
+
+        [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Keeps_Default_Tab_Width_Separate_From_Explicit_TabStops() {
+            using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDefaultTabWidth.docx"));
+            WordParagraph paragraph = document.AddParagraph("Native default tab width");
+            paragraph.AddTabStop(2880, TabStopValues.Left, TabStopLeaderCharValues.None);
+
+            MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
+            PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
+
+            Assert.Null(style.DefaultTabStopWidth);
+            PdfTabStop tabStop = Assert.Single(style.TabStops);
+            Assert.Equal(144D, tabStop.Position);
         }
 
         [Fact]

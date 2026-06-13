@@ -734,6 +734,29 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_PreservesLiteralAffixesInNumberFormatSections() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Affix labels",
+            "Affix Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] { new OfficeChartSeries("Actual", new[] { 1234D, -25D, 0D }) }),
+            widthPoints: 280D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelNumberFormat: "$#,##0.00;($#,##0.00);0 \"kg\"")));
+
+        List<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("$1,234.00", labels);
+        Assert.Contains("($25.00)", labels);
+        Assert.Contains("0 kg", labels);
+    }
+
+    [Fact]
     public void FlowDrawing_SuppressesMarkersForIndividualSeries() {
         OfficeColor hiddenColor = OfficeColor.ParseHex("#C1121F");
         OfficeColor visibleColor = OfficeColor.ParseHex("#0077B6");
