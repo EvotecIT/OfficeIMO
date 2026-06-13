@@ -21,9 +21,9 @@ public static class OfficeDrawingSvgExporter {
         var sb = new StringBuilder();
         sb.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"")
             .Append(Format(drawing.Width))
-            .Append("\" height=\"")
+            .Append("pt\" height=\"")
             .Append(Format(drawing.Height))
-            .Append("\" viewBox=\"0 0 ")
+            .Append("pt\" viewBox=\"0 0 ")
             .Append(Format(drawing.Width))
             .Append(' ')
             .Append(Format(drawing.Height))

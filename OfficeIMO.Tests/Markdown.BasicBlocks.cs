@@ -308,8 +308,10 @@ code
 
             Assert.Null(document.TableOfContent);
             Assert.Contains("Contents", text, StringComparison.Ordinal);
-            Assert.Contains("[Inside](#inside)", text, StringComparison.Ordinal);
+            Assert.Contains("Inside", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("[Inside](#inside)", text, StringComparison.Ordinal);
             Assert.DoesNotContain("[Outside](#outside)", text, StringComparison.Ordinal);
+            Assert.Contains(document.HyperLinks, link => string.Equals(link.Anchor, "inside", StringComparison.Ordinal));
         }
 
         [Fact]

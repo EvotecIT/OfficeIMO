@@ -145,10 +145,30 @@ public static partial class OfficeChartDrawingRenderer {
         return fallbackColor;
     }
 
-    private static IReadOnlyList<OfficeColor?>? GetLegendPointColors(IReadOnlyList<OfficeChartSeries> series) {
+    private static OfficeColor GetPointColor(OfficeChartStyle style, OfficeChartSeries series, int index) {
+        OfficeColor fallbackColor = series.Color ?? GetPointColor(style, (IReadOnlyList<OfficeColor?>?)null, index);
+        return GetPointColor(series.PointColors, index, fallbackColor);
+    }
+
+    private static IReadOnlyList<OfficeColor?> GetCategoryPointColors(OfficeChartStyle style, OfficeChartSeries series, int categoryCount) {
+        var colors = new OfficeColor?[categoryCount];
+        for (int i = 0; i < colors.Length; i++) {
+            colors[i] = GetPointColor(style, series, i);
+        }
+
+        return colors;
+    }
+
+    private static IReadOnlyList<OfficeColor?>? GetLegendPointColors(OfficeChartStyle style, IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
         for (int i = 0; i < series.Count; i++) {
             if (series[i].PointColors != null) {
                 return series[i].PointColors;
+            }
+        }
+
+        for (int i = 0; i < series.Count; i++) {
+            if (series[i].Color.HasValue) {
+                return GetCategoryPointColors(style, series[i], categoryCount);
             }
         }
 
@@ -499,11 +519,11 @@ public static partial class OfficeChartDrawingRenderer {
                     centerY + Math.Sin(angle) * radius));
             }
 
-            AddPolygonShape(drawing, points, GetPointColor(style, values.PointColors, i), OfficeColor.White, 0.5D);
+            AddPolygonShape(drawing, points, GetPointColor(style, values, i), OfficeColor.White, 0.5D);
             start = end;
         }
 
-        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout, values.PointColors);
+        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout, GetCategoryPointColors(style, values, categories.Count));
     }
 
     private static void AddDoughnutSeries(OfficeDrawing drawing, IReadOnlyList<string> categories, IReadOnlyList<OfficeChartSeries> series, double width, double height, double contentTop, OfficeChartStyle style, OfficeChartLayout layout) {
@@ -540,7 +560,7 @@ public static partial class OfficeChartDrawingRenderer {
 
                 double sweep = value / total * Math.PI * 2D;
                 double end = start + sweep;
-                AddPieSlice(drawing, centerX, centerY, outerRadius, start, sweep, GetPointColor(style, values.PointColors, i));
+                AddPieSlice(drawing, centerX, centerY, outerRadius, start, sweep, GetPointColor(style, values, i));
                 start = end;
             }
 
@@ -557,7 +577,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout, GetLegendPointColors(renderableSeries));
+        AddCategoryLegend(drawing, categories, width - legendWidth + 6D, contentTop + 12D, Math.Max(0D, legendWidth - 12D), Math.Max(20D, contentHeight - 24D), style, layout, GetLegendPointColors(style, renderableSeries, categories.Count));
     }
 
     private static double GetPositiveSeriesTotal(OfficeChartSeries values, int categoryCount) {

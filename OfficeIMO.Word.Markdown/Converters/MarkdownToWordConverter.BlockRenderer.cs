@@ -182,9 +182,28 @@ namespace OfficeIMO.Word.Markdown {
             private void RenderTocFallback(Omd.TocBlock block) {
                 RenderTocFallbackTitle(block);
 
-                if (block.Entries.Count > 0) {
-                    RenderFallback(block);
+                if (block.Entries.Count == 0) {
+                    return;
                 }
+
+                var list = _host.CreateList(block.Ordered ? WordListStyle.Numbered : WordListStyle.Bulleted);
+                int baseLevel = block.NormalizeLevels ? block.Entries.Min(entry => entry.Level) : 1;
+                foreach (var entry in block.Entries) {
+                    if (string.IsNullOrWhiteSpace(entry.Text)) {
+                        continue;
+                    }
+
+                    int effectiveLevel = Math.Max(0, _listLevel + entry.Level - baseLevel);
+                    var paragraph = list.AddItem((string?)null, effectiveLevel);
+                    ApplyBlockParagraphFormatting(paragraph, _quoteDepth, _alignment);
+                    if (!string.IsNullOrWhiteSpace(entry.Anchor)) {
+                        paragraph.AddHyperLink(entry.Text, entry.Anchor.TrimStart('#'), addStyle: true);
+                    } else {
+                        paragraph.AddText(entry.Text);
+                    }
+                }
+
+                _host.NotifyListRendered(list);
             }
 
             private void RenderTocFallbackTitle(Omd.TocBlock block) {

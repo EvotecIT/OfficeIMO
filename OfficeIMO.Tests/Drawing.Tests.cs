@@ -299,6 +299,15 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsRootDimensionsInPoints() {
+        var drawing = new OfficeDrawing(120, 80);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"120pt\" height=\"80pt\" viewBox=\"0 0 120 80\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeDrawingSvgExporter_AppliesTransformsInShapeLocalCoordinates() {
         var drawing = new OfficeDrawing(120, 120);
         var shape = OfficeShape.Rectangle(10, 20);
@@ -744,6 +753,17 @@ public class DrawingTests {
         Assert.Equal(OfficeImageFormat.Svg, image.Format);
         Assert.Equal(96, image.Width);
         Assert.Equal(96, image.Height);
+    }
+
+    [Fact]
+    public void OfficeImageReaderReadsSvgPointUnitsAsCssPixels() {
+        var svg = System.Text.Encoding.UTF8.GetBytes("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"72pt\" height=\"36pt\"></svg>");
+
+        Assert.True(OfficeImageReader.TryIdentify(svg, "points.svg", out var image));
+
+        Assert.Equal(OfficeImageFormat.Svg, image.Format);
+        Assert.Equal(96, image.Width);
+        Assert.Equal(48, image.Height);
     }
 
     [Fact]

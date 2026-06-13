@@ -155,6 +155,62 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersPieChartSeriesColorWhenPointColorsAreMissing() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#CC3366");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie series color",
+            "Pie Series",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Outcome",
+                        new[] { 42D, 30D },
+                        null,
+                        seriesColor)
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.FillColor == seriesColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.FillColor == seriesColor &&
+            shape.Shape.StrokeWidth == 0D);
+    }
+
+    [Fact]
+    public void FlowDrawing_RendersDoughnutChartSeriesColorWhenPointColorsAreMissing() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#CC3366");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Doughnut series color",
+            "Doughnut Series",
+            OfficeChartKind.Doughnut,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Outcome",
+                        new[] { 42D, 30D },
+                        null,
+                        seriesColor)
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.FillColor == seriesColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.FillColor == seriesColor &&
+            shape.Shape.StrokeWidth == 0D);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersLineChartPointColorsOnMarkers() {
         OfficeColor highlight = OfficeColor.ParseHex("#F76707");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
