@@ -35,13 +35,19 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Zip;
+using OfficeIMO.Zip;
 
 DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler();
 DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler();
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler(new ReaderZipOptions {
-    ReadNestedZipEntries = true,
-    MaxNestedDepth = 2
-});
+DocumentReaderZipRegistrationExtensions.RegisterZipHandler(
+    zipOptions: new ZipTraversalOptions {
+        MaxEntries = 500,
+        MaxTotalUncompressedBytes = 200L * 1024L * 1024L
+    },
+    readerZipOptions: new ReaderZipOptions {
+        ReadNestedZipEntries = true,
+        MaxNestedDepth = 2
+    });
 
 foreach (var chunk in DocumentReader.Read("evidence.zip", new ReaderOptions {
     MaxInputBytes = 200L * 1024L * 1024L

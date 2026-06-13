@@ -18,7 +18,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 
 using var document = WordDocument.Create("report.docx");
-document.AddParagraph("PDF export").SetStyle("Heading1");
+document.AddParagraph("PDF export").Style = WordParagraphStyles.Heading1;
 document.AddParagraph("This document is exported through OfficeIMO.Pdf.");
 
 document.SaveAsPdf("report.pdf");
