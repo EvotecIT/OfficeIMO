@@ -356,6 +356,31 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Vml_CoverPage_Default_Stroke() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlDefaultStroke.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlDefaultStroke.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlDefaultStrokeCoverDrawingParagraph()));
+            document.AddParagraph("After VML default stroke cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After VML default stroke cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0 0 0 RG", pageContent, StringComparison.Ordinal);
+        Assert.Contains("72 648 144 72 re", pageContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Oval_And_RoundRect() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlOvalRoundRect.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlOvalRoundRect.pdf");
@@ -1586,6 +1611,16 @@ public partial class Word {
             StrokeWeight = "4pt"
         };
         panel.SetAttribute(new OpenXmlAttribute("filled", string.Empty, "f"));
+
+        return new Paragraph(new Run(new Picture(panel)));
+    }
+
+    private static Paragraph CreateNativeVmlDefaultStrokeCoverDrawingParagraph() {
+        var panel = new DocumentFormat.OpenXml.Vml.Rectangle {
+            Id = "NativeCoverDefaultStrokePanel",
+            Style = "position:absolute;left:72;top:72;width:144;height:72",
+            Filled = false
+        };
 
         return new Paragraph(new Run(new Picture(panel)));
     }

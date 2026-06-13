@@ -176,13 +176,18 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeSectionWatermark(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options) {
             if (HasNativeHeaderSpecificWatermarks(section)) {
-                ApplyNativeWatermark(page.Watermark, page.ImageWatermark, section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark), options, "default header watermark");
+                WordWatermark? defaultWatermark = section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+                ApplyNativeWatermark(page.Watermark, page.ImageWatermark, defaultWatermark, options, "default header watermark");
                 if (section.DifferentFirstPage) {
-                    ApplyNativeWatermark(page.FirstPageWatermark, page.FirstPageImageWatermark, section.Header?.First?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark), options, "first header watermark");
+                    WordWatermark? firstWatermark = section.Header?.First?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+                    ApplyNativeWatermark(page.FirstPageWatermark, page.FirstPageImageWatermark, firstWatermark, options, "first header watermark");
+                    SuppressMissingFirstPageWatermark(page, defaultWatermark, firstWatermark);
                 }
 
                 if (section.DifferentOddAndEvenPages) {
-                    ApplyNativeWatermark(page.EvenPagesWatermark, page.EvenPagesImageWatermark, section.Header?.Even?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark), options, "even header watermark");
+                    WordWatermark? evenWatermark = section.Header?.Even?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
+                    ApplyNativeWatermark(page.EvenPagesWatermark, page.EvenPagesImageWatermark, evenWatermark, options, "even header watermark");
+                    SuppressMissingEvenPagesWatermark(page, defaultWatermark, evenWatermark);
                 }
 
                 return;
@@ -207,6 +212,32 @@ namespace OfficeIMO.Word.Pdf {
             applyText(textWatermark);
             applyImage(imageWatermark);
         }
+
+        private static void SuppressMissingFirstPageWatermark(PdfCore.PdfPageCompose page, WordWatermark? defaultWatermark, WordWatermark? firstWatermark) {
+            if (HasNativeTextWatermark(defaultWatermark) && !HasNativeTextWatermark(firstWatermark)) {
+                page.SuppressFirstPageTextWatermark();
+            }
+
+            if (HasNativeImageWatermark(defaultWatermark) && !HasNativeImageWatermark(firstWatermark)) {
+                page.SuppressFirstPageImageWatermark();
+            }
+        }
+
+        private static void SuppressMissingEvenPagesWatermark(PdfCore.PdfPageCompose page, WordWatermark? defaultWatermark, WordWatermark? evenWatermark) {
+            if (HasNativeTextWatermark(defaultWatermark) && !HasNativeTextWatermark(evenWatermark)) {
+                page.SuppressEvenPagesTextWatermark();
+            }
+
+            if (HasNativeImageWatermark(defaultWatermark) && !HasNativeImageWatermark(evenWatermark)) {
+                page.SuppressEvenPagesImageWatermark();
+            }
+        }
+
+        private static bool HasNativeTextWatermark(WordWatermark? watermark) =>
+            !string.IsNullOrWhiteSpace(watermark?.Text);
+
+        private static bool HasNativeImageWatermark(WordWatermark? watermark) =>
+            watermark?.HasImage == true;
 
         private static PdfCore.PdfTextWatermark? CreateNativeTextWatermark(WordWatermark? watermark) {
             if (watermark == null) {

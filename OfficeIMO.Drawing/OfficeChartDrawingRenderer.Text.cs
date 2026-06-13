@@ -101,12 +101,12 @@ public static partial class OfficeChartDrawingRenderer {
             layout);
     }
 
-    private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null) {
         if (!ShouldRenderLegendBand(layout) || categories.Count == 0 || width < 48D) {
             return;
         }
 
-        AddLegendBand(drawing, categories, x, y, width, style, layout);
+        AddLegendBand(drawing, categories, x, y, width, style, layout, pointColors);
     }
 
     private static bool ShouldRenderLegendBand(OfficeChartLayout layout) =>
@@ -128,7 +128,7 @@ public static partial class OfficeChartDrawingRenderer {
         return rows * layout.LegendRowHeight + 4D;
     }
 
-    private static void AddLegendBand(OfficeDrawing drawing, IEnumerable<string?> labels, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddLegendBand(OfficeDrawing drawing, IEnumerable<string?> labels, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null) {
         List<string?> labelList = labels.ToList();
         if (labelList.Count == 0) {
             return;
@@ -147,7 +147,7 @@ public static partial class OfficeChartDrawingRenderer {
                 : labelList[i]!;
             double itemX = x + column * itemWidth;
             double rowY = y + row * rowHeight;
-            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), itemX, rowY + swatchOffset, GetSeriesColor(style, i), null, 0D);
+            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), itemX, rowY + swatchOffset, GetPointColor(style, pointColors, i), null, 0D);
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
             AddChartText(drawing, name, itemX + textOffset, rowY, Math.Max(1D, itemWidth - textOffset - 2D), rowHeight, layout.LegendFontSize, style.TextColor, OfficeTextAlignment.Left, style);
         }

@@ -613,8 +613,9 @@ public static partial class OfficeChartDrawingRenderer {
         double topCategoryLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Top
             ? GetCategoryLegendBandHeight(categories, width - 16D, layout)
             : 0D;
+        IReadOnlyList<OfficeColor?> categoryPointColors = GetCategoryPointColors(style, values, categories.Count);
         if (topCategoryLegendHeight > 0D) {
-            AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout);
+            AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout, categoryPointColors);
             contentTop += topCategoryLegendHeight;
         }
 
@@ -669,18 +670,30 @@ public static partial class OfficeChartDrawingRenderer {
             Math.Max(20D, contentHeight - 24D),
             style,
             layout,
-            GetCategoryPointColors(style, values, categories.Count));
+            categoryPointColors);
         if (categoryBottomLegendHeight > 0D) {
-            AddCategoryLegendBand(drawing, categories, 8D, height - categoryBottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout);
+            AddCategoryLegendBand(drawing, categories, 8D, height - categoryBottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, categoryPointColors);
         }
     }
 
     private static void AddDoughnutSeries(OfficeDrawing drawing, IReadOnlyList<string> categories, IReadOnlyList<OfficeChartSeries> series, double width, double height, double contentTop, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+        var renderableSeries = new List<OfficeChartSeries>();
+        for (int s = 0; s < series.Count; s++) {
+            if (GetPositiveSeriesTotal(series[s], categories.Count) > 0D) {
+                renderableSeries.Add(series[s]);
+            }
+        }
+
+        if (renderableSeries.Count == 0) {
+            return;
+        }
+
         double topCategoryLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Top
             ? GetCategoryLegendBandHeight(categories, width - 16D, layout)
             : 0D;
+        IReadOnlyList<OfficeColor?>? legendPointColors = GetLegendPointColors(style, renderableSeries, categories.Count);
         if (topCategoryLegendHeight > 0D) {
-            AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout);
+            AddCategoryLegendBand(drawing, categories, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout, legendPointColors);
             contentTop += topCategoryLegendHeight;
         }
 
@@ -694,17 +707,6 @@ public static partial class OfficeChartDrawingRenderer {
         double radius = Math.Max(28D, Math.Min(visualWidth - 48D, contentHeight - 36D) / 2D);
         double centerX = (leftLegend ? legendWidth : 0D) + visualWidth / 2D;
         double centerY = contentTop + contentHeight / 2D;
-
-        var renderableSeries = new List<OfficeChartSeries>();
-        for (int s = 0; s < series.Count; s++) {
-            if (GetPositiveSeriesTotal(series[s], categories.Count) > 0D) {
-                renderableSeries.Add(series[s]);
-            }
-        }
-
-        if (renderableSeries.Count == 0) {
-            return;
-        }
 
         double ringThickness = radius / (renderableSeries.Count + 0.9D);
         for (int s = 0; s < renderableSeries.Count; s++) {
@@ -755,9 +757,9 @@ public static partial class OfficeChartDrawingRenderer {
             Math.Max(20D, contentHeight - 24D),
             style,
             layout,
-            GetLegendPointColors(style, renderableSeries, categories.Count));
+            legendPointColors);
         if (categoryBottomLegendHeight > 0D) {
-            AddCategoryLegendBand(drawing, categories, 8D, height - categoryBottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout);
+            AddCategoryLegendBand(drawing, categories, 8D, height - categoryBottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, legendPointColors);
         }
     }
 

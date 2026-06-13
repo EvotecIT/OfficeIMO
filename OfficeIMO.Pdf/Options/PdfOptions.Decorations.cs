@@ -14,7 +14,10 @@ public sealed partial class PdfOptions {
         get => _firstPageTextWatermark?.Clone();
         set {
             _firstPageTextWatermark = value?.Clone();
-            DifferentFirstPageHeaderFooter = true;
+            _suppressFirstPageTextWatermark = false;
+            if (value != null) {
+                DifferentFirstPageHeaderFooter = true;
+            }
         }
     }
     /// <summary>Optional even-page text watermark rendered behind page content when odd/even variants are enabled.</summary>
@@ -22,15 +25,26 @@ public sealed partial class PdfOptions {
         get => _evenPageTextWatermark?.Clone();
         set {
             _evenPageTextWatermark = value?.Clone();
-            DifferentOddAndEvenPagesHeaderFooter = true;
+            _suppressEvenPageTextWatermark = false;
+            if (value != null) {
+                DifferentOddAndEvenPagesHeaderFooter = true;
+            }
         }
     }
     internal PdfTextWatermark? GetTextWatermarkForPage(int pageNumber) {
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            if (_suppressFirstPageTextWatermark) {
+                return null;
+            }
+
             return (_firstPageTextWatermark ?? _textWatermark)?.Clone();
         }
 
         if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
+            if (_suppressEvenPageTextWatermark) {
+                return null;
+            }
+
             return (_evenPageTextWatermark ?? _textWatermark)?.Clone();
         }
 
@@ -47,7 +61,10 @@ public sealed partial class PdfOptions {
         get => _firstPageImageWatermark?.Clone();
         set {
             _firstPageImageWatermark = value?.Clone();
-            DifferentFirstPageHeaderFooter = true;
+            _suppressFirstPageImageWatermark = false;
+            if (value != null) {
+                DifferentFirstPageHeaderFooter = true;
+            }
         }
     }
     /// <summary>Optional even-page image watermark rendered behind page content when odd/even variants are enabled.</summary>
@@ -55,19 +72,53 @@ public sealed partial class PdfOptions {
         get => _evenPageImageWatermark?.Clone();
         set {
             _evenPageImageWatermark = value?.Clone();
-            DifferentOddAndEvenPagesHeaderFooter = true;
+            _suppressEvenPageImageWatermark = false;
+            if (value != null) {
+                DifferentOddAndEvenPagesHeaderFooter = true;
+            }
         }
     }
     internal PdfImageWatermark? GetImageWatermarkForPage(int pageNumber) {
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
+            if (_suppressFirstPageImageWatermark) {
+                return null;
+            }
+
             return (_firstPageImageWatermark ?? _imageWatermark)?.Clone();
         }
 
         if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
+            if (_suppressEvenPageImageWatermark) {
+                return null;
+            }
+
             return (_evenPageImageWatermark ?? _imageWatermark)?.Clone();
         }
 
         return _imageWatermark?.Clone();
+    }
+    internal void SuppressFirstPageTextWatermark() {
+        _firstPageTextWatermark = null;
+        _suppressFirstPageTextWatermark = true;
+        DifferentFirstPageHeaderFooter = true;
+    }
+
+    internal void SuppressEvenPageTextWatermark() {
+        _evenPageTextWatermark = null;
+        _suppressEvenPageTextWatermark = true;
+        DifferentOddAndEvenPagesHeaderFooter = true;
+    }
+
+    internal void SuppressFirstPageImageWatermark() {
+        _firstPageImageWatermark = null;
+        _suppressFirstPageImageWatermark = true;
+        DifferentFirstPageHeaderFooter = true;
+    }
+
+    internal void SuppressEvenPageImageWatermark() {
+        _evenPageImageWatermark = null;
+        _suppressEvenPageImageWatermark = true;
+        DifferentOddAndEvenPagesHeaderFooter = true;
     }
     /// <summary>Optional reusable page border rendered as a page decoration.</summary>
     public PdfPageBorder? PageBorder {

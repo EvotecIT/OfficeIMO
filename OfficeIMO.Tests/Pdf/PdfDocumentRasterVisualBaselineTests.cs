@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Markdown.Pdf;
@@ -198,7 +199,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         Assert.Equal("Open Details", detailsLink.Contents);
 
         var images = PdfImageExtractor.ExtractImages(bytes);
-        Assert.True(images.Count >= 2, "Expected worksheet body and header images to survive Excel-to-PDF export.");
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        int imageDraws = Regex.Matches(rawPdf, @"/Im\d+\s+Do").Count;
+        Assert.True(images.Count >= 1 && imageDraws >= 2, "Expected worksheet body and header image placements to survive Excel-to-PDF export.");
 
         using UglyToad.PdfPig.PdfDocument pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         UglyToad.PdfPig.Content.Page summaryPage = pdf.GetPage(1);

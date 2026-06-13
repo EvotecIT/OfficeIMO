@@ -204,6 +204,16 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (categoryList.Count == 0) {
                     categoryList.AddRange(currentCategories.Count > 0 ? currentCategories : CreateNativeWordChartDefaultCategories(values.Count));
+                } else if (currentCategories.Count > categoryList.Count) {
+                    for (int index = categoryList.Count; index < currentCategories.Count; index++) {
+                        categoryList.Add(string.IsNullOrWhiteSpace(currentCategories[index])
+                            ? "Category " + (index + 1).ToString(CultureInfo.InvariantCulture)
+                            : currentCategories[index]);
+                    }
+                } else if (values.Count > categoryList.Count) {
+                    for (int index = categoryList.Count; index < values.Count; index++) {
+                        categoryList.Add("Category " + (index + 1).ToString(CultureInfo.InvariantCulture));
+                    }
                 }
 
                 series.Add(new OfficeChartSeries(GetNativeWordChartSeriesName(seriesElement, seriesIndex), values, xValues));
@@ -601,6 +611,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (showLegend &&
+                legendPosition == OfficeChartLegendPosition.Right &&
                 !showDataLabels &&
                 !maximumCategoryAxisLabels.HasValue &&
                 !maximumHorizontalCategoryAxisLabels.HasValue &&
@@ -836,19 +847,7 @@ namespace OfficeIMO.Word.Pdf {
             chartKind == OfficeChartKind.BarStacked100;
 
         private static DataLabels? GetNativeWordChartDataLabels(OpenXmlElement chartElement) {
-            DataLabels? chartLabels = chartElement.GetFirstChild<DataLabels>();
-            if (chartLabels != null) {
-                return chartLabels;
-            }
-
-            foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
-                DataLabels? seriesLabels = seriesElement.GetFirstChild<DataLabels>();
-                if (seriesLabels != null) {
-                    return seriesLabels;
-                }
-            }
-
-            return null;
+            return chartElement.GetFirstChild<DataLabels>();
         }
 
         private static bool IsNativeWordChartBooleanOn(BooleanType? value) =>

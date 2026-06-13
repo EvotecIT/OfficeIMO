@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -75,6 +76,54 @@ public class PdfDocumentChartDrawingTests {
         var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { categoryAxisData, 3 })!;
 
         Assert.Equal(new[] { "Only", "Category 2", "Category 3" }, categories);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_ExtendsCategoriesAcrossAllSeries() {
+        var chart = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D }),
+            CreateBarSeries(1U, new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { 3D, 4D, 5D, 6D }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { chart, OfficeChartKind.ColumnClustered, null };
+
+        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+        var categories = (IReadOnlyList<string>)args[2]!;
+
+        Assert.Equal(2, series.Count);
+        Assert.Equal(new[] { "Q1", "Q2", "Q3", "Q4" }, categories);
+    }
+
+    [Fact]
+    public void WordChartLayout_PreservesLegendOnlyNonDefaultPosition() {
+        var chartElement = new BarChart(new BarDirection { Val = BarDirectionValues.Column });
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(
+            plotArea,
+            new Legend(new LegendPosition { Val = LegendPositionValues.Top }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowLegend);
+        Assert.Equal(OfficeChartLegendPosition.Top, layout.LegendPosition);
+    }
+
+    [Fact]
+    public void WordChartLayout_DoesNotPromoteSeriesOnlyDataLabelsToEverySeries() {
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }, new DataLabels(new ShowValue { Val = true })));
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(plotArea);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 })!;
+
+        Assert.NotNull(layout);
+        Assert.False(layout!.ShowDataLabels);
     }
 
     [Fact]
@@ -453,6 +502,39 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersTopPieLegendSwatchesWithPointColors() {
+        OfficeColor passed = OfficeColor.ParseHex("#2FB344");
+        OfficeColor failed = OfficeColor.ParseHex("#F76707");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Pie point legend",
+            "Pie Legend",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Outcome",
+                        new[] { 42D, 30D },
+                        null,
+                        OfficeColor.ParseHex("#2563EB"),
+                        new OfficeColor?[] { passed, failed })
+                }),
+            widthPoints: 260D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showLegend: true,
+                legendPosition: OfficeChartLegendPosition.Top)));
+
+        var topLegendSwatches = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.StrokeWidth == 0D && shape.Y < 30D)
+            .Select(shape => shape.Shape.FillColor)
+            .ToList();
+
+        Assert.Contains(passed, topLegendSwatches);
+        Assert.Contains(failed, topLegendSwatches);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersDoughnutChartSeriesColorWhenPointColorsAreMissing() {
         OfficeColor seriesColor = OfficeColor.ParseHex("#CC3366");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
@@ -506,6 +588,38 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.Height == 4D &&
             shape.Shape.FillColor == highlight &&
             shape.Shape.StrokeColor == highlight);
+    }
+
+    private static BarChartSeries CreateBarSeries(uint index, string[] categories, double[] values, DataLabels? dataLabels = null) {
+        var series = new BarChartSeries(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = index },
+            new Order { Val = index },
+            new SeriesText(new NumericValue("Series " + (index + 1))),
+            CreateCategoryAxisData(categories),
+            CreateValues(values));
+        if (dataLabels != null) {
+            series.Append(dataLabels);
+        }
+
+        return series;
+    }
+
+    private static CategoryAxisData CreateCategoryAxisData(string[] categories) {
+        var cache = new StringCache(new PointCount { Val = (uint)categories.Length });
+        for (uint index = 0; index < categories.Length; index++) {
+            cache.Append(new StringPoint(new NumericValue(categories[index])) { Index = index });
+        }
+
+        return new CategoryAxisData(new StringReference(cache));
+    }
+
+    private static Values CreateValues(double[] values) {
+        var cache = new NumberingCache(new PointCount { Val = (uint)values.Length });
+        for (uint index = 0; index < values.Length; index++) {
+            cache.Append(new NumericPoint(new NumericValue(values[index].ToString("0.####", System.Globalization.CultureInfo.InvariantCulture))) { Index = index });
+        }
+
+        return new Values(new NumberReference(cache));
     }
 
     [Fact]

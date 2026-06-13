@@ -182,6 +182,34 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void WatermarkVariants_CanSuppressInheritedFirstPageWatermarks() {
+        byte[] image = CreateMinimalRgbPng();
+        byte[] bytes = PdfDocument.Create()
+            .Watermark("GLOBAL", fontSize: 30, opacity: 0.18)
+            .ImageWatermark(image, width: 20, height: 20, opacity: 0.18)
+            .Page(page => {
+                page.SuppressFirstPageWatermark();
+                page.Content(content => content.Column(column => {
+                    column.Item().Paragraph(p => p.Text("First page body."));
+                    column.Item().PageBreak();
+                    column.Item().Paragraph(p => p.Text("Second page body."));
+                }));
+            })
+            .ToBytes();
+
+        PdfReadDocument readDocument = PdfReadDocument.Load(bytes);
+        string firstPageText = readDocument.Pages[0].ExtractText();
+        string secondPageText = readDocument.Pages[1].ExtractText();
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+
+        Assert.DoesNotContain("GLOBAL", firstPageText, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("GLOBAL", secondPageText, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("/Im", firstPageStream, StringComparison.Ordinal);
+        Assert.Contains("/Im", secondPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImageWatermark_ValidatesAndClonesOptions() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfOptions {

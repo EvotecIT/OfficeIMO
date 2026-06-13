@@ -71,13 +71,33 @@ namespace OfficeIMO.Tests.Pdf {
 
             Assert.DoesNotContain("Runningheader", page1Text, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Runningfooter", page1Text, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("Runningheader", page2Text, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("Runningfooter", page2Text, StringComparison.OrdinalIgnoreCase);
-        }
+        Assert.Contains("Runningheader", page2Text, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Runningfooter", page2Text, StringComparison.OrdinalIgnoreCase);
+    }
 
-        [Fact]
-        public void DifferentOddAndEvenPagesHeaderFooter_UsesEvenContentAndKeepsFirstPagePrecedence() {
-            var options = new PdfOptions {
+    [Fact]
+    public void ClearingFirstPageWatermarkDoesNotEnableBlankHeaderFooterVariant() {
+        var options = new PdfOptions {
+            ShowHeader = true,
+            HeaderFormat = "Running header"
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Page(page => {
+                page.FirstPageWatermark((PdfTextWatermark?)null);
+                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Body text."))));
+            })
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string pageText = Normalize(pdf.GetPage(1).Text);
+
+        Assert.Contains("Runningheader", pageText, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void DifferentOddAndEvenPagesHeaderFooter_UsesEvenContentAndKeepsFirstPagePrecedence() {
+        var options = new PdfOptions {
                 ShowHeader = true,
                 HeaderFormat = "Odd header {page}/{pages}",
                 ShowPageNumbers = true,

@@ -457,11 +457,6 @@ namespace OfficeIMO.Word.Pdf {
             string? strokeColor = NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(element, "strokecolor") ?? childStrokeColor);
             bool stroked = IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(element, "stroked")) &&
                            (strokeElement == null || IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(strokeElement, "on")));
-            if (shape.Kind != OfficeShapeKind.Line && string.IsNullOrWhiteSpace(strokeColor)) {
-                shape.StrokeColor = null;
-                shape.StrokeWidth = 0D;
-                return;
-            }
 
             if (!stroked) {
                 shape.StrokeColor = null;
