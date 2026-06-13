@@ -134,6 +134,24 @@ code
         }
 
         [Fact]
+        public void MarkdownToWord_Renders_Titleless_Toc_Marker_Without_Default_Word_Title() {
+            const string markdown = """
+                [TOC min=2 max=4]
+
+                # Report
+
+                ## Region
+                """;
+
+            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            Assert.NotNull(document.TableOfContent);
+            Assert.Equal(2, document.TableOfContent!.MinLevel);
+            Assert.Equal(4, document.TableOfContent.MaxLevel);
+            Assert.Equal(string.Empty, document.TableOfContent.Text);
+        }
+
+        [Fact]
         public void TocMarkerBlock_Renders_Word_Toc_Levels_Above_Markdown_Heading_Six() {
             var marker = new OfficeIMO.Markdown.TocMarkerBlock {
                 MinLevel = 7,

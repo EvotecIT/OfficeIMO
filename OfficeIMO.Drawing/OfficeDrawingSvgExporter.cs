@@ -29,10 +29,17 @@ public static class OfficeDrawingSvgExporter {
             .Append(Format(drawing.Height))
             .Append("\" role=\"img\">");
 
+        int gradientId = 0;
         for (int i = 0; i < drawing.Elements.Count; i++) {
             switch (drawing.Elements[i]) {
                 case OfficeDrawingShape drawingShape:
-                    AppendShape(sb, drawingShape);
+                    string? fillGradientId = null;
+                    if (drawingShape.Shape.FillGradient != null) {
+                        fillGradientId = "officeimo-gradient-" + (++gradientId).ToString(CultureInfo.InvariantCulture);
+                        AppendGradientDefinition(sb, fillGradientId, drawingShape.Shape.FillGradient);
+                    }
+
+                    AppendShape(sb, drawingShape, fillGradientId);
                     break;
                 case OfficeDrawingText drawingText:
                     AppendText(sb, drawingText);
@@ -51,9 +58,9 @@ public static class OfficeDrawingSvgExporter {
     /// <returns>UTF-8 encoded SVG bytes.</returns>
     public static byte[] ToSvgBytes(OfficeDrawing drawing) => Encoding.UTF8.GetBytes(ToSvg(drawing));
 
-    private static void AppendShape(StringBuilder sb, OfficeDrawingShape drawingShape) {
+    private static void AppendShape(StringBuilder sb, OfficeDrawingShape drawingShape, string? fillGradientId) {
         OfficeShape shape = drawingShape.Shape;
-        string paint = BuildPaintAttributes(shape);
+        string paint = BuildPaintAttributes(shape, fillGradientId);
         bool useLocalCoordinates = HasNonIdentityTransform(shape.Transform);
         double originX = useLocalCoordinates ? 0D : drawingShape.X;
         double originY = useLocalCoordinates ? 0D : drawingShape.Y;
@@ -206,12 +213,49 @@ public static class OfficeDrawingSvgExporter {
         sb.Append("</text>");
     }
 
-    private static string BuildPaintAttributes(OfficeShape shape) {
+    private static void AppendGradientDefinition(StringBuilder sb, string id, OfficeLinearGradient gradient) {
+        sb.Append("<defs><linearGradient id=\"")
+            .Append(Escape(id))
+            .Append("\" x1=\"")
+            .Append(Format(gradient.StartX * 100D))
+            .Append("%\" y1=\"")
+            .Append(Format(gradient.StartY * 100D))
+            .Append("%\" x2=\"")
+            .Append(Format(gradient.EndX * 100D))
+            .Append("%\" y2=\"")
+            .Append(Format(gradient.EndY * 100D))
+            .Append("%\">");
+
+        for (int i = 0; i < gradient.Stops.Count; i++) {
+            OfficeGradientStop stop = gradient.Stops[i];
+            sb.Append("<stop offset=\"")
+                .Append(Format(stop.Offset * 100D))
+                .Append("%\" stop-color=\"")
+                .Append(ToCssColor(stop.Color))
+                .Append('"');
+
+            double opacity = ToOpacity(stop.Color);
+            if (opacity < 1D) {
+                sb.Append(" stop-opacity=\"").Append(Format(opacity)).Append('"');
+            }
+
+            sb.Append("/>");
+        }
+
+        sb.Append("</linearGradient></defs>");
+    }
+
+    private static string BuildPaintAttributes(OfficeShape shape, string? fillGradientId) {
         var sb = new StringBuilder();
-        OfficeColor? fillColor = shape.FillGradient != null ? shape.FillGradient.Stops[0].Color : shape.FillColor;
-        if (fillColor.HasValue && fillColor.Value.A > 0) {
-            sb.Append(" fill=\"").Append(ToCssColor(fillColor.Value)).Append('"');
-            double fillOpacity = shape.FillOpacity ?? ToOpacity(fillColor.Value);
+        if (fillGradientId != null) {
+            sb.Append(" fill=\"url(#").Append(Escape(fillGradientId)).Append(")\"");
+            double fillOpacity = shape.FillOpacity ?? 1D;
+            if (fillOpacity < 1D) {
+                sb.Append(" fill-opacity=\"").Append(Format(fillOpacity)).Append('"');
+            }
+        } else if (shape.FillColor.HasValue && shape.FillColor.Value.A > 0) {
+            sb.Append(" fill=\"").Append(ToCssColor(shape.FillColor.Value)).Append('"');
+            double fillOpacity = shape.FillOpacity ?? ToOpacity(shape.FillColor.Value);
             if (fillOpacity < 1D) {
                 sb.Append(" fill-opacity=\"").Append(Format(fillOpacity)).Append('"');
             }

@@ -388,6 +388,13 @@ namespace OfficeIMO.Word.Markdown {
             string? implicitCodeFont = ResolveImplicitCodeFont();
             bool checkboxPending = hasCheckbox;
 
+            if (paragraph.PageBreakBefore) {
+                var pageBreakBlock = CreatePageBreakBlock(options);
+                if (pageBreakBlock != null) {
+                    blocks.Add(pageBreakBlock);
+                }
+            }
+
             foreach (var run in paragraph.GetRuns()) {
                 if (run.PageBreak != null) {
                     if (TryAppendRunWithEmbeddedPageBreaks(
@@ -494,6 +501,10 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private static bool ParagraphContainsPageBreak(WordParagraph paragraph) {
+            if (paragraph.PageBreakBefore) {
+                return true;
+            }
+
             foreach (var run in paragraph.GetRuns()) {
                 if (run.PageBreak != null) {
                     return true;

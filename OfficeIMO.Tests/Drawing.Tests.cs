@@ -314,6 +314,24 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsLinearGradientFillDefinitions() {
+        var drawing = new OfficeDrawing(120, 60);
+        var shape = OfficeShape.Rectangle(100, 40);
+        shape.FillGradient = OfficeLinearGradient.Horizontal(
+            OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0x00),
+            OfficeColor.SteelBlue);
+        drawing.AddShape(shape, 10, 10);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.Contains("<linearGradient id=\"officeimo-gradient-1\" x1=\"0%\" y1=\"50%\" x2=\"100%\" y2=\"50%\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<stop offset=\"0%\" stop-color=\"#FF0000\" stop-opacity=\"0\"", svg, StringComparison.Ordinal);
+        Assert.Contains("<stop offset=\"100%\" stop-color=\"#4682B4\"", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("fill=\"url(#officeimo-gradient-1)\"", svg, StringComparison.Ordinal);
+        Assert.DoesNotContain("fill=\"none\"", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OfficeClipPathStoresReusablePathIntent() {
         var clipPath = OfficeClipPath.Path(
             OfficePathCommand.MoveTo(10, 30),

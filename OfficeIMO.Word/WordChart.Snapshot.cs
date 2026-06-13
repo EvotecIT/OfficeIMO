@@ -252,6 +252,7 @@ namespace OfficeIMO.Word {
             }
 
             IReadOnlyList<string> categories = Array.Empty<string>();
+            IReadOnlyList<string> fallbackCategories = Array.Empty<string>();
             for (int i = 0; i < seriesList.Count; i++) {
                 IReadOnlyList<double> values = ReadCachedNumbers(seriesList[i].GetFirstChild<C.Values>());
                 if (values.Count == 0) {
@@ -259,17 +260,20 @@ namespace OfficeIMO.Word {
                 }
 
                 categories = ReadCachedStrings(seriesList[i].GetFirstChild<C.CategoryAxisData>());
-                if (categories.Count == 0) {
-                    categories = CreateFallbackCategories(values.Count);
-                }
-
                 if (categories.Count > 0) {
                     break;
+                }
+
+                if (fallbackCategories.Count == 0) {
+                    fallbackCategories = CreateFallbackCategories(values.Count);
                 }
             }
 
             if (categories.Count == 0) {
-                return null;
+                categories = fallbackCategories;
+                if (categories.Count == 0) {
+                    return null;
+                }
             }
 
             var series = new List<WordChartSeries>();

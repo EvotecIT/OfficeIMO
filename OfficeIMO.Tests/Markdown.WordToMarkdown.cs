@@ -345,6 +345,22 @@ namespace OfficeIMO.Tests {
                 block => Assert.Equal("After", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
         }
 
+        [Fact]
+        public void WordToMarkdown_Preserves_Paragraph_Level_PageBreaks_Before_Content() {
+            using var doc = WordDocument.Create();
+            doc.AddParagraph("Before");
+            var after = doc.AddParagraph("After");
+            after.PageBreakBefore = true;
+
+            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+
+            Assert.Collection(
+                markdown.Blocks,
+                block => Assert.Equal("Before", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<SemanticFencedBlock>(block),
+                block => Assert.Equal("After", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+        }
+
         [Theory]
         [InlineData(MarkdownPageBreakMode.Html, "<div style=\"page-break-after: always;\"></div>")]
         [InlineData(MarkdownPageBreakMode.HorizontalRule, "---")]
@@ -623,6 +639,30 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.ParseHex("#0072B2"), snapshot.Data.Series[0].Color);
             Assert.Equal(OfficeColor.ParseHex("#E69F00"), snapshot.Data.Series[1].Color);
             Assert.Equal(OfficeColor.ParseHex("#009E73"), snapshot.Data.Series[2].Color);
+        }
+
+        [Fact]
+        public void WordChart_TryGetSnapshot_Prefers_Later_Real_Categories_Over_Early_Fallback() {
+            using var doc = WordDocument.Create();
+            var chart = doc.AddChart("Regional Pipeline", width: 400, height: 240);
+            chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
+            chart.AddBar("No categories", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
+            chart.AddBar("Real categories", new System.Collections.Generic.List<int> { 8, 14 }, OfficeColor.SeaGreen);
+
+            C.BarChartSeries firstSeries = doc._wordprocessingDocument.MainDocumentPart!
+                .ChartParts
+                .First()
+                .ChartSpace
+                .GetFirstChild<C.Chart>()!
+                .PlotArea!
+                .GetFirstChild<C.BarChart>()!
+                .Elements<C.BarChartSeries>()
+                .First();
+            firstSeries.GetFirstChild<C.CategoryAxisData>()?.Remove();
+
+            Assert.True(chart.TryGetSnapshot(out var snapshot));
+
+            Assert.Equal(new[] { "Q1", "Q2" }, snapshot.Data.Categories);
         }
 
         [Fact]

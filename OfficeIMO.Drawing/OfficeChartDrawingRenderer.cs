@@ -196,6 +196,10 @@ public static partial class OfficeChartDrawingRenderer {
                 }
 
                 OfficeColor color = GetSeriesColor(style, series, s);
+                if (series[s].PointColors != null && category < series[s].PointColors!.Count && series[s].PointColors![category].HasValue) {
+                    color = GetPointColor(style, series[s].PointColors, category);
+                }
+
                 if (horizontal) {
                     double categoryHeight = plotHeight / categories.Count;
                     double rowHeight = Math.Max(2D, categoryHeight * 0.68D / (stacked ? 1D : series.Count));

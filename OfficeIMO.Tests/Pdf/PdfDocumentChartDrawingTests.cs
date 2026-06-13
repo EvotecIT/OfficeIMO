@@ -127,6 +127,34 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_RendersBarChartPointColors() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Point colors",
+            "Per Point",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries(
+                        "Actual",
+                        new[] { 10D, 20D },
+                        null,
+                        OfficeColor.Black,
+                        new OfficeColor?[] { OfficeColor.ParseHex("#2FB344"), OfficeColor.ParseHex("#F76707") })
+                }),
+            widthPoints: 220D,
+            heightPoints: 140D));
+
+        var barColors = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.StrokeWidth == 0D)
+            .Select(shape => shape.Shape.FillColor)
+            .ToList();
+
+        Assert.Contains(OfficeColor.ParseHex("#2FB344"), barColors);
+        Assert.Contains(OfficeColor.ParseHex("#F76707"), barColors);
+    }
+
+    [Fact]
     public void FlowDrawing_SkipsNonFiniteScatterXCoordinates() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter",

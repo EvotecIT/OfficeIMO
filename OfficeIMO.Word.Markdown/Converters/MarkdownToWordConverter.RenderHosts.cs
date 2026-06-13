@@ -34,9 +34,7 @@ namespace OfficeIMO.Word.Markdown {
             public WordTable CreateTable(int rows, int columns) => _document.AddTable(rows, columns);
             public bool TryAddTableOfContents(int minLevel, int maxLevel, string? title) {
                 var toc = _document.AddTableOfContent(minLevel: minLevel, maxLevel: maxLevel);
-                if (!string.IsNullOrWhiteSpace(title)) {
-                    toc.Text = title!;
-                }
+                toc.Text = string.IsNullOrWhiteSpace(title) ? string.Empty : title!;
 
                 return true;
             }

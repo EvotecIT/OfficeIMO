@@ -32,9 +32,11 @@ public static partial class MarkdownReader {
             if (t.StartsWith("[TOC", System.StringComparison.OrdinalIgnoreCase) && t.EndsWith("]")) {
                 var inner = t.Substring(4, t.Length - 5).Trim(); // after [TOC and before ]
                 var opts = new TocOptions();
+                bool hasTitleAttribute = false;
                 if (!string.IsNullOrWhiteSpace(inner)) {
-                    try { ApplyAttributes(inner, opts); } catch { /* ignore malformed attributes; fall back to defaults */ }
+                    try { hasTitleAttribute = ApplyAttributes(inner, opts); } catch { /* ignore malformed attributes; fall back to defaults */ }
                 }
+                if (!hasTitleAttribute) opts.IncludeTitle = false;
                 // Clamp levels and sanitize options
                 if (opts.MinLevel < 1) opts.MinLevel = TocOptions.DefaultMinLevel;
                 if (opts.MaxLevel < opts.MinLevel) opts.MaxLevel = opts.MinLevel;
@@ -49,7 +51,8 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        private static void ApplyAttributes(string inner, TocOptions o) {
+        private static bool ApplyAttributes(string inner, TocOptions o) {
+            bool hasTitleAttribute = false;
             foreach (var tok in Tokenize(inner)) {
                 int eq = tok.IndexOf('=');
                 string key = eq > 0 ? tok.Substring(0, eq).Trim() : tok.Trim();
@@ -58,7 +61,7 @@ public static partial class MarkdownReader {
                     case "min": if (int.TryParse(val, out var mi)) o.MinLevel = mi; break;
                     case "max": if (int.TryParse(val, out var ma)) o.MaxLevel = ma; break;
                     case "ordered": case "ol": if (Bool(val)) o.Ordered = true; break;
-                    case "title": o.Title = val; o.IncludeTitle = !string.IsNullOrWhiteSpace(val); break;
+                    case "title": o.Title = val; o.IncludeTitle = !string.IsNullOrWhiteSpace(val); hasTitleAttribute = true; break;
                     case "titlelevel": if (int.TryParse(val, out var tl)) o.TitleLevel = tl; break;
                     case "layout":
                         var v = val.ToLowerInvariant();
@@ -90,6 +93,7 @@ public static partial class MarkdownReader {
             }
 
             static bool Bool(string s) => s.Equals("true", System.StringComparison.OrdinalIgnoreCase) || s.Equals("1");
+            return hasTitleAttribute;
         }
 
         private static System.Collections.Generic.IEnumerable<string> Tokenize(string inner) {
