@@ -73,13 +73,14 @@ agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 
 ```csharp
 using OfficeIMO.PowerPoint;
+using PowerPointImagePartType = OfficeIMO.PowerPoint.ImagePartType;
 
 slide.AddPicture("logo.png",
     PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2),
     PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
 
 using var logo = File.OpenRead("logo.png");
-slide.AddPicture(logo, ImagePartType.Png,
+slide.AddPicture(logo, PowerPointImagePartType.Png,
     PowerPointUnits.Cm(2), PowerPointUnits.Cm(2),
     PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
 

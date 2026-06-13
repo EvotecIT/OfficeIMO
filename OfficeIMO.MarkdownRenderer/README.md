@@ -80,6 +80,7 @@ string bodyHtml = MarkdownRenderer.RenderBodyHtml(markdownText, options);
 ### Enable visual fences in a shell
 
 ```csharp
+using OfficeIMO.Markdown;
 using OfficeIMO.MarkdownRenderer;
 
 var options = MarkdownRendererPresets.CreateStrict();
