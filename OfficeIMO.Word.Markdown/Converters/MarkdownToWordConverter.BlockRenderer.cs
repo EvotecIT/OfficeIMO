@@ -342,7 +342,7 @@ namespace OfficeIMO.Word.Markdown {
                             }
 
                             ApplyBlockParagraphFormatting(listItemParagraph, _quoteDepth, _alignment);
-                            ProcessInlinesOmd(paragraph.Inlines, listItemParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, effectiveLevel, _quoteDepth);
+                            ProcessInlinesOmd(paragraph.Inlines, listItemParagraph, _options, _document, _currentFootnotes, _pageContentWidthPixels, effectiveLevel + 1, _quoteDepth);
                             firstParagraph = false;
                             continue;
                         }

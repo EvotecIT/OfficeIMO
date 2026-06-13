@@ -162,6 +162,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWord_FitsInlineListImagesToIndentedContextWidth() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            string md = $"- ![Local]({imagePath}){{width=1200 height=300}}";
+            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions {
+                AllowLocalImages = true,
+                FitImagesToContextWidth = true,
+                ImageLayout = {
+                    AllowUpscale = true
+                },
+                DefaultPageSize = WordPageSize.Letter
+            });
+
+            Assert.Single(doc.Images);
+            Assert.InRange(doc.Images[0].Width ?? 0, 488, 490);
+        }
+
+        [Fact]
         public void MarkdownToWord_AppliesConfiguredImageMaxWidthPixels() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"![Local]({imagePath}){{width=1200 height=300}}";

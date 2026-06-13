@@ -66,6 +66,14 @@ public static class OfficeDrawingSvgExporter {
     public static byte[] ToSvgBytes(OfficeDrawing drawing) => Encoding.UTF8.GetBytes(ToSvg(drawing));
 
     private static void AppendShape(StringBuilder sb, OfficeDrawingShape drawingShape, string? fillGradientId, string? clipPathId) {
+        if (TryCreateShadowShape(drawingShape, out var shadowShape)) {
+            AppendShapeGeometry(sb, shadowShape, fillGradientId: null, clipPathId);
+        }
+
+        AppendShapeGeometry(sb, drawingShape, fillGradientId, clipPathId);
+    }
+
+    private static void AppendShapeGeometry(StringBuilder sb, OfficeDrawingShape drawingShape, string? fillGradientId, string? clipPathId) {
         OfficeShape shape = drawingShape.Shape;
         string paint = BuildPaintAttributes(shape, fillGradientId);
         bool useLocalCoordinates = clipPathId != null || HasNonIdentityTransform(shape.Transform);
@@ -121,6 +129,34 @@ public static class OfficeDrawingSvgExporter {
         if (clipPathId != null) {
             sb.Append("</g>");
         }
+    }
+
+    private static bool TryCreateShadowShape(OfficeDrawingShape drawingShape, out OfficeDrawingShape shadowDrawingShape) {
+        OfficeShape shape = drawingShape.Shape;
+        OfficeShadow? shadow = shape.Shadow;
+        if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) {
+            shadowDrawingShape = drawingShape;
+            return false;
+        }
+
+        bool hasStroke = shape.Kind == OfficeShapeKind.Line ||
+            (shape.StrokeColor.HasValue && shape.StrokeWidth > 0D && shape.StrokeColor.Value.A > 0);
+        bool hasFill = shape.Kind != OfficeShapeKind.Line &&
+            (shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
+
+        var shadowShape = shape.Clone();
+        shadowShape.Shadow = null;
+        shadowShape.FillGradient = null;
+        shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;
+        shadowShape.FillOpacity = shadow.Opacity;
+        shadowShape.StrokeColor = hasStroke ? shadow.Color : null;
+        shadowShape.StrokeOpacity = shadow.Opacity;
+
+        shadowDrawingShape = new OfficeDrawingShape(
+            shadowShape,
+            drawingShape.X + shadow.OffsetX,
+            drawingShape.Y + shadow.OffsetY);
+        return true;
     }
 
     private static void AppendLine(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform, double originX, double originY) {

@@ -349,6 +349,22 @@ public class DrawingTests {
     }
 
     [Fact]
+    public void OfficeDrawingSvgExporter_EmitsShapeShadowBehindForegroundShape() {
+        var drawing = new OfficeDrawing(120, 80);
+        var shape = OfficeShape.Rectangle(80, 30);
+        shape.FillColor = OfficeColor.SteelBlue;
+        shape.Shadow = new OfficeShadow(OfficeColor.Black, 0.25, 3, 4);
+        drawing.AddShape(shape, 10, 12);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        int shadowIndex = svg.IndexOf("<rect x=\"13\" y=\"16\" width=\"80\" height=\"30\" fill=\"#000000\" fill-opacity=\"0.25\" stroke=\"none\"/>", StringComparison.Ordinal);
+        int foregroundIndex = svg.IndexOf("<rect x=\"10\" y=\"12\" width=\"80\" height=\"30\" fill=\"#4682B4\" stroke=\"none\"/>", StringComparison.Ordinal);
+        Assert.True(shadowIndex >= 0, svg);
+        Assert.True(foregroundIndex > shadowIndex, svg);
+    }
+
+    [Fact]
     public void OfficeClipPathStoresReusablePathIntent() {
         var clipPath = OfficeClipPath.Path(
             OfficePathCommand.MoveTo(10, 30),

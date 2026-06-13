@@ -742,6 +742,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordChart_TryGetSnapshot_Uses_Max_Value_Count_For_Fallback_Categories() {
+            using var doc = WordDocument.Create();
+            var chart = doc.AddChart("Revenue", width: 400, height: 240);
+            chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
+            chart.AddBar("Actual", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.CornflowerBlue);
+            chart.AddBar("Forecast", new System.Collections.Generic.List<int> { 11, 21, 31 }, OfficeColor.SeaGreen);
+
+            var chartPart = Assert.Single(doc.MainDocumentPartRoot.ChartParts);
+            foreach (var categoryAxisData in chartPart.ChartSpace!.Descendants<C.CategoryAxisData>().ToList()) {
+                categoryAxisData.Remove();
+            }
+
+            Assert.True(chart.TryGetSnapshot(out var snapshot));
+            Assert.Equal(new[] { "Category 1", "Category 2", "Category 3" }, snapshot.Data.Categories);
+            Assert.Equal(new[] { 10D, 20D, 0D }, snapshot.Data.Series[0].Values);
+            Assert.Equal(new[] { 11D, 21D, 31D }, snapshot.Data.Series[1].Values);
+        }
+
+        [Fact]
         public void WordChart_TryGetSnapshot_Reads_Final_Palette_Series_Colors() {
             using var doc = WordDocument.Create();
             var chart = doc.AddChart("Regional Pipeline", width: 400, height: 240);

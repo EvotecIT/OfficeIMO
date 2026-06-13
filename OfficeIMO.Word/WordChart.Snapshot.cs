@@ -277,7 +277,7 @@ namespace OfficeIMO.Word {
             }
 
             IReadOnlyList<string> categories = Array.Empty<string>();
-            IReadOnlyList<string> fallbackCategories = Array.Empty<string>();
+            int fallbackCategoryCount = 0;
             for (int i = 0; i < seriesList.Count; i++) {
                 IReadOnlyList<double> values = ReadCachedNumbers(seriesList[i].GetFirstChild<C.Values>());
                 if (values.Count == 0) {
@@ -289,13 +289,11 @@ namespace OfficeIMO.Word {
                     break;
                 }
 
-                if (fallbackCategories.Count == 0) {
-                    fallbackCategories = CreateFallbackCategories(values.Count);
-                }
+                fallbackCategoryCount = Math.Max(fallbackCategoryCount, values.Count);
             }
 
             if (categories.Count == 0) {
-                categories = fallbackCategories;
+                categories = CreateFallbackCategories(fallbackCategoryCount);
                 if (categories.Count == 0) {
                     return null;
                 }
