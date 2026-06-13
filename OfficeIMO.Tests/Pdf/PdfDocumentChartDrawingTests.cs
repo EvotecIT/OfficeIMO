@@ -2,8 +2,10 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -59,6 +61,20 @@ public class PdfDocumentChartDrawingTests {
         double max = (double)range.GetType().GetProperty("Max")!.GetValue(range)!;
         Assert.Equal(-1D, min);
         Assert.Equal(1D, max);
+    }
+
+    [Fact]
+    public void WordChartCategoryExtraction_PadsShortCategoryCacheToValueCount() {
+        var categoryAxisData = new CategoryAxisData(
+            new StringReference(
+                new StringCache(
+                    new PointCount { Val = 1U },
+                    new StringPoint(new NumericValue("Only")) { Index = 0U })));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartCategories", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { categoryAxisData, 3 })!;
+
+        Assert.Equal(new[] { "Only", "Category 2", "Category 3" }, categories);
     }
 
     [Fact]

@@ -11,7 +11,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void RenderNativeElement(INativePdfFlow pdf, WordElement element, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth) {
+        private static void RenderNativeElement(INativePdfFlow pdf, WordElement element, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, IReadOnlyList<int> footnoteNumbers, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth) {
             switch (element) {
                 case WordParagraph paragraph:
                     RenderNativeParagraph(pdf, paragraph, getMarker(paragraph), footnoteNumbers, footnoteNumbersById, options, headingDestinations);
@@ -35,10 +35,10 @@ namespace OfficeIMO.Word.Pdf {
                     RenderNativeShape(pdf, shape);
                     break;
                 case WordCoverPage coverPage:
-                    RenderNativeCoverPage(pdf, coverPage, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth);
+                    RenderNativeCoverPage(pdf, coverPage, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth);
                     break;
                 case WordStructuredDocumentTag structuredDocumentTag:
-                    RenderNativeStructuredDocumentTag(pdf, structuredDocumentTag, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth);
+                    RenderNativeStructuredDocumentTag(pdf, structuredDocumentTag, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth);
                     break;
                 case WordWatermark:
                     break;

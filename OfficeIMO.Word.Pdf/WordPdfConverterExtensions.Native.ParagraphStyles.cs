@@ -55,7 +55,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (WordTabStop tabStop in paragraph.TabStops
-                .Where(tabStop => tabStop.Position > 0)
+                .Where(tabStop => tabStop.Position > 0 && tabStop.Alignment != W.TabStopValues.Bar)
                 .OrderBy(tabStop => tabStop.Position)) {
                 double? position = ConvertNativeTwipsToPoints(tabStop.Position);
                 if (!position.HasValue) {

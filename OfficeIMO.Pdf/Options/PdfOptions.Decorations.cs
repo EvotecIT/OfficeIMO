@@ -27,11 +27,11 @@ public sealed partial class PdfOptions {
     }
     internal PdfTextWatermark? GetTextWatermarkForPage(int pageNumber) {
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
-            return _firstPageTextWatermark?.Clone();
+            return (_firstPageTextWatermark ?? _textWatermark)?.Clone();
         }
 
         if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
-            return _evenPageTextWatermark?.Clone();
+            return (_evenPageTextWatermark ?? _textWatermark)?.Clone();
         }
 
         return _textWatermark?.Clone();
@@ -60,11 +60,11 @@ public sealed partial class PdfOptions {
     }
     internal PdfImageWatermark? GetImageWatermarkForPage(int pageNumber) {
         if (pageNumber == 1 && DifferentFirstPageHeaderFooter) {
-            return _firstPageImageWatermark?.Clone();
+            return (_firstPageImageWatermark ?? _imageWatermark)?.Clone();
         }
 
         if (DifferentOddAndEvenPagesHeaderFooter && pageNumber > 0 && pageNumber % 2 == 0) {
-            return _evenPageImageWatermark?.Clone();
+            return (_evenPageImageWatermark ?? _imageWatermark)?.Clone();
         }
 
         return _imageWatermark?.Clone();

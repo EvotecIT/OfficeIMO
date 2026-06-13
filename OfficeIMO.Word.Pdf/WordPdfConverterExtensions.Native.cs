@@ -159,6 +159,7 @@ namespace OfficeIMO.Word.Pdf {
                         RenderNativeElement(
                             flow,
                             element,
+                            section,
                             paragraph => listMarkers.TryGetValue(paragraph, out var marker) ? marker : null,
                             GetNativeFootnoteNumbersForElement(elements, i, footnoteNumbersById),
                             footnoteNumbersById,

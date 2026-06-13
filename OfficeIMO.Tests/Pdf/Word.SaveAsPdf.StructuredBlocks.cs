@@ -190,6 +190,37 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_TextBox_Run_Breaks_And_Tabs() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxBreaksTabs.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageTextBoxBreaksTabs.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlTextBoxParagraph(
+                    new Paragraph(
+                        new Run(
+                            new Text("Line one"),
+                            new Break(),
+                            new Text("Line two"),
+                            new TabChar(),
+                            new Text("Tail"))))));
+            document.AddParagraph("Native textbox break body");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Line one", text);
+        Assert.Contains("Line two", text);
+        Assert.Contains("Tail", text);
+        Assert.DoesNotContain("Line oneLine two", text);
+        Assert.Contains("Native textbox break body", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Drawing_On_First_Page() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlDrawing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlDrawing.pdf");

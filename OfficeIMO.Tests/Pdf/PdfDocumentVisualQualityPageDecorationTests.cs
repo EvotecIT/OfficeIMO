@@ -148,6 +148,40 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void WatermarkVariants_FallBackToGlobalWatermarksWhenUnset() {
+        byte[] image = CreateMinimalRgbPng();
+        var options = new PdfOptions {
+            DifferentFirstPageHeaderFooter = true,
+            DifferentOddAndEvenPagesHeaderFooter = true,
+            TextWatermark = new PdfTextWatermark("GLOBAL") {
+                Opacity = 0.18,
+                FontSize = 30
+            },
+            ImageWatermark = new PdfImageWatermark(image, width: 20, height: 20) {
+                Opacity = 0.18
+            }
+        };
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(p => p.Text("Page one body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Page two body."))
+            .PageBreak()
+            .Paragraph(p => p.Text("Page three body."))
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+        string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+        string secondPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 2));
+        string thirdPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 3));
+
+        Assert.Equal(3, Regex.Matches(text, "GLOBAL").Count);
+        Assert.Contains("/Im", firstPageStream, StringComparison.Ordinal);
+        Assert.Contains("/Im", secondPageStream, StringComparison.Ordinal);
+        Assert.Contains("/Im", thirdPageStream, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ImageWatermark_ValidatesAndClonesOptions() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfOptions {

@@ -8,10 +8,9 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool TryRenderNativeCoverPageCanvas(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, PdfSaveOptions? options) {
+        private static bool TryRenderNativeCoverPageCanvas(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection section, PdfSaveOptions? options) {
             W.SdtContentBlock? content = sdtBlock?.SdtContentBlock;
-            WordSection? section = document.Sections.FirstOrDefault();
-            if (content == null || section == null || !HasNativeVmlCoverDrawing(content)) {
+            if (content == null || !HasNativeVmlCoverDrawing(content)) {
                 return false;
             }
 
@@ -751,20 +750,18 @@ namespace OfficeIMO.Word.Pdf {
                 hasParagraph = true;
                 foreach (W.Run run in paragraph.Descendants<W.Run>()) {
                     W.RunProperties? properties = run.RunProperties;
-                    foreach (W.Text text in run.Descendants<W.Text>()) {
-                        string value = ResolveNativeVmlRunText(document, run, text);
-                        if (string.IsNullOrEmpty(value)) {
-                            continue;
+                    foreach (OpenXmlElement child in run.ChildElements) {
+                        if (child is W.Text text) {
+                            AddNativeVmlTextRun(runs, document, run, properties, text);
+                        } else if (child is W.Break) {
+                            runs.Add(PdfCore.TextRun.LineBreak());
+                        } else if (child is W.TabChar) {
+                            runs.Add(PdfCore.TextRun.Tab());
+                        } else {
+                            foreach (W.Text nestedText in child.Descendants<W.Text>()) {
+                                AddNativeVmlTextRun(runs, document, run, properties, nestedText);
+                            }
                         }
-
-                        runs.Add(new PdfCore.TextRun(
-                            value,
-                            bold: HasNativeOnOff(properties?.Bold),
-                            underline: properties?.Underline != null,
-                            color: ParseNativeColor(properties?.Color?.Val?.Value),
-                            italic: HasNativeOnOff(properties?.Italic),
-                            strike: HasNativeOnOff(properties?.Strike),
-                            fontSize: GetNativeVmlRunFontSize(properties)));
                     }
                 }
             }
@@ -778,6 +775,22 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return runs;
+        }
+
+        private static void AddNativeVmlTextRun(List<PdfCore.TextRun> runs, WordDocument document, W.Run run, W.RunProperties? properties, W.Text text) {
+            string value = ResolveNativeVmlRunText(document, run, text);
+            if (string.IsNullOrEmpty(value)) {
+                return;
+            }
+
+            runs.Add(new PdfCore.TextRun(
+                value,
+                bold: HasNativeOnOff(properties?.Bold),
+                underline: properties?.Underline != null,
+                color: ParseNativeColor(properties?.Color?.Val?.Value),
+                italic: HasNativeOnOff(properties?.Italic),
+                strike: HasNativeOnOff(properties?.Strike),
+                fontSize: GetNativeVmlRunFontSize(properties)));
         }
 
         private static string ResolveNativeVmlRunText(WordDocument document, W.Run run, W.Text textElement) {

@@ -224,6 +224,10 @@ namespace OfficeIMO.Word.Pdf {
                 categories.AddRange(CreateNativeWordChartDefaultCategories(valueCount));
             }
 
+            for (int index = categories.Count; index < valueCount; index++) {
+                categories.Add("Category " + (index + 1).ToString(CultureInfo.InvariantCulture));
+            }
+
             for (int index = 0; index < categories.Count; index++) {
                 if (string.IsNullOrWhiteSpace(categories[index])) {
                     categories[index] = "Category " + (index + 1).ToString(CultureInfo.InvariantCulture);

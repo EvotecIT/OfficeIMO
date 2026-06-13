@@ -6,18 +6,18 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static void RenderNativeCoverPage(INativePdfFlow pdf, WordCoverPage coverPage, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth) {
-            bool renderedCanvas = TryRenderNativeCoverPageCanvas(pdf, coverPage.Document, coverPage.SdtBlock, options);
-            RenderNativeStructuredBlockContent(pdf, coverPage.Document, coverPage.SdtBlock, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: renderedCanvas);
+        private static void RenderNativeCoverPage(INativePdfFlow pdf, WordCoverPage coverPage, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth) {
+            bool renderedCanvas = TryRenderNativeCoverPageCanvas(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, options);
+            RenderNativeStructuredBlockContent(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: renderedCanvas);
 
             pdf.PageBreak();
         }
 
-        private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth) {
-            RenderNativeStructuredBlockContent(pdf, structuredDocumentTag.Document, structuredDocumentTag.SdtBlock, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: false);
+        private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth) {
+            RenderNativeStructuredBlockContent(pdf, structuredDocumentTag.Document, structuredDocumentTag.SdtBlock, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: false);
         }
 
-        private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs) {
+        private static void RenderNativeStructuredBlockContent(INativePdfFlow pdf, WordDocument document, W.SdtBlock? sdtBlock, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth, bool skipCanvasOnlyVmlParagraphs) {
             if (TryGetNativeStructuredBlockPropertyValue(document, sdtBlock, out string? propertyValue)) {
                 pdf.Paragraph(builder => builder.Text(propertyValue!));
                 return;
@@ -32,6 +32,7 @@ namespace OfficeIMO.Word.Pdf {
                 RenderNativeElement(
                     pdf,
                     element,
+                    activeSection,
                     getMarker,
                     Array.Empty<int>(),
                     footnoteNumbersById,
@@ -197,6 +198,10 @@ namespace OfficeIMO.Word.Pdf {
             WordWatermark? watermark,
             PdfSaveOptions? options,
             string source) {
+            if (watermark == null) {
+                return;
+            }
+
             PdfCore.PdfTextWatermark? textWatermark = CreateNativeTextWatermark(watermark);
             PdfCore.PdfImageWatermark? imageWatermark = CreateNativeImageWatermark(watermark, options, source);
             applyText(textWatermark);
