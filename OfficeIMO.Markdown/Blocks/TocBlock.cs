@@ -36,6 +36,8 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
     public TocScope Scope { get; set; } = TocScope.Document;
     /// <summary>Heading title used when <see cref="Scope"/> is <see cref="TocScope.HeadingTitle"/>.</summary>
     public string? ScopeHeadingTitle { get; set; }
+    /// <summary>When true, top-level headings are included even when <see cref="MinLevel"/> starts deeper.</summary>
+    public bool RequireTopLevel { get; set; } = true;
     /// <summary>True when a TOC builder already emitted the title as the preceding heading.</summary>
     public bool TitleHeadingAlreadyRendered { get; set; }
     /// <summary>Entries included in the TOC.</summary>

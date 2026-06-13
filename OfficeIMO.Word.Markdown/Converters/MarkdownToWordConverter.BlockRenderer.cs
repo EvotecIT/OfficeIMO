@@ -153,13 +153,20 @@ namespace OfficeIMO.Word.Markdown {
                 RenderListBlock(block.Items, WordListStyle.Numbered, block.Start);
 
             protected override void VisitTocBlock(Omd.TocBlock block) {
-                if (block.Scope != Omd.TocScope.Document && block.Entries.Count > 0) {
-                    RenderFallback(block);
+                if (block.Scope != Omd.TocScope.Document) {
+                    if (block.Entries.Count > 0) {
+                        RenderFallback(block);
+                    }
+
                     return;
                 }
 
                 int minLevel = NormalizeTocLevel(block.MinLevel, Omd.TocOptions.DefaultMinLevel);
                 int maxLevel = NormalizeTocLevel(block.MaxLevel, Omd.TocOptions.DefaultMaxLevel);
+                if (block.RequireTopLevel && minLevel > Omd.TocOptions.DefaultMinLevel) {
+                    minLevel = Omd.TocOptions.DefaultMinLevel;
+                }
+
                 if (maxLevel < minLevel) {
                     maxLevel = minLevel;
                 }

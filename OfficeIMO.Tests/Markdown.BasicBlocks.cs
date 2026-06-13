@@ -211,6 +211,24 @@ code
         }
 
         [Fact]
+        public void MarkdownToWord_Renders_DocumentToc_RequireTopLevel_As_Native_Toc_From_LevelOne() {
+            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+                .Toc(options => {
+                    options.IncludeTitle = false;
+                    options.MinLevel = 2;
+                    options.MaxLevel = 4;
+                }, placeAtTop: true)
+                .H1("Report")
+                .H2("Region");
+
+            using var document = markdown.ToWordDocument();
+
+            Assert.NotNull(document.TableOfContent);
+            Assert.Equal(1, document.TableOfContent!.MinLevel);
+            Assert.Equal(4, document.TableOfContent.MaxLevel);
+        }
+
+        [Fact]
         public void MarkdownToWord_Renders_Typed_TocMarkerBlock_As_Native_Word_TableOfContents() {
             var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
                 .Add(new OfficeIMO.Markdown.TocMarkerBlock {
@@ -248,6 +266,25 @@ code
 
             Assert.Null(document.TableOfContent);
             Assert.Contains("[Inside](#inside)", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("[Outside](#outside)", text, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void MarkdownToWord_Renders_EmptyScopedToc_Without_NativeDocumentToc() {
+            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+                .H1("Empty Section")
+                .TocHere(options => {
+                    options.Scope = OfficeIMO.Markdown.TocScope.PreviousHeading;
+                    options.MinLevel = 2;
+                    options.MaxLevel = 3;
+                })
+                .H1("Other")
+                .H2("Outside");
+
+            using var document = markdown.ToWordDocument();
+            string text = string.Join("\n", document.Paragraphs.Select(paragraph => paragraph.Text));
+
+            Assert.Null(document.TableOfContent);
             Assert.DoesNotContain("[Outside](#outside)", text, StringComparison.Ordinal);
         }
     }

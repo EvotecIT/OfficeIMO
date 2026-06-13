@@ -31,14 +31,12 @@ namespace OfficeIMO.Examples.Word.Converters {
 
             document.SaveAsMarkdown(markdownPath, exportOptions);
 
-            string markdown = File.ReadAllText(markdownPath);
-            string resourcesUri = new Uri(Path.GetDirectoryName(markdownPath)!.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar).AbsoluteUri;
+            string markdown = ResolveSidecarResourceLinks(File.ReadAllText(markdownPath), markdownPath, resourcesPath);
             var importOptions = new MarkdownToWordOptions {
                 FontFamily = "Calibri",
-                BaseUri = resourcesUri,
                 AllowLocalImages = true
             };
-            importOptions.AllowedImageDirectories.Add(resourcesPath);
+            importOptions.AllowedImageDirectories.Add(Path.GetFullPath(resourcesPath));
             using var roundTrip = markdown.LoadFromMarkdown(importOptions);
             roundTrip.Save(roundTripPath);
 
@@ -125,6 +123,26 @@ namespace OfficeIMO.Examples.Word.Converters {
             var details = document.AddParagraph("The page break above is emitted as an ");
             details.AddText("officeimo-word-page-break").SetFontFamily("Consolas");
             details.AddText(" semantic block in Markdown, then restored as a real Word page break on import.");
+        }
+
+        private static string ResolveSidecarResourceLinks(string markdown, string markdownPath, string resourcesPath) {
+            string markdownDirectory = Path.GetDirectoryName(Path.GetFullPath(markdownPath)) ?? Directory.GetCurrentDirectory();
+            string relativeResources = Path.GetRelativePath(markdownDirectory, Path.GetFullPath(resourcesPath)).Replace('\\', '/');
+            string absoluteResources = Path.GetFullPath(resourcesPath)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                .Replace('\\', '/');
+
+            if (!relativeResources.EndsWith("/", StringComparison.Ordinal)) {
+                relativeResources += "/";
+            }
+
+            if (!absoluteResources.EndsWith("/", StringComparison.Ordinal)) {
+                absoluteResources += "/";
+            }
+
+            return markdown
+                .Replace("](" + relativeResources, "](" + absoluteResources, StringComparison.Ordinal)
+                .Replace("src=\"" + relativeResources, "src=\"" + absoluteResources, StringComparison.Ordinal);
         }
     }
 }
