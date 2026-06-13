@@ -129,6 +129,57 @@ sheet.ChartFromTable("RevenueTable")
 document.Save();
 ```
 
+### Pivot tables and pivot-backed charts
+
+```csharp
+using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel;
+using System.Linq;
+
+using var document = ExcelDocument.Create("pivot-report.xlsx");
+var sheet = document.AddWorkSheet("Sales");
+
+sheet.CellValue(1, 1, "Region");
+sheet.CellValue(1, 2, "Product");
+sheet.CellValue(1, 3, "Quarter");
+sheet.CellValue(1, 4, "Revenue");
+sheet.CellValue(2, 1, "EMEA");
+sheet.CellValue(2, 2, "Alpha");
+sheet.CellValue(2, 3, "Q1");
+sheet.CellValue(2, 4, 125000);
+sheet.CellValue(3, 1, "EMEA");
+sheet.CellValue(3, 2, "Beta");
+sheet.CellValue(3, 3, "Q1");
+sheet.CellValue(3, 4, 94000);
+sheet.CellValue(4, 1, "APAC");
+sheet.CellValue(4, 2, "Alpha");
+sheet.CellValue(4, 3, "Q2");
+sheet.CellValue(4, 4, 141000);
+sheet.AddTable("A1:D4", hasHeader: true, name: "SalesTable", style: TableStyle.TableStyleMedium4);
+
+sheet.Pivot("A1:D4")
+    .Rows("Region")
+    .Columns("Quarter")
+    .Filters("Product")
+    .Sum("Revenue", "Total revenue", "#,##0")
+    .Layout(ExcelPivotLayout.Tabular)
+    .Style("PivotStyleMedium9")
+    .Captions(rowHeader: "Region", columnHeader: "Quarter", grandTotal: "Total")
+    .At("F2", "SalesPivot");
+
+var pivot = sheet.GetPivotTables().Single(p => p.Name == "SalesPivot");
+Console.WriteLine($"{pivot.Name}: {string.Join(", ", pivot.RowFields)}");
+
+var chart = sheet.ChartFromTable("SalesTable")
+    .VarianceColumns("Revenue by region")
+    .At(row: 12, column: 1);
+chart.SetPivotSource("SalesPivot");
+
+document.Save();
+```
+
+Pivot support is useful but still marked partial in the compatibility matrix. It covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, and readback. Slicers, timelines, external connections, and query-table authoring are still preserve-oriented or roadmap areas.
+
 ### Formula inspection and calculation policy
 
 ```csharp

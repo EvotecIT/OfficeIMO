@@ -124,6 +124,78 @@ slide.AddTable(rows, columns,
     height: PowerPointUnits.Cm(6));
 ```
 
+### Charts from data
+
+```csharp
+using DocumentFormat.OpenXml.Drawing.Charts;
+
+record MetricRow(string Quarter, double Revenue, double Margin);
+
+var metrics = new[] {
+    new MetricRow("Q1", 120, 32),
+    new MetricRow("Q2", 145, 36),
+    new MetricRow("Q3", 172, 41),
+    new MetricRow("Q4", 190, 44)
+};
+
+var slide = presentation.AddSlide();
+slide.AddTitle("Revenue and margin");
+
+slide.AddChartCm(metrics, row => row.Quarter,
+        leftCm: 1.4, topCm: 3.0, widthCm: 13.2, heightCm: 8.0,
+        new PowerPointChartSeriesDefinition<MetricRow>("Revenue", row => row.Revenue),
+        new PowerPointChartSeriesDefinition<MetricRow>("Margin", row => row.Margin))
+    .SetTitle("Quarterly performance")
+    .SetCategoryAxisTitle("Quarter")
+    .SetValueAxisTitle("Value")
+    .SetLegend(LegendPositionValues.Bottom)
+    .SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "D9E2F3")
+    .SetPlotAreaStyle(fillColor: "F8FAFC", lineColor: "D9E2F3");
+```
+
+```csharp
+var mix = new PowerPointChartData(
+    new[] { "Services", "Licenses", "Support" },
+    new[] { new PowerPointChartSeries("Share", new[] { 55d, 30d, 15d }) });
+
+slide.AddDoughnutChartCm(mix, leftCm: 15.2, topCm: 3.0, widthCm: 8.0, heightCm: 8.0)
+    .SetTitle("Revenue mix")
+    .SetLegend(LegendPositionValues.Right);
+```
+
+### Table and chart together
+
+```csharp
+record SegmentRow(string Segment, int Q1, int Q2, int Q3, int Q4);
+
+var segments = new[] {
+    new SegmentRow("Enterprise", 18, 22, 29, 35),
+    new SegmentRow("SMB", 12, 14, 18, 21),
+    new SegmentRow("Public", 9, 11, 12, 16)
+};
+
+var dashboard = presentation.AddSlide();
+dashboard.AddTitle("Segment dashboard");
+
+dashboard.AddTableCm(segments, new[] {
+        PowerPointTableColumn<SegmentRow>.Create("Segment", row => row.Segment).WithWidthCm(4.0),
+        PowerPointTableColumn<SegmentRow>.Create("Q1", row => row.Q1),
+        PowerPointTableColumn<SegmentRow>.Create("Q2", row => row.Q2),
+        PowerPointTableColumn<SegmentRow>.Create("Q3", row => row.Q3),
+        PowerPointTableColumn<SegmentRow>.Create("Q4", row => row.Q4)
+    },
+    leftCm: 1.4, topCm: 3.0, widthCm: 10.0, heightCm: 5.0);
+
+dashboard.AddLineChartCm(segments, row => row.Segment,
+        leftCm: 12.2, topCm: 3.0, widthCm: 12.0, heightCm: 6.5,
+        new PowerPointChartSeriesDefinition<SegmentRow>("Q1", row => row.Q1),
+        new PowerPointChartSeriesDefinition<SegmentRow>("Q2", row => row.Q2),
+        new PowerPointChartSeriesDefinition<SegmentRow>("Q3", row => row.Q3),
+        new PowerPointChartSeriesDefinition<SegmentRow>("Q4", row => row.Q4))
+    .SetTitle("Segment trend")
+    .SetLegend(LegendPositionValues.Bottom);
+```
+
 ### Slides, notes, and duplication
 
 ```csharp
