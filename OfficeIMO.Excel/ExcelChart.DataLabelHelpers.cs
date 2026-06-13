@@ -31,7 +31,9 @@ namespace OfficeIMO.Excel {
             ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
 
             if (position != null) {
-                ReplaceChild(labels, new C.DataLabelPosition { Val = NormalizeDataLabelPosition(chartElement, position.Value) });
+                if (TryNormalizeDataLabelPosition(chartElement, position.Value, out var normalizedPosition)) {
+                    ReplaceChild(labels, new C.DataLabelPosition { Val = normalizedPosition });
+                }
             }
 
             if (numberFormat != null) {
@@ -408,7 +410,9 @@ namespace OfficeIMO.Excel {
                 ReplaceChild(label, new C.ShowBubbleSize { Val = showBubbleSize.Value });
             }
             if (position != null) {
-                ReplaceChild(label, new C.DataLabelPosition { Val = NormalizeDataLabelPosition(label, position.Value) });
+                if (TryNormalizeDataLabelPosition(label, position.Value, out var normalizedPosition)) {
+                    ReplaceChild(label, new C.DataLabelPosition { Val = normalizedPosition });
+                }
             }
             if (numberFormat != null) {
                 ReplaceChild(label, new C.NumberingFormat {
@@ -441,19 +445,31 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static C.DataLabelPositionValues NormalizeDataLabelPosition(OpenXmlElement context, C.DataLabelPositionValues position) {
-            if (position != C.DataLabelPositionValues.OutsideEnd) {
-                return position;
-            }
+        private static bool TryNormalizeDataLabelPosition(OpenXmlElement context, C.DataLabelPositionValues position, out C.DataLabelPositionValues normalizedPosition) {
+            normalizedPosition = position;
 
-            // Excel repairs line charts that contain an outEnd data label position.
             for (OpenXmlElement? current = context; current != null; current = current.Parent) {
-                if (current is C.LineChart || current is C.Line3DChart || current is C.LineChartSeries) {
-                    return C.DataLabelPositionValues.Top;
+                if (current is C.PieChart || current is C.Pie3DChart || current is C.OfPieChart || current is C.DoughnutChart
+                    || current is C.PieChartSeries) {
+                    return false;
+                }
+
+                if (position == C.DataLabelPositionValues.OutsideEnd
+                    && (current is C.LineChart || current is C.Line3DChart || current is C.LineChartSeries)) {
+                    normalizedPosition = C.DataLabelPositionValues.Top;
+                    return true;
+                }
+
+                if (position == C.DataLabelPositionValues.OutsideEnd && current is C.BarChart barChart) {
+                    var grouping = barChart.BarGrouping?.Val?.Value;
+                    if (grouping == C.BarGroupingValues.Stacked || grouping == C.BarGroupingValues.PercentStacked) {
+                        normalizedPosition = C.DataLabelPositionValues.Center;
+                        return true;
+                    }
                 }
             }
 
-            return position;
+            return true;
         }
 
         private static void ApplyDataLabelTemplate(OpenXmlCompositeElement series, ExcelChartDataLabelTemplate template) {
