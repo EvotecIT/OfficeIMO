@@ -31,7 +31,9 @@ public static partial class MarkdownReader {
             // Parameterized: [TOC key=value ...]
             if (t.StartsWith("[TOC", System.StringComparison.OrdinalIgnoreCase) && t.EndsWith("]")) {
                 var inner = t.Substring(4, t.Length - 5).Trim(); // after [TOC and before ]
-                var opts = new TocOptions();
+                var opts = new TocOptions {
+                    RequireTopLevel = false
+                };
                 bool hasTitleAttribute = false;
                 if (!string.IsNullOrWhiteSpace(inner)) {
                     try { hasTitleAttribute = ApplyAttributes(inner, opts); } catch { /* ignore malformed attributes; fall back to defaults */ }
@@ -40,8 +42,8 @@ public static partial class MarkdownReader {
                 // Clamp levels and sanitize options
                 if (opts.MinLevel < 1) opts.MinLevel = TocOptions.DefaultMinLevel;
                 if (opts.MaxLevel < opts.MinLevel) opts.MaxLevel = opts.MinLevel;
-                if (opts.MaxLevel > 6) opts.MaxLevel = 6;
-                if (opts.MinLevel > 6) opts.MinLevel = 6;
+                if (opts.MaxLevel > 9) opts.MaxLevel = 9;
+                if (opts.MinLevel > 9) opts.MinLevel = 9;
                 if (opts.TitleLevel < 1) opts.TitleLevel = TocOptions.DefaultTitleLevel;
                 if (opts.TitleLevel > 6) opts.TitleLevel = 6;
                 if (opts.WidthPx.HasValue && opts.WidthPx.Value <= 0) opts.WidthPx = TocOptions.DefaultSidebarWidthPx;
@@ -80,7 +82,7 @@ public static partial class MarkdownReader {
                         else if (c == "panel") o.Chrome = TocChrome.Panel;
                         else o.Chrome = TocChrome.Default; break;
                     case "hideonnarrow": if (Bool(val)) o.HideOnNarrow = true; break;
-                    case "requiretoplevel": if (!Bool(val)) o.RequireTopLevel = false; break;
+                    case "requiretoplevel": o.RequireTopLevel = Bool(val); break;
                     case "normalize": case "normalizetominlevel": if (!Bool(val)) o.NormalizeToMinLevel = false; break;
                     case "scope":
                         var sv = val.ToLowerInvariant();

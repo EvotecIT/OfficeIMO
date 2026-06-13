@@ -167,6 +167,21 @@ code
         }
 
         [Fact]
+        public void MarkdownToWord_Preserves_Toc_Marker_Levels_Above_Markdown_Heading_Six() {
+            const string markdown = """
+                [TOC min=7 max=9]
+
+                ####### Deep region
+                """;
+
+            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+
+            Assert.NotNull(document.TableOfContent);
+            Assert.Equal(7, document.TableOfContent!.MinLevel);
+            Assert.Equal(9, document.TableOfContent.MaxLevel);
+        }
+
+        [Fact]
         public void TocMarkerBlock_RoundTrips_Escaped_Title_Attributes() {
             const string title = "A \"quoted\" \\ title";
             var marker = new OfficeIMO.Markdown.TocMarkerBlock {

@@ -1,16 +1,17 @@
-# OfficeIMO.Html.Pdf
+# OfficeIMO.Html.Pdf - HTML and PDF bridge
 
-First-party bidirectional HTML/PDF conversion for OfficeIMO.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Html.Pdf)](https://www.nuget.org/packages/OfficeIMO.Html.Pdf)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Html.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Html.Pdf)
 
-`OfficeIMO.Html.Pdf` is a thin adapter. It does not introduce a browser-grade
-HTML/CSS renderer or a second PDF parser. Instead, it exposes one named
-HTML/PDF bridge while reusing the existing OfficeIMO ingestion, logical read,
-and PDF engines:
+`OfficeIMO.Html.Pdf` provides first-party HTML-to-PDF and PDF-to-HTML bridge workflows for OfficeIMO. It does not introduce a browser-grade HTML/CSS renderer or a second PDF parser; it composes the existing OfficeIMO engines.
 
-- Semantic profile: HTML -> `OfficeIMO.Markdown.Html` -> `MarkdownDoc` -> `OfficeIMO.Markdown.Pdf` -> `OfficeIMO.Pdf`
-- Document profile: HTML -> `OfficeIMO.Word.Html` -> `WordDocument` -> `OfficeIMO.Word.Pdf` -> `OfficeIMO.Pdf`
-- Semantic PDF profile: PDF -> `OfficeIMO.Pdf` logical model -> headings, paragraphs, lists, tables, and placeholders as semantic HTML
-- Positioned review profile: PDF -> `OfficeIMO.Pdf` logical model -> page wrappers with positioned text/table/link/form hints
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Html.Pdf
+```
+
+## Quick start
 
 ```csharp
 using OfficeIMO.Html.Pdf;
@@ -29,11 +30,70 @@ html.SaveAsPdf("quarterly-update.pdf", new HtmlPdfSaveOptions {
 });
 ```
 
+## Examples
+
+### Use the document profile for print-oriented HTML
+
+```csharp
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.Word.Html;
+using OfficeIMO.Word.Pdf;
+
+string html = File.ReadAllText("invoice.html");
+
+var options = HtmlPdfSaveOptions.CreateDocumentProfile();
+options.WordHtmlOptions = HtmlToWordOptions.CreateOfficeIMOProfile();
+options.WordPdfOptions = new PdfSaveOptions {
+    Title = "Invoice 2026-001",
+    Author = "Evotec",
+    IncludePageNumbers = true
+};
+
+html.SaveAsPdf("invoice.pdf", options);
+```
+
+### Use the semantic profile for Markdown-like HTML
+
+```csharp
+using OfficeIMO.Html.Pdf;
+using OfficeIMO.Markdown.Pdf;
+
+string html = """
+<h1>Release notes</h1>
+<p>This release includes <strong>PDF</strong> improvements.</p>
+<ul><li>Split</li><li>Merge</li><li>Readback</li></ul>
+""";
+
+var options = HtmlPdfSaveOptions.CreateSemanticProfile();
+options.MarkdownPdfOptions = new MarkdownPdfSaveOptions {
+    VisualTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+};
+
+byte[] pdfBytes = html.SaveAsPdf(options);
+File.WriteAllBytes("release-notes.pdf", pdfBytes);
+```
+
+### Capture HTML import and PDF export diagnostics
+
 ```csharp
 using OfficeIMO.Html.Pdf;
 
-byte[] documentPdf = html.SaveAsPdf(HtmlPdfSaveOptions.CreateDocumentProfile());
+string html = File.ReadAllText("complex.html");
+var options = HtmlPdfSaveOptions.CreateDocumentProfile();
+
+var result = html.TrySaveAsPdf("complex.pdf", options);
+if (!result.Succeeded) {
+    foreach (string diagnostic in result.Diagnostics) {
+        Console.WriteLine(diagnostic);
+    }
+}
+
+foreach (var warning in options.ConversionReport.Warnings) {
+    Console.WriteLine($"{warning.Source}: {warning.Message}");
+}
 ```
+
+### Convert PDF to HTML
 
 ```csharp
 using OfficeIMO.Html.Pdf;
@@ -41,10 +101,6 @@ using OfficeIMO.Html.Pdf;
 string html = PdfHtmlConverter.ToHtml("quarterly-update.pdf", new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.Semantic
 });
-```
-
-```csharp
-using OfficeIMO.Html.Pdf;
 
 PdfHtmlConverter.SaveAsHtml("quarterly-update.pdf", "quarterly-update-review.html", new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.PositionedReview,
@@ -54,80 +110,71 @@ PdfHtmlConverter.SaveAsHtml("quarterly-update.pdf", "quarterly-update-review.htm
 });
 ```
 
-```csharp
-using OfficeIMO.Html.Pdf;
-
-HtmlPdfProfileContract contract = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Semantic);
-
-Console.WriteLine(contract.Id);
-Console.WriteLine(contract.FidelityContract);
-```
+### Export only selected pages
 
 ```csharp
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Pdf;
 
-PdfHtmlProfileContract contract = PdfHtmlProfileContracts.Get(PdfHtmlProfile.PositionedReview);
-
-Console.WriteLine(contract.Id);
-Console.WriteLine(contract.UnsupportedScope);
-Console.WriteLine(string.Join(", ", contract.ReviewSignals));
-```
-
-```csharp
-using OfficeIMO.Html.Pdf;
-
-byte[] pdf = File.ReadAllBytes("quarterly-update.pdf");
-string reviewHtml = PdfHtmlConverter.ToHtml(pdf, new PdfHtmlSaveOptions {
+var options = new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.PositionedReview,
-    IncludeMetadata = true
-});
+    PageRanges = new[] { new PdfPageRange(1, 2), new PdfPageRange(5, 5) },
+    IncludeLinkAnnotations = true,
+    IncludeFormWidgets = true,
+    ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly
+};
+
+PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult("packet.pdf", options);
+File.WriteAllText("packet-review.html", result.Html);
+
+Console.WriteLine($"Rendered {result.Summary.RenderedPageCount} page(s)");
+Console.WriteLine($"Tables: {result.Summary.TableCount}");
+Console.WriteLine($"Links: {result.Summary.LinkCount}");
 ```
+
+### Convert an already-loaded logical PDF
 
 ```csharp
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Pdf;
 
-PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult("quarterly-update.pdf", new PdfHtmlSaveOptions {
-    Profile = PdfHtmlProfile.PositionedReview,
-    IncludeLinkAnnotations = true
+PdfLogicalDocument logical = PdfDocument.Open("statement.pdf").Read.Logical("1-3");
+
+string html = logical.ToHtml(new PdfHtmlSaveOptions {
+    Profile = PdfHtmlProfile.Semantic,
+    IncludeMetadata = true,
+    IncludePageContainers = true
 });
 
-Console.WriteLine(result.Summary.ProfileId);
-Console.WriteLine(result.Summary.ImagePlacementCount);
+File.WriteAllText("statement.html", html);
 ```
 
-Use the semantic profile for articles, documentation, simple reports, and
-HTML that should become structured text. Use the document profile when the
-existing Word HTML converter is a better source model for the HTML being
-processed. `HtmlPdfSaveOptions.CreateDocumentProfile()` is the practical
-HTML-to-PDF preset for local/trusted print HTML with CSS, images, links,
-tables, and page-break hints; `CreateTrustedDocumentProfile()` also enables
-the trusted Word HTML stylesheet behavior. `HtmlPdfSaveOptions.GetResourcePolicySummary()`
-returns the active stylesheet/image resource policy, and document-profile HTML
-import diagnostics such as blocked stylesheets are forwarded into
-`HtmlPdfSaveOptions.ConversionReport`.
+## Profiles
 
-Use PDF semantic HTML for search, indexing, export, and review workflows where
-clean structure matters. Use positioned review HTML when callers need a
-page-oriented view of extracted PDF text/table/link/form/image geometry.
-Positioned image placeholders include CSS coordinates for browser review and a
-`data-matrix` attribute with the original PDF image transform for diagnostics,
-and complete extracted image files are embedded as `data:image/...;base64,...`
-URIs by default. Set `ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly`
-when callers need lightweight review HTML without embedded image bytes.
-Images whose drawing invocation cannot be matched are still emitted as
-page-scoped placeholders with a conversion warning instead of being silently
-dropped.
+- Semantic HTML to PDF: HTML -> `OfficeIMO.Markdown.Html` -> `MarkdownDoc` -> `OfficeIMO.Markdown.Pdf` -> `OfficeIMO.Pdf`.
+- Document HTML to PDF: HTML -> `OfficeIMO.Word.Html` -> `WordDocument` -> `OfficeIMO.Word.Pdf` -> `OfficeIMO.Pdf`.
+- Semantic PDF to HTML: PDF -> `OfficeIMO.Pdf` logical model -> structured HTML.
+- Positioned review PDF to HTML: PDF -> `OfficeIMO.Pdf` logical model -> page wrappers with positioned text/table/link/form hints.
 
-`HtmlPdfProfileContracts.All` and `PdfHtmlProfileContracts.All` expose stable
-profile identifiers, pipeline descriptions, intended use, fidelity guarantees,
-supported HTML/CSS/resource or PDF review signals, diagnostics, renderer
-boundaries, and unsupported scope for wrappers, manifests, UI selectors, and
-product docs. They are deliberately descriptive contracts rather than renderer
-switches: callers still choose behavior through `HtmlPdfSaveOptions.Profile`
-and `PdfHtmlSaveOptions.Profile`.
+Profile contract APIs expose stable identifiers, intended use, fidelity guarantees, diagnostics, and unsupported scope for wrappers, manifests, UI selectors, and product docs.
 
-`PdfHtmlConverter.ToHtmlResult(...)` returns the generated HTML plus a
-`PdfHtmlExportSummary` with selected page numbers, text/table/image/link/form
-counts, image-placement counts, warning count, image export mode, and the
-active profile fidelity contract. Use it for sidecars, migration reports, and
-visual review galleries instead of scraping generated HTML.
+## Boundaries
+
+- HTML ingestion belongs in `OfficeIMO.Markdown.Html` or `OfficeIMO.Word.Html`.
+- PDF layout, reading, and logical extraction belong in `OfficeIMO.Pdf`.
+- This package chooses and composes the bridge profile.
+- Browser-grade CSS layout and pixel-perfect PDF rendering are out of scope for this package.
+
+## Related packages
+
+- [OfficeIMO.Markdown.Html](../OfficeIMO.Markdown.Html/README.md)
+- [OfficeIMO.Markdown.Pdf](../OfficeIMO.Markdown.Pdf/README.md)
+- [OfficeIMO.Word.Html](../OfficeIMO.Word.Html/README.md)
+- [OfficeIMO.Word.Pdf](../OfficeIMO.Word.Pdf/README.md)
+- [OfficeIMO.Pdf](../OfficeIMO.Pdf/README.md)
+
+## Targets and license
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

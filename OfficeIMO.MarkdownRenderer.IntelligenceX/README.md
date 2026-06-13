@@ -1,59 +1,76 @@
-# OfficeIMO.MarkdownRenderer.IntelligenceX
+# OfficeIMO.MarkdownRenderer.IntelligenceX - IntelligenceX renderer presets
 
-`OfficeIMO.MarkdownRenderer.IntelligenceX` is the first-party IntelligenceX plugin pack for `OfficeIMO.MarkdownRenderer`.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.MarkdownRenderer.IntelligenceX)](https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.IntelligenceX)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.MarkdownRenderer.IntelligenceX?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.IntelligenceX)
 
-It keeps the generic OfficeIMO markdown renderer neutral while exposing the IntelligenceX visual aliases and transcript-oriented preset helpers from a dedicated package boundary.
+`OfficeIMO.MarkdownRenderer.IntelligenceX` is the first-party IntelligenceX feature pack for `OfficeIMO.MarkdownRenderer`. It keeps IntelligenceX transcript presets, visual aliases, and compatibility transforms outside the generic renderer package.
 
-## What It Adds
+## Install
 
-- `ix-chart`, `ix-network`, and `ix-dataview` visual aliases
-- transcript compatibility wiring for IntelligenceX-hosted markdown/chat output
-- convenience helpers that build on top of `OfficeIMO.MarkdownRenderer`
+```powershell
+dotnet add package OfficeIMO.MarkdownRenderer.IntelligenceX
+```
 
-## Example
+## Quick start
 
 ```csharp
 using OfficeIMO.MarkdownRenderer;
 using OfficeIMO.MarkdownRenderer.IntelligenceX;
 
 var options = IntelligenceXMarkdownRenderer.CreateTranscriptDesktopShell();
-string html = MarkdownRenderer.RenderBodyHtml(markdown, options);
+string html = MarkdownRenderer.RenderBodyHtml(markdownText, options);
 ```
 
-## Compatibility Pack
+## Examples
+
+### Render transcript Markdown in the desktop shell profile
+
+````csharp
+using OfficeIMO.MarkdownRenderer;
+using OfficeIMO.MarkdownRenderer.IntelligenceX;
+
+string transcript = """
+# Incident timeline
+
+```ix-chart title="Events"
+{"type":"bar","labels":["09:00","09:15"],"values":[3,8]}
+```
+""";
+
+var options = IntelligenceXMarkdownRenderer.CreateTranscriptDesktopShell();
+string shell = MarkdownRenderer.BuildShellHtml("Investigation", options);
+string update = MarkdownRenderer.RenderUpdateScript(transcript, options);
+````
+
+### Parse with IntelligenceX compatibility transforms
 
 ```csharp
 using OfficeIMO.MarkdownRenderer;
 using OfficeIMO.MarkdownRenderer.IntelligenceX;
 
-var options = MarkdownRendererPresets.CreateStrict();
-options.ApplyFeaturePack(IntelligenceXMarkdownRenderer.TranscriptCompatibilityPack);
+var options = IntelligenceXMarkdownRenderer.CreateTranscriptDesktopShell();
+MarkdownRendererParseResult result = MarkdownRenderer.ParseDocumentResult(transcript, options);
+
+foreach (var diagnostic in result.TransformDiagnostics) {
+    Console.WriteLine($"{diagnostic.Source}: {diagnostic.TransformName}");
+}
 ```
 
-Use the transcript compatibility pack when you want to stay generic-first but still layer in the IntelligenceX visual aliases, transcript reader/AST contract, and legacy transcript cleanup behavior as one reusable host-level contract.
-That compatibility layer now runs its remaining recoverable cleanup through the shared document-transform pipeline: cached-evidence marker removal, legacy JSON visual upgrades, and parseable legacy tool-heading artifacts.
+## What it adds
 
-## Transcript Plugin
+- IntelligenceX transcript presets and desktop-shell defaults.
+- Transcript-oriented semantic visual aliases.
+- Compatibility transforms for known IntelligenceX transcript shapes.
+- Shared registration hooks for Markdown rendering and HTML round-trip flows.
 
-```csharp
-using OfficeIMO.MarkdownRenderer;
-using OfficeIMO.MarkdownRenderer.IntelligenceX;
+## Boundaries
 
-var options = MarkdownRendererPresets.CreateStrict();
-IntelligenceXMarkdownRenderer.ApplyTranscriptContract(options);
-```
+- Generic Markdown rendering stays in `OfficeIMO.MarkdownRenderer`.
+- IntelligenceX-specific transcript behavior belongs here.
+- Host application UI and storage behavior should stay in the IntelligenceX app, not this package.
 
-Use the transcript plugin when you want IX aliases, IX schema support, and the IX transcript reader/AST contract, but you do not want the broader compatibility-pack cleanup layer.
+## Targets and license
 
-## Typed IX Fence Options
-
-```csharp
-using OfficeIMO.MarkdownRenderer.IntelligenceX;
-
-var options = IntelligenceXMarkdownRenderer.ParseVisualFenceOptions(
-    "ix-chart {#quarterly-summary .wide title=\"Quarterly Revenue\" pinned theme=\"amber\" maxItems=12}");
-```
-
-Use `ParseVisualFenceOptions(...)` when an IntelligenceX host/plugin wants a typed view of common IX fence metadata such as `Pinned`, `Theme`, `View`, `Variant`, `MaxItems`, `Title`, `ElementId`, and `Classes` while still building on the shared `OfficeIMO.Markdown` fence AST contract.
-
-The package now carries that IX schema directly on `VisualsPlugin`, `TranscriptPlugin`, and `TranscriptCompatibilityPack`, so `ApplyVisuals(...)`, `ApplyTranscriptContract(...)`, `ApplyTranscriptCompatibility(...)`, and the `CreateTranscript*` helpers all register IX renderer aliases and IX option-schema validation, while the transcript-aware entrypoints also carry the IX transcript reader/AST contract as one package-level contract.
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

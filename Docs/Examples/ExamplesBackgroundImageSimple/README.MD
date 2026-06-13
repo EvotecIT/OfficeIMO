@@ -1,4 +1,4 @@
-## Setting a background image
+# Setting a background image
 
 This example embeds an image behind the document content.
 

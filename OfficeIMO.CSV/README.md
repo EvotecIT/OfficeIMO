@@ -1,114 +1,192 @@
-# OfficeIMO.CSV — Fluent CSV Document Model
+# OfficeIMO.CSV - fluent CSV document model
 
-Fluent, strongly typed, AOT-friendly CSV document model aligned with the OfficeIMO ecosystem (Word, Excel, etc.). Targets `netstandard2.0`, `net8.0`, `net10.0`, and `net472`, with streaming support for large files.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.CSV)](https://www.nuget.org/packages/OfficeIMO.CSV)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.CSV?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.CSV)
 
-[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.CSV?color=3b82f6&logo=nuget)](https://www.nuget.org/packages/OfficeIMO.CSV)
-[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.CSV?color=22c55e&logo=nuget&label=downloads)](https://www.nuget.org/packages/OfficeIMO.CSV)
-[![license](https://img.shields.io/badge/license-MIT-111827.svg)](./LICENSE)
-[![targets](https://img.shields.io/badge/targets-netstandard2.0%20%7C%20net8.0%20%7C%20net10.0%20%7C%20net472-0ea5e9.svg)](#compatibility)
+`OfficeIMO.CSV` is a fluent, strongly typed CSV document model aligned with the OfficeIMO ecosystem. It supports in-memory transforms, streaming reads, schemas, validation, typed mapping, and AOT-friendly explicit selectors.
 
-## Highlights
-- Document-centric API: configure delimiter, header, culture, encoding once; compose transforms fluently.
-- Strong typing without reflection: `Get<T>()`, helpers (`AsString/AsInt32`), explicit mapping builder for POCOs/records.
-- Schema & validation: declare columns, types, required fields, custom rules; validate or throw.
-- Streaming mode: lazily enumerate huge CSVs; opt-in materialization for transforms.
-- AOT friendly: no `dynamic`, no codegen; trimming-safe delegates only.
+## Install
 
-### Why OfficeIMO.CSV instead of hand-rolled CSV code?
-- **Predictable document model**: headers + rows are first-class, so transforms stay consistent (no ad-hoc `List<string[]>`).
-- **Validation baked in**: schemas with required/optional columns, types, defaults, custom rules; catch issues before exporting/importing downstream.
-- **Typed mapping without reflection**: explicit column→property assignments keep AOT and trimming happy and avoid hidden reflection costs.
-- **Streaming + materialize on demand**: handle multi-GB CSVs lazily, but flip to in-memory only when you need sorting/filtering.
-- **Fluent ergonomics**: chainable APIs mirror other OfficeIMO packages, reducing glue code and one-off parsers.
-- **Cross-platform, legacy-friendly**: netstandard2.0 + net472 + modern TFMs in one package.
+```powershell
+dotnet add package OfficeIMO.CSV
+```
 
 ## Quick start
+
 ```csharp
 using OfficeIMO.CSV;
+using System.Globalization;
 
-var csv = new CsvDocument()
+new CsvDocument()
     .WithDelimiter(';')
+    .WithCulture(CultureInfo.InvariantCulture)
     .WithHeader("Name", "Age", "City")
-    .AddRow("Przemek", 36, "Mikołów")
-    .AddRow("Dominika", 30, "Mikołów")
+    .AddRow("Przemek", 36, "Mikolow")
+    .AddRow("Dominika", 30, "Mikolow")
+    .AddColumn("Bucket", row => row.AsInt32("Age") >= 35 ? "Senior" : "Regular")
     .SortBy("Age")
-    .Filter(r => r.AsString("City") == "Mikołów")
-    .Save("people.csv");
+    .Filter(row => row.AsString("City") == "Mikolow")
+    .Save("people.csv", new CsvSaveOptions {
+        Delimiter = ';',
+        IncludeHeader = true,
+        NewLine = "\n"
+    });
 ```
 
-Load & parse from text or file:
+## What it does
+
+- Keeps headers and rows as a first-class document model instead of ad hoc string arrays.
+- Loads from files, streams, or text and saves through configurable delimiter, culture, encoding, and newline options.
+- Supports `AddRow`, `AddColumn`, `RemoveColumn`, `SortBy`, `Filter`, and `Transform`.
+- Provides schema validation with required columns, typed columns, defaults, and custom rules.
+- Maps rows to typed objects with explicit no-reflection mapping.
+- Supports streaming mode for large files and explicit materialization when transforms are needed.
+
+## Schema example
+
 ```csharp
-var doc = CsvDocument.Load("input.csv", new CsvLoadOptions { Delimiter = ';' });
-// or
-var doc2 = CsvDocument.Parse(csvText);
+var document = CsvDocument.Load("input.csv")
+    .EnsureSchema(schema => schema
+        .Column("Id").AsInt32().Required()
+        .Column("Name").AsString().Required()
+        .Column("Age").AsInt32().Optional())
+    .ValidateOrThrow();
 ```
 
-Load from stream:
-```csharp
-using var stream = File.OpenRead("input.csv");
-var doc3 = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream }, leaveOpen: true);
-```
+Collect validation errors without throwing when an import pipeline should report all bad rows:
 
-## Transformations
-- `AddRow`, `AddColumn(name, row => ...)`, `RemoveColumn(name)`
-- `SortBy("Age")`, `SortBy<TKey>(r => r.Get<int>("Age"), descending: true)`
-- `Filter(r => r.AsString("City") == "Mikołów")`
-- `Transform(doc => ...)` for advanced scenarios
-
-## Schema & validation
 ```csharp
-var validated = CsvDocument.Load("input.csv")
+var document = CsvDocument.Load("input.csv")
     .EnsureSchema(schema => schema
         .Column("Id").AsInt32().Required()
         .Column("Name").AsString().Required()
         .Column("Age").AsInt32().Optional()
-    )
-    .ValidateOrThrow();
-```
-Retrieve errors without throwing:
-```csharp
-validated.Validate(out var errors);
+        .Column("Active").AsBoolean().WithDefault(true));
+
+document.Validate(out var errors);
+foreach (var error in errors) {
+    Console.WriteLine($"{error.RowIndex}:{error.ColumnName} - {error.Message}");
+}
 ```
 
-## Typed mapping (no reflection)
+## Typed mapping
+
+Mapping is explicit and delegate-based, so it stays predictable for trimming and NativeAOT-sensitive applications.
+
 ```csharp
-public sealed record Person(int Id, string Name, int Age, string City);
+using OfficeIMO.CSV;
+
+List<Person> people = CsvDocument.Load("people.csv")
+    .Map<Person>(map => map
+        .FromColumn<int>("Id", (person, value) => {
+            person.Id = value;
+            return person;
+        })
+        .FromColumn<string>("Name", (person, value) => {
+            person.Name = value;
+            return person;
+        })
+        .FromColumn<int>("Age", (person, value) => {
+            person.Age = value;
+            return person;
+        })
+        .FromColumn<string>("City", (person, value) => {
+            person.City = value;
+            return person;
+        }))
+    .ToList();
+
+public sealed class Person {
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public int Age { get; set; }
+    public string City { get; set; } = "";
+}
+```
+
+For immutable models, return a new instance from each assignment:
+
+```csharp
+using OfficeIMO.CSV;
 
 var people = CsvDocument.Load("people.csv")
-    .Map<Person>(map => map
-        .FromColumn<int>("Id",   (p, v) => p with { Id = v })
-        .FromColumn<string>("Name", (p, v) => p with { Name = v })
-        .FromColumn<int>("Age",  (p, v) => p with { Age = v })
-        .FromColumn<string>("City", (p, v) => p with { City = v })
-    )
+    .Map<PersonRecord>(map => map
+        .FromColumn<int>("Id", (person, value) => person with { Id = value })
+        .FromColumn<string>("Name", (person, value) => person with { Name = value }))
     .ToList();
-```
 
-## Streaming large files
-```csharp
-foreach (var row in CsvDocument.Load("large.csv", new CsvLoadOptions
-{
-    Mode = CsvLoadMode.Stream,
-    HasHeaderRow = true
-}).AsEnumerable())
-{
-    var id = row.AsInt32("Id");
-    // process lazily
+public sealed record PersonRecord {
+    public int Id { get; init; }
+    public string Name { get; init; } = "";
 }
-
-// Need transforms? Materialize explicitly
-var materialized = doc.Materialize().SortBy("Id");
 ```
 
-## Options at a glance
-- `CsvLoadOptions`: `Delimiter`, `HasHeaderRow` (default true), `TrimWhitespace` (default true), `AllowEmptyLines`, `Culture`, `Encoding`, `Mode` (InMemory/Stream).
-- `CsvSaveOptions`: `Delimiter`, `IncludeHeader` (default true), `NewLine`, `Culture`, `Encoding`.
+## Streaming and materializing
 
-## Install
-```bash
-dotnet add package OfficeIMO.CSV
+Use streaming mode when the caller only needs forward-only row processing.
+
+```csharp
+foreach (var row in CsvDocument.Load("large.csv", new CsvLoadOptions {
+    Mode = CsvLoadMode.Stream,
+    HasHeaderRow = true,
+    TrimWhitespace = true
+}).AsEnumerable()) {
+    int id = row.AsInt32("Id");
+    string? status = row.AsString("Status");
+    Console.WriteLine($"{id}: {status}");
+}
 ```
 
-## Compatibility
-- Frameworks: `netstandard2.0`, `net8.0`, `net10.0`, `net472`.
-- Designed to be trimming/NativeAOT friendly on .NET 8+.
+Transforms such as `SortBy`, `Filter`, and `AddColumn` require in-memory mode. Materialize deliberately when that is the desired tradeoff:
+
+```csharp
+var transformed = CsvDocument.Load("large.csv", new CsvLoadOptions {
+        Mode = CsvLoadMode.Stream
+    })
+    .Materialize()
+    .AddColumn("ImportedUtc", _ => DateTime.UtcNow)
+    .Filter(row => row.AsString("Status") == "Ready")
+    .SortBy(row => row.AsInt32("Id"));
+
+transformed.Save("ready.csv");
+```
+
+## Objects and ad hoc data
+
+`FromObjects` is useful for small exports from anonymous objects, DTOs, or dictionaries:
+
+```csharp
+var rows = new[] {
+    new { Name = "Alpha", Count = 10, Active = true },
+    new { Name = "Beta", Count = 20, Active = false }
+};
+
+CsvDocument.FromObjects(rows)
+    .Save("summary.csv");
+```
+
+Parse text when a service receives CSV payloads without a temporary file:
+
+```csharp
+string payload = "Name,Amount\nAlpha,10\nBeta,20";
+
+var document = CsvDocument.Parse(payload)
+    .AddColumn("Currency", _ => "EUR");
+
+string normalized = document.ToString(new CsvSaveOptions {
+    Delimiter = ',',
+    IncludeHeader = true
+});
+```
+
+## Boundaries
+
+- This package owns CSV parsing, writing, transforms, and validation.
+- Reader integration belongs in `OfficeIMO.Reader.Csv`.
+- Excel workbook behavior belongs in `OfficeIMO.Excel`.
+
+## Targets and license
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`, `net472`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)

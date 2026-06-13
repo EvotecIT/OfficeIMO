@@ -1,4 +1,4 @@
-## Modifying transparency of an existing image
+# Modifying transparency of an existing image
 
 This advanced example loads a document, locates an image and updates its transparency.
 

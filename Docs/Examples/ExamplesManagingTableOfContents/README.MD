@@ -1,4 +1,4 @@
-## Managing Table of Contents
+# Managing Table of Contents
 
 OfficeIMO.Word supports removing an existing table of contents and regenerating one in the same position. This can be useful when headings have changed and you want a fresh TOC.
 

@@ -1,38 +1,87 @@
-# OfficeIMO.Reader.Html (Preview)
+# OfficeIMO.Reader.Html - HTML reader adapter
 
-`OfficeIMO.Reader.Html` is a modular adapter for HTML ingestion.
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Html)](https://www.nuget.org/packages/OfficeIMO.Reader.Html)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Html?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Html)
 
-Current scope:
-- HTML -> Markdown (via `OfficeIMO.Markdown.Html`)
-- Markdown chunk emission in `ReaderChunk` shape
-- table extraction from converted Markdown into `ReaderChunk.Tables`, including `ReaderTable.ColumnProfiles`
-- heading-aware chunk metadata (`Location.HeadingPath`, `Location.StartLine`) when `ReaderOptions.MarkdownChunkByHeadings = true`
-- path and stream dispatch via `DocumentReader` handler registration
-- `ReaderHtmlOptions.HtmlToMarkdownOptions` pass-through for markdown writer profiles, input limits, transforms, custom element converters, and visual round-trip hints
-- `ReaderHtmlOptions.CreateOfficeIMOProfile()`, `CreatePortableProfile()`, and `CreateUntrustedHtmlProfile(maxInputCharacters)` helpers for reusable adapter profiles
-- `ReaderHtmlOptions.Clone()` for safe option-template reuse during handler registration and direct reads
-- warning chunk when HTML yields no markdown content
+`OfficeIMO.Reader.Html` registers a modular HTML ingestion adapter for `OfficeIMO.Reader`.
 
-Registration into `OfficeIMO.Reader`:
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Reader.Html
+```
+
+## Register
 
 ```csharp
+using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 
 DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
 ```
 
-For untrusted or size-sensitive HTML, pass `ReaderHtmlOptions` during direct reads or handler registration:
+For untrusted or size-sensitive HTML:
 
 ```csharp
-using OfficeIMO.Reader.Html;
-
 DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
     htmlOptions: ReaderHtmlOptions.CreateUntrustedHtmlProfile(maxInputCharacters: 100_000),
     replaceExisting: true);
 ```
 
-Use `ReaderHtmlOptions.CreatePortableProfile()` when the reader output should favor portable Markdown serialization. For custom ingestion contracts, set `HtmlToMarkdownOptions` directly or clone a profile and add transforms, element converters, or visual round-trip hints.
+## Examples
 
-Status:
-- packaged as `OfficeIMO.Reader.Html`
-- preview-scoped modular adapter for `OfficeIMO.Reader`
+### Convert HTML to Markdown chunks
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Html;
+
+DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
+    htmlOptions: ReaderHtmlOptions.CreatePortableProfile(),
+    replaceExisting: true);
+
+foreach (var chunk in DocumentReader.Read("page.html", new ReaderOptions {
+    MarkdownChunkByHeadings = true,
+    MaxChars = 5_000
+})) {
+    Console.WriteLine($"{chunk.Id}: {chunk.Location.HeadingPath}");
+    Console.WriteLine(chunk.Markdown ?? chunk.Text);
+}
+```
+
+### Extract tables from HTML
+
+```csharp
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.Html;
+
+DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
+
+IReadOnlyList<ReaderTable> tables = DocumentReader.ReadTables("report.html",
+    new ReaderOptions {
+        MaxTableRows = 250
+    });
+
+foreach (var table in tables) {
+    Console.WriteLine($"{table.Rows.Count} row(s), {table.ColumnProfiles.Count} column profile(s)");
+}
+```
+
+## What it emits
+
+- HTML converted to Markdown through `OfficeIMO.Markdown.Html`.
+- Markdown-shaped `ReaderChunk` output.
+- Table extraction with `ReaderTable.ColumnProfiles`.
+- Heading-aware chunk metadata when `ReaderOptions.MarkdownChunkByHeadings` is enabled.
+- HTML-to-Markdown profile, transform, converter, and visual round-trip option pass-through.
+
+## Boundaries
+
+- Reader adapter registration belongs here.
+- HTML to Markdown conversion belongs in `OfficeIMO.Markdown.Html`.
+- Shared extraction contracts belong in `OfficeIMO.Reader`.
+
+## Targets and license
+
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.

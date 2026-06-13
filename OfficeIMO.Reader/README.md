@@ -1,15 +1,17 @@
-# OfficeIMO.Reader
+# OfficeIMO.Reader - document extraction facade
 
-`OfficeIMO.Reader` is an optional, read-only facade that normalizes extraction across:
-- Word (`.docx`, `.docm`) -> Markdown chunks
-- Excel (`.xlsx`, `.xlsm`) -> table chunks + optional Markdown table previews
-- PowerPoint (`.pptx`, `.pptm`) -> slide-aligned Markdown chunks (optionally including notes)
-- Markdown (`.md`, `.markdown`) -> parser-aware heading chunks with preserved fenced/table blocks
-- PDF (`.pdf`) -> page-aware text chunks with logical Markdown when a page fits in one chunk
+[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader)](https://www.nuget.org/packages/OfficeIMO.Reader)
+[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader)
 
-The goal is to make it easy for tools like chat bots to ingest content deterministically.
+`OfficeIMO.Reader` is a read-only facade for deterministic document extraction. It normalizes supported source files into `ReaderChunk` objects for search, indexing, chat, RAG, migration, and review workflows.
 
-## Quick Start
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Reader
+```
+
+## Quick start
 
 ```csharp
 using OfficeIMO.Reader;
@@ -21,26 +23,15 @@ foreach (var chunk in DocumentReader.Read(@"C:\Docs\Policy.docx")) {
 }
 ```
 
-## Streams / Bytes
+## Streams and folders
 
 ```csharp
 using OfficeIMO.Reader;
 
-// Stream (does not close the stream)
-using var fs = File.OpenRead(@"C:\Docs\Policy.docx");
-var chunksFromStream = DocumentReader.Read(fs, "Policy.docx").ToList();
+using var stream = File.OpenRead(@"C:\Docs\Policy.docx");
+var chunksFromStream = DocumentReader.Read(stream, "Policy.docx").ToList();
 
-// Bytes
-var bytes = File.ReadAllBytes(@"C:\Docs\Policy.docx");
-var chunksFromBytes = DocumentReader.Read(bytes, "Policy.docx").ToList();
-```
-
-## Folders
-
-```csharp
-using OfficeIMO.Reader;
-
-var chunks = DocumentReader.ReadFolder(
+var folderChunks = DocumentReader.ReadFolder(
     folderPath: @"C:\Docs",
     folderOptions: new ReaderFolderOptions {
         Recurse = true,
@@ -54,251 +45,106 @@ var chunks = DocumentReader.ReadFolder(
     }).ToList();
 ```
 
-## Folder Progress + Detailed Summary
+## What it reads
+
+Built-in and modular adapters can extract:
+
+- Word (`.docx`, `.docm`) as Markdown chunks.
+- Excel (`.xlsx`, `.xlsm`) as table chunks and optional Markdown previews.
+- PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
+- Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
+- PDF, Visio, HTML, CSV/TSV, JSON, XML, EPUB, ZIP, and structured text through modular adapter packages.
+
+## Modular adapters
+
+Install and register only the adapters you need:
 
 ```csharp
-using OfficeIMO.Reader;
+using OfficeIMO.Reader.Csv;
+using OfficeIMO.Reader.Epub;
+using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Reader.Visio;
+using OfficeIMO.Reader.Xml;
+using OfficeIMO.Reader.Zip;
 
-var result = DocumentReader.ReadFolderDetailed(
-    folderPath: @"C:\KnowledgeBase",
-    folderOptions: new ReaderFolderOptions { Recurse = true, MaxFiles = 10_000 },
-    options: new ReaderOptions { ComputeHashes = true },
-    includeChunks: true,
-    onProgress: p => Console.WriteLine($"{p.Kind}: scanned={p.FilesScanned}, parsed={p.FilesParsed}, skipped={p.FilesSkipped}, chunks={p.ChunksProduced}"));
-
-Console.WriteLine($"Files parsed: {result.FilesParsed}");
-Console.WriteLine($"Files skipped: {result.FilesSkipped}");
-Console.WriteLine($"Chunks: {result.ChunksProduced}");
+DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler();
+DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler();
+DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
+DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler();
+DocumentReaderPdfRegistrationExtensions.RegisterPdfHandler();
+DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler();
+DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler();
+DocumentReaderZipRegistrationExtensions.RegisterZipHandler();
 ```
 
-## Database-Ready Folder Streaming
+## Host examples
+
+### Capability discovery
 
 ```csharp
 using OfficeIMO.Reader;
 
-foreach (var doc in DocumentReader.ReadFolderDocuments(
-    folderPath: @"C:\KnowledgeBase",
-    folderOptions: new ReaderFolderOptions { Recurse = true, MaxFiles = 10_000, DeterministicOrder = true },
-    options: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
-    onProgress: p => Console.WriteLine($"{p.Kind}: parsed={p.FilesParsed}, skipped={p.FilesSkipped}, chunks={p.ChunksProduced}"))) {
-
-    if (!doc.Parsed) {
-        Console.WriteLine($"SKIP {doc.Path}: {string.Join("; ", doc.Warnings ?? Array.Empty<string>())}");
-        continue;
-    }
-
-    // Upsert your "sources" table keyed by doc.SourceId/doc.SourceHash,
-    // then upsert chunk rows from doc.Chunks keyed by chunk.ChunkHash.
-    Console.WriteLine($"{doc.Path} => {doc.ChunksProduced} chunks, ~{doc.TokenEstimateTotal} tokens");
+var capabilities = DocumentReader.GetCapabilities();
+foreach (var capability in capabilities) {
+    Console.WriteLine($"{capability.Id}: {string.Join(", ", capability.Extensions)}");
 }
+
+string manifestJson = DocumentReader.GetCapabilityManifestJson();
 ```
 
-## AI Ingestion Pattern (With Citations)
-
-```csharp
-using OfficeIMO.Reader;
-using System.Text;
-
-var chunks = DocumentReader.ReadFolder(
-    folderPath: @"C:\KnowledgeBase",
-    folderOptions: new ReaderFolderOptions { Recurse = true, DeterministicOrder = true },
-    options: new ReaderOptions { MaxChars = 4000 }).ToList();
-
-var context = new StringBuilder();
-foreach (var chunk in chunks) {
-    var source = chunk.Location.Path ?? "unknown";
-    var pointer = chunk.Location.Page.HasValue
-        ? $"page {chunk.Location.Page.Value}"
-        : chunk.Location.HeadingPath ?? $"block {chunk.Location.BlockIndex ?? 0}";
-
-    context.AppendLine($"[source: {source} | {pointer}]");
-    context.AppendLine(chunk.Markdown ?? chunk.Text);
-    context.AppendLine();
-}
-```
-
-## Options
-
-```csharp
-using OfficeIMO.Reader;
-
-var options = new ReaderOptions {
-    MaxChars = 8_000,
-    MaxTableRows = 200,
-    IncludeWordFootnotes = true,
-    IncludePowerPointNotes = true,
-    ExcelHeadersInFirstRow = true,
-    ExcelChunkRows = 200,
-    ExcelSheetName = "Data",
-    ExcelA1Range = "A1:Z500",
-    MarkdownChunkByHeadings = true,
-    ComputeHashes = true
-};
-
-var chunks = DocumentReader.Read(@"C:\Docs\Workbook.xlsx", options).ToList();
-```
-
-When `MarkdownChunkByHeadings` is enabled, markdown inputs are chunked from parsed OfficeIMO markdown blocks instead of raw line heuristics. That means setext headings are recognized, fenced code blocks are not split by `#` inside the fence, oversize markdown blocks stay intact with a warning, and markdown tables are exposed through `ReaderChunk.Tables`. Parser-aware markdown chunks keep `SourceBlockIndex`/`HeadingPath` for stable citations, and can also expose normalized markdown provenance through `NormalizedStartLine`/`NormalizedEndLine`, `HeadingSlug`, `SourceBlockKind`, and `BlockAnchor` without claiming those are exact source offsets. `BlockAnchor` identifies the first logical markdown block in the chunk, so hosts can point at a sub-block inside a heading section when chunk splitting occurs.
-
-Reader table emitters populate `ReaderTable.ColumnProfiles` where the source already provides normalized rows. Profiles are aligned to `ReaderTable.Columns` and classify each column as empty, numeric, text, or mixed, with simple counts and confidence hints for ingestion workflows. Sources with geometry-aware table detection, such as the PDF adapter, can also populate `ReaderTable.Diagnostics` with schema, cell-completeness, geometry, and overall confidence signals. Source adapters can populate `ReaderChunk.Diagnostics` with stable structural counters and safety flags for hosts that need searchable ingestion metadata without parsing warning text, including table confidence aggregates, table/image geometry coverage, selected form-widget appearance coverage, and passive open-action and active-content counters when a source exposes them. Adapters can also populate `ReaderChunk.Actions` with passive action summaries that identify document-open, catalog, page, and annotation sources plus scope, trigger, path, and action type without carrying executable payloads. `ReaderChunk.Visuals` carries source-neutral visuals and can include source location plus optional geometry when an adapter exposes placed images or visual objects. `ReaderChunk.FormFields` carries source-neutral field names, values, kinds, option counts, page numbers, widget geometry, current appearance state names, and normal appearance state names when the source exposes structured forms.
-
-Use `DocumentReader.ExtractMarkdownTables(markdown, options)` when an adapter or host already has Markdown text and only needs the structured table contract. It uses the same parser and `MaxTableRows` behavior as Markdown reader chunks.
-
-## Pluggable Handlers
-
-`DocumentReader` now supports extension-based handler registration for modular packages.
+### Register a custom handler
 
 ```csharp
 using OfficeIMO.Reader;
 
 DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
-    Id = "sample.custom",
-    DisplayName = "Sample Custom Reader",
+    Id = "custom-audit",
+    DisplayName = "Custom audit reader",
     Kind = ReaderInputKind.Text,
-    Extensions = new[] { ".sample" },
-    DefaultMaxInputBytes = 5 * 1024 * 1024,
-    WarningBehavior = ReaderWarningBehavior.WarningChunksOnly,
-    DeterministicOutput = true,
-    ReadPath = (path, opts, ct) => new[] {
-        new ReaderChunk {
-            Id = "sample-0001",
-            Kind = ReaderInputKind.Text,
-            Location = new ReaderLocation { Path = path, BlockIndex = 0 },
-            Text = "custom output"
-        }
+    Extensions = new[] { ".auditx" },
+    ReadPath = (path, options, cancellationToken) => {
+        string text = File.ReadAllText(path);
+        return new[] {
+            new ReaderChunk {
+                Id = "audit:1",
+                Kind = ReaderInputKind.Text,
+                Text = text,
+                Location = new ReaderLocation { Path = path }
+            }
+        };
     }
 });
-
-var capabilities = DocumentReader.GetCapabilities();
 ```
 
-Use `DocumentReader.UnregisterHandler("sample.custom")` to remove custom handlers.
+## Host contracts
 
-`GetCapabilities()` exposes a stable contract surface for hosts:
-- `SchemaId` = `officeimo.reader.capability`
-- `SchemaVersion` = `1`
-- stream/path support flags
-- advertised warning behavior and deterministic output flag
-- optional `DefaultMaxInputBytes` metadata for handler defaults
+- `ReaderOptions` controls chunk size, table row limits, footnotes/notes, Excel ranges, Markdown heading chunking, hashes, and input budgets.
+- `ReaderFolderOptions` controls recursion, file limits, byte limits, reparse-point handling, and deterministic folder order.
+- `DocumentReader.GetCapabilities()` and `GetCapabilityManifestJson()` expose a stable host-discovery surface.
+- Custom handlers can be registered with `DocumentReader.RegisterHandler(...)`.
 
-For one-shot host bootstrap/discovery payloads:
+## Boundaries
 
-```csharp
-using OfficeIMO.Reader;
+- `OfficeIMO.Reader` owns the shared extraction contract and built-in facade.
+- Source-specific parsing belongs in the source package or modular adapter.
+- Adapters should use `ReaderInputLimits` so input size and stream behavior stays consistent.
+- AI or database storage belongs in the consuming application.
 
-var manifest = DocumentReader.GetCapabilityManifest();
-var json = DocumentReader.GetCapabilityManifestJson(indented: false);
-```
+## Related packages
 
-## Shared Input Guards For Adapter Authors
+- [OfficeIMO.Reader.Pdf](../OfficeIMO.Reader.Pdf/README.md)
+- [OfficeIMO.Reader.Visio](../OfficeIMO.Reader.Visio/README.md)
+- [OfficeIMO.Reader.Html](../OfficeIMO.Reader.Html/README.md)
+- [OfficeIMO.Reader.Csv](../OfficeIMO.Reader.Csv/README.md)
+- [OfficeIMO.Reader.Json](../OfficeIMO.Reader.Json/README.md)
+- [OfficeIMO.Reader.Xml](../OfficeIMO.Reader.Xml/README.md)
+- [OfficeIMO.Reader.Epub](../OfficeIMO.Reader.Epub/README.md)
+- [OfficeIMO.Reader.Zip](../OfficeIMO.Reader.Zip/README.md)
 
-Use `ReaderInputLimits` when building modular handlers so `MaxInputBytes` behavior stays consistent across adapters:
+## Targets and license
 
-```csharp
-using OfficeIMO.Reader;
-
-var parseStream = ReaderInputLimits.EnsureSeekableReadStream(
-    stream,
-    maxInputBytes: readerOptions?.MaxInputBytes,
-    cancellationToken: ct,
-    ownsStream: out var ownsParseStream);
-```
-
-You can also call `ReaderInputLimits.EnforceFileSize(path, maxBytes)` and `ReaderInputLimits.EnforceSeekableStreamSize(stream, maxBytes)` for path/seekable prechecks.
-
-## Modular Adapter Registration (Optional Packages)
-
-Keep dependencies split by registering only adapters you need:
-
-```csharp
-using OfficeIMO.Reader.Epub;
-using OfficeIMO.Reader.Html;
-using OfficeIMO.Reader.Json;
-using OfficeIMO.Reader.Csv;
-using OfficeIMO.Reader.Text;
-using OfficeIMO.Reader.Xml;
-using OfficeIMO.Reader.Zip;
-
-DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
-DocumentReaderZipRegistrationExtensions.RegisterZipHandler(replaceExisting: true);
-DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
-DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
-DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: true);
-DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true);
-
-// Compatibility path for existing integrations:
-DocumentReaderTextRegistrationExtensions.RegisterStructuredTextHandler(replaceExisting: true);
-```
-
-These adapters support both path and stream dispatch via `DocumentReader.Read(...)`.
-
-For host-driven auto wiring (for example IX loading only present adapter assemblies), use registrar discovery:
-
-```csharp
-using OfficeIMO.Reader;
-using OfficeIMO.Reader.Csv;
-using OfficeIMO.Reader.Epub;
-using OfficeIMO.Reader.Html;
-using OfficeIMO.Reader.Json;
-using OfficeIMO.Reader.Xml;
-using OfficeIMO.Reader.Zip;
-
-var registrars = DocumentReader.DiscoverHandlerRegistrars(
-    typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
-    typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
-    typeof(DocumentReaderZipRegistrationExtensions).Assembly,
-    typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
-    typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
-    typeof(DocumentReaderXmlRegistrationExtensions).Assembly);
-
-DocumentReader.RegisterHandlersFromAssemblies(
-    replaceExisting: true,
-    typeof(DocumentReaderCsvRegistrationExtensions).Assembly,
-    typeof(DocumentReaderEpubRegistrationExtensions).Assembly,
-    typeof(DocumentReaderZipRegistrationExtensions).Assembly,
-    typeof(DocumentReaderHtmlRegistrationExtensions).Assembly,
-    typeof(DocumentReaderJsonRegistrationExtensions).Assembly,
-    typeof(DocumentReaderXmlRegistrationExtensions).Assembly);
-```
-
-For host bootstrap where adapter assemblies are already loaded, you can avoid hardcoded type lists:
-
-```csharp
-using OfficeIMO.Reader;
-
-var bootstrap = DocumentReader.BootstrapHostFromLoadedAssemblies(
-    options: new ReaderHostBootstrapOptions {
-        ReplaceExistingHandlers = true,
-        IncludeBuiltInCapabilities = true,
-        IncludeCustomCapabilities = true,
-        IndentedManifestJson = false
-    });
-
-// Typed manifest
-var manifest = bootstrap.Manifest;
-
-// Transport-safe JSON payload for host/service boundaries
-var manifestJson = bootstrap.ManifestJson;
-```
-
-For service hosts that prefer preset integration profiles (for example IX startup), use profile overloads:
-
-```csharp
-using OfficeIMO.Reader;
-
-var bootstrap = DocumentReader.BootstrapHostFromLoadedAssemblies(
-    profile: ReaderHostBootstrapProfile.ServiceDefault,
-    assemblyNamePrefix: "OfficeIMO.Reader.",
-    indentedManifestJson: false);
-
-var appliedProfile = bootstrap.Profile;
-```
-
-## Notes
-- `DocumentReader.Read(...)` is synchronous and streaming (returns `IEnumerable<T>`).
-- `DocumentReader.ReadFolder(...)` is best-effort: unreadable/corrupt/oversized files emit warning chunks and ingestion continues.
-- `DocumentReader.ReadFolderDocuments(...)` yields one source payload at a time (`ReaderSourceDocument`) for easy DB upserts.
-- `DocumentReader.ReadFolderDetailed(...)` returns ingestion counts/file statuses and can surface progress callback events.
-- Chunks include `SourceId`/`SourceHash`/`ChunkHash` + token estimate for incremental indexing and prompt budgeting.
-- The reader is best-effort and does not attempt OCR.
-- Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported.
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- License: MIT.
+- Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
