@@ -10,7 +10,9 @@ namespace OfficeIMO.Word.Pdf {
             bool renderedCanvas = TryRenderNativeCoverPageCanvas(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, options);
             RenderNativeStructuredBlockContent(pdf, coverPage.Document, coverPage.SdtBlock, activeSection, getMarker, footnoteNumbersById, options, tableOfContentsEntries, headingDestinations, contentWidth, skipCanvasOnlyVmlParagraphs: renderedCanvas);
 
-            pdf.PageBreak();
+            if (HasNativeStructuredBlockContentAfter(coverPage.SdtBlock)) {
+                pdf.PageBreak();
+            }
         }
 
         private static void RenderNativeStructuredDocumentTag(INativePdfFlow pdf, WordStructuredDocumentTag structuredDocumentTag, WordSection activeSection, Func<WordParagraph, (int Level, string Marker)?> getMarker, Dictionary<long, int> footnoteNumbersById, PdfSaveOptions? options, IReadOnlyList<NativeTableOfContentsEntry> tableOfContentsEntries, IReadOnlyDictionary<W.Paragraph, string> headingDestinations, double? contentWidth) {
@@ -95,8 +97,50 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
+            if (!IsNativePropertyBoundStructuredBlock(properties)) {
+                return false;
+            }
+
             value = GetNativeBuiltInPropertyValue(document, properties);
             return !string.IsNullOrWhiteSpace(value);
+        }
+
+        private static bool IsNativePropertyBoundStructuredBlock(W.SdtProperties properties) {
+            W.DataBinding? binding = properties.Elements<W.DataBinding>().FirstOrDefault();
+            if (binding != null && !string.IsNullOrWhiteSpace(binding.XPath?.Value)) {
+                return true;
+            }
+
+            return properties.Elements<W.ShowingPlaceholder>().Any();
+        }
+
+        private static bool HasNativeStructuredBlockContentAfter(W.SdtBlock? sdtBlock) {
+            if (sdtBlock == null) {
+                return false;
+            }
+
+            for (OpenXmlElement? next = sdtBlock.NextSibling(); next != null; next = next.NextSibling()) {
+                if (next is W.SectionProperties) {
+                    continue;
+                }
+
+                if (next is W.Paragraph paragraph && IsNativeEmptyParagraph(paragraph)) {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsNativeEmptyParagraph(W.Paragraph paragraph) {
+            if (paragraph.Descendants<W.Drawing>().Any() ||
+                paragraph.Descendants().Any(element => element.LocalName == "pict" || element.NamespaceUri == "urn:schemas-microsoft-com:vml")) {
+                return false;
+            }
+
+            return !paragraph.Descendants<W.Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text));
         }
 
         private static string? GetNativeBuiltInPropertyValue(WordDocument document, W.SdtProperties? properties) {

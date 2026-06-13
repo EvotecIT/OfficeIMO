@@ -98,7 +98,8 @@ public static partial class OfficeChartDrawingRenderer {
             y,
             width,
             style,
-            layout);
+            layout,
+            series.Select((_, index) => (OfficeColor?)GetSeriesColor(style, series, index)).ToList());
     }
 
     private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null) {

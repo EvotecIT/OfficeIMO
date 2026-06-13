@@ -426,7 +426,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             for (int i = 0; i < categories.Count; i++) {
-                if (layout.ShowMarkers) {
+                if (layout.ShowMarkers && series[s].ShowMarkers) {
                     double x = points[i].X - 2D;
                     double y = points[i].Y - 2D;
                     OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);
@@ -494,7 +494,7 @@ public static partial class OfficeChartDrawingRenderer {
             AddPointLine(drawing, linePoints, color, 1.25D);
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
-                if (layout.ShowMarkers) {
+                if (layout.ShowMarkers && series[s].ShowMarkers) {
                     OfficeColor pointColor = GetPointColor(series[s].PointColors, points[i].SourceIndex, color);
                     AddShape(drawing, OfficeShape.Ellipse(5D, 5D), point.X - 2.5D, point.Y - 2.5D, pointColor, pointColor, 1.25D);
                 }
@@ -561,7 +561,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             AddPolygonShape(drawing, points, color, color, 1D, 0.18D);
-            if (layout.ShowMarkers) {
+            if (layout.ShowMarkers && series[s].ShowMarkers) {
                 for (int i = 0; i < points.Count; i++) {
                     OfficePoint point = points[i];
                     OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);

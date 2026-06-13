@@ -7,6 +7,7 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word.Pdf;
+using A = DocumentFormat.OpenXml.Drawing;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 
@@ -93,6 +94,44 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.Equal(2, series.Count);
         Assert.Equal(new[] { "Q1", "Q2", "Q3", "Q4" }, categories);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_PreservesNonPiePointFillColors() {
+        OfficeColor highlight = OfficeColor.ParseHex("#F76707");
+        BarChartSeries barSeries = CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D });
+        barSeries.Append(new DataPoint(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 1U },
+            new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "F76707" }))));
+        var chart = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            barSeries);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { chart, OfficeChartKind.ColumnClustered, null };
+
+        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+
+        OfficeChartSeries extracted = Assert.Single(series);
+        Assert.NotNull(extracted.PointColors);
+        Assert.Null(extracted.PointColors![0]);
+        Assert.Equal(highlight, extracted.PointColors[1]);
+    }
+
+    [Fact]
+    public void WordChartSeriesExtraction_PreservesPerSeriesMarkerVisibility() {
+        var visible = CreateLineSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D });
+        var hidden = CreateLineSeries(1U, new[] { "Q1", "Q2" }, new[] { 3D, 4D });
+        hidden.InsertBefore(new Marker(new Symbol { Val = MarkerStyleValues.None }), hidden.GetFirstChild<CategoryAxisData>());
+        var chart = new LineChart(visible, hidden);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { chart, OfficeChartKind.Line, null };
+
+        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+
+        Assert.Equal(2, series.Count);
+        Assert.True(series[0].ShowMarkers);
+        Assert.False(series[1].ShowMarkers);
     }
 
     [Fact]
@@ -590,6 +629,32 @@ public class PdfDocumentChartDrawingTests {
             shape.Shape.StrokeColor == highlight);
     }
 
+    [Fact]
+    public void FlowDrawing_SuppressesMarkersForIndividualSeries() {
+        OfficeColor hiddenColor = OfficeColor.ParseHex("#C1121F");
+        OfficeColor visibleColor = OfficeColor.ParseHex("#0077B6");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line marker visibility",
+            "Line Markers",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Hidden", new[] { 10D, 20D, 14D }, null, hiddenColor, null, showMarkers: false),
+                    new OfficeChartSeries("Visible", new[] { 12D, 18D, 16D }, null, visibleColor, null, showMarkers: true)
+                }),
+            widthPoints: 260D,
+            heightPoints: 160D,
+            layout: new OfficeChartLayout(showMarkers: true)));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == hiddenColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == visibleColor);
+    }
+
     private static BarChartSeries CreateBarSeries(uint index, string[] categories, double[] values, DataLabels? dataLabels = null) {
         var series = new BarChartSeries(
             new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = index },
@@ -602,6 +667,15 @@ public class PdfDocumentChartDrawingTests {
         }
 
         return series;
+    }
+
+    private static LineChartSeries CreateLineSeries(uint index, string[] categories, double[] values) {
+        return new LineChartSeries(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = index },
+            new Order { Val = index },
+            new SeriesText(new NumericValue("Series " + (index + 1))),
+            CreateCategoryAxisData(categories),
+            CreateValues(values));
     }
 
     private static CategoryAxisData CreateCategoryAxisData(string[] categories) {
@@ -859,6 +933,38 @@ public class PdfDocumentChartDrawingTests {
         Assert.True(target.Y > 160D, "Expected bottom legend text to be placed below the plot area.");
         Assert.True(actual.X < 180D, "Expected bottom legend text to use a horizontal band instead of the right-side legend strip.");
         Assert.True(target.X < 260D, "Expected bottom legend text to use a horizontal band instead of the right-side legend strip.");
+    }
+
+    [Fact]
+    public void FlowDrawing_UsesSeriesColorsForTopBottomLegendBands() {
+        OfficeColor actualColor = OfficeColor.ParseHex("#C1121F");
+        OfficeColor targetColor = OfficeColor.ParseHex("#0077B6");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Bottom legend color chart",
+            "Bottom Legend Colors",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }, null, actualColor),
+                    new OfficeChartSeries("Target", new[] { 10D, 20D, 26D }, null, targetColor)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Bottom)));
+
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width == 6D &&
+            shape.Shape.Height == 6D &&
+            shape.Y > 160D &&
+            shape.Shape.FillColor == actualColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.Width == 6D &&
+            shape.Shape.Height == 6D &&
+            shape.Y > 160D &&
+            shape.Shape.FillColor == targetColor);
     }
 
     [Fact]

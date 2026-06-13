@@ -55,6 +55,25 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_DoesNotAppendBlankPageAfterFinalCoverPage() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeFinalCoverPage.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeFinalCoverPage.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlock("Final native cover"));
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Contains("Final native cover", pdf.GetPage(1).Text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Toc_Entries_Use_Content_Right_Edge_Tab_Stop() {
         object level1Style = CreateNativeTableOfContentsEntryStyle(relativeLevel: 0, contentWidth: 468D);
         object level2Style = CreateNativeTableOfContentsEntryStyle(relativeLevel: 1, contentWidth: 468D);
@@ -93,6 +112,31 @@ public partial class Word {
         Assert.Contains("Native property company", text);
         Assert.Contains("Native property body", text);
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyContentControlUnsupported");
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Ordinary_Alias_ContentControls() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeOrdinaryAliasContentControl.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeOrdinaryAliasContentControl.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.BuiltinDocumentProperties.Title = "Document property title";
+            document._document.Body!.Append(new SdtBlock(
+                new SdtProperties(new SdtAlias { Val = "Title" }),
+                new SdtContentBlock(
+                    new Paragraph(new Run(new Text("Manual content control title"))))));
+            document.AddParagraph("After ordinary content control");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Manual content control title", text);
+        Assert.Contains("After ordinary content control", text);
+        Assert.DoesNotContain("Document property title", text);
     }
 
     [Fact]

@@ -216,7 +216,14 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
 
-                series.Add(new OfficeChartSeries(GetNativeWordChartSeriesName(seriesElement, seriesIndex), values, xValues));
+                IReadOnlyList<OfficeColor?>? pointColors = ExtractNativeWordChartPointColors(seriesElement, values.Count);
+                series.Add(new OfficeChartSeries(
+                    GetNativeWordChartSeriesName(seriesElement, seriesIndex),
+                    values,
+                    xValues,
+                    null,
+                    pointColors,
+                    !IsNativeWordChartSeriesMarkerHidden(seriesElement)));
                 seriesIndex++;
             }
 
@@ -581,6 +588,28 @@ namespace OfficeIMO.Word.Pdf {
             return TryGetNativeDrawingSolidFillColor(element?.GetFirstChild<ChartShapeProperties>(), out color);
         }
 
+        private static IReadOnlyList<OfficeColor?>? ExtractNativeWordChartPointColors(OpenXmlElement seriesElement, int valueCount) {
+            if (valueCount <= 0) {
+                return null;
+            }
+
+            OfficeColor?[] colors = new OfficeColor?[valueCount];
+            bool anyColor = false;
+            foreach (DataPoint point in seriesElement.Elements<DataPoint>()) {
+                uint? index = point.Index?.Val?.Value;
+                if (!index.HasValue || index.Value >= valueCount) {
+                    continue;
+                }
+
+                if (TryGetNativeWordChartFillColor(point, out OfficeColor color)) {
+                    colors[index.Value] = color;
+                    anyColor = true;
+                }
+            }
+
+            return anyColor ? colors : null;
+        }
+
         private static OfficeChartLayout? CreateNativeWordChartLayout(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount) {
             DataLabels? labels = GetNativeWordChartDataLabels(chartElement);
             bool showValue = labels != null && IsNativeWordChartBooleanOn(labels.GetFirstChild<ShowValue>());
@@ -720,8 +749,7 @@ namespace OfficeIMO.Word.Pdf {
             bool sawHiddenMarker = false;
             foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
                 sawSeries = true;
-                Marker? marker = seriesElement.GetFirstChild<Marker>();
-                if (marker?.Symbol?.Val?.Value != MarkerStyleValues.None) {
+                if (!IsNativeWordChartSeriesMarkerHidden(seriesElement)) {
                     return false;
                 }
 
@@ -730,6 +758,9 @@ namespace OfficeIMO.Word.Pdf {
 
             return sawSeries && sawHiddenMarker;
         }
+
+        private static bool IsNativeWordChartSeriesMarkerHidden(OpenXmlElement seriesElement) =>
+            seriesElement.GetFirstChild<Marker>()?.Symbol?.Val?.Value == MarkerStyleValues.None;
 
         private static string? GetNativeWordChartDataLabelNumberFormat(DataLabels? labels) {
             string? formatCode = labels?.GetFirstChild<NumberingFormat>()?.FormatCode?.Value;
