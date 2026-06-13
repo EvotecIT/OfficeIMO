@@ -298,7 +298,7 @@ namespace OfficeIMO.Word.Markdown {
                         addRootBlock(block);
                     }
 
-                    if (paragraphBlocks.Count == 0 && TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
+                    if (TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
                         if (TryCreateVisualFallbackBlock(paragraph, options, out var visualBlock)) {
                             addRootBlock(visualBlock);
                         } else {
@@ -390,6 +390,20 @@ namespace OfficeIMO.Word.Markdown {
 
             foreach (var run in paragraph.GetRuns()) {
                 if (run.PageBreak != null) {
+                    if (TryAppendRunWithEmbeddedPageBreaks(
+                        blocks,
+                        paragraph,
+                        ref segment,
+                        run,
+                        options,
+                        preferredCodeFont,
+                        implicitCodeFont,
+                        ref checkboxPending,
+                        allowQuoteHeuristic,
+                        trimBoundaryWhitespace)) {
+                        continue;
+                    }
+
                     AppendParagraphBlocksFromSegment(
                         blocks,
                         paragraph,
@@ -422,6 +436,57 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             return blocks;
+        }
+
+        private bool TryAppendRunWithEmbeddedPageBreaks(
+            List<IMarkdownBlock> blocks,
+            WordParagraph paragraph,
+            ref InlineSequence segment,
+            WordParagraph run,
+            WordToMarkdownOptions options,
+            string? preferredCodeFont,
+            string? implicitCodeFont,
+            ref bool checkboxPending,
+            bool allowQuoteHeuristic,
+            bool trimBoundaryWhitespace) {
+            string? text = run.Text;
+            if (string.IsNullOrEmpty(text) || text.IndexOf('\u2028') < 0) {
+                return false;
+            }
+
+            int start = 0;
+            for (int i = 0; i < text.Length; i++) {
+                if (text[i] != '\u2028') {
+                    continue;
+                }
+
+                if (i > start) {
+                    AppendFormattedTextRun(segment, run, text.Substring(start, i - start), options, preferredCodeFont, implicitCodeFont);
+                }
+
+                AppendParagraphBlocksFromSegment(
+                    blocks,
+                    paragraph,
+                    segment,
+                    checkboxPending,
+                    allowQuoteHeuristic,
+                    trimBoundaryWhitespace);
+                checkboxPending = false;
+                segment = CreateInlineSequence();
+
+                var pageBreakBlock = CreatePageBreakBlock(options);
+                if (pageBreakBlock != null) {
+                    blocks.Add(pageBreakBlock);
+                }
+
+                start = i + 1;
+            }
+
+            if (start < text.Length) {
+                AppendFormattedTextRun(segment, run, text.Substring(start), options, preferredCodeFont, implicitCodeFont);
+            }
+
+            return true;
         }
 
         private static InlineSequence CreateInlineSequence() {

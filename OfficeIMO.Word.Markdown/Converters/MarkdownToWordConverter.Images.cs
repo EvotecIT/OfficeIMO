@@ -239,9 +239,21 @@ namespace OfficeIMO.Word.Markdown {
                 out _);
 
             using var stream = new System.IO.MemoryStream(bytes, writable: false);
-            paragraph.AddImage(stream, fileName, finalW, finalH, description: alt ?? string.Empty);
+            try {
+                paragraph.AddImage(stream, fileName, finalW, finalH, description: alt ?? string.Empty);
+            } catch (Exception ex) when (IsRecoverableDataUriImageInsertionException(ex)) {
+                options.OnWarning?.Invoke($"Data URI image could not be inserted as a supported Word image. {ex.Message}");
+                AddImageFallbackText(paragraph, alt, string.Empty, options);
+            }
+
             return true;
         }
+
+        private static bool IsRecoverableDataUriImageInsertionException(Exception ex) =>
+            ex is ImageFormatNotSupportedException ||
+            ex is System.IO.InvalidDataException ||
+            ex is ArgumentException ||
+            ex is DocumentFormat.OpenXml.Packaging.OpenXmlPackageException;
 
         private static bool TryDecodeDataUriImage(
             string source,

@@ -147,5 +147,46 @@ code
 
             Assert.Equal("[TOC min=7 max=9 title=\"Deep contents\" titleLevel=6]", markdown);
         }
+
+        [Fact]
+        public void MarkdownToWord_Renders_Typed_TocMarkerBlock_As_Native_Word_TableOfContents() {
+            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+                .Add(new OfficeIMO.Markdown.TocMarkerBlock {
+                    MinLevel = 2,
+                    MaxLevel = 4,
+                    IncludeTitle = true,
+                    Title = "Contents"
+                })
+                .H1("Report")
+                .H2("Region");
+
+            using var document = markdown.ToWordDocument();
+
+            Assert.NotNull(document.TableOfContent);
+            Assert.Equal(2, document.TableOfContent!.MinLevel);
+            Assert.Equal(4, document.TableOfContent.MaxLevel);
+            Assert.Equal("Contents", document.TableOfContent.Text);
+        }
+
+        [Fact]
+        public void MarkdownToWord_Renders_Scoped_Toc_From_Realized_Entries() {
+            var markdown = OfficeIMO.Markdown.MarkdownDoc.Create()
+                .H1("Section")
+                .TocHere(options => {
+                    options.Scope = OfficeIMO.Markdown.TocScope.PreviousHeading;
+                    options.MinLevel = 2;
+                    options.MaxLevel = 3;
+                })
+                .H2("Inside")
+                .H1("Other")
+                .H2("Outside");
+
+            using var document = markdown.ToWordDocument();
+            string text = string.Join("\n", document.Paragraphs.Select(paragraph => paragraph.Text));
+
+            Assert.Null(document.TableOfContent);
+            Assert.Contains("[Inside](#inside)", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("[Outside](#outside)", text, StringComparison.Ordinal);
+        }
     }
 }

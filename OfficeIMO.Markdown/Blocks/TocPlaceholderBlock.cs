@@ -44,7 +44,9 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
             MinLevel = Options.MinLevel,
             MaxLevel = Options.MaxLevel,
             Layout = Options.Layout,
-            Chrome = Options.Chrome
+            Chrome = Options.Chrome,
+            Scope = Options.Scope,
+            ScopeHeadingTitle = Options.ScopeHeadingTitle
         };
         string? titleAnchor = headingCatalog.GetPrecedingHeadingAnchor(blocks, placeholderIndex, Options);
         foreach (var entry in headingCatalog.BuildTocEntries(blocks, placeholderIndex, Options, titleAnchor)) {

@@ -74,6 +74,9 @@ public abstract class MarkdownVisitor {
             case TocBlock toc:
                 VisitTocBlock(toc);
                 break;
+            case TocMarkerBlock tocMarker:
+                VisitTocMarkerBlock(tocMarker);
+                break;
             case MarkdownBlock block:
                 VisitBlock(block);
                 break;
@@ -211,6 +214,7 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitHtmlRawBlock(HtmlRawBlock block) => VisitBlock(block);
     protected virtual void VisitHorizontalRuleBlock(HorizontalRuleBlock block) => VisitBlock(block);
     protected virtual void VisitTocBlock(TocBlock block) => VisitBlock(block);
+    protected virtual void VisitTocMarkerBlock(TocMarkerBlock block) => VisitBlock(block);
 
     protected virtual void VisitListItem(ListItem item) => DefaultVisit(item);
     protected virtual void VisitTableCell(TableCell cell) => DefaultVisit(cell);

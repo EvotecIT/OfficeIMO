@@ -32,6 +32,10 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
     public TocLayout Layout { get; set; } = TocLayout.List;
     /// <summary>Preferred visual chrome for output formats that support TOC containers.</summary>
     public TocChrome Chrome { get; set; } = TocChrome.Default;
+    /// <summary>Scope used when the TOC entries were realized from a placeholder.</summary>
+    public TocScope Scope { get; set; } = TocScope.Document;
+    /// <summary>Heading title used when <see cref="Scope"/> is <see cref="TocScope.HeadingTitle"/>.</summary>
+    public string? ScopeHeadingTitle { get; set; }
     /// <summary>Entries included in the TOC.</summary>
     public List<Entry> Entries { get; } = new List<Entry>();
 

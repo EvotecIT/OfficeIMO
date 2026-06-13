@@ -113,6 +113,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MarkdownToWord_Invalid_DataUri_Image_Falls_Back_With_Warning() {
+            var warnings = new List<string>();
+            const string markdown = "![Bad image](data:image/png;base64,AAAA)";
+
+            using var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+                OnWarning = warnings.Add
+            });
+
+            Assert.Empty(doc.Images);
+            Assert.Contains(doc.Paragraphs, paragraph => paragraph.Text.Contains("Bad image", StringComparison.Ordinal));
+            Assert.Contains(warnings, warning => warning.Contains("could not be inserted", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void MarkdownToWord_RendersInlineLocalImagesInsideParagraphs() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string md = $"Before ![Logo]({imagePath}) after";

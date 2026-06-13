@@ -327,6 +327,24 @@ namespace OfficeIMO.Tests {
             Assert.Contains("After", renderedMarkdown, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void WordToMarkdown_Preserves_Text_Around_Run_Level_PageBreaks() {
+            using var doc = WordDocument.Create();
+            var paragraph = doc.AddParagraph();
+            paragraph._paragraph.Append(new Run(
+                new Text("Before"),
+                new Break { Type = BreakValues.Page },
+                new Text("After")));
+
+            MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
+
+            Assert.Collection(
+                markdown.Blocks,
+                block => Assert.Equal("Before", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.IsType<SemanticFencedBlock>(block),
+                block => Assert.Equal("After", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+        }
+
         [Theory]
         [InlineData(MarkdownPageBreakMode.Html, "<div style=\"page-break-after: always;\"></div>")]
         [InlineData(MarkdownPageBreakMode.HorizontalRule, "---")]
@@ -376,6 +394,20 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unsupported Word content: shape", markdown, StringComparison.Ordinal);
             Assert.Contains("After", markdown, StringComparison.Ordinal);
             Assert.Contains(warnings, warning => warning.Contains("Unsupported Word shape", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void WordToMarkdown_UnsupportedContentMode_Emits_Placeholders_For_Mixed_Paragraph_Content() {
+            using var doc = WordDocument.Create();
+            var paragraph = doc.AddParagraph("Before");
+            paragraph.AddShape(ShapeType.Rectangle, 60, 30);
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
+            });
+
+            Assert.Contains("Before", markdown, StringComparison.Ordinal);
+            Assert.Contains("Unsupported Word content: shape", markdown, StringComparison.Ordinal);
         }
 
         [Fact]
