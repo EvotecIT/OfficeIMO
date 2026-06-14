@@ -18,8 +18,18 @@ public static class DocumentReaderZipRegistrationExtensions {
     public static void RegisterZipHandler(
         ZipTraversalOptions? zipOptions = null,
         ReaderZipOptions? readerZipOptions = null,
-        bool replaceExisting = false,
-        bool preserveExistingCustomExtensions = false) {
+        bool replaceExisting = false) {
+        RegisterZipHandler(zipOptions, readerZipOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers ZIP ingestion into <see cref="DocumentReader"/> for the <c>.zip</c> extension.
+    /// </summary>
+    public static void RegisterZipHandler(
+        ZipTraversalOptions? zipOptions,
+        ReaderZipOptions? readerZipOptions,
+        bool replaceExisting,
+        bool preserveExistingCustomExtensions) {
         var registeredZipOptions = Clone(zipOptions);
         var registeredReaderZipOptions = Clone(readerZipOptions);
 

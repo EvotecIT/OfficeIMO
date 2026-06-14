@@ -16,9 +16,20 @@ public static class DocumentReaderXmlRegistrationExtensions {
     /// <param name="replaceExisting">
     /// Defaults to true because this extension is already handled by the built-in plain text path.
     /// </param>
-    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterXmlHandler(XmlReadOptions? xmlOptions = null, bool replaceExisting = true, bool preserveExistingCustomExtensions = false) {
+    public static void RegisterXmlHandler(XmlReadOptions? xmlOptions = null, bool replaceExisting = true) {
+        RegisterXmlHandler(xmlOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers XML ingestion into <see cref="DocumentReader"/>.
+    /// </summary>
+    /// <param name="xmlOptions">Default parser options used by this handler.</param>
+    /// <param name="replaceExisting">
+    /// Defaults to true because this extension is already handled by the built-in plain text path.
+    /// </param>
+    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
+    public static void RegisterXmlHandler(XmlReadOptions? xmlOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
         var registered = Clone(xmlOptions);
 
         var registration = new ReaderHandlerRegistration {

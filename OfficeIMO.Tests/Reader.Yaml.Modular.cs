@@ -61,7 +61,10 @@ public sealed class ReaderYamlModularTests {
         const string yaml =
             "flag: !!str true\n" +
             "id: !!str 123\n" +
-            "enabled: true\n";
+            "age: !!int \"42\"\n" +
+            "enabled: !!bool \"false\"\n" +
+            "empty: !!null \"null\"\n" +
+            "implicitEnabled: true\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
         var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
@@ -74,7 +77,10 @@ public sealed class ReaderYamlModularTests {
 
         Assert.Contains("$.flag | string | true", chunk.Text ?? string.Empty, StringComparison.Ordinal);
         Assert.Contains("$.id | string | 123", chunk.Text ?? string.Empty, StringComparison.Ordinal);
-        Assert.Contains("$.enabled | boolean | true", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.age | number | 42", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.enabled | boolean | false", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.empty | null | null", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.implicitEnabled | boolean | true", chunk.Text ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -197,5 +203,48 @@ public sealed class ReaderYamlModularTests {
 
         Assert.Contains("node-limit", chunk.Text ?? string.Empty, StringComparison.Ordinal);
         Assert.Contains("(max nodes reached)", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_CountsDepthLimitedChildrenAgainstNodeLimit() {
+        const string yaml =
+            "root:\n" +
+            "  - one\n" +
+            "  - two\n" +
+            "  - three\n" +
+            "  - four\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "depth-limited.yaml",
+            yamlOptions: new YamlReadOptions {
+                MaxDepth = 1,
+                MaxNodes = 4,
+                ChunkRows = 10,
+                IncludeMarkdown = false
+            }));
+
+        Assert.Contains("depth-limit", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("node-limit", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_BoundsComplexMappingKeysWithNodeLimit() {
+        const string yaml =
+            "? [one, two, three, four]\n" +
+            ": value\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "complex-key.yaml",
+            yamlOptions: new YamlReadOptions {
+                MaxNodes = 2,
+                ChunkRows = 10,
+                IncludeMarkdown = false
+            }));
+
+        Assert.Contains("node-limit", chunk.Text ?? string.Empty, StringComparison.Ordinal);
     }
 }

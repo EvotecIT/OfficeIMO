@@ -253,7 +253,7 @@ public sealed class ReaderRegistryTests {
                 ReadPath = (path, options, ct) => Array.Empty<ReaderChunk>()
             });
 
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(preserveExistingCustomExtensions: true);
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(null, replaceExisting: false, preserveExistingCustomExtensions: true);
 
             var capabilities = DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true);
             var customHtml = Assert.Single(capabilities, c => c.Id == handlerId);

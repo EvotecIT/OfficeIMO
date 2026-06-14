@@ -16,9 +16,20 @@ public static class DocumentReaderCsvRegistrationExtensions {
     /// <param name="replaceExisting">
     /// Defaults to true because these extensions are already handled by the built-in plain text path.
     /// </param>
-    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterCsvHandler(CsvReadOptions? csvOptions = null, bool replaceExisting = true, bool preserveExistingCustomExtensions = false) {
+    public static void RegisterCsvHandler(CsvReadOptions? csvOptions = null, bool replaceExisting = true) {
+        RegisterCsvHandler(csvOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers CSV/TSV ingestion into <see cref="DocumentReader"/>.
+    /// </summary>
+    /// <param name="csvOptions">Default parser options used by this handler.</param>
+    /// <param name="replaceExisting">
+    /// Defaults to true because these extensions are already handled by the built-in plain text path.
+    /// </param>
+    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
+    public static void RegisterCsvHandler(CsvReadOptions? csvOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
         var registered = Clone(csvOptions);
 
         var registration = new ReaderHandlerRegistration {

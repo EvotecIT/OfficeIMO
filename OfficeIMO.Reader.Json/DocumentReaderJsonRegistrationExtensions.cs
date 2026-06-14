@@ -16,9 +16,20 @@ public static class DocumentReaderJsonRegistrationExtensions {
     /// <param name="replaceExisting">
     /// Defaults to true because this extension is already handled by the built-in plain text path.
     /// </param>
-    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterJsonHandler(JsonReadOptions? jsonOptions = null, bool replaceExisting = true, bool preserveExistingCustomExtensions = false) {
+    public static void RegisterJsonHandler(JsonReadOptions? jsonOptions = null, bool replaceExisting = true) {
+        RegisterJsonHandler(jsonOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers JSON ingestion into <see cref="DocumentReader"/>.
+    /// </summary>
+    /// <param name="jsonOptions">Default parser options used by this handler.</param>
+    /// <param name="replaceExisting">
+    /// Defaults to true because this extension is already handled by the built-in plain text path.
+    /// </param>
+    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
+    public static void RegisterJsonHandler(JsonReadOptions? jsonOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
         var registered = Clone(jsonOptions);
 
         var registration = new ReaderHandlerRegistration {

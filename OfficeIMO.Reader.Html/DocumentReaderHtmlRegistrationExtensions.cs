@@ -13,7 +13,14 @@ public static class DocumentReaderHtmlRegistrationExtensions {
     /// Registers HTML ingestion into <see cref="DocumentReader"/> for <c>.html</c>, <c>.htm</c>, and <c>.xhtml</c>.
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterHtmlHandler(ReaderHtmlOptions? htmlOptions = null, bool replaceExisting = false, bool preserveExistingCustomExtensions = false) {
+    public static void RegisterHtmlHandler(ReaderHtmlOptions? htmlOptions = null, bool replaceExisting = false) {
+        RegisterHtmlHandler(htmlOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers HTML ingestion into <see cref="DocumentReader"/> for <c>.html</c>, <c>.htm</c>, and <c>.xhtml</c>.
+    /// </summary>
+    public static void RegisterHtmlHandler(ReaderHtmlOptions? htmlOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
         var registeredOptions = ReaderHtmlOptionsCloner.CloneNullable(htmlOptions);
 
         var registration = new ReaderHandlerRegistration {

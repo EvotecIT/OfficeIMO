@@ -4,6 +4,8 @@ namespace OfficeIMO.Reader.Yaml;
 /// YAML ingestion helpers for <see cref="DocumentReader"/>.
 /// </summary>
 public static class DocumentReaderYamlExtensions {
+    private const int MaxKeyTextLength = 512;
+
     /// <summary>
     /// Reads YAML content from a path with representation-model-aware chunking.
     /// </summary>
@@ -167,12 +169,12 @@ public static class DocumentReaderYamlExtensions {
             return;
         }
 
-        if (depth > options.MaxDepth) {
-            rows.Add(new StructuredRow(path, "depth-limit", "(max depth reached)"));
+        if (!TryVisitNode(path, options, rows, state)) {
             return;
         }
 
-        if (!TryVisitNode(path, options, rows, state)) {
+        if (depth > options.MaxDepth) {
+            rows.Add(new StructuredRow(path, "depth-limit", "(max depth reached)"));
             return;
         }
 
@@ -209,9 +211,13 @@ public static class DocumentReaderYamlExtensions {
                 }
 
                 foreach (var child in mapping.Children) {
+                    if (!TryAppendKeyPath(path, child.Key, depth + 1, options, rows, state, cancellationToken, out var childPath)) {
+                        break;
+                    }
+
                     TraverseYaml(
                         child.Value,
-                        AppendKeyPath(path, child.Key),
+                        childPath,
                         depth + 1,
                         options,
                         rows,
@@ -244,25 +250,155 @@ public static class DocumentReaderYamlExtensions {
         return true;
     }
 
-    private static string AppendKeyPath(string path, YamlNode key) {
-        var keyText = GetKeyText(key);
-        if (IsSimplePathIdentifier(keyText)) {
-            return path + "." + keyText;
+    private static bool TryAppendKeyPath(
+        string path,
+        YamlNode key,
+        int depth,
+        YamlReadOptions options,
+        List<StructuredRow> rows,
+        TraversalState state,
+        CancellationToken cancellationToken,
+        out string childPath) {
+        childPath = path;
+        if (!TryGetKeyText(key, path + "[key]", depth, options, rows, state, cancellationToken, out var keyText)) {
+            return false;
         }
 
-        return path + "[\"" + EscapePathString(keyText) + "\"]";
+        if (IsSimplePathIdentifier(keyText)) {
+            childPath = path + "." + keyText;
+            return true;
+        }
+
+        childPath = path + "[\"" + EscapePathString(keyText) + "\"]";
+        return true;
     }
 
-    private static string GetKeyText(YamlNode key) {
-        if (key is YamlScalarNode scalar) {
-            return scalar.Value ?? string.Empty;
+    private static bool TryGetKeyText(
+        YamlNode key,
+        string path,
+        int depth,
+        YamlReadOptions options,
+        List<StructuredRow> rows,
+        TraversalState state,
+        CancellationToken cancellationToken,
+        out string keyText) {
+        cancellationToken.ThrowIfCancellationRequested();
+        keyText = string.Empty;
+
+        if (!TryVisitNode(path, options, rows, state)) {
+            return false;
         }
 
-        return NormalizeText(key.ToString());
+        if (depth > options.MaxDepth) {
+            rows.Add(new StructuredRow(path, "depth-limit", "(max depth reached)"));
+            keyText = "(max depth reached)";
+            return true;
+        }
+
+        if (key is YamlScalarNode scalar) {
+            keyText = LimitKeyText(NormalizeText(scalar.Value ?? string.Empty));
+            return true;
+        }
+
+        var sb = new StringBuilder();
+        AppendKeyText(key, path, depth, options, rows, state, cancellationToken, sb);
+        keyText = sb.ToString();
+        return true;
+    }
+
+    private static void AppendKeyText(
+        YamlNode key,
+        string path,
+        int depth,
+        YamlReadOptions options,
+        List<StructuredRow> rows,
+        TraversalState state,
+        CancellationToken cancellationToken,
+        StringBuilder sb) {
+        if (state.NodeLimitEmitted || sb.Length >= MaxKeyTextLength) {
+            return;
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+
+        switch (key) {
+            case YamlScalarNode scalar:
+                AppendKeyTextFragment(sb, NormalizeText(scalar.Value ?? string.Empty));
+                break;
+            case YamlSequenceNode sequence:
+                AppendKeyTextFragment(sb, "[");
+                for (int i = 0; i < sequence.Children.Count; i++) {
+                    if (i > 0) AppendKeyTextFragment(sb, ",");
+                    if (!TryGetKeyText(sequence.Children[i], path + "[" + i.ToString(CultureInfo.InvariantCulture) + "]", depth + 1, options, rows, state, cancellationToken, out var childText)) {
+                        break;
+                    }
+
+                    AppendKeyTextFragment(sb, childText);
+                    if (state.NodeLimitEmitted || sb.Length >= MaxKeyTextLength) break;
+                }
+
+                AppendKeyTextFragment(sb, "]");
+                break;
+            case YamlMappingNode mapping:
+                AppendKeyTextFragment(sb, "{");
+                var index = 0;
+                foreach (var child in mapping.Children) {
+                    if (index > 0) AppendKeyTextFragment(sb, ",");
+                    if (!TryGetKeyText(child.Key, path + ".key" + index.ToString(CultureInfo.InvariantCulture), depth + 1, options, rows, state, cancellationToken, out var childKeyText)) {
+                        break;
+                    }
+
+                    AppendKeyTextFragment(sb, childKeyText);
+                    AppendKeyTextFragment(sb, ":");
+                    if (!TryGetKeyText(child.Value, path + ".value" + index.ToString(CultureInfo.InvariantCulture), depth + 1, options, rows, state, cancellationToken, out var childValueText)) {
+                        break;
+                    }
+
+                    AppendKeyTextFragment(sb, childValueText);
+                    index++;
+                    if (state.NodeLimitEmitted || sb.Length >= MaxKeyTextLength) break;
+                }
+
+                AppendKeyTextFragment(sb, "}");
+                break;
+            default:
+                AppendKeyTextFragment(sb, NormalizeText(key.NodeType.ToString()));
+                break;
+        }
+    }
+
+    private static void AppendKeyTextFragment(StringBuilder sb, string value) {
+        if (sb.Length >= MaxKeyTextLength) {
+            return;
+        }
+
+        var remaining = MaxKeyTextLength - sb.Length;
+        if (value.Length <= remaining) {
+            sb.Append(value);
+            return;
+        }
+
+        if (remaining > 1) {
+            sb.Append(value, 0, remaining - 1);
+        }
+
+        sb.Append("...");
+    }
+
+    private static string LimitKeyText(string value) {
+        if (value.Length <= MaxKeyTextLength) {
+            return value;
+        }
+
+        return value.Substring(0, MaxKeyTextLength - 3) + "...";
     }
 
     private static string ClassifyScalar(YamlScalarNode scalar) {
         var value = scalar.Value;
+        if (TryClassifyExplicitTag(scalar, out var explicitKind)) {
+            return explicitKind;
+        }
+
         if (scalar.Style == ScalarStyle.Plain && !HasExplicitStringTag(scalar)) {
             if (IsYamlNull(value)) {
                 return "null";
@@ -282,7 +418,8 @@ public static class DocumentReaderYamlExtensions {
 
     private static string NormalizeScalarValue(YamlScalarNode scalar) {
         var value = scalar.Value;
-        if (scalar.Style == ScalarStyle.Plain && !HasExplicitStringTag(scalar) && IsYamlNull(value)) {
+        if ((TryClassifyExplicitTag(scalar, out var explicitKind) && explicitKind == "null") ||
+            (scalar.Style == ScalarStyle.Plain && !HasExplicitStringTag(scalar) && IsYamlNull(value))) {
             return "null";
         }
 
@@ -297,6 +434,38 @@ public static class DocumentReaderYamlExtensions {
         var tag = scalar.Tag.ToString();
         return string.Equals(tag, "tag:yaml.org,2002:str", StringComparison.Ordinal) ||
                string.Equals(tag, "!!str", StringComparison.Ordinal);
+    }
+
+    private static bool TryClassifyExplicitTag(YamlScalarNode scalar, out string kind) {
+        var tag = scalar.Tag.ToString();
+        if (string.Equals(tag, "tag:yaml.org,2002:str", StringComparison.Ordinal) ||
+            string.Equals(tag, "!!str", StringComparison.Ordinal)) {
+            kind = "string";
+            return true;
+        }
+
+        if (string.Equals(tag, "tag:yaml.org,2002:null", StringComparison.Ordinal) ||
+            string.Equals(tag, "!!null", StringComparison.Ordinal)) {
+            kind = "null";
+            return true;
+        }
+
+        if (string.Equals(tag, "tag:yaml.org,2002:bool", StringComparison.Ordinal) ||
+            string.Equals(tag, "!!bool", StringComparison.Ordinal)) {
+            kind = "boolean";
+            return true;
+        }
+
+        if (string.Equals(tag, "tag:yaml.org,2002:int", StringComparison.Ordinal) ||
+            string.Equals(tag, "tag:yaml.org,2002:float", StringComparison.Ordinal) ||
+            string.Equals(tag, "!!int", StringComparison.Ordinal) ||
+            string.Equals(tag, "!!float", StringComparison.Ordinal)) {
+            kind = "number";
+            return true;
+        }
+
+        kind = string.Empty;
+        return false;
     }
 
     private static string NormalizeBlockScalarValue(string value) {

@@ -15,7 +15,14 @@ public static class DocumentReaderEpubRegistrationExtensions {
     /// Registers EPUB ingestion into <see cref="DocumentReader"/> for the <c>.epub</c> extension.
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterEpubHandler(EpubReadOptions? epubOptions = null, bool replaceExisting = false, bool preserveExistingCustomExtensions = false) {
+    public static void RegisterEpubHandler(EpubReadOptions? epubOptions = null, bool replaceExisting = false) {
+        RegisterEpubHandler(epubOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers EPUB ingestion into <see cref="DocumentReader"/> for the <c>.epub</c> extension.
+    /// </summary>
+    public static void RegisterEpubHandler(EpubReadOptions? epubOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
         var registeredOptions = Clone(epubOptions);
 
         var registration = new ReaderHandlerRegistration {
