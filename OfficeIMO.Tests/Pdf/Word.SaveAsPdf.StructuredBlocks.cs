@@ -954,6 +954,28 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Explicit_Vml_NoStroke() {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeVmlShape", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var stroke = new V.Stroke();
+        stroke.SetAttribute(new OpenXmlAttribute("color", string.Empty, "none"));
+        object?[] arguments = {
+            new V.Rectangle(stroke) {
+                StrokeColor = "none"
+            },
+            120D,
+            60D,
+            null
+        };
+
+        bool result = (bool)method.Invoke(null, arguments)!;
+        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[3]);
+
+        Assert.True(result);
+        Assert.Null(shape.StrokeColor);
+        Assert.Equal(0D, shape.StrokeWidth);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_DoesNotRenderShapeFallbackForMissingVmlImageData() {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ShouldRenderNativeVmlShapeFallback", BindingFlags.NonPublic | BindingFlags.Static)!;
         var imageShape = new V.Shape(
@@ -1163,6 +1185,35 @@ public partial class Word {
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After chart", text);
+
+        string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_Inline_Word_Charts_After_Text_Run() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineWordChart.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeInlineWordChart.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordParagraph paragraph = document.AddParagraph("Before inline chart");
+            WordChart chart = new WordChart(document, paragraph, "Inline Word PDF Chart", false, 320, 180);
+            chart.AddPie("Passed", 2);
+            chart.AddPie("Failed", 1);
+            document.AddParagraph("After inline chart");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Before inline chart", text);
+        Assert.Contains("After inline chart", text);
 
         string rawPdf = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);

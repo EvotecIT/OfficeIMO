@@ -429,7 +429,7 @@ public static partial class OfficeChartDrawingRenderer {
             double ratio = total > 0D && !double.IsNaN(value) && !double.IsInfinity(value)
                 ? Math.Max(0D, value) / total
                 : 0D;
-            parts.Add(FormatDataLabelPercent(ratio));
+            parts.Add(FormatDataLabelPercent(ratio, layout.DataLabelNumberFormat));
         }
 
         return string.Join(layout.DataLabelSeparator, parts);
@@ -805,8 +805,10 @@ public static partial class OfficeChartDrawingRenderer {
         return trimIndex == value.Length - 1 ? value : value.Substring(0, trimIndex + 1);
     }
 
-    private static string FormatDataLabelPercent(double ratio) =>
-        ratio.ToString("0.#%", CultureInfo.InvariantCulture);
+    private static string FormatDataLabelPercent(double ratio, string? numberFormat) =>
+        TryFormatDataLabelValue(ratio, numberFormat, out string? formatted)
+            ? formatted!
+            : ratio.ToString("0.#%", CultureInfo.InvariantCulture);
 
     private static void AddVerticalDataLabel(
         OfficeDrawing drawing,

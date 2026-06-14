@@ -586,11 +586,12 @@ namespace OfficeIMO.Word.Pdf {
             ApplyNativeVmlShapeShadow(shape, element);
             OpenXmlElement? strokeElement = GetNativeVmlChild(element, "stroke");
             string? childStrokeColor = strokeElement is not null ? GetNativeOpenXmlAttribute(strokeElement, "color") : null;
-            string? strokeColor = NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(element, "strokecolor") ?? childStrokeColor);
+            string? rawStrokeColor = GetNativeOpenXmlAttribute(element, "strokecolor") ?? childStrokeColor;
+            string? strokeColor = NormalizeNativeVmlColor(rawStrokeColor);
             bool stroked = IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(element, "stroked")) &&
                            (strokeElement == null || IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(strokeElement, "on")));
 
-            if (!stroked) {
+            if (!stroked || IsNativeVmlNoColor(rawStrokeColor)) {
                 shape.StrokeColor = null;
                 shape.StrokeWidth = 0D;
                 return;

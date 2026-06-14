@@ -409,6 +409,28 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_AppliesNumberFormatsToPercentDataLabels() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Percent labels",
+            "Percent Labels",
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "Passed", "Failed" },
+                new[] {
+                    new OfficeChartSeries("Results", new[] { 1D, 0D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelPercentages: true,
+                dataLabelNumberFormat: "0.00%")));
+
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "100.00%");
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), label => label.Text == "0.00%");
+    }
+
+    [Fact]
     public void FlowDrawing_RendersOptInPieDataLabelsIncludingZeroValues() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Pie labels",

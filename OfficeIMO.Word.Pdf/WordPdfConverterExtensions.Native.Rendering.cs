@@ -100,33 +100,36 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            bool renderedChart = RenderNativeChart(pdf, paragraph.Chart, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body paragraph chart");
+            PdfCore.PdfAlign objectAlign = MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false);
+            RenderNativeChart(pdf, paragraph.Chart, objectAlign, options, "body paragraph chart");
 
             if (paragraph.Shape != null) {
                 RenderNativeShape(pdf, paragraph.Shape);
             }
 
             if (paragraph.Image != null) {
-                RenderNativeImage(pdf, paragraph.Image, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body paragraph image");
+                RenderNativeImage(pdf, paragraph.Image, objectAlign, options, "body paragraph image");
             }
 
             WordImage? pictureControlImage = paragraph.PictureControl?.Image;
             if (pictureControlImage != null) {
-                RenderNativeImage(pdf, pictureControlImage, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body picture control image");
+                RenderNativeImage(pdf, pictureControlImage, objectAlign, options, "body picture control image");
             }
 
             foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
                 var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
                 WordImage? inlinePictureControlImage = pictureParagraph.PictureControl?.Image;
                 if (inlinePictureControlImage != null) {
-                    RenderNativeImage(pdf, inlinePictureControlImage, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body picture control image");
+                    RenderNativeImage(pdf, inlinePictureControlImage, objectAlign, options, "body picture control image");
                 }
             }
 
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             if (paragraph.Image == null) {
-                RenderNativeRunImages(pdf, runs, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options);
+                RenderNativeRunImages(pdf, runs, objectAlign, options);
             }
+
+            RenderNativeRunCharts(pdf, runs, objectAlign, options);
 
             string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : AppendNativeTextWithEquation(paragraph.Text, paragraph);
             bool hasRenderableRuns = runs.Any(run => !run.IsImage && !string.IsNullOrEmpty(run.Text));
@@ -145,7 +148,6 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             PdfCore.PdfAlign align = MapNativeParagraphAlign(paragraph.ParagraphAlignment);
-            PdfCore.PdfAlign objectAlign = MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false);
             PdfCore.PdfColor? defaultColor = ParseNativeColor(paragraph.ColorHex);
             int headingLevel = GetHeadingLevel(paragraph);
             PdfCore.PdfColor? headingColor = GetNativeHeadingColor(headingLevel, defaultColor);
@@ -437,6 +439,12 @@ namespace OfficeIMO.Word.Pdf {
                 if (run.IsImage && run.Image != null) {
                     RenderNativeImage(pdf, run.Image, align, options, "body paragraph image run");
                 }
+            }
+        }
+
+        private static void RenderNativeRunCharts(INativePdfFlow pdf, IReadOnlyList<WordParagraph> runs, PdfCore.PdfAlign align, PdfSaveOptions? options) {
+            foreach (WordParagraph run in runs) {
+                RenderNativeChart(pdf, run.Chart, align, options, "body paragraph chart run");
             }
         }
 
