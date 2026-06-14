@@ -24,7 +24,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartLayout layout = snapshot.Layout;
         var drawing = new OfficeDrawing(width, height);
 
-        AddShape(drawing, OfficeShape.Rectangle(width, height), 0D, 0D, style.ShowBackground ? style.BackgroundColor : null, style.BorderColor, 0.75D);
+        AddShape(drawing, OfficeShape.Rectangle(width, height), 0D, 0D, style.ShowBackground ? style.BackgroundColor : null, style.ShowBorder ? style.BorderColor : null, style.ShowBorder ? 0.75D : 0D);
         double contentTop = 0D;
         if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
             double titleHeight = Math.Min(22D, Math.Max(16D, height * 0.12D));
@@ -280,7 +280,7 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                if (value == 0D && !layout.ShowDataLabels) {
+                if (value == 0D && !ShouldShowDataLabel(layout, s, category)) {
                     continue;
                 }
 
@@ -329,7 +329,9 @@ public static partial class OfficeChartDrawingRenderer {
                         x,
                         x + w,
                         y,
-                        y + rowHeight);
+                        y + rowHeight,
+                        s,
+                        category);
                 } else {
                     double x = plotLeft + slot * category + (slot - groupWidth) / 2D + (stacked ? 0D : barWidth * s);
                     double y1 = ToPlotY(baseline, min, max, plotTop, plotHeight);
@@ -350,7 +352,9 @@ public static partial class OfficeChartDrawingRenderer {
                         GetDataLabelCategoryTotal(series, category),
                         x + barWidth * 0.44D,
                         y,
-                        y + h);
+                        y + h,
+                        s,
+                        category);
                 }
             }
         }
@@ -456,7 +460,9 @@ public static partial class OfficeChartDrawingRenderer {
                 currentSeries.Values[categoryIndex],
                 GetDataLabelCategoryTotal(series, categoryIndex),
                 topPoints[i].X,
-                topPoints[i].Y);
+                topPoints[i].Y,
+                seriesIndex,
+                categoryIndex);
         }
     }
 
@@ -532,7 +538,9 @@ public static partial class OfficeChartDrawingRenderer {
                     value,
                     GetDataLabelCategoryTotal(series, i),
                     points[i].X,
-                    points[i].Y);
+                    points[i].Y,
+                    s,
+                    i);
             }
 
             if (stacked) {
@@ -620,7 +628,9 @@ public static partial class OfficeChartDrawingRenderer {
                     series[s].Values[pointIndex],
                     GetDataLabelCategoryTotal(series, pointIndex),
                     point.X,
-                    point.Y);
+                    point.Y,
+                    s,
+                    pointIndex);
             }
         }
     }
@@ -716,7 +726,9 @@ public static partial class OfficeChartDrawingRenderer {
                     series[s].Values[i],
                     GetDataLabelCategoryTotal(series, i),
                     points[i].X,
-                    points[i].Y);
+                    points[i].Y,
+                    s,
+                    i);
             }
         }
 
@@ -807,12 +819,12 @@ public static partial class OfficeChartDrawingRenderer {
 
                 OfficeColor sliceColor = GetPointColor(style, values, i);
                 AddPolygonShape(drawing, points, sliceColor, OfficeColor.White, 0.5D);
-                if (layout.ShowDataLabels) {
+                if (ShouldShowDataLabel(layout, 0, i)) {
                     AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, value, total, centerX, centerY, radius, start + sweep / 2D, zeroLabelIndex: null);
                 }
 
                 start = end;
-            } else if (layout.ShowDataLabels) {
+            } else if (ShouldShowDataLabel(layout, 0, i)) {
                 OfficeColor sliceColor = GetPointColor(style, values, 0);
                 AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, 0D, total, centerX, centerY, radius, -Math.PI / 2D, zeroLabelIndex);
                 zeroLabelIndex++;
@@ -889,29 +901,17 @@ public static partial class OfficeChartDrawingRenderer {
                 if (value > 0D) {
                     double end = start + sweep;
                     OfficeColor sliceColor = GetPointColor(style, values, i);
-                    AddPieSlice(drawing, centerX, centerY, outerRadius, start, sweep, sliceColor);
-                    if (layout.ShowDataLabels) {
+                    AddDoughnutSlice(drawing, centerX, centerY, outerRadius, innerRadius, start, sweep, sliceColor);
+                    if (ShouldShowDataLabel(layout, s, i)) {
                         AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, value, total, centerX, centerY, Math.Max(innerRadius + 8D, outerRadius - ringThickness * 0.42D), start + sweep / 2D, zeroLabelIndex: null);
                     }
 
                     start = end;
-                } else if (layout.ShowDataLabels && s == 0) {
+                } else if (s == 0 && ShouldShowDataLabel(layout, s, i)) {
                     OfficeColor sliceColor = GetPointColor(style, values, 0);
                     AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, 0D, total, centerX, centerY, outerRadius, -Math.PI / 2D, zeroLabelIndex);
                     zeroLabelIndex++;
                 }
-            }
-
-            if (innerRadius > 0D) {
-                double innerDiameter = innerRadius * 2D;
-                AddShape(
-                    drawing,
-                    OfficeShape.Ellipse(innerDiameter, innerDiameter),
-                    centerX - innerRadius,
-                    centerY - innerRadius,
-                    style.ShowBackground ? style.BackgroundColor : null,
-                    null,
-                    0D);
             }
         }
 
@@ -995,6 +995,31 @@ public static partial class OfficeChartDrawingRenderer {
             points.Add(new OfficePoint(
                 centerX + Math.Cos(angle) * radius,
                 centerY + Math.Sin(angle) * radius));
+        }
+
+        AddPolygonShape(drawing, points, color, OfficeColor.White, 0.5D);
+    }
+
+    private static void AddDoughnutSlice(OfficeDrawing drawing, double centerX, double centerY, double outerRadius, double innerRadius, double start, double sweep, OfficeColor color) {
+        if (innerRadius <= 0D) {
+            AddPieSlice(drawing, centerX, centerY, outerRadius, start, sweep, color);
+            return;
+        }
+
+        int segments = Math.Max(2, (int)Math.Ceiling(sweep / (Math.PI / 18D)));
+        var points = new List<OfficePoint>((segments + 1) * 2);
+        for (int segment = 0; segment <= segments; segment++) {
+            double angle = start + sweep * segment / segments;
+            points.Add(new OfficePoint(
+                centerX + Math.Cos(angle) * outerRadius,
+                centerY + Math.Sin(angle) * outerRadius));
+        }
+
+        for (int segment = segments; segment >= 0; segment--) {
+            double angle = start + sweep * segment / segments;
+            points.Add(new OfficePoint(
+                centerX + Math.Cos(angle) * innerRadius,
+                centerY + Math.Sin(angle) * innerRadius));
         }
 
         AddPolygonShape(drawing, points, color, OfficeColor.White, 0.5D);

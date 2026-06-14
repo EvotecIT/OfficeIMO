@@ -1,5 +1,7 @@
 using System;
 
+using System.Collections.Generic;
+
 namespace OfficeIMO.Drawing;
 
 /// <summary>
@@ -306,6 +308,15 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Optional numeric format for data-label values.</summary>
     public string? DataLabelNumberFormat { get; }
+
+    /// <summary>Optional zero-based series indexes that should render data labels; null means every series may render labels.</summary>
+    public IReadOnlyCollection<int>? DataLabelSeriesIndexes { get; set; }
+
+    /// <summary>Optional zero-based point indexes that should render data labels per series; null means every point may render labels.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? DataLabelPointIndexes { get; set; }
+
+    /// <summary>Optional zero-based point indexes that should suppress data labels per series.</summary>
+    public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? HiddenDataLabelPointIndexes { get; set; }
 
     /// <summary>Whether point markers should be rendered for marker-capable chart families.</summary>
     public bool ShowMarkers { get; }

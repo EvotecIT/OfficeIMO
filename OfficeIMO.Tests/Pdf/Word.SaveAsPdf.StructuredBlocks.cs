@@ -182,6 +182,35 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Attaches_StructuredBlock_Footnotes_Inline() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeStructuredBlockFootnote.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeStructuredBlockFootnote.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordParagraph paragraph = document.AddParagraph("Structured block footnote");
+            paragraph.AddFootNote("Structured block footnote text");
+            Paragraph paragraphNode = (Paragraph)paragraph._paragraph.CloneNode(true);
+            paragraph._paragraph.Remove();
+
+            document._document.Body!.Append(new SdtBlock(
+                new SdtProperties(new SdtAlias { Val = "Structured footnote block" }),
+                new SdtContentBlock(paragraphNode)));
+            document.AddParagraph("After structured footnote block");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        string normalized = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
+        Assert.Contains("1 Structured block footnote", normalized);
+        Assert.Contains("1 Structured block footnote text", normalized);
+        Assert.Contains("After structured footnote block", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Ordinary_Inline_Alias_ContentControls() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeOrdinaryInlineAliasContentControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeOrdinaryInlineAliasContentControl.pdf");

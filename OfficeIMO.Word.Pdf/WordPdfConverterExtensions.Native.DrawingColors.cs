@@ -25,6 +25,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool HasNativeDrawingNoFill(OpenXmlElement? owner) => owner?.GetFirstChild<A.NoFill>() != null;
 
+        private static bool HasNativeDrawingOutlineNoFill(OpenXmlElement? owner) =>
+            owner?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
+
         private static bool TryGetNativeDrawingGradientFill(OpenXmlElement? owner, out OfficeLinearGradient? gradient) {
             gradient = null;
             A.GradientFill? gradientFill = owner?.GetFirstChild<A.GradientFill>();

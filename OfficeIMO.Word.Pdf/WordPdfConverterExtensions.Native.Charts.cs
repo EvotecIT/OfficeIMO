@@ -277,6 +277,11 @@ namespace OfficeIMO.Word.Pdf {
         private static bool IsNativeWordChartVaryColorsEnabled(OpenXmlElement chartElement) =>
             IsNativeWordChartBooleanOn(chartElement.GetFirstChild<VaryColors>());
 
+        private static bool IsNativeWordChartVaryColorsDisabled(OpenXmlElement chartElement) {
+            VaryColors? varyColors = chartElement.GetFirstChild<VaryColors>();
+            return varyColors?.Val != null && !varyColors.Val.Value;
+        }
+
         private static HashSet<uint> GetNativeWordHiddenLegendIndexes(Chart chart) {
             var indexes = new HashSet<uint>();
             Legend? legend = chart.GetFirstChild<Legend>();
@@ -468,6 +473,13 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     hasExplicitColor = true;
+                } else if (IsNativeWordChartVaryColorsDisabled(chartElement) && palette.Count > 0) {
+                    OfficeColor singleColor = palette[0];
+                    for (int index = 0; index < palette.Count; index++) {
+                        palette[index] = singleColor;
+                    }
+
+                    hasExplicitColor = true;
                 }
 
                 foreach (DataPoint point in seriesElement?.Elements<DataPoint>() ?? Enumerable.Empty<DataPoint>()) {
@@ -503,6 +515,8 @@ namespace OfficeIMO.Word.Pdf {
             ChartShapeProperties? chartShape = chart.GetFirstChild<ChartShapeProperties>();
             bool showBackground = !HasNativeDrawingNoFill(chartShape);
             bool hasExplicitChartNoFill = chartShape != null && !showBackground;
+            bool showBorder = !HasNativeDrawingOutlineNoFill(chartShape);
+            bool hasExplicitChartNoLine = chartShape != null && !showBorder;
             if (TryGetNativeDrawingSolidFillColor(chartShape, out OfficeColor chartFill, themeColors)) {
                 backgroundColor = chartFill;
             }
@@ -530,6 +544,7 @@ namespace OfficeIMO.Word.Pdf {
             bool hasChartOrPlotStyle =
                 backgroundColor.HasValue ||
                 hasExplicitChartNoFill ||
+                hasExplicitChartNoLine ||
                 borderColor.HasValue ||
                 plotAreaBackgroundColor.HasValue ||
                 plotAreaBorderColor.HasValue ||
@@ -549,7 +564,9 @@ namespace OfficeIMO.Word.Pdf {
                     titleColor: titleColor,
                     plotAreaBackgroundColor: plotAreaBackgroundColor,
                     plotAreaBorderColor: plotAreaBorderColor,
-                    showGridLines: showGridLines)
+                    showGridLines: showGridLines) {
+                    ShowBorder = showBorder
+                }
                 : null;
         }
 
@@ -718,11 +735,12 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static OfficeChartLayout? CreateNativeWordChartLayout(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount) {
-            DataLabels? labels = GetNativeWordChartDataLabels(chartElement, chartKind);
-            bool showValue = labels != null && IsNativeWordChartBooleanOn(labels.GetFirstChild<ShowValue>());
-            bool showPercent = labels != null && IsNativeWordPieLikeChart(chartKind) && IsNativeWordChartBooleanOn(labels.GetFirstChild<ShowPercent>());
-            bool showCategoryName = labels != null && IsNativeWordChartBooleanOn(labels.GetFirstChild<ShowCategoryName>());
-            bool showSeriesName = labels != null && IsNativeWordChartBooleanOn(labels.GetFirstChild<ShowSeriesName>());
+            NativeWordChartDataLabelState dataLabels = GetNativeWordChartDataLabels(chartElement, chartKind);
+            DataLabels? labels = dataLabels.Labels;
+            bool showValue = HasNativeWordChartDataLabelFlag<ShowValue>(labels);
+            bool showPercent = labels != null && IsNativeWordPieLikeChart(chartKind) && HasNativeWordChartDataLabelFlag<ShowPercent>(labels);
+            bool showCategoryName = HasNativeWordChartDataLabelFlag<ShowCategoryName>(labels);
+            bool showSeriesName = HasNativeWordChartDataLabelFlag<ShowSeriesName>(labels);
             bool showDataLabels = showValue || showPercent || showCategoryName || showSeriesName;
             bool showLegend = HasNativeWordChartLegend(chart);
             OfficeChartLegendPosition legendPosition = GetNativeWordChartLegendPosition(chart);
@@ -807,7 +825,11 @@ namespace OfficeIMO.Word.Pdf {
                 connectScatterPoints: connectScatterPoints,
                 fillRadarSeries: fillRadarSeries,
                 showCategoryAxis: showCategoryAxis,
-                showValueAxis: showValueAxis);
+                showValueAxis: showValueAxis) {
+                DataLabelSeriesIndexes = dataLabels.SeriesIndexes,
+                DataLabelPointIndexes = dataLabels.PointIndexes,
+                HiddenDataLabelPointIndexes = dataLabels.HiddenPointIndexes
+            };
         }
 
         private static bool IsNativeWordMarkerOnlyScatter(OpenXmlElement chartElement, OfficeChartKind chartKind) =>
@@ -1110,20 +1132,115 @@ namespace OfficeIMO.Word.Pdf {
             chartKind == OfficeChartKind.BarStacked ||
             chartKind == OfficeChartKind.BarStacked100;
 
-        private static DataLabels? GetNativeWordChartDataLabels(OpenXmlElement chartElement, OfficeChartKind chartKind) {
-            DataLabels? labels = chartElement.GetFirstChild<DataLabels>();
-            if (labels != null) {
-                return labels;
+        private sealed class NativeWordChartDataLabelState {
+            public DataLabels? Labels { get; set; }
+            public IReadOnlyCollection<int>? SeriesIndexes { get; set; }
+            public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? PointIndexes { get; set; }
+            public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? HiddenPointIndexes { get; set; }
+        }
+
+        private static NativeWordChartDataLabelState GetNativeWordChartDataLabels(OpenXmlElement chartElement, OfficeChartKind chartKind) {
+            var state = new NativeWordChartDataLabelState();
+            List<int> renderableSeriesIndexes = GetNativeWordRenderableSeriesIndexes(chartElement, chartKind);
+            DataLabels? chartLabels = chartElement.GetFirstChild<DataLabels>();
+            if (chartLabels != null) {
+                state.Labels = chartLabels;
+                bool chartWideLabels = HasNativeWordChartDataLabelFlags(chartLabels);
+                Dictionary<int, IReadOnlyCollection<int>>? visiblePoints = GetNativeWordChartDataLabelPointIndexes(chartLabels, renderableSeriesIndexes, deleted: false);
+                Dictionary<int, IReadOnlyCollection<int>>? hiddenPoints = GetNativeWordChartDataLabelPointIndexes(chartLabels, renderableSeriesIndexes, deleted: true);
+                state.PointIndexes = chartWideLabels ? null : visiblePoints;
+                state.HiddenPointIndexes = hiddenPoints;
+                return state;
             }
 
-            foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser" && IsNativeWordChartSeriesRenderable(element, chartKind))) {
-                labels = seriesElement.GetFirstChild<DataLabels>();
+            var seriesIndexes = new List<int>();
+            var pointIndexes = new Dictionary<int, IReadOnlyCollection<int>>();
+            var hiddenPointIndexes = new Dictionary<int, IReadOnlyCollection<int>>();
+            int seriesIndex = 0;
+            foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
+                if (!IsNativeWordChartSeriesRenderable(seriesElement, chartKind)) {
+                    continue;
+                }
+
+                DataLabels? labels = seriesElement.GetFirstChild<DataLabels>();
                 if (labels != null) {
-                    return labels;
+                    state.Labels ??= labels;
+                    if (HasNativeWordChartDataLabelFlags(labels)) {
+                        seriesIndexes.Add(seriesIndex);
+                    }
+
+                    AddNativeWordChartDataLabelPointIndexes(labels, seriesIndex, pointIndexes, deleted: false);
+                    AddNativeWordChartDataLabelPointIndexes(labels, seriesIndex, hiddenPointIndexes, deleted: true);
+                }
+
+                seriesIndex++;
+            }
+
+            state.SeriesIndexes = seriesIndexes.Count == 0 ? null : seriesIndexes;
+            state.PointIndexes = pointIndexes.Count == 0 ? null : pointIndexes;
+            state.HiddenPointIndexes = hiddenPointIndexes.Count == 0 ? null : hiddenPointIndexes;
+            return state;
+        }
+
+        private static List<int> GetNativeWordRenderableSeriesIndexes(OpenXmlElement chartElement, OfficeChartKind chartKind) {
+            var indexes = new List<int>();
+            int seriesIndex = 0;
+            foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
+                if (IsNativeWordChartSeriesRenderable(seriesElement, chartKind)) {
+                    indexes.Add(seriesIndex);
+                    seriesIndex++;
                 }
             }
 
-            return null;
+            return indexes;
+        }
+
+        private static Dictionary<int, IReadOnlyCollection<int>>? GetNativeWordChartDataLabelPointIndexes(DataLabels labels, IReadOnlyList<int> seriesIndexes, bool deleted) {
+            var indexes = new Dictionary<int, IReadOnlyCollection<int>>();
+            foreach (int seriesIndex in seriesIndexes) {
+                AddNativeWordChartDataLabelPointIndexes(labels, seriesIndex, indexes, deleted);
+            }
+
+            return indexes.Count == 0 ? null : indexes;
+        }
+
+        private static void AddNativeWordChartDataLabelPointIndexes(DataLabels labels, int seriesIndex, Dictionary<int, IReadOnlyCollection<int>> indexes, bool deleted) {
+            var pointIndexes = new List<int>();
+            foreach (DataLabel label in labels.Elements<DataLabel>()) {
+                uint? index = label.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>()?.Val?.Value;
+                if (!index.HasValue) {
+                    continue;
+                }
+
+                bool isDeleted = IsNativeWordChartBooleanOn(label.GetFirstChild<Delete>());
+                if (deleted == isDeleted && (deleted || HasNativeWordChartDataLabelFlags(label))) {
+                    pointIndexes.Add((int)index.Value);
+                }
+            }
+
+            if (pointIndexes.Count > 0) {
+                indexes[seriesIndex] = pointIndexes;
+            }
+        }
+
+        private static bool HasNativeWordChartDataLabelFlags(OpenXmlElement labels) =>
+            HasNativeWordChartDataLabelFlag<ShowValue>(labels) ||
+            HasNativeWordChartDataLabelFlag<ShowPercent>(labels) ||
+            HasNativeWordChartDataLabelFlag<ShowCategoryName>(labels) ||
+            HasNativeWordChartDataLabelFlag<ShowSeriesName>(labels);
+
+        private static bool HasNativeWordChartDataLabelFlag<T>(OpenXmlElement? labels)
+            where T : BooleanType {
+            if (labels == null) {
+                return false;
+            }
+
+            T? value = labels.GetFirstChild<T>();
+            if (IsNativeWordChartBooleanOn(value)) {
+                return true;
+            }
+
+            return labels.Elements<DataLabel>().Any(label => IsNativeWordChartBooleanOn(label.GetFirstChild<T>()));
         }
 
         private static bool IsNativeWordChartLegendOverlay(Chart chart) =>

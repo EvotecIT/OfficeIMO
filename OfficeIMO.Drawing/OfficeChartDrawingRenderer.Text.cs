@@ -435,6 +435,28 @@ public static partial class OfficeChartDrawingRenderer {
         return string.Join(layout.DataLabelSeparator, parts);
     }
 
+    private static bool ShouldShowDataLabel(OfficeChartLayout layout, int seriesIndex, int pointIndex) {
+        if (!layout.ShowDataLabels) {
+            return false;
+        }
+
+        if (ContainsDataLabelIndex(layout.HiddenDataLabelPointIndexes, seriesIndex, pointIndex)) {
+            return false;
+        }
+
+        if (layout.DataLabelPointIndexes != null &&
+            layout.DataLabelPointIndexes.ContainsKey(seriesIndex)) {
+            return ContainsDataLabelIndex(layout.DataLabelPointIndexes, seriesIndex, pointIndex);
+        }
+
+        return layout.DataLabelSeriesIndexes == null || layout.DataLabelSeriesIndexes.Contains(seriesIndex);
+    }
+
+    private static bool ContainsDataLabelIndex(IReadOnlyDictionary<int, IReadOnlyCollection<int>>? indexes, int seriesIndex, int pointIndex) =>
+        indexes != null &&
+        indexes.TryGetValue(seriesIndex, out IReadOnlyCollection<int>? pointIndexes) &&
+        pointIndexes.Contains(pointIndex);
+
     private static string FormatDataLabelValue(double value, string? numberFormat) {
         if (TryFormatDataLabelValue(value, numberFormat, out string? formatted)) {
             return formatted!;
@@ -796,8 +818,10 @@ public static partial class OfficeChartDrawingRenderer {
         double total,
         double centerX,
         double barTop,
-        double barBottom) {
-        if (!layout.ShowDataLabels) {
+        double barBottom,
+        int seriesIndex,
+        int pointIndex) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
             return;
         }
 
@@ -837,8 +861,10 @@ public static partial class OfficeChartDrawingRenderer {
         double barLeft,
         double barRight,
         double barTop,
-        double barBottom) {
-        if (!layout.ShowDataLabels) {
+        double barBottom,
+        int seriesIndex,
+        int pointIndex) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
             return;
         }
 
@@ -877,8 +903,10 @@ public static partial class OfficeChartDrawingRenderer {
         double value,
         double total,
         double x,
-        double y) {
-        if (!layout.ShowDataLabels) {
+        double y,
+        int seriesIndex,
+        int pointIndex) {
+        if (!ShouldShowDataLabel(layout, seriesIndex, pointIndex)) {
             return;
         }
 

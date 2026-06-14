@@ -111,6 +111,7 @@ public sealed class OfficeChartStyle {
         PlotAreaBorderColor = plotAreaBorderColor;
         ShowGridLines = showGridLines;
         ShowBackground = showBackground;
+        ShowBorder = true;
     }
 
     /// <summary>Default premium OfficeIMO chart style.</summary>
@@ -154,6 +155,9 @@ public sealed class OfficeChartStyle {
 
     /// <summary>Whether the chart background fill should be rendered.</summary>
     public bool ShowBackground { get; }
+
+    /// <summary>Whether the chart border should be rendered.</summary>
+    public bool ShowBorder { get; set; }
 
     /// <summary>Gets a palette color for the zero-based series or slice index.</summary>
     public OfficeColor GetSeriesColor(int index) {

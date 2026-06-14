@@ -26,7 +26,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             IReadOnlyList<WordElement> elements = CollapseNativeParagraphElements(GetNativeStructuredBlockElements(document, sdtBlock, skipCanvasOnlyVmlParagraphs));
-            foreach (WordElement element in elements) {
+            for (int i = 0; i < elements.Count; i++) {
+                WordElement element = elements[i];
                 if (element is WordFootNote) {
                     continue;
                 }
@@ -36,7 +37,7 @@ namespace OfficeIMO.Word.Pdf {
                     element,
                     activeSection,
                     getMarker,
-                    Array.Empty<int>(),
+                    GetNativeStructuredBlockFootnoteNumbersForElement(elements, i, footnoteNumbersById),
                     footnoteNumbersById,
                     options,
                     tableOfContentsEntries,
@@ -67,6 +68,26 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return elements;
+        }
+
+        private static IReadOnlyList<int> GetNativeStructuredBlockFootnoteNumbersForElement(IReadOnlyList<WordElement> elements, int index, Dictionary<long, int> footnoteNumbersById) {
+            var numbers = GetNativeFootnoteNumbersForElement(elements, index, footnoteNumbersById).ToList();
+            var leadingNumbers = new List<int>();
+            int previousIndex = index - 1;
+            while (previousIndex >= 0 && (elements[previousIndex] is WordFootNote || elements[previousIndex] is WordEndNote)) {
+                long? key = GetNativeNoteKey(elements[previousIndex]);
+                if (key.HasValue && footnoteNumbersById.TryGetValue(key.Value, out int number)) {
+                    leadingNumbers.Add(number);
+                }
+
+                previousIndex--;
+            }
+
+            if (previousIndex < 0) {
+                numbers.AddRange(leadingNumbers);
+            }
+
+            return numbers.Distinct().ToList();
         }
 
         private static bool IsNativeCanvasOnlyVmlParagraph(W.Paragraph paragraph) {

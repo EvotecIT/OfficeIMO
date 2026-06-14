@@ -222,6 +222,49 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void WordChartLayout_ScopesSeriesLevelDataLabelsToOwningSeries() {
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }),
+            CreateBarSeries(1U, new[] { "Q1" }, new[] { 2D }, new DataLabels(new ShowValue { Val = true })));
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(plotArea);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowDataLabels);
+        Assert.NotNull(layout.DataLabelSeriesIndexes);
+        Assert.Equal(new[] { 1 }, layout.DataLabelSeriesIndexes);
+    }
+
+    [Fact]
+    public void WordChartLayout_PreservesPointLevelDataLabelOverrides() {
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D }, new DataLabels(
+                new DataLabel(
+                    new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 1U },
+                    new ShowValue { Val = true }),
+                new DataLabel(
+                    new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 0U },
+                    new Delete { Val = true }))));
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(plotArea);
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowDataLabels);
+        Assert.NotNull(layout.DataLabelPointIndexes);
+        Assert.Equal(new[] { 1 }, layout.DataLabelPointIndexes![0]);
+        Assert.NotNull(layout.HiddenDataLabelPointIndexes);
+        Assert.Equal(new[] { 0 }, layout.HiddenDataLabelPointIndexes![0]);
+    }
+
+    [Fact]
     public void WordChartLayout_PreservesOverlayLegendFlag() {
         var chartElement = new BarChart(new BarDirection { Val = BarDirectionValues.Column });
         var plotArea = new PlotArea(chartElement);
@@ -1093,6 +1136,60 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_CanSuppressChartBorder() {
+        var style = new OfficeChartStyle {
+            ShowBorder = false
+        };
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Borderless chart",
+            null,
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D })
+                }),
+            widthPoints: 180D,
+            heightPoints: 120D,
+            style: style));
+
+        OfficeDrawingShape background = drawing.Shapes[0];
+        Assert.Equal(OfficeShapeKind.Rectangle, background.Shape.Kind);
+        Assert.Null(background.Shape.StrokeColor);
+        Assert.Equal(0D, background.Shape.StrokeWidth);
+    }
+
+    [Fact]
+    public void FlowDrawing_PointScopedDataLabelsDoNotPromoteToEveryPoint() {
+        var layout = new OfficeChartLayout(
+            showLegend: false,
+            showDataLabels: true,
+            showDataLabelCategoryNames: true) {
+            DataLabelPointIndexes = new Dictionary<int, IReadOnlyCollection<int>> {
+                [0] = new[] { 1 }
+            }
+        };
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Scoped labels",
+            null,
+            OfficeChartKind.Pie,
+            new OfficeChartData(
+                new[] { "HiddenLabel", "VisibleLabel" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1D, 2D })
+                }),
+            widthPoints: 220D,
+            heightPoints: 150D,
+            layout: layout));
+
+        string text = string.Join(" ", drawing.Elements.OfType<OfficeDrawingText>().Select(item => item.Text));
+        Assert.DoesNotContain("HiddenLabel", text);
+        Assert.Contains("VisibleLabel", text);
+    }
+
+    [Fact]
     public void WordChartStyle_PreservesExplicitNoFillChartBackground() {
         var chart = new Chart(new ChartShapeProperties(new A.NoFill()));
         var chartElement = new BarChart(
@@ -1104,6 +1201,34 @@ public class PdfDocumentChartDrawingTests {
         OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
 
         Assert.False(style.ShowBackground);
+    }
+
+    [Fact]
+    public void WordChartStyle_PreservesExplicitNoLineChartBorder() {
+        var chart = new Chart(new ChartShapeProperties(new A.Outline(new A.NoFill())));
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }));
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+
+        Assert.False(style.ShowBorder);
+    }
+
+    [Fact]
+    public void WordChartStyle_PreservesDisabledPieSliceColorVariation() {
+        var chart = new Chart();
+        var chartElement = new PieChart(
+            new VaryColors { Val = false },
+            CreatePieSeries(0U, new[] { "A", "B", "C" }, new[] { 1D, 2D, 3D }));
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.Pie, 3, 1);
+
+        Assert.Equal(style.Palette[0], style.Palette[1]);
+        Assert.Equal(style.Palette[0], style.Palette[2]);
     }
 
     [Fact]
@@ -1181,6 +1306,15 @@ public class PdfDocumentChartDrawingTests {
         }
 
         return series;
+    }
+
+    private static PieChartSeries CreatePieSeries(uint index, string[] categories, double[] values) {
+        return new PieChartSeries(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = index },
+            new Order { Val = index },
+            new SeriesText(new NumericValue("Series " + (index + 1))),
+            CreateCategoryAxisData(categories),
+            CreateValues(values));
     }
 
     private static LineChartSeries CreateLineSeries(uint index, string[] categories, double[] values) {

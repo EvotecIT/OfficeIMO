@@ -115,6 +115,14 @@ namespace OfficeIMO.Word.Pdf {
                 RenderNativeImage(pdf, pictureControlImage, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body picture control image");
             }
 
+            foreach (W.SdtRun pictureControl in GetNativePictureControls(paragraph)) {
+                var pictureParagraph = new WordParagraph(paragraph._document, paragraph._paragraph!, pictureControl);
+                WordImage? inlinePictureControlImage = pictureParagraph.PictureControl?.Image;
+                if (inlinePictureControlImage != null) {
+                    RenderNativeImage(pdf, inlinePictureControlImage, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options, "body picture control image");
+                }
+            }
+
             List<WordParagraph> runs = GetNativeRuns(paragraph);
             if (paragraph.Image == null) {
                 RenderNativeRunImages(pdf, runs, MapNativeParagraphAlign(paragraph.ParagraphAlignment, allowJustify: false), options);

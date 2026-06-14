@@ -85,6 +85,8 @@ namespace OfficeIMO.Word.Pdf {
                 paragraph.Shape != null ||
                 paragraph.TextBox != null ||
                 paragraph.Chart != null ||
+                paragraph.PictureControl?.Image != null ||
+                GetNativePictureControls(paragraph).Any(sdtRun => IsNativePictureControlWithImage(paragraph, sdtRun)) ||
                 paragraph.Image != null) {
                 return false;
             }

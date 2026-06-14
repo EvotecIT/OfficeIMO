@@ -66,4 +66,31 @@ public partial class Word {
         string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
         Assert.Contains("0.122 0.306 0.475 rg", content);
     }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Renders_PictureControls_In_List_Paragraphs() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfListPictureControl.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfListPictureControl.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordList list = document.AddList(WordListStyle.Numbered);
+            WordParagraph item = list.AddItem("List item with picture control");
+            item.AddPictureControl(imagePath, 48, 48, "List Logo", "ListLogo");
+            document.AddParagraph("After list picture control");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        Assert.True(File.Exists(pdfPath));
+        string content = Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath));
+        Assert.Contains("/Subtype /Image", content);
+        Assert.Contains("36 0 0 36", content);
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        string text = string.Concat(pdf.GetPages().Select(page => page.Text));
+        Assert.Contains("After list picture control", text);
+    }
 }
