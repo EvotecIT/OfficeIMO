@@ -252,18 +252,22 @@ namespace OfficeIMO.Word.Pdf {
 
             switch (schemeName!.Trim().ToLowerInvariant()) {
                 case "dark1":
+                case "dk1":
                 case "text1":
                     color = OfficeColor.Black;
                     return true;
                 case "light1":
+                case "lt1":
                 case "background1":
                     color = OfficeColor.White;
                     return true;
                 case "dark2":
+                case "dk2":
                 case "text2":
                     color = OfficeColor.ParseHex("#44546A");
                     return true;
                 case "light2":
+                case "lt2":
                 case "background2":
                     color = OfficeColor.ParseHex("#E7E6E6");
                     return true;
@@ -327,9 +331,11 @@ namespace OfficeIMO.Word.Pdf {
                         blue += 255D * amount;
                         break;
                     case "alpha":
+                        alpha = 255D * amount;
+                        break;
                     case "alphaMod":
                     case "alphaModFix":
-                        alpha = 255D * amount;
+                        alpha *= amount;
                         break;
                 }
             }

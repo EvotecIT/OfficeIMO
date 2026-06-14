@@ -22,9 +22,9 @@ namespace OfficeIMO.Word.Pdf {
             pdfOptions.Margins = firstSection == null ? PdfCore.PageMargins.Uniform(72) : GetNativeMargins(firstSection, options);
             bool preserveConfiguredFontSlots = ApplyNativeDefaultFont(document, options, pdfOptions) ||
                                                 options?.PdfOptions != null;
-            RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots);
+            HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots);
             ApplyNativeFallbackFont(options, pdfOptions, preserveConfiguredFontSlots);
-            RegisterNativeEmbeddedTextFallbacks(pdfOptions);
+            RegisterNativeEmbeddedTextFallbacks(pdfOptions, registeredFontSlots);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             return pdfOptions;
@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.Pdf {
             return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
-        private static void RegisterNativeEmbeddedTextFallbacks(PdfCore.PdfOptions pdfOptions) {
+        private static void RegisterNativeEmbeddedTextFallbacks(PdfCore.PdfOptions pdfOptions, IReadOnlySet<PdfCore.PdfStandardFont> reservedFontSlots) {
             if (pdfOptions.EmbeddedFontFallbacks != null) {
                 return;
             }
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word.Pdf {
                 return;
             }
 
-            PdfCore.PdfStandardFont[] slots = GetNativeAvailableFallbackFontSlots(pdfOptions, candidates.Count).ToArray();
+            PdfCore.PdfStandardFont[] slots = GetNativeAvailableFallbackFontSlots(pdfOptions, candidates.Count, reservedFontSlots).ToArray();
             if (slots.Length == 0) {
                 return;
             }
@@ -96,12 +96,15 @@ namespace OfficeIMO.Word.Pdf {
             pdfOptions.RegisterEmbeddedFontFallbacks(new PdfCore.PdfEmbeddedFontFallbackSet(candidates, slots));
         }
 
-        private static IEnumerable<PdfCore.PdfStandardFont> GetNativeAvailableFallbackFontSlots(PdfCore.PdfOptions pdfOptions, int count) {
+        private static IEnumerable<PdfCore.PdfStandardFont> GetNativeAvailableFallbackFontSlots(PdfCore.PdfOptions pdfOptions, int count, IReadOnlySet<PdfCore.PdfStandardFont> reservedFontSlots) {
             var reservedSlots = new HashSet<PdfCore.PdfStandardFont> {
                 PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont),
                 PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.HeaderFont),
                 PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.FooterFont)
             };
+            foreach (PdfCore.PdfStandardFont slot in reservedFontSlots) {
+                reservedSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(slot));
+            }
 
             foreach (PdfCore.PdfStandardFont slot in new[] { PdfCore.PdfStandardFont.TimesRoman, PdfCore.PdfStandardFont.Courier, PdfCore.PdfStandardFont.Helvetica }) {
                 PdfCore.PdfStandardFont family = PdfCore.PdfStandardFontMapper.GetFontFamily(slot);
@@ -118,7 +121,7 @@ namespace OfficeIMO.Word.Pdf {
             }
         }
 
-        private static void RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
+        private static HashSet<PdfCore.PdfStandardFont> RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateNativeRegisteredFontSlots(pdfOptions, preserveConfiguredFontSlots);
             foreach (WordSection section in document.Sections) {
@@ -153,6 +156,8 @@ namespace OfficeIMO.Word.Pdf {
                     RegisterNativeFontCandidate(watermark.FontFamily, pdfOptions, registeredFamilies, registeredFontSlots);
                 }
             }
+
+            return registeredFontSlots;
         }
 
         private static void RegisterNativeHeaderFooterFonts(WordHeaderFooter? headerFooter, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
@@ -329,10 +334,15 @@ namespace OfficeIMO.Word.Pdf {
                 double contentHeight = Math.Max(72D, pageSize.Height - margins.Top - margins.Bottom);
                 double contentWidth = Math.Max(72D, pageSize.Width - margins.Left - margins.Right);
 
-                foreach (WordElement element in EnumerateNativeTableOfContentsElements(section)) {
+                List<WordElement> elements = EnumerateNativeTableOfContentsElements(section).ToList();
+                for (int index = 0; index < elements.Count; index++) {
+                    WordElement element = elements[index];
                     if (element is WordCoverPage) {
-                        currentPage++;
-                        consumedOnPage = 0D;
+                        if (index + 1 >= elements.Count || !IsNativeTableOfContentsExplicitPageBreak(elements[index + 1])) {
+                            currentPage++;
+                            consumedOnPage = 0D;
+                        }
+
                         continue;
                     }
 
@@ -401,6 +411,14 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return count;
+        }
+
+        private static bool IsNativeTableOfContentsExplicitPageBreak(WordElement element) {
+            if (element is WordParagraph paragraph) {
+                return paragraph.PageBreakBefore || paragraph.IsPageBreak;
+            }
+
+            return element is WordBreak wordBreak && wordBreak.BreakType == W.BreakValues.Page;
         }
 
         private static IEnumerable<WordElement> EnumerateNativeTableOfContentsElements(WordSection section) {

@@ -520,10 +520,14 @@ namespace OfficeIMO.Word.Pdf {
                                    (fillElement == null || IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(fillElement, "on")));
                 if (fillEnabled) {
                     string? childFillColor = fillElement is not null ? GetNativeOpenXmlAttribute(fillElement, "color") : null;
-                    PdfCore.PdfColor? fill = ParseNativeColor(NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(element, "fillcolor") ?? childFillColor));
-                    shape.FillColor = (fill ?? PdfCore.PdfColor.White).ToOfficeColor();
+                    string? fillColor = GetNativeOpenXmlAttribute(element, "fillcolor") ?? childFillColor;
+                    bool explicitNoFill = IsNativeVmlNoColor(fillColor);
+                    PdfCore.PdfColor? fill = explicitNoFill ? null : ParseNativeColor(NormalizeNativeVmlColor(fillColor));
+                    if (!explicitNoFill) {
+                        shape.FillColor = (fill ?? PdfCore.PdfColor.White).ToOfficeColor();
+                    }
 
-                    if (TryGetNativeVmlGradientFill(fillElement, fill, out OfficeLinearGradient? gradient)) {
+                    if (!explicitNoFill && TryGetNativeVmlGradientFill(fillElement, fill, out OfficeLinearGradient? gradient)) {
                         shape.FillGradient = gradient;
                     }
 
@@ -1124,6 +1128,9 @@ namespace OfficeIMO.Word.Pdf {
 
             return trimmed.Equals("none", StringComparison.OrdinalIgnoreCase) ? null : trimmed;
         }
+
+        private static bool IsNativeVmlNoColor(string? value) =>
+            value?.Trim().Equals("none", StringComparison.OrdinalIgnoreCase) == true;
 
         private static string? GetNativeOpenXmlAttribute(OpenXmlElement element, string localName) {
             foreach (OpenXmlAttribute attribute in element.GetAttributes()) {

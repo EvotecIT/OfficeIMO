@@ -72,6 +72,10 @@ public static partial class OfficeChartDrawingRenderer {
         double plotHeight = Math.Max(20D, height - plotTop - plotBottom);
         double plotBottomY = plotTop + plotHeight;
         ValueRange axisRange = GetCartesianValueRange(snapshot);
+        bool valueAxisUsesPercentDefaults =
+            IsPercentStackedBarOrColumnChart(snapshot.ChartKind) ||
+            IsPercentStackedLineChart(snapshot.ChartKind) ||
+            IsPercentStackedAreaChart(snapshot.ChartKind);
 
         if (style.PlotAreaBackgroundColor.HasValue || style.PlotAreaBorderColor.HasValue) {
             AddShape(
@@ -110,13 +114,13 @@ public static partial class OfficeChartDrawingRenderer {
 
         if (IsBarChart(snapshot.ChartKind)) {
             AddHorizontalCategoryAxisLabels(drawing, snapshot.Data.Categories, plotLeft, plotTop, plotHeight, style, layout);
-            AddHorizontalValueAxisLabels(drawing, axisRange, plotLeft, plotBottomY, plotWidth, style, layout);
+            AddHorizontalValueAxisLabels(drawing, axisRange, plotLeft, plotBottomY, plotWidth, style, layout, valueAxisUsesPercentDefaults);
             AddAxisTitles(drawing, layout.CategoryAxisTitle, layout.ValueAxisTitle, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
         } else {
-            AddValueAxisLabels(drawing, axisRange, plotLeft, plotTop, plotHeight, style, layout);
+            AddValueAxisLabels(drawing, axisRange, plotLeft, plotTop, plotHeight, style, layout, valueAxisUsesPercentDefaults);
             if (IsScatterChart(snapshot.ChartKind)) {
                 IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
-                AddHorizontalValueAxisLabels(drawing, GetScatterXRange(snapshot.Data.Series, sharedXValues), plotLeft, plotBottomY, plotWidth, style, layout);
+                AddHorizontalValueAxisLabels(drawing, GetScatterXRange(snapshot.Data.Series, sharedXValues), plotLeft, plotBottomY, plotWidth, style, layout, percentDefault: false);
             } else {
                 AddCategoryAxisLabels(drawing, snapshot.Data.Categories, plotLeft, plotBottomY, plotWidth, style, layout);
             }

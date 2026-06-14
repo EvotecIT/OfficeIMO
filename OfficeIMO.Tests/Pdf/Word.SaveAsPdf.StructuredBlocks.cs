@@ -55,6 +55,26 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Does_Not_Double_Count_CoverPage_With_Explicit_Break_For_Toc() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageExplicitBreakToc.docx");
+
+        using WordDocument document = WordDocument.Create(docPath);
+        document._document.Body!.Append(CreateNativeCoverPageBlock("Native cover title", "Native cover subtitle"));
+        document.AddPageBreak();
+        document.AddTableOfContent();
+        document.AddPageBreak();
+        document.AddParagraph("Native heading after explicit cover break").SetStyle(WordParagraphStyles.Heading1);
+
+        object entries = BuildNativeTableOfContentsEntries(document);
+        object entry = ((System.Collections.IEnumerable)entries)
+            .Cast<object>()
+            .Single(item => string.Equals((string)item.GetType().GetProperty("Text")!.GetValue(item)!, "Native heading after explicit cover break", StringComparison.Ordinal));
+        int pageNumber = (int)entry.GetType().GetProperty("PageNumber")!.GetValue(entry)!;
+
+        Assert.Equal(3, pageNumber);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_DoesNotAppendBlankPageAfterFinalCoverPage() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeFinalCoverPage.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeFinalCoverPage.pdf");
@@ -840,6 +860,25 @@ public partial class Word {
 
         Assert.True(result);
         Assert.Equal(OfficeColor.White, shape.FillColor);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Explicit_Vml_NoFill() {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeVmlShape", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = {
+            new DocumentFormat.OpenXml.Vml.Rectangle {
+                FillColor = "none"
+            },
+            120D,
+            60D,
+            null
+        };
+
+        bool result = (bool)method.Invoke(null, arguments)!;
+        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[3]);
+
+        Assert.True(result);
+        Assert.Null(shape.FillColor);
     }
 
     [Fact]

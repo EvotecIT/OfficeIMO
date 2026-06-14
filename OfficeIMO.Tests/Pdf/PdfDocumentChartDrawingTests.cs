@@ -673,6 +673,50 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_StripsBracketedColorDirectivesFromNumberFormats() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Signed label chart",
+            "Signed Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] { new OfficeChartSeries("Actual", new[] { -1234D }) }),
+            widthPoints: 260D,
+            heightPoints: 160D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelNumberFormat: "#,##0;[Red]-#,##0")));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("-1,234", labels);
+        Assert.DoesNotContain(labels, label => label.Contains("[Red]", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void FlowDrawing_FormatsPercentStackedAxesAsPercentagesByDefault() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Percent stacked chart",
+            "Percent Axis",
+            OfficeChartKind.ColumnStacked100,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] {
+                    new OfficeChartSeries("Passed", new[] { 8D }),
+                    new OfficeChartSeries("Failed", new[] { 2D })
+                }),
+            widthPoints: 260D,
+            heightPoints: 160D));
+
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("100%", labels);
+        Assert.Contains("0%", labels);
+        Assert.DoesNotContain("1", labels);
+    }
+
+    [Fact]
     public void FlowDrawing_UsesPerSeriesScatterXValuesForCategoryLabels() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter labels",

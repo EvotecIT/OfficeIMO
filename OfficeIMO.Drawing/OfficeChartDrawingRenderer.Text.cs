@@ -215,14 +215,14 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
-    private static void AddValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double plotTop, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
-        AddChartText(drawing, FormatAxisValue(range.Max, layout), 2D, plotTop - 5D, Math.Max(12D, plotLeft - 6D), 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
-        AddChartText(drawing, FormatAxisValue(range.Min, layout), 2D, plotTop + plotHeight - 5D, Math.Max(12D, plotLeft - 6D), 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+    private static void AddValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double plotTop, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
+        AddChartText(drawing, FormatAxisValue(range.Max, layout, percentDefault), 2D, plotTop - 5D, Math.Max(12D, plotLeft - 6D), 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+        AddChartText(drawing, FormatAxisValue(range.Min, layout, percentDefault), 2D, plotTop + plotHeight - 5D, Math.Max(12D, plotLeft - 6D), 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
     }
 
-    private static void AddHorizontalValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double plotBottomY, double plotWidth, OfficeChartStyle style, OfficeChartLayout layout) {
-        AddChartText(drawing, FormatAxisValue(range.Min, layout), plotLeft - 12D, plotBottomY + 4D, 28D, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Left, style);
-        AddChartText(drawing, FormatAxisValue(range.Max, layout), plotLeft + plotWidth - 28D, plotBottomY + 4D, 34D, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+    private static void AddHorizontalValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double plotBottomY, double plotWidth, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
+        AddChartText(drawing, FormatAxisValue(range.Min, layout, percentDefault), plotLeft - 12D, plotBottomY + 4D, 28D, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Left, style);
+        AddChartText(drawing, FormatAxisValue(range.Max, layout, percentDefault), plotLeft + plotWidth - 28D, plotBottomY + 4D, 34D, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
     }
 
     private static bool HasHorizontalAxisTitle(OfficeChartKind chartKind, OfficeChartLayout layout) =>
@@ -306,9 +306,13 @@ public static partial class OfficeChartDrawingRenderer {
         return ExpandFlatRange(Math.Min(0D, range.Min), Math.Max(0D, range.Max));
     }
 
-    private static string FormatAxisValue(double value, OfficeChartLayout layout) {
+    private static string FormatAxisValue(double value, OfficeChartLayout layout, bool percentDefault) {
         if (TryFormatDataLabelValue(value, layout.AxisNumberFormat, out string? formatted)) {
             return formatted!;
+        }
+
+        if (percentDefault) {
+            return value.ToString("0.#%", CultureInfo.InvariantCulture);
         }
 
         double abs = Math.Abs(value);
@@ -472,6 +476,14 @@ public static partial class OfficeChartDrawingRenderer {
             if (c == '"') {
                 inQuotedLiteral = !inQuotedLiteral;
                 continue;
+            }
+
+            if (!inQuotedLiteral && c == '[') {
+                int close = value.IndexOf(']', i + 1);
+                if (close > i) {
+                    i = close;
+                    continue;
+                }
             }
 
             if (!inQuotedLiteral && (c == '_' || c == '*')) {
