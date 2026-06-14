@@ -95,6 +95,75 @@ public sealed partial class HtmlToMarkdownConverter {
         return false;
     }
 
+    private static bool CanCreateImageBlockWithoutSideEffects(IElement element, ConversionContext context) {
+        IReadOnlyList<string> candidates = ResolveImageSourceCandidates(element, context);
+        string firstCandidate = candidates.Count == 0 ? string.Empty : candidates[0];
+        if ((candidates.Count == 0 || IsLikelyPlaceholderImageSource(firstCandidate))
+            && CanCreateImageBlockFromNoscriptFallbackWithoutSideEffects(element, context)) {
+            return true;
+        }
+
+        return HasUsableImageCandidateWithoutSideEffects(candidates, context);
+    }
+
+    private static bool CanCreateImageBlockFromNoscriptFallbackWithoutSideEffects(IElement element, ConversionContext context) {
+        if (!TryResolveAssociatedNoscriptMediaElement(element, out var fallbackMediaElement)) {
+            return false;
+        }
+
+        if (fallbackMediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            return CanCreatePictureImageBlockWithoutSideEffects(fallbackMediaElement, context);
+        }
+
+        return HasUsableImageCandidateWithoutSideEffects(ResolveImageSourceCandidates(fallbackMediaElement, context), context);
+    }
+
+    private static bool CanCreatePictureImageBlockWithoutSideEffects(IElement element, ConversionContext context) {
+        if (element == null || context == null) {
+            return false;
+        }
+
+        if (HasUsableImageCandidateWithoutSideEffects(
+            HtmlImageSourceResolver.ResolvePictureSourceCandidates(element, context.Options.BaseUri, context.Options.UrlPolicy),
+            context)) {
+            return true;
+        }
+
+        var imageElement = element.QuerySelector("img");
+        return imageElement != null && CanCreateImageBlockWithoutSideEffects(imageElement, context);
+    }
+
+    private static bool HasUsableImageCandidateWithoutSideEffects(IEnumerable<string> candidates, ConversionContext context) {
+        if (candidates == null) {
+            return false;
+        }
+
+        foreach (string candidate in candidates) {
+            if (CanUseImageCandidateWithoutSideEffects(candidate, context)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool CanUseImageCandidateWithoutSideEffects(string? source, ConversionContext context) {
+        if (string.IsNullOrWhiteSpace(source)) {
+            return false;
+        }
+
+        if (!HtmlImageDataUri.TryParse(source, out var dataUri) || !dataUri.IsBase64) {
+            return true;
+        }
+
+        return context.Options.Base64Images switch {
+            HtmlBase64ImageHandling.Include => true,
+            HtmlBase64ImageHandling.Skip => false,
+            HtmlBase64ImageHandling.SaveToFile => dataUri.TryDecodeBytes(out _),
+            _ => throw new ArgumentOutOfRangeException(nameof(context.Options.Base64Images), context.Options.Base64Images, "Unknown base64 image handling mode.")
+        };
+    }
+
     private static ImageBlock CreateImageBlock(string src, IElement metadataElement, IElement? pictureElement = null, ConversionContext? context = null) {
         var image = new ImageBlock(
             src,

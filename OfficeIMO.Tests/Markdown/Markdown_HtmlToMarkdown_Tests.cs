@@ -215,6 +215,25 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_DropsSkippedPictureOnlyBase64Images() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="data:image/png;base64,AQID" alt="Data">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("data:image", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<picture", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_CanSaveBase64ImagesIntoTypedImageBlock() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
         try {
@@ -231,6 +250,58 @@ public sealed class MarkdownHtmlToMarkdownTests {
             Assert.True(File.Exists(image.Path));
             Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(image.Path));
             Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DoesNotSaveBase64ImagesDuringLinkedImageClassification() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<p><a href="/docs"><img src="data:image/png;base64,AQID" alt="Data" /></a></p>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                BaseUri = new Uri("https://example.test/articles/"),
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory,
+                Base64ImageFileNameGenerator = (index, _) => "image_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".png"
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            Assert.Equal("https://example.test/docs", image.LinkUrl);
+            Assert.Equal("Data", image.Alt);
+            Assert.Equal("image_0.png", Path.GetFileName(image.Path));
+            Assert.True(File.Exists(image.Path));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(image.Path));
+            string savedFile = Assert.Single(Directory.GetFiles(directory));
+            Assert.Equal(image.Path, savedFile);
+            Assert.False(File.Exists(Path.Combine(directory, "image_1.png")));
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_DropsBadEscapedBase64ImagesWhenSaving() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<figure><img src="data:image/png;base64,%ZZ" alt="Bad data" /></figure>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory
+            });
+
+            Assert.Empty(document.Blocks);
+            Assert.DoesNotContain("data:image", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+            if (Directory.Exists(directory)) {
+                Assert.Empty(Directory.GetFiles(directory));
+            }
         } finally {
             if (Directory.Exists(directory)) {
                 Directory.Delete(directory, recursive: true);

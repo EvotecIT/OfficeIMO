@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
@@ -18,6 +19,8 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         string preferredSrc = ResolvePictureSource(element, context);
+        bool hasSkippedBase64Candidate = context.Options.Base64Images != HtmlBase64ImageHandling.Include
+                                         && HasBase64PictureCandidate(element, context);
         var imageElement = element.QuerySelector("img");
         if (imageElement != null && TryCreateImageBlock(imageElement, context, out var imageBlock)) {
             if (!string.IsNullOrWhiteSpace(preferredSrc) && !TryApplyBase64ImageHandling(ref preferredSrc, context)) {
@@ -36,6 +39,10 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         if (string.IsNullOrWhiteSpace(preferredSrc)) {
+            if (hasSkippedBase64Candidate) {
+                return Array.Empty<IMarkdownBlock>();
+            }
+
             return context.Options.PreserveUnsupportedBlocks
                 ? new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) }
                 : Array.Empty<IMarkdownBlock>();
@@ -239,6 +246,31 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         return ConvertNodesToBlocks(new[] { element }, context);
+    }
+
+    private static bool HasBase64PictureCandidate(IElement element, ConversionContext context) {
+        if (element == null || context == null) {
+            return false;
+        }
+
+        foreach (string candidate in HtmlImageSourceResolver.ResolvePictureSourceCandidates(element, context.Options.BaseUri, context.Options.UrlPolicy)) {
+            if (IsBase64ImageDataUri(candidate)) {
+                return true;
+            }
+        }
+
+        var imageElement = element.QuerySelector("img");
+        if (imageElement == null) {
+            return false;
+        }
+
+        foreach (string candidate in ResolveImageSourceCandidates(imageElement, context)) {
+            if (IsBase64ImageDataUri(candidate)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
 }

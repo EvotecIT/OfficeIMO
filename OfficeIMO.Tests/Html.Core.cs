@@ -95,6 +95,14 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlImageDataUri_TryDecodeBytesReturnsFalseForBadEscapes() {
+        Assert.True(HtmlImageDataUri.TryParse("data:image/png;base64,%ZZ", out var image));
+        Assert.True(image.IsBase64);
+        Assert.False(image.TryDecodeBytes(out byte[] bytes));
+        Assert.Empty(bytes);
+    }
+
+    [Fact]
     public void HtmlUrlPolicyEvaluator_RejectsScriptUrlsAndCanResolveRelativeUrls() {
         var policy = HtmlUrlPolicy.CreateWebOnlyProfile();
 

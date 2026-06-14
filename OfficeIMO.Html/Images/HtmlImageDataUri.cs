@@ -89,6 +89,8 @@ public sealed class HtmlImageDataUri {
         try {
             bytes = DecodeBytes();
             return bytes.Length > 0;
+        } catch (UriFormatException) {
+            return false;
         } catch (FormatException) {
             return false;
         }

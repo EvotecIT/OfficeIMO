@@ -91,7 +91,21 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        return TryCreateLinkedImageBlockFromAnchor(element, context, out _);
+        string href = ResolveUrl(element.GetAttribute("href"), context);
+        if (string.IsNullOrWhiteSpace(href)) {
+            return false;
+        }
+
+        if (!TryResolveAnchorMediaElement(element, out var mediaElement)) {
+            return false;
+        }
+
+        if (mediaElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)) {
+            return CanCreateImageBlockWithoutSideEffects(mediaElement, context);
+        }
+
+        return mediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+               && CanCreatePictureImageBlockWithoutSideEffects(mediaElement, context);
     }
 
     private static bool HasDirectBlockChildren(IElement element, ConversionContext context) {
