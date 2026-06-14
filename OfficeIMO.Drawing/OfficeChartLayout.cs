@@ -79,6 +79,118 @@ public sealed class OfficeChartLayout {
         bool connectScatterPoints = true,
         bool fillRadarSeries = true,
         bool showCategoryAxis = true,
+        bool showValueAxis = true)
+        : this(
+            overlayLegend: false,
+            seriesLegendWidthRatio: seriesLegendWidthRatio,
+            categoryLegendWidthRatio: categoryLegendWidthRatio,
+            legendRowHeight: legendRowHeight,
+            legendSwatchSize: legendSwatchSize,
+            legendTextGap: legendTextGap,
+            legendFontSize: legendFontSize,
+            axisLabelFontSize: axisLabelFontSize,
+            categoryAxisLabelWidth: categoryAxisLabelWidth,
+            radarCategoryLabelWidth: radarCategoryLabelWidth,
+            maximumCategoryAxisLabels: maximumCategoryAxisLabels,
+            maximumHorizontalCategoryAxisLabels: maximumHorizontalCategoryAxisLabels,
+            maximumRadarCategoryLabels: maximumRadarCategoryLabels,
+            preventLabelOverlap: preventLabelOverlap,
+            showLegend: showLegend,
+            legendPosition: legendPosition,
+            showDataLabels: showDataLabels,
+            showDataLabelValues: showDataLabelValues,
+            showDataLabelPercentages: showDataLabelPercentages,
+            showDataLabelCategoryNames: showDataLabelCategoryNames,
+            showDataLabelSeriesNames: showDataLabelSeriesNames,
+            dataLabelSeparator: dataLabelSeparator,
+            dataLabelFontSize: dataLabelFontSize,
+            dataLabelPosition: dataLabelPosition,
+            dataLabelNumberFormat: dataLabelNumberFormat,
+            showMarkers: showMarkers,
+            axisNumberFormat: axisNumberFormat,
+            categoryAxisTitle: categoryAxisTitle,
+            valueAxisTitle: valueAxisTitle,
+            horizontalAxisNumberFormat: horizontalAxisNumberFormat,
+            verticalAxisNumberFormat: verticalAxisNumberFormat,
+            connectScatterPoints: connectScatterPoints,
+            fillRadarSeries: fillRadarSeries,
+            showCategoryAxis: showCategoryAxis,
+            showValueAxis: showValueAxis) {
+    }
+
+    /// <summary>
+    /// Creates chart layout metadata with explicit legend overlay behavior.
+    /// </summary>
+    /// <param name="overlayLegend">Whether a legend should be drawn over the plot instead of reserving layout space.</param>
+    /// <param name="seriesLegendWidthRatio">Maximum chart-width ratio reserved for series legends.</param>
+    /// <param name="categoryLegendWidthRatio">Maximum chart-width ratio reserved for category legends such as pie slices.</param>
+    /// <param name="legendRowHeight">Legend row height.</param>
+    /// <param name="legendSwatchSize">Legend color swatch size.</param>
+    /// <param name="legendTextGap">Gap between a legend swatch and its label.</param>
+    /// <param name="legendFontSize">Legend label font size.</param>
+    /// <param name="axisLabelFontSize">Axis label font size.</param>
+    /// <param name="categoryAxisLabelWidth">Maximum category-axis label width.</param>
+    /// <param name="radarCategoryLabelWidth">Maximum radar category label width.</param>
+    /// <param name="maximumCategoryAxisLabels">Maximum number of category-axis labels to render on cartesian charts.</param>
+    /// <param name="maximumHorizontalCategoryAxisLabels">Maximum number of category-axis labels to render on horizontal bar charts.</param>
+    /// <param name="maximumRadarCategoryLabels">Maximum number of category labels to render on radar charts.</param>
+    /// <param name="preventLabelOverlap">Whether axis/category label stride should increase automatically to avoid obvious label overlap.</param>
+    /// <param name="showLegend">Whether series or category legends should be rendered.</param>
+    /// <param name="legendPosition">Preferred legend placement when legends are rendered.</param>
+    /// <param name="showDataLabels">Whether point data labels should be rendered when supported by a chart family.</param>
+    /// <param name="showDataLabelValues">Whether point data labels should include values.</param>
+    /// <param name="showDataLabelPercentages">Whether point data labels should include percentages.</param>
+    /// <param name="showDataLabelCategoryNames">Whether point data labels should include category names.</param>
+    /// <param name="showDataLabelSeriesNames">Whether point data labels should include series names.</param>
+    /// <param name="dataLabelSeparator">Separator used between enabled data label parts.</param>
+    /// <param name="dataLabelFontSize">Data label font size.</param>
+    /// <param name="dataLabelPosition">Preferred data label position when labels are rendered.</param>
+    /// <param name="dataLabelNumberFormat">Optional numeric format for data-label values.</param>
+    /// <param name="showMarkers">Whether point markers should be rendered for marker-capable chart families.</param>
+    /// <param name="axisNumberFormat">Optional numeric format for value-axis labels.</param>
+    /// <param name="categoryAxisTitle">Optional category or horizontal axis title.</param>
+    /// <param name="valueAxisTitle">Optional value or vertical axis title.</param>
+    /// <param name="horizontalAxisNumberFormat">Optional numeric format for horizontal value-axis labels.</param>
+    /// <param name="verticalAxisNumberFormat">Optional numeric format for vertical value-axis labels.</param>
+    /// <param name="connectScatterPoints">Whether scatter points should be connected by series lines.</param>
+    /// <param name="fillRadarSeries">Whether radar series polygons should be filled.</param>
+    /// <param name="showCategoryAxis">Whether the category or horizontal axis should be rendered.</param>
+    /// <param name="showValueAxis">Whether the value or vertical axis should be rendered.</param>
+    public OfficeChartLayout(
+        bool overlayLegend,
+        double? seriesLegendWidthRatio = null,
+        double? categoryLegendWidthRatio = null,
+        double? legendRowHeight = null,
+        double? legendSwatchSize = null,
+        double? legendTextGap = null,
+        double? legendFontSize = null,
+        double? axisLabelFontSize = null,
+        double? categoryAxisLabelWidth = null,
+        double? radarCategoryLabelWidth = null,
+        int? maximumCategoryAxisLabels = null,
+        int? maximumHorizontalCategoryAxisLabels = null,
+        int? maximumRadarCategoryLabels = null,
+        bool preventLabelOverlap = true,
+        bool showLegend = true,
+        OfficeChartLegendPosition legendPosition = OfficeChartLegendPosition.Right,
+        bool showDataLabels = false,
+        bool showDataLabelValues = false,
+        bool showDataLabelPercentages = false,
+        bool showDataLabelCategoryNames = false,
+        bool showDataLabelSeriesNames = false,
+        string? dataLabelSeparator = null,
+        double? dataLabelFontSize = null,
+        OfficeChartDataLabelPosition dataLabelPosition = OfficeChartDataLabelPosition.Auto,
+        string? dataLabelNumberFormat = null,
+        bool showMarkers = true,
+        string? axisNumberFormat = null,
+        string? categoryAxisTitle = null,
+        string? valueAxisTitle = null,
+        string? horizontalAxisNumberFormat = null,
+        string? verticalAxisNumberFormat = null,
+        bool connectScatterPoints = true,
+        bool fillRadarSeries = true,
+        bool showCategoryAxis = true,
         bool showValueAxis = true) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
@@ -95,6 +207,7 @@ public sealed class OfficeChartLayout {
         PreventLabelOverlap = preventLabelOverlap;
         ShowLegend = showLegend;
         LegendPosition = legendPosition;
+        OverlayLegend = overlayLegend;
         ShowDataLabels = showDataLabels;
         ShowDataLabelValues = showDataLabelValues;
         ShowDataLabelPercentages = showDataLabelPercentages;
@@ -163,6 +276,9 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Preferred legend placement when legends are rendered.</summary>
     public OfficeChartLegendPosition LegendPosition { get; }
+
+    /// <summary>Whether a legend should be drawn over the plot instead of reserving layout space.</summary>
+    public bool OverlayLegend { get; }
 
     /// <summary>Whether point data labels should be rendered when supported by a chart family.</summary>
     public bool ShowDataLabels { get; }

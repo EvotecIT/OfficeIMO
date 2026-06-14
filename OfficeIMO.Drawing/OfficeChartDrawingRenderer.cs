@@ -152,16 +152,21 @@ public static partial class OfficeChartDrawingRenderer {
             AddAxisTitles(drawing, layout.ShowValueAxis ? layout.ValueAxisTitle : null, layout.ShowCategoryAxis ? layout.CategoryAxisTitle : null, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
         }
 
-        AddSeriesLegend(
-            drawing,
-            snapshot.Data.Series,
-            leftLegend ? 6D : width - legendWidth + 6D,
-            plotTop,
-            Math.Max(0D, legendWidth - 12D),
-            plotHeight,
-            style,
-            layout);
-        if (bottomLegendHeight > 0D) {
+        if (layout.OverlayLegend) {
+            AddOverlaySeriesLegend(drawing, snapshot.Data.Series, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        } else {
+            AddSeriesLegend(
+                drawing,
+                snapshot.Data.Series,
+                leftLegend ? 6D : width - legendWidth + 6D,
+                plotTop,
+                Math.Max(0D, legendWidth - 12D),
+                plotHeight,
+                style,
+                layout);
+        }
+
+        if (!layout.OverlayLegend && bottomLegendHeight > 0D) {
             AddSeriesLegendBand(drawing, snapshot.Data.Series, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout);
         }
 
@@ -716,16 +721,21 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         AddRadarCategoryLabels(drawing, categories, centerX, centerY, radius, style, layout);
-        AddSeriesLegend(
-            drawing,
-            series,
-            leftLegend ? 6D : width - legendWidth + 6D,
-            contentTop + 12D,
-            Math.Max(0D, legendWidth - 12D),
-            Math.Max(20D, contentHeight - 24D),
-            style,
-            layout);
-        if (bottomLegendHeight > 0D) {
+        if (layout.OverlayLegend) {
+            AddOverlaySeriesLegend(drawing, series, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout);
+        } else {
+            AddSeriesLegend(
+                drawing,
+                series,
+                leftLegend ? 6D : width - legendWidth + 6D,
+                contentTop + 12D,
+                Math.Max(0D, legendWidth - 12D),
+                Math.Max(20D, contentHeight - 24D),
+                style,
+                layout);
+        }
+
+        if (!layout.OverlayLegend && bottomLegendHeight > 0D) {
             AddSeriesLegendBand(drawing, series, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout);
         }
     }
@@ -809,17 +819,22 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        AddCategoryLegend(
-            drawing,
-            categories,
-            leftLegend ? 6D : width - legendWidth + 6D,
-            contentTop + 12D,
-            Math.Max(0D, legendWidth - 12D),
-            Math.Max(20D, contentHeight - 24D),
-            style,
-            layout,
-            categoryPointColors);
-        if (categoryBottomLegendHeight > 0D) {
+        if (layout.OverlayLegend) {
+            AddOverlayCategoryLegend(drawing, categories, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, categoryPointColors);
+        } else {
+            AddCategoryLegend(
+                drawing,
+                categories,
+                leftLegend ? 6D : width - legendWidth + 6D,
+                contentTop + 12D,
+                Math.Max(0D, legendWidth - 12D),
+                Math.Max(20D, contentHeight - 24D),
+                style,
+                layout,
+                categoryPointColors);
+        }
+
+        if (!layout.OverlayLegend && categoryBottomLegendHeight > 0D) {
             AddCategoryLegendBand(drawing, categories, 8D, height - categoryBottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, categoryPointColors);
         }
     }
@@ -900,17 +915,22 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        AddCategoryLegend(
-            drawing,
-            categories,
-            leftLegend ? 6D : width - legendWidth + 6D,
-            contentTop + 12D,
-            Math.Max(0D, legendWidth - 12D),
-            Math.Max(20D, contentHeight - 24D),
-            style,
-            layout,
-            legendPointColors);
-        if (categoryBottomLegendHeight > 0D) {
+        if (layout.OverlayLegend) {
+            AddOverlayCategoryLegend(drawing, categories, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, legendPointColors);
+        } else {
+            AddCategoryLegend(
+                drawing,
+                categories,
+                leftLegend ? 6D : width - legendWidth + 6D,
+                contentTop + 12D,
+                Math.Max(0D, legendWidth - 12D),
+                Math.Max(20D, contentHeight - 24D),
+                style,
+                layout,
+                legendPointColors);
+        }
+
+        if (!layout.OverlayLegend && categoryBottomLegendHeight > 0D) {
             AddCategoryLegendBand(drawing, categories, 8D, height - categoryBottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout, legendPointColors);
         }
     }

@@ -433,10 +433,11 @@ namespace OfficeIMO.Word.Pdf {
             bool hasDrawingStroke = drawingOutline != null && !drawingOutlineNoFill;
             OfficeColor drawingStroke = default;
             bool hasDrawingStrokeColor = hasDrawingStroke && TryGetNativeDrawingSolidFillColor(drawingOutline, out drawingStroke);
-            bool drawStroke = nativeShape.Kind == OfficeShapeKind.Line ||
-                              wordShape.Stroked == true ||
-                              hasDrawingStrokeColor ||
-                              (wordShape._wpsShape != null && !string.IsNullOrWhiteSpace(wordShape.StrokeColorHex));
+            bool drawStroke = !drawingOutlineNoFill &&
+                              (nativeShape.Kind == OfficeShapeKind.Line ||
+                               wordShape.Stroked == true ||
+                               hasDrawingStrokeColor ||
+                               (wordShape._wpsShape != null && !string.IsNullOrWhiteSpace(wordShape.StrokeColorHex)));
             if (!drawStroke) {
                 nativeShape.StrokeColor = null;
                 nativeShape.StrokeWidth = 0;

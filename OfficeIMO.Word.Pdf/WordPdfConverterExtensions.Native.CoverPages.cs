@@ -67,7 +67,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static IEnumerable<OpenXmlElement> OrderNativeVmlCoverChildren(IEnumerable<OpenXmlElement> children) {
-            List<OpenXmlElement> childList = children.ToList();
+            List<OpenXmlElement> childList = children.SelectMany(EnumerateNativeVmlCoverRenderElements).ToList();
             if (childList.Count <= 1) {
                 return childList;
             }
@@ -81,6 +81,27 @@ namespace OfficeIMO.Word.Pdf {
                 .OrderBy(item => item.ZIndex ?? 0D)
                 .ThenBy(item => item.Index)
                 .Select(item => item.Element);
+        }
+
+        private static IEnumerable<OpenXmlElement> EnumerateNativeVmlCoverRenderElements(OpenXmlElement element) {
+            if (element.NamespaceUri == "urn:schemas-microsoft-com:vml") {
+                if (element.LocalName == "group" ||
+                    element.LocalName == "shape" ||
+                    element.LocalName == "rect" ||
+                    element.LocalName == "line" ||
+                    element.LocalName == "oval" ||
+                    element.LocalName == "roundrect") {
+                    yield return element;
+                }
+
+                yield break;
+            }
+
+            foreach (OpenXmlElement child in element.ChildElements) {
+                foreach (OpenXmlElement descendant in EnumerateNativeVmlCoverRenderElements(child)) {
+                    yield return descendant;
+                }
+            }
         }
 
         private static double? GetNativeVmlEffectiveZIndex(OpenXmlElement element) {

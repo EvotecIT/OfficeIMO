@@ -206,7 +206,7 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
-    public void WordChartLayout_DoesNotPromoteSeriesOnlyDataLabelsToEverySeries() {
+    public void WordChartLayout_UsesRenderableSeriesDataLabelsWhenChartLevelIsAbsent() {
         var chartElement = new BarChart(
             new BarDirection { Val = BarDirectionValues.Column },
             CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }, new DataLabels(new ShowValue { Val = true })));
@@ -217,7 +217,26 @@ public class PdfDocumentChartDrawingTests {
         var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1 })!;
 
         Assert.NotNull(layout);
-        Assert.False(layout!.ShowDataLabels);
+        Assert.True(layout!.ShowDataLabels);
+        Assert.True(layout.ShowDataLabelValues);
+    }
+
+    [Fact]
+    public void WordChartLayout_PreservesOverlayLegendFlag() {
+        var chartElement = new BarChart(new BarDirection { Val = BarDirectionValues.Column });
+        var plotArea = new PlotArea(chartElement);
+        var chart = new Chart(
+            plotArea,
+            new Legend(
+                new LegendPosition { Val = LegendPositionValues.Right },
+                new Overlay { Val = true }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var layout = (OfficeChartLayout?)method.Invoke(null, new object[] { chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 2 })!;
+
+        Assert.NotNull(layout);
+        Assert.True(layout!.ShowLegend);
+        Assert.True(layout.OverlayLegend);
     }
 
     [Fact]
@@ -1140,6 +1159,16 @@ public class PdfDocumentChartDrawingTests {
         })!;
     }
 
+    private static double GetLongestAxisLineWidth(OfficeDrawing drawing) {
+        return drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                            shape.Shape.StrokeWidth == 0.75D &&
+                            shape.Shape.Width > 20D)
+            .Select(shape => shape.Shape.Width)
+            .DefaultIfEmpty(0D)
+            .Max();
+    }
+
     private static BarChartSeries CreateBarSeries(uint index, string[] categories, double[] values, DataLabels? dataLabels = null) {
         var series = new BarChartSeries(
             new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = index },
@@ -1473,6 +1502,38 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.True(actual.X < 40D, "Expected left legend text to be placed in the left-side legend strip.");
         Assert.True(q1.X > actual.X + 60D, "Expected the plot area to move right when a left legend is present.");
+    }
+
+    [Fact]
+    public void FlowDrawing_OverlayLegendDoesNotReservePlotSpace() {
+        var data = new OfficeChartData(
+            new[] { "Q1", "Q2", "Q3" },
+            new[] {
+                new OfficeChartSeries("Actual", new[] { 12D, 18D, 24D }),
+                new OfficeChartSeries("Target", new[] { 10D, 20D, 26D })
+            });
+        OfficeDrawing reserved = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Reserved legend chart",
+            "Reserved Legend",
+            OfficeChartKind.Line,
+            data,
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(legendPosition: OfficeChartLegendPosition.Right)));
+        OfficeDrawing overlay = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Overlay legend chart",
+            "Overlay Legend",
+            OfficeChartKind.Line,
+            data,
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(overlayLegend: true, legendPosition: OfficeChartLegendPosition.Right)));
+
+        double reservedAxisWidth = GetLongestAxisLineWidth(reserved);
+        double overlayAxisWidth = GetLongestAxisLineWidth(overlay);
+
+        Assert.True(overlayAxisWidth > reservedAxisWidth + 30D, "Expected overlaid legends to avoid shrinking the plot area.");
+        Assert.Contains(overlay.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Actual" && text.X < 320D);
     }
 
     [Fact]

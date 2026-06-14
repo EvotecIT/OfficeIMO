@@ -84,6 +84,7 @@ namespace OfficeIMO.Word.Pdf {
                 paragraph.IsPageBreak ||
                 paragraph.Shape != null ||
                 paragraph.TextBox != null ||
+                paragraph.Chart != null ||
                 paragraph.Image != null) {
                 return false;
             }

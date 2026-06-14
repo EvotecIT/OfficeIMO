@@ -711,6 +711,20 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Orders_Vml_Descendants_Across_Wrappers() {
+        var low = new V.Rectangle { Id = "low", Style = "position:absolute;left:0pt;top:0pt;width:20pt;height:20pt;z-index:1" };
+        var high = new V.Rectangle { Id = "high", Style = "position:absolute;left:0pt;top:0pt;width:20pt;height:20pt;z-index:10" };
+        var middle = new V.Rectangle { Id = "middle", Style = "position:absolute;left:0pt;top:0pt;width:20pt;height:20pt;z-index:5" };
+        var firstWrapper = new Run(new Picture(low, high));
+        var secondWrapper = new Run(new Picture(middle));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("OrderNativeVmlCoverChildren", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var ordered = ((IEnumerable<OpenXmlElement>)method.Invoke(null, new object[] { new OpenXmlElement[] { firstWrapper, secondWrapper } })!).ToList();
+
+        Assert.Equal(new[] { "low", "middle", "high" }, ordered.Select(element => element.GetAttribute("id", string.Empty).Value).ToArray());
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Shadow() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlShadow.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlShadow.pdf");

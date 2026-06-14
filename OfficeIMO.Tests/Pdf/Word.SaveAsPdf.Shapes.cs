@@ -45,6 +45,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Suppresses_DrawingML_Line_NoFill_Stroke() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingLineNoFill.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingLineNoFill.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph("Before no-fill line");
+                document.AddParagraph().AddShapeDrawing(ShapeType.Line, 96, 1);
+                document.AddParagraph("After no-fill line");
+                document.Save();
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(docPath, true)) {
+                Wps.ShapeProperties shapeProperties = package.MainDocumentPart!.Document.Descendants<Wps.ShapeProperties>().First();
+                A.Outline outline = shapeProperties.GetFirstChild<A.Outline>() ?? new A.Outline();
+                if (outline.Parent == null) {
+                    shapeProperties.Append(outline);
+                }
+
+                outline.RemoveAllChildren();
+                outline.Append(new A.NoFill());
+                package.MainDocumentPart.Document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(docPath)) {
+                document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                    IncludePageNumbers = false
+                });
+            }
+
+            string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+            Assert.DoesNotContain(" RG", pageContent, System.StringComparison.Ordinal);
+            Assert.DoesNotContain(" S", pageContent, System.StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Renders_DrawingML_Preset_Shapes() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingPresetShapes.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDrawingPresetShapes.pdf");

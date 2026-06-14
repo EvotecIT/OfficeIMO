@@ -256,9 +256,14 @@ jobs:
       matrix:
         include:
           - framework: net8.0
-            slice: main
+            slice: main-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: main-non-pdf
             project: OfficeIMO.sln
-            filter: FullyQualifiedName!~PerformanceReview
+            filter: FullyQualifiedName!~PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Pdf
             extraArgs: ''
           - framework: net8.0
             slice: excel-performance

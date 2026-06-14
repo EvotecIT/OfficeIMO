@@ -718,7 +718,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static OfficeChartLayout? CreateNativeWordChartLayout(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount) {
-            DataLabels? labels = GetNativeWordChartDataLabels(chartElement);
+            DataLabels? labels = GetNativeWordChartDataLabels(chartElement, chartKind);
             bool showValue = labels != null && IsNativeWordChartBooleanOn(labels.GetFirstChild<ShowValue>());
             bool showPercent = labels != null && IsNativeWordPieLikeChart(chartKind) && IsNativeWordChartBooleanOn(labels.GetFirstChild<ShowPercent>());
             bool showCategoryName = labels != null && IsNativeWordChartBooleanOn(labels.GetFirstChild<ShowCategoryName>());
@@ -726,6 +726,7 @@ namespace OfficeIMO.Word.Pdf {
             bool showDataLabels = showValue || showPercent || showCategoryName || showSeriesName;
             bool showLegend = HasNativeWordChartLegend(chart);
             OfficeChartLegendPosition legendPosition = GetNativeWordChartLegendPosition(chart);
+            bool overlayLegend = IsNativeWordChartLegendOverlay(chart);
             OfficeChartDataLabelPosition dataLabelPosition = GetNativeWordChartDataLabelPosition(labels);
             string? dataLabelNumberFormat = GetNativeWordChartDataLabelNumberFormat(labels);
             bool showMarkers = !AreNativeWordChartMarkersHidden(chartElement, chartKind);
@@ -764,6 +765,7 @@ namespace OfficeIMO.Word.Pdf {
 
             if (showLegend &&
                 legendPosition == OfficeChartLegendPosition.Right &&
+                !overlayLegend &&
                 !showDataLabels &&
                 !maximumCategoryAxisLabels.HasValue &&
                 !maximumHorizontalCategoryAxisLabels.HasValue &&
@@ -787,6 +789,7 @@ namespace OfficeIMO.Word.Pdf {
                 maximumRadarCategoryLabels: maximumRadarCategoryLabels,
                 showLegend: showLegend,
                 legendPosition: legendPosition,
+                overlayLegend: overlayLegend,
                 showDataLabels: showDataLabels,
                 showDataLabelValues: showValue,
                 showDataLabelPercentages: showPercent,
@@ -1107,9 +1110,24 @@ namespace OfficeIMO.Word.Pdf {
             chartKind == OfficeChartKind.BarStacked ||
             chartKind == OfficeChartKind.BarStacked100;
 
-        private static DataLabels? GetNativeWordChartDataLabels(OpenXmlElement chartElement) {
-            return chartElement.GetFirstChild<DataLabels>();
+        private static DataLabels? GetNativeWordChartDataLabels(OpenXmlElement chartElement, OfficeChartKind chartKind) {
+            DataLabels? labels = chartElement.GetFirstChild<DataLabels>();
+            if (labels != null) {
+                return labels;
+            }
+
+            foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser" && IsNativeWordChartSeriesRenderable(element, chartKind))) {
+                labels = seriesElement.GetFirstChild<DataLabels>();
+                if (labels != null) {
+                    return labels;
+                }
+            }
+
+            return null;
         }
+
+        private static bool IsNativeWordChartLegendOverlay(Chart chart) =>
+            IsNativeWordChartBooleanOn(chart.GetFirstChild<Legend>()?.GetFirstChild<Overlay>());
 
         private static bool IsNativeWordChartBooleanOn(BooleanType? value) =>
             value != null && (value.Val == null || value.Val.Value);
