@@ -271,7 +271,10 @@ public static partial class OfficeChartDrawingRenderer {
             double positiveBase = 0D;
             double negativeBase = 0D;
             for (int s = 0; s < series.Count; s++) {
-                double value = GetSeriesValue(series[s], category);
+                if (!TryGetSeriesValue(series[s], category, out double value)) {
+                    continue;
+                }
+
                 if (value == 0D && !layout.ShowDataLabels) {
                     continue;
                 }
@@ -370,9 +373,18 @@ public static partial class OfficeChartDrawingRenderer {
             OfficeColor color = GetSeriesColor(style, series, s);
             var topPoints = new List<OfficePoint>(categories.Count);
             var bottomPoints = new List<OfficePoint>(categories.Count);
+            var runCategoryIndices = new List<int>(categories.Count);
 
             for (int i = 0; i < categories.Count; i++) {
-                double value = GetSeriesValue(series[s], i);
+                if (!TryGetSeriesValue(series[s], i, out double value)) {
+                    AddAreaRun(drawing, topPoints, bottomPoints, color);
+                    AddAreaRunDataLabels(drawing, layout, style, categories, series, s, runCategoryIndices, topPoints);
+                    topPoints.Clear();
+                    bottomPoints.Clear();
+                    runCategoryIndices.Clear();
+                    continue;
+                }
+
                 double rawValue = percentStacked ? NormalizePercentStackedValue(series, i, value) : value;
                 double baseline = stacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
@@ -382,40 +394,64 @@ public static partial class OfficeChartDrawingRenderer {
                 double x = plotLeft + step * i;
                 topPoints.Add(new OfficePoint(x, ToPlotY(topValue, range.Min, range.Max, plotTop, plotHeight)));
                 bottomPoints.Add(new OfficePoint(x, ToPlotY(baseline, range.Min, range.Max, plotTop, plotHeight)));
-            }
+                runCategoryIndices.Add(i);
 
-            var areaPoints = new List<OfficePoint>(topPoints.Count + bottomPoints.Count);
-            areaPoints.AddRange(topPoints);
-            for (int i = bottomPoints.Count - 1; i >= 0; i--) {
-                areaPoints.Add(bottomPoints[i]);
-            }
-
-            AddPolygonShape(drawing, areaPoints, color, color, 0.5D, 0.32D);
-            AddPointLine(drawing, topPoints, color, 1.4D);
-            for (int i = 0; i < topPoints.Count; i++) {
-                double value = GetSeriesValue(series[s], i);
-                AddPointDataLabel(
-                    drawing,
-                    layout,
-                    style,
-                    categories[i],
-                    series[s],
-                    value,
-                    GetDataLabelCategoryTotal(series, i),
-                    topPoints[i].X,
-                    topPoints[i].Y);
-            }
-
-            if (stacked) {
-                for (int i = 0; i < categories.Count; i++) {
-                    double value = percentStacked ? NormalizePercentStackedValue(series, i, GetSeriesValue(series[s], i)) : GetSeriesValue(series[s], i);
-                    if (value >= 0D) {
-                        positiveCumulative[i] += value;
+                if (stacked) {
+                    double stackedValue = percentStacked ? NormalizePercentStackedValue(series, i, value) : value;
+                    if (stackedValue >= 0D) {
+                        positiveCumulative[i] += stackedValue;
                     } else {
-                        negativeCumulative[i] += value;
+                        negativeCumulative[i] += stackedValue;
                     }
                 }
             }
+
+            AddAreaRun(drawing, topPoints, bottomPoints, color);
+            AddAreaRunDataLabels(drawing, layout, style, categories, series, s, runCategoryIndices, topPoints);
+        }
+    }
+
+    private static void AddAreaRun(OfficeDrawing drawing, IReadOnlyList<OfficePoint> topPoints, IReadOnlyList<OfficePoint> bottomPoints, OfficeColor color) {
+        if (topPoints.Count < 2 || bottomPoints.Count != topPoints.Count) {
+            return;
+        }
+
+        var areaPoints = new List<OfficePoint>(topPoints.Count + bottomPoints.Count);
+        areaPoints.AddRange(topPoints);
+        for (int i = bottomPoints.Count - 1; i >= 0; i--) {
+            areaPoints.Add(bottomPoints[i]);
+        }
+
+        AddPolygonShape(drawing, areaPoints, color, color, 0.5D, 0.32D);
+        AddPointLine(drawing, topPoints, color, 1.4D);
+    }
+
+    private static void AddAreaRunDataLabels(
+        OfficeDrawing drawing,
+        OfficeChartLayout layout,
+        OfficeChartStyle style,
+        IReadOnlyList<string> categories,
+        IReadOnlyList<OfficeChartSeries> series,
+        int seriesIndex,
+        IReadOnlyList<int> categoryIndices,
+        IReadOnlyList<OfficePoint> topPoints) {
+        if (categoryIndices.Count != topPoints.Count) {
+            return;
+        }
+
+        OfficeChartSeries currentSeries = series[seriesIndex];
+        for (int i = 0; i < categoryIndices.Count; i++) {
+            int categoryIndex = categoryIndices[i];
+            AddPointDataLabel(
+                drawing,
+                layout,
+                style,
+                categories[categoryIndex],
+                currentSeries,
+                currentSeries.Values[categoryIndex],
+                GetDataLabelCategoryTotal(series, categoryIndex),
+                topPoints[i].X,
+                topPoints[i].Y);
         }
     }
 
@@ -439,8 +475,12 @@ public static partial class OfficeChartDrawingRenderer {
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, series, s);
             var points = new OfficePoint[categories.Count];
+            var plotted = new bool[categories.Count];
             for (int i = 0; i < categories.Count; i++) {
-                double value = GetSeriesValue(series[s], i);
+                if (!TryGetSeriesValue(series[s], i, out double value)) {
+                    continue;
+                }
+
                 double rawValue = percentStacked ? NormalizePercentStackedValue(series, i, value) : value;
                 double baseline = stacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
@@ -448,9 +488,14 @@ public static partial class OfficeChartDrawingRenderer {
                 double plottedValue = stacked ? baseline + rawValue : value;
 
                 points[i] = new OfficePoint(plotLeft + step * i, ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
+                plotted[i] = true;
             }
 
             for (int i = 1; i < categories.Count; i++) {
+                if (!plotted[i - 1] || !plotted[i]) {
+                    continue;
+                }
+
                 double x1 = points[i - 1].X;
                 double y1 = points[i - 1].Y;
                 double x2 = points[i].X;
@@ -461,6 +506,10 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             for (int i = 0; i < categories.Count; i++) {
+                if (!plotted[i]) {
+                    continue;
+                }
+
                 if (layout.ShowMarkers && series[s].ShowMarkers) {
                     double x = points[i].X - 2D;
                     double y = points[i].Y - 2D;
@@ -483,7 +532,11 @@ public static partial class OfficeChartDrawingRenderer {
 
             if (stacked) {
                 for (int i = 0; i < categories.Count; i++) {
-                    double value = percentStacked ? NormalizePercentStackedValue(series, i, GetSeriesValue(series[s], i)) : GetSeriesValue(series[s], i);
+                    if (!TryGetSeriesValue(series[s], i, out double seriesValue)) {
+                        continue;
+                    }
+
+                    double value = percentStacked ? NormalizePercentStackedValue(series, i, seriesValue) : seriesValue;
                     if (value >= 0D) {
                         positiveCumulative[i] += value;
                     } else {
@@ -509,25 +562,38 @@ public static partial class OfficeChartDrawingRenderer {
             IReadOnlyList<double> xValues = series[s].XValues ?? sharedXValues;
             int pointCount = Math.Min(xValues.Count, series[s].Values.Count);
             var points = new List<(OfficePoint Point, int SourceIndex)>(pointCount);
+            var lineSegment = new List<OfficePoint>(pointCount);
             for (int i = 0; i < pointCount; i++) {
-                double yValue = GetSeriesValue(series[s], i);
+                if (!TryGetSeriesValue(series[s], i, out double yValue)) {
+                    if (layout.ConnectScatterPoints) {
+                        AddPointLine(drawing, lineSegment, color, 1.25D);
+                    }
+
+                    lineSegment.Clear();
+                    continue;
+                }
+
                 double xValue = xValues[i];
-                if (double.IsNaN(xValue) || double.IsInfinity(xValue)) {
+                if (!IsFiniteChartValue(xValue)) {
+                    if (layout.ConnectScatterPoints) {
+                        AddPointLine(drawing, lineSegment, color, 1.25D);
+                    }
+
+                    lineSegment.Clear();
                     continue;
                 }
 
                 double x = ToPlotX(xValue, xRange.Min, xRange.Max, plotLeft, plotWidth);
                 double y = ToPlotY(yValue, yRange.Min, yRange.Max, plotTop, plotHeight);
-                points.Add((new OfficePoint(x, y), i));
-            }
-
-            var linePoints = new List<OfficePoint>(points.Count);
-            for (int i = 0; i < points.Count; i++) {
-                linePoints.Add(points[i].Point);
+                var point = new OfficePoint(x, y);
+                points.Add((point, i));
+                if (layout.ConnectScatterPoints) {
+                    lineSegment.Add(point);
+                }
             }
 
             if (layout.ConnectScatterPoints) {
-                AddPointLine(drawing, linePoints, color, 1.25D);
+                AddPointLine(drawing, lineSegment, color, 1.25D);
             }
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
@@ -546,7 +612,7 @@ public static partial class OfficeChartDrawingRenderer {
                     style,
                     labelCategory,
                     series[s],
-                    GetSeriesValue(series[s], pointIndex),
+                    series[s].Values[pointIndex],
                     GetDataLabelCategoryTotal(series, pointIndex),
                     point.X,
                     point.Y);
@@ -593,30 +659,56 @@ public static partial class OfficeChartDrawingRenderer {
 
         for (int s = 0; s < series.Count; s++) {
             OfficeColor color = GetSeriesColor(style, series, s);
-            var points = new List<OfficePoint>(categories.Count);
+            var points = new OfficePoint[categories.Count];
+            var plotted = new bool[categories.Count];
+            bool allPointsPlotted = true;
             for (int i = 0; i < categories.Count; i++) {
-                double value = GetSeriesValue(series[s], i);
+                if (!TryGetSeriesValue(series[s], i, out double value)) {
+                    allPointsPlotted = false;
+                    continue;
+                }
+
                 double pointRadius = radius * ToRadarRadiusRatio(value, range.Min, range.Max);
-                points.Add(CreateRadarPoint(i, categories.Count, centerX, centerY, pointRadius));
+                points[i] = CreateRadarPoint(i, categories.Count, centerX, centerY, pointRadius);
+                plotted[i] = true;
             }
 
-            AddPolygonShape(drawing, points, layout.FillRadarSeries ? color : null, color, 1D, layout.FillRadarSeries ? 0.18D : 1D);
+            if (allPointsPlotted) {
+                AddPolygonShape(drawing, points, layout.FillRadarSeries ? color : null, color, 1D, layout.FillRadarSeries ? 0.18D : 1D);
+            } else {
+                for (int i = 1; i < categories.Count; i++) {
+                    if (!plotted[i - 1] || !plotted[i]) {
+                        continue;
+                    }
+
+                    AddPointLine(drawing, new[] { points[i - 1], points[i] }, color, 1D);
+                }
+            }
+
             if (layout.ShowMarkers && series[s].ShowMarkers) {
-                for (int i = 0; i < points.Count; i++) {
+                for (int i = 0; i < points.Length; i++) {
+                    if (!plotted[i]) {
+                        continue;
+                    }
+
                     OfficePoint point = points[i];
                     OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);
                     AddShape(drawing, OfficeShape.Ellipse(4D, 4D), point.X - 2D, point.Y - 2D, pointColor, pointColor, 1D);
                 }
             }
 
-            for (int i = 0; i < points.Count; i++) {
+            for (int i = 0; i < points.Length; i++) {
+                if (!plotted[i]) {
+                    continue;
+                }
+
                 AddPointDataLabel(
                     drawing,
                     layout,
                     style,
                     categories[i],
                     series[s],
-                    GetSeriesValue(series[s], i),
+                    series[s].Values[i],
                     GetDataLabelCategoryTotal(series, i),
                     points[i].X,
                     points[i].Y);
@@ -653,8 +745,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartSeries values = series[0];
         double total = 0D;
         for (int i = 0; i < categories.Count; i++) {
-            double value = GetSeriesValue(values, i);
-            if (!double.IsNaN(value) && !double.IsInfinity(value) && value > 0D) {
+            if (TryGetSeriesValue(values, i, out double value) && value > 0D) {
                 total += value;
             }
         }
@@ -685,7 +776,11 @@ public static partial class OfficeChartDrawingRenderer {
         double start = -Math.PI / 2D;
         int zeroLabelIndex = 0;
         for (int i = 0; i < categories.Count; i++) {
-            double value = Math.Max(0D, GetSeriesValue(values, i));
+            if (!TryGetSeriesValue(values, i, out double seriesValue)) {
+                continue;
+            }
+
+            double value = Math.Max(0D, seriesValue);
             double sweep = value / total * Math.PI * 2D;
             if (value > 0D) {
                 double end = start + sweep;
@@ -770,7 +865,11 @@ public static partial class OfficeChartDrawingRenderer {
             double start = -Math.PI / 2D;
             int zeroLabelIndex = 0;
             for (int i = 0; i < categories.Count; i++) {
-                double value = Math.Max(0D, GetSeriesValue(values, i));
+                if (!TryGetSeriesValue(values, i, out double seriesValue)) {
+                    continue;
+                }
+
+                double value = Math.Max(0D, seriesValue);
                 double sweep = value / total * Math.PI * 2D;
                 if (value > 0D) {
                     double end = start + sweep;
@@ -858,8 +957,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static double GetPositiveSeriesTotal(OfficeChartSeries values, int categoryCount) {
         double total = 0D;
         for (int i = 0; i < categoryCount; i++) {
-            double value = GetSeriesValue(values, i);
-            if (value > 0D) {
+            if (TryGetSeriesValue(values, i, out double value) && value > 0D) {
                 total += value;
             }
         }

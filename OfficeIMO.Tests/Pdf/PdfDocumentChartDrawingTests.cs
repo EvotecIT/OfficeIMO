@@ -811,6 +811,61 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_PreservesBlankChartValuesAsGaps() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
+        var layout = new OfficeChartLayout(
+            showLegend: false,
+            showDataLabels: true,
+            showDataLabelValues: true,
+            showDataLabelCategoryNames: true);
+        OfficeDrawing columnDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Blank column values",
+            "Blank Values",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Blank", "Q3", "Zero" },
+                new[] { new OfficeChartSeries("Actual", new[] { 10D, double.NaN, 20D, 0D }, null, seriesColor) }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: layout));
+
+        var columnBars = columnDrawing.Shapes
+            .Where(shape =>
+                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+                shape.Shape.FillColor == seriesColor &&
+                shape.Shape.StrokeWidth == 0D &&
+                shape.Shape.Height > 2D)
+            .ToList();
+        var columnLabels = columnDrawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Equal(2, columnBars.Count);
+        Assert.Contains("Zero; 0", columnLabels);
+        Assert.DoesNotContain(columnLabels, label => label.Contains("NaN", StringComparison.Ordinal));
+
+        OfficeDrawing lineDrawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Blank line values",
+            "Blank Values",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Q1", "Blank", "Q3" },
+                new[] { new OfficeChartSeries("Actual", new[] { 10D, double.NaN, 20D }, null, seriesColor) }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: layout));
+
+        Assert.DoesNotContain(lineDrawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == seriesColor &&
+            shape.Shape.StrokeWidth == 1.75D);
+        Assert.Equal(2, lineDrawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == seriesColor &&
+            shape.Shape.Width == 4D &&
+            shape.Shape.Height == 4D));
+        Assert.DoesNotContain(lineDrawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("NaN", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void FlowDrawing_StripsBracketedColorDirectivesFromNumberFormats() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Signed label chart",
