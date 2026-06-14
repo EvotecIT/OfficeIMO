@@ -249,7 +249,7 @@ jobs:
     runs-on: macos-latest
     # Hosted macOS runners run the large solution test suite much slower than
     # Linux/Windows, and macOS concurrency is limited. Keep the legs split by
-    # workload, but avoid tiny shards that only move time into the queue.
+    # workload so no single PDF-heavy family owns the whole timeout.
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -261,9 +261,24 @@ jobs:
             filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
             extraArgs: ''
           - framework: net8.0
-            slice: save-as-pdf
+            slice: save-as-pdf-word
             project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
-            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~OfficeIMO.Tests.Word&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: save-as-pdf-markdown-more
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~MarkdownMoreCasesTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: save-as-pdf-markdown-roundtrip
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~MarkdownRoundTripTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: save-as-pdf-other
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~OfficeIMO.Tests.Word&FullyQualifiedName!~MarkdownMoreCasesTests&FullyQualifiedName!~MarkdownRoundTripTests
             extraArgs: ''
           - framework: net8.0
             slice: markdown
@@ -291,9 +306,24 @@ jobs:
             filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
             extraArgs: ''
           - framework: net10.0
-            slice: save-as-pdf
+            slice: save-as-pdf-word
             project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
-            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~OfficeIMO.Tests.Word&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: save-as-pdf-markdown-more
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~MarkdownMoreCasesTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: save-as-pdf-markdown-roundtrip
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName~MarkdownRoundTripTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: save-as-pdf-other
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~OfficeIMO.Tests.Word&FullyQualifiedName!~MarkdownMoreCasesTests&FullyQualifiedName!~MarkdownRoundTripTests
             extraArgs: ''
           - framework: net10.0
             slice: markdown
