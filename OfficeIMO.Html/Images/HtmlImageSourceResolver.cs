@@ -38,8 +38,8 @@ public static class HtmlImageSourceResolver {
         }
 
         AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
-        AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
         AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, SrcSetAttributes);
+        AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
 
         return candidates;
     }

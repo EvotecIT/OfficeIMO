@@ -74,20 +74,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        foreach (string candidate in candidates) {
-            string src = candidate;
-            if (string.IsNullOrWhiteSpace(src)) {
-                continue;
-            }
-
-            if (!TryApplyBase64ImageHandling(ref src, context)) {
-                continue;
-            }
-
-            if (string.IsNullOrWhiteSpace(src)) {
-                continue;
-            }
-
+        if (TryResolveUsableImageCandidate(candidates, context, out string src)) {
             image = CreateImageBlock(src, element);
             return true;
         }
@@ -147,6 +134,33 @@ public sealed partial class HtmlToMarkdownConverter {
         return false;
     }
 
+    private static bool TryResolveUsableImageCandidate(IEnumerable<string> candidates, ConversionContext context, out string source) {
+        source = string.Empty;
+        if (candidates == null) {
+            return false;
+        }
+
+        foreach (string candidate in candidates) {
+            string resolved = candidate;
+            if (string.IsNullOrWhiteSpace(resolved)) {
+                continue;
+            }
+
+            if (!TryApplyBase64ImageHandling(ref resolved, context)) {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(resolved)) {
+                continue;
+            }
+
+            source = resolved;
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool CanUseImageCandidateWithoutSideEffects(string? source, ConversionContext context) {
         if (string.IsNullOrWhiteSpace(source)) {
             return false;
@@ -192,12 +206,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        string fallbackSrc = ResolveImageSource(fallbackMediaElement, context);
-        if (string.IsNullOrWhiteSpace(fallbackSrc)) {
-            return false;
-        }
-
-        if (!TryApplyBase64ImageHandling(ref fallbackSrc, context)) {
+        if (!TryResolveUsableImageCandidate(ResolveImageSourceCandidates(fallbackMediaElement, context), context, out string fallbackSrc)) {
             return false;
         }
 
@@ -267,7 +276,7 @@ public sealed partial class HtmlToMarkdownConverter {
             }
 
             string resolvedSrcSet = ResolveNormalizedSrcSetAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
-            string resolved = ResolveUrlFromSrcSetAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
+            string resolved = ResolveUsableSrcSetCandidateAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
             if (string.IsNullOrWhiteSpace(resolved)) {
                 resolved = ResolveUrlAttributes(child, context, "src", "data-src", "data-original-src", "data-lazy-src");
             }
@@ -290,6 +299,32 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         return sources;
+    }
+
+    private static string ResolveUsableSrcSetCandidateAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
+        if (element == null || attributeNames == null || attributeNames.Length == 0) {
+            return string.Empty;
+        }
+
+        for (int i = 0; i < attributeNames.Length; i++) {
+            IReadOnlyList<HtmlSrcSetCandidate> candidates = HtmlImageSourceResolver.ResolveSrcSetCandidates(
+                element.GetAttribute(attributeNames[i]),
+                context.Options.BaseUri,
+                context.Options.UrlPolicy);
+
+            foreach (HtmlSrcSetCandidate candidate in candidates) {
+                string resolved = candidate.Url;
+                if (!TryApplyBase64ImageHandling(ref resolved, context)) {
+                    continue;
+                }
+
+                if (!string.IsNullOrWhiteSpace(resolved)) {
+                    return resolved;
+                }
+            }
+        }
+
+        return string.Empty;
     }
 
     private static string ApplyBase64ImageHandlingToSrcSet(string? srcSet, ConversionContext context) {

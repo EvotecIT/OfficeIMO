@@ -82,6 +82,25 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlImageSourceResolver_UsesSourceSetBeforeImageSourceFallback() {
+        var document = HtmlDocumentParser.ParseDocument("""<img src="media/fallback.png" srcset="media/hero.webp 1x" alt="Hero">""");
+        var image = document.QuerySelector("img")!;
+
+        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidates(
+            image,
+            new Uri("https://example.test/gallery/"),
+            HtmlUrlPolicy.CreateOfficeIMOProfile());
+
+        Assert.Collection(
+            candidates,
+            source => Assert.Equal("https://example.test/gallery/media/hero.webp", source),
+            source => Assert.Equal("https://example.test/gallery/media/fallback.png", source));
+        Assert.Equal(
+            "https://example.test/gallery/media/hero.webp",
+            HtmlImageSourceResolver.ResolveImageSource(image, new Uri("https://example.test/gallery/"), HtmlUrlPolicy.CreateOfficeIMOProfile()));
+    }
+
+    [Fact]
     public void HtmlImageDataUri_ParsesAndDecodesBase64Images() {
         string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\"/>";
         string dataUri = "data:image/svg+xml;base64," + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg));

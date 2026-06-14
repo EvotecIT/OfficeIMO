@@ -182,6 +182,25 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_TriesLaterNoscriptCandidatesAfterSkippingBase64Source() {
+        const string html = """
+<figure>
+  <img src="data:image/gif;base64,AQID" alt="Photo" />
+  <noscript><img src="data:image/png;base64,AQID" srcset="https://cdn.example.test/photo.webp 1x" alt="Fallback" /></noscript>
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        Assert.Equal("Photo", image.Alt);
+        Assert.DoesNotContain("data:image", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_SkipsInlineBase64ImageWithoutRawFallback() {
         const string html = """<p>Before <img src="data:image/png;base64,AQID" alt="Inline data" /> after</p>""";
 
@@ -213,6 +232,28 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal("https://example.test/articles/media/photo.png", image.Path);
         Assert.Empty(image.PictureSources);
         Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesLaterPictureSrcSetCandidatesAfterSkippingBase64Source() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x, https://cdn.example.test/photo.webp 2x" type="image/webp">
+  <img src="media/fallback.png" alt="Photo">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.test/articles/"),
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        var source = Assert.Single(image.PictureSources);
+        Assert.Equal("https://cdn.example.test/photo.webp", source.Path);
+        Assert.Equal("https://cdn.example.test/photo.webp 2x", source.SrcSet);
+        Assert.DoesNotContain("data:image", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

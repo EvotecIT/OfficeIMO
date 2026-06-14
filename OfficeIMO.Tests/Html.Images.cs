@@ -264,6 +264,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSourceSet_UsesResponsiveCandidateBeforeSourceFallback() {
+            var requested = new List<Uri>();
+            const string validPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requested.Add(request.RequestUri!);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new ByteArrayContent(Convert.FromBase64String(validPng)) {
+                        Headers = {
+                            ContentType = new MediaTypeHeaderValue("image/png")
+                        }
+                    }
+                });
+            }));
+            var options = new HtmlToWordOptions {
+                HttpClient = httpClient
+            };
+            options.AllowedImageHosts.Add("images.example.test");
+            string html = """<img src="https://images.example.test/fallback.png" srcset="https://images.example.test/hero.png 1x" alt="Responsive image" />""";
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            var request = Assert.Single(requested);
+            Assert.Equal("images.example.test", request.Host);
+            Assert.Equal("/hero.png", request.AbsolutePath);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_RemoteImageOverTotalMaxBytes_SkipsWithDiagnostic() {
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ =>
                 Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
