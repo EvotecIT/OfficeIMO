@@ -1,25 +1,26 @@
 using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
-        private static bool TryGetNativeDrawingSolidFillColor(OpenXmlElement? owner, out OfficeColor color) {
+        private static bool TryGetNativeDrawingSolidFillColor(OpenXmlElement? owner, out OfficeColor color, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
             color = default;
             A.SolidFill? solidFill = owner?.GetFirstChild<A.SolidFill>();
-            return TryGetNativeDrawingColor(solidFill, out color);
+            return TryGetNativeDrawingColor(solidFill, out color, themeColors);
         }
 
-        private static bool TryGetNativeDrawingOutlineColor(OpenXmlElement? owner, out OfficeColor color) {
+        private static bool TryGetNativeDrawingOutlineColor(OpenXmlElement? owner, out OfficeColor color, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
             color = default;
             A.Outline? outline = owner?.GetFirstChild<A.Outline>();
             if (outline == null || outline.GetFirstChild<A.NoFill>() != null) {
                 return false;
             }
 
-            return TryGetNativeDrawingSolidFillColor(outline, out color);
+            return TryGetNativeDrawingSolidFillColor(outline, out color, themeColors);
         }
 
         private static bool TryGetNativeDrawingGradientFill(OpenXmlElement? owner, out OfficeLinearGradient? gradient) {
@@ -136,7 +137,7 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static bool TryGetNativeDrawingColor(OpenXmlElement? owner, out OfficeColor color) {
+        private static bool TryGetNativeDrawingColor(OpenXmlElement? owner, out OfficeColor color, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
             color = default;
             if (owner == null) {
                 return false;
@@ -156,8 +157,14 @@ namespace OfficeIMO.Word.Pdf {
 
             A.SchemeColor? scheme = owner.GetFirstChild<A.SchemeColor>();
             string? schemeName = scheme != null ? GetNativeDrawingEnumAttributeValue(scheme, "val") : null;
-            if (scheme != null &&
-                TryGetNativeDefaultThemeColor(schemeName, out color)) {
+            if (scheme?.Val?.Value != null &&
+                themeColors != null &&
+                themeColors.TryGetValue(scheme.Val.Value, out color)) {
+                color = ApplyNativeDrawingColorTransforms(color, scheme);
+                return true;
+            }
+
+            if (scheme != null && TryGetNativeDefaultThemeColor(schemeName, out color)) {
                 color = ApplyNativeDrawingColorTransforms(color, scheme);
                 return true;
             }
@@ -180,6 +187,48 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return false;
+        }
+
+        private static IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> GetNativeDrawingThemeColors(OpenXmlPart? sourcePart) {
+            var colors = new Dictionary<A.SchemeColorValues, OfficeColor>();
+            if (!(sourcePart?.OpenXmlPackage is WordprocessingDocument wordDocument)) {
+                return colors;
+            }
+
+            A.ColorScheme? colorScheme = wordDocument.MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+            if (colorScheme == null) {
+                return colors;
+            }
+
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Dark1, colorScheme.GetFirstChild<A.Dark1Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Light1, colorScheme.GetFirstChild<A.Light1Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Dark2, colorScheme.GetFirstChild<A.Dark2Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Light2, colorScheme.GetFirstChild<A.Light2Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent1, colorScheme.GetFirstChild<A.Accent1Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent2, colorScheme.GetFirstChild<A.Accent2Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent3, colorScheme.GetFirstChild<A.Accent3Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent4, colorScheme.GetFirstChild<A.Accent4Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent5, colorScheme.GetFirstChild<A.Accent5Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Accent6, colorScheme.GetFirstChild<A.Accent6Color>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.Hyperlink, colorScheme.GetFirstChild<A.Hyperlink>());
+            AddNativeDrawingThemeColor(colors, A.SchemeColorValues.FollowedHyperlink, colorScheme.GetFirstChild<A.FollowedHyperlinkColor>());
+            AddNativeDrawingThemeAlias(colors, A.SchemeColorValues.Background1, A.SchemeColorValues.Light1);
+            AddNativeDrawingThemeAlias(colors, A.SchemeColorValues.Text1, A.SchemeColorValues.Dark1);
+            AddNativeDrawingThemeAlias(colors, A.SchemeColorValues.Background2, A.SchemeColorValues.Light2);
+            AddNativeDrawingThemeAlias(colors, A.SchemeColorValues.Text2, A.SchemeColorValues.Dark2);
+            return colors;
+        }
+
+        private static void AddNativeDrawingThemeColor(Dictionary<A.SchemeColorValues, OfficeColor> colors, A.SchemeColorValues key, OpenXmlElement? element) {
+            if (TryGetNativeDrawingColor(element, out OfficeColor color, colors)) {
+                colors[key] = color;
+            }
+        }
+
+        private static void AddNativeDrawingThemeAlias(Dictionary<A.SchemeColorValues, OfficeColor> colors, A.SchemeColorValues alias, A.SchemeColorValues target) {
+            if (!colors.ContainsKey(alias) && colors.TryGetValue(target, out OfficeColor color)) {
+                colors[alias] = color;
+            }
         }
 
         private static bool TryGetNativeDrawingPresetColor(string? presetName, out OfficeColor color) {

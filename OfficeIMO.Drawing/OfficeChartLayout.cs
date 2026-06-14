@@ -41,6 +41,8 @@ public sealed class OfficeChartLayout {
     /// <param name="valueAxisTitle">Optional value or vertical axis title.</param>
     /// <param name="horizontalAxisNumberFormat">Optional numeric format for horizontal value-axis labels.</param>
     /// <param name="verticalAxisNumberFormat">Optional numeric format for vertical value-axis labels.</param>
+    /// <param name="connectScatterPoints">Whether scatter points should be connected by series lines.</param>
+    /// <param name="fillRadarSeries">Whether radar series polygons should be filled.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -71,7 +73,9 @@ public sealed class OfficeChartLayout {
         string? categoryAxisTitle = null,
         string? valueAxisTitle = null,
         string? horizontalAxisNumberFormat = null,
-        string? verticalAxisNumberFormat = null) {
+        string? verticalAxisNumberFormat = null,
+        bool connectScatterPoints = true,
+        bool fillRadarSeries = true) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -102,6 +106,8 @@ public sealed class OfficeChartLayout {
         VerticalAxisNumberFormat = string.IsNullOrWhiteSpace(verticalAxisNumberFormat) ? AxisNumberFormat : verticalAxisNumberFormat;
         CategoryAxisTitle = string.IsNullOrWhiteSpace(categoryAxisTitle) ? null : categoryAxisTitle;
         ValueAxisTitle = string.IsNullOrWhiteSpace(valueAxisTitle) ? null : valueAxisTitle;
+        ConnectScatterPoints = connectScatterPoints;
+        FillRadarSeries = fillRadarSeries;
     }
 
     /// <summary>Default premium OfficeIMO chart layout.</summary>
@@ -196,6 +202,12 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Optional value or vertical axis title.</summary>
     public string? ValueAxisTitle { get; }
+
+    /// <summary>Whether scatter points should be connected by series lines.</summary>
+    public bool ConnectScatterPoints { get; }
+
+    /// <summary>Whether radar series polygons should be filled.</summary>
+    public bool FillRadarSeries { get; }
 
     private static double ValidateRatio(double value, string paramName) {
         ValidatePositiveFinite(value, paramName);

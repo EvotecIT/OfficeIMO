@@ -682,6 +682,35 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Wrapped_Vml_CoverPage_ZIndex_Order() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageWrappedVmlZIndex.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageWrappedVmlZIndex.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document._document.Body!.Append(CreateNativeCoverPageBlockWithChildren(
+                CreateNativeVmlZIndexCoverDrawingParagraph(foregroundFirst: true),
+                CreateNativeVmlZIndexCoverDrawingParagraph(foregroundFirst: false)));
+            document.AddParagraph("After wrapped VML z-index cover");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        Assert.True(pdf.NumberOfPages >= 2);
+        Assert.Contains("After wrapped VML z-index cover", pdf.GetPage(2).Text);
+
+        string pageContent = ReadPdfPageContent(File.ReadAllBytes(pdfPath));
+        int lowerLayer = pageContent.IndexOf("0.184 0.702 0.267 rg", StringComparison.Ordinal);
+        int upperLayer = pageContent.IndexOf("0.929 0.49 0.192 rg", StringComparison.Ordinal);
+        Assert.True(lowerLayer >= 0, "Expected lower z-index wrapped VML fill to be emitted.");
+        Assert.True(upperLayer >= 0, "Expected higher z-index wrapped VML fill to be emitted.");
+        Assert.True(lowerLayer < upperLayer, "Expected wrapped VML paragraphs to be painted from lower z-index to higher z-index.");
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Vml_CoverPage_Shadow() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlShadow.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageVmlShadow.pdf");
@@ -1384,6 +1413,27 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Suppresses_Word_Chart_Gridlines_When_Disabled() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartNoGridlines.docx");
+
+        using WordDocument document = WordDocument.Create(docPath);
+        WordChart chart = document.AddChart("Word PDF No Gridlines", false, 360, 220);
+        chart.AddCategories(new[] { "Q1", "Q2", "Q3" }.ToList());
+        chart.AddBar("Actual", new[] { 10, 12, 14 }, OfficeColor.ParseHex("#4472c4"));
+
+        ChartPart chartPart = (ChartPart)typeof(WordChart)
+            .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(chart)!;
+        ValueAxis valueAxis = chartPart.ChartSpace!.Descendants<ValueAxis>().First();
+        valueAxis.RemoveAllChildren<MajorGridlines>();
+
+        object snapshot = CreateNativeWordChartSnapshot(chart);
+        object style = snapshot.GetType().GetProperty("Style")!.GetValue(snapshot)!;
+
+        Assert.False((bool)style.GetType().GetProperty("ShowGridLines")!.GetValue(style)!);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Word_Chart_Title_Color() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleColor.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeWordChartTitleColor.pdf");
@@ -2027,6 +2077,24 @@ public partial class Word {
         };
 
         return new Paragraph(new Run(new Picture(foreground, background)));
+    }
+
+    private static Paragraph CreateNativeVmlZIndexCoverDrawingParagraph(bool foregroundFirst) {
+        var shape = foregroundFirst
+            ? new DocumentFormat.OpenXml.Vml.Rectangle {
+                Id = "NativeCoverForegroundWrapped",
+                Style = "position:absolute;left:72;top:72;width:180;height:120;z-index:2",
+                FillColor = "#ed7d31",
+                Stroked = false
+            }
+            : new DocumentFormat.OpenXml.Vml.Rectangle {
+                Id = "NativeCoverBackgroundWrapped",
+                Style = "position:absolute;left:96;top:96;width:180;height:120;z-index:1",
+                FillColor = "#2fb344",
+                Stroked = false
+            };
+
+        return new Paragraph(new Run(new Picture(shape)));
     }
 
     private static Paragraph CreateNativeVmlShadowCoverDrawingParagraph() {

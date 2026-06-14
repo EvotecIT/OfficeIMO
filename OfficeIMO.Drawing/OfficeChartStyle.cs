@@ -33,6 +33,7 @@ public sealed class OfficeChartStyle {
     /// <param name="titleColor">Chart title color.</param>
     /// <param name="plotAreaBackgroundColor">Optional plot area fill.</param>
     /// <param name="plotAreaBorderColor">Optional plot area border color.</param>
+    /// <param name="showGridLines">Whether cartesian grid lines should be rendered.</param>
     public OfficeChartStyle(
         IEnumerable<OfficeColor>? palette = null,
         string? fontFamily = null,
@@ -44,7 +45,8 @@ public sealed class OfficeChartStyle {
         OfficeColor? mutedTextColor = null,
         OfficeColor? titleColor = null,
         OfficeColor? plotAreaBackgroundColor = null,
-        OfficeColor? plotAreaBorderColor = null) {
+        OfficeColor? plotAreaBorderColor = null,
+        bool showGridLines = true) {
         var colors = palette == null ? new List<OfficeColor>() : new List<OfficeColor>(palette);
         if (colors.Count == 0) {
             colors.AddRange(DefaultPaletteValues);
@@ -61,6 +63,7 @@ public sealed class OfficeChartStyle {
         TitleColor = titleColor ?? OfficeColor.FromRgb(31, 78, 121);
         PlotAreaBackgroundColor = plotAreaBackgroundColor;
         PlotAreaBorderColor = plotAreaBorderColor;
+        ShowGridLines = showGridLines;
     }
 
     /// <summary>Default premium OfficeIMO chart style.</summary>
@@ -98,6 +101,9 @@ public sealed class OfficeChartStyle {
 
     /// <summary>Optional plot area border color.</summary>
     public OfficeColor? PlotAreaBorderColor { get; }
+
+    /// <summary>Whether cartesian grid lines should be rendered.</summary>
+    public bool ShowGridLines { get; }
 
     /// <summary>Gets a palette color for the zero-based series or slice index.</summary>
     public OfficeColor GetSeriesColor(int index) {

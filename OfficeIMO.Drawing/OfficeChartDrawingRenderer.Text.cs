@@ -191,7 +191,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
-    private static void AddHorizontalCategoryAxisLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double plotLeft, double plotTop, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddHorizontalCategoryAxisLabels(OfficeDrawing drawing, IReadOnlyList<string> categories, double plotTop, double plotHeight, double labelLeft, double labelWidth, OfficeChartStyle style, OfficeChartLayout layout) {
         if (categories.Count == 0) {
             return;
         }
@@ -202,7 +202,6 @@ public static partial class OfficeChartDrawingRenderer {
             stride = EnsureLabelStride(stride, slot, 10D + 2D);
         }
 
-        double labelWidth = Math.Max(12D, plotLeft - 6D);
         for (int i = 0; i < categories.Count; i += stride) {
             string label = categories[i];
             if (string.IsNullOrWhiteSpace(label)) {
@@ -211,13 +210,13 @@ public static partial class OfficeChartDrawingRenderer {
 
             int categorySlot = categories.Count - 1 - i;
             double centerY = plotTop + slot * categorySlot + slot / 2D;
-            AddChartText(drawing, label, 2D, centerY - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+            AddChartText(drawing, label, labelLeft, centerY - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
         }
     }
 
-    private static void AddValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double plotTop, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
-        AddChartText(drawing, FormatAxisValue(range.Max, layout, percentDefault, layout.VerticalAxisNumberFormat), 2D, plotTop - 5D, Math.Max(12D, plotLeft - 6D), 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
-        AddChartText(drawing, FormatAxisValue(range.Min, layout, percentDefault, layout.VerticalAxisNumberFormat), 2D, plotTop + plotHeight - 5D, Math.Max(12D, plotLeft - 6D), 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+    private static void AddValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotTop, double plotHeight, double labelLeft, double labelWidth, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
+        AddChartText(drawing, FormatAxisValue(range.Max, layout, percentDefault, layout.VerticalAxisNumberFormat), labelLeft, plotTop - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
+        AddChartText(drawing, FormatAxisValue(range.Min, layout, percentDefault, layout.VerticalAxisNumberFormat), labelLeft, plotTop + plotHeight - 5D, labelWidth, 10D, layout.AxisLabelFontSize, style.MutedTextColor, OfficeTextAlignment.Right, style);
     }
 
     private static void AddHorizontalValueAxisLabels(OfficeDrawing drawing, ValueRange range, double plotLeft, double plotBottomY, double plotWidth, OfficeChartStyle style, OfficeChartLayout layout, bool percentDefault) {
@@ -383,7 +382,8 @@ public static partial class OfficeChartDrawingRenderer {
         bool grouped = HasDataLabelGrouping(format);
         int decimals = GetDataLabelDecimalPlaces(format);
         int requiredDecimals = GetDataLabelRequiredDecimalPlaces(format);
-        double displayValue = percent ? value * 100D : value;
+        int scalingCommas = GetDataLabelScalingCommaCount(format);
+        double displayValue = (percent ? value * 100D : value) / Math.Pow(1000D, scalingCommas);
         bool useAbsoluteNegative = displayValue < 0D && numberFormat!.IndexOf(';') >= 0;
         string numericFormat = (grouped ? "N" : "F") + decimals.ToString(CultureInfo.InvariantCulture);
         formatted = (useAbsoluteNegative ? Math.Abs(displayValue) : displayValue).ToString(numericFormat, CultureInfo.InvariantCulture);
@@ -518,7 +518,122 @@ public static partial class OfficeChartDrawingRenderer {
     private static bool HasDataLabelGrouping(string format) {
         int decimalIndex = format.IndexOf('.');
         int searchLength = decimalIndex >= 0 ? decimalIndex : format.Length;
-        return format.Substring(0, searchLength).IndexOf(',') >= 0;
+        bool seenPlaceholder = false;
+        bool inQuotedLiteral = false;
+        bool escaped = false;
+        for (int i = 0; i < searchLength; i++) {
+            char c = format[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"') {
+                inQuotedLiteral = !inQuotedLiteral;
+                continue;
+            }
+
+            if (inQuotedLiteral) {
+                continue;
+            }
+
+            if (c == '0' || c == '#' || c == '?') {
+                seenPlaceholder = true;
+                continue;
+            }
+
+            if (c == ',' && seenPlaceholder && HasLaterDataLabelPlaceholder(format, i + 1, searchLength)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static int GetDataLabelScalingCommaCount(string format) {
+        int lastPlaceholder = GetLastDataLabelPlaceholderIndex(format);
+        if (lastPlaceholder < 0) {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = lastPlaceholder + 1; i < format.Length; i++) {
+            char c = format[i];
+            if (c == ',') {
+                count++;
+                continue;
+            }
+
+            if (char.IsWhiteSpace(c)) {
+                continue;
+            }
+
+            break;
+        }
+
+        return count;
+    }
+
+    private static int GetLastDataLabelPlaceholderIndex(string format) {
+        int lastPlaceholder = -1;
+        bool inQuotedLiteral = false;
+        bool escaped = false;
+        for (int i = 0; i < format.Length; i++) {
+            char c = format[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"') {
+                inQuotedLiteral = !inQuotedLiteral;
+                continue;
+            }
+
+            if (!inQuotedLiteral && (c == '0' || c == '#' || c == '?')) {
+                lastPlaceholder = i;
+            }
+        }
+
+        return lastPlaceholder;
+    }
+
+    private static bool HasLaterDataLabelPlaceholder(string format, int startIndex, int endIndex) {
+        bool inQuotedLiteral = false;
+        bool escaped = false;
+        for (int i = startIndex; i < endIndex; i++) {
+            char c = format[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == '"') {
+                inQuotedLiteral = !inQuotedLiteral;
+                continue;
+            }
+
+            if (!inQuotedLiteral && (c == '0' || c == '#' || c == '?')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static int GetDataLabelDecimalPlaces(string format) {

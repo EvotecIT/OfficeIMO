@@ -30,7 +30,27 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.NotNull(result.Drawing);
         Assert.NotNull(result.QualityReport);
+        Assert.Equal(320D, result.Drawing.Width);
+        Assert.Equal(190D, result.Drawing.Height);
         Assert.False(result.QualityReport.HasIssues, string.Join("; ", result.QualityReport.Issues.Select(issue => issue.ToString())));
+    }
+
+    [Fact]
+    public void FlowDrawing_PreservesSnapshotExtentsWithoutRendererClamping() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Native extent chart",
+            "Native Extents",
+            OfficeChartKind.Line,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 1D, 2D })
+                }),
+            widthPoints: 180D,
+            heightPoints: 118D));
+
+        Assert.Equal(180D, drawing.Width);
+        Assert.Equal(118D, drawing.Height);
     }
 
     [Fact]
@@ -80,6 +100,21 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void WordChartCategoryExtraction_PreservesExplicitBlankCacheLabels() {
+        var categoryAxisData = new CategoryAxisData(
+            new StringReference(
+                new StringCache(
+                    new PointCount { Val = 3U },
+                    new StringPoint(new NumericValue(string.Empty)) { Index = 1U },
+                    new StringPoint(new NumericValue("Visible")) { Index = 2U })));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartCategories", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var categories = (IReadOnlyList<string>)method.Invoke(null, new object?[] { categoryAxisData, 3 })!;
+
+        Assert.Equal(new[] { "Category 1", string.Empty, "Visible" }, categories);
+    }
+
+    [Fact]
     public void WordChartSeriesExtraction_ExtendsCategoriesAcrossAllSeries() {
         var chart = new BarChart(
             new BarDirection { Val = BarDirectionValues.Column },
@@ -87,10 +122,10 @@ public class PdfDocumentChartDrawingTests {
             CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D }),
             CreateBarSeries(1U, new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { 3D, 4D, 5D, 6D }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { chart, OfficeChartKind.ColumnClustered, null };
+        object?[] args = { chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
 
         var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
-        var categories = (IReadOnlyList<string>)args[2]!;
+        var categories = (IReadOnlyList<string>)args[3]!;
 
         Assert.Equal(2, series.Count);
         Assert.Equal(new[] { "Q1", "Q2", "Q3", "Q4" }, categories);
@@ -108,7 +143,7 @@ public class PdfDocumentChartDrawingTests {
             new BarGrouping { Val = BarGroupingValues.Clustered },
             barSeries);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { chart, OfficeChartKind.ColumnClustered, null };
+        object?[] args = { chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
 
         var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
 
@@ -126,7 +161,7 @@ public class PdfDocumentChartDrawingTests {
             new VaryColors { Val = true },
             CreateBarSeries(0U, new[] { "Q1", "Q2", "Q3" }, new[] { 1D, 2D, 3D }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { chart, OfficeChartKind.ColumnClustered, null };
+        object?[] args = { chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
 
         var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
 
@@ -144,7 +179,7 @@ public class PdfDocumentChartDrawingTests {
         hidden.InsertBefore(new Marker(new Symbol { Val = MarkerStyleValues.None }), hidden.GetFirstChild<CategoryAxisData>());
         var chart = new LineChart(visible, hidden);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { chart, OfficeChartKind.Line, null };
+        object?[] args = { chart, OfficeChartKind.Line, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
 
         var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
 
@@ -185,6 +220,26 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void WordChartLayout_PreservesMarkerOnlyScatterAndLineRadarStyles() {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartLayout", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var scatterElement = new ScatterChart(new ScatterStyle { Val = ScatterStyleValues.Marker });
+        var scatterPlotArea = new PlotArea(scatterElement);
+        var scatterChart = new Chart(scatterPlotArea);
+        var scatterLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { scatterChart, scatterElement, scatterPlotArea, OfficeChartKind.Scatter, 2 })!;
+
+        var radarElement = new RadarChart(new RadarStyle { Val = RadarStyleValues.Standard });
+        var radarPlotArea = new PlotArea(radarElement);
+        var radarChart = new Chart(radarPlotArea);
+        var radarLayout = (OfficeChartLayout?)method.Invoke(null, new object[] { radarChart, radarElement, radarPlotArea, OfficeChartKind.Radar, 3 })!;
+
+        Assert.NotNull(scatterLayout);
+        Assert.False(scatterLayout!.ConnectScatterPoints);
+        Assert.NotNull(radarLayout);
+        Assert.False(radarLayout!.FillRadarSeries);
+    }
+
+    [Fact]
     public void FlowDrawing_RendersScatterXAxisLabelsFromNumericValues() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scatter",
@@ -205,6 +260,89 @@ public class PdfDocumentChartDrawingTests {
         Assert.DoesNotContain("Alpha", labels);
         Assert.DoesNotContain("Beta", labels);
         Assert.DoesNotContain("Gamma", labels);
+    }
+
+    [Fact]
+    public void FlowDrawing_HonorsMarkerOnlyScatterLayout() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Marker scatter",
+            "Marker Scatter",
+            OfficeChartKind.Scatter,
+            new OfficeChartData(
+                new[] { "1", "2", "3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, new[] { 1D, 2D, 3D }, seriesColor)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(connectScatterPoints: false)));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == seriesColor &&
+            shape.Shape.StrokeWidth == 1.25D);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+            shape.Shape.FillColor == seriesColor);
+    }
+
+    [Fact]
+    public void FlowDrawing_HonorsLineRadarLayoutWithoutSeriesFill() {
+        OfficeColor seriesColor = OfficeColor.ParseHex("#2563EB");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Line radar",
+            "Line Radar",
+            OfficeChartKind.Radar,
+            new OfficeChartData(
+                new[] { "A", "B", "C" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D }, null, seriesColor)
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(fillRadarSeries: false)));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.FillColor == seriesColor);
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.StrokeColor == seriesColor &&
+            !shape.Shape.FillColor.HasValue);
+    }
+
+    [Fact]
+    public void FlowDrawing_HonorsSuppressedGridLines() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "No grid",
+            "No Grid",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 10D, 12D, 11D })
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            style: new OfficeChartStyle(showGridLines: false)));
+
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeWidth == 0.5D);
+    }
+
+    [Fact]
+    public void FlowDrawing_AppliesScalingCommasInDataLabelNumberFormats() {
+        MethodInfo method = typeof(OfficeChartDrawingRenderer).GetMethod("FormatDataLabelValue", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        string thousands = (string)method.Invoke(null, new object?[] { 1234567D, "#,##0," })!;
+        string millions = (string)method.Invoke(null, new object?[] { 1234567D, "0.0,," })!;
+        string literalSuffix = (string)method.Invoke(null, new object?[] { 1234567D, "#,##0, \"K\"" })!;
+
+        Assert.Equal("1,235", thousands);
+        Assert.Equal("1.2", millions);
+        Assert.Equal("1,235 K", literalSuffix);
     }
 
     [Fact]
