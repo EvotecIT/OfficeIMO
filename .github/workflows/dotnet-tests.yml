@@ -247,9 +247,10 @@ jobs:
   test-macos-matrix:
     name: 'macOS ${{ matrix.framework }} ${{ matrix.slice }}'
     runs-on: macos-latest
-    # Hosted macOS runners run the Excel performance regression tests much
-    # slower than Linux/Windows. Split that slice out so the rest of the suite
-    # stays readable and the performance slice runs without parallel pressure.
+    # Hosted macOS runners run the large solution test suite much slower than
+    # Linux/Windows. Keep the macOS legs split by workload so one slow family
+    # cannot consume the whole timeout, and run the performance slice without
+    # parallel pressure.
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -261,9 +262,39 @@ jobs:
             filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
             extraArgs: ''
           - framework: net8.0
-            slice: main-non-pdf
-            project: OfficeIMO.sln
-            filter: FullyQualifiedName!~PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            slice: save-as-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: markdown
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~Markdown&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: word-excel
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: (FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.Excel)&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf&FullyQualifiedName!~Markdown&FullyQualifiedName!~PerformanceReview
+            extraArgs: ''
+          - framework: net8.0
+            slice: core-non-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName!~PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf&FullyQualifiedName!~Markdown&FullyQualifiedName!~OfficeIMO.Tests.Word&FullyQualifiedName!~OfficeIMO.Tests.Excel
+            extraArgs: ''
+          - framework: net8.0
+            slice: csv
+            project: OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
+            filter: FullyQualifiedName~OfficeIMO.CSV.Tests
+            extraArgs: ''
+          - framework: net8.0
+            slice: verify
+            project: OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj
+            filter: FullyQualifiedName~OfficeIMO.VerifyTests
+            extraArgs: ''
+          - framework: net8.0
+            slice: markdown-renderer-wpf
+            project: OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj
+            filter: FullyQualifiedName~OfficeIMO.MarkdownRenderer.Wpf.Tests
             extraArgs: ''
           - framework: net8.0
             slice: excel-performance
@@ -276,9 +307,39 @@ jobs:
             filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
             extraArgs: ''
           - framework: net10.0
-            slice: main-non-pdf
-            project: OfficeIMO.sln
-            filter: FullyQualifiedName!~PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            slice: save-as-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: markdown
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~Markdown&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: word-excel
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: (FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.Excel)&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf&FullyQualifiedName!~Markdown&FullyQualifiedName!~PerformanceReview
+            extraArgs: ''
+          - framework: net10.0
+            slice: core-non-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName!~PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Pdf&FullyQualifiedName!~SaveAsPdf&FullyQualifiedName!~Markdown&FullyQualifiedName!~OfficeIMO.Tests.Word&FullyQualifiedName!~OfficeIMO.Tests.Excel
+            extraArgs: ''
+          - framework: net10.0
+            slice: csv
+            project: OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
+            filter: FullyQualifiedName~OfficeIMO.CSV.Tests
+            extraArgs: ''
+          - framework: net10.0
+            slice: verify
+            project: OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj
+            filter: FullyQualifiedName~OfficeIMO.VerifyTests
+            extraArgs: ''
+          - framework: net10.0
+            slice: markdown-renderer-wpf
+            project: OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj
+            filter: FullyQualifiedName~OfficeIMO.MarkdownRenderer.Wpf.Tests
             extraArgs: ''
           - framework: net10.0
             slice: excel-performance
