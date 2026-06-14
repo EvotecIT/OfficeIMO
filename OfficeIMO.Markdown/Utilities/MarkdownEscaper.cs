@@ -160,16 +160,23 @@ internal static class MarkdownEscaper {
             return false;
         }
 
-        ReadOnlySpan<char> value = line.AsSpan(markerIndex);
-        if (value.StartsWith("<!--".AsSpan(), StringComparison.Ordinal)) {
+        if (StartsWithAt(line, markerIndex, "<!--")) {
             return true;
         }
 
-        if (value.StartsWith("</".AsSpan(), StringComparison.Ordinal)) {
+        if (StartsWithAt(line, markerIndex, "</")) {
             return markerIndex + 2 < line.Length && IsHtmlTagNameStart(line[markerIndex + 2]);
         }
 
         return markerIndex + 1 < line.Length && IsHtmlTagNameStart(line[markerIndex + 1]);
+    }
+
+    private static bool StartsWithAt(string text, int startIndex, string value) {
+        if (startIndex < 0 || startIndex + value.Length > text.Length) {
+            return false;
+        }
+
+        return string.Compare(text, startIndex, value, 0, value.Length, StringComparison.Ordinal) == 0;
     }
 
     private static bool IsHtmlTagNameStart(char value) {
