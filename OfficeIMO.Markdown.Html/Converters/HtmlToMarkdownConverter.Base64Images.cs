@@ -51,12 +51,30 @@ public sealed partial class HtmlToMarkdownConverter {
         Directory.CreateDirectory(directory);
 
         int index = context.SavedBase64ImageCount++;
-        string fileName = context.Options.Base64ImageFileNameGenerator?.Invoke(index, mimeType) ?? "image_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        fileName = SanitizeBase64ImageFileName(fileName, GetImageExtension(mimeType), index);
-
+        string requestedFileName = context.Options.Base64ImageFileNameGenerator?.Invoke(index, mimeType) ?? "image_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        string fileName = SanitizeBase64ImageFileName(requestedFileName, GetImageExtension(mimeType), index);
         string path = Path.Combine(directory, fileName);
-        File.WriteAllBytes(path, bytes);
-        return path;
+        return WriteBase64ImageFile(path, bytes);
+    }
+
+    private static string WriteBase64ImageFile(string path, byte[] bytes) {
+        string directory = Path.GetDirectoryName(path) ?? string.Empty;
+        string name = Path.GetFileNameWithoutExtension(path);
+        string extension = Path.GetExtension(path);
+        for (int attempt = 0; attempt < int.MaxValue; attempt++) {
+            string candidate = attempt == 0
+                ? path
+                : Path.Combine(directory, name + "-" + attempt.ToString(System.Globalization.CultureInfo.InvariantCulture) + extension);
+            try {
+                using var stream = new FileStream(candidate, FileMode.CreateNew, FileAccess.Write);
+                stream.Write(bytes, 0, bytes.Length);
+                return candidate;
+            } catch (IOException) when (File.Exists(candidate)) {
+                continue;
+            }
+        }
+
+        throw new IOException("Unable to create a unique file name for the decoded base64 image.");
     }
 
     private static string SanitizeBase64ImageFileName(string? fileName, string extension, int index) {

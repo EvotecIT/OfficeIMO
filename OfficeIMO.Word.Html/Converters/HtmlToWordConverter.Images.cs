@@ -1,4 +1,5 @@
 using AngleSharp.Html.Dom;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using System.Globalization;
 using System.Net.Http;
@@ -708,8 +709,16 @@ namespace OfficeIMO.Word.Html {
             try {
                 long estimatedBytes;
                 if (dataUri.IsBase64) {
+                    if (_imageCache.ContainsKey(src)) {
+                        return true;
+                    }
+
                     if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
                         detail = "Image data URI could not be decoded.";
+                        return false;
+                    }
+
+                    if (!IsEmbeddableImageData(bytes, out detail)) {
                         return false;
                     }
 
@@ -741,6 +750,16 @@ namespace OfficeIMO.Word.Html {
                 detail = ex.Message;
                 return false;
             }
+        }
+
+        private static bool IsEmbeddableImageData(byte[] bytes, out string detail) {
+            detail = string.Empty;
+            if (!OfficeImageReader.TryIdentify(bytes, null, out _)) {
+                detail = "Image data URI payload is not a supported image.";
+                return false;
+            }
+
+            return true;
         }
 
         private static bool HasExternalImageDimensionHints(IHtmlImageElement img) {

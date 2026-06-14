@@ -429,6 +429,32 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_SaveBase64ImagesDoesNotOverwriteExistingFile() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            Directory.CreateDirectory(directory);
+            string existing = Path.Combine(directory, "image_0.png");
+            File.WriteAllText(existing, "keep me");
+            const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            Assert.Equal("keep me", File.ReadAllText(existing));
+            Assert.Equal("image_0-1.png", Path.GetFileName(image.Path));
+            Assert.True(File.Exists(image.Path));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(image.Path));
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void HtmlToMarkdown_ReusesSavedBase64PictureSourceMetadata() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
         try {

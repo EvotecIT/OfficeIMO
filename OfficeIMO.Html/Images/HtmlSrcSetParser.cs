@@ -72,10 +72,6 @@ public static class HtmlSrcSetParser {
             return false;
         }
 
-        if (Contains(value, urlStart, index, '?')) {
-            return false;
-        }
-
         int next = index + 1;
         while (next < value.Length && char.IsWhiteSpace(value[next])) {
             next++;
@@ -109,16 +105,6 @@ public static class HtmlSrcSetParser {
         for (int i = startIndex; i < endIndex; i++) {
             if (value[i] == '.') {
                 return i > startIndex && i + 1 < endIndex;
-            }
-        }
-
-        return false;
-    }
-
-    private static bool Contains(string value, int startIndex, int endIndex, char search) {
-        for (int i = startIndex; i < endIndex; i++) {
-            if (value[i] == search) {
-                return true;
             }
         }
 
