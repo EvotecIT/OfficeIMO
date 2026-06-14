@@ -461,7 +461,7 @@ namespace OfficeIMO.Word.Pdf {
 
             bool hasExplicitColor = false;
             if (IsNativeWordPieLikeChart(chartKind)) {
-                OpenXmlElement? seriesElement = chartElement.ChildElements.FirstOrDefault(element => element.LocalName == "ser");
+                OpenXmlElement? seriesElement = chartElement.ChildElements.FirstOrDefault(element => element.LocalName == "ser" && IsNativeWordChartSeriesRenderable(element, chartKind));
                 if (TryGetNativeWordChartFillColor(seriesElement, themeColors, out OfficeColor seriesColor)) {
                     for (int index = 0; index < palette.Count; index++) {
                         palette[index] = seriesColor;
@@ -484,7 +484,7 @@ namespace OfficeIMO.Word.Pdf {
                 }
             } else {
                 int index = 0;
-                foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
+                foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser" && IsNativeWordChartSeriesRenderable(element, chartKind))) {
                     if (index >= palette.Count) {
                         break;
                     }
@@ -501,6 +501,8 @@ namespace OfficeIMO.Word.Pdf {
             OfficeColor? backgroundColor = null;
             OfficeColor? borderColor = null;
             ChartShapeProperties? chartShape = chart.GetFirstChild<ChartShapeProperties>();
+            bool showBackground = !HasNativeDrawingNoFill(chartShape);
+            bool hasExplicitChartNoFill = chartShape != null && !showBackground;
             if (TryGetNativeDrawingSolidFillColor(chartShape, out OfficeColor chartFill, themeColors)) {
                 backgroundColor = chartFill;
             }
@@ -527,6 +529,7 @@ namespace OfficeIMO.Word.Pdf {
 
             bool hasChartOrPlotStyle =
                 backgroundColor.HasValue ||
+                hasExplicitChartNoFill ||
                 borderColor.HasValue ||
                 plotAreaBackgroundColor.HasValue ||
                 plotAreaBorderColor.HasValue ||
@@ -537,6 +540,7 @@ namespace OfficeIMO.Word.Pdf {
 
             return hasExplicitColor || hasChartOrPlotStyle
                 ? new OfficeChartStyle(
+                    showBackground: showBackground,
                     palette: palette,
                     backgroundColor: backgroundColor,
                     borderColor: borderColor,
@@ -547,6 +551,13 @@ namespace OfficeIMO.Word.Pdf {
                     plotAreaBorderColor: plotAreaBorderColor,
                     showGridLines: showGridLines)
                 : null;
+        }
+
+        private static bool IsNativeWordChartSeriesRenderable(OpenXmlElement seriesElement, OfficeChartKind chartKind) {
+            OpenXmlElement? valuesElement = chartKind == OfficeChartKind.Scatter
+                ? seriesElement.Elements<YValues>().FirstOrDefault()
+                : seriesElement.Elements<Values>().FirstOrDefault();
+            return ExtractNativeWordChartNumberValues(valuesElement).Count > 0;
         }
 
         private static OfficeColor? GetNativeWordChartTitleColor(Chart chart, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {

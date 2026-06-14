@@ -23,6 +23,8 @@ namespace OfficeIMO.Word.Pdf {
             return TryGetNativeDrawingSolidFillColor(outline, out color, themeColors);
         }
 
+        private static bool HasNativeDrawingNoFill(OpenXmlElement? owner) => owner?.GetFirstChild<A.NoFill>() != null;
+
         private static bool TryGetNativeDrawingGradientFill(OpenXmlElement? owner, out OfficeLinearGradient? gradient) {
             gradient = null;
             A.GradientFill? gradientFill = owner?.GetFirstChild<A.GradientFill>();
@@ -118,6 +120,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool TryGetNativeDrawingColorAlpha(OpenXmlElement colorElement, out double opacity) {
             opacity = 1D;
+            bool found = false;
             foreach (OpenXmlElement transform in colorElement.ChildElements) {
                 int? value = GetNativeDrawingColorTransformValue(transform);
                 if (!value.HasValue) {
@@ -127,14 +130,18 @@ namespace OfficeIMO.Word.Pdf {
                 double amount = Math.Max(0D, Math.Min(100000D, value.Value)) / 100000D;
                 switch (transform.LocalName) {
                     case "alpha":
+                        opacity = amount;
+                        found = true;
+                        break;
                     case "alphaMod":
                     case "alphaModFix":
-                        opacity = amount;
-                        return true;
+                        opacity *= amount;
+                        found = true;
+                        break;
                 }
             }
 
-            return false;
+            return found;
         }
 
         private static bool TryGetNativeDrawingColor(OpenXmlElement? owner, out OfficeColor color, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor>? themeColors = null) {
@@ -397,15 +404,20 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static int? GetNativeDrawingColorTransformValue(OpenXmlElement transform) {
-            string? raw = GetNativeDrawingEnumAttributeValue(transform, "val");
+            string? raw = GetNativeDrawingEnumAttributeValue(transform, "val") ?? GetNativeDrawingEnumAttributeValue(transform, "amt");
             return int.TryParse(raw, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int value)
                 ? value
                 : (int?)null;
         }
 
         private static string? GetNativeDrawingEnumAttributeValue(OpenXmlElement element, string name) {
-            string? value = element.GetAttribute(name, string.Empty).Value;
-            return string.IsNullOrWhiteSpace(value) ? null : value;
+            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                if (attribute.LocalName.Equals(name, StringComparison.OrdinalIgnoreCase)) {
+                    return string.IsNullOrWhiteSpace(attribute.Value) ? null : attribute.Value;
+                }
+            }
+
+            return null;
         }
 
         private static byte ConvertNativeDrawingPercentageToByte(int? value) {

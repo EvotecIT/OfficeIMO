@@ -24,7 +24,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartLayout layout = snapshot.Layout;
         var drawing = new OfficeDrawing(width, height);
 
-        AddShape(drawing, OfficeShape.Rectangle(width, height), 0D, 0D, style.BackgroundColor, style.BorderColor, 0.75D);
+        AddShape(drawing, OfficeShape.Rectangle(width, height), 0D, 0D, style.ShowBackground ? style.BackgroundColor : null, style.BorderColor, 0.75D);
         double contentTop = 0D;
         if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
             double titleHeight = Math.Min(22D, Math.Max(16D, height * 0.12D));
@@ -894,7 +894,7 @@ public static partial class OfficeChartDrawingRenderer {
                     OfficeShape.Ellipse(innerDiameter, innerDiameter),
                     centerX - innerRadius,
                     centerY - innerRadius,
-                    style.BackgroundColor,
+                    style.ShowBackground ? style.BackgroundColor : null,
                     null,
                     0D);
             }

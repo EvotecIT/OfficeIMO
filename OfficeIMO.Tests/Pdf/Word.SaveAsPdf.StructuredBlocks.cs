@@ -911,6 +911,27 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_DoesNotRenderShapeFallbackForMissingVmlImageData() {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ShouldRenderNativeVmlShapeFallback", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var imageShape = new V.Shape(
+            new V.ImageData {
+                RelationshipId = "rIdMissing"
+            }) {
+            Id = "NativeCoverMissingImage",
+            Style = "position:absolute;left:0pt;top:0pt;width:120pt;height:80pt",
+            FillColor = "#C1121F"
+        };
+        var plainShape = new V.Shape {
+            Id = "NativeCoverPlainShape",
+            Style = "position:absolute;left:0pt;top:0pt;width:120pt;height:80pt",
+            FillColor = "#C1121F"
+        };
+
+        Assert.False((bool)method.Invoke(null, new object[] { imageShape })!);
+        Assert.True((bool)method.Invoke(null, new object[] { plainShape })!);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Resolves_DrawingMl_Preset_Colors() {
         var properties = new ChartShapeProperties(
             new A.SolidFill(new A.PresetColor { Val = A.PresetColorValues.Red }));

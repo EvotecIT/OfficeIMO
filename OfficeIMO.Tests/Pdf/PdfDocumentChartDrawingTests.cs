@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
@@ -1048,6 +1049,95 @@ public class PdfDocumentChartDrawingTests {
         Assert.Contains(drawing.Shapes, shape =>
             shape.Shape.Kind == OfficeShapeKind.Ellipse &&
             shape.Shape.FillColor == visibleColor);
+    }
+
+    [Fact]
+    public void FlowDrawing_CanSuppressChartBackgroundFill() {
+        var style = new OfficeChartStyle(showBackground: false);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Transparent chart",
+            null,
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1" },
+                new[] {
+                    new OfficeChartSeries("Actual", new[] { 12D })
+                }),
+            widthPoints: 180D,
+            heightPoints: 120D,
+            style: style));
+
+        OfficeDrawingShape background = drawing.Shapes[0];
+        Assert.Equal(OfficeShapeKind.Rectangle, background.Shape.Kind);
+        Assert.Null(background.Shape.FillColor);
+    }
+
+    [Fact]
+    public void WordChartStyle_PreservesExplicitNoFillChartBackground() {
+        var chart = new Chart(new ChartShapeProperties(new A.NoFill()));
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            CreateBarSeries(0U, new[] { "Q1" }, new[] { 1D }));
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+
+        Assert.False(style.ShowBackground);
+    }
+
+    [Fact]
+    public void WordChartStyle_KeepsPaletteAlignedAfterSkippedSeries() {
+        OfficeColor skippedColor = OfficeColor.ParseHex("#C1121F");
+        OfficeColor visibleColor = OfficeColor.ParseHex("#0077B6");
+        var skippedSeries = new BarChartSeries(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 0U },
+            new Order { Val = 0U },
+            new SeriesText(new NumericValue("Skipped")),
+            new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "C1121F" })));
+        BarChartSeries visibleSeries = CreateBarSeries(1U, new[] { "Q1" }, new[] { 4D });
+        visibleSeries.Append(new ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "0077B6" })));
+        var chart = new Chart();
+        var chartElement = new BarChart(
+            new BarDirection { Val = BarDirectionValues.Column },
+            new BarGrouping { Val = BarGroupingValues.Clustered },
+            skippedSeries,
+            visibleSeries);
+        var plotArea = new PlotArea(chartElement);
+
+        OfficeChartStyle style = CreateNativeWordChartStyle(chart, chartElement, plotArea, OfficeChartKind.ColumnClustered, 1, 1);
+
+        Assert.NotEqual(skippedColor, style.Palette[0]);
+        Assert.Equal(visibleColor, style.Palette[0]);
+    }
+
+    [Fact]
+    public void NativeDrawingColorAlpha_AccumulatesAlphaModifiers() {
+        var color = new A.RgbColorModelHex { Val = "336699" };
+        color.Append(new A.Alpha { Val = 80000 });
+        color.Append(new A.AlphaModulation { Val = 50000 });
+        color.Append(new A.AlphaModulationFixed { Amount = 50000 });
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryGetNativeDrawingColorAlpha", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] args = { color, null };
+
+        bool found = (bool)method.Invoke(null, args)!;
+
+        Assert.True(found);
+        Assert.Equal(0.2D, (double)args[1]!, 5);
+    }
+
+    private static OfficeChartStyle CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount, int seriesCount) {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeWordChartStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
+        return (OfficeChartStyle)method.Invoke(null, new object[] {
+            chart,
+            chartElement,
+            plotArea,
+            chartKind,
+            categoryCount,
+            seriesCount,
+            new Dictionary<A.SchemeColorValues, OfficeColor>()
+        })!;
     }
 
     private static BarChartSeries CreateBarSeries(uint index, string[] categories, double[] values, DataLabels? dataLabels = null) {

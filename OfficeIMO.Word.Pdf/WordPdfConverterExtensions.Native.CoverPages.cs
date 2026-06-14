@@ -138,7 +138,7 @@ namespace OfficeIMO.Word.Pdf {
             bool rendered = false;
             if (TryRenderNativeVmlImage(canvas, document, element, box, pageWidth, pageHeight)) {
                 rendered = true;
-            } else if (TryCreateNativeVmlShape(element, box.Width, box.Height, out OfficeShape? shape) && shape != null) {
+            } else if (ShouldRenderNativeVmlShapeFallback(element) && TryCreateNativeVmlShape(element, box.Width, box.Height, out OfficeShape? shape) && shape != null) {
                 if (IsNativeVmlBoxVisibleOnPage(box, pageWidth, pageHeight)) {
                     RenderNativeVmlVisible(canvas, box, pageWidth, pageHeight, target => target.Shape(shape, box.X, box.Y, new PdfCore.PdfDrawingStyle { Decorative = true }));
                     rendered = true;
@@ -157,6 +157,8 @@ namespace OfficeIMO.Word.Pdf {
 
             return rendered;
         }
+
+        private static bool ShouldRenderNativeVmlShapeFallback(OpenXmlElement element) => element.GetFirstChild<V.ImageData>() == null;
 
         private static bool TryRenderNativeVmlImage(PdfCore.PdfPageCanvas canvas, WordDocument document, OpenXmlElement element, NativeVmlBox box, double pageWidth, double pageHeight) {
             V.ImageData? imageData = element.GetFirstChild<V.ImageData>();
