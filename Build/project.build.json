@@ -29,6 +29,7 @@
     "OfficeIMO.Reader.Text": "0.0.X",
     "OfficeIMO.Reader.Visio": "0.0.X",
     "OfficeIMO.Reader.Xml": "0.0.X",
+    "OfficeIMO.Reader.Yaml": "0.0.X",
     "OfficeIMO.Reader.Zip": "0.0.X",
     "OfficeIMO.Visio": "1.0.X",
     "OfficeIMO.Word": "1.0.X",

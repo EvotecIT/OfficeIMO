@@ -18,9 +18,21 @@ public static class DocumentReaderCsvRegistrationExtensions {
     /// </param>
     [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterCsvHandler(CsvReadOptions? csvOptions = null, bool replaceExisting = true) {
+        RegisterCsvHandler(csvOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers CSV/TSV ingestion into <see cref="DocumentReader"/>.
+    /// </summary>
+    /// <param name="csvOptions">Default parser options used by this handler.</param>
+    /// <param name="replaceExisting">
+    /// Defaults to true because these extensions are already handled by the built-in plain text path.
+    /// </param>
+    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
+    public static void RegisterCsvHandler(CsvReadOptions? csvOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
         var registered = Clone(csvOptions);
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        var registration = new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "CSV Reader Adapter",
             Description = "Modular CSV/TSV parser with table-aware chunk output.",
@@ -37,7 +49,13 @@ public static class DocumentReaderCsvRegistrationExtensions {
                 readerOptions: readerOptions,
                 csvOptions: Clone(registered),
                 cancellationToken: ct)
-        }, replaceExisting);
+        };
+
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
     }
 
     /// <summary>

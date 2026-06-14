@@ -76,6 +76,7 @@ This repository should not hide product roadmaps, current-state inventories, or 
 | [OfficeIMO.Reader.Text](OfficeIMO.Reader.Text/README.md) | Structured text compatibility adapter. |
 | [OfficeIMO.Reader.Visio](OfficeIMO.Reader.Visio/README.md) | Visio inspection snapshot adapter. |
 | [OfficeIMO.Reader.Xml](OfficeIMO.Reader.Xml/README.md) | XML reader adapter. |
+| [OfficeIMO.Reader.Yaml](OfficeIMO.Reader.Yaml/README.md) | YAML reader adapter. |
 | [OfficeIMO.Reader.Zip](OfficeIMO.Reader.Zip/README.md) | ZIP traversal reader adapter. |
 
 ## Google Workspace and primitives
