@@ -446,7 +446,7 @@ namespace OfficeIMO.Word.Html {
                     firstResolved = resolved;
                 }
 
-                if (IsImageSourceAllowed(resolved, options, out _)) {
+                if (IsImageSourceAllowedForCurrentMode(resolved, options, out _)) {
                     return resolved;
                 }
             }
@@ -612,6 +612,16 @@ namespace OfficeIMO.Word.Html {
             }
 
             return true;
+        }
+
+        private static bool IsImageSourceAllowedForCurrentMode(string src, HtmlToWordOptions options, out string detail) {
+            if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly
+                && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                detail = "External image was skipped because only data URI images are enabled.";
+                return false;
+            }
+
+            return IsImageSourceAllowed(src, options, out detail);
         }
 
         private static bool IsImageSchemeAllowed(string scheme, HtmlToWordOptions options, out string detail) {

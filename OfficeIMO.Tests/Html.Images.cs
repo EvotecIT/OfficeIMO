@@ -760,6 +760,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(uri, diagnostic.Source);
         }
 
+        [Fact]
+        public void HtmlToWord_ImageProcessing_EmbedDataUriOnly_ContinuesToDataUriCandidate() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img data-src=\"https://cdn.example.test/logo.png\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.EmbedDataUriOnly };
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
         private sealed class FakeHtmlHttpMessageHandler : HttpMessageHandler {
             private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
 

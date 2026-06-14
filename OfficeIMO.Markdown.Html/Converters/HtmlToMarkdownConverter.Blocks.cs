@@ -169,6 +169,13 @@ public sealed partial class HtmlToMarkdownConverter {
                     return new IMarkdownBlock[] { linkedImage };
                 }
 
+                if (HasRejectedHref(element, context)) {
+                    var unwrappedBlocks = ConvertNodesToBlocks(element.ChildNodes, context).ToList();
+                    if (unwrappedBlocks.Count > 0) {
+                        return unwrappedBlocks;
+                    }
+                }
+
                 if (context.Options.PreserveUnsupportedBlocks) {
                     return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
                 }
@@ -220,6 +227,15 @@ public sealed partial class HtmlToMarkdownConverter {
 
                 return new IMarkdownBlock[] { new ParagraphBlock(fallbackInline) };
         }
+    }
+
+    private static bool HasRejectedHref(IElement element, ConversionContext context) {
+        if (element == null || context == null || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        string? href = element.GetAttribute("href");
+        return !string.IsNullOrWhiteSpace(href) && string.IsNullOrWhiteSpace(ResolveUrl(href, context));
     }
 
     private static bool TryConvertConfiguredElementConverters(IElement element, ConversionContext context, out IReadOnlyList<IMarkdownBlock> blocks) {

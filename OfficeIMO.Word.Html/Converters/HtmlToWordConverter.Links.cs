@@ -67,6 +67,10 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
+            if (IsInvalidResolvedHref(uri, options)) {
+                return;
+            }
+
             var resolvedNoteType = noteType ?? options.NoteReferenceType;
             var noteParagraph = resolvedNoteType == NoteReferenceType.Endnote
                 ? noteReference.EndNote?.Paragraphs?.FirstOrDefault()
