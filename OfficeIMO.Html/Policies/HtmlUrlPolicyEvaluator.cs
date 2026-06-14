@@ -52,6 +52,10 @@ public static class HtmlUrlPolicyEvaluator {
                 : HtmlUrlEvaluation.Rejected;
         }
 
+        if (candidate.StartsWith("/", StringComparison.Ordinal)) {
+            return HtmlUrlEvaluation.Allowed(candidate, allowBaseUriResolution: true);
+        }
+
         if (LooksLikeWindowsDrivePath(candidate)) {
             return effectivePolicy.DisallowFileUrls
                 ? HtmlUrlEvaluation.Rejected

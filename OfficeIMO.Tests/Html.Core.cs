@@ -72,8 +72,10 @@ public sealed class HtmlCoreTests {
 
         string rejected = HtmlUrlPolicyEvaluator.ResolveUrl("javascript:alert(1)", new Uri("https://example.test/"), policy);
         string resolved = HtmlUrlPolicyEvaluator.ResolveUrl("../docs/index.html", new Uri("https://example.test/news/2026/"), policy);
+        string rootRelative = HtmlUrlPolicyEvaluator.ResolveUrl("/img/demo.png", new Uri("https://example.test/news/2026/"), policy);
 
         Assert.Equal(string.Empty, rejected);
         Assert.Equal("https://example.test/news/docs/index.html", resolved);
+        Assert.Equal("https://example.test/img/demo.png", rootRelative);
     }
 }
