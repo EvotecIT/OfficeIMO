@@ -378,10 +378,12 @@ public static partial class OfficeChartDrawingRenderer {
         bool percent = format.IndexOf('%') >= 0;
         bool grouped = HasDataLabelGrouping(format);
         int decimals = GetDataLabelDecimalPlaces(format);
+        int requiredDecimals = GetDataLabelRequiredDecimalPlaces(format);
         double displayValue = percent ? value * 100D : value;
         bool useAbsoluteNegative = displayValue < 0D && numberFormat!.IndexOf(';') >= 0;
         string numericFormat = (grouped ? "N" : "F") + decimals.ToString(CultureInfo.InvariantCulture);
         formatted = (useAbsoluteNegative ? Math.Abs(displayValue) : displayValue).ToString(numericFormat, CultureInfo.InvariantCulture);
+        formatted = TrimOptionalDataLabelDecimals(formatted, requiredDecimals);
         if (TryGetDataLabelFormatAffixes(format, out string prefix, out string suffix)) {
             if (percent && suffix.IndexOf('%') < 0) {
                 suffix += "%";
@@ -525,6 +527,48 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         return Math.Min(6, count);
+    }
+
+    private static int GetDataLabelRequiredDecimalPlaces(string format) {
+        int decimalIndex = format.IndexOf('.');
+        if (decimalIndex < 0) {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = decimalIndex + 1; i < format.Length; i++) {
+            char c = format[i];
+            if (c == '0') {
+                count++;
+                continue;
+            }
+
+            if (c == '#' || c == '?') {
+                continue;
+            }
+
+            break;
+        }
+
+        return Math.Min(6, count);
+    }
+
+    private static string TrimOptionalDataLabelDecimals(string value, int requiredDecimals) {
+        int decimalIndex = value.IndexOf('.');
+        if (decimalIndex < 0) {
+            return value;
+        }
+
+        int trimIndex = value.Length - 1;
+        while (trimIndex > decimalIndex + requiredDecimals && value[trimIndex] == '0') {
+            trimIndex--;
+        }
+
+        if (trimIndex == decimalIndex && requiredDecimals == 0) {
+            trimIndex--;
+        }
+
+        return trimIndex == value.Length - 1 ? value : value.Substring(0, trimIndex + 1);
     }
 
     private static string FormatDataLabelPercent(double ratio) =>

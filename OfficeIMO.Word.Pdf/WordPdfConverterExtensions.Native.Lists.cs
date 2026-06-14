@@ -253,6 +253,11 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static bool TryGetNativeSdtRunPropertyValue(WordDocument document, W.SdtRun sdtRun, out string? value) {
+            if (sdtRun.SdtProperties == null || !IsNativePropertyBoundStructuredBlock(sdtRun.SdtProperties)) {
+                value = null;
+                return false;
+            }
+
             value = GetNativeBuiltInPropertyValue(document, sdtRun.SdtProperties);
             return !string.IsNullOrWhiteSpace(value);
         }

@@ -55,9 +55,17 @@ namespace OfficeIMO.Word.Pdf {
                 return false;
             }
 
-            List<OpenXmlElement> chartElements = plotArea.ChildElements
+            List<OpenXmlElement> allChartElements = plotArea.ChildElements
+                .Where(IsNativeWordChartElement)
+                .ToList();
+            List<OpenXmlElement> chartElements = allChartElements
                 .Where(IsNativeSupportedWordChartElement)
                 .ToList();
+            if (allChartElements.Count > chartElements.Count || allChartElements.Count > 1) {
+                warning = "Word combo charts with mixed or multiple plot types are not supported by the shared OfficeIMO chart renderer yet.";
+                return false;
+            }
+
             if (chartElements.Count == 0) {
                 warning = "Word chart type is not supported by the shared OfficeIMO chart renderer.";
                 return false;
@@ -99,6 +107,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeSupportedWordChartElement(OpenXmlElement element) =>
             element.LocalName is "barChart" or "bar3DChart" or "lineChart" or "line3DChart" or "areaChart" or "area3DChart" or "pieChart" or "pie3DChart" or "doughnutChart" or "scatterChart" or "radarChart";
+
+        private static bool IsNativeWordChartElement(OpenXmlElement element) =>
+            element.LocalName.EndsWith("Chart", StringComparison.Ordinal);
 
         private static bool TryMapNativeWordChartKind(OpenXmlElement chartElement, out OfficeChartKind kind) {
             switch (chartElement.LocalName) {
@@ -332,6 +343,8 @@ namespace OfficeIMO.Word.Pdf {
 
                 if (TryParseNativeWordChartNumber(point.NumericValue?.Text, out double value)) {
                     values[index] = value;
+                } else {
+                    values[index] = double.NaN;
                 }
 
                 fallbackIndex++;
@@ -343,7 +356,7 @@ namespace OfficeIMO.Word.Pdf {
 
             var result = new List<double>();
             for (uint index = 0; index <= maxIndex; index++) {
-                result.Add(values.TryGetValue(index, out double value) ? value : 0D);
+                result.Add(values.TryGetValue(index, out double value) ? value : double.NaN);
             }
 
             return result;
@@ -355,7 +368,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (index < values.Count) {
                     result.Add(values[index]);
                 } else {
-                    result.Add(useIndexDefaults ? index + 1D : 0D);
+                    result.Add(useIndexDefaults ? index + 1D : double.NaN);
                 }
             }
 
@@ -414,8 +427,8 @@ namespace OfficeIMO.Word.Pdf {
             string.IsNullOrWhiteSpace(snapshot.Title) ? snapshot.Name : snapshot.Title!;
 
         private static (double Width, double Height) GetNativeWordChartSizePoints(WordChart chart) {
-            long? cx = chart.Drawing?.Inline?.Extent?.Cx?.Value;
-            long? cy = chart.Drawing?.Inline?.Extent?.Cy?.Value;
+            long? cx = chart.Drawing?.Inline?.Extent?.Cx?.Value ?? chart.Drawing?.Anchor?.Extent?.Cx?.Value;
+            long? cy = chart.Drawing?.Inline?.Extent?.Cy?.Value ?? chart.Drawing?.Anchor?.Extent?.Cy?.Value;
             double width = cx.HasValue && cx.Value > 0 ? cx.Value / NativeEmusPerPoint : 360D;
             double height = cy.HasValue && cy.Value > 0 ? cy.Value / NativeEmusPerPoint : 216D;
             return (width, height);

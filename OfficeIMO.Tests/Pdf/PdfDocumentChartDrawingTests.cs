@@ -761,6 +761,31 @@ public class PdfDocumentChartDrawingTests {
     }
 
     [Fact]
+    public void FlowDrawing_PreservesOptionalDecimalPlaceholdersInNumberFormats() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Optional decimal labels",
+            "Optional Decimal Labels",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] { new OfficeChartSeries("Actual", new[] { 1.2D, 1.25D, 1D }) }),
+            widthPoints: 280D,
+            heightPoints: 180D,
+            layout: new OfficeChartLayout(
+                showDataLabels: true,
+                showDataLabelValues: true,
+                dataLabelNumberFormat: "#,##0.##")));
+
+        List<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+
+        Assert.Contains("1.2", labels);
+        Assert.Contains("1.25", labels);
+        Assert.Contains("1", labels);
+        Assert.DoesNotContain("1.20", labels);
+        Assert.DoesNotContain("1.00", labels);
+    }
+
+    [Fact]
     public void FlowDrawing_SuppressesMarkersForIndividualSeries() {
         OfficeColor hiddenColor = OfficeColor.ParseHex("#C1121F");
         OfficeColor visibleColor = OfficeColor.ParseHex("#0077B6");

@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests {
             MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeParagraphStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
             PdfParagraphStyle style = Assert.IsType<PdfParagraphStyle>(method.Invoke(null, new object[] { paragraph }));
 
-            Assert.Equal(72D, style.DefaultTabStopWidth);
+            Assert.Null(style.DefaultTabStopWidth);
             PdfTabStop tabStop = Assert.Single(style.TabStops);
             Assert.Equal(72D, tabStop.Position);
             Assert.Equal(PdfTabAlignment.Right, tabStop.Alignment);

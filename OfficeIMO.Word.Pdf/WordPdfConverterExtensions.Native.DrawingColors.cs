@@ -172,7 +172,76 @@ namespace OfficeIMO.Word.Pdf {
                 return true;
             }
 
+            A.PresetColor? preset = owner.GetFirstChild<A.PresetColor>();
+            string? presetName = preset != null ? GetNativeDrawingEnumAttributeValue(preset, "val") : null;
+            if (preset != null && TryGetNativeDrawingPresetColor(presetName, out color)) {
+                color = ApplyNativeDrawingColorTransforms(color, preset);
+                return true;
+            }
+
             return false;
+        }
+
+        private static bool TryGetNativeDrawingPresetColor(string? presetName, out OfficeColor color) {
+            color = default;
+            if (string.IsNullOrWhiteSpace(presetName)) {
+                return false;
+            }
+
+            switch (presetName!.Trim().ToLowerInvariant()) {
+                case "black":
+                    color = OfficeColor.Black;
+                    return true;
+                case "white":
+                    color = OfficeColor.White;
+                    return true;
+                case "red":
+                    color = OfficeColor.FromRgb(255, 0, 0);
+                    return true;
+                case "green":
+                    color = OfficeColor.FromRgb(0, 128, 0);
+                    return true;
+                case "blue":
+                    color = OfficeColor.FromRgb(0, 0, 255);
+                    return true;
+                case "yellow":
+                    color = OfficeColor.FromRgb(255, 255, 0);
+                    return true;
+                case "cyan":
+                    color = OfficeColor.FromRgb(0, 255, 255);
+                    return true;
+                case "magenta":
+                    color = OfficeColor.FromRgb(255, 0, 255);
+                    return true;
+                case "gray":
+                case "grey":
+                    color = OfficeColor.Gray;
+                    return true;
+                case "dkgray":
+                case "darkgray":
+                case "darkgrey":
+                    color = OfficeColor.FromRgb(128, 128, 128);
+                    return true;
+                case "ltgray":
+                case "lightgray":
+                case "lightgrey":
+                    color = OfficeColor.LightGray;
+                    return true;
+                case "orange":
+                    color = OfficeColor.FromRgb(255, 165, 0);
+                    return true;
+                case "purple":
+                    color = OfficeColor.FromRgb(128, 0, 128);
+                    return true;
+                case "brown":
+                    color = OfficeColor.FromRgb(165, 42, 42);
+                    return true;
+                case "pink":
+                    color = OfficeColor.FromRgb(255, 192, 203);
+                    return true;
+                default:
+                    return OfficeColor.TryParse(presetName, out color);
+            }
         }
 
         private static bool TryGetNativeDefaultThemeColor(string? schemeName, out OfficeColor color) {

@@ -162,6 +162,30 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Ordinary_Inline_Alias_ContentControls() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeOrdinaryInlineAliasContentControl.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeOrdinaryInlineAliasContentControl.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            document.BuiltinDocumentProperties.Title = "Document property title";
+            document._document.Body!.Append(new Paragraph(new SdtRun(
+                new SdtProperties(new SdtAlias { Val = "Title" }),
+                new SdtContentRun(new Run(new Text("Manual inline content control title"))))));
+            document.AddParagraph("After ordinary inline content control");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, new PdfSaveOptions {
+                IncludePageNumbers = false
+            });
+        }
+
+        string text = PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Manual inline content control title", text);
+        Assert.Contains("After ordinary inline content control", text);
+        Assert.DoesNotContain("Document property title", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_CoverPage_Inline_Property_ContentControls() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageInlineProperties.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCoverPageInlineProperties.pdf");
@@ -802,6 +826,36 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Applies_Default_White_Vml_Fill() {
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeVmlShape", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = {
+            new DocumentFormat.OpenXml.Vml.Rectangle(),
+            120D,
+            60D,
+            null
+        };
+
+        bool result = (bool)method.Invoke(null, arguments)!;
+        OfficeShape shape = Assert.IsType<OfficeShape>(arguments[3]);
+
+        Assert.True(result);
+        Assert.Equal(OfficeColor.White, shape.FillColor);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Resolves_DrawingMl_Preset_Colors() {
+        var properties = new ChartShapeProperties(
+            new A.SolidFill(new A.PresetColor { Val = A.PresetColorValues.Red }));
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryGetNativeDrawingSolidFillColor", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { properties, null };
+
+        bool result = (bool)method.Invoke(null, arguments)!;
+
+        Assert.True(result);
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), Assert.IsType<OfficeColor>(arguments[1]));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Text_Watermark_To_Pdf_Watermark() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTextWatermark.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTextWatermark.pdf");
@@ -1029,6 +1083,46 @@ public partial class Word {
         Assert.Contains("Q1; 10.0", text);
         Assert.Contains("Q2; 20.0", text);
         Assert.Contains("After bar labels", text);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Preserves_Blank_Word_Chart_Cache_Points_As_Gaps() {
+        var values = new Values(
+            new NumberReference(
+                new NumberingCache(
+                    new PointCount { Val = 3U },
+                    new NumericPoint(new NumericValue("4")) { Index = 0U },
+                    new NumericPoint(new NumericValue("8")) { Index = 2U })));
+
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartNumberValues", BindingFlags.NonPublic | BindingFlags.Static)!;
+        IReadOnlyList<double> extracted = Assert.IsAssignableFrom<IReadOnlyList<double>>(method.Invoke(null, new object?[] { values }));
+
+        Assert.Equal(3, extracted.Count);
+        Assert.Equal(4D, extracted[0]);
+        Assert.True(double.IsNaN(extracted[1]));
+        Assert.Equal(8D, extracted[2]);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Rejects_Mixed_Unsupported_Word_Chart_Combos() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordMixedUnsupportedChart.docx");
+
+        using WordDocument document = WordDocument.Create(docPath);
+        WordChart chart = document.AddChart("Word PDF Mixed Chart", false, 360, 220);
+        chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
+        chart.AddBar("Actual", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
+
+        ChartPart chartPart = (ChartPart)typeof(WordChart)
+            .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(chart)!;
+        chartPart.ChartSpace!.Descendants<PlotArea>().First().Append(new BubbleChart());
+
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { chart, null, null };
+        bool result = (bool)method.Invoke(null, arguments)!;
+
+        Assert.False(result);
+        Assert.Contains("mixed or multiple plot types", (string?)arguments[2], StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

@@ -375,6 +375,63 @@ namespace OfficeIMO.Word.Pdf {
                     pairs.Add((0D, 0D));
                 }
 
+                if (command is 'c' or 'v' or 'q') {
+                    if (!moved) {
+                        commands.Add(OfficePathCommand.MoveTo(0D, 0D));
+                        moved = true;
+                    }
+
+                    if (command == 'c') {
+                        for (int i = 0; i + 2 < pairs.Count; i += 3) {
+                            (double control1X, double control1Y) = pairs[i];
+                            (double control2X, double control2Y) = pairs[i + 1];
+                            (double endX, double endY) = pairs[i + 2];
+                            commands.Add(OfficePathCommand.CubicBezierTo(
+                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
+                            currentX = endX;
+                            currentY = endY;
+                        }
+                    } else if (command == 'v') {
+                        for (int i = 0; i + 2 < pairs.Count; i += 3) {
+                            (double control1OffsetX, double control1OffsetY) = pairs[i];
+                            (double control2OffsetX, double control2OffsetY) = pairs[i + 1];
+                            (double endOffsetX, double endOffsetY) = pairs[i + 2];
+                            double control1X = currentX + control1OffsetX;
+                            double control1Y = currentY + control1OffsetY;
+                            double control2X = currentX + control2OffsetX;
+                            double control2Y = currentY + control2OffsetY;
+                            double endX = currentX + endOffsetX;
+                            double endY = currentY + endOffsetY;
+                            commands.Add(OfficePathCommand.CubicBezierTo(
+                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
+                            currentX = endX;
+                            currentY = endY;
+                        }
+                    } else {
+                        for (int i = 0; i + 1 < pairs.Count; i += 2) {
+                            (double controlX, double controlY) = pairs[i];
+                            (double endX, double endY) = pairs[i + 1];
+                            double control1X = currentX + (controlX - currentX) * 2D / 3D;
+                            double control1Y = currentY + (controlY - currentY) * 2D / 3D;
+                            double control2X = endX + (controlX - endX) * 2D / 3D;
+                            double control2Y = endY + (controlY - endY) * 2D / 3D;
+
+                            commands.Add(OfficePathCommand.CubicBezierTo(
+                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
+                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
+                            currentX = endX;
+                            currentY = endY;
+                        }
+                    }
+
+                    continue;
+                }
+
                 foreach ((double x, double y) in pairs) {
                     if (command == 'm') {
                         currentX = x;
@@ -412,79 +469,6 @@ namespace OfficeIMO.Word.Pdf {
                         commands.Add(OfficePathCommand.LineTo(
                             ScaleNativeVmlPathX(currentX, coordWidth, width),
                             ScaleNativeVmlPathY(currentY, coordHeight, height)));
-                    } else if (command == 'c') {
-                        if (!moved) {
-                            commands.Add(OfficePathCommand.MoveTo(0D, 0D));
-                            moved = true;
-                        }
-
-                        if (pairs.Count < 3) {
-                            continue;
-                        }
-
-                        for (int i = 0; i + 2 < pairs.Count; i += 3) {
-                            (double control1X, double control1Y) = pairs[i];
-                            (double control2X, double control2Y) = pairs[i + 1];
-                            (double endX, double endY) = pairs[i + 2];
-                            commands.Add(OfficePathCommand.CubicBezierTo(
-                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
-                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
-                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
-                            currentX = endX;
-                            currentY = endY;
-                        }
-                    } else if (command == 'v') {
-                        if (!moved) {
-                            commands.Add(OfficePathCommand.MoveTo(0D, 0D));
-                            moved = true;
-                        }
-
-                        if (pairs.Count < 3) {
-                            continue;
-                        }
-
-                        for (int i = 0; i + 2 < pairs.Count; i += 3) {
-                            (double control1OffsetX, double control1OffsetY) = pairs[i];
-                            (double control2OffsetX, double control2OffsetY) = pairs[i + 1];
-                            (double endOffsetX, double endOffsetY) = pairs[i + 2];
-                            double control1X = currentX + control1OffsetX;
-                            double control1Y = currentY + control1OffsetY;
-                            double control2X = currentX + control2OffsetX;
-                            double control2Y = currentY + control2OffsetY;
-                            double endX = currentX + endOffsetX;
-                            double endY = currentY + endOffsetY;
-                            commands.Add(OfficePathCommand.CubicBezierTo(
-                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
-                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
-                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
-                            currentX = endX;
-                            currentY = endY;
-                        }
-                    } else if (command == 'q') {
-                        if (!moved) {
-                            commands.Add(OfficePathCommand.MoveTo(0D, 0D));
-                            moved = true;
-                        }
-
-                        if (pairs.Count < 2) {
-                            continue;
-                        }
-
-                        for (int i = 0; i + 1 < pairs.Count; i += 2) {
-                            (double controlX, double controlY) = pairs[i];
-                            (double endX, double endY) = pairs[i + 1];
-                            double control1X = currentX + (controlX - currentX) * 2D / 3D;
-                            double control1Y = currentY + (controlY - currentY) * 2D / 3D;
-                            double control2X = endX + (controlX - endX) * 2D / 3D;
-                            double control2Y = endY + (controlY - endY) * 2D / 3D;
-
-                            commands.Add(OfficePathCommand.CubicBezierTo(
-                                new OfficePoint(ScaleNativeVmlPathX(control1X, coordWidth, width), ScaleNativeVmlPathY(control1Y, coordHeight, height)),
-                                new OfficePoint(ScaleNativeVmlPathX(control2X, coordWidth, width), ScaleNativeVmlPathY(control2Y, coordHeight, height)),
-                                new OfficePoint(ScaleNativeVmlPathX(endX, coordWidth, width), ScaleNativeVmlPathY(endY, coordHeight, height))));
-                            currentX = endX;
-                            currentY = endY;
-                        }
                     }
                 }
             }
@@ -537,9 +521,7 @@ namespace OfficeIMO.Word.Pdf {
                 if (fillEnabled) {
                     string? childFillColor = fillElement is not null ? GetNativeOpenXmlAttribute(fillElement, "color") : null;
                     PdfCore.PdfColor? fill = ParseNativeColor(NormalizeNativeVmlColor(GetNativeOpenXmlAttribute(element, "fillcolor") ?? childFillColor));
-                    if (fill.HasValue) {
-                        shape.FillColor = fill.Value.ToOfficeColor();
-                    }
+                    shape.FillColor = (fill ?? PdfCore.PdfColor.White).ToOfficeColor();
 
                     if (TryGetNativeVmlGradientFill(fillElement, fill, out OfficeLinearGradient? gradient)) {
                         shape.FillGradient = gradient;

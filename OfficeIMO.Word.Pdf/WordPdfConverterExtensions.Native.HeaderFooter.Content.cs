@@ -325,7 +325,8 @@ namespace OfficeIMO.Word.Pdf {
             var builder = new StringBuilder(text ?? string.Empty);
             string currentText = builder.ToString();
             foreach (V.TextPath textPath in textPaths) {
-                if (!IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(textPath, "on"))) {
+                if (!IsNativeVmlSwitchEnabled(GetNativeOpenXmlAttribute(textPath, "on")) ||
+                    IsNativeHeaderFooterWatermarkTextPath(textPath)) {
                     continue;
                 }
 
@@ -337,6 +338,19 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             return builder.Length == 0 ? text : builder.ToString();
+        }
+
+        private static bool IsNativeHeaderFooterWatermarkTextPath(V.TextPath textPath) {
+            V.Shape? shape = textPath.Ancestors<V.Shape>().FirstOrDefault();
+            if (shape == null) {
+                return false;
+            }
+
+            string marker = string.Join(" ",
+                shape.Id?.Value,
+                GetNativeOpenXmlAttribute(shape, "name"),
+                GetNativeOpenXmlAttribute(shape, "title"));
+            return marker.IndexOf("watermark", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static string? AppendNativeHeaderFooterRepeatingSectionText(string? text, WordParagraph paragraph) {
