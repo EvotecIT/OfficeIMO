@@ -790,6 +790,50 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_DataImage_DecodesPercentEscapedBase64Payload() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Uri.EscapeDataString(Convert.ToBase64String(File.ReadAllBytes(path)));
+            string html = $"<img src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastUnsupportedDataCandidate() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img data-src=\"data:image/avif;base64,AQID\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastOversizedDataCandidate() {
+            string oversized = Convert.ToBase64String(new byte[16]);
+            const string fallback = "https://cdn.example.test/logo.png";
+            string html = $"<img data-src=\"data:image/png;base64,{oversized}\" src=\"{fallback}\" width=\"32\" height=\"32\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions {
+                ImageProcessing = ImageProcessingMode.LinkExternal,
+                MaxImageBytes = 4
+            };
+
+            var doc = html.LoadFromHtml(options);
+
+            var image = Assert.Single(doc.Images);
+            Assert.True(image.IsExternal);
+            Assert.Equal(new Uri(fallback), image.ExternalUri);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageProcessing_EmbedDataUriOnly_SkipsExternalImages() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var uri = new Uri(path).AbsoluteUri;

@@ -385,12 +385,21 @@ namespace OfficeIMO.Word.Html {
                         AddDiagnostic(options, "ImageResourceTooLarge", "Image data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image");
                         return false;
                     }
-                    if (!TryReserveImageBytes(estimatedBytes, options, "data:image")) {
+                    if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+                        AddDiagnostic(options, "ImageDataUriInvalid", "Image data URI could not be decoded or embedded and was replaced with alt text when available.", src);
                         return false;
                     }
-                    reservedBytes = estimatedBytes;
+                    if (options.MaxImageBytes.HasValue && bytes.LongLength > options.MaxImageBytes.Value) {
+                        AddDiagnostic(options, "ImageResourceTooLarge", "Image data URI exceeded the configured byte limit and was replaced with alt text when available.", "data:image");
+                        return false;
+                    }
+                    if (!TryReserveImageBytes(bytes.LongLength, options, "data:image")) {
+                        return false;
+                    }
+                    reservedBytes = bytes.LongLength;
                     paragraph ??= headerFooter != null ? headerFooter.AddParagraph() : doc.AddParagraph();
-                    paragraph.AddImageFromBase64(dataUri.Data, "image." + ext, width, height, wrap, description: alt);
+                    using var imageStream = new MemoryStream(bytes);
+                    paragraph.AddImage(imageStream, "image." + ext, width, height, wrap, description: alt);
                 } else {
                     if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
                         AddDiagnostic(options, "ImageDataUriUnsupported", "Non-base64 data URI image was skipped because only SVG text data URIs are supported.", src);
@@ -433,7 +442,7 @@ namespace OfficeIMO.Word.Html {
             return null;
         }
 
-        private static string ResolveWordImageSource(IHtmlImageElement img, HtmlToWordOptions options) {
+        private string ResolveWordImageSource(IHtmlImageElement img, HtmlToWordOptions options) {
             string firstResolved = string.Empty;
             foreach (string candidate in EnumerateWordImageSourceCandidates(img, options)) {
                 string resolved = ResolveImageSourcePath(candidate, img, options);
@@ -659,7 +668,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static bool IsImageSourceAllowedForCurrentMode(string src, IHtmlImageElement img, HtmlToWordOptions options, out string detail) {
+        private bool IsImageSourceAllowedForCurrentMode(string src, IHtmlImageElement img, HtmlToWordOptions options, out string detail) {
             if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly
                 && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
                 detail = "External image was skipped because only data URI images are enabled.";
@@ -673,7 +682,60 @@ namespace OfficeIMO.Word.Html {
                 return false;
             }
 
-            return IsImageSourceAllowed(src, options, out detail);
+            if (!IsImageSourceAllowed(src, options, out detail)) {
+                return false;
+            }
+
+            if (src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
+                return IsDataImageCandidateAllowed(src, options, out detail);
+            }
+
+            return true;
+        }
+
+        private bool IsDataImageCandidateAllowed(string src, HtmlToWordOptions options, out string detail) {
+            detail = string.Empty;
+            if (!HtmlImageDataUri.TryParse(src, out var dataUri)) {
+                detail = "Image data URI could not be parsed.";
+                return false;
+            }
+
+            if (!IsImageContentTypeAllowed(dataUri.MediaType, options)) {
+                detail = $"Image data URI content type '{dataUri.MediaType}' is not allowed.";
+                return false;
+            }
+
+            try {
+                long estimatedBytes;
+                if (dataUri.IsBase64) {
+                    estimatedBytes = dataUri.EstimateDecodedByteCount();
+                } else {
+                    if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
+                        detail = "Only SVG text data URI images are supported when the payload is not base64 encoded.";
+                        return false;
+                    }
+
+                    estimatedBytes = Encoding.UTF8.GetByteCount(dataUri.DecodeText());
+                }
+
+                if (options.MaxImageBytes.HasValue && estimatedBytes > options.MaxImageBytes.Value) {
+                    detail = $"Image data URI estimated size {estimatedBytes} bytes exceeds limit {options.MaxImageBytes.Value} bytes.";
+                    return false;
+                }
+
+                if (options.MaxTotalImageBytes.HasValue && estimatedBytes > options.MaxTotalImageBytes.Value - _imageBytesUsed) {
+                    detail = $"Image data URI estimated size {estimatedBytes} bytes exceeds remaining image byte budget.";
+                    return false;
+                }
+
+                return true;
+            } catch (UriFormatException ex) {
+                detail = ex.Message;
+                return false;
+            } catch (FormatException ex) {
+                detail = ex.Message;
+                return false;
+            }
         }
 
         private static bool HasExternalImageDimensionHints(IHtmlImageElement img) {
