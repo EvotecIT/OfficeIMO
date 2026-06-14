@@ -427,6 +427,12 @@ public static class DocumentReaderYamlExtensions {
             return NormalizeBlockScalarValue(value ?? string.Empty);
         }
 
+        if (scalar.Style == ScalarStyle.SingleQuoted ||
+            scalar.Style == ScalarStyle.DoubleQuoted ||
+            HasExplicitStringTag(scalar)) {
+            return value ?? string.Empty;
+        }
+
         return NormalizeText(value ?? string.Empty);
     }
 
@@ -506,13 +512,62 @@ public static class DocumentReaderYamlExtensions {
             return false;
         }
 
+        if (IsYamlPrefixedInteger(trimmed)) {
+            return true;
+        }
+
+        var normalized = trimmed.Replace("_", string.Empty);
         return double.TryParse(
-            trimmed,
+            normalized,
             NumberStyles.Float,
             CultureInfo.InvariantCulture,
             out var number) &&
             !double.IsNaN(number) &&
             !double.IsInfinity(number);
+    }
+
+    private static bool IsYamlPrefixedInteger(string value) {
+        var offset = value.StartsWith("+", StringComparison.Ordinal) || value.StartsWith("-", StringComparison.Ordinal)
+            ? 1
+            : 0;
+        if (value.Length <= offset + 2 || value[offset] != '0') {
+            return false;
+        }
+
+        var prefix = value[offset + 1];
+        if (prefix == 'x' || prefix == 'X') {
+            return HasOnlyDigits(value, offset + 2, IsHexDigit);
+        }
+
+        if (prefix == 'o' || prefix == 'O') {
+            return HasOnlyDigits(value, offset + 2, static c => c is >= '0' and <= '7');
+        }
+
+        return false;
+    }
+
+    private static bool HasOnlyDigits(string value, int start, Func<char, bool> isDigit) {
+        var sawDigit = false;
+        for (var i = start; i < value.Length; i++) {
+            var c = value[i];
+            if (c == '_') {
+                continue;
+            }
+
+            if (!isDigit(c)) {
+                return false;
+            }
+
+            sawDigit = true;
+        }
+
+        return sawDigit;
+    }
+
+    private static bool IsHexDigit(char c) {
+        return c is >= '0' and <= '9' ||
+               c is >= 'a' and <= 'f' ||
+               c is >= 'A' and <= 'F';
     }
 
     private static ReaderChunk BuildWarningChunk(string path, string id, string warning) {

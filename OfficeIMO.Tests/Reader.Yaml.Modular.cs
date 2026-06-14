@@ -84,6 +84,68 @@ public sealed class ReaderYamlModularTests {
     }
 
     [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_PreservesQuotedScalarWhitespaceInTables() {
+        const string yaml = "command: \"printf 'a  b\\n'\"\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "quoted.yaml",
+            yamlOptions: new YamlReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = true
+            }));
+
+        var table = Assert.Single(chunk.Tables ?? Array.Empty<ReaderTable>());
+        var row = Assert.Single(table.Rows);
+
+        Assert.Equal("$.command", row[0]);
+        Assert.Equal("string", row[1]);
+        Assert.Equal("printf 'a  b\n'", row[2]);
+        Assert.Contains("printf 'a  b\\n'", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_RecognizesYamlCoreNumericForms() {
+        const string yaml =
+            "mode: 0o755\n" +
+            "mask: 0xFF\n" +
+            "total: 1_000\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "numbers.yaml",
+            yamlOptions: new YamlReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = false
+            }));
+
+        Assert.Contains("$.mode | number | 0o755", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.mask | number | 0xFF", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.total | number | 1_000", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_EnforcesMaxInputBytesAgainstSeekableRemainingBytes() {
+        var prefix = Encoding.UTF8.GetBytes(new string('x', 128));
+        var yaml = Encoding.UTF8.GetBytes("metadata:\n  name: officeimo\n");
+        using var stream = new MemoryStream(prefix.Concat(yaml).ToArray(), writable: false);
+        stream.Position = prefix.Length;
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "slice.yaml",
+            readerOptions: new ReaderOptions { MaxInputBytes = yaml.Length },
+            yamlOptions: new YamlReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = false
+            }));
+
+        Assert.Contains("$.metadata.name | string | officeimo", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DocumentReaderYaml_ReadYamlStream_PreservesBlockScalarValuesInTables() {
         const string yaml =
             "script: |\n" +
