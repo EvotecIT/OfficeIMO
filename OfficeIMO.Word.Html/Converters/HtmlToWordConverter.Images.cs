@@ -8,6 +8,8 @@ using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private static readonly HtmlUrlPolicy ImageSourceResolutionPolicy = CreateImageSourceResolutionPolicy();
+        private static readonly string[] WordImageSrcSetAttributes = { "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset" };
+        private static readonly string[] WordPictureSourceAttributes = { "src", "data-src", "data-original-src", "data-lazy-src" };
 
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
             var src = ResolveWordImageSource(img, options);
@@ -433,10 +435,7 @@ namespace OfficeIMO.Word.Html {
 
         private static string ResolveWordImageSource(IHtmlImageElement img, HtmlToWordOptions options) {
             string firstResolved = string.Empty;
-            foreach (string candidate in HtmlImageSourceResolver.ResolveImageSourceCandidates(
-                         img,
-                         ResolveImageBaseUri(img, options),
-                         ImageSourceResolutionPolicy)) {
+            foreach (string candidate in EnumerateWordImageSourceCandidates(img, options)) {
                 string resolved = ResolveImageSourcePath(candidate, img, options);
                 if (string.IsNullOrWhiteSpace(resolved)) {
                     continue;
@@ -452,6 +451,52 @@ namespace OfficeIMO.Word.Html {
             }
 
             return firstResolved;
+        }
+
+        private static IEnumerable<string> EnumerateWordImageSourceCandidates(IHtmlImageElement img, HtmlToWordOptions options) {
+            Uri? baseUri = ResolveImageBaseUri(img, options);
+            if (img.ParentElement != null
+                && img.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+                foreach (var child in img.ParentElement.Children) {
+                    if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    if (!IsImageContentTypeAllowed(child.GetAttribute("type"), options)) {
+                        continue;
+                    }
+
+                    foreach (string candidate in ResolveImageCandidatesFromSourceElement(child, baseUri)) {
+                        yield return candidate;
+                    }
+                }
+            }
+
+            foreach (string candidate in HtmlImageSourceResolver.ResolveImageSourceCandidates(
+                         img,
+                         baseUri,
+                         ImageSourceResolutionPolicy,
+                         allowParentPictureFallback: false)) {
+                yield return candidate;
+            }
+        }
+
+        private static IEnumerable<string> ResolveImageCandidatesFromSourceElement(AngleSharp.Dom.IElement sourceElement, Uri? baseUri) {
+            foreach (string attributeName in WordImageSrcSetAttributes) {
+                foreach (HtmlSrcSetCandidate candidate in HtmlImageSourceResolver.ResolveSrcSetCandidates(
+                             sourceElement.GetAttribute(attributeName),
+                             baseUri,
+                             ImageSourceResolutionPolicy)) {
+                    yield return candidate.Url;
+                }
+            }
+
+            foreach (string attributeName in WordPictureSourceAttributes) {
+                string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(sourceElement.GetAttribute(attributeName), baseUri, ImageSourceResolutionPolicy);
+                if (!string.IsNullOrWhiteSpace(resolved)) {
+                    yield return resolved;
+                }
+            }
         }
 
         private static string ResolveImageSourcePath(string source, IHtmlImageElement img, HtmlToWordOptions options) {
@@ -636,15 +681,8 @@ namespace OfficeIMO.Word.Html {
                 return true;
             }
 
-            if (!string.IsNullOrWhiteSpace(img.GetAttribute("width"))
-                && !string.IsNullOrWhiteSpace(img.GetAttribute("height"))) {
-                return true;
-            }
-
-            string? style = img.GetAttribute("style");
-            return !string.IsNullOrWhiteSpace(style)
-                   && style!.IndexOf("width", StringComparison.OrdinalIgnoreCase) >= 0
-                   && style.IndexOf("height", StringComparison.OrdinalIgnoreCase) >= 0;
+            return TryParsePixelValue(img.GetAttribute("width")).HasValue
+                   && TryParsePixelValue(img.GetAttribute("height")).HasValue;
         }
 
         private static bool IsImageSchemeAllowed(string scheme, HtmlToWordOptions options, out string detail) {

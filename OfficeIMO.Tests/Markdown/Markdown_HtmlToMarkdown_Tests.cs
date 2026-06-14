@@ -111,6 +111,8 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p>``` not code</p>
 <p>~~~ not code</p>
 <p><span>1</span>. split ordered</p>
+<p>&lt;div&gt;literal&lt;/div&gt;</p>
+<p>&lt;!-- literal comment --&gt;</p>
 """;
 
         MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
@@ -126,6 +128,8 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Contains("\\``` not code", markdown, StringComparison.Ordinal);
         Assert.Contains("\\~~~ not code", markdown, StringComparison.Ordinal);
         Assert.Contains("1\\. split ordered", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<div>literal</div>", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\<!-- literal comment -->", markdown, StringComparison.Ordinal);
         Assert.Contains("# not heading", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("- not a list", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("1. not ordered", renderedHtml, StringComparison.Ordinal);

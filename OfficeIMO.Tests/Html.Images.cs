@@ -758,6 +758,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageProcessing_LinkExternal_ContinuesPastCssOnlyExternalCandidate() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img src=\"data:image/png;base64,{base64}\" srcset=\"https://cdn.example.test/logo.png 1x\" style=\"width:32px;height:32px\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions { ImageProcessing = ImageProcessingMode.LinkExternal };
+
+            var doc = html.LoadFromHtml(options);
+
+            var image = Assert.Single(doc.Images);
+            Assert.False(image.IsExternal);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
+        public void HtmlToWord_Picture_SkipsUnsupportedSourceTypeBeforeFallbackImage() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"""
+<picture>
+  <source type="image/avif" srcset="https://cdn.example.test/logo.avif 1x" />
+  <img src="data:image/png;base64,{base64}" alt="Logo" />
+</picture>
+""";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageProcessing_EmbedDataUriOnly_SkipsExternalImages() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var uri = new Uri(path).AbsoluteUri;

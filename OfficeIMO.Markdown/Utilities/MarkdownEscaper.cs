@@ -92,7 +92,8 @@ internal static class MarkdownEscaper {
         if (marker == '>'
             || IsHeadingMarker(line, markerIndex)
             || IsUnorderedListMarker(line, markerIndex)
-            || IsFencedCodeMarker(line, markerIndex)) {
+            || IsFencedCodeMarker(line, markerIndex)
+            || IsHtmlBlockOpener(line, markerIndex)) {
             return line.Insert(markerIndex, "\\");
         }
 
@@ -152,6 +153,28 @@ internal static class MarkdownEscaper {
         }
 
         return count >= 3;
+    }
+
+    private static bool IsHtmlBlockOpener(string line, int markerIndex) {
+        if (line[markerIndex] != '<') {
+            return false;
+        }
+
+        ReadOnlySpan<char> value = line.AsSpan(markerIndex);
+        if (value.StartsWith("<!--".AsSpan(), StringComparison.Ordinal)) {
+            return true;
+        }
+
+        if (value.StartsWith("</".AsSpan(), StringComparison.Ordinal)) {
+            return markerIndex + 2 < line.Length && IsHtmlTagNameStart(line[markerIndex + 2]);
+        }
+
+        return markerIndex + 1 < line.Length && IsHtmlTagNameStart(line[markerIndex + 1]);
+    }
+
+    private static bool IsHtmlTagNameStart(char value) {
+        return value >= 'A' && value <= 'Z'
+               || value >= 'a' && value <= 'z';
     }
 
     private static int GetOrderedListSeparatorIndex(string line, int markerIndex) {
