@@ -256,9 +256,14 @@ jobs:
       matrix:
         include:
           - framework: net8.0
-            slice: pdf
+            slice: pdf-core
             project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
-            filter: (FullyQualifiedName~OfficeIMO.Tests.Pdf|FullyQualifiedName~SaveAsPdf)
+            filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net8.0
+            slice: save-as-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf
             extraArgs: ''
           - framework: net8.0
             slice: markdown
@@ -281,9 +286,14 @@ jobs:
             filter: FullyQualifiedName~PerformanceReview
             extraArgs: '-- xUnit.ParallelizeTestCollections=false'
           - framework: net10.0
-            slice: pdf
+            slice: pdf-core
             project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
-            filter: (FullyQualifiedName~OfficeIMO.Tests.Pdf|FullyQualifiedName~SaveAsPdf)
+            filter: FullyQualifiedName~OfficeIMO.Tests.Pdf
+            extraArgs: ''
+          - framework: net10.0
+            slice: save-as-pdf
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Pdf
             extraArgs: ''
           - framework: net10.0
             slice: markdown
