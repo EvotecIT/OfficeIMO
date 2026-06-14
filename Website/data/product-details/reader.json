@@ -18,6 +18,7 @@
     { "name": "OfficeIMO.Reader.Csv", "description": "CSV and TSV adapter for Reader ingestion", "install": "dotnet add package OfficeIMO.Reader.Csv" },
     { "name": "OfficeIMO.Reader.Json", "description": "JSON adapter for deterministic chunking", "install": "dotnet add package OfficeIMO.Reader.Json" },
     { "name": "OfficeIMO.Reader.Xml", "description": "XML adapter with element-oriented extraction", "install": "dotnet add package OfficeIMO.Reader.Xml" },
+    { "name": "OfficeIMO.Reader.Yaml", "description": "YAML adapter for configuration and manifest ingestion", "install": "dotnet add package OfficeIMO.Reader.Yaml" },
     { "name": "OfficeIMO.Reader.Text", "description": "Combined CSV, JSON, and XML adapter path", "install": "dotnet add package OfficeIMO.Reader.Text" },
     { "name": "OfficeIMO.Reader.Html", "description": "HTML adapter backed by the Markdown pipeline", "install": "dotnet add package OfficeIMO.Reader.Html" },
     { "name": "OfficeIMO.Reader.Epub", "description": "EPUB adapter for packaged publications", "install": "dotnet add package OfficeIMO.Reader.Epub" },

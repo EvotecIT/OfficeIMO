@@ -6,7 +6,7 @@ order: 55
 
 # Reader and Extraction
 
-`OfficeIMO.Reader` provides a single extraction surface for the built-in formats currently handled in the repo, plus optional adapters for adjacent document types. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, PDF, CSV, JSON, XML, HTML, EPUB, ZIP, or text-like files, you can normalize them into one chunk model and then feed that output into indexing, search, and AI workflows.
+`OfficeIMO.Reader` provides a single extraction surface for the built-in formats currently handled in the repo, plus optional adapters for adjacent document types. Instead of maintaining separate parsing pipelines for `.docx`, `.xlsx`, `.pptx`, Markdown, PDF, CSV, JSON, XML, YAML, HTML, EPUB, ZIP, or text-like files, you can normalize them into one chunk model and then feed that output into indexing, search, and AI workflows.
 
 ## Best fit scenarios
 
@@ -53,6 +53,7 @@ foreach (var chunk in chunks)
 | CSV/TSV | Structured flat files through `OfficeIMO.Reader.Csv` |
 | JSON | API exports and structured payloads through `OfficeIMO.Reader.Json` |
 | XML | Element-oriented documents through `OfficeIMO.Reader.Xml` |
+| YAML | Configuration files and manifests through `OfficeIMO.Reader.Yaml` |
 | HTML | Web pages and exported fragments through `OfficeIMO.Reader.Html` |
 | EPUB | Books and packaged publications through `OfficeIMO.Reader.Epub` |
 | ZIP | Archive traversal through `OfficeIMO.Reader.Zip` |
@@ -64,6 +65,7 @@ The core package covers the main Office-oriented extraction flow. Add adapter pa
 - `OfficeIMO.Reader.Csv` for CSV and TSV ingestion.
 - `OfficeIMO.Reader.Json` for JSON payloads.
 - `OfficeIMO.Reader.Xml` for XML documents.
+- `OfficeIMO.Reader.Yaml` for YAML configuration files, manifests, and multi-document streams.
 - `OfficeIMO.Reader.Text` when CSV, JSON, and XML adapters should travel together.
 - `OfficeIMO.Reader.Html` for HTML normalization through the Markdown pipeline.
 - `OfficeIMO.Reader.Epub` for EPUB publications.

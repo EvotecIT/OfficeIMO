@@ -328,6 +328,19 @@
         {
           "registry": "nuget",
           "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.Reader.Yaml",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Yaml",
+          "title": "OfficeIMO.Reader.Yaml",
+          "summary": "YAML adapter extensions for OfficeIMO.Reader.",
+          "best_for": "configuration files, manifests, and multi-document YAML streams that need deterministic Reader output",
+          "install": "dotnet add package OfficeIMO.Reader.Yaml",
+          "product_url": "/products/reader/",
+          "docs_url": "/docs/reader/",
+          "accent": "#10b981"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
           "registry_package": "OfficeIMO.Reader.Text",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Text",
           "title": "OfficeIMO.Reader.Text",

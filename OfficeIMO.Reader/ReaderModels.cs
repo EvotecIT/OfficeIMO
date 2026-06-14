@@ -51,6 +51,10 @@ public enum ReaderInputKind {
     /// </summary>
     Xml,
     /// <summary>
+    /// YAML structured text.
+    /// </summary>
+    Yaml,
+    /// <summary>
     /// HTML document.
     /// </summary>
     Html,
