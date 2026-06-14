@@ -296,6 +296,26 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_DropsPolicyRejectedPictureOnlyDataImagesWhenPreservingUnsupportedBlocks() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="data:image/png;base64,AQID" alt="Data">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true,
+            UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("data:image", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<picture", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_CanSaveBase64ImagesIntoTypedImageBlock() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
         try {

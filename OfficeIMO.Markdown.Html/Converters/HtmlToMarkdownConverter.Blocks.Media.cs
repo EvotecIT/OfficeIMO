@@ -19,8 +19,9 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         string preferredSrc = ResolvePictureSource(element, context);
-        bool hasSkippedBase64Candidate = context.Options.Base64Images != HtmlBase64ImageHandling.Include
-                                         && HasBase64PictureCandidate(element, context);
+        bool hasUnsafePictureCandidate = HasRejectedPictureSourceCandidate(element, context)
+                                         || (context.Options.Base64Images != HtmlBase64ImageHandling.Include
+                                             && HasBase64PictureCandidate(element, context));
         var imageElement = element.QuerySelector("img");
         if (imageElement != null && TryCreateImageBlock(imageElement, context, out var imageBlock)) {
             if (!string.IsNullOrWhiteSpace(preferredSrc) && !TryApplyBase64ImageHandling(ref preferredSrc, context)) {
@@ -39,7 +40,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         if (string.IsNullOrWhiteSpace(preferredSrc)) {
-            if (hasSkippedBase64Candidate) {
+            if (hasUnsafePictureCandidate) {
                 return Array.Empty<IMarkdownBlock>();
             }
 
@@ -273,6 +274,31 @@ public sealed partial class HtmlToMarkdownConverter {
                || HasBase64UrlAttribute(imageElement, "src", "data-src", "data-original", "data-original-src", "data-lazy-src");
     }
 
+    private static bool HasRejectedPictureSourceCandidate(IElement element, ConversionContext context) {
+        if (element == null || context == null) {
+            return false;
+        }
+
+        foreach (var child in element.Children) {
+            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (HasRejectedSrcSetAttribute(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
+                || HasRejectedUrlAttribute(child, context, "src", "data-src", "data-original-src", "data-lazy-src")) {
+                return true;
+            }
+        }
+
+        var imageElement = element.QuerySelector("img");
+        if (imageElement == null) {
+            return false;
+        }
+
+        return HasRejectedSrcSetAttribute(imageElement, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
+               || HasRejectedUrlAttribute(imageElement, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src");
+    }
+
     private static bool HasBase64UrlAttribute(IElement element, params string[] attributeNames) {
         if (element == null || attributeNames == null) {
             return false;
@@ -280,6 +306,20 @@ public sealed partial class HtmlToMarkdownConverter {
 
         foreach (string attributeName in attributeNames) {
             if (IsBase64ImageDataUri(element.GetAttribute(attributeName))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasRejectedUrlAttribute(IElement element, ConversionContext context, params string[] attributeNames) {
+        if (element == null || context == null || attributeNames == null) {
+            return false;
+        }
+
+        foreach (string attributeName in attributeNames) {
+            if (IsRejectedImageSource(element.GetAttribute(attributeName), context)) {
                 return true;
             }
         }
@@ -301,6 +341,30 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         return false;
+    }
+
+    private static bool HasRejectedSrcSetAttribute(IElement element, ConversionContext context, params string[] attributeNames) {
+        if (element == null || context == null || attributeNames == null) {
+            return false;
+        }
+
+        foreach (string attributeName in attributeNames) {
+            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(element.GetAttribute(attributeName))) {
+                if (IsRejectedImageSource(candidate.Url, context)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsRejectedImageSource(string? source, ConversionContext context) {
+        if (string.IsNullOrWhiteSpace(source)) {
+            return false;
+        }
+
+        return string.IsNullOrWhiteSpace(HtmlUrlPolicyEvaluator.ResolveUrl(source, context.Options.BaseUri, context.Options.UrlPolicy));
     }
 
 }
