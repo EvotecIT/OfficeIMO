@@ -73,7 +73,7 @@ public static class ReaderInputLimits {
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         if (stream.CanSeek) {
-            EnforceSeekableStreamSize(stream, maxInputBytes);
+            EnforceSeekableStreamRemainingSize(stream, maxInputBytes);
             ownsStream = false;
             return stream;
         }

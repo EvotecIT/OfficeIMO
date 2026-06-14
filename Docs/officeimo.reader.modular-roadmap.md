@@ -18,6 +18,7 @@ The goal is clean IntelligenceX integration without forcing one large dependency
 - `OfficeIMO.Reader.Epub`
 - `OfficeIMO.Reader.Text`
 - `OfficeIMO.Reader.Html`
+- `OfficeIMO.Reader.Yaml`
 
 These scaffolded packages are now wired into the publishing pipeline.
 
@@ -39,7 +40,7 @@ These scaffolded packages are now wired into the publishing pipeline.
 
 3. Structured text path (medium)
 - CSV semantic chunks with tables.
-- JSON/XML structural chunkers. (implemented in scaffold branch)
+- JSON/XML/YAML structural chunkers. (implemented in scaffold branch)
 - Stable markdown previews and table metadata.
 - Add stream ingestion + registry stream dispatch. (implemented in scaffold branch)
 - Reuse `OfficeIMO.CSV` stream API for CSV path/stream parity. (implemented in scaffold branch)

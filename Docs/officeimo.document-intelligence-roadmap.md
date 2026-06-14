@@ -32,7 +32,7 @@ Keep this roadmap aligned with the current owner documents and proof manifests:
 
 ### Reader
 
-`OfficeIMO.Reader` is already a stable ingestion facade. It reads Word, Excel, PowerPoint, Markdown, PDF, HTML, ZIP, EPUB, CSV, JSON, XML, and plain text-like formats into `ReaderChunk` instances with stable IDs, location metadata, hashes, table metadata, folder traversal, warning chunks, progress callbacks, detailed source summaries, handler registration, capability manifests, and host bootstrap helpers.
+`OfficeIMO.Reader` is already a stable ingestion facade. It reads Word, Excel, PowerPoint, Markdown, PDF, HTML, ZIP, EPUB, CSV, JSON, XML, YAML, and plain text-like formats into `ReaderChunk` instances with stable IDs, location metadata, hashes, table metadata, folder traversal, warning chunks, progress callbacks, detailed source summaries, handler registration, capability manifests, and host bootstrap helpers.
 
 `OfficeIMO.Reader.Pdf` now registers PDF ingestion through the same reader facade. The next step is not another reader switch statement; it is a shared result model that can expose chunks, Markdown, JSON, HTML, assets, diagnostics, source maps, and format-specific logical blocks from the same extraction run.
 
@@ -222,7 +222,7 @@ Goal: make current PDF logical readback the first full adapter into the shared m
 
 Goal: make table and block output reliable enough for automation.
 
-- Normalize table output across PDF, Excel, Word, Markdown, HTML, CSV, JSON, XML, and PowerPoint table adapters.
+- Normalize table output across PDF, Excel, Word, Markdown, HTML, CSV, JSON, XML, YAML, and PowerPoint table adapters.
 - Preserve table source references, row/column counts, span data, truncation state, captions/titles where known, and cell text.
 - Promote existing PDF-to-Word/Excel table import helpers into the shared table contract once confidence metadata is available.
 - Extend table-only extraction mode from Reader/PDF/Visio into examples, docs, and any remaining format-specific adapters.

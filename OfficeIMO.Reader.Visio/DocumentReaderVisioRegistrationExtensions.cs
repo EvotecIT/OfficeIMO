@@ -14,9 +14,16 @@ public static class DocumentReaderVisioRegistrationExtensions {
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
     public static void RegisterVisioHandler(ReaderVisioOptions? visioOptions = null, bool replaceExisting = false) {
+        RegisterVisioHandler(visioOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers Visio ingestion into <see cref="DocumentReader"/> for VSDX/VSDM/VSTX/VSTM files and streams.
+    /// </summary>
+    public static void RegisterVisioHandler(ReaderVisioOptions? visioOptions, bool replaceExisting, bool preserveExistingCustomExtensions) {
         var registeredOptions = ReaderVisioOptionsCloner.CloneNullable(visioOptions);
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        var registration = new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "Visio Reader Adapter",
             Description = "Modular Visio adapter using OfficeIMO.Visio inspection snapshots.",
@@ -33,7 +40,13 @@ public static class DocumentReaderVisioRegistrationExtensions {
                 readerOptions: readerOptions,
                 visioOptions: ReaderVisioOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
-        }, replaceExisting);
+        };
+
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
     }
 
     /// <summary>

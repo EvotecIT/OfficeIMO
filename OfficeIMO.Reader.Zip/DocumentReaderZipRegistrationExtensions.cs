@@ -19,10 +19,21 @@ public static class DocumentReaderZipRegistrationExtensions {
         ZipTraversalOptions? zipOptions = null,
         ReaderZipOptions? readerZipOptions = null,
         bool replaceExisting = false) {
+        RegisterZipHandler(zipOptions, readerZipOptions, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers ZIP ingestion into <see cref="DocumentReader"/> for the <c>.zip</c> extension.
+    /// </summary>
+    public static void RegisterZipHandler(
+        ZipTraversalOptions? zipOptions,
+        ReaderZipOptions? readerZipOptions,
+        bool replaceExisting,
+        bool preserveExistingCustomExtensions) {
         var registeredZipOptions = Clone(zipOptions);
         var registeredReaderZipOptions = Clone(readerZipOptions);
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        var registration = new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "ZIP Reader Adapter",
             Description = "Modular ZIP adapter that traverses archives and emits Reader chunks.",
@@ -41,7 +52,13 @@ public static class DocumentReaderZipRegistrationExtensions {
                 zipOptions: Clone(registeredZipOptions),
                 readerZipOptions: Clone(registeredReaderZipOptions),
                 cancellationToken: ct)
-        }, replaceExisting);
+        };
+
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
     }
 
     /// <summary>

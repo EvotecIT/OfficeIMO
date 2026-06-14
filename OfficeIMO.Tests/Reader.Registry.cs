@@ -6,6 +6,7 @@ using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Text;
 using OfficeIMO.Reader.Xml;
+using OfficeIMO.Reader.Yaml;
 using OfficeIMO.Reader.Zip;
 using System.IO.Compression;
 using System.Text;
@@ -238,6 +239,39 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_RegisterHandlerPreservingExistingCustomExtensions_SkipsCallerOwnedExtensions() {
+        const string handlerId = "officeimo.tests.custom.html";
+
+        DocumentReader.UnregisterHandler(handlerId);
+        DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        try {
+            DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+                Id = handlerId,
+                DisplayName = "Custom HTML Reader",
+                Extensions = new[] { ".html" },
+                Kind = ReaderInputKind.Text,
+                ReadPath = (path, options, ct) => Array.Empty<ReaderChunk>()
+            });
+
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(null, replaceExisting: false, preserveExistingCustomExtensions: true);
+
+            var capabilities = DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true);
+            var customHtml = Assert.Single(capabilities, c => c.Id == handlerId);
+            var adapterHtml = Assert.Single(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+
+            Assert.Contains(".html", customHtml.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.DoesNotContain(".html", adapterHtml.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.Contains(".htm", adapterHtml.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.Contains(".xhtml", adapterHtml.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal(ReaderInputKind.Text, DocumentReader.DetectKind("index.html"));
+            Assert.Equal(ReaderInputKind.Html, DocumentReader.DetectKind("index.htm"));
+        } finally {
+            DocumentReader.UnregisterHandler(handlerId);
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ModularRegistrationHelpers_RegisterAndUnregister() {
         try {
             DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);
@@ -246,6 +280,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
             DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: true);
             DocumentReaderXmlRegistrationExtensions.RegisterXmlHandler(replaceExisting: true);
+            DocumentReaderYamlRegistrationExtensions.RegisterYamlHandler(replaceExisting: true);
 
             var capabilities = DocumentReader.GetCapabilities();
             var csvCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderCsvRegistrationExtensions.HandlerId);
@@ -254,6 +289,7 @@ public sealed class ReaderRegistryTests {
             var htmlCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
             var jsonCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderJsonRegistrationExtensions.HandlerId);
             var xmlCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderXmlRegistrationExtensions.HandlerId);
+            var yamlCapability = Assert.Single(capabilities, c => c.Id == DocumentReaderYamlRegistrationExtensions.HandlerId);
 
             Assert.True(csvCapability.SupportsPath);
             Assert.True(csvCapability.SupportsStream);
@@ -268,12 +304,15 @@ public sealed class ReaderRegistryTests {
             Assert.True(jsonCapability.SupportsStream);
             Assert.True(xmlCapability.SupportsPath);
             Assert.True(xmlCapability.SupportsStream);
+            Assert.True(yamlCapability.SupportsPath);
+            Assert.True(yamlCapability.SupportsStream);
             Assert.Equal(ReaderInputKind.Csv, csvCapability.Kind);
             Assert.Equal(ReaderInputKind.Epub, epubCapability.Kind);
             Assert.Equal(ReaderInputKind.Zip, zipCapability.Kind);
             Assert.Equal(ReaderInputKind.Html, htmlCapability.Kind);
             Assert.Equal(ReaderInputKind.Json, jsonCapability.Kind);
             Assert.Equal(ReaderInputKind.Xml, xmlCapability.Kind);
+            Assert.Equal(ReaderInputKind.Yaml, yamlCapability.Kind);
             Assert.Equal(ReaderCapabilitySchema.Id, csvCapability.SchemaId);
             Assert.Equal(ReaderCapabilitySchema.Version, csvCapability.SchemaVersion);
             Assert.Equal(ReaderWarningBehavior.Mixed, csvCapability.WarningBehavior);
@@ -298,11 +337,16 @@ public sealed class ReaderRegistryTests {
             Assert.Equal(ReaderCapabilitySchema.Version, xmlCapability.SchemaVersion);
             Assert.Equal(ReaderWarningBehavior.Mixed, xmlCapability.WarningBehavior);
             Assert.True(xmlCapability.DeterministicOutput);
+            Assert.Equal(ReaderCapabilitySchema.Id, yamlCapability.SchemaId);
+            Assert.Equal(ReaderCapabilitySchema.Version, yamlCapability.SchemaVersion);
+            Assert.Equal(ReaderWarningBehavior.Mixed, yamlCapability.WarningBehavior);
+            Assert.True(yamlCapability.DeterministicOutput);
 
             Assert.Equal(ReaderInputKind.Epub, DocumentReader.DetectKind("book.epub"));
             Assert.Equal(ReaderInputKind.Zip, DocumentReader.DetectKind("archive.zip"));
             Assert.Equal(ReaderInputKind.Html, DocumentReader.DetectKind("index.html"));
             Assert.Equal(ReaderInputKind.Json, DocumentReader.DetectKind("data.json"));
+            Assert.Equal(ReaderInputKind.Yaml, DocumentReader.DetectKind("values.yaml"));
         } finally {
             DocumentReaderCsvRegistrationExtensions.UnregisterCsvHandler();
             DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
@@ -310,6 +354,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -571,6 +616,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
             var registered = DocumentReader.RegisterHandlersFromAssemblies(
                 replaceExisting: true,
@@ -603,6 +649,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -649,6 +696,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
             var registered = DocumentReader.RegisterHandlersFromLoadedAssemblies(replaceExisting: true).ToList();
 
@@ -674,6 +722,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -696,6 +745,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
             var result = DocumentReader.BootstrapHostFromLoadedAssemblies(options: new ReaderHostBootstrapOptions {
                 ReplaceExistingHandlers = true,
@@ -743,6 +793,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -757,6 +808,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
             var result = DocumentReader.BootstrapHostFromLoadedAssemblies(
                 profile: ReaderHostBootstrapProfile.ServiceDefault,
@@ -779,6 +831,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -791,6 +844,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
             var result = DocumentReader.BootstrapHostFromAssemblies(
                 assemblies: new[] {
@@ -818,6 +872,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -832,6 +887,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
             var result = DocumentReader.BootstrapHostFromLoadedAssemblies(
                 profile: ReaderHostBootstrapProfile.ServiceBuiltInOnly,
@@ -854,6 +910,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -885,6 +942,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
             var result = DocumentReader.BootstrapHostFromLoadedAssemblies(
                 assemblyNamePrefix: "OfficeIMO.Reader.DoesNotExist.",
@@ -905,6 +963,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -917,6 +976,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
 
             var result = DocumentReader.BootstrapHostFromAssemblies(
                 new[] {
@@ -948,6 +1008,7 @@ public sealed class ReaderRegistryTests {
             DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             DocumentReaderJsonRegistrationExtensions.UnregisterJsonHandler();
             DocumentReaderXmlRegistrationExtensions.UnregisterXmlHandler();
+            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
         }
     }
 
@@ -1190,6 +1251,7 @@ public sealed class ReaderRegistryTests {
         _ = typeof(DocumentReaderHtmlRegistrationExtensions);
         _ = typeof(DocumentReaderJsonRegistrationExtensions);
         _ = typeof(DocumentReaderXmlRegistrationExtensions);
+        _ = typeof(DocumentReaderYamlRegistrationExtensions);
         _ = typeof(DocumentReaderTextRegistrationExtensions);
     }
 }

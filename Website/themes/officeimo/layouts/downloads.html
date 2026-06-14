@@ -54,6 +54,7 @@
             {{ for stat_package in stats_doc.nuget.packages }}
               {{ if stat_package.id == package.registry_package }}
                 {{ tracked_downloads = tracked_downloads + stat_package.totalDownloads }}
+                {{ break }}
               {{ end }}
             {{ end }}
           {{ end }}
