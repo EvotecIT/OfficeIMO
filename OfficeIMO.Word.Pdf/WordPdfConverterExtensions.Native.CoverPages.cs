@@ -870,6 +870,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
             }
 
+            AddNativeVmlTextPathRuns(runs, document, element);
+
             while (runs.Count > 0 && runs[0].Text == "\n") {
                 runs.RemoveAt(0);
             }
@@ -890,12 +892,57 @@ namespace OfficeIMO.Word.Pdf {
             runs.Add(new PdfCore.TextRun(
                 value,
                 bold: HasNativeOnOff(properties?.Bold),
-                underline: properties?.Underline != null,
+                underline: HasNativeVmlUnderline(properties?.Underline),
                 color: ParseNativeColor(properties?.Color?.Val?.Value),
                 italic: HasNativeOnOff(properties?.Italic),
                 strike: HasNativeOnOff(properties?.Strike),
                 fontSize: GetNativeVmlRunFontSize(properties),
                 font: GetNativeVmlRunFont(properties)));
+        }
+
+        private static void AddNativeVmlTextPathRuns(List<PdfCore.TextRun> runs, WordDocument document, OpenXmlElement element) {
+            foreach (V.TextPath textPath in element.Descendants<V.TextPath>()) {
+                if (textPath.On != null && textPath.On.Value == false) {
+                    continue;
+                }
+
+                string? raw = textPath.String?.Value;
+                if (string.IsNullOrWhiteSpace(raw)) {
+                    continue;
+                }
+
+                string value = ResolveNativeBuiltInPropertyPlaceholders(document, raw!);
+                if (runs.Count > 0 && runs[runs.Count - 1].Text != "\n") {
+                    runs.Add(PdfCore.TextRun.LineBreak());
+                }
+
+                runs.Add(new PdfCore.TextRun(
+                    value,
+                    bold: false,
+                    underline: false,
+                    color: null,
+                    italic: false,
+                    strike: false,
+                    fontSize: GetNativeVmlTextPathFontSize(textPath),
+                    font: GetNativeVmlTextPathFont(textPath)));
+            }
+        }
+
+        private static double? GetNativeVmlTextPathFontSize(V.TextPath textPath) {
+            Dictionary<string, string> style = ParseNativeVmlStyle(textPath.Style?.Value);
+            return ResolveNativeVmlLength(style.TryGetValue("font-size", out string? value) ? value : null, 1D, 1D);
+        }
+
+        private static PdfCore.PdfStandardFont? GetNativeVmlTextPathFont(V.TextPath textPath) {
+            Dictionary<string, string> style = ParseNativeVmlStyle(textPath.Style?.Value);
+            if (!style.TryGetValue("font-family", out string? family)) {
+                return null;
+            }
+
+            family = family.Trim().Trim('"', '\'');
+            return PdfCore.PdfStandardFontMapper.TryMapFontFamily(family, out PdfCore.PdfStandardFont font)
+                ? font
+                : null;
         }
 
         private static string ResolveNativeVmlRunText(WordDocument document, W.Run run, W.Text textElement) {
@@ -1271,6 +1318,25 @@ namespace OfficeIMO.Word.Pdf {
             return value == null ||
                    value.Equals("1", StringComparison.OrdinalIgnoreCase) ||
                    value.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool HasNativeVmlUnderline(W.Underline? underline) {
+            if (underline == null) {
+                return false;
+            }
+
+            if (underline.Val != null && underline.Val.Value == W.UnderlineValues.None) {
+                return false;
+            }
+
+            string value = underline.Val?.Value.ToString() ?? string.Empty;
+            if (value.Length == 0) {
+                return true;
+            }
+
+            return !value.Equals("none", StringComparison.OrdinalIgnoreCase) &&
+                   !value.Equals("0", StringComparison.OrdinalIgnoreCase) &&
+                   !value.Equals("false", StringComparison.OrdinalIgnoreCase);
         }
 
         private static double? GetNativeVmlRunFontSize(W.RunProperties? properties) {

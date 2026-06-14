@@ -7,13 +7,15 @@ namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
     private static double GetSeriesLegendWidth(IReadOnlyList<OfficeChartSeries> series, double chartWidth, OfficeChartLayout layout) {
-        if (!ShouldRenderLegendSide(layout) || series.Count == 0 || chartWidth < 180D) {
+        List<int> legendIndexes = GetLegendSeriesIndexes(series);
+        if (!ShouldRenderLegendSide(layout) || legendIndexes.Count == 0 || chartWidth < 180D) {
             return 0D;
         }
 
         double widest = 0D;
-        for (int i = 0; i < series.Count; i++) {
-            string name = string.IsNullOrWhiteSpace(series[i].Name) ? "Series " + (i + 1).ToString(CultureInfo.InvariantCulture) : series[i].Name;
+        for (int i = 0; i < legendIndexes.Count; i++) {
+            int seriesIndex = legendIndexes[i];
+            string name = string.IsNullOrWhiteSpace(series[seriesIndex].Name) ? "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture) : series[seriesIndex].Name;
             widest = Math.Max(widest, Math.Min(72D, name.Length * 4.8D));
         }
 
@@ -35,18 +37,20 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void AddSeriesLegend(OfficeDrawing drawing, IReadOnlyList<OfficeChartSeries> series, double x, double y, double width, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
-        if (!layout.ShowLegend || series.Count == 0 || width < 28D) {
+        List<int> legendIndexes = GetLegendSeriesIndexes(series);
+        if (!layout.ShowLegend || legendIndexes.Count == 0 || width < 28D) {
             return;
         }
 
         double rowHeight = layout.LegendRowHeight;
-        double visibleRows = Math.Min(series.Count, Math.Max(1D, Math.Floor(plotHeight / rowHeight)));
+        double visibleRows = Math.Min(legendIndexes.Count, Math.Max(1D, Math.Floor(plotHeight / rowHeight)));
         double startY = y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
-        for (int i = 0; i < series.Count && i < visibleRows; i++) {
+        for (int i = 0; i < legendIndexes.Count && i < visibleRows; i++) {
+            int seriesIndex = legendIndexes[i];
             double rowY = startY + i * rowHeight;
             double swatchOffset = Math.Max(0D, (rowHeight - layout.LegendSwatchSize) / 2D);
-            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetSeriesColor(style, series, i), null, 0D);
-            string name = string.IsNullOrWhiteSpace(series[i].Name) ? "Series " + (i + 1).ToString(CultureInfo.InvariantCulture) : series[i].Name;
+            AddShape(drawing, OfficeShape.Rectangle(layout.LegendSwatchSize, layout.LegendSwatchSize), x, rowY + swatchOffset, GetSeriesColor(style, series, seriesIndex), null, 0D);
+            string name = string.IsNullOrWhiteSpace(series[seriesIndex].Name) ? "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture) : series[seriesIndex].Name;
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
             AddChartText(drawing, name, x + textOffset, rowY, width - textOffset, rowHeight, layout.LegendFontSize, style.TextColor, OfficeTextAlignment.Left, style);
         }
@@ -71,11 +75,12 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double GetSeriesLegendBandHeight(IReadOnlyList<OfficeChartSeries> series, double chartWidth, OfficeChartLayout layout) {
-        if (!ShouldRenderLegendBand(layout) || series.Count == 0 || chartWidth < 160D) {
+        List<int> legendIndexes = GetLegendSeriesIndexes(series);
+        if (!ShouldRenderLegendBand(layout) || legendIndexes.Count == 0 || chartWidth < 160D) {
             return 0D;
         }
 
-        return GetLegendBandHeight(series.Select(item => item.Name), chartWidth, layout);
+        return GetLegendBandHeight(legendIndexes.Select(index => series[index].Name), chartWidth, layout);
     }
 
     private static double GetCategoryLegendBandHeight(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout) {
@@ -87,19 +92,31 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void AddSeriesLegendBand(OfficeDrawing drawing, IReadOnlyList<OfficeChartSeries> series, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout) {
-        if (!ShouldRenderLegendBand(layout) || series.Count == 0 || width < 48D) {
+        List<int> legendIndexes = GetLegendSeriesIndexes(series);
+        if (!ShouldRenderLegendBand(layout) || legendIndexes.Count == 0 || width < 48D) {
             return;
         }
 
         AddLegendBand(
             drawing,
-            series.Select(item => string.IsNullOrWhiteSpace(item.Name) ? null : item.Name),
+            legendIndexes.Select(index => string.IsNullOrWhiteSpace(series[index].Name) ? null : series[index].Name),
             x,
             y,
             width,
             style,
             layout,
-            series.Select((_, index) => (OfficeColor?)GetSeriesColor(style, series, index)).ToList());
+            legendIndexes.Select(index => (OfficeColor?)GetSeriesColor(style, series, index)).ToList());
+    }
+
+    private static List<int> GetLegendSeriesIndexes(IReadOnlyList<OfficeChartSeries> series) {
+        var indexes = new List<int>(series.Count);
+        for (int i = 0; i < series.Count; i++) {
+            if (series[i].ShowInLegend) {
+                indexes.Add(i);
+            }
+        }
+
+        return indexes;
     }
 
     private static void AddCategoryLegendBand(OfficeDrawing drawing, IReadOnlyList<string> categories, double x, double y, double width, OfficeChartStyle style, OfficeChartLayout layout, IReadOnlyList<OfficeColor?>? pointColors = null) {
@@ -225,10 +242,14 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static bool HasHorizontalAxisTitle(OfficeChartKind chartKind, OfficeChartLayout layout) =>
-        !string.IsNullOrWhiteSpace(IsBarChart(chartKind) ? layout.ValueAxisTitle : layout.CategoryAxisTitle);
+        IsBarChart(chartKind)
+            ? layout.ShowValueAxis && !string.IsNullOrWhiteSpace(layout.ValueAxisTitle)
+            : layout.ShowCategoryAxis && !string.IsNullOrWhiteSpace(layout.CategoryAxisTitle);
 
     private static bool HasVerticalAxisTitle(OfficeChartKind chartKind, OfficeChartLayout layout) =>
-        !string.IsNullOrWhiteSpace(IsBarChart(chartKind) ? layout.CategoryAxisTitle : layout.ValueAxisTitle);
+        IsBarChart(chartKind)
+            ? layout.ShowCategoryAxis && !string.IsNullOrWhiteSpace(layout.CategoryAxisTitle)
+            : layout.ShowValueAxis && !string.IsNullOrWhiteSpace(layout.ValueAxisTitle);
 
     private static void AddAxisTitles(
         OfficeDrawing drawing,

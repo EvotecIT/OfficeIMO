@@ -83,7 +83,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors = GetNativeDrawingThemeColors(chartPart);
-            IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(chartElement, chartKind, themeColors, out IReadOnlyList<string> categories);
+            IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(openXmlChart!, chartElement, chartKind, themeColors, out IReadOnlyList<string> categories);
             if (categories.Count == 0 || series.Count == 0) {
                 warning = "Word chart does not contain cached categories and values that can be rendered without Office.";
                 return false;
@@ -183,11 +183,12 @@ namespace OfficeIMO.Word.Pdf {
             return OfficeChartKind.Area;
         }
 
-        private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(OpenXmlElement chartElement, OfficeChartKind chartKind, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors, out IReadOnlyList<string> categories) {
+        private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors, out IReadOnlyList<string> categories) {
             var series = new List<OfficeChartSeries>();
             var categoryList = new List<string>();
             bool isScatter = chartKind == OfficeChartKind.Scatter;
             bool varyColorsByPoint = !isScatter && !IsNativeWordPieLikeChart(chartKind) && IsNativeWordChartVaryColorsEnabled(chartElement);
+            HashSet<uint> hiddenLegendIndexes = GetNativeWordHiddenLegendIndexes(chart);
 
             int seriesIndex = 0;
             foreach (OpenXmlElement seriesElement in chartElement.ChildElements.Where(element => element.LocalName == "ser")) {
@@ -238,7 +239,8 @@ namespace OfficeIMO.Word.Pdf {
                     xValues,
                     null,
                     pointColors,
-                    !IsNativeWordChartSeriesMarkerHidden(seriesElement)));
+                    !IsNativeWordChartSeriesMarkerHidden(seriesElement),
+                    !hiddenLegendIndexes.Contains((uint)seriesIndex)));
                 seriesIndex++;
             }
 
@@ -274,6 +276,23 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool IsNativeWordChartVaryColorsEnabled(OpenXmlElement chartElement) =>
             IsNativeWordChartBooleanOn(chartElement.GetFirstChild<VaryColors>());
+
+        private static HashSet<uint> GetNativeWordHiddenLegendIndexes(Chart chart) {
+            var indexes = new HashSet<uint>();
+            Legend? legend = chart.GetFirstChild<Legend>();
+            if (legend == null) {
+                return indexes;
+            }
+
+            foreach (LegendEntry entry in legend.Elements<LegendEntry>()) {
+                uint? index = entry.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Index>()?.Val?.Value;
+                if (index.HasValue && IsNativeWordChartBooleanOn(entry.GetFirstChild<Delete>())) {
+                    indexes.Add(index.Value);
+                }
+            }
+
+            return indexes;
+        }
 
         private static IReadOnlyList<OfficeColor?> CreateNativeWordChartVaryPointColors(int valueCount) {
             var colors = new OfficeColor?[valueCount];
@@ -706,6 +725,8 @@ namespace OfficeIMO.Word.Pdf {
             string? verticalAxisNumberFormat = axisNumberFormat;
             bool connectScatterPoints = !IsNativeWordMarkerOnlyScatter(chartElement, chartKind);
             bool fillRadarSeries = chartKind != OfficeChartKind.Radar || IsNativeWordFilledRadar(chartElement, chartKind);
+            bool showCategoryAxis = IsNativeWordChartCategoryAxisVisible(chartElement, plotArea, chartKind);
+            bool showValueAxis = IsNativeWordChartValueAxisVisible(chartElement, plotArea, chartKind);
             if (chartKind == OfficeChartKind.Scatter) {
                 NativeWordScatterAxisMetadata scatterAxisMetadata = GetNativeWordScatterAxisMetadata(chartElement, plotArea);
                 horizontalAxisNumberFormat = scatterAxisMetadata.HorizontalNumberFormat ?? axisNumberFormat;
@@ -713,6 +734,8 @@ namespace OfficeIMO.Word.Pdf {
                 axisNumberFormat = verticalAxisNumberFormat ?? horizontalAxisNumberFormat;
                 categoryAxisTitle = scatterAxisMetadata.HorizontalTitle ?? categoryAxisTitle;
                 valueAxisTitle = scatterAxisMetadata.VerticalTitle ?? valueAxisTitle;
+                showCategoryAxis = scatterAxisMetadata.HorizontalVisible;
+                showValueAxis = scatterAxisMetadata.VerticalVisible;
             }
             int? maximumCategoryAxisLabels = null;
             int? maximumHorizontalCategoryAxisLabels = null;
@@ -740,7 +763,9 @@ namespace OfficeIMO.Word.Pdf {
                 string.IsNullOrWhiteSpace(categoryAxisTitle) &&
                 string.IsNullOrWhiteSpace(valueAxisTitle) &&
                 connectScatterPoints &&
-                fillRadarSeries) {
+                fillRadarSeries &&
+                showCategoryAxis &&
+                showValueAxis) {
                 return null;
             }
 
@@ -766,7 +791,9 @@ namespace OfficeIMO.Word.Pdf {
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
                 verticalAxisNumberFormat: verticalAxisNumberFormat,
                 connectScatterPoints: connectScatterPoints,
-                fillRadarSeries: fillRadarSeries);
+                fillRadarSeries: fillRadarSeries,
+                showCategoryAxis: showCategoryAxis,
+                showValueAxis: showValueAxis);
         }
 
         private static bool IsNativeWordMarkerOnlyScatter(OpenXmlElement chartElement, OfficeChartKind chartKind) =>
@@ -778,17 +805,21 @@ namespace OfficeIMO.Word.Pdf {
             chartElement.GetFirstChild<RadarStyle>()?.Val?.Value == RadarStyleValues.Filled;
 
         private readonly struct NativeWordScatterAxisMetadata {
-            public NativeWordScatterAxisMetadata(string? horizontalNumberFormat, string? verticalNumberFormat, string? horizontalTitle, string? verticalTitle) {
+            public NativeWordScatterAxisMetadata(string? horizontalNumberFormat, string? verticalNumberFormat, string? horizontalTitle, string? verticalTitle, bool horizontalVisible, bool verticalVisible) {
                 HorizontalNumberFormat = horizontalNumberFormat;
                 VerticalNumberFormat = verticalNumberFormat;
                 HorizontalTitle = horizontalTitle;
                 VerticalTitle = verticalTitle;
+                HorizontalVisible = horizontalVisible;
+                VerticalVisible = verticalVisible;
             }
 
             public string? HorizontalNumberFormat { get; }
             public string? VerticalNumberFormat { get; }
             public string? HorizontalTitle { get; }
             public string? VerticalTitle { get; }
+            public bool HorizontalVisible { get; }
+            public bool VerticalVisible { get; }
         }
 
         private static NativeWordScatterAxisMetadata GetNativeWordScatterAxisMetadata(OpenXmlElement chartElement, PlotArea plotArea) {
@@ -802,7 +833,9 @@ namespace OfficeIMO.Word.Pdf {
                 GetNativeWordChartAxisNumberFormat(horizontalAxis),
                 GetNativeWordChartAxisNumberFormat(verticalAxis),
                 horizontalAxis == null ? null : GetNativeWordChartAxisTitle(horizontalAxis),
-                verticalAxis == null ? null : GetNativeWordChartAxisTitle(verticalAxis));
+                verticalAxis == null ? null : GetNativeWordChartAxisTitle(verticalAxis),
+                !IsNativeWordChartAxisDeleted(horizontalAxis),
+                !IsNativeWordChartAxisDeleted(verticalAxis));
         }
 
         private static string? GetNativeWordChartCategoryAxisTitle(OpenXmlElement chartElement, PlotArea plotArea) =>
@@ -851,6 +884,44 @@ namespace OfficeIMO.Word.Pdf {
 
         private static ValueAxis? GetNativeWordChartValueAxis(PlotArea plotArea, uint axisId) =>
             plotArea.Elements<ValueAxis>().FirstOrDefault(axis => axis.AxisId?.Val?.Value == axisId);
+
+        private static CategoryAxis? GetNativeWordChartCategoryAxis(PlotArea plotArea, uint axisId) =>
+            plotArea.Elements<CategoryAxis>().FirstOrDefault(axis => axis.AxisId?.Val?.Value == axisId);
+
+        private static bool IsNativeWordChartCategoryAxisVisible(OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind) {
+            if (chartKind == OfficeChartKind.Radar || IsNativeWordPieLikeChart(chartKind)) {
+                return true;
+            }
+
+            foreach (uint axisId in GetNativeWordChartAxisIds(chartElement)) {
+                CategoryAxis? axis = GetNativeWordChartCategoryAxis(plotArea, axisId);
+                if (axis != null) {
+                    return !IsNativeWordChartAxisDeleted(axis);
+                }
+            }
+
+            CategoryAxis? fallback = plotArea.Elements<CategoryAxis>().FirstOrDefault();
+            return !IsNativeWordChartAxisDeleted(fallback);
+        }
+
+        private static bool IsNativeWordChartValueAxisVisible(OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind) {
+            if (chartKind == OfficeChartKind.Radar || IsNativeWordPieLikeChart(chartKind)) {
+                return true;
+            }
+
+            foreach (uint axisId in GetNativeWordChartAxisIds(chartElement)) {
+                ValueAxis? axis = GetNativeWordChartValueAxis(plotArea, axisId);
+                if (axis != null) {
+                    return !IsNativeWordChartAxisDeleted(axis);
+                }
+            }
+
+            ValueAxis? fallback = plotArea.Elements<ValueAxis>().FirstOrDefault();
+            return !IsNativeWordChartAxisDeleted(fallback);
+        }
+
+        private static bool IsNativeWordChartAxisDeleted(OpenXmlElement? axis) =>
+            axis != null && IsNativeWordChartBooleanOn(axis.GetFirstChild<Delete>());
 
         private static string? GetNativeWordChartAxisNumberFormat(ValueAxis? axis) {
             string? format = axis?.GetFirstChild<NumberingFormat>()?.FormatCode?.Value;

@@ -231,67 +231,72 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeSectionWatermark(PdfCore.PdfPageCompose page, WordSection section, PdfSaveOptions? options) {
             if (HasNativeHeaderSpecificWatermarks(section)) {
                 WordWatermark? defaultWatermark = section.Header?.Default?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
-                ApplyNativeWatermark(page.Watermark, page.ImageWatermark, defaultWatermark, options, "default header watermark");
+                NativeAppliedWatermark defaultApplied = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, defaultWatermark, options, "default header watermark");
                 if (section.DifferentFirstPage) {
                     WordWatermark? firstWatermark = section.Header?.First?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
-                    ApplyNativeWatermark(page.FirstPageWatermark, page.FirstPageImageWatermark, firstWatermark, options, "first header watermark");
-                    SuppressMissingFirstPageWatermark(page, defaultWatermark, firstWatermark);
+                    NativeAppliedWatermark firstApplied = ApplyNativeWatermark(page.FirstPageWatermark, page.FirstPageImageWatermark, firstWatermark, options, "first header watermark");
+                    SuppressMissingFirstPageWatermark(page, defaultApplied, firstApplied);
                 }
 
                 if (section.DifferentOddAndEvenPages) {
                     WordWatermark? evenWatermark = section.Header?.Even?.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
-                    ApplyNativeWatermark(page.EvenPagesWatermark, page.EvenPagesImageWatermark, evenWatermark, options, "even header watermark");
-                    SuppressMissingEvenPagesWatermark(page, defaultWatermark, evenWatermark);
+                    NativeAppliedWatermark evenApplied = ApplyNativeWatermark(page.EvenPagesWatermark, page.EvenPagesImageWatermark, evenWatermark, options, "even header watermark");
+                    SuppressMissingEvenPagesWatermark(page, defaultApplied, evenApplied);
                 }
 
                 return;
             }
 
             WordWatermark? watermark = section.Watermarks.FirstOrDefault(IsNativeRenderableWatermark);
-            ApplyNativeWatermark(page.Watermark, page.ImageWatermark, watermark, options, "section watermark");
+            _ = ApplyNativeWatermark(page.Watermark, page.ImageWatermark, watermark, options, "section watermark");
         }
 
-        private static void ApplyNativeWatermark(
+        private static NativeAppliedWatermark ApplyNativeWatermark(
             Func<PdfCore.PdfTextWatermark?, PdfCore.PdfPageCompose> applyText,
             Func<PdfCore.PdfImageWatermark?, PdfCore.PdfPageCompose> applyImage,
             WordWatermark? watermark,
             PdfSaveOptions? options,
             string source) {
             if (watermark == null) {
-                return;
+                return default;
             }
 
             PdfCore.PdfTextWatermark? textWatermark = CreateNativeTextWatermark(watermark);
             PdfCore.PdfImageWatermark? imageWatermark = CreateNativeImageWatermark(watermark, options, source);
             applyText(textWatermark);
             applyImage(imageWatermark);
+            return new NativeAppliedWatermark(textWatermark != null, imageWatermark != null);
         }
 
-        private static void SuppressMissingFirstPageWatermark(PdfCore.PdfPageCompose page, WordWatermark? defaultWatermark, WordWatermark? firstWatermark) {
-            if (HasNativeTextWatermark(defaultWatermark) && !HasNativeTextWatermark(firstWatermark)) {
+        private static void SuppressMissingFirstPageWatermark(PdfCore.PdfPageCompose page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark firstWatermark) {
+            if (defaultWatermark.HasText && !firstWatermark.HasText) {
                 page.SuppressFirstPageTextWatermark();
             }
 
-            if (HasNativeImageWatermark(defaultWatermark) && !HasNativeImageWatermark(firstWatermark)) {
+            if (defaultWatermark.HasImage && !firstWatermark.HasImage) {
                 page.SuppressFirstPageImageWatermark();
             }
         }
 
-        private static void SuppressMissingEvenPagesWatermark(PdfCore.PdfPageCompose page, WordWatermark? defaultWatermark, WordWatermark? evenWatermark) {
-            if (HasNativeTextWatermark(defaultWatermark) && !HasNativeTextWatermark(evenWatermark)) {
+        private static void SuppressMissingEvenPagesWatermark(PdfCore.PdfPageCompose page, NativeAppliedWatermark defaultWatermark, NativeAppliedWatermark evenWatermark) {
+            if (defaultWatermark.HasText && !evenWatermark.HasText) {
                 page.SuppressEvenPagesTextWatermark();
             }
 
-            if (HasNativeImageWatermark(defaultWatermark) && !HasNativeImageWatermark(evenWatermark)) {
+            if (defaultWatermark.HasImage && !evenWatermark.HasImage) {
                 page.SuppressEvenPagesImageWatermark();
             }
         }
 
-        private static bool HasNativeTextWatermark(WordWatermark? watermark) =>
-            !string.IsNullOrWhiteSpace(watermark?.Text);
+        private readonly struct NativeAppliedWatermark {
+            public NativeAppliedWatermark(bool hasText, bool hasImage) {
+                HasText = hasText;
+                HasImage = hasImage;
+            }
 
-        private static bool HasNativeImageWatermark(WordWatermark? watermark) =>
-            watermark?.HasImage == true;
+            public bool HasText { get; }
+            public bool HasImage { get; }
+        }
 
         private static PdfCore.PdfTextWatermark? CreateNativeTextWatermark(WordWatermark? watermark) {
             if (watermark == null) {

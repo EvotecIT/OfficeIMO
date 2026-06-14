@@ -122,10 +122,10 @@ public class PdfDocumentChartDrawingTests {
             CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D }),
             CreateBarSeries(1U, new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { 3D, 4D, 5D, 6D }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
 
         var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
-        var categories = (IReadOnlyList<string>)args[3]!;
+        var categories = (IReadOnlyList<string>)args[4]!;
 
         Assert.Equal(2, series.Count);
         Assert.Equal(new[] { "Q1", "Q2", "Q3", "Q4" }, categories);
@@ -143,7 +143,7 @@ public class PdfDocumentChartDrawingTests {
             new BarGrouping { Val = BarGroupingValues.Clustered },
             barSeries);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
 
         var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
 
@@ -161,7 +161,7 @@ public class PdfDocumentChartDrawingTests {
             new VaryColors { Val = true },
             CreateBarSeries(0U, new[] { "Q1", "Q2", "Q3" }, new[] { 1D, 2D, 3D }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
 
         var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
 
@@ -179,7 +179,7 @@ public class PdfDocumentChartDrawingTests {
         hidden.InsertBefore(new Marker(new Symbol { Val = MarkerStyleValues.None }), hidden.GetFirstChild<CategoryAxisData>());
         var chart = new LineChart(visible, hidden);
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { chart, OfficeChartKind.Line, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        object?[] args = { new Chart(), chart, OfficeChartKind.Line, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
 
         var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
 
@@ -1328,6 +1328,36 @@ public class PdfDocumentChartDrawingTests {
 
         Assert.True(actual.X < 40D, "Expected left legend text to be placed in the left-side legend strip.");
         Assert.True(q1.X > actual.X + 60D, "Expected the plot area to move right when a left legend is present.");
+    }
+
+    [Fact]
+    public void FlowDrawing_SuppressesHiddenAxesAndLegendEntries() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Hidden axes chart",
+            "Hidden Axes",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("HiddenLegend", new[] { 12D, 18D }, null, OfficeColor.ParseHex("#4472c4"), null, showMarkers: true, showInLegend: false),
+                    new OfficeChartSeries("VisibleLegend", new[] { 10D, 16D }, null, OfficeColor.ParseHex("#70ad47"))
+                }),
+            widthPoints: 320D,
+            heightPoints: 190D,
+            layout: new OfficeChartLayout(
+                showCategoryAxis: false,
+                showValueAxis: false)));
+
+        IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+
+        Assert.DoesNotContain("Q1", labels);
+        Assert.DoesNotContain("Q2", labels);
+        Assert.DoesNotContain("HiddenLegend", labels);
+        Assert.Contains("VisibleLegend", labels);
+        Assert.DoesNotContain(drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeWidth == 0.75D &&
+            shape.Shape.StrokeColor == OfficeChartStyle.Default.AxisColor);
     }
 
     [Fact]

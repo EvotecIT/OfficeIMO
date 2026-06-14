@@ -682,6 +682,9 @@ internal static partial class PdfWriter {
                     : pendingLeadingAdvance + tokenW;
                 if (lineWidth + needed > currentMaxWidth && lastLine.Count > 0) {
                     StartNewLine();
+                    if (token.Length > 0 && pendingLeadingIsTab) {
+                        pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset());
+                    }
                 }
                 if (token.Length > 0) {
                     bool needsLeadingSpace = pendingLeadingAdvance > 0 && (lineWidth > 0 || pendingLeadingIsTab);

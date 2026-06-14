@@ -60,6 +60,9 @@ public static partial class OfficeChartDrawingRenderer {
             return drawing;
         }
 
+        bool barChart = IsBarChart(snapshot.ChartKind);
+        bool showHorizontalAxis = barChart ? layout.ShowValueAxis : layout.ShowCategoryAxis;
+        bool showVerticalAxis = barChart ? layout.ShowCategoryAxis : layout.ShowValueAxis;
         double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? 12D : 0D;
         double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight;
         double legendWidth = GetSeriesLegendWidth(snapshot.Data.Series, width, layout);
@@ -90,10 +93,16 @@ public static partial class OfficeChartDrawingRenderer {
                 style.PlotAreaBorderColor.HasValue ? 0.75D : 0D);
         }
 
-        AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, plotBottomY, null, style.AxisColor, 0.75D);
-        AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), plotLeft, plotTop, null, style.AxisColor, 0.75D);
-        if (style.ShowGridLines) {
-            if (IsBarChart(snapshot.ChartKind)) {
+        if (showHorizontalAxis) {
+            AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, plotBottomY, null, style.AxisColor, 0.75D);
+        }
+
+        if (showVerticalAxis) {
+            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), plotLeft, plotTop, null, style.AxisColor, 0.75D);
+        }
+
+        if (style.ShowGridLines && layout.ShowValueAxis) {
+            if (barChart) {
                 for (int i = 1; i <= 3; i++) {
                     double x = plotLeft + plotWidth * i / 4D;
                     AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), x, plotTop, null, style.GridLineColor, 0.5D);
@@ -116,20 +125,31 @@ public static partial class OfficeChartDrawingRenderer {
             AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         }
 
-        if (IsBarChart(snapshot.ChartKind)) {
-            AddHorizontalCategoryAxisLabels(drawing, snapshot.Data.Categories, plotTop, plotHeight, axisLabelLeft, axisLabelWidth, style, layout);
-            AddHorizontalValueAxisLabels(drawing, axisRange, plotLeft, plotBottomY, plotWidth, style, layout, valueAxisUsesPercentDefaults);
-            AddAxisTitles(drawing, layout.CategoryAxisTitle, layout.ValueAxisTitle, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
-        } else {
-            AddValueAxisLabels(drawing, axisRange, plotTop, plotHeight, axisLabelLeft, axisLabelWidth, style, layout, valueAxisUsesPercentDefaults);
-            if (IsScatterChart(snapshot.ChartKind)) {
-                IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
-                AddHorizontalValueAxisLabels(drawing, GetScatterXRange(snapshot.Data.Series, sharedXValues), plotLeft, plotBottomY, plotWidth, style, layout, percentDefault: false);
-            } else {
-                AddCategoryAxisLabels(drawing, snapshot.Data.Categories, plotLeft, plotBottomY, plotWidth, style, layout);
+        if (barChart) {
+            if (layout.ShowCategoryAxis) {
+                AddHorizontalCategoryAxisLabels(drawing, snapshot.Data.Categories, plotTop, plotHeight, axisLabelLeft, axisLabelWidth, style, layout);
             }
 
-            AddAxisTitles(drawing, layout.ValueAxisTitle, layout.CategoryAxisTitle, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
+            if (layout.ShowValueAxis) {
+                AddHorizontalValueAxisLabels(drawing, axisRange, plotLeft, plotBottomY, plotWidth, style, layout, valueAxisUsesPercentDefaults);
+            }
+
+            AddAxisTitles(drawing, layout.ShowCategoryAxis ? layout.CategoryAxisTitle : null, layout.ShowValueAxis ? layout.ValueAxisTitle : null, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
+        } else {
+            if (layout.ShowValueAxis) {
+                AddValueAxisLabels(drawing, axisRange, plotTop, plotHeight, axisLabelLeft, axisLabelWidth, style, layout, valueAxisUsesPercentDefaults);
+            }
+
+            if (layout.ShowCategoryAxis) {
+                if (IsScatterChart(snapshot.ChartKind)) {
+                    IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
+                    AddHorizontalValueAxisLabels(drawing, GetScatterXRange(snapshot.Data.Series, sharedXValues), plotLeft, plotBottomY, plotWidth, style, layout, percentDefault: false);
+                } else {
+                    AddCategoryAxisLabels(drawing, snapshot.Data.Categories, plotLeft, plotBottomY, plotWidth, style, layout);
+                }
+            }
+
+            AddAxisTitles(drawing, layout.ShowValueAxis ? layout.ValueAxisTitle : null, layout.ShowCategoryAxis ? layout.CategoryAxisTitle : null, plotLeft, plotTop, plotBottomY, plotWidth, plotHeight, style, layout);
         }
 
         AddSeriesLegend(

@@ -43,6 +43,8 @@ public sealed class OfficeChartLayout {
     /// <param name="verticalAxisNumberFormat">Optional numeric format for vertical value-axis labels.</param>
     /// <param name="connectScatterPoints">Whether scatter points should be connected by series lines.</param>
     /// <param name="fillRadarSeries">Whether radar series polygons should be filled.</param>
+    /// <param name="showCategoryAxis">Whether the category or horizontal axis should be rendered.</param>
+    /// <param name="showValueAxis">Whether the value or vertical axis should be rendered.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -75,7 +77,9 @@ public sealed class OfficeChartLayout {
         string? horizontalAxisNumberFormat = null,
         string? verticalAxisNumberFormat = null,
         bool connectScatterPoints = true,
-        bool fillRadarSeries = true) {
+        bool fillRadarSeries = true,
+        bool showCategoryAxis = true,
+        bool showValueAxis = true) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -108,6 +112,8 @@ public sealed class OfficeChartLayout {
         ValueAxisTitle = string.IsNullOrWhiteSpace(valueAxisTitle) ? null : valueAxisTitle;
         ConnectScatterPoints = connectScatterPoints;
         FillRadarSeries = fillRadarSeries;
+        ShowCategoryAxis = showCategoryAxis;
+        ShowValueAxis = showValueAxis;
     }
 
     /// <summary>Default premium OfficeIMO chart layout.</summary>
@@ -208,6 +214,12 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Whether radar series polygons should be filled.</summary>
     public bool FillRadarSeries { get; }
+
+    /// <summary>Whether the category or horizontal axis should be rendered.</summary>
+    public bool ShowCategoryAxis { get; }
+
+    /// <summary>Whether the value or vertical axis should be rendered.</summary>
+    public bool ShowValueAxis { get; }
 
     private static double ValidateRatio(double value, string paramName) {
         ValidatePositiveFinite(value, paramName);

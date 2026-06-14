@@ -998,6 +998,38 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Vml_TextPath_And_Underline_None() {
+        using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeVmlTextPath.docx"));
+        var textPathShape = new V.Shape(
+            new V.Path { AllowTextPath = true },
+            new V.TextPath {
+                On = true,
+                FitShape = true,
+                String = "TextPath cover label",
+                Style = "font-family:\"Courier New\";font-size:18pt"
+            }) {
+            Id = "NativeCoverTextPath",
+            Type = "#_x0000_t136",
+            Style = "position:absolute;left:72pt;top:72pt;width:360pt;height:48pt"
+        };
+        var textBoxParagraph = CreateNativeVmlTextBoxParagraph(new Paragraph(
+            new Run(
+                new RunProperties(new Underline { Val = UnderlineValues.None }),
+                new Text("Not underlined"))));
+        textBoxParagraph.Append(new Run(new Picture(textPathShape)));
+
+        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("GetNativeVmlTextRuns", BindingFlags.NonPublic | BindingFlags.Static)!;
+
+        var runs = (IReadOnlyList<TextRun>)method.Invoke(null, new object[] { document, textBoxParagraph })!;
+
+        TextRun plain = Assert.Single(runs, run => run.Text == "Not underlined");
+        Assert.False(plain.Underline);
+        TextRun textPath = Assert.Single(runs, run => run.Text == "TextPath cover label");
+        Assert.Equal(PdfStandardFont.Courier, textPath.Font);
+        Assert.Equal(18D, textPath.FontSize);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Normalizes_Direct_Heading_Text_LineBreaks() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDirectHeadingLineBreak.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDirectHeadingLineBreak.pdf");
@@ -1183,6 +1215,37 @@ public partial class Word {
         Assert.Equal("#,##0.00", layout.GetType().GetProperty("VerticalAxisNumberFormat")!.GetValue(layout));
         Assert.Equal("X Axis", layout.GetType().GetProperty("CategoryAxisTitle")!.GetValue(layout));
         Assert.Equal("Y Axis", layout.GetType().GetProperty("ValueAxisTitle")!.GetValue(layout));
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Honors_Native_Word_Deleted_Axes_And_Legend_Entries() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordHiddenAxesLegend.docx");
+
+        using WordDocument document = WordDocument.Create(docPath);
+        WordChart chart = document.AddChart("Word PDF Hidden Axes Legend", false, 360, 220);
+        chart.AddCategories(new[] { "Q1", "Q2" }.ToList());
+        chart.AddBar("HiddenLegend", new[] { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
+        chart.AddBar("VisibleLegend", new[] { 12, 24 }, OfficeColor.ParseHex("#70ad47"));
+        chart.AddLegend(LegendPositionValues.Right);
+
+        ChartPart chartPart = (ChartPart)typeof(WordChart)
+            .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(chart)!;
+        SetNativeWordChartAxisDeleted(chartPart.ChartSpace!.Descendants<CategoryAxis>().First());
+        SetNativeWordChartAxisDeleted(chartPart.ChartSpace.Descendants<ValueAxis>().First());
+        Legend legend = chartPart.ChartSpace.Descendants<Legend>().First();
+        legend.Append(new LegendEntry(
+            new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 0U },
+            new Delete { Val = true }));
+
+        object snapshot = CreateNativeWordChartSnapshot(chart);
+        object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+        var data = (OfficeChartData)snapshot.GetType().GetProperty("Data")!.GetValue(snapshot)!;
+
+        Assert.False((bool)layout.GetType().GetProperty("ShowCategoryAxis")!.GetValue(layout)!);
+        Assert.False((bool)layout.GetType().GetProperty("ShowValueAxis")!.GetValue(layout)!);
+        Assert.False(data.Series[0].ShowInLegend);
+        Assert.True(data.Series[1].ShowInLegend);
     }
 
     [Fact]
@@ -1736,6 +1799,16 @@ public partial class Word {
         bool result = (bool)method.Invoke(null, arguments)!;
         Assert.True(result, (string?)arguments[2]);
         return arguments[1]!;
+    }
+
+    private static void SetNativeWordChartAxisDeleted(OpenXmlElement axis) {
+        Delete? delete = axis.GetFirstChild<Delete>();
+        if (delete == null) {
+            delete = new Delete();
+            axis.PrependChild(delete);
+        }
+
+        delete.Val = true;
     }
 
     private static List<OfficeColor> GetNativeWordChartPalette(object snapshot) {
