@@ -51,10 +51,6 @@ public enum ReaderInputKind {
     /// </summary>
     Xml,
     /// <summary>
-    /// YAML structured text.
-    /// </summary>
-    Yaml,
-    /// <summary>
     /// HTML document.
     /// </summary>
     Html,
@@ -69,7 +65,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// Visio drawing (VSDX/VSDM/VSTX/VSTM).
     /// </summary>
-    Visio
+    Visio,
+    /// <summary>
+    /// YAML structured text.
+    /// </summary>
+    Yaml
 }
 
 /// <summary>

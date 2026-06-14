@@ -263,7 +263,7 @@ public static class DocumentReaderYamlExtensions {
 
     private static string ClassifyScalar(YamlScalarNode scalar) {
         var value = scalar.Value;
-        if (scalar.Style == ScalarStyle.Plain) {
+        if (scalar.Style == ScalarStyle.Plain && !HasExplicitStringTag(scalar)) {
             if (IsYamlNull(value)) {
                 return "null";
             }
@@ -282,11 +282,32 @@ public static class DocumentReaderYamlExtensions {
 
     private static string NormalizeScalarValue(YamlScalarNode scalar) {
         var value = scalar.Value;
-        if (scalar.Style == ScalarStyle.Plain && IsYamlNull(value)) {
+        if (scalar.Style == ScalarStyle.Plain && !HasExplicitStringTag(scalar) && IsYamlNull(value)) {
             return "null";
         }
 
+        if (scalar.Style == ScalarStyle.Literal || scalar.Style == ScalarStyle.Folded) {
+            return NormalizeBlockScalarValue(value ?? string.Empty);
+        }
+
         return NormalizeText(value ?? string.Empty);
+    }
+
+    private static bool HasExplicitStringTag(YamlScalarNode scalar) {
+        var tag = scalar.Tag.ToString();
+        return string.Equals(tag, "tag:yaml.org,2002:str", StringComparison.Ordinal) ||
+               string.Equals(tag, "!!str", StringComparison.Ordinal);
+    }
+
+    private static string NormalizeBlockScalarValue(string value) {
+        if (value.Length == 0) return string.Empty;
+
+        var normalized = value.Replace("\r\n", "\n").Replace('\r', '\n');
+        if (normalized.Length > 2048) {
+            normalized = normalized.Substring(0, 2048);
+        }
+
+        return normalized;
     }
 
     private static bool IsYamlNull(string? value) {
@@ -343,7 +364,7 @@ public static class DocumentReaderYamlExtensions {
             sb.Append(" | ");
             sb.Append(row.Type);
             sb.Append(" | ");
-            sb.AppendLine(row.Value);
+            sb.AppendLine(EscapePlainValue(row.Value));
         }
 
         return sb.ToString().TrimEnd();
@@ -368,7 +389,32 @@ public static class DocumentReaderYamlExtensions {
 
     private static string EscapeMarkdownCell(string value) {
         if (string.IsNullOrEmpty(value)) return string.Empty;
-        return value.Replace("\\", "\\\\").Replace("|", "\\|");
+        return EscapePlainValue(value)
+            .Replace("\\", "\\\\")
+            .Replace("|", "\\|");
+    }
+
+    private static string EscapePlainValue(string value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+
+        var sb = new StringBuilder(value.Length + 8);
+        foreach (var ch in value) {
+            switch (ch) {
+                case '\r':
+                    break;
+                case '\n':
+                    sb.Append("\\n");
+                    break;
+                case '\t':
+                    sb.Append("\\t");
+                    break;
+                default:
+                    sb.Append(ch);
+                    break;
+            }
+        }
+
+        return sb.ToString();
     }
 
     private static string NormalizeText(string value) {

@@ -16,11 +16,12 @@ public static class DocumentReaderYamlRegistrationExtensions {
     /// <param name="replaceExisting">
     /// Defaults to true because these extensions are already handled by the built-in plain text path.
     /// </param>
+    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterYamlHandler(YamlReadOptions? yamlOptions = null, bool replaceExisting = true) {
+    public static void RegisterYamlHandler(YamlReadOptions? yamlOptions = null, bool replaceExisting = true, bool preserveExistingCustomExtensions = false) {
         var registered = Clone(yamlOptions);
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        var registration = new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "YAML Reader Adapter",
             Description = "Modular YAML parser with path/type/value chunk output.",
@@ -37,7 +38,13 @@ public static class DocumentReaderYamlRegistrationExtensions {
                 readerOptions: readerOptions,
                 yamlOptions: Clone(registered),
                 cancellationToken: ct)
-        }, replaceExisting);
+        };
+
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
     }
 
     /// <summary>

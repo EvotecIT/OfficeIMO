@@ -124,6 +124,22 @@ public static partial class DocumentReader {
     /// When true, removes conflicting custom handlers and allows built-in extension overrides.
     /// </param>
     public static void RegisterHandler(ReaderHandlerRegistration registration, bool replaceExisting = false) {
+        RegisterHandlerCore(registration, replaceExisting, preserveExistingCustomExtensions: false);
+    }
+
+    /// <summary>
+    /// Registers a custom handler while leaving extensions already owned by other custom handlers untouched.
+    /// </summary>
+    /// <param name="registration">Custom handler registration.</param>
+    /// <param name="replaceExisting">
+    /// When true, allows built-in extension overrides and replaces an existing handler with the same identifier.
+    /// </param>
+    /// <returns>The normalized extensions that were registered for the handler.</returns>
+    public static IReadOnlyList<string> RegisterHandlerPreservingExistingCustomExtensions(ReaderHandlerRegistration registration, bool replaceExisting = false) {
+        return RegisterHandlerCore(registration, replaceExisting, preserveExistingCustomExtensions: true);
+    }
+
+    private static IReadOnlyList<string> RegisterHandlerCore(ReaderHandlerRegistration registration, bool replaceExisting, bool preserveExistingCustomExtensions) {
         if (registration == null) throw new ArgumentNullException(nameof(registration));
 
         var id = (registration.Id ?? string.Empty).Trim();
@@ -142,12 +158,29 @@ public static partial class DocumentReader {
         }
 
         lock (HandlerRegistrySync) {
+            var effectiveExtensions = normalizedExtensions;
+            if (preserveExistingCustomExtensions) {
+                effectiveExtensions = new List<string>(normalizedExtensions.Count);
+                foreach (var ext in normalizedExtensions) {
+                    if (CustomHandlerIdByExtension.TryGetValue(ext, out var existing) &&
+                        !string.Equals(existing, id, StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
+                    effectiveExtensions.Add(ext);
+                }
+
+                if (effectiveExtensions.Count == 0) {
+                    return Array.Empty<string>();
+                }
+            }
+
             if (!replaceExisting) {
                 if (CustomHandlersById.ContainsKey(id)) {
                     throw new InvalidOperationException($"Handler '{id}' is already registered.");
                 }
 
-                foreach (var ext in normalizedExtensions) {
+                foreach (var ext in effectiveExtensions) {
                     if (BuiltInExtensions.Contains(ext)) {
                         throw new InvalidOperationException($"Extension '{ext}' is handled by a built-in reader. Use replaceExisting=true to override.");
                     }
@@ -161,6 +194,12 @@ public static partial class DocumentReader {
                     toRemove.Add(id);
                 }
                 foreach (var ext in normalizedExtensions) {
+                    if (preserveExistingCustomExtensions &&
+                        CustomHandlerIdByExtension.TryGetValue(ext, out var existingForPreservedExtension) &&
+                        !string.Equals(existingForPreservedExtension, id, StringComparison.OrdinalIgnoreCase)) {
+                        continue;
+                    }
+
                     if (CustomHandlerIdByExtension.TryGetValue(ext, out var existing)) {
                         toRemove.Add(existing);
                     }
@@ -175,7 +214,7 @@ public static partial class DocumentReader {
                 displayName: string.IsNullOrWhiteSpace(registration.DisplayName) ? id : registration.DisplayName!.Trim(),
                 description: registration.Description,
                 kind: registration.Kind,
-                extensions: normalizedExtensions.ToArray(),
+                extensions: effectiveExtensions.ToArray(),
                 defaultMaxInputBytes: registration.DefaultMaxInputBytes,
                 warningBehavior: registration.WarningBehavior,
                 deterministicOutput: registration.DeterministicOutput,
@@ -186,6 +225,8 @@ public static partial class DocumentReader {
             foreach (var ext in custom.Extensions) {
                 CustomHandlerIdByExtension[ext] = custom.Id;
             }
+
+            return custom.Extensions.ToArray();
         }
     }
 

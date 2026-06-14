@@ -8,6 +8,15 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderYamlModularTests {
     [Fact]
+    public void ReaderInputKind_Yaml_AppendsWithoutChangingExistingAdapterValues() {
+        Assert.Equal(10, (int)ReaderInputKind.Html);
+        Assert.Equal(11, (int)ReaderInputKind.Zip);
+        Assert.Equal(12, (int)ReaderInputKind.Epub);
+        Assert.Equal(13, (int)ReaderInputKind.Visio);
+        Assert.Equal(14, (int)ReaderInputKind.Yaml);
+    }
+
+    [Fact]
     public void DocumentReaderYaml_ReadYamlStream_ParsesMultiDocumentYamlIntoStructuredChunks() {
         var yaml =
             "apiVersion: v1\n" +
@@ -45,6 +54,53 @@ public sealed class ReaderYamlModularTests {
             Assert.Equal(stream.Length, c.SourceLengthBytes);
             Assert.Null(c.SourceLastWriteUtc);
         });
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_RespectsExplicitStringTags() {
+        const string yaml =
+            "flag: !!str true\n" +
+            "id: !!str 123\n" +
+            "enabled: true\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "tagged.yaml",
+            yamlOptions: new YamlReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = true
+            }));
+
+        Assert.Contains("$.flag | string | true", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.id | string | 123", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("$.enabled | boolean | true", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderYaml_ReadYamlStream_PreservesBlockScalarValuesInTables() {
+        const string yaml =
+            "script: |\n" +
+            "  echo first\n" +
+            "  echo second\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
+
+        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+            stream,
+            sourceName: "script.yaml",
+            yamlOptions: new YamlReadOptions {
+                ChunkRows = 10,
+                IncludeMarkdown = true
+            }));
+
+        var table = Assert.Single(chunk.Tables ?? Array.Empty<ReaderTable>());
+        var row = Assert.Single(table.Rows);
+
+        Assert.Equal("$.script", row[0]);
+        Assert.Equal("string", row[1]);
+        Assert.Equal("echo first\necho second\n", row[2]);
+        Assert.Contains("echo first\\necho second\\n", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Contains("echo first\\\\necho second\\\\n", chunk.Markdown ?? string.Empty, StringComparison.Ordinal);
     }
 
     [Fact]

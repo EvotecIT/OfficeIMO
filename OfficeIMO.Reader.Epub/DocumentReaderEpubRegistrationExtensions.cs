@@ -15,10 +15,10 @@ public static class DocumentReaderEpubRegistrationExtensions {
     /// Registers EPUB ingestion into <see cref="DocumentReader"/> for the <c>.epub</c> extension.
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterEpubHandler(EpubReadOptions? epubOptions = null, bool replaceExisting = false) {
+    public static void RegisterEpubHandler(EpubReadOptions? epubOptions = null, bool replaceExisting = false, bool preserveExistingCustomExtensions = false) {
         var registeredOptions = Clone(epubOptions);
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        var registration = new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "EPUB Reader Adapter",
             Description = "Modular EPUB adapter that emits chapter-oriented Reader chunks.",
@@ -35,7 +35,13 @@ public static class DocumentReaderEpubRegistrationExtensions {
                 readerOptions: readerOptions,
                 epubOptions: Clone(registeredOptions),
                 cancellationToken: ct)
-        }, replaceExisting);
+        };
+
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
     }
 
     /// <summary>

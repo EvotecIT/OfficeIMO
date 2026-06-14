@@ -16,11 +16,12 @@ public static class DocumentReaderJsonRegistrationExtensions {
     /// <param name="replaceExisting">
     /// Defaults to true because this extension is already handled by the built-in plain text path.
     /// </param>
+    /// <param name="preserveExistingCustomExtensions">When true, leaves extensions already owned by other custom handlers untouched.</param>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterJsonHandler(JsonReadOptions? jsonOptions = null, bool replaceExisting = true) {
+    public static void RegisterJsonHandler(JsonReadOptions? jsonOptions = null, bool replaceExisting = true, bool preserveExistingCustomExtensions = false) {
         var registered = Clone(jsonOptions);
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        var registration = new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "JSON Reader Adapter",
             Description = "Modular JSON AST parser with path/type/value chunk output.",
@@ -37,7 +38,13 @@ public static class DocumentReaderJsonRegistrationExtensions {
                 readerOptions: readerOptions,
                 jsonOptions: Clone(registered),
                 cancellationToken: ct)
-        }, replaceExisting);
+        };
+
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
     }
 
     /// <summary>

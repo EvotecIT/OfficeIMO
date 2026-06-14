@@ -239,6 +239,39 @@ public sealed class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_RegisterHandlerPreservingExistingCustomExtensions_SkipsCallerOwnedExtensions() {
+        const string handlerId = "officeimo.tests.custom.html";
+
+        DocumentReader.UnregisterHandler(handlerId);
+        DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        try {
+            DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+                Id = handlerId,
+                DisplayName = "Custom HTML Reader",
+                Extensions = new[] { ".html" },
+                Kind = ReaderInputKind.Text,
+                ReadPath = (path, options, ct) => Array.Empty<ReaderChunk>()
+            });
+
+            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(preserveExistingCustomExtensions: true);
+
+            var capabilities = DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true);
+            var customHtml = Assert.Single(capabilities, c => c.Id == handlerId);
+            var adapterHtml = Assert.Single(capabilities, c => c.Id == DocumentReaderHtmlRegistrationExtensions.HandlerId);
+
+            Assert.Contains(".html", customHtml.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.DoesNotContain(".html", adapterHtml.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.Contains(".htm", adapterHtml.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.Contains(".xhtml", adapterHtml.Extensions, StringComparer.OrdinalIgnoreCase);
+            Assert.Equal(ReaderInputKind.Text, DocumentReader.DetectKind("index.html"));
+            Assert.Equal(ReaderInputKind.Html, DocumentReader.DetectKind("index.htm"));
+        } finally {
+            DocumentReader.UnregisterHandler(handlerId);
+            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ModularRegistrationHelpers_RegisterAndUnregister() {
         try {
             DocumentReaderCsvRegistrationExtensions.RegisterCsvHandler(replaceExisting: true);

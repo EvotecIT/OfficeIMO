@@ -13,10 +13,10 @@ public static class DocumentReaderHtmlRegistrationExtensions {
     /// Registers HTML ingestion into <see cref="DocumentReader"/> for <c>.html</c>, <c>.htm</c>, and <c>.xhtml</c>.
     /// </summary>
     [ReaderHandlerRegistrar(HandlerId)]
-    public static void RegisterHtmlHandler(ReaderHtmlOptions? htmlOptions = null, bool replaceExisting = false) {
+    public static void RegisterHtmlHandler(ReaderHtmlOptions? htmlOptions = null, bool replaceExisting = false, bool preserveExistingCustomExtensions = false) {
         var registeredOptions = ReaderHtmlOptionsCloner.CloneNullable(htmlOptions);
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        var registration = new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "HTML Reader Adapter",
             Description = "Modular HTML adapter using OfficeIMO.Markdown.Html.",
@@ -33,7 +33,13 @@ public static class DocumentReaderHtmlRegistrationExtensions {
                 readerOptions: readerOptions,
                 htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct)
-        }, replaceExisting);
+        };
+
+        if (preserveExistingCustomExtensions) {
+            DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(registration, replaceExisting);
+        } else {
+            DocumentReader.RegisterHandler(registration, replaceExisting);
+        }
     }
 
     /// <summary>
