@@ -6,6 +6,7 @@ using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Io;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
@@ -114,17 +115,12 @@ namespace OfficeIMO.Word.Html {
             _pendingTopBookmark = false;
         }
 
-        private static bool IsInvalidHref(string href) {
+        private static bool IsInvalidHref(string href, HtmlToWordOptions options) {
             if (string.IsNullOrWhiteSpace(href)) {
                 return true;
             }
             var trimmed = href.Trim();
-            if (trimmed == "#") {
-                return true;
-            }
-            return trimmed.StartsWith("javascript:", StringComparison.OrdinalIgnoreCase) ||
-                   trimmed.StartsWith("vbscript:", StringComparison.OrdinalIgnoreCase) ||
-                   trimmed.StartsWith("data:", StringComparison.OrdinalIgnoreCase);
+            return !HtmlUrlPolicyEvaluator.IsAllowed(trimmed, options.HyperlinkUrlPolicy, allowEmptyFragment: false);
         }
 
         private static string NormalizeHref(string href) {

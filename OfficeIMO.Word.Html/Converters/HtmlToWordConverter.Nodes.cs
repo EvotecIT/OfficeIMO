@@ -636,7 +636,7 @@ namespace OfficeIMO.Word.Html {
                             }
 
                             var normalizedHref = NormalizeHref(href!);
-                            if (IsInvalidHref(normalizedHref)) {
+                            if (IsInvalidHref(normalizedHref, options)) {
                                 var fmt = formatting;
                                 ApplySpanStyles(element, ref fmt);
                                 foreach (var child in element.ChildNodes) {

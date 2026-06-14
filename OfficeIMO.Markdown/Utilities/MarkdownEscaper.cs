@@ -16,6 +16,7 @@ internal static class MarkdownEscaper {
     private static readonly char[] UrlReserved = ['\\', '(', ')', '[', ']', '|'];
 
     internal static string EscapeText(string? text) => Escape(text, GeneralReserved);
+    internal static string EscapeTextAndLineStarts(string? text) => EscapeMarkdownLineStarts(EscapeText(text));
     internal static string EscapeLiteralText(string? text) => EncodeLiteralMarkdownText(text);
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
@@ -49,6 +50,109 @@ internal static class MarkdownEscaper {
             sb.Append(c);
         }
         return sb.ToString();
+    }
+
+    private static string EscapeMarkdownLineStarts(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return string.Empty;
+        }
+
+        StringBuilder sb = new StringBuilder(text.Length + 8);
+        int start = 0;
+        while (start < text.Length) {
+            int newlineIndex = text.IndexOf('\n', start);
+            int length = newlineIndex < 0 ? text.Length - start : newlineIndex - start;
+            sb.Append(EscapeMarkdownLineStart(text.Substring(start, length)));
+            if (newlineIndex < 0) {
+                break;
+            }
+
+            sb.Append('\n');
+            start = newlineIndex + 1;
+        }
+
+        return sb.ToString();
+    }
+
+    private static string EscapeMarkdownLineStart(string line) {
+        if (line.Length == 0) {
+            return line;
+        }
+
+        int markerIndex = 0;
+        while (markerIndex < line.Length && markerIndex < 3 && line[markerIndex] == ' ') {
+            markerIndex++;
+        }
+
+        if (markerIndex >= line.Length) {
+            return line;
+        }
+
+        char marker = line[markerIndex];
+        if (marker == '>' || IsHeadingMarker(line, markerIndex) || IsUnorderedListMarker(line, markerIndex)) {
+            return line.Insert(markerIndex, "\\");
+        }
+
+        int orderedSeparatorIndex = GetOrderedListSeparatorIndex(line, markerIndex);
+        return orderedSeparatorIndex >= 0
+            ? line.Insert(orderedSeparatorIndex, "\\")
+            : line;
+    }
+
+    private static bool IsHeadingMarker(string line, int markerIndex) {
+        int index = markerIndex;
+        while (index < line.Length && line[index] == '#') {
+            index++;
+        }
+
+        int markerLength = index - markerIndex;
+        return markerLength is >= 1 and <= 6
+               && (index >= line.Length || char.IsWhiteSpace(line[index]));
+    }
+
+    private static bool IsUnorderedListMarker(string line, int markerIndex) {
+        char marker = line[markerIndex];
+        if (marker != '-' && marker != '+' && marker != '*') {
+            return false;
+        }
+
+        int next = markerIndex + 1;
+        if (next >= line.Length || char.IsWhiteSpace(line[next])) {
+            return true;
+        }
+
+        if (marker != '-') {
+            return false;
+        }
+
+        int count = 0;
+        for (int i = markerIndex; i < line.Length; i++) {
+            if (line[i] != '-') {
+                return false;
+            }
+
+            count++;
+        }
+
+        return count >= 3;
+    }
+
+    private static int GetOrderedListSeparatorIndex(string line, int markerIndex) {
+        int index = markerIndex;
+        int digitCount = 0;
+        while (index < line.Length && char.IsDigit(line[index]) && digitCount < 9) {
+            index++;
+            digitCount++;
+        }
+
+        if (digitCount == 0 || index >= line.Length || (line[index] != '.' && line[index] != ')')) {
+            return -1;
+        }
+
+        int afterSeparator = index + 1;
+        return afterSeparator >= line.Length || char.IsWhiteSpace(line[afterSeparator])
+            ? index
+            : -1;
     }
 
     private static string EscapeTitleContent(string text, char delimiter) {

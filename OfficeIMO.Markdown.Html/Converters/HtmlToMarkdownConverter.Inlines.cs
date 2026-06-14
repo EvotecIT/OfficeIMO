@@ -27,7 +27,7 @@ public sealed partial class HtmlToMarkdownConverter {
             case IComment:
                 return;
             case IText text:
-                AppendNormalizedText(sequence, text.Data, trimEnd);
+                AppendNormalizedText(sequence, text.Data, trimEnd, context);
                 return;
             case IElement element:
                 if (context != null && ShouldIgnoreElement(element, context)) {
@@ -279,33 +279,42 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ConvertInlineImageToMarkdown(IElement element, ConversionContext? context) {
-        string src = context == null
-            ? element.GetAttribute("src") ?? string.Empty
-            : ResolveUrl(element.GetAttribute("src"), context);
-        if (src.Length == 0) {
+        var metadata = ResolveInlineImageMetadata(element, context);
+        if (metadata.src.Length == 0) {
             return string.Empty;
         }
 
-        string alt = EscapeInlineText(element.GetAttribute("alt"));
-        string title = element.GetAttribute("title") ?? string.Empty;
-        string titlePart = title.Length == 0
+        string escapedAlt = EscapeInlineText(metadata.alt);
+        string normalizedTitle = metadata.title ?? string.Empty;
+        string titlePart = normalizedTitle.Length == 0
             ? string.Empty
-            : " \"" + title.Replace("\"", "\\\"") + "\"";
-        return "![" + alt + "](" + EscapeLinkTarget(src) + titlePart + ")";
+            : " \"" + normalizedTitle.Replace("\"", "\\\"") + "\"";
+        return "![" + escapedAlt + "](" + EscapeLinkTarget(metadata.src) + titlePart + ")";
     }
 
     private static void AppendInlineImage(InlineSequence sequence, IElement element, ConversionContext? context) {
-        string src = context == null
-            ? element.GetAttribute("src") ?? string.Empty
-            : ResolveUrl(element.GetAttribute("src"), context);
-        if (src.Length == 0) {
+        var metadata = ResolveInlineImageMetadata(element, context);
+        if (metadata.src.Length == 0) {
             return;
         }
 
         sequence.AddRaw(new ImageInline(
-            element.GetAttribute("alt") ?? string.Empty,
-            src,
-            element.GetAttribute("title")));
+            metadata.alt ?? string.Empty,
+            metadata.src,
+            metadata.title,
+            metadata.plainAlt));
+    }
+
+    private static (string src, string? alt, string? title, string? plainAlt) ResolveInlineImageMetadata(IElement element, ConversionContext? context) {
+        if (context != null && TryCreateImageBlock(element, context, out var image)) {
+            return (image.Path, image.Alt, image.Title, image.PlainAlt);
+        }
+
+        string src = context == null
+            ? element.GetAttribute("src") ?? string.Empty
+            : ResolveUrl(element.GetAttribute("src"), context);
+        string? alt = element.GetAttribute("alt");
+        return (src, alt, element.GetAttribute("title"), alt);
     }
 
     private static void AppendWrappedInlineSequence(
@@ -323,7 +332,7 @@ public sealed partial class HtmlToMarkdownConverter {
         target.AddRaw(factory(childSequence));
     }
 
-    private static void AppendNormalizedText(InlineSequence sequence, string? text, bool trimEnd) {
+    private static void AppendNormalizedText(InlineSequence sequence, string? text, bool trimEnd, ConversionContext? context) {
         if (sequence == null || string.IsNullOrEmpty(text)) {
             return;
         }
@@ -343,6 +352,11 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         if (normalized.Length == 0) {
+            return;
+        }
+
+        if (context?.Options.EscapeMarkdownLineStarts == true) {
+            sequence.AddRaw(new LineStartEscapedTextRun(normalized));
             return;
         }
 

@@ -1,148 +1,48 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
 
 public sealed partial class HtmlToMarkdownConverter {
     private static string ResolveImageSource(IElement element, ConversionContext context) {
-        return ResolveImageSource(element, context, allowParentPictureFallback: true);
+        return HtmlImageSourceResolver.ResolveImageSource(
+            element,
+            context.Options.BaseUri,
+            context.Options.UrlPolicy,
+            allowParentPictureFallback: true);
     }
 
     private static string ResolveDirectImageSource(IElement element, ConversionContext context) {
-        return ResolveImageSource(element, context, allowParentPictureFallback: false);
-    }
-
-    private static string ResolveImageSource(IElement element, ConversionContext context, bool allowParentPictureFallback) {
-        string[] lazySourceAttributes = new[] { "data-src", "data-original", "data-original-src", "data-lazy-src" };
-        for (int i = 0; i < lazySourceAttributes.Length; i++) {
-            string resolved = ResolveUrl(element.GetAttribute(lazySourceAttributes[i]), context);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
-        }
-
-        string[] sourceAttributes = new[] { "src" };
-        for (int i = 0; i < sourceAttributes.Length; i++) {
-            string resolved = ResolveUrl(element.GetAttribute(sourceAttributes[i]), context);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
-        }
-
-        string srcSetResolved = ResolveUrlFromSrcSetAttributes(element, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
-        if (!string.IsNullOrWhiteSpace(srcSetResolved)) {
-            return srcSetResolved;
-        }
-
-        return allowParentPictureFallback
-            && element.ParentElement != null
-            && element.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
-            ? ResolvePictureSource(element.ParentElement, context)
-            : string.Empty;
+        return HtmlImageSourceResolver.ResolveImageSource(
+            element,
+            context.Options.BaseUri,
+            context.Options.UrlPolicy,
+            allowParentPictureFallback: false);
     }
 
     private static string ResolvePictureSource(IElement pictureElement, ConversionContext context) {
-        if (pictureElement == null) {
-            return string.Empty;
-        }
-
-        foreach (var child in pictureElement.Children) {
-            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-
-            string resolved = ResolveUrlFromSrcSetAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
-
-            resolved = ResolveUrlAttributes(child, context, "src", "data-src", "data-original-src", "data-lazy-src");
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
-        }
-
-        return string.Empty;
+        return HtmlImageSourceResolver.ResolvePictureSource(pictureElement, context.Options.BaseUri, context.Options.UrlPolicy);
     }
 
     private static string ResolveUrlFromSrcSet(string? rawSrcSet, ConversionContext context) {
-        return GetFirstResolvedSrcSetCandidate(rawSrcSet, context).url;
+        return HtmlImageSourceResolver.ResolveUrlFromSrcSet(rawSrcSet, context.Options.BaseUri, context.Options.UrlPolicy);
     }
 
     private static string ResolveNormalizedSrcSet(string? rawSrcSet, ConversionContext context) {
-        if (string.IsNullOrWhiteSpace(rawSrcSet)) {
-            return string.Empty;
-        }
-
-        var parts = new List<string>();
-        foreach (SrcSetCandidate candidate in SrcSetParser.Parse(rawSrcSet)) {
-            string resolved = ResolveUrl(candidate.Url, context);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                parts.Add(string.IsNullOrWhiteSpace(candidate.Descriptor) ? resolved : resolved + " " + candidate.Descriptor);
-            }
-        }
-
-        return string.Join(", ", parts);
-    }
-
-    private static (string url, string descriptor) GetFirstResolvedSrcSetCandidate(string? rawSrcSet, ConversionContext context) {
-        if (string.IsNullOrWhiteSpace(rawSrcSet)) {
-            return (string.Empty, string.Empty);
-        }
-
-        foreach (SrcSetCandidate candidate in SrcSetParser.Parse(rawSrcSet)) {
-            string resolved = ResolveUrl(candidate.Url, context);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return (resolved, candidate.Descriptor);
-            }
-        }
-
-        return (string.Empty, string.Empty);
+        return HtmlImageSourceResolver.ResolveNormalizedSrcSet(rawSrcSet, context.Options.BaseUri, context.Options.UrlPolicy);
     }
 
     private static string ResolveUrlFromSrcSetAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        if (element == null || attributeNames == null || attributeNames.Length == 0) {
-            return string.Empty;
-        }
-
-        for (int i = 0; i < attributeNames.Length; i++) {
-            string resolved = ResolveUrlFromSrcSet(element.GetAttribute(attributeNames[i]), context);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
-        }
-
-        return string.Empty;
+        return HtmlImageSourceResolver.ResolveUrlFromSrcSetAttributes(element, context.Options.BaseUri, context.Options.UrlPolicy, attributeNames);
     }
 
     private static string ResolveNormalizedSrcSetAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        if (element == null || attributeNames == null || attributeNames.Length == 0) {
-            return string.Empty;
-        }
-
-        for (int i = 0; i < attributeNames.Length; i++) {
-            string resolved = ResolveNormalizedSrcSet(element.GetAttribute(attributeNames[i]), context);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
-        }
-
-        return string.Empty;
+        return HtmlImageSourceResolver.ResolveNormalizedSrcSetAttributes(element, context.Options.BaseUri, context.Options.UrlPolicy, attributeNames);
     }
 
     private static string ResolveUrlAttributes(IElement element, ConversionContext context, params string[] attributeNames) {
-        if (element == null || attributeNames == null || attributeNames.Length == 0) {
-            return string.Empty;
-        }
-
-        for (int i = 0; i < attributeNames.Length; i++) {
-            string resolved = ResolveUrl(element.GetAttribute(attributeNames[i]), context);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
-        }
-
-        return string.Empty;
+        return HtmlImageSourceResolver.ResolveUrlAttributes(element, context.Options.BaseUri, context.Options.UrlPolicy, attributeNames);
     }
 
     private static void ApplyImageDimensions(IElement element, ImageBlock image) {
@@ -166,6 +66,10 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         if (string.IsNullOrWhiteSpace(src)) {
+            return false;
+        }
+
+        if (!TryApplyBase64ImageHandling(ref src, context)) {
             return false;
         }
 
@@ -203,6 +107,10 @@ public sealed partial class HtmlToMarkdownConverter {
 
         string fallbackSrc = ResolveImageSource(fallbackMediaElement, context);
         if (string.IsNullOrWhiteSpace(fallbackSrc)) {
+            return false;
+        }
+
+        if (!TryApplyBase64ImageHandling(ref fallbackSrc, context)) {
             return false;
         }
 
@@ -363,8 +271,7 @@ public sealed partial class HtmlToMarkdownConverter {
     private static bool TryResolveNoscriptMediaElement(IElement noscriptElement, out IElement mediaElement) {
         mediaElement = null!;
         foreach (string html in EnumerateNoscriptHtmlCandidates(noscriptElement)) {
-            var parser = new AngleSharp.Html.Parser.HtmlParser();
-            var document = parser.ParseDocument($"<body>{html}</body>");
+            var document = HtmlDocumentParser.ParseDocument($"<body>{html}</body>");
             IElement? parsedMediaElement = document.QuerySelector("picture") ?? document.QuerySelector("img");
             if (parsedMediaElement != null) {
                 mediaElement = parsedMediaElement;

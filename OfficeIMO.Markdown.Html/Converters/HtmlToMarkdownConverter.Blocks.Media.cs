@@ -20,11 +20,19 @@ public sealed partial class HtmlToMarkdownConverter {
         string preferredSrc = ResolvePictureSource(element, context);
         var imageElement = element.QuerySelector("img");
         if (imageElement != null && TryCreateImageBlock(imageElement, context, out var imageBlock)) {
+            if (!string.IsNullOrWhiteSpace(preferredSrc) && !TryApplyBase64ImageHandling(ref preferredSrc, context)) {
+                preferredSrc = string.Empty;
+            }
+
             imageBlock = !string.IsNullOrWhiteSpace(preferredSrc)
                 ? CreateImageBlock(preferredSrc, imageElement, element, context)
                 : CreateImageBlock(imageBlock.Path, imageElement, element, context);
 
             return new IMarkdownBlock[] { imageBlock };
+        }
+
+        if (!string.IsNullOrWhiteSpace(preferredSrc) && !TryApplyBase64ImageHandling(ref preferredSrc, context)) {
+            preferredSrc = string.Empty;
         }
 
         if (string.IsNullOrWhiteSpace(preferredSrc)) {

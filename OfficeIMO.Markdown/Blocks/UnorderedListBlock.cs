@@ -12,9 +12,12 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
     string IMarkdownBlock.RenderMarkdown() =>
         MarkdownListRendering.RenderMarkdown(
             Items,
-            (item, _) => item.IsTask
-                ? "- [" + (item.Checked ? "x" : " ") + "] "
-                : "- ");
+            (item, _) => {
+                char marker = MarkdownRenderContext.Options?.UnorderedListMarker ?? '-';
+                return item.IsTask
+                    ? marker + " [" + (item.Checked ? "x" : " ") + "] "
+                    : marker + " ";
+            });
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() =>
         MarkdownListRendering.RenderHtml("ul", Items, _ => string.Empty);

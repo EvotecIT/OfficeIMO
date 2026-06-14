@@ -115,6 +115,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Html_Hyperlinks_UsesConfiguredSharedUrlPolicy() {
+            string html = "<p><a href=\"https://example.com/good\">Good</a> <a href=\"http://example.com/plain\">Plain</a> <a href=\"file:///C:/temp/doc.txt\">File</a></p>";
+            var options = new HtmlToWordOptions();
+            options.HyperlinkUrlPolicy.RestrictUrlSchemes = true;
+            options.HyperlinkUrlPolicy.AllowedUrlSchemes.Clear();
+            options.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("https");
+
+            var doc = html.LoadFromHtml(options);
+
+            var hyperlink = Assert.Single(doc.ParagraphsHyperLinks).Hyperlink;
+            Assert.NotNull(hyperlink);
+            Assert.Equal(new Uri("https://example.com/good"), hyperlink!.Uri);
+            string text = string.Concat(doc.Paragraphs[0].GetRuns().Where(run => !run.IsBreak).Select(run => run.Text));
+            Assert.Equal("Good Plain File", text);
+        }
+
+        [Fact]
         public void Html_Hyperlinks_TopAnchor_CreatesBookmark() {
             string html = "<p>Start</p><p><a href=\"#top\">Move</a></p>";
 

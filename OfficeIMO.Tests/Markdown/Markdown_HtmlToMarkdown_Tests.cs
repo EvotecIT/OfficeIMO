@@ -35,6 +35,148 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_RecoversLazyLoadedInlineImageSources() {
+        const string html = """
+<p>Logo <img src="data:image/png;base64,AAAA" data-src="/img/logo.png" alt="Logo" /></p>
+""";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/")
+        });
+
+        Assert.Contains("Logo ![Logo](https://example.com/img/logo.png)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:image/png", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_LeavesCodeSpanBracketsInsideLinkLabelsUnescaped() {
+        const string html = """
+<p><a href="/interop"><code>[[UnmanagedCallersOnly]]</code></a></p>
+""";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/docs/")
+        });
+
+        Assert.Contains("[`[[UnmanagedCallersOnly]]`](https://example.com/interop)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\[\\[UnmanagedCallersOnly\\]\\]", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesSpaceAfterInlineCodeBeforeNestedList() {
+        const string html = """
+<ul><li><code>dotnet</code> command<ul><li>restore</li></ul></li></ul>
+""";
+
+        string markdown = html.ToMarkdown().Replace("\r\n", "\n");
+
+        Assert.Contains("- `dotnet` command", markdown, StringComparison.Ordinal);
+        Assert.Contains("  - restore", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("`dotnet`command", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_AppliesUrlPolicyBeforeCreatingTypedLinksAndImages() {
+        const string html = """
+<p><a href="javascript:alert(1)">bad</a> <a href="https://example.com/good">good</a> <a href="http://example.com/plain">plain</a></p>
+<img src="javascript:alert(1)" alt="Unsafe" />
+""";
+
+        var options = new HtmlToMarkdownOptions();
+        options.UrlPolicy.RestrictUrlSchemes = true;
+        options.UrlPolicy.AllowedUrlSchemes.Clear();
+        options.UrlPolicy.AllowedUrlSchemes.Add("https");
+
+        MarkdownDoc document = html.LoadFromHtml(options);
+
+        string markdown = document.ToMarkdown();
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.Contains("bad", markdown, StringComparison.Ordinal);
+        Assert.Contains("[good](https://example.com/good)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("javascript", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("http://example.com/plain", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("![Unsafe]", markdown, StringComparison.Ordinal);
+        Assert.Contains(paragraph.Inlines.Nodes, inline => inline is LinkInline link && link.Url == "https://example.com/good");
+        Assert.DoesNotContain(paragraph.Inlines.Nodes, inline => inline is LinkInline link && !link.Url.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_EscapesLiteralLineStartsWithoutChangingRenderedText() {
+        const string html = """
+<p># not heading</p>
+<p>- not a list</p>
+<p>1. not ordered</p>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            EscapeMarkdownLineStarts = true
+        });
+
+        string markdown = document.ToMarkdown().Replace("\r\n", "\n");
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("\\# not heading", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\- not a list", markdown, StringComparison.Ordinal);
+        Assert.Contains("1\\. not ordered", markdown, StringComparison.Ordinal);
+        Assert.Contains("# not heading", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("- not a list", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("1. not ordered", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\# not heading", renderedHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_CanSkipBase64Images() {
+        const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        Assert.Empty(document.Blocks);
+        Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_CanSaveBase64ImagesIntoTypedImageBlock() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            Assert.Equal("Inline data", image.Alt);
+            Assert.EndsWith(".png", image.Path, StringComparison.OrdinalIgnoreCase);
+            Assert.True(File.Exists(image.Path));
+            Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(image.Path));
+            Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_UsesConfiguredLineEndingAndUnorderedListMarker() {
+        const string html = "<ul><li>One</li><li>Two</li></ul>";
+
+        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+            MarkdownWriteOptions = new MarkdownWriteOptions {
+                OutputLineEnding = "\n",
+                UnorderedListMarker = '*'
+            }
+        });
+
+        Assert.Contains("* One\n* Two", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("\r\n", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_Trims_StrongBoundaryWhitespace_Before_InlineParsing() {
         string html = "<p><strong> LDAP/Kerberos health on all DCs </strong> next</p>";
 

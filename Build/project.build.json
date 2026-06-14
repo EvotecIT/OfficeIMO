@@ -10,6 +10,7 @@
     "OfficeIMO.Excel.GoogleSheets": "0.1.X",
     "OfficeIMO.Excel.Pdf": "1.0.X",
     "OfficeIMO.GoogleWorkspace": "0.1.X",
+    "OfficeIMO.Html": "0.1.X",
     "OfficeIMO.Html.Pdf": "1.0.X",
     "OfficeIMO.Markdown": "0.6.X",
     "OfficeIMO.Markdown.Html": "0.1.X",
