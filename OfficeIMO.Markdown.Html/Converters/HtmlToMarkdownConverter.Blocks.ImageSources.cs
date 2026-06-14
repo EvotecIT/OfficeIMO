@@ -503,7 +503,8 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         string value = source!.Trim();
-        return value.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
+        return value.Equals("about:blank", StringComparison.OrdinalIgnoreCase)
+               || value.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase)
                || value.Contains("transparent.gif", StringComparison.OrdinalIgnoreCase)
                || value.Contains("spacer.gif", StringComparison.OrdinalIgnoreCase)
                || value.Contains("blank.gif", StringComparison.OrdinalIgnoreCase)

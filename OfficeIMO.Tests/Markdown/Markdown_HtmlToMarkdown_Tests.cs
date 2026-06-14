@@ -288,6 +288,25 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_PrefersLazyPictureFallbackOverAboutBlankPlaceholder() {
+        const string html = """
+<picture>
+  <source srcset="https://cdn.example.test/photo.webp" type="image/webp">
+  <img src="about:blank" data-original-src="https://cdn.example.test/fallback.png" alt="Photo">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions());
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        Assert.Equal("https://cdn.example.test/fallback.png", image.PictureFallbackPath);
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<img src=\"https://cdn.example.test/fallback.png\"", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("about:blank", renderedHtml, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_DropsSkippedPictureOnlyBase64Images() {
         const string html = """
 <picture>

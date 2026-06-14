@@ -708,7 +708,12 @@ namespace OfficeIMO.Word.Html {
             try {
                 long estimatedBytes;
                 if (dataUri.IsBase64) {
-                    estimatedBytes = dataUri.EstimateDecodedByteCount();
+                    if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+                        detail = "Image data URI could not be decoded.";
+                        return false;
+                    }
+
+                    estimatedBytes = bytes.LongLength;
                 } else {
                     if (!dataUri.MediaType.Equals("image/svg+xml", StringComparison.OrdinalIgnoreCase)) {
                         detail = "Only SVG text data URI images are supported when the payload is not base64 encoded.";

@@ -834,6 +834,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void HtmlToWord_ImageSelection_ContinuesPastUndecodableDataCandidate() {
+            var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
+            string base64 = Convert.ToBase64String(File.ReadAllBytes(path));
+            string html = $"<img data-src=\"data:image/png;base64,not-valid\" src=\"data:image/png;base64,{base64}\" alt=\"Logo\" />";
+            var options = new HtmlToWordOptions();
+
+            var doc = html.LoadFromHtml(options);
+
+            Assert.Single(doc.Images);
+            Assert.Empty(options.Diagnostics);
+        }
+
+        [Fact]
         public void HtmlToWord_ImageProcessing_EmbedDataUriOnly_SkipsExternalImages() {
             var path = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             var uri = new Uri(path).AbsoluteUri;
