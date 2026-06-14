@@ -138,6 +138,26 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_SkipsBase64PictureSourceMetadata() {
+        const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="media/photo.png" alt="Photo">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.test/articles/"),
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://example.test/articles/media/photo.png", image.Path);
+        Assert.Empty(image.PictureSources);
+        Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_CanSaveBase64ImagesIntoTypedImageBlock() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
         try {

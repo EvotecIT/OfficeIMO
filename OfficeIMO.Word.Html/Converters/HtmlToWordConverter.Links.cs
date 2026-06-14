@@ -123,6 +123,15 @@ namespace OfficeIMO.Word.Html {
             return !HtmlUrlPolicyEvaluator.IsAllowed(trimmed, options.HyperlinkUrlPolicy, allowEmptyFragment: false);
         }
 
+        private static bool IsInvalidResolvedHref(Uri href, HtmlToWordOptions options) {
+            if (href == null) {
+                return true;
+            }
+
+            string candidate = href.IsAbsoluteUri ? href.AbsoluteUri : href.ToString();
+            return !HtmlUrlPolicyEvaluator.IsAllowed(candidate, options.HyperlinkUrlPolicy, allowEmptyFragment: false);
+        }
+
         private static string NormalizeHref(string href) {
             var trimmed = href.Trim();
             if (trimmed.StartsWith("://", StringComparison.Ordinal)) {

@@ -132,6 +132,16 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Html_Hyperlinks_AppliesPolicyAfterBaseUriResolution() {
+            string html = "<base href=\"file:///C:/temp/\"><p><a href=\"doc.txt\">Doc</a></p>";
+
+            var doc = html.LoadFromHtml(new HtmlToWordOptions());
+
+            Assert.Empty(doc.ParagraphsHyperLinks);
+            Assert.Equal("Doc", doc.Paragraphs[0].Text);
+        }
+
+        [Fact]
         public void Html_Hyperlinks_TopAnchor_CreatesBookmark() {
             string html = "<p>Start</p><p><a href=\"#top\">Move</a></p>";
 

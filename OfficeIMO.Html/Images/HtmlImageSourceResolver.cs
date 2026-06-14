@@ -15,38 +15,53 @@ public static class HtmlImageSourceResolver {
     /// Resolves the best image source from an element, including lazy-loading attributes, source sets, and parent picture fallbacks.
     /// </summary>
     public static string ResolveImageSource(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback = true) {
+        foreach (string candidate in ResolveImageSourceCandidates(element, baseUri, policy, allowParentPictureFallback)) {
+            return candidate;
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Resolves all image source candidates from an element in browser-like preference order.
+    /// </summary>
+    public static IReadOnlyList<string> ResolveImageSourceCandidates(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, bool allowParentPictureFallback = true) {
+        var candidates = new List<string>();
         if (element == null) {
-            return string.Empty;
+            return candidates;
         }
 
-        string resolved = ResolveUrlAttributes(element, baseUri, policy, LazySourceAttributes);
-        if (!string.IsNullOrWhiteSpace(resolved)) {
-            return resolved;
-        }
+        AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
+        AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
+        AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, SrcSetAttributes);
 
-        resolved = ResolveUrlAttributes(element, baseUri, policy, SourceAttributes);
-        if (!string.IsNullOrWhiteSpace(resolved)) {
-            return resolved;
-        }
-
-        resolved = ResolveUrlFromSrcSetAttributes(element, baseUri, policy, SrcSetAttributes);
-        if (!string.IsNullOrWhiteSpace(resolved)) {
-            return resolved;
-        }
-
-        return allowParentPictureFallback
+        if (allowParentPictureFallback
             && element.ParentElement != null
-            && element.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
-            ? ResolvePictureSource(element.ParentElement, baseUri, policy)
-            : string.Empty;
+            && element.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+            AddRange(candidates, ResolvePictureSourceCandidates(element.ParentElement, baseUri, policy));
+        }
+
+        return candidates;
     }
 
     /// <summary>
     /// Resolves the preferred source from a <c>picture</c> element.
     /// </summary>
     public static string ResolvePictureSource(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy) {
+        foreach (string candidate in ResolvePictureSourceCandidates(pictureElement, baseUri, policy)) {
+            return candidate;
+        }
+
+        return string.Empty;
+    }
+
+    /// <summary>
+    /// Resolves all source candidates from a <c>picture</c> element.
+    /// </summary>
+    public static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, Uri? baseUri, HtmlUrlPolicy? policy) {
+        var candidates = new List<string>();
         if (pictureElement == null) {
-            return string.Empty;
+            return candidates;
         }
 
         foreach (var child in pictureElement.Children) {
@@ -54,18 +69,11 @@ public static class HtmlImageSourceResolver {
                 continue;
             }
 
-            string resolved = ResolveUrlFromSrcSetAttributes(child, baseUri, policy, SrcSetAttributes);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
-
-            resolved = ResolveUrlAttributes(child, baseUri, policy, PictureSourceAttributes);
-            if (!string.IsNullOrWhiteSpace(resolved)) {
-                return resolved;
-            }
+            AddResolvedSrcSetAttributes(candidates, child, baseUri, policy, SrcSetAttributes);
+            AddResolvedUrlAttributes(candidates, child, baseUri, policy, PictureSourceAttributes);
         }
 
-        return string.Empty;
+        return candidates;
     }
 
     /// <summary>
@@ -92,6 +100,25 @@ public static class HtmlImageSourceResolver {
         }
 
         return string.Join(", ", parts);
+    }
+
+    /// <summary>
+    /// Resolves all allowed candidates from a <c>srcset</c> value.
+    /// </summary>
+    public static IReadOnlyList<HtmlSrcSetCandidate> ResolveSrcSetCandidates(string? rawSrcSet, Uri? baseUri, HtmlUrlPolicy? policy) {
+        var candidates = new List<HtmlSrcSetCandidate>();
+        if (string.IsNullOrWhiteSpace(rawSrcSet)) {
+            return candidates;
+        }
+
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(rawSrcSet)) {
+            string resolved = HtmlUrlPolicyEvaluator.ResolveUrl(candidate.Url, baseUri, policy);
+            if (!string.IsNullOrWhiteSpace(resolved)) {
+                candidates.Add(new HtmlSrcSetCandidate(resolved, candidate.Descriptor));
+            }
+        }
+
+        return candidates;
     }
 
     /// <summary>
@@ -164,5 +191,48 @@ public static class HtmlImageSourceResolver {
         }
 
         return new HtmlSrcSetCandidate(string.Empty, string.Empty);
+    }
+
+    private static void AddResolvedSrcSetAttributes(List<string> candidates, IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+        if (element == null || attributeNames == null || attributeNames.Length == 0) {
+            return;
+        }
+
+        for (int i = 0; i < attributeNames.Length; i++) {
+            foreach (HtmlSrcSetCandidate candidate in ResolveSrcSetCandidates(element.GetAttribute(attributeNames[i]), baseUri, policy)) {
+                AddCandidate(candidates, candidate.Url);
+            }
+        }
+    }
+
+    private static void AddResolvedUrlAttributes(List<string> candidates, IElement element, Uri? baseUri, HtmlUrlPolicy? policy, params string[] attributeNames) {
+        if (element == null || attributeNames == null || attributeNames.Length == 0) {
+            return;
+        }
+
+        for (int i = 0; i < attributeNames.Length; i++) {
+            AddCandidate(candidates, HtmlUrlPolicyEvaluator.ResolveUrl(element.GetAttribute(attributeNames[i]), baseUri, policy));
+        }
+    }
+
+    private static void AddRange(List<string> candidates, IEnumerable<string> sourceItems) {
+        if (sourceItems == null) {
+            return;
+        }
+
+        foreach (string source in sourceItems) {
+            AddCandidate(candidates, source);
+        }
+    }
+
+    private static void AddCandidate(List<string> candidates, string? source) {
+        if (string.IsNullOrWhiteSpace(source)) {
+            return;
+        }
+
+        string candidate = source!;
+        if (!candidates.Contains(candidate)) {
+            candidates.Add(candidate);
+        }
     }
 }

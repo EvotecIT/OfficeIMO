@@ -165,6 +165,10 @@ public sealed partial class HtmlToMarkdownConverter {
         string fallbackPath = fallbackImageElement == null
             ? string.Empty
             : ResolveDirectImageSource(fallbackImageElement, context);
+        if (!string.IsNullOrWhiteSpace(fallbackPath) && !TryApplyBase64ImageHandling(ref fallbackPath, context)) {
+            fallbackPath = string.Empty;
+        }
+
         image.PictureFallbackPath = string.IsNullOrWhiteSpace(fallbackPath) ? null : fallbackPath;
     }
 
@@ -185,6 +189,11 @@ public sealed partial class HtmlToMarkdownConverter {
                 continue;
             }
 
+            if (!TryApplyBase64ImageHandling(ref resolved, context)) {
+                continue;
+            }
+
+            resolvedSrcSet = ApplyBase64ImageHandlingToSrcSet(resolvedSrcSet, context);
             sources.Add(new ImagePictureSource(
                 resolved,
                 child.GetAttribute("media"),
@@ -194,6 +203,26 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         return sources;
+    }
+
+    private static string ApplyBase64ImageHandlingToSrcSet(string? srcSet, ConversionContext context) {
+        if (string.IsNullOrWhiteSpace(srcSet)) {
+            return string.Empty;
+        }
+
+        var parts = new List<string>();
+        foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(srcSet)) {
+            string source = candidate.Url;
+            if (!TryApplyBase64ImageHandling(ref source, context) || string.IsNullOrWhiteSpace(source)) {
+                continue;
+            }
+
+            parts.Add(string.IsNullOrWhiteSpace(candidate.Descriptor)
+                ? source
+                : source + " " + candidate.Descriptor);
+        }
+
+        return string.Join(", ", parts);
     }
 
     private static void CopyPictureSources(IEnumerable<ImagePictureSource> sourceItems, IList<ImagePictureSource> targetItems) {

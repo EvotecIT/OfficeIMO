@@ -10,10 +10,7 @@ namespace OfficeIMO.Word.Html {
         private static readonly HtmlUrlPolicy ImageSourceResolutionPolicy = CreateImageSourceResolutionPolicy();
 
         private void ProcessImage(IHtmlImageElement img, WordDocument doc, HtmlToWordOptions options, WordParagraph? currentParagraph, WordHeaderFooter? headerFooter) {
-            var src = HtmlImageSourceResolver.ResolveImageSource(
-                img,
-                ResolveImageBaseUri(img, options),
-                ImageSourceResolutionPolicy);
+            var src = ResolveWordImageSource(img, options);
             if (string.IsNullOrEmpty(src)) return;
             var decl = _inlineParser.ParseDeclaration(img.GetAttribute("style") ?? string.Empty);
             var floatVal = decl.GetPropertyValue("float")?.Trim().ToLowerInvariant();
@@ -25,14 +22,6 @@ namespace OfficeIMO.Word.Html {
             } else if (floatVal == "right") {
                 wrap = WrapTextImage.Square;
                 horizontalAlignment = "right";
-            }
-
-            if (!src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase) && !Uri.TryCreate(src, UriKind.Absolute, out _)) {
-                if (!string.IsNullOrEmpty(options.BasePath)) {
-                    src = Path.Combine(options.BasePath, src);
-                } else if (img.BaseUrl != null && Uri.TryCreate(img.BaseUrl.Href, UriKind.Absolute, out var baseUri) && !string.Equals(img.BaseUrl.Href, "http://localhost/", StringComparison.OrdinalIgnoreCase)) {
-                    src = new Uri(baseUri, src).ToString();
-                }
             }
 
             var alt = img.AlternativeText ?? string.Empty;
@@ -440,6 +429,49 @@ namespace OfficeIMO.Word.Html {
             }
 
             return null;
+        }
+
+        private static string ResolveWordImageSource(IHtmlImageElement img, HtmlToWordOptions options) {
+            string firstResolved = string.Empty;
+            foreach (string candidate in HtmlImageSourceResolver.ResolveImageSourceCandidates(
+                         img,
+                         ResolveImageBaseUri(img, options),
+                         ImageSourceResolutionPolicy)) {
+                string resolved = ResolveImageSourcePath(candidate, img, options);
+                if (string.IsNullOrWhiteSpace(resolved)) {
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(firstResolved)) {
+                    firstResolved = resolved;
+                }
+
+                if (IsImageSourceAllowed(resolved, options, out _)) {
+                    return resolved;
+                }
+            }
+
+            return firstResolved;
+        }
+
+        private static string ResolveImageSourcePath(string source, IHtmlImageElement img, HtmlToWordOptions options) {
+            if (string.IsNullOrWhiteSpace(source)
+                || source.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+                || Uri.TryCreate(source, UriKind.Absolute, out _)) {
+                return source ?? string.Empty;
+            }
+
+            if (!string.IsNullOrEmpty(options.BasePath)) {
+                return Path.Combine(options.BasePath, source);
+            }
+
+            if (img.BaseUrl != null
+                && Uri.TryCreate(img.BaseUrl.Href, UriKind.Absolute, out var baseUri)
+                && !string.Equals(img.BaseUrl.Href, "http://localhost/", StringComparison.OrdinalIgnoreCase)) {
+                return new Uri(baseUri, source).ToString();
+            }
+
+            return source;
         }
 
         private static HtmlUrlPolicy CreateImageSourceResolutionPolicy() {

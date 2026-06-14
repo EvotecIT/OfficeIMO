@@ -731,6 +731,15 @@ namespace OfficeIMO.Word.Html {
                                 break;
                             }
 
+                            if (IsInvalidResolvedHref(resolvedUri, options)) {
+                                var fmt = formatting;
+                                ApplySpanStyles(element, ref fmt);
+                                foreach (var child in element.ChildNodes) {
+                                    ProcessNode(child, doc, section, options, currentParagraph, listStack, fmt, cell, headerFooter, headingList);
+                                }
+                                break;
+                            }
+
                             try {
                                 currentParagraph ??= AddParagraphInScope(section, cell, headerFooter);
                                 var fmtExternal = formatting;
