@@ -269,7 +269,14 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ResolvePictureFallbackImageSource(IElement element, ConversionContext context) {
-        return ResolveUrlAttributes(element, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src");
+        string source = ResolveUrlAttributes(element, context, "src");
+        string lazySource = ResolveUrlAttributes(element, context, "data-src", "data-original", "data-original-src", "data-lazy-src");
+
+        if (IsLikelyPlaceholderImageSource(source) && !string.IsNullOrWhiteSpace(lazySource)) {
+            return lazySource;
+        }
+
+        return !string.IsNullOrWhiteSpace(source) ? source : lazySource;
     }
 
     private static List<ImagePictureSource> CollectPictureSources(IElement pictureElement, ConversionContext context) {
