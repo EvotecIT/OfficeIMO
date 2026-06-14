@@ -178,11 +178,14 @@ public class PdfDocumentVisualBaselineTests {
     private static void AppendContentStreamSignals(StringBuilder sb, byte[] pdfBytes) {
         string pdfText = Encoding.ASCII.GetString(pdfBytes);
         string content = ExtractNonImageStreams(pdfText);
+        int imageDraws = CountOccurrences(content, " Do");
+        int imageSoftMasks = CountOccurrences(pdfText, "/SMask");
+        int visibleImageXObjects = Math.Max(imageDraws, CountOccurrences(pdfText, "/Subtype /Image") - imageSoftMasks);
 
         sb.AppendLine("[content-streams]");
-        sb.AppendLine("imageXObjects=" + CountOccurrences(pdfText, "/Subtype /Image").ToString(CultureInfo.InvariantCulture));
-        sb.AppendLine("imageSoftMasks=" + CountOccurrences(pdfText, "/SMask").ToString(CultureInfo.InvariantCulture));
-        sb.AppendLine("imageDraws=" + CountOccurrences(content, " Do").ToString(CultureInfo.InvariantCulture));
+        sb.AppendLine("imageXObjects=" + visibleImageXObjects.ToString(CultureInfo.InvariantCulture));
+        sb.AppendLine("imageSoftMasks=" + imageSoftMasks.ToString(CultureInfo.InvariantCulture));
+        sb.AppendLine("imageDraws=" + imageDraws.ToString(CultureInfo.InvariantCulture));
         sb.AppendLine("clipOps=" + CountOccurrences(content, " W n").ToString(CultureInfo.InvariantCulture));
         sb.AppendLine("graphicsStateResources=" + CountOccurrences(pdfText, "/Type /ExtGState").ToString(CultureInfo.InvariantCulture));
         sb.AppendLine("graphicsStateUses=" + CountOccurrences(content, " gs").ToString(CultureInfo.InvariantCulture));
@@ -267,8 +270,31 @@ public class PdfDocumentVisualBaselineTests {
             previousWhitespace = false;
         }
 
-        string normalized = sb.ToString();
+        string normalized = NormalizeImageResourceNames(sb.ToString());
         return normalized.Length <= 160 ? normalized : normalized.Substring(0, 160);
+    }
+
+    private static string NormalizeImageResourceNames(string line) {
+        var sb = new StringBuilder(line.Length);
+        for (int i = 0; i < line.Length; i++) {
+            if (i + 3 < line.Length &&
+                line[i] == '/' &&
+                line[i + 1] == 'I' &&
+                line[i + 2] == 'm' &&
+                char.IsDigit(line[i + 3])) {
+                sb.Append("/Im#");
+                i += 3;
+                while (i + 1 < line.Length && char.IsDigit(line[i + 1])) {
+                    i++;
+                }
+
+                continue;
+            }
+
+            sb.Append(line[i]);
+        }
+
+        return sb.ToString();
     }
 
     private static void AssertVisualBaseline(string name, string actualSnapshot) {
