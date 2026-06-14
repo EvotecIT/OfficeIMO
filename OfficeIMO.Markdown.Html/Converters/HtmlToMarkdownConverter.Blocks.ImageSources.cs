@@ -13,6 +13,14 @@ public sealed partial class HtmlToMarkdownConverter {
             allowParentPictureFallback: true);
     }
 
+    private static IReadOnlyList<string> ResolveImageSourceCandidates(IElement element, ConversionContext context) {
+        return HtmlImageSourceResolver.ResolveImageSourceCandidates(
+            element,
+            context.Options.BaseUri,
+            context.Options.UrlPolicy,
+            allowParentPictureFallback: true);
+    }
+
     private static string ResolveDirectImageSource(IElement element, ConversionContext context) {
         return HtmlImageSourceResolver.ResolveImageSource(
             element,
@@ -59,22 +67,32 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static bool TryCreateImageBlock(IElement element, ConversionContext context, out ImageBlock image) {
         image = null!;
-        string src = ResolveImageSource(element, context);
-        if ((string.IsNullOrWhiteSpace(src) || IsLikelyPlaceholderImageSource(src))
+        IReadOnlyList<string> candidates = ResolveImageSourceCandidates(element, context);
+        string firstCandidate = candidates.Count == 0 ? string.Empty : candidates[0];
+        if ((candidates.Count == 0 || IsLikelyPlaceholderImageSource(firstCandidate))
             && TryCreateImageBlockFromNoscriptFallback(element, context, out image)) {
             return true;
         }
 
-        if (string.IsNullOrWhiteSpace(src)) {
-            return false;
+        foreach (string candidate in candidates) {
+            string src = candidate;
+            if (string.IsNullOrWhiteSpace(src)) {
+                continue;
+            }
+
+            if (!TryApplyBase64ImageHandling(ref src, context)) {
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(src)) {
+                continue;
+            }
+
+            image = CreateImageBlock(src, element);
+            return true;
         }
 
-        if (!TryApplyBase64ImageHandling(ref src, context)) {
-            return false;
-        }
-
-        image = CreateImageBlock(src, element);
-        return true;
+        return false;
     }
 
     private static ImageBlock CreateImageBlock(string src, IElement metadataElement, IElement? pictureElement = null, ConversionContext? context = null) {

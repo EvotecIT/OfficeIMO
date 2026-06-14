@@ -310,6 +310,12 @@ public sealed partial class HtmlToMarkdownConverter {
             return (image.Path, image.Alt, image.Title, image.PlainAlt);
         }
 
+        if (context != null
+            && context.Options.Base64Images != HtmlBase64ImageHandling.Include
+            && ResolveImageSourceCandidates(element, context).Any(IsBase64ImageDataUri)) {
+            return (string.Empty, element.GetAttribute("alt"), element.GetAttribute("title"), element.GetAttribute("alt"));
+        }
+
         string src = context == null
             ? element.GetAttribute("src") ?? string.Empty
             : ResolveUrl(element.GetAttribute("src"), context);

@@ -31,15 +31,15 @@ public static class HtmlImageSourceResolver {
             return candidates;
         }
 
-        AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
-        AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
-        AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, SrcSetAttributes);
-
         if (allowParentPictureFallback
             && element.ParentElement != null
             && element.ParentElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
             AddRange(candidates, ResolvePictureSourceCandidates(element.ParentElement, baseUri, policy));
         }
+
+        AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
+        AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
+        AddResolvedSrcSetAttributes(candidates, element, baseUri, policy, SrcSetAttributes);
 
         return candidates;
     }

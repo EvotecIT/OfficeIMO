@@ -43,6 +43,34 @@ public sealed class HtmlCoreTests {
     }
 
     [Fact]
+    public void HtmlImageSourceResolver_OrdersParentPictureSourcesBeforeImageFallback() {
+        var document = HtmlDocumentParser.ParseDocument("""
+<picture>
+  <source srcset="media/hero.webp 1x">
+  <img src="media/fallback.png" alt="Hero">
+</picture>
+""");
+
+        var image = document.QuerySelector("img")!;
+        IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidates(
+            image,
+            new Uri("https://example.test/news/2026/"),
+            HtmlUrlPolicy.CreateOfficeIMOProfile());
+
+        Assert.Collection(
+            candidates,
+            source => Assert.Equal("https://example.test/news/2026/media/hero.webp", source),
+            source => Assert.Equal("https://example.test/news/2026/media/fallback.png", source));
+
+        string resolved = HtmlImageSourceResolver.ResolveImageSource(
+            image,
+            new Uri("https://example.test/news/2026/"),
+            HtmlUrlPolicy.CreateOfficeIMOProfile());
+
+        Assert.Equal("https://example.test/news/2026/media/hero.webp", resolved);
+    }
+
+    [Fact]
     public void HtmlImageSourceResolver_UsesLazyAttributesBeforePlaceholderSource() {
         var document = HtmlDocumentParser.ParseDocument("""<img src="data:image/gif;base64,AAAA" data-lazy-src="media/photo.png">""");
         string source = HtmlImageSourceResolver.ResolveImageSource(

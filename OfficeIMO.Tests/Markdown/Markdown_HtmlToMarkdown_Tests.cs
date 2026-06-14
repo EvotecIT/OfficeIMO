@@ -138,6 +138,63 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_DropsMalformedBase64ImagesWhenSkippingOrSaving() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """<figure><img src="data:image/png;base64,not-valid-base64" alt="Malformed data" /></figure>""";
+            foreach (HtmlBase64ImageHandling handling in new[] { HtmlBase64ImageHandling.Skip, HtmlBase64ImageHandling.SaveToFile }) {
+                MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                    Base64Images = handling,
+                    Base64ImageOutputDirectory = directory
+                });
+
+                Assert.Empty(document.Blocks);
+                Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+            }
+
+            if (Directory.Exists(directory)) {
+                Assert.Empty(Directory.GetFiles(directory));
+            }
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_TriesLaterImageCandidatesAfterSkippingBase64Source() {
+        const string html = """
+<figure>
+  <img src="data:image/png;base64,AQID" srcset="https://cdn.example.test/photo.png 1x" alt="Photo" />
+</figure>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.png", image.Path);
+        Assert.Equal("Photo", image.Alt);
+        Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_SkipsInlineBase64ImageWithoutRawFallback() {
+        const string html = """<p>Before <img src="data:image/png;base64,AQID" alt="Inline data" /> after</p>""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            Base64Images = HtmlBase64ImageHandling.Skip
+        });
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.DoesNotContain(paragraph.Inlines.Nodes, inline => inline is ImageInline);
+        Assert.DoesNotContain("data:image/png", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("![Inline data]", document.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_SkipsBase64PictureSourceMetadata() {
         const string html = """
 <picture>
