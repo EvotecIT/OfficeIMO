@@ -114,4 +114,15 @@ public sealed class HtmlCoreTests {
         Assert.Equal("https://example.test/news/docs/index.html", resolved);
         Assert.Equal("https://example.test/img/demo.png", rootRelative);
     }
+
+    [Theory]
+    [InlineData("C:secret.docx")]
+    [InlineData("C:\\secret.docx")]
+    [InlineData("C:/secret.docx")]
+    public void HtmlUrlPolicyEvaluator_RejectsWindowsDrivePathsWhenFileUrlsAreDisallowed(string rawUrl) {
+        var policy = HtmlUrlPolicy.CreateHyperlinkProfile();
+
+        Assert.False(HtmlUrlPolicyEvaluator.IsAllowed(rawUrl, policy));
+        Assert.Equal(string.Empty, HtmlUrlPolicyEvaluator.ResolveUrl(rawUrl, new Uri("https://example.test/"), policy));
+    }
 }

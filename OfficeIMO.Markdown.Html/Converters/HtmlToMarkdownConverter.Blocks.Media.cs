@@ -253,8 +253,13 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        foreach (string candidate in HtmlImageSourceResolver.ResolvePictureSourceCandidates(element, context.Options.BaseUri, context.Options.UrlPolicy)) {
-            if (IsBase64ImageDataUri(candidate)) {
+        foreach (var child in element.Children) {
+            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (HasBase64SrcSetAttribute(child, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
+                || HasBase64UrlAttribute(child, "src", "data-src", "data-original-src", "data-lazy-src")) {
                 return true;
             }
         }
@@ -264,9 +269,34 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        foreach (string candidate in ResolveImageSourceCandidates(imageElement, context)) {
-            if (IsBase64ImageDataUri(candidate)) {
+        return HasBase64SrcSetAttribute(imageElement, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
+               || HasBase64UrlAttribute(imageElement, "src", "data-src", "data-original", "data-original-src", "data-lazy-src");
+    }
+
+    private static bool HasBase64UrlAttribute(IElement element, params string[] attributeNames) {
+        if (element == null || attributeNames == null) {
+            return false;
+        }
+
+        foreach (string attributeName in attributeNames) {
+            if (IsBase64ImageDataUri(element.GetAttribute(attributeName))) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasBase64SrcSetAttribute(IElement element, params string[] attributeNames) {
+        if (element == null || attributeNames == null) {
+            return false;
+        }
+
+        foreach (string attributeName in attributeNames) {
+            foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(element.GetAttribute(attributeName))) {
+                if (IsBase64ImageDataUri(candidate.Url)) {
+                    return true;
+                }
             }
         }
 

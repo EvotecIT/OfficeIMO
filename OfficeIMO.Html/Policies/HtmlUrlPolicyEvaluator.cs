@@ -99,10 +99,9 @@ public static class HtmlUrlPolicyEvaluator {
     }
 
     private static bool LooksLikeWindowsDrivePath(string value) {
-        return value.Length >= 3
+        return value.Length >= 2
                && char.IsLetter(value[0])
-               && value[1] == ':'
-               && (value[2] == '\\' || value[2] == '/');
+               && value[1] == ':';
     }
 
     private readonly struct HtmlUrlEvaluation {

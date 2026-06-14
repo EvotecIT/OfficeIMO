@@ -15,6 +15,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
         public HtmlToMarkdownOptions Options { get; }
         public int SavedBase64ImageCount { get; set; }
+        public Dictionary<string, string> SavedBase64ImagesBySource { get; } = new(StringComparer.Ordinal);
     }
 
     /// <summary>

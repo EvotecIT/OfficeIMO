@@ -4,6 +4,7 @@ namespace OfficeIMO.Markdown.Html;
 
 public sealed partial class HtmlToMarkdownConverter {
     private static bool TryApplyBase64ImageHandling(ref string source, ConversionContext context) {
+        string originalSource = source;
         if (!HtmlImageDataUri.TryParse(source, out var dataUri) || !dataUri.IsBase64) {
             return true;
         }
@@ -15,12 +16,21 @@ public sealed partial class HtmlToMarkdownConverter {
                 source = string.Empty;
                 return false;
             case HtmlBase64ImageHandling.SaveToFile:
+                if (context.SavedBase64ImagesBySource.TryGetValue(originalSource, out string? savedPath)) {
+                    source = savedPath;
+                    return source.Length > 0;
+                }
+
                 if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
                     source = string.Empty;
                     return false;
                 }
 
                 source = SaveBase64Image(bytes, dataUri.MediaType, context);
+                if (source.Length > 0) {
+                    context.SavedBase64ImagesBySource[originalSource] = source;
+                }
+
                 return source.Length > 0;
             default:
                 throw new ArgumentOutOfRangeException(nameof(context.Options.Base64Images), context.Options.Base64Images, "Unknown base64 image handling mode.");
