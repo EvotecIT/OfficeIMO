@@ -671,6 +671,16 @@ namespace OfficeIMO.Word.Pdf {
             string? axisNumberFormat = GetNativeWordChartValueAxisNumberFormat(chartElement, plotArea);
             string? categoryAxisTitle = GetNativeWordChartCategoryAxisTitle(chartElement, plotArea);
             string? valueAxisTitle = GetNativeWordChartValueAxisTitle(chartElement, plotArea);
+            string? horizontalAxisNumberFormat = axisNumberFormat;
+            string? verticalAxisNumberFormat = axisNumberFormat;
+            if (chartKind == OfficeChartKind.Scatter) {
+                NativeWordScatterAxisMetadata scatterAxisMetadata = GetNativeWordScatterAxisMetadata(chartElement, plotArea);
+                horizontalAxisNumberFormat = scatterAxisMetadata.HorizontalNumberFormat ?? axisNumberFormat;
+                verticalAxisNumberFormat = scatterAxisMetadata.VerticalNumberFormat ?? axisNumberFormat;
+                axisNumberFormat = verticalAxisNumberFormat ?? horizontalAxisNumberFormat;
+                categoryAxisTitle = scatterAxisMetadata.HorizontalTitle ?? categoryAxisTitle;
+                valueAxisTitle = scatterAxisMetadata.VerticalTitle ?? valueAxisTitle;
+            }
             int? maximumCategoryAxisLabels = null;
             int? maximumHorizontalCategoryAxisLabels = null;
             int? maximumRadarCategoryLabels = null;
@@ -692,6 +702,8 @@ namespace OfficeIMO.Word.Pdf {
                 !maximumHorizontalCategoryAxisLabels.HasValue &&
                 !maximumRadarCategoryLabels.HasValue &&
                 string.IsNullOrWhiteSpace(axisNumberFormat) &&
+                string.IsNullOrWhiteSpace(horizontalAxisNumberFormat) &&
+                string.IsNullOrWhiteSpace(verticalAxisNumberFormat) &&
                 string.IsNullOrWhiteSpace(categoryAxisTitle) &&
                 string.IsNullOrWhiteSpace(valueAxisTitle)) {
                 return null;
@@ -715,7 +727,37 @@ namespace OfficeIMO.Word.Pdf {
                 showMarkers: showMarkers,
                 axisNumberFormat: axisNumberFormat,
                 categoryAxisTitle: categoryAxisTitle,
-                valueAxisTitle: valueAxisTitle);
+                valueAxisTitle: valueAxisTitle,
+                horizontalAxisNumberFormat: horizontalAxisNumberFormat,
+                verticalAxisNumberFormat: verticalAxisNumberFormat);
+        }
+
+        private readonly struct NativeWordScatterAxisMetadata {
+            public NativeWordScatterAxisMetadata(string? horizontalNumberFormat, string? verticalNumberFormat, string? horizontalTitle, string? verticalTitle) {
+                HorizontalNumberFormat = horizontalNumberFormat;
+                VerticalNumberFormat = verticalNumberFormat;
+                HorizontalTitle = horizontalTitle;
+                VerticalTitle = verticalTitle;
+            }
+
+            public string? HorizontalNumberFormat { get; }
+            public string? VerticalNumberFormat { get; }
+            public string? HorizontalTitle { get; }
+            public string? VerticalTitle { get; }
+        }
+
+        private static NativeWordScatterAxisMetadata GetNativeWordScatterAxisMetadata(OpenXmlElement chartElement, PlotArea plotArea) {
+            IReadOnlyList<uint> valueAxisIds = GetNativeWordChartAxisIds(chartElement)
+                .Where(axisId => GetNativeWordChartValueAxis(plotArea, axisId) != null)
+                .ToArray();
+
+            ValueAxis? horizontalAxis = valueAxisIds.Count > 0 ? GetNativeWordChartValueAxis(plotArea, valueAxisIds[0]) : null;
+            ValueAxis? verticalAxis = valueAxisIds.Count > 1 ? GetNativeWordChartValueAxis(plotArea, valueAxisIds[1]) : null;
+            return new NativeWordScatterAxisMetadata(
+                GetNativeWordChartAxisNumberFormat(horizontalAxis),
+                GetNativeWordChartAxisNumberFormat(verticalAxis),
+                horizontalAxis == null ? null : GetNativeWordChartAxisTitle(horizontalAxis),
+                verticalAxis == null ? null : GetNativeWordChartAxisTitle(verticalAxis));
         }
 
         private static string? GetNativeWordChartCategoryAxisTitle(OpenXmlElement chartElement, PlotArea plotArea) =>
@@ -755,6 +797,21 @@ namespace OfficeIMO.Word.Pdf {
         private static string? GetNativeWordChartAxisTitle(OpenXmlElement axis) =>
             GetFirstNativeWordChartText(axis.GetFirstChild<Title>());
 
+        private static IReadOnlyList<uint> GetNativeWordChartAxisIds(OpenXmlElement chartElement) =>
+            chartElement.Elements<AxisId>()
+                .Select(axis => axis.Val?.Value)
+                .Where(value => value.HasValue)
+                .Select(value => value!.Value)
+                .ToArray();
+
+        private static ValueAxis? GetNativeWordChartValueAxis(PlotArea plotArea, uint axisId) =>
+            plotArea.Elements<ValueAxis>().FirstOrDefault(axis => axis.AxisId?.Val?.Value == axisId);
+
+        private static string? GetNativeWordChartAxisNumberFormat(ValueAxis? axis) {
+            string? format = axis?.GetFirstChild<NumberingFormat>()?.FormatCode?.Value;
+            return string.IsNullOrWhiteSpace(format) ? null : format;
+        }
+
         private static string? GetNativeWordChartValueAxisNumberFormat(OpenXmlElement chartElement, PlotArea plotArea) {
             var chartAxisIds = new HashSet<uint>(
                 chartElement.Elements<AxisId>()
@@ -765,7 +822,7 @@ namespace OfficeIMO.Word.Pdf {
             foreach (ValueAxis axis in plotArea.Elements<ValueAxis>()) {
                 uint? axisId = axis.AxisId?.Val?.Value;
                 if (axisId.HasValue && chartAxisIds.Contains(axisId.Value)) {
-                    string? format = axis.GetFirstChild<NumberingFormat>()?.FormatCode?.Value;
+                    string? format = GetNativeWordChartAxisNumberFormat(axis);
                     if (!string.IsNullOrWhiteSpace(format)) {
                         return format;
                     }
@@ -773,7 +830,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             foreach (ValueAxis axis in plotArea.Elements<ValueAxis>()) {
-                string? format = axis.GetFirstChild<NumberingFormat>()?.FormatCode?.Value;
+                string? format = GetNativeWordChartAxisNumberFormat(axis);
                 if (!string.IsNullOrWhiteSpace(format)) {
                     return format;
                 }

@@ -63,7 +63,7 @@ namespace OfficeIMO.Word.Pdf {
             return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
         }
 
-        private static void RegisterNativeEmbeddedTextFallbacks(PdfCore.PdfOptions pdfOptions, IReadOnlySet<PdfCore.PdfStandardFont> reservedFontSlots) {
+        private static void RegisterNativeEmbeddedTextFallbacks(PdfCore.PdfOptions pdfOptions, IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
             if (pdfOptions.EmbeddedFontFallbacks != null) {
                 return;
             }
@@ -96,7 +96,7 @@ namespace OfficeIMO.Word.Pdf {
             pdfOptions.RegisterEmbeddedFontFallbacks(new PdfCore.PdfEmbeddedFontFallbackSet(candidates, slots));
         }
 
-        private static IEnumerable<PdfCore.PdfStandardFont> GetNativeAvailableFallbackFontSlots(PdfCore.PdfOptions pdfOptions, int count, IReadOnlySet<PdfCore.PdfStandardFont> reservedFontSlots) {
+        private static IEnumerable<PdfCore.PdfStandardFont> GetNativeAvailableFallbackFontSlots(PdfCore.PdfOptions pdfOptions, int count, IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
             var reservedSlots = new HashSet<PdfCore.PdfStandardFont> {
                 PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.DefaultFont),
                 PdfCore.PdfStandardFontMapper.GetFontFamily(pdfOptions.HeaderFont),

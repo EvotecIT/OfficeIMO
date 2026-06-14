@@ -9,6 +9,8 @@ public sealed partial class PdfOptions {
         set => _textWatermark = value?.Clone();
     }
     internal PdfTextWatermark? TextWatermarkSnapshot => _textWatermark?.Clone();
+    internal PdfTextWatermark? FirstPageTextWatermarkSnapshot => _firstPageTextWatermark?.Clone();
+    internal PdfTextWatermark? EvenPageTextWatermarkSnapshot => _evenPageTextWatermark?.Clone();
     /// <summary>Optional first-page text watermark rendered behind page content when first-page variants are enabled.</summary>
     public PdfTextWatermark? FirstPageTextWatermark {
         get => _firstPageTextWatermark?.Clone();

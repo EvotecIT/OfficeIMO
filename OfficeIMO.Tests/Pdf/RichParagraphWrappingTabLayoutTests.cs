@@ -76,6 +76,29 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
+        public void WrapRichRuns_OffsetsExplicitTabStopsForFirstLineIndent() {
+            var method = typeof(PdfWriter).GetMethod("WrapRichRunsCoreWithFirstLineOrigin", BindingFlags.NonPublic | BindingFlags.Static);
+            Assert.NotNull(method);
+
+            var result = method!.Invoke(null, new object?[] {
+                new[] { new TextRun("A\tB") },
+                180D,
+                12D,
+                PdfStandardFont.Helvetica,
+                16.8D,
+                156D,
+                24D,
+                36D,
+                null,
+                new[] { new PdfTabStop(90) }
+            })!;
+
+            var line = Assert.Single(ExtractLines(result));
+            Assert.Equal(new[] { "A", "B" }, line.ConvertAll(ExtractText).ToArray());
+            Assert.InRange(ExtractLeadingAdvance(line[1]), 57, 59);
+        }
+
+        [Fact]
         public void WrapRichRuns_UsesExplicitRightAlignedTabStopAndLeader() {
             var result = InvokeWrapRichRuns(new[] {
                 new TextRun("Revenue"),

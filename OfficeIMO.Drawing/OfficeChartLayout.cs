@@ -39,6 +39,8 @@ public sealed class OfficeChartLayout {
     /// <param name="axisNumberFormat">Optional numeric format for value-axis labels.</param>
     /// <param name="categoryAxisTitle">Optional category or horizontal axis title.</param>
     /// <param name="valueAxisTitle">Optional value or vertical axis title.</param>
+    /// <param name="horizontalAxisNumberFormat">Optional numeric format for horizontal value-axis labels.</param>
+    /// <param name="verticalAxisNumberFormat">Optional numeric format for vertical value-axis labels.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -67,7 +69,9 @@ public sealed class OfficeChartLayout {
         bool showMarkers = true,
         string? axisNumberFormat = null,
         string? categoryAxisTitle = null,
-        string? valueAxisTitle = null) {
+        string? valueAxisTitle = null,
+        string? horizontalAxisNumberFormat = null,
+        string? verticalAxisNumberFormat = null) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -94,6 +98,8 @@ public sealed class OfficeChartLayout {
         DataLabelNumberFormat = string.IsNullOrWhiteSpace(dataLabelNumberFormat) ? null : dataLabelNumberFormat;
         ShowMarkers = showMarkers;
         AxisNumberFormat = string.IsNullOrWhiteSpace(axisNumberFormat) ? null : axisNumberFormat;
+        HorizontalAxisNumberFormat = string.IsNullOrWhiteSpace(horizontalAxisNumberFormat) ? AxisNumberFormat : horizontalAxisNumberFormat;
+        VerticalAxisNumberFormat = string.IsNullOrWhiteSpace(verticalAxisNumberFormat) ? AxisNumberFormat : verticalAxisNumberFormat;
         CategoryAxisTitle = string.IsNullOrWhiteSpace(categoryAxisTitle) ? null : categoryAxisTitle;
         ValueAxisTitle = string.IsNullOrWhiteSpace(valueAxisTitle) ? null : valueAxisTitle;
     }
@@ -178,6 +184,12 @@ public sealed class OfficeChartLayout {
 
     /// <summary>Optional numeric format for value-axis labels.</summary>
     public string? AxisNumberFormat { get; }
+
+    /// <summary>Optional numeric format for horizontal value-axis labels.</summary>
+    public string? HorizontalAxisNumberFormat { get; }
+
+    /// <summary>Optional numeric format for vertical value-axis labels.</summary>
+    public string? VerticalAxisNumberFormat { get; }
 
     /// <summary>Optional category or horizontal axis title.</summary>
     public string? CategoryAxisTitle { get; }

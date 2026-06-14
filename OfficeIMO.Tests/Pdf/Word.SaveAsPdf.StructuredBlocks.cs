@@ -1125,6 +1125,38 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_Separates_Native_Word_Scatter_Axis_Metadata() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeWordScatterAxisMetadata.docx");
+
+        using WordDocument document = WordDocument.Create(docPath);
+        WordChart chart = document.AddChart("Word PDF Scatter Axis Metadata", false, 360, 220);
+        chart.AddScatter("Points", new List<double> { 1, 2 }, new List<double> { 10, 20 }, OfficeColor.ParseHex("#4472c4"));
+
+        ChartPart chartPart = (ChartPart)typeof(WordChart)
+            .GetProperty("ChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!
+            .GetValue(chart)!;
+        ScatterChart scatter = chartPart.ChartSpace!.Descendants<ScatterChart>().First();
+        uint[] axisIds = scatter.Elements<AxisId>()
+            .Select(axis => axis.Val!.Value)
+            .ToArray();
+
+        ValueAxis xAxis = chartPart.ChartSpace.Descendants<ValueAxis>().Single(axis => axis.AxisId!.Val!.Value == axisIds[0]);
+        ValueAxis yAxis = chartPart.ChartSpace.Descendants<ValueAxis>().Single(axis => axis.AxisId!.Val!.Value == axisIds[1]);
+        ApplyNumberFormat(xAxis, "0.0");
+        ApplyNumberFormat(yAxis, "#,##0.00");
+        xAxis.Append(CreateNativeWordChartAxisTitle("X Axis"));
+        yAxis.Append(CreateNativeWordChartAxisTitle("Y Axis"));
+
+        object snapshot = CreateNativeWordChartSnapshot(chart);
+        object layout = snapshot.GetType().GetProperty("Layout")!.GetValue(snapshot)!;
+
+        Assert.Equal("0.0", layout.GetType().GetProperty("HorizontalAxisNumberFormat")!.GetValue(layout));
+        Assert.Equal("#,##0.00", layout.GetType().GetProperty("VerticalAxisNumberFormat")!.GetValue(layout));
+        Assert.Equal("X Axis", layout.GetType().GetProperty("CategoryAxisTitle")!.GetValue(layout));
+        Assert.Equal("Y Axis", layout.GetType().GetProperty("ValueAxisTitle")!.GetValue(layout));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Preserves_Blank_Word_Chart_Cache_Points_As_Gaps() {
         var values = new Values(
             new NumberReference(
@@ -2099,6 +2131,24 @@ public partial class Word {
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("CreateNativeTableOfContentsEntryStyle", BindingFlags.NonPublic | BindingFlags.Static)!;
         return method.Invoke(null, new object?[] { relativeLevel, contentWidth })!;
     }
+
+    private static void ApplyNumberFormat(ValueAxis axis, string formatCode) {
+        DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat? numberingFormat =
+            axis.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat>();
+        if (numberingFormat == null) {
+            numberingFormat = new DocumentFormat.OpenXml.Drawing.Charts.NumberingFormat();
+            axis.Append(numberingFormat);
+        }
+
+        numberingFormat.FormatCode = formatCode;
+        numberingFormat.SourceLinked = false;
+    }
+
+    private static Title CreateNativeWordChartAxisTitle(string text) =>
+        new(new ChartText(new RichText(
+            new A.BodyProperties(),
+            new A.ListStyle(),
+            new A.Paragraph(new A.Run(new A.Text(text))))));
 
     private static double GetPdfParagraphStyleDouble(object style, string propertyName) {
         object? value = style.GetType().GetProperty(propertyName)!.GetValue(style);
