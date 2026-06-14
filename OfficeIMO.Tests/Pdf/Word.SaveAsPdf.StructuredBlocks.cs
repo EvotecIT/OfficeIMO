@@ -915,7 +915,7 @@ public partial class Word {
         var properties = new ChartShapeProperties(
             new A.SolidFill(new A.PresetColor { Val = A.PresetColorValues.Red }));
         MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("TryGetNativeDrawingSolidFillColor", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] arguments = { properties, null };
+        object?[] arguments = { properties, null, null };
 
         bool result = (bool)method.Invoke(null, arguments)!;
 
