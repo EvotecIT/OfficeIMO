@@ -245,16 +245,36 @@ jobs:
           echo "Ubuntu test matrix passed."
 
   test-macos-matrix:
-    name: 'macOS ${{ matrix.framework }}'
+    name: 'macOS ${{ matrix.framework }} ${{ matrix.slice }}'
     runs-on: macos-latest
-    # Hosted macOS runners can run the full OfficeIMO.Tests suite substantially
-    # slower than Linux/Windows, especially on net10.0, so keep enough headroom
-    # for cancellation-free signal instead of timing out during active tests.
+    # Hosted macOS runners run the Excel performance regression tests much
+    # slower than Linux/Windows. Split that slice out so the rest of the suite
+    # stays readable and the performance slice runs without parallel pressure.
     timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
-        framework: [net8.0, net10.0]
+        include:
+          - framework: net8.0
+            slice: main
+            project: OfficeIMO.sln
+            filter: FullyQualifiedName!~PerformanceReview
+            extraArgs: ''
+          - framework: net8.0
+            slice: excel-performance
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~PerformanceReview
+            extraArgs: '-- xUnit.ParallelizeTestCollections=false'
+          - framework: net10.0
+            slice: main
+            project: OfficeIMO.sln
+            filter: FullyQualifiedName!~PerformanceReview
+            extraArgs: ''
+          - framework: net10.0
+            slice: excel-performance
+            project: OfficeIMO.Tests/OfficeIMO.Tests.csproj
+            filter: FullyQualifiedName~PerformanceReview
+            extraArgs: '-- xUnit.ParallelizeTestCollections=false'
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -279,7 +299,7 @@ jobs:
         run: dotnet build OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
 
       - name: Run tests
-        run: dotnet test OfficeIMO.sln --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+        run: dotnet test ${{ matrix.project }} --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${{ matrix.filter }}" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx ${{ matrix.extraArgs }}
 
       - name: Summarize failing tests
         if: failure() && env.SUMMARIZE_FAILURES == 'true'
@@ -319,7 +339,7 @@ jobs:
         uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-results-macos-${{ matrix.framework }}
+          name: test-results-macos-${{ matrix.framework }}-${{ matrix.slice }}
           path: '**/*.trx'
 
   test-macos:
