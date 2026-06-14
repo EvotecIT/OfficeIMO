@@ -22,7 +22,9 @@ public static class HtmlSrcSetParser {
             }
 
             int urlStart = index;
-            while (index < value.Length && !char.IsWhiteSpace(value[index])) {
+            while (index < value.Length
+                   && !char.IsWhiteSpace(value[index])
+                   && !IsCandidateSeparator(value, urlStart, index)) {
                 index++;
             }
 
@@ -59,6 +61,76 @@ public static class HtmlSrcSetParser {
         }
 
         return candidates;
+    }
+
+    private static bool IsCandidateSeparator(string value, int urlStart, int index) {
+        if (value[index] != ',') {
+            return false;
+        }
+
+        if (StartsWith(value, urlStart, "data:", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        if (Contains(value, urlStart, index, '?')) {
+            return false;
+        }
+
+        int next = index + 1;
+        while (next < value.Length && char.IsWhiteSpace(value[next])) {
+            next++;
+        }
+
+        if (next >= value.Length) {
+            return false;
+        }
+
+        int tokenEnd = next;
+        while (tokenEnd < value.Length && !char.IsWhiteSpace(value[tokenEnd]) && value[tokenEnd] != ',') {
+            tokenEnd++;
+        }
+
+        return LooksLikeUrlCandidate(value, next, tokenEnd);
+    }
+
+    private static bool LooksLikeUrlCandidate(string value, int startIndex, int endIndex) {
+        if (startIndex >= endIndex) {
+            return false;
+        }
+
+        if (StartsWith(value, startIndex, "http://", StringComparison.OrdinalIgnoreCase)
+            || StartsWith(value, startIndex, "https://", StringComparison.OrdinalIgnoreCase)
+            || StartsWith(value, startIndex, "data:", StringComparison.OrdinalIgnoreCase)
+            || value[startIndex] == '/'
+            || value[startIndex] == '.') {
+            return true;
+        }
+
+        for (int i = startIndex; i < endIndex; i++) {
+            if (value[i] == '.') {
+                return i > startIndex && i + 1 < endIndex;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool Contains(string value, int startIndex, int endIndex, char search) {
+        for (int i = startIndex; i < endIndex; i++) {
+            if (value[i] == search) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool StartsWith(string value, int startIndex, string prefix, StringComparison comparison) {
+        if (startIndex < 0 || startIndex + prefix.Length > value.Length) {
+            return false;
+        }
+
+        return string.Compare(value, startIndex, prefix, 0, prefix.Length, comparison) == 0;
     }
 
     private static void SkipWhitespaceAndCommas(string value, ref int index) {

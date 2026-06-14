@@ -371,6 +371,21 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_DropsRejectedEmptyBlockAnchorsInsteadOfRawHtml() {
+        const string html = """<a href="javascript:alert(1)"><script>alert(2)</script></a>""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = true
+        });
+
+        Assert.Empty(document.Blocks);
+        string markdown = document.ToMarkdown();
+        Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<a ", markdown, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<script", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_CanSaveBase64ImagesIntoTypedImageBlock() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
         try {
@@ -420,6 +435,37 @@ public sealed class MarkdownHtmlToMarkdownTests {
             string savedFile = Assert.Single(Directory.GetFiles(directory));
             Assert.Equal(image.Path, savedFile);
             Assert.False(File.Exists(Path.Combine(directory, "image_1.png")));
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_EncodesSavedBase64PictureSrcSetPathsBeforeDescriptors() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """
+<picture>
+  <source srcset="data:image/png;base64,AQID 1x">
+  <img src="media/fallback.png" alt="Data">
+</picture>
+""";
+
+            MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                BaseUri = new Uri("https://example.test/articles/"),
+                Base64Images = HtmlBase64ImageHandling.SaveToFile,
+                Base64ImageOutputDirectory = directory,
+                Base64ImageFileNameGenerator = (index, _) => "image_" + index.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".png"
+            });
+
+            var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+            var source = Assert.Single(image.PictureSources);
+            Assert.Equal(image.Path, source.Path);
+            Assert.Contains("OfficeIMO%20HtmlImages.", source.SrcSet, StringComparison.Ordinal);
+            Assert.DoesNotContain("OfficeIMO HtmlImages.", source.SrcSet, StringComparison.Ordinal);
+            Assert.EndsWith(" 1x", source.SrcSet, StringComparison.Ordinal);
         } finally {
             if (Directory.Exists(directory)) {
                 Directory.Delete(directory, recursive: true);

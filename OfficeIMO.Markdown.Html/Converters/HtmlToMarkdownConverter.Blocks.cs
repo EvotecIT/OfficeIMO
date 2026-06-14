@@ -171,9 +171,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
                 if (HasRejectedHref(element, context)) {
                     var unwrappedBlocks = ConvertNodesToBlocks(element.ChildNodes, context).ToList();
-                    if (unwrappedBlocks.Count > 0) {
-                        return unwrappedBlocks;
-                    }
+                    return unwrappedBlocks;
                 }
 
                 if (context.Options.PreserveUnsupportedBlocks) {

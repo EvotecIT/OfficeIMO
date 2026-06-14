@@ -1,6 +1,7 @@
 using AngleSharp.Dom;
 using OfficeIMO.Html;
 using OfficeIMO.Markdown;
+using System.Text;
 
 namespace OfficeIMO.Markdown.Html;
 
@@ -345,17 +346,53 @@ public sealed partial class HtmlToMarkdownConverter {
 
         var parts = new List<string>();
         foreach (HtmlSrcSetCandidate candidate in HtmlSrcSetParser.Parse(srcSet)) {
+            string originalSource = candidate.Url;
             string source = candidate.Url;
             if (!TryApplyBase64ImageHandling(ref source, context) || string.IsNullOrWhiteSpace(source)) {
                 continue;
             }
 
+            source = EncodeSavedSrcSetSource(originalSource, source, context);
             parts.Add(string.IsNullOrWhiteSpace(candidate.Descriptor)
                 ? source
                 : source + " " + candidate.Descriptor);
         }
 
         return string.Join(", ", parts);
+    }
+
+    private static string EncodeSavedSrcSetSource(string originalSource, string source, ConversionContext context) {
+        if (context.Options.Base64Images != HtmlBase64ImageHandling.SaveToFile
+            || !IsBase64ImageDataUri(originalSource)
+            || string.Equals(originalSource, source, StringComparison.Ordinal)) {
+            return source;
+        }
+
+        return EncodeSrcSetWhitespace(source);
+    }
+
+    private static string EncodeSrcSetWhitespace(string source) {
+        StringBuilder? builder = null;
+        for (int i = 0; i < source.Length; i++) {
+            char value = source[i];
+            if (!char.IsWhiteSpace(value)) {
+                builder?.Append(value);
+                continue;
+            }
+
+            builder ??= new StringBuilder(source.Length + 8);
+            if (builder.Length == 0 && i > 0) {
+                builder.Append(source, 0, i);
+            }
+
+            if (value == ' ') {
+                builder.Append("%20");
+            } else {
+                builder.Append(Uri.HexEscape(value));
+            }
+        }
+
+        return builder?.ToString() ?? source;
     }
 
     private static void CopyPictureSources(IEnumerable<ImagePictureSource> sourceItems, IList<ImagePictureSource> targetItems) {
