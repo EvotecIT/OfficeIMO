@@ -362,6 +362,13 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         if (context?.Options.EscapeMarkdownLineStarts == true) {
+            if (sequence.Nodes.Count > 0 && sequence.Nodes[sequence.Nodes.Count - 1] is LineStartEscapedTextRun previous) {
+                var nodes = sequence.Nodes.Take(sequence.Nodes.Count - 1).ToList();
+                nodes.Add(new LineStartEscapedTextRun(previous.Text + normalized));
+                sequence.ReplaceItems(nodes);
+                return;
+            }
+
             sequence.AddRaw(new LineStartEscapedTextRun(normalized));
             return;
         }

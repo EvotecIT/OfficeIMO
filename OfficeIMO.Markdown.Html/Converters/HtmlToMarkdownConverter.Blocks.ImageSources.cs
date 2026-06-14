@@ -260,12 +260,16 @@ public sealed partial class HtmlToMarkdownConverter {
 
         string fallbackPath = fallbackImageElement == null
             ? string.Empty
-            : ResolveDirectImageSource(fallbackImageElement, context);
+            : ResolvePictureFallbackImageSource(fallbackImageElement, context);
         if (!string.IsNullOrWhiteSpace(fallbackPath) && !TryApplyBase64ImageHandling(ref fallbackPath, context)) {
             fallbackPath = string.Empty;
         }
 
         image.PictureFallbackPath = string.IsNullOrWhiteSpace(fallbackPath) ? null : fallbackPath;
+    }
+
+    private static string ResolvePictureFallbackImageSource(IElement element, ConversionContext context) {
+        return ResolveUrlAttributes(element, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src");
     }
 
     private static List<ImagePictureSource> CollectPictureSources(IElement pictureElement, ConversionContext context) {

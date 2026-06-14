@@ -89,7 +89,10 @@ internal static class MarkdownEscaper {
         }
 
         char marker = line[markerIndex];
-        if (marker == '>' || IsHeadingMarker(line, markerIndex) || IsUnorderedListMarker(line, markerIndex)) {
+        if (marker == '>'
+            || IsHeadingMarker(line, markerIndex)
+            || IsUnorderedListMarker(line, markerIndex)
+            || IsFencedCodeMarker(line, markerIndex)) {
             return line.Insert(markerIndex, "\\");
         }
 
@@ -131,6 +134,20 @@ internal static class MarkdownEscaper {
                 return false;
             }
 
+            count++;
+        }
+
+        return count >= 3;
+    }
+
+    private static bool IsFencedCodeMarker(string line, int markerIndex) {
+        char marker = line[markerIndex];
+        if (marker != '`' && marker != '~') {
+            return false;
+        }
+
+        int count = 0;
+        for (int i = markerIndex; i < line.Length && line[i] == marker; i++) {
             count++;
         }
 

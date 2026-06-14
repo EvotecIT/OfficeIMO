@@ -446,7 +446,7 @@ namespace OfficeIMO.Word.Html {
                     firstResolved = resolved;
                 }
 
-                if (IsImageSourceAllowedForCurrentMode(resolved, options, out _)) {
+                if (IsImageSourceAllowedForCurrentMode(resolved, img, options, out _)) {
                     return resolved;
                 }
             }
@@ -614,14 +614,37 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static bool IsImageSourceAllowedForCurrentMode(string src, HtmlToWordOptions options, out string detail) {
+        private static bool IsImageSourceAllowedForCurrentMode(string src, IHtmlImageElement img, HtmlToWordOptions options, out string detail) {
             if (options.ImageProcessing == ImageProcessingMode.EmbedDataUriOnly
                 && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)) {
                 detail = "External image was skipped because only data URI images are enabled.";
                 return false;
             }
 
+            if (options.ImageProcessing == ImageProcessingMode.LinkExternal
+                && !src.StartsWith("data:image", StringComparison.OrdinalIgnoreCase)
+                && !HasExternalImageDimensionHints(img)) {
+                detail = "External image link requires explicit width and height.";
+                return false;
+            }
+
             return IsImageSourceAllowed(src, options, out detail);
+        }
+
+        private static bool HasExternalImageDimensionHints(IHtmlImageElement img) {
+            if (img.DisplayWidth > 0 && img.DisplayHeight > 0) {
+                return true;
+            }
+
+            if (!string.IsNullOrWhiteSpace(img.GetAttribute("width"))
+                && !string.IsNullOrWhiteSpace(img.GetAttribute("height"))) {
+                return true;
+            }
+
+            string? style = img.GetAttribute("style");
+            return !string.IsNullOrWhiteSpace(style)
+                   && style!.IndexOf("width", StringComparison.OrdinalIgnoreCase) >= 0
+                   && style.IndexOf("height", StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
         private static bool IsImageSchemeAllowed(string scheme, HtmlToWordOptions options, out string detail) {

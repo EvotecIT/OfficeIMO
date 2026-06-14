@@ -108,6 +108,9 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p># not heading</p>
 <p>- not a list</p>
 <p>1. not ordered</p>
+<p>``` not code</p>
+<p>~~~ not code</p>
+<p><span>1</span>. split ordered</p>
 """;
 
         MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
@@ -120,9 +123,14 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Contains("\\# not heading", markdown, StringComparison.Ordinal);
         Assert.Contains("\\- not a list", markdown, StringComparison.Ordinal);
         Assert.Contains("1\\. not ordered", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\``` not code", markdown, StringComparison.Ordinal);
+        Assert.Contains("\\~~~ not code", markdown, StringComparison.Ordinal);
+        Assert.Contains("1\\. split ordered", markdown, StringComparison.Ordinal);
         Assert.Contains("# not heading", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("- not a list", renderedHtml, StringComparison.Ordinal);
         Assert.Contains("1. not ordered", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("``` not code", renderedHtml, StringComparison.Ordinal);
+        Assert.Contains("1. split ordered", renderedHtml, StringComparison.Ordinal);
         Assert.DoesNotContain("\\# not heading", renderedHtml, StringComparison.Ordinal);
     }
 
@@ -254,6 +262,25 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Equal("https://cdn.example.test/photo.webp", source.Path);
         Assert.Equal("https://cdn.example.test/photo.webp 2x", source.SrcSet);
         Assert.DoesNotContain("data:image", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_PreservesPictureFallbackImageSrcInsteadOfSrcSetCandidate() {
+        const string html = """
+<picture>
+  <source srcset="https://cdn.example.test/photo.webp" type="image/webp">
+  <img src="https://cdn.example.test/fallback.png" srcset="https://cdn.example.test/fallback@2x.png 2x" alt="Photo">
+</picture>
+""";
+
+        MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions());
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
+        Assert.Equal("https://cdn.example.test/fallback.png", image.PictureFallbackPath);
+        string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+        Assert.Contains("<img src=\"https://cdn.example.test/fallback.png\"", renderedHtml, StringComparison.Ordinal);
+        Assert.DoesNotContain("<img src=\"https://cdn.example.test/fallback@2x.png\"", renderedHtml, StringComparison.Ordinal);
     }
 
     [Fact]
