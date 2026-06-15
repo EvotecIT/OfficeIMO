@@ -49,4 +49,52 @@ public class RtfHtmlIoTests {
         Assert.Equal(rtf, Encoding.UTF8.GetString(saved, 1, saved.Length - 1));
         Assert.Equal("Clinical ż", Assert.Single(RtfDocument.Load(saved.Skip(1).ToArray()).Document.Paragraphs).ToPlainText());
     }
+
+    [Fact]
+    public void RtfHtml_Static_Facade_Provides_Byte_And_Stream_IO() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Facade ż");
+
+        string html = RtfHtmlConverter.ToHtml(document);
+        byte[] htmlBytes = RtfHtmlConverter.ToHtmlBytes(document);
+
+        Assert.Equal(html, Encoding.UTF8.GetString(htmlBytes));
+
+        using MemoryStream htmlStream = RtfHtmlConverter.ToHtmlMemoryStream(document);
+        Assert.Equal(htmlBytes, htmlStream.ToArray());
+
+        RtfDocument fromBytes = RtfHtmlConverter.FromHtml(htmlBytes);
+        Assert.Equal("Facade ż", Assert.Single(fromBytes.Paragraphs).ToPlainText());
+
+        byte[] prefixedHtml = Encoding.UTF8.GetBytes("*" + html);
+        using var source = new MemoryStream(prefixedHtml);
+        source.Position = 1;
+        RtfDocument fromStream = RtfHtmlConverter.FromHtml(source);
+
+        Assert.Equal(source.Length, source.Position);
+        Assert.Equal("Facade ż", Assert.Single(fromStream.Paragraphs).ToPlainText());
+
+        var writeOptions = new RtfWriteOptions { IncludeGenerator = false };
+        byte[] rtfBytes = RtfHtmlConverter.ToRtfBytes(htmlBytes, writeOptions: writeOptions);
+        string rtf = Encoding.UTF8.GetString(rtfBytes);
+
+        Assert.Contains(@"\u380?", rtf, StringComparison.Ordinal);
+        Assert.Equal("Facade ż", Assert.Single(RtfDocument.Load(rtfBytes).Document.Paragraphs).ToPlainText());
+
+        using MemoryStream rtfMemoryStream = RtfHtmlConverter.ToRtfMemoryStream(htmlBytes, writeOptions: writeOptions);
+        Assert.Equal(rtfBytes, rtfMemoryStream.ToArray());
+
+        using var secondSource = new MemoryStream(prefixedHtml);
+        secondSource.Position = 1;
+        using var output = new MemoryStream();
+        output.WriteByte(0x2A);
+
+        RtfHtmlConverter.SaveAsRtf(secondSource, output, writeOptions: writeOptions);
+        byte[] saved = output.ToArray();
+
+        Assert.Equal(secondSource.Length, secondSource.Position);
+        Assert.Equal(saved.Length, output.Position);
+        Assert.Equal(0x2A, saved[0]);
+        Assert.Equal("Facade ż", Assert.Single(RtfDocument.Load(saved.Skip(1).ToArray()).Document.Paragraphs).ToPlainText());
+    }
 }
