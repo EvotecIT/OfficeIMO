@@ -4,6 +4,13 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
+        private void ApplyParagraphRevisionAttributes(HtmlToken token) {
+            int? revisionSaveId = ReadIntegerAttribute(token, "data-officeimo-rtf-pararsid");
+            if (revisionSaveId.HasValue) {
+                EnsureParagraph().RevisionSaveId = revisionSaveId.Value;
+            }
+        }
+
         private void PushRevisionScope(HtmlToken token) {
             RtfRevisionKind? kind = ReadRevisionKind(token);
             bool hasMetadata = kind.HasValue ||

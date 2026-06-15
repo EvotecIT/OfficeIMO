@@ -3,6 +3,10 @@ using System.Globalization;
 namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlWriter {
+    private static void AppendParagraphRevisionAttributes(StringBuilder builder, RtfParagraph paragraph) {
+        AppendRevisionAttribute(builder, "data-officeimo-rtf-pararsid", paragraph.RevisionSaveId);
+    }
+
     private static bool AppendRevisionStart(StringBuilder builder, RtfRun run, RtfDocument document) {
         if (!HasRevisionMetadata(run)) {
             return false;

@@ -84,6 +84,7 @@ internal static partial class RtfHtmlWriter {
         AppendListTableMetadata(builder, document, newline);
         AppendUserPropertiesMetadata(builder, document, newline);
         AppendDocumentVariablesMetadata(builder, document, newline);
+        AppendRevisionTablesMetadata(builder, document, newline);
         AppendFileReferencesMetadata(builder, document, newline);
         AppendXmlNamespacesMetadata(builder, document, newline);
         builder.Append(newline);
@@ -122,6 +123,7 @@ internal static partial class RtfHtmlWriter {
         AppendLanguageDirectionAttributes(builder, null, paragraph.Direction);
         AppendListAttributes(builder, paragraph);
         AppendParagraphStyleAttributes(builder, paragraph);
+        AppendParagraphRevisionAttributes(builder, paragraph);
         AppendParagraphStyle(builder, paragraph, document);
         builder.Append('>');
         AppendInlines(builder, paragraph.Inlines, options, document);
