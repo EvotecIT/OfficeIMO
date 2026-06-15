@@ -518,6 +518,18 @@ internal static class RtfHtmlWriter {
     }
 
     private static void AppendImageSize(StringBuilder builder, RtfImage image) {
+        if (image.SourceWidth.HasValue) {
+            builder.Append(" width=\"");
+            builder.Append(image.SourceWidth.Value.ToString(CultureInfo.InvariantCulture));
+            builder.Append('"');
+        }
+
+        if (image.SourceHeight.HasValue) {
+            builder.Append(" height=\"");
+            builder.Append(image.SourceHeight.Value.ToString(CultureInfo.InvariantCulture));
+            builder.Append('"');
+        }
+
         if (image.DesiredWidthTwips.HasValue || image.DesiredHeightTwips.HasValue) {
             builder.Append(" style=\"");
             if (image.DesiredWidthTwips.HasValue) {
@@ -532,19 +544,6 @@ internal static class RtfHtmlWriter {
                 builder.Append("pt;");
             }
 
-            builder.Append('"');
-            return;
-        }
-
-        if (image.SourceWidth.HasValue) {
-            builder.Append(" width=\"");
-            builder.Append(image.SourceWidth.Value.ToString(CultureInfo.InvariantCulture));
-            builder.Append('"');
-        }
-
-        if (image.SourceHeight.HasValue) {
-            builder.Append(" height=\"");
-            builder.Append(image.SourceHeight.Value.ToString(CultureInfo.InvariantCulture));
             builder.Append('"');
         }
     }

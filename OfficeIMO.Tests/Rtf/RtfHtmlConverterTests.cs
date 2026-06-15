@@ -594,7 +594,13 @@ public class RtfHtmlConverterTests {
 
         string html = document.ToHtml();
 
-        Assert.Equal("<img src=\"data:image/png;base64,iVBORw==\" alt=\"Chart\" style=\"width:72pt;height:36pt;\">", html);
+        Assert.Equal("<img src=\"data:image/png;base64,iVBORw==\" alt=\"Chart\" width=\"96\" height=\"48\" style=\"width:72pt;height:36pt;\">", html);
+
+        RtfImage roundTripImage = Assert.Single(html.ToRtfDocumentFromHtml().Paragraphs[0].Inlines.OfType<RtfImage>());
+        Assert.Equal(96, roundTripImage.SourceWidth);
+        Assert.Equal(48, roundTripImage.SourceHeight);
+        Assert.Equal(1440, roundTripImage.DesiredWidthTwips);
+        Assert.Equal(720, roundTripImage.DesiredHeightTwips);
     }
 
     [Fact]
