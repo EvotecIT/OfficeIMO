@@ -104,6 +104,18 @@ internal static partial class HtmlStyleDeclarationParser {
             case "--officeimo-rtf-fit-text":
                 declaration.FitText = ParseBoolean(value);
                 break;
+            case "--officeimo-rtf-shading-foreground":
+                declaration.ShadingForegroundColor = ParseColor(value);
+                break;
+            case "--officeimo-rtf-shading-pattern-value":
+                declaration.ShadingPatternValue = ParseRtfShadingInteger(value);
+                break;
+            case "--officeimo-rtf-shading-percent":
+                declaration.ShadingPatternPercent = ParseRtfShadingPercent(value);
+                break;
+            case "--officeimo-rtf-shading-pattern":
+                declaration.ShadingPattern = ParseRtfShadingPattern(value);
+                break;
             case "visibility":
                 declaration.Hidden = ParseVisibility(value);
                 break;

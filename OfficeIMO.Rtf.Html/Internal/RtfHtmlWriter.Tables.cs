@@ -95,6 +95,8 @@ internal static partial class RtfHtmlWriter {
             builder.Append(';');
         }
 
+        AppendTableRowShadingStyle(builder, row, document);
+
         if (row.Alignment.HasValue) {
             builder.Append("text-align:");
             builder.Append(FormatTableAlignment(row.Alignment.Value));
@@ -236,6 +238,8 @@ internal static partial class RtfHtmlWriter {
             builder.Append(FormatColor(background!));
             builder.Append(';');
         }
+
+        AppendTableCellShadingStyle(builder, cell, document);
 
         if (cell.PreferredWidth.HasValue && cell.PreferredWidthUnit.HasValue) {
             builder.Append("width:");

@@ -41,6 +41,14 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfColor? BackgroundColor { get; set; }
 
+    internal RtfColor? ShadingForegroundColor { get; set; }
+
+    internal int? ShadingPatternValue { get; set; }
+
+    internal int? ShadingPatternPercent { get; set; }
+
+    internal RtfShadingPattern? ShadingPattern { get; set; }
+
     internal string? FontFamily { get; set; }
 
     internal double? FontSizePoints { get; set; }

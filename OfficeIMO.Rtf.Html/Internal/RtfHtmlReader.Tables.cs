@@ -120,6 +120,22 @@ internal static partial class RtfHtmlReader {
                 _row.BackgroundColorIndex = GetOrAddColorIndex(style.BackgroundColor);
             }
 
+            if (style.ShadingForegroundColor != null) {
+                _row.ShadingForegroundColorIndex = GetOrAddColorIndex(style.ShadingForegroundColor);
+            }
+
+            if (style.ShadingPatternValue.HasValue) {
+                _row.ShadingPatternValue = style.ShadingPatternValue.Value;
+            }
+
+            if (style.ShadingPatternPercent.HasValue) {
+                _row.ShadingPatternPercent = style.ShadingPatternPercent.Value;
+            }
+
+            if (style.ShadingPattern.HasValue) {
+                _row.ShadingPattern = style.ShadingPattern.Value;
+            }
+
             if (style.TextAlignment.HasValue && TryMapTableAlignment(style.TextAlignment.Value, out RtfTableAlignment alignment)) {
                 _row.Alignment = alignment;
             }
@@ -196,6 +212,18 @@ internal static partial class RtfHtmlReader {
 
             if (style.BackgroundColor != null) {
                 _cell.BackgroundColorIndex = GetOrAddColorIndex(style.BackgroundColor);
+            }
+
+            if (style.ShadingForegroundColor != null) {
+                _cell.ShadingForegroundColorIndex = GetOrAddColorIndex(style.ShadingForegroundColor);
+            }
+
+            if (style.ShadingPatternPercent.HasValue) {
+                _cell.ShadingPatternPercent = style.ShadingPatternPercent.Value;
+            }
+
+            if (style.ShadingPattern.HasValue) {
+                _cell.ShadingPattern = style.ShadingPattern.Value;
             }
 
             if (style.TableCellVerticalAlignment.HasValue) {
