@@ -4,7 +4,7 @@ internal static partial class RtfHtmlReader {
     internal static RtfDocument Read(string html, RtfHtmlReadOptions options) {
         RtfDocument document = RtfDocument.Create();
         var context = new ReadContext(document, options);
-        foreach (HtmlToken token in HtmlTokenizer.Tokenize(html)) {
+        foreach (HtmlToken token in HtmlTokenizer.Tokenize(html, options)) {
             switch (token.Kind) {
                 case HtmlTokenKind.Text:
                     context.AppendText(token.Value);

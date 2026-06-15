@@ -19,5 +19,17 @@ public sealed class RtfHtmlSaveOptions {
     /// <summary>Newline sequence used by the generated HTML.</summary>
     public string NewLine { get; set; } = Environment.NewLine;
 
+    /// <summary>
+    /// Creates a reusable copy of the current save options.
+    /// </summary>
+    /// <returns>A new <see cref="RtfHtmlSaveOptions"/> with the same configuration values.</returns>
+    public RtfHtmlSaveOptions Clone() => new RtfHtmlSaveOptions {
+        FragmentOnly = FragmentOnly,
+        IncludeMetadata = IncludeMetadata,
+        Title = Title,
+        EmbedImagesAsDataUri = EmbedImagesAsDataUri,
+        NewLine = NewLine
+    };
+
     internal string GetNewLine() => string.IsNullOrEmpty(NewLine) ? Environment.NewLine : NewLine;
 }

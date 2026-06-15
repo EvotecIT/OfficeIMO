@@ -1,18 +1,19 @@
 namespace OfficeIMO.Rtf.Html;
 
-internal static class HtmlTokenizer {
-    internal static IReadOnlyList<HtmlToken> Tokenize(string html) {
+internal static partial class HtmlTokenizer {
+    internal static IReadOnlyList<HtmlToken> Tokenize(string html, RtfHtmlReadOptions? options = null) {
         var tokens = new List<HtmlToken>();
+        HtmlTokenLimitTracker? limits = HtmlTokenLimitTracker.Create(options);
         int index = 0;
         while (index < html.Length) {
             int tagStart = html.IndexOf('<', index);
             if (tagStart < 0) {
-                AddText(tokens, html.Substring(index));
+                AddText(tokens, html.Substring(index), limits);
                 break;
             }
 
             if (tagStart > index) {
-                AddText(tokens, html.Substring(index, tagStart - index));
+                AddText(tokens, html.Substring(index, tagStart - index), limits);
             }
 
             if (StartsWith(html, tagStart, "<!--")) {
@@ -23,24 +24,25 @@ internal static class HtmlTokenizer {
 
             int tagEnd = FindTagEnd(html, tagStart + 1);
             if (tagEnd < 0) {
-                AddText(tokens, html.Substring(tagStart));
+                AddText(tokens, html.Substring(tagStart), limits);
                 break;
             }
 
-            AddTag(tokens, html.Substring(tagStart + 1, tagEnd - tagStart - 1));
+            AddTag(tokens, html.Substring(tagStart + 1, tagEnd - tagStart - 1), limits);
             index = tagEnd + 1;
         }
 
         return tokens;
     }
 
-    private static void AddText(List<HtmlToken> tokens, string text) {
+    private static void AddText(List<HtmlToken> tokens, string text, HtmlTokenLimitTracker? limits) {
         if (text.Length > 0) {
+            limits?.RecordText();
             tokens.Add(new HtmlToken(HtmlTokenKind.Text, WebUtility.HtmlDecode(text)));
         }
     }
 
-    private static void AddTag(List<HtmlToken> tokens, string rawTag) {
+    private static void AddTag(List<HtmlToken> tokens, string rawTag, HtmlTokenLimitTracker? limits) {
         string tag = rawTag.Trim();
         if (tag.Length == 0 || tag[0] == '!' || tag[0] == '?') {
             return;
@@ -49,6 +51,7 @@ internal static class HtmlTokenizer {
         if (tag[0] == '/') {
             string name = ReadName(tag, 1).ToLowerInvariant();
             if (name.Length > 0) {
+                limits?.RecordEnd(name);
                 tokens.Add(new HtmlToken(HtmlTokenKind.EndTag, name));
             }
 
@@ -65,7 +68,9 @@ internal static class HtmlTokenizer {
             return;
         }
 
-        tokens.Add(new HtmlToken(HtmlTokenKind.StartTag, startName, ParseAttributes(tag, startName.Length), selfClosing || IsVoidElement(startName)));
+        bool isSelfClosing = selfClosing || IsVoidElement(startName);
+        limits?.RecordStart(startName, isSelfClosing);
+        tokens.Add(new HtmlToken(HtmlTokenKind.StartTag, startName, ParseAttributes(tag, startName.Length), isSelfClosing));
     }
 
     private static Dictionary<string, string> ParseAttributes(string tag, int index) {
