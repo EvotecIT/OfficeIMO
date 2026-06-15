@@ -55,6 +55,8 @@ internal sealed class HtmlStyleDeclaration {
 
     internal HtmlBorderDeclaration? RightBorder { get; set; }
 
+    internal bool? NoWrap { get; set; }
+
     internal bool HasInlineFormatting =>
         Bold.HasValue ||
         Italic.HasValue ||

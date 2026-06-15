@@ -60,6 +60,9 @@ internal static class HtmlStyleDeclarationParser {
                 }
 
                 break;
+            case "white-space":
+                declaration.NoWrap = ParseWhiteSpace(value);
+                break;
             case "padding":
                 ApplyPadding(declaration, value);
                 break;
@@ -226,6 +229,20 @@ internal static class HtmlStyleDeclarationParser {
         return color != null;
     }
 
+    private static bool? ParseWhiteSpace(string value) {
+        switch (value) {
+            case "nowrap":
+            case "pre":
+            case "pre-line":
+            case "pre-wrap":
+                return true;
+            case "normal":
+                return false;
+            default:
+                return null;
+        }
+    }
+
     internal static bool TryParseTableWidth(string value, out int width, out RtfTableWidthUnit unit) {
         string normalized = NormalizeValue(value).Trim().ToLowerInvariant();
         width = 0;
@@ -252,6 +269,11 @@ internal static class HtmlStyleDeclarationParser {
         }
 
         return false;
+    }
+
+    internal static bool TryParseColor(string value, out RtfColor? color) {
+        color = ParseColor(NormalizeValue(value).Trim().ToLowerInvariant());
+        return color != null;
     }
 
     private static IEnumerable<string> SplitDeclarations(string style) {

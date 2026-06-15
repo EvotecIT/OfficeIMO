@@ -466,6 +466,48 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Legacy_Table_Cell_Attributes() {
+        const string html = "<table><tr><td align=\"right\" valign=\"middle\" bgcolor=\"#fff2cc\" width=\"30%\" nowrap>Result</td></tr></table>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
+        RtfTableCell cell = table.Rows[0].Cells[0];
+        Assert.Equal(RtfTextAlignment.Right, cell.Paragraphs[0].Alignment);
+        Assert.Equal(RtfTableCellVerticalAlignment.Center, cell.VerticalAlignment);
+        Assert.Equal(1, cell.BackgroundColorIndex);
+        Assert.Equal(1500, cell.PreferredWidth);
+        Assert.Equal(RtfTableWidthUnit.Percent, cell.PreferredWidthUnit);
+        Assert.True(cell.NoWrap);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\clftsWidth2\clwWidth1500", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clNoWrap", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\clvertalc", rtf, StringComparison.Ordinal);
+
+        RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(RtfDocument.Read(rtf).Document.Blocks));
+        Assert.True(roundTripTable.Rows[0].Cells[0].NoWrap);
+        Assert.Equal(RtfTableCellVerticalAlignment.Center, roundTripTable.Rows[0].Cells[0].VerticalAlignment);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Table_Cell_Nowrap_Style() {
+        RtfDocument document = RtfDocument.Create();
+        int background = document.AddColor(255, 242, 204);
+        RtfTable table = document.AddTable(1, 1);
+        RtfTableCell cell = table.Rows[0].Cells[0];
+        cell.SetBackgroundColor(background)
+            .SetPreferredWidth(1500, RtfTableWidthUnit.Percent)
+            .SetNoWrap();
+        cell.VerticalAlignment = RtfTableCellVerticalAlignment.Center;
+        cell.AddParagraph("Result");
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<table><tbody><tr><td style=\"background-color:#FFF2CC;width:30%;vertical-align:middle;white-space:nowrap;\"><p>Result</p></td></tr></tbody></table>", html);
+    }
+
+    [Fact]
     public void Html_Rtf_Html_RoundTrip_Preserves_Semantic_Text() {
         const string html = "<p>Assessment: <strong>stable</strong></p>";
 

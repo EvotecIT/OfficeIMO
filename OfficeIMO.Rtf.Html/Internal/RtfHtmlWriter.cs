@@ -401,6 +401,10 @@ internal static class RtfHtmlWriter {
             builder.Append(';');
         }
 
+        if (cell.NoWrap) {
+            builder.Append("white-space:nowrap;");
+        }
+
         AppendCellPaddingStyle(builder, "padding-top", cell.PaddingTopTwips);
         AppendCellPaddingStyle(builder, "padding-left", cell.PaddingLeftTwips);
         AppendCellPaddingStyle(builder, "padding-bottom", cell.PaddingBottomTwips);
