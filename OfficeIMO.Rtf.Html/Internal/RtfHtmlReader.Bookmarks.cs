@@ -2,7 +2,7 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private void StartAnchor(HtmlToken token) {
+        private void StartAnchor(IElement token) {
             Uri? uri = ReadUri(token, "href");
             if (uri != null) {
                 _hyperlink = uri;
@@ -25,7 +25,7 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private static string? ReadBookmarkName(HtmlToken token) =>
+        private static string? ReadBookmarkName(IElement token) =>
             GetAttribute(token, "data-officeimo-rtf-bookmark-name") ??
             GetAttribute(token, "id") ??
             GetAttribute(token, "name");

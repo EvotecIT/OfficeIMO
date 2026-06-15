@@ -2,11 +2,11 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private void AddBreak(HtmlToken token) {
+        private void AddBreak(IElement token) {
             EnsureInlineParagraph().AddBreak(ReadBreakKind(token));
         }
 
-        private static RtfBreakKind ReadBreakKind(HtmlToken token) {
+        private static RtfBreakKind ReadBreakKind(IElement token) {
             string? value = GetAttribute(token, "data-officeimo-rtf-break");
             switch (value?.Trim().ToLowerInvariant()) {
                 case "page":

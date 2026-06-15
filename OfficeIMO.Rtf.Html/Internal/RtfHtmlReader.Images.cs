@@ -2,10 +2,8 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private void AddImage(HtmlToken token) {
-            string source = token.Element == null
-                ? HtmlUrlPolicyEvaluator.ResolveUrl(GetAttribute(token, "src"), _baseUri, _options.UrlPolicy)
-                : HtmlImageSourceResolver.ResolveImageSource(token.Element, _baseUri, _options.UrlPolicy);
+        private void AddImage(IElement token) {
+            string source = HtmlImageSourceResolver.ResolveImageSource(token, _baseUri, _options.UrlPolicy);
             if (string.IsNullOrWhiteSpace(source) || !TryReadDataImage(source, out RtfImageFormat format, out byte[]? data)) {
                 string? alt = GetAttribute(token, "alt");
                 if (!string.IsNullOrWhiteSpace(alt)) {
@@ -20,7 +18,7 @@ internal static partial class RtfHtmlReader {
             ApplyImageSize(token, image);
         }
 
-        private static void ApplyImageSize(HtmlToken token, RtfImage image) {
+        private static void ApplyImageSize(IElement token, RtfImage image) {
             string? width = GetAttribute(token, "width");
             if (!string.IsNullOrWhiteSpace(width) && HtmlStyleDeclarationParser.TryParseTwips(width!, out int widthTwips)) {
                 image.DesiredWidthTwips = widthTwips;

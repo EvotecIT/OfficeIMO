@@ -4,7 +4,7 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private bool TryReadNote(HtmlToken token) {
+        private bool TryReadNote(IElement token) {
             string? kindValue = GetAttribute(token, "data-officeimo-rtf-note");
             if (string.IsNullOrWhiteSpace(kindValue) || !TryParseNoteKind(kindValue!, out RtfNoteKind kind) || _lastRun == null) {
                 return false;

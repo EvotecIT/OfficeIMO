@@ -2,7 +2,7 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private void ApplyTableRowMetadataAttributes(HtmlToken token) {
+        private void ApplyTableRowMetadataAttributes(IElement token) {
             Dictionary<string, string> values = RtfHtmlMetadataCodec.Decode(GetAttribute(token, "data-officeimo-rtf-row"));
             if (values.Count == 0 || _row == null) {
                 return;

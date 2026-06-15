@@ -21,16 +21,16 @@ internal static partial class RtfHtmlReader {
         }
 
         if (node is IElement element) {
-            HtmlToken token = HtmlToken.FromElement(element);
-            bool closes = !IsVoidElement(token.Value);
+            string name = element.LocalName;
+            bool closes = !IsVoidElement(name);
             limits?.RecordStart(depth + 1);
-            context.Start(token);
+            context.Start(element);
             foreach (INode child in element.ChildNodes) {
                 TraverseNode(child, context, limits, depth + 1);
             }
 
             if (closes) {
-                context.End(token.Value);
+                context.End(name);
             }
 
             return;

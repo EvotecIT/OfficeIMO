@@ -6,7 +6,7 @@ internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private readonly Stack<HtmlFieldScope> _fieldScopes = new Stack<HtmlFieldScope>();
 
-        private bool TryStartField(HtmlToken token) {
+        private bool TryStartField(IElement token) {
             string? marker = GetAttribute(token, "data-officeimo-rtf-field");
             string? instruction = GetAttribute(token, "data-officeimo-rtf-field-instruction");
             if (!IsFieldMarker(marker) && string.IsNullOrWhiteSpace(instruction)) {
@@ -49,7 +49,7 @@ internal static partial class RtfHtmlReader {
                    string.Equals(marker, "start", StringComparison.OrdinalIgnoreCase);
         }
 
-        private void ReadFormFieldData(HtmlToken token, RtfField field) {
+        private void ReadFormFieldData(IElement token, RtfField field) {
             if (!HasFormFieldData(token)) {
                 return;
             }
@@ -66,7 +66,7 @@ internal static partial class RtfHtmlReader {
             ReadFormFieldDropDownItems(token, data);
         }
 
-        private static bool HasFormFieldData(HtmlToken token) {
+        private static bool HasFormFieldData(IElement token) {
             return IsTruthy(GetAttribute(token, "data-officeimo-rtf-form-field")) ||
                    GetAttribute(token, "data-officeimo-rtf-form-controls") != null ||
                    GetAttribute(token, "data-officeimo-rtf-form-name") != null ||
@@ -79,7 +79,7 @@ internal static partial class RtfHtmlReader {
                    GetAttribute(token, "data-officeimo-rtf-form-dropdown-items") != null;
         }
 
-        private static void ReadFormFieldControls(HtmlToken token, RtfFormFieldData data) {
+        private static void ReadFormFieldControls(IElement token, RtfFormFieldData data) {
             string? controls = GetAttribute(token, "data-officeimo-rtf-form-controls");
             if (string.IsNullOrWhiteSpace(controls)) {
                 return;
@@ -111,7 +111,7 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private static void ReadFormFieldDropDownItems(HtmlToken token, RtfFormFieldData data) {
+        private static void ReadFormFieldDropDownItems(IElement token, RtfFormFieldData data) {
             string? items = GetAttribute(token, "data-officeimo-rtf-form-dropdown-items");
             if (string.IsNullOrWhiteSpace(items)) {
                 return;

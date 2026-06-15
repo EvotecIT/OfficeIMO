@@ -4,7 +4,7 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private bool TryReadObject(HtmlToken token) {
+        private bool TryReadObject(IElement token) {
             string? kindValue = GetAttribute(token, "data-officeimo-rtf-object");
             if (string.IsNullOrWhiteSpace(kindValue)) {
                 return false;
@@ -17,7 +17,7 @@ internal static partial class RtfHtmlReader {
             return true;
         }
 
-        private bool TryReadShape(HtmlToken token) {
+        private bool TryReadShape(IElement token) {
             if (!IsTrue(GetAttribute(token, "data-officeimo-rtf-shape"))) {
                 return false;
             }
@@ -30,7 +30,7 @@ internal static partial class RtfHtmlReader {
             return true;
         }
 
-        private RtfObject CreateObject(HtmlToken token, string kindValue) {
+        private RtfObject CreateObject(IElement token, string kindValue) {
             var rtfObject = new RtfObject(ParseObjectKind(kindValue), DecodeBytes(GetAttribute(token, "data-officeimo-rtf-object-data"))) {
                 ClassName = GetAttribute(token, "data-officeimo-rtf-object-class"),
                 Name = GetAttribute(token, "data-officeimo-rtf-object-name"),
@@ -117,7 +117,7 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private RtfImage? ReadImageMetadata(HtmlToken token, string prefix) {
+        private RtfImage? ReadImageMetadata(IElement token, string prefix) {
             byte[] data = DecodeBytes(GetAttribute(token, prefix + "-data"));
             if (data.Length == 0) {
                 return null;
@@ -134,7 +134,7 @@ internal static partial class RtfHtmlReader {
             return image;
         }
 
-        private void AddObject(RtfObject rtfObject, HtmlToken token) {
+        private void AddObject(RtfObject rtfObject, IElement token) {
             if (IsBlockCarrier(token)) {
                 RtfObject blockObject = _document.AddObject(rtfObject.Kind, rtfObject.Data);
                 CopyObject(rtfObject, blockObject);
@@ -146,7 +146,7 @@ internal static partial class RtfHtmlReader {
             CopyObject(rtfObject, inlineObject);
         }
 
-        private void AddShape(RtfShape shape, HtmlToken token) {
+        private void AddShape(RtfShape shape, IElement token) {
             if (IsBlockCarrier(token)) {
                 RtfShape blockShape = _document.AddShape();
                 CopyShape(shape, blockShape);
@@ -158,8 +158,8 @@ internal static partial class RtfHtmlReader {
             CopyShape(shape, inlineShape);
         }
 
-        private bool IsBlockCarrier(HtmlToken token) {
-            return string.Equals(token.Value, "div", StringComparison.OrdinalIgnoreCase) &&
+        private bool IsBlockCarrier(IElement token) {
+            return string.Equals(token.LocalName, "div", StringComparison.OrdinalIgnoreCase) &&
                    _cell == null &&
                    _paragraph == null;
         }

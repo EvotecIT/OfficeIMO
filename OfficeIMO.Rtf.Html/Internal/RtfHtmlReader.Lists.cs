@@ -9,7 +9,7 @@ internal static partial class RtfHtmlReader {
             return state;
         }
 
-        private void ApplyListAttributes(HtmlToken token) {
+        private void ApplyListAttributes(IElement token) {
             RtfParagraph paragraph = EnsureParagraph();
             HtmlListState? state = _lists.Count == 0 ? null : _lists.Peek();
 
@@ -24,19 +24,19 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private static int? ReadPositiveInteger(HtmlToken token, string attributeName) {
+        private static int? ReadPositiveInteger(IElement token, string attributeName) {
             int? value = ReadNonNegativeInteger(token, attributeName);
             return value.HasValue && value.Value > 0 ? value.Value : null;
         }
 
-        private static int? ReadNonNegativeInteger(HtmlToken token, string attributeName) {
+        private static int? ReadNonNegativeInteger(IElement token, string attributeName) {
             string? value = GetAttribute(token, attributeName);
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) && parsed >= 0
                 ? parsed
                 : null;
         }
 
-        private static RtfListKind? ReadListKind(HtmlToken token) {
+        private static RtfListKind? ReadListKind(IElement token) {
             string? value = GetAttribute(token, "data-officeimo-rtf-list-kind");
             switch (value?.Trim().ToLowerInvariant()) {
                 case "bullet":

@@ -2,7 +2,7 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private static HtmlStyleDeclaration ApplyLanguageDirectionAttributes(HtmlStyleDeclaration style, HtmlToken token) {
+        private static HtmlStyleDeclaration ApplyLanguageDirectionAttributes(HtmlStyleDeclaration style, IElement token) {
             RtfTextDirection? direction = null;
             if (!style.Direction.HasValue) {
                 direction = HtmlStyleDeclarationParser.ParseDirection(GetAttribute(token, "dir"));

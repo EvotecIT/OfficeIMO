@@ -4,8 +4,8 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private bool TryStartSection(HtmlToken token) {
-            if (!string.Equals(token.Value, "section", StringComparison.OrdinalIgnoreCase) ||
+        private bool TryStartSection(IElement token) {
+            if (!string.Equals(token.LocalName, "section", StringComparison.OrdinalIgnoreCase) ||
                 !IsTrue(GetAttribute(token, "data-officeimo-rtf-section"))) {
                 return false;
             }

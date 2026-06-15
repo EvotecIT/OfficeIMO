@@ -51,6 +51,7 @@
     <Using Include="System.Text" />
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
+    <Using Include="AngleSharp.Dom" />
     <Using Include="OfficeIMO.Html" />
     <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>

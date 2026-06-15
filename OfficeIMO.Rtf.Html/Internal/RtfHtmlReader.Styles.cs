@@ -25,14 +25,14 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private void ApplyParagraphStyleAttributes(HtmlToken token) {
+        private void ApplyParagraphStyleAttributes(IElement token) {
             int? styleId = ReadStyleIdAttribute(token);
             if (styleId.HasValue) {
                 EnsureParagraph().StyleId = styleId.Value;
             }
         }
 
-        private static int? ReadStyleIdAttribute(HtmlToken token) {
+        private static int? ReadStyleIdAttribute(IElement token) {
             string? value = GetAttribute(token, "data-officeimo-rtf-style-id");
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int styleId) && styleId >= 0
                 ? styleId

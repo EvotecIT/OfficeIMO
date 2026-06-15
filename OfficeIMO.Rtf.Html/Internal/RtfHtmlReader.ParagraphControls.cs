@@ -2,7 +2,7 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private void ApplyParagraphControlAttributes(HtmlToken token) {
+        private void ApplyParagraphControlAttributes(IElement token) {
             Dictionary<string, string> values = RtfHtmlMetadataCodec.Decode(GetAttribute(token, "data-officeimo-rtf-paragraph-controls"));
             if (values.Count == 0) {
                 return;

@@ -4,8 +4,8 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private bool TryReadDocumentMetadata(HtmlToken token) {
-            switch (token.Value) {
+        private bool TryReadDocumentMetadata(IElement token) {
+            switch (token.LocalName) {
                 case "head":
                     _headDepth++;
                     return true;
@@ -64,7 +64,7 @@ internal static partial class RtfHtmlReader {
             return _headDepth > 0;
         }
 
-        private void ReadMeta(HtmlToken token) {
+        private void ReadMeta(IElement token) {
             string? name = GetAttribute(token, "name");
             string? content = GetAttribute(token, "content");
             if (string.IsNullOrWhiteSpace(name)) {
@@ -174,7 +174,7 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private void ReadHeaderFooter(HtmlToken token, string? encodedContent) {
+        private void ReadHeaderFooter(IElement token, string? encodedContent) {
             if (!TryParseHeaderFooterKind(GetAttribute(token, "data-officeimo-rtf-kind"), out RtfHeaderFooterKind kind)) {
                 return;
             }

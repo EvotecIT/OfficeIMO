@@ -4,7 +4,7 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private void ApplyTableCellMetadataAttributes(HtmlToken token, int columnStart, int columnSpan) {
+        private void ApplyTableCellMetadataAttributes(IElement token, int columnStart, int columnSpan) {
             Dictionary<string, string> values = RtfHtmlMetadataCodec.Decode(GetAttribute(token, "data-officeimo-rtf-cell"));
             if (values.Count == 0 || _cell == null) {
                 return;

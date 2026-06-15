@@ -4,14 +4,14 @@ namespace OfficeIMO.Rtf.Html;
 
 internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
-        private void ApplyParagraphRevisionAttributes(HtmlToken token) {
+        private void ApplyParagraphRevisionAttributes(IElement token) {
             int? revisionSaveId = ReadIntegerAttribute(token, "data-officeimo-rtf-pararsid");
             if (revisionSaveId.HasValue) {
                 EnsureParagraph().RevisionSaveId = revisionSaveId.Value;
             }
         }
 
-        private void PushRevisionScope(HtmlToken token) {
+        private void PushRevisionScope(IElement token) {
             RtfRevisionKind? kind = ReadRevisionKind(token);
             bool hasMetadata = kind.HasValue ||
                                HasAttribute(token, "data-officeimo-rtf-revision-author") ||
@@ -25,7 +25,7 @@ internal static partial class RtfHtmlReader {
             }
 
             _revisions.Push(new RtfRevisionScope(
-                token.Value,
+                token.LocalName,
                 kind ?? RtfRevisionKind.None,
                 ReadRevisionAuthorIndex(token),
                 ReadIntegerAttribute(token, "data-officeimo-rtf-revision-timestamp"),
@@ -66,7 +66,7 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private RtfRevisionKind? ReadRevisionKind(HtmlToken token) {
+        private RtfRevisionKind? ReadRevisionKind(IElement token) {
             string? value = GetAttribute(token, "data-officeimo-rtf-revision");
             if (!string.IsNullOrWhiteSpace(value)) {
                 switch (value!.Trim().ToLowerInvariant()) {
@@ -83,16 +83,16 @@ internal static partial class RtfHtmlReader {
                 }
             }
 
-            if (string.Equals(token.Value, "ins", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(token.LocalName, "ins", StringComparison.OrdinalIgnoreCase)) {
                 return RtfRevisionKind.Inserted;
             }
 
-            return string.Equals(token.Value, "del", StringComparison.OrdinalIgnoreCase)
+            return string.Equals(token.LocalName, "del", StringComparison.OrdinalIgnoreCase)
                 ? RtfRevisionKind.Deleted
                 : null;
         }
 
-        private int? ReadRevisionAuthorIndex(HtmlToken token) {
+        private int? ReadRevisionAuthorIndex(IElement token) {
             int? explicitIndex = ReadIntegerAttribute(token, "data-officeimo-rtf-revision-author-index");
             string? author = GetAttribute(token, "data-officeimo-rtf-revision-author");
             if (string.IsNullOrWhiteSpace(author)) {
@@ -117,7 +117,7 @@ internal static partial class RtfHtmlReader {
             return -1;
         }
 
-        private static int? ReadIntegerAttribute(HtmlToken token, string name) {
+        private static int? ReadIntegerAttribute(IElement token, string name) {
             string? value = GetAttribute(token, name);
             if (string.IsNullOrWhiteSpace(value) ||
                 !int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int parsed) ||
@@ -128,8 +128,8 @@ internal static partial class RtfHtmlReader {
             return parsed;
         }
 
-        private static bool HasAttribute(HtmlToken token, string name) {
-            return token.Attributes.ContainsKey(name);
+        private static bool HasAttribute(IElement token, string name) {
+            return token.HasAttribute(name);
         }
     }
 

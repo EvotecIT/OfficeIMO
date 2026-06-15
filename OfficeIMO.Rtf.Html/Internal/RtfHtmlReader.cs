@@ -45,7 +45,8 @@ internal static partial class RtfHtmlReader {
             _baseUri = baseUri;
         }
 
-        internal void Start(HtmlToken token) {
+        internal void Start(IElement token) {
+            string name = token.LocalName;
             if (TryReadDocumentMetadata(token)) {
                 return;
             }
@@ -71,9 +72,9 @@ internal static partial class RtfHtmlReader {
 
             HtmlStyleDeclaration style = HtmlStyleDeclarationParser.Parse(GetAttribute(token, "style"));
             style = ApplyLanguageDirectionAttributes(style, token);
-            ApplyDocumentLanguageDirection(token.Value, style);
+            ApplyDocumentLanguageDirection(name, style);
             PushRevisionScope(token);
-            switch (token.Value) {
+            switch (name) {
                 case "p":
                 case "div":
                 case "section":
@@ -85,7 +86,7 @@ internal static partial class RtfHtmlReader {
                     ApplyParagraphControlAttributes(token);
                     ApplyParagraphFrameAttributes(token);
                     ApplyParagraphStyle(style);
-                    if (token.Value == "blockquote" && style.LeftIndentTwips == null) {
+                    if (name == "blockquote" && style.LeftIndentTwips == null) {
                         EnsureParagraph().LeftIndentTwips = 720;
                     }
 
@@ -102,7 +103,7 @@ internal static partial class RtfHtmlReader {
                     ApplyParagraphControlAttributes(token);
                     ApplyParagraphFrameAttributes(token);
                     ApplyParagraphStyle(style);
-                    EnsureParagraph().OutlineLevel = GetHeadingOutlineLevel(token.Value);
+                    EnsureParagraph().OutlineLevel = GetHeadingOutlineLevel(name);
                     _bold++;
                     break;
                 case "br":
@@ -179,15 +180,15 @@ internal static partial class RtfHtmlReader {
                     break;
                 default:
                     if (_options.PreserveUnknownTagsAsText) {
-                        AppendText("<" + token.Value + ">");
+                        AppendText("<" + name + ">");
                     }
 
                     break;
             }
 
-            int? styleId = IsInlineStyleScope(token.Value) ? ReadStyleIdAttribute(token) : null;
+            int? styleId = IsInlineStyleScope(name) ? ReadStyleIdAttribute(token) : null;
             if (style.HasInlineFormatting || styleId.HasValue) {
-                _styles.Push(new HtmlStyleScope(token.Value, style, styleId));
+                _styles.Push(new HtmlStyleScope(name, style, styleId));
             }
         }
 
@@ -485,7 +486,7 @@ internal static partial class RtfHtmlReader {
             return _paragraph!;
         }
 
-        private Uri? ReadUri(HtmlToken token, string name) {
+        private Uri? ReadUri(IElement token, string name) {
             string? value = GetAttribute(token, name);
             if (string.IsNullOrWhiteSpace(value)) {
                 return null;
@@ -499,8 +500,8 @@ internal static partial class RtfHtmlReader {
             return Uri.TryCreate(resolved, UriKind.RelativeOrAbsolute, out Uri? uri) ? uri : null;
         }
 
-        private static string? GetAttribute(HtmlToken token, string name) {
-            return token.Attributes.TryGetValue(name, out string? value) ? value : null;
+        private static string? GetAttribute(IElement token, string name) {
+            return token.GetAttribute(name);
         }
 
         private static void Decrement(ref int value) {

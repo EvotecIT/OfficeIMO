@@ -17,7 +17,7 @@ internal static partial class RtfHtmlReader {
             StartRow(null, HtmlStyleDeclaration.Empty);
         }
 
-        private void StartRow(HtmlToken? token, HtmlStyleDeclaration style) {
+        private void StartRow(IElement? token, HtmlStyleDeclaration style) {
             if (_table == null) {
                 StartTable();
             }
@@ -35,7 +35,7 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private void StartCell(HtmlToken token, HtmlStyleDeclaration style, bool isHeader) {
+        private void StartCell(IElement token, HtmlStyleDeclaration style, bool isHeader) {
             if (_row == null) {
                 StartRow();
             }
@@ -164,7 +164,7 @@ internal static partial class RtfHtmlReader {
             }
         }
 
-        private void ApplyRowAttributes(HtmlToken token) {
+        private void ApplyRowAttributes(IElement token) {
             if (_row == null) {
                 return;
             }
@@ -267,7 +267,7 @@ internal static partial class RtfHtmlReader {
             ApplyCellBorder(_cell.RightBorder, style.RightBorder);
         }
 
-        private void ApplyCellAttributes(HtmlToken token) {
+        private void ApplyCellAttributes(IElement token) {
             if (_cell == null) {
                 return;
             }
@@ -293,7 +293,7 @@ internal static partial class RtfHtmlReader {
                 _cell.PreferredWidthUnit = widthUnit;
             }
 
-            if (token.Attributes.ContainsKey("nowrap")) {
+            if (token.HasAttribute("nowrap")) {
                 _cell.NoWrap = true;
             }
         }
@@ -308,7 +308,7 @@ internal static partial class RtfHtmlReader {
             target.ColorIndex = source.Color == null ? null : GetOrAddColorIndex(source.Color);
         }
 
-        private static int ReadSpan(HtmlToken token, string name) {
+        private static int ReadSpan(IElement token, string name) {
             string? value = GetAttribute(token, name);
             return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int span) && span > 1
                 ? Math.Min(span, 256)
