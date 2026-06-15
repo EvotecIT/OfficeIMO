@@ -116,14 +116,41 @@ internal static class RtfHtmlWriter {
     }
 
     private static void AppendParagraphStyle(StringBuilder builder, RtfParagraph paragraph) {
-        string? align = paragraph.Alignment == RtfTextAlignment.Left ? null : paragraph.Alignment.ToString().ToLowerInvariant();
-        if (align == null) {
+        if (!TryGetParagraphStyle(paragraph, out string? style)) {
             return;
         }
 
-        builder.Append(" style=\"text-align:");
-        builder.Append(align);
+        builder.Append(" style=\"");
+        builder.Append(EncodeAttribute(style!));
         builder.Append("\"");
+    }
+
+    private static bool TryGetParagraphStyle(RtfParagraph paragraph, out string? style) {
+        var builder = new StringBuilder();
+        string? align = paragraph.Alignment == RtfTextAlignment.Left ? null : paragraph.Alignment.ToString().ToLowerInvariant();
+        if (align != null) {
+            builder.Append("text-align:");
+            builder.Append(align);
+            builder.Append(';');
+        }
+
+        AppendTwipStyle(builder, "margin-left", paragraph.LeftIndentTwips);
+        AppendTwipStyle(builder, "margin-right", paragraph.RightIndentTwips);
+        AppendTwipStyle(builder, "text-indent", paragraph.FirstLineIndentTwips);
+
+        style = builder.Length == 0 ? null : builder.ToString();
+        return style != null;
+    }
+
+    private static void AppendTwipStyle(StringBuilder builder, string name, int? twips) {
+        if (!twips.HasValue || twips.Value == 0) {
+            return;
+        }
+
+        builder.Append(name);
+        builder.Append(':');
+        builder.Append(FormatPoints(twips.Value / 20d));
+        builder.Append("pt;");
     }
 
     private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfHtmlSaveOptions options, RtfDocument document) {

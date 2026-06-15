@@ -23,6 +23,12 @@ internal sealed class HtmlStyleDeclaration {
 
     internal double? FontSizePoints { get; set; }
 
+    internal int? LeftIndentTwips { get; set; }
+
+    internal int? RightIndentTwips { get; set; }
+
+    internal int? FirstLineIndentTwips { get; set; }
+
     internal bool HasInlineFormatting =>
         Bold.HasValue ||
         Italic.HasValue ||

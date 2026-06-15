@@ -59,6 +59,10 @@ internal static class RtfHtmlReader {
                 case "blockquote":
                     StartParagraph();
                     ApplyParagraphStyle(style);
+                    if (token.Value == "blockquote" && style.LeftIndentTwips == null) {
+                        EnsureParagraph().LeftIndentTwips = 720;
+                    }
+
                     break;
                 case "h1":
                 case "h2":
@@ -279,6 +283,18 @@ internal static class RtfHtmlReader {
         private void ApplyParagraphStyle(HtmlStyleDeclaration style) {
             if (_paragraph != null && style.TextAlignment.HasValue) {
                 _paragraph.Alignment = style.TextAlignment.Value;
+            }
+
+            if (_paragraph != null && style.LeftIndentTwips.HasValue) {
+                _paragraph.LeftIndentTwips = style.LeftIndentTwips.Value;
+            }
+
+            if (_paragraph != null && style.RightIndentTwips.HasValue) {
+                _paragraph.RightIndentTwips = style.RightIndentTwips.Value;
+            }
+
+            if (_paragraph != null && style.FirstLineIndentTwips.HasValue) {
+                _paragraph.FirstLineIndentTwips = style.FirstLineIndentTwips.Value;
             }
         }
 

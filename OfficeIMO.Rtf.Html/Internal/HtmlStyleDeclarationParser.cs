@@ -52,6 +52,15 @@ internal static class HtmlStyleDeclarationParser {
             case "text-align":
                 declaration.TextAlignment = ParseTextAlign(value);
                 break;
+            case "margin-left":
+                declaration.LeftIndentTwips = ParseTwips(value);
+                break;
+            case "margin-right":
+                declaration.RightIndentTwips = ParseTwips(value);
+                break;
+            case "text-indent":
+                declaration.FirstLineIndentTwips = ParseTwips(value);
+                break;
             case "color":
                 declaration.ForegroundColor = ParseColor(value);
                 break;
@@ -232,6 +241,21 @@ internal static class HtmlStyleDeclarationParser {
 
         return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double px) && px > 0
             ? px * 0.75d
+            : null;
+    }
+
+    private static int? ParseTwips(string value) {
+        if (TryParseCssLength(value, "pt", 1d, out double points) ||
+            TryParseCssLength(value, "px", 0.75d, out points) ||
+            TryParseCssLength(value, "pc", 12d, out points) ||
+            TryParseCssLength(value, "in", 72d, out points) ||
+            TryParseCssLength(value, "cm", 72d / 2.54d, out points) ||
+            TryParseCssLength(value, "mm", 72d / 25.4d, out points)) {
+            return (int)Math.Round(points * 20d, MidpointRounding.AwayFromZero);
+        }
+
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double px)
+            ? (int)Math.Round(px * 15d, MidpointRounding.AwayFromZero)
             : null;
     }
 

@@ -188,7 +188,43 @@ public class RtfHtmlConverterTests {
             NewLine = "\n"
         });
 
-        Assert.Equal("<h1>Assessment</h1>\n<h3 style=\"text-align:right\">Plan</h3>", html);
+        Assert.Equal("<h1>Assessment</h1>\n<h3 style=\"text-align:right;\">Plan</h3>", html);
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Paragraph_Indentation_Styles() {
+        const string html = "<p style=\"margin-left:36pt; margin-right:18pt; text-indent:-12pt\">Indented</p><blockquote>Quoted</blockquote>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        Assert.Equal(2, document.Paragraphs.Count);
+        RtfParagraph indented = document.Paragraphs[0];
+        Assert.Equal(720, indented.LeftIndentTwips);
+        Assert.Equal(360, indented.RightIndentTwips);
+        Assert.Equal(-240, indented.FirstLineIndentTwips);
+
+        RtfParagraph quoted = document.Paragraphs[1];
+        Assert.Equal(720, quoted.LeftIndentTwips);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\li720", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\ri360", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\fi-240", rtf, StringComparison.Ordinal);
+
+        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        Assert.Equal(720, roundTrip.Paragraphs[0].LeftIndentTwips);
+        Assert.Equal(360, roundTrip.Paragraphs[0].RightIndentTwips);
+        Assert.Equal(-240, roundTrip.Paragraphs[0].FirstLineIndentTwips);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Paragraph_Indentation_Styles() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Indented").SetIndentation(leftTwips: 720, rightTwips: 360, firstLineTwips: -240);
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p style=\"margin-left:36pt;margin-right:18pt;text-indent:-12pt;\">Indented</p>", html);
     }
 
     [Fact]
