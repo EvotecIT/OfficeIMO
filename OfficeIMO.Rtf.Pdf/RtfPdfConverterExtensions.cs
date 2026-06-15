@@ -6,7 +6,7 @@ namespace OfficeIMO.Rtf.Pdf;
 /// <summary>
 /// Provides extension methods for converting <see cref="RtfDocument"/> instances and RTF strings to PDF files.
 /// </summary>
-public static class RtfPdfConverterExtensions {
+public static partial class RtfPdfConverterExtensions {
     /// <summary>Converts an RTF document to a first-party OfficeIMO PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this RtfDocument document, RtfPdfSaveOptions? options = null) {
         if (document == null) {
