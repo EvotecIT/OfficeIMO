@@ -19,6 +19,10 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfColor? BackgroundColor { get; set; }
 
+    internal string? FontFamily { get; set; }
+
+    internal double? FontSizePoints { get; set; }
+
     internal bool HasInlineFormatting =>
         Bold.HasValue ||
         Italic.HasValue ||
@@ -26,5 +30,7 @@ internal sealed class HtmlStyleDeclaration {
         Strike.HasValue ||
         VerticalPosition.HasValue ||
         ForegroundColor != null ||
-        BackgroundColor != null;
+        BackgroundColor != null ||
+        FontFamily != null ||
+        FontSizePoints.HasValue;
 }

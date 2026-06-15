@@ -117,6 +117,47 @@ public class RtfHtmlConverterTests {
     }
 
     [Fact]
+    public void Html_ToRtfDocument_Parses_Css_Font_Family_And_Size() {
+        const string html = "<p><span style=\"font-family: 'Times New Roman', serif; font-size: 13.5pt\">Clinical</span><span style=\"font-family: Consolas, monospace; font-size: 18px\"> code</span></p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        Assert.Contains(document.Fonts, font => font.Id == 1 && font.Name == "Times New Roman");
+        Assert.Contains(document.Fonts, font => font.Id == 2 && font.Name == "Consolas");
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        RtfRun clinical = Assert.Single(paragraph.Runs, run => run.Text == "Clinical");
+        Assert.Equal(1, clinical.FontId);
+        Assert.Equal(13.5d, clinical.FontSize);
+
+        RtfRun code = Assert.Single(paragraph.Runs, run => run.Text == " code");
+        Assert.Equal(2, code.FontId);
+        Assert.Equal(13.5d, code.FontSize);
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"{\f1 Times New Roman;}", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"{\f2 Consolas;}", rtf, StringComparison.Ordinal);
+
+        RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
+        RtfParagraph readParagraph = Assert.Single(roundTrip.Paragraphs);
+        Assert.Contains(readParagraph.Runs, run => run.Text == "Clinical" && run.FontId == 1 && run.FontSize == 13.5d);
+        Assert.Contains(readParagraph.Runs, run => run.Text == " code" && run.FontId == 2 && run.FontSize == 13.5d);
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Run_Font_Styles() {
+        RtfDocument document = RtfDocument.Create();
+        int fontId = document.AddFont("Times New Roman");
+        RtfRun run = document.AddParagraph().AddText("Clinical");
+        run.FontId = fontId;
+        run.FontSize = 13.5d;
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p><span style=\"font-family:&quot;Times New Roman&quot;;font-size:13.5pt;\">Clinical</span></p>", html);
+    }
+
+    [Fact]
     public void Html_ToRtfDocument_Allows_Css_To_Override_Semantic_Formatting() {
         const string html = "<p><strong><em><u>marked <span style=\"font-weight:400; font-style: normal; text-decoration: none; vertical-align: baseline\">plain</span></u></em></strong></p>";
 

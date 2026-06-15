@@ -264,7 +264,7 @@ internal static class RtfHtmlWriter {
         }
 
         builder.Append("<span style=\"");
-        builder.Append(style);
+        builder.Append(EncodeAttribute(style!));
         builder.Append("\">");
         opened++;
     }
@@ -277,6 +277,18 @@ internal static class RtfHtmlWriter {
 
     private static bool TryGetRunStyle(RtfRun run, RtfDocument document, out string? style) {
         var builder = new StringBuilder();
+        if (TryGetFont(document, run.FontId, out RtfFont? font)) {
+            builder.Append("font-family:");
+            builder.Append(FormatFontFamily(font!.Name));
+            builder.Append(';');
+        }
+
+        if (run.FontSize.HasValue) {
+            builder.Append("font-size:");
+            builder.Append(FormatPoints(run.FontSize.Value));
+            builder.Append("pt;");
+        }
+
         if (TryGetColor(document, run.ForegroundColorIndex, out RtfColor? foreground)) {
             builder.Append("color:");
             builder.Append(FormatColor(foreground!));
@@ -302,6 +314,24 @@ internal static class RtfHtmlWriter {
 
         color = document.Colors[index.Value - 1];
         return true;
+    }
+
+    private static bool TryGetFont(RtfDocument document, int? id, out RtfFont? font) {
+        if (!id.HasValue) {
+            font = null;
+            return false;
+        }
+
+        font = document.Fonts.FirstOrDefault(item => item.Id == id.Value);
+        return font != null;
+    }
+
+    private static string FormatFontFamily(string fontFamily) {
+        return "\"" + fontFamily.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+    }
+
+    private static string FormatPoints(double points) {
+        return points.ToString("0.###", CultureInfo.InvariantCulture);
     }
 
     private static string FormatColor(RtfColor color) {

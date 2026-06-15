@@ -247,6 +247,16 @@ internal static class RtfHtmlReader {
             if (background != null) {
                 run.CharacterBackgroundColorIndex = GetOrAddColorIndex(background);
             }
+
+            string? fontFamily = ResolveStyleString(style => style.FontFamily);
+            if (!string.IsNullOrWhiteSpace(fontFamily)) {
+                run.FontId = _document.AddFont(fontFamily!);
+            }
+
+            double? fontSize = ResolveStyleNumber(style => style.FontSizePoints);
+            if (fontSize.HasValue) {
+                run.FontSize = fontSize.Value;
+            }
         }
 
         internal void TrimEmptyTrailingParagraph() {
@@ -396,6 +406,28 @@ internal static class RtfHtmlReader {
                 RtfColor? value = selector(scope.Style);
                 if (value != null) {
                     return value;
+                }
+            }
+
+            return null;
+        }
+
+        private string? ResolveStyleString(Func<HtmlStyleDeclaration, string?> selector) {
+            foreach (HtmlStyleScope scope in _styles) {
+                string? value = selector(scope.Style);
+                if (!string.IsNullOrWhiteSpace(value)) {
+                    return value;
+                }
+            }
+
+            return null;
+        }
+
+        private double? ResolveStyleNumber(Func<HtmlStyleDeclaration, double?> selector) {
+            foreach (HtmlStyleScope scope in _styles) {
+                double? value = selector(scope.Style);
+                if (value.HasValue) {
+                    return value.Value;
                 }
             }
 

@@ -16,24 +16,31 @@ internal static class HtmlStyleDeclarationParser {
             }
 
             string property = rawDeclaration.Substring(0, separator).Trim().ToLowerInvariant();
-            string value = NormalizeValue(rawDeclaration.Substring(separator + 1));
+            string rawValue = NormalizeValue(rawDeclaration.Substring(separator + 1));
+            string value = rawValue.ToLowerInvariant();
             if (value.Length == 0) {
                 continue;
             }
 
-            Apply(declaration, property, value);
+            Apply(declaration, property, value, rawValue);
         }
 
         return declaration;
     }
 
-    private static void Apply(HtmlStyleDeclaration declaration, string property, string value) {
+    private static void Apply(HtmlStyleDeclaration declaration, string property, string value, string rawValue) {
         switch (property) {
             case "font-weight":
                 declaration.Bold = ParseFontWeight(value);
                 break;
             case "font-style":
                 declaration.Italic = ParseFontStyle(value);
+                break;
+            case "font-family":
+                declaration.FontFamily = ParseFontFamily(rawValue);
+                break;
+            case "font-size":
+                declaration.FontSizePoints = ParseFontSize(value);
                 break;
             case "text-decoration":
             case "text-decoration-line":
@@ -87,7 +94,7 @@ internal static class HtmlStyleDeclarationParser {
     }
 
     private static string NormalizeValue(string value) {
-        string normalized = value.Trim().ToLowerInvariant();
+        string normalized = value.Trim();
         int important = normalized.IndexOf("!important", StringComparison.OrdinalIgnoreCase);
         return important < 0 ? normalized : normalized.Substring(0, important).TrimEnd();
     }
@@ -118,6 +125,129 @@ internal static class HtmlStyleDeclarationParser {
         }
 
         return null;
+    }
+
+    private static string? ParseFontFamily(string value) {
+        foreach (string candidate in SplitFontFamily(value)) {
+            string family = Unquote(candidate.Trim());
+            if (family.Length == 0 || IsGenericFontFamily(family)) {
+                continue;
+            }
+
+            return family;
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> SplitFontFamily(string value) {
+        int start = 0;
+        char quote = '\0';
+        for (int index = 0; index < value.Length; index++) {
+            char current = value[index];
+            if (quote != '\0') {
+                if (current == quote) {
+                    quote = '\0';
+                }
+
+                continue;
+            }
+
+            if (current == '"' || current == '\'') {
+                quote = current;
+            } else if (current == ',') {
+                yield return value.Substring(start, index - start);
+                start = index + 1;
+            }
+        }
+
+        if (start < value.Length) {
+            yield return value.Substring(start);
+        }
+    }
+
+    private static string Unquote(string value) {
+        if (value.Length >= 2 &&
+            ((value[0] == '"' && value[value.Length - 1] == '"') ||
+             (value[0] == '\'' && value[value.Length - 1] == '\''))) {
+            return value.Substring(1, value.Length - 2).Trim();
+        }
+
+        return value;
+    }
+
+    private static bool IsGenericFontFamily(string value) {
+        switch (value.Trim().ToLowerInvariant()) {
+            case "serif":
+            case "sans-serif":
+            case "monospace":
+            case "cursive":
+            case "fantasy":
+            case "system-ui":
+            case "ui-serif":
+            case "ui-sans-serif":
+            case "ui-monospace":
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static double? ParseFontSize(string value) {
+        switch (value) {
+            case "xx-small":
+                return 6.75d;
+            case "x-small":
+                return 7.5d;
+            case "small":
+                return 10d;
+            case "medium":
+                return 12d;
+            case "large":
+                return 13.5d;
+            case "x-large":
+                return 18d;
+            case "xx-large":
+                return 24d;
+            case "smaller":
+                return 10d;
+            case "larger":
+                return 14d;
+        }
+
+        if (TryParseCssLength(value, "pt", 1d, out double points) ||
+            TryParseCssLength(value, "px", 0.75d, out points) ||
+            TryParseCssLength(value, "pc", 12d, out points) ||
+            TryParseCssLength(value, "in", 72d, out points) ||
+            TryParseCssLength(value, "cm", 72d / 2.54d, out points) ||
+            TryParseCssLength(value, "mm", 72d / 25.4d, out points)) {
+            return points > 0 ? points : null;
+        }
+
+        if (value.EndsWith("%", StringComparison.Ordinal) &&
+            double.TryParse(value.Substring(0, value.Length - 1), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent) &&
+            percent > 0) {
+            return 12d * percent / 100d;
+        }
+
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double px) && px > 0
+            ? px * 0.75d
+            : null;
+    }
+
+    private static bool TryParseCssLength(string value, string unit, double multiplier, out double points) {
+        points = 0;
+        if (!value.EndsWith(unit, StringComparison.Ordinal)) {
+            return false;
+        }
+
+        string number = value.Substring(0, value.Length - unit.Length).Trim();
+        if (!double.TryParse(number, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+            return false;
+        }
+
+        points = parsed * multiplier;
+        return true;
     }
 
     private static void ApplyTextDecoration(HtmlStyleDeclaration declaration, string value) {
