@@ -31,6 +31,7 @@ internal static partial class RtfHtmlReader {
         private readonly RtfHtmlReadOptions _options;
         private readonly Stack<HtmlListState> _lists = new Stack<HtmlListState>();
         private readonly Stack<HtmlStyleScope> _styles = new Stack<HtmlStyleScope>();
+        private readonly Stack<RtfRevisionScope> _revisions = new Stack<RtfRevisionScope>();
         private readonly List<RowSpanState> _rowSpans = new List<RowSpanState>();
         private RtfParagraph? _paragraph;
         private RtfTable? _table;
@@ -69,6 +70,7 @@ internal static partial class RtfHtmlReader {
             HtmlStyleDeclaration style = HtmlStyleDeclarationParser.Parse(GetAttribute(token, "style"));
             style = ApplyLanguageDirectionAttributes(style, token);
             ApplyDocumentLanguageDirection(token.Value, style);
+            PushRevisionScope(token);
             switch (token.Value) {
                 case "p":
                 case "div":
@@ -109,8 +111,10 @@ internal static partial class RtfHtmlReader {
                     break;
                 case "s":
                 case "strike":
-                case "del":
                     _strike++;
+                    break;
+                case "del":
+                case "ins":
                     break;
                 case "sup":
                     _superscript++;
@@ -262,6 +266,7 @@ internal static partial class RtfHtmlReader {
             }
 
             PopStyleScope(name);
+            PopRevisionScope(name);
             ExitFieldElement();
         }
 
@@ -323,6 +328,7 @@ internal static partial class RtfHtmlReader {
             }
 
             ApplyCharacterMetrics(run);
+            ApplyRevision(run);
         }
 
         internal void TrimEmptyTrailingParagraph() {

@@ -244,6 +244,7 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AppendRun(StringBuilder builder, RtfRun run, RtfDocument document) {
+        bool revisionOpened = AppendRevisionStart(builder, run, document);
         int opened = 0;
         if (run.Hyperlink != null) {
             builder.Append("<a href=\"");
@@ -276,6 +277,7 @@ internal static partial class RtfHtmlWriter {
         }
 
         AppendNote(builder, run.Note, document);
+        AppendRevisionEnd(builder, run, revisionOpened);
     }
 
     private static void OpenTag(StringBuilder builder, string tag, bool condition, ref int opened) {
