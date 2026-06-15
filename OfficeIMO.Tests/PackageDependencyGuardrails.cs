@@ -37,6 +37,10 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Theory]
+    [InlineData("OfficeIMO.Rtf/OfficeIMO.Rtf.csproj")]
+    [InlineData("OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj")]
+    [InlineData("OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj")]
+    [InlineData("OfficeIMO.Rtf.Pdf/OfficeIMO.Rtf.Pdf.csproj")]
     [InlineData("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj")]
     [InlineData("OfficeIMO.Pdf/OfficeIMO.Pdf.csproj")]
     [InlineData("OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj")]
@@ -59,6 +63,28 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Empty(references);
+    }
+
+    [Fact]
+    public void RtfHtmlBridge_UsesUnifiedHtmlPackageIdentity() {
+        var projectPath = GetRepositoryPath("OfficeIMO.Html.Rtf/OfficeIMO.Html.Rtf.csproj");
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+        Assert.False(Directory.Exists(GetRepositoryPath("OfficeIMO.Rtf.Html")), "Retired RTF HTML project folder should not be restored.");
+
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        Assert.Equal("OfficeIMO.Html.Rtf", (string?)document.Descendants(ns + "PackageId").Single());
+        Assert.Equal("OfficeIMO.Html.Rtf", (string?)document.Descendants(ns + "AssemblyName").Single());
+
+        var projectReferences = document
+            .Descendants(ns + "ProjectReference")
+            .Select(static e => NormalizeProjectPath((string?)e.Attribute("Include")))
+            .ToArray();
+
+        Assert.Contains(projectReferences, static include => include.EndsWith("OfficeIMO.Html/OfficeIMO.Html.csproj", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(projectReferences, static include => include.EndsWith("OfficeIMO.Rtf/OfficeIMO.Rtf.csproj", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(projectReferences, static include => include.Contains("OfficeIMO.Rtf.Html", StringComparison.OrdinalIgnoreCase));
     }
 
     [Theory]
