@@ -66,6 +66,46 @@ public class RtfLosslessEditorTests {
     }
 
     [Fact]
+    public void SetDocumentVariable_Replaces_Adds_And_Removes_Metadata_Without_Normalizing_Body() {
+        const string rtf = @"{\rtf1\ansi{\info{\title Keep}}{\*\userprops{\propname Owner}\proptype30{\staticval Evotec}}{\*\docvar {Client}{Old}}{\*\docvar {Remove}{Gone}}\pard Body \'80\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetDocumentVariable("Client", "New {client} ż");
+        editor.SetDocumentVariable("Region", "EMEA");
+        editor.SetDocumentVariable("Remove", null);
+
+        const string expected = @"{\rtf1\ansi{\info{\title Keep}}{\*\userprops{\propname Owner}\proptype30{\staticval Evotec}}{\*\docvar {Client}{New \{client\} \u380?}}{\*\docvar {Region}{EMEA}}\pard Body \'80\par}";
+        Assert.Equal(expected, editor.ToRtf());
+
+        RtfReadResult read = editor.ToReadResult();
+        Assert.Collection(
+            read.Document.DocumentVariables,
+            variable => {
+                Assert.Equal("Client", variable.Name);
+                Assert.Equal("New {client} ż", variable.Value);
+            },
+            variable => {
+                Assert.Equal("Region", variable.Name);
+                Assert.Equal("EMEA", variable.Value);
+            });
+        Assert.Equal("Keep", read.Document.Info.Title);
+        Assert.Contains(@"Body \'80", editor.ToRtf(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SetDocumentVariable_Creates_DocVar_After_Header_When_Metadata_Is_Missing() {
+        const string rtf = @"{\rtf1\ansi\pard Body\par}";
+
+        RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
+        editor.SetDocumentVariable("Mode", string.Empty);
+
+        Assert.Equal(@"{\rtf1\ansi{\*\docvar {Mode}{}}\pard Body\par}", editor.ToRtf());
+        RtfDocumentVariable variable = Assert.Single(editor.ToReadResult().Document.DocumentVariables);
+        Assert.Equal("Mode", variable.Name);
+        Assert.Equal(string.Empty, variable.Value);
+    }
+
+    [Fact]
     public void AppendParagraph_Preserves_Existing_Syntax_And_Escapes_Text() {
         const string rtf = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par}";
 

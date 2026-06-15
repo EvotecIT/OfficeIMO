@@ -8,7 +8,6 @@ internal static partial class RtfSemanticReader {
             var variables = new List<RtfDocumentVariable>();
             foreach (RtfGroup documentVariableGroup in root.Children.OfType<RtfGroup>().Where(group => group.Destination == "docvar")) {
                 RtfGroup[] valueGroups = documentVariableGroup.Children.OfType<RtfGroup>()
-                    .Where(group => group.Destination == null)
                     .Take(2)
                     .ToArray();
                 if (valueGroups.Length < 2) continue;

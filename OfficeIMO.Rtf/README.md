@@ -53,6 +53,7 @@ RtfLosslessEditor editor = read.EditLossless();
 
 editor.ReplaceText("Old text", "New text");
 editor.SetInfo(RtfDocumentInfoField.Title, "Updated title");
+editor.SetDocumentVariable("Client", "Contoso");
 editor.AppendParagraph("New paragraph");
 
 string editedRtf = editor.ToRtf();

@@ -60,6 +60,19 @@ public sealed class RtfLosslessEditor {
     }
 
     /// <summary>
+    /// Adds, replaces, or removes a root document variable while preserving the rest of the RTF stream.
+    /// Pass <c>null</c> for <paramref name="value"/> to remove all variables with the supplied name.
+    /// </summary>
+    public void SetDocumentVariable(string name, string? value) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            throw new ArgumentException("Document variable name cannot be empty.", nameof(name));
+        }
+
+        RtfGroup root = SetDocumentVariable(_syntaxTree.Root, name, value);
+        _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);
+    }
+
+    /// <summary>
     /// Appends a plain RTF paragraph at the end of the root document group while preserving existing syntax.
     /// </summary>
     public void AppendParagraph(string text) {
@@ -173,6 +186,34 @@ public sealed class RtfLosslessEditor {
         return children.Count == 0 ? null : new RtfGroup(infoGroup.Position, children);
     }
 
+    private static RtfGroup SetDocumentVariable(RtfGroup root, string name, string? value) {
+        var children = new List<RtfNode>(root.Children);
+        bool replaced = false;
+
+        for (int index = children.Count - 1; index >= 0; index--) {
+            if (children[index] is not RtfGroup group || group.Destination != "docvar") {
+                continue;
+            }
+
+            if (!DocumentVariableNameMatches(group, name)) {
+                continue;
+            }
+
+            if (value == null || replaced) {
+                children.RemoveAt(index);
+            } else {
+                children[index] = CreateDocumentVariableGroup(name, value);
+                replaced = true;
+            }
+        }
+
+        if (!replaced && value != null) {
+            children.Insert(GetDocumentVariableInsertIndex(children), CreateDocumentVariableGroup(name, value));
+        }
+
+        return new RtfGroup(root.Position, children);
+    }
+
     private static RtfGroup CreateInfoGroup(string destination, string value) {
         return new RtfGroup(0, new RtfNode[] {
             new RtfControlWord(0, "info", null, hasParameter: false, rawText: @"\info"),
@@ -187,6 +228,21 @@ public sealed class RtfLosslessEditor {
         });
     }
 
+    private static RtfGroup CreateDocumentVariableGroup(string name, string value) {
+        return new RtfGroup(0, new RtfNode[] {
+            new RtfControlSymbol(0, '*', null, hasParameter: false, rawText: @"\*"),
+            new RtfControlWord(0, "docvar", null, hasParameter: false, rawText: @"\docvar "),
+            CreatePlainGroup(name),
+            CreatePlainGroup(value)
+        });
+    }
+
+    private static RtfGroup CreatePlainGroup(string text) {
+        return new RtfGroup(0, new RtfNode[] {
+            new RtfText(0, text, RtfTextEncoding.EncodeText(text))
+        });
+    }
+
     private static int GetInfoInsertIndex(List<RtfNode> children) {
         int index = 0;
         while (index < children.Count &&
@@ -196,6 +252,101 @@ public sealed class RtfLosslessEditor {
         }
 
         return index;
+    }
+
+    private static int GetDocumentVariableInsertIndex(List<RtfNode> children) {
+        int insertIndex = -1;
+        for (int index = 0; index < children.Count; index++) {
+            if (children[index] is RtfGroup group &&
+                (group.Destination == "docvar" || group.Destination == "userprops" || group.Destination == "info")) {
+                insertIndex = index;
+            }
+        }
+
+        return insertIndex >= 0 ? insertIndex + 1 : GetInfoInsertIndex(children);
+    }
+
+    private static bool DocumentVariableNameMatches(RtfGroup group, string name) {
+        RtfGroup? nameGroup = group.Children
+            .OfType<RtfGroup>()
+            .FirstOrDefault();
+
+        return nameGroup != null && string.Equals(CollectPlainText(nameGroup).Trim(), name, StringComparison.Ordinal);
+    }
+
+    private static string CollectPlainText(RtfGroup group) {
+        var builder = new StringBuilder();
+        var state = new DocumentVariableTextState();
+        AppendPlainText(group, builder, state);
+        return builder.ToString();
+    }
+
+    private static void AppendPlainText(RtfGroup group, StringBuilder builder, DocumentVariableTextState state) {
+        foreach (RtfNode child in group.Children) {
+            switch (child) {
+                case RtfText text:
+                    AppendWithSkip(text.Text, builder, state);
+                    break;
+                case RtfControlSymbol symbol:
+                    AppendControlSymbolText(symbol, builder, state);
+                    break;
+                case RtfControlWord control when control.Name == "uc" && control.Parameter.HasValue && control.Parameter.Value >= 0:
+                    state.UnicodeSkipCount = control.Parameter.Value;
+                    break;
+                case RtfControlWord control when control.Name == "u" && control.Parameter.HasValue:
+                    AppendUnicodeValue(control.Parameter.Value, builder, state);
+                    state.SkipCharacters = state.UnicodeSkipCount;
+                    break;
+                case RtfControlWord control when control.Name == "tab":
+                    AppendWithSkip("\t", builder, state);
+                    break;
+                case RtfControlWord control when control.Name == "line" || control.Name == "par":
+                    AppendWithSkip(Environment.NewLine, builder, state);
+                    break;
+                case RtfGroup childGroup:
+                    AppendPlainText(childGroup, builder, state);
+                    break;
+            }
+        }
+    }
+
+    private static void AppendControlSymbolText(RtfControlSymbol symbol, StringBuilder builder, DocumentVariableTextState state) {
+        if (symbol.Symbol == '\'' && symbol.Parameter.HasValue) {
+            AppendWithSkip(((char)symbol.Parameter.Value).ToString(), builder, state);
+        } else if (symbol.Symbol == '\\' || symbol.Symbol == '{' || symbol.Symbol == '}') {
+            AppendWithSkip(symbol.Symbol.ToString(), builder, state);
+        } else if (symbol.Symbol == '~') {
+            AppendWithSkip("\u00A0", builder, state);
+        } else if (symbol.Symbol == '_') {
+            AppendWithSkip("\u2011", builder, state);
+        } else if (symbol.Symbol == '-') {
+            AppendWithSkip("\u00AD", builder, state);
+        }
+    }
+
+    private static void AppendUnicodeValue(int value, StringBuilder builder, DocumentVariableTextState state) {
+        int codePoint = value < 0 ? value + 65536 : value;
+        AppendWithSkip(char.ConvertFromUtf32(codePoint), builder, state);
+    }
+
+    private static void AppendWithSkip(string text, StringBuilder builder, DocumentVariableTextState state) {
+        if (state.SkipCharacters <= 0) {
+            builder.Append(text);
+            return;
+        }
+
+        if (state.SkipCharacters >= text.Length) {
+            state.SkipCharacters -= text.Length;
+            return;
+        }
+
+        builder.Append(text, state.SkipCharacters, text.Length - state.SkipCharacters);
+        state.SkipCharacters = 0;
+    }
+
+    private sealed class DocumentVariableTextState {
+        internal int UnicodeSkipCount { get; set; } = 1;
+        internal int SkipCharacters { get; set; }
     }
 
     private static string GetInfoDestination(RtfDocumentInfoField field) {
