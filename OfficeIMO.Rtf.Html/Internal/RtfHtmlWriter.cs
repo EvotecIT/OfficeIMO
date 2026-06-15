@@ -64,8 +64,11 @@ internal static partial class RtfHtmlWriter {
                 builder.Append(Encode(title!));
                 builder.Append("</title>");
             }
+
+            AppendDocumentMetadata(builder, document, newline);
         }
 
+        AppendHeaderFooterMetadata(builder, document, options, newline);
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);

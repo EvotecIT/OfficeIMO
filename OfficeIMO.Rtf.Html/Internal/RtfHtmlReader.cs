@@ -51,6 +51,9 @@ internal static partial class RtfHtmlReader {
         private int _nextListId = 1;
         private RtfTextAlignment? _cellTextAlignment;
         private bool _pageBreakAfterParagraph;
+        private int _headDepth;
+        private int _titleDepth;
+        private StringBuilder? _titleText;
 
         internal ReadContext(RtfDocument document, RtfHtmlReadOptions options) {
             _document = document;
@@ -58,6 +61,10 @@ internal static partial class RtfHtmlReader {
         }
 
         internal void Start(HtmlToken token) {
+            if (TryReadDocumentMetadata(token)) {
+                return;
+            }
+
             if (TryReadNote(token)) {
                 return;
             }
@@ -178,6 +185,10 @@ internal static partial class RtfHtmlReader {
         }
 
         internal void End(string name) {
+            if (EndDocumentMetadata(name)) {
+                return;
+            }
+
             switch (name) {
                 case "p":
                 case "div":
@@ -275,6 +286,10 @@ internal static partial class RtfHtmlReader {
         }
 
         internal void AppendText(string text) {
+            if (AppendDocumentMetadataText(text)) {
+                return;
+            }
+
             string value = _preformatted > 0 ? text : NormalizeWhitespace(text);
             if (value.Length == 0) {
                 return;
