@@ -491,7 +491,9 @@ namespace OfficeIMO.Tests {
             var doc = html.LoadFromHtml(options);
 
             Assert.Single(doc.Images);
-            Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "SvgEmbedFailed");
+            Assert.Contains(options.Diagnostics, diagnostic =>
+                diagnostic.Code == "SvgLoadFailed" &&
+                diagnostic.Source == "https://example.test/broken.svg");
             Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceBudgetExceeded");
         }
 
