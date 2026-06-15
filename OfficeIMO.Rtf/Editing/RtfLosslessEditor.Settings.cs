@@ -96,6 +96,20 @@ public sealed partial class RtfLosslessEditor {
             case "brdrframe":
             case "landscape":
             case "titlepg":
+            case "widowctrl":
+            case "hyphauto":
+            case "hyphcaps":
+            case "facingp":
+            case "margmirror":
+            case "formprot":
+            case "revprot":
+            case "annotprot":
+            case "readprot":
+            case "revisions":
+            case "dgsnap":
+            case "dgmargin":
+            case "ltrdoc":
+            case "rtldoc":
                 return true;
             default:
                 return false;
@@ -229,6 +243,69 @@ public sealed partial class RtfLosslessEditor {
                 return 50;
             case "titlepg":
                 return 51;
+            case "deftab":
+                return 60;
+            case "deflang":
+                return 61;
+            case "deflangfe":
+                return 62;
+            case "adeflang":
+                return 63;
+            case "viewkind":
+                return 64;
+            case "viewscale":
+                return 65;
+            case "viewzk":
+                return 66;
+            case "viewbksp":
+                return 67;
+            case "widowctrl":
+                return 68;
+            case "hyphauto":
+                return 69;
+            case "hyphcaps":
+                return 70;
+            case "hyphconsec":
+                return 71;
+            case "hyphhotz":
+                return 72;
+            case "facingp":
+                return 73;
+            case "margmirror":
+                return 74;
+            case "formprot":
+                return 75;
+            case "revprot":
+                return 76;
+            case "annotprot":
+                return 77;
+            case "readprot":
+                return 78;
+            case "revisions":
+                return 79;
+            case "revprop":
+                return 80;
+            case "revbar":
+                return 81;
+            case "dghspace":
+                return 82;
+            case "dgvspace":
+                return 83;
+            case "dghorigin":
+                return 84;
+            case "dgvorigin":
+                return 85;
+            case "dghshow":
+                return 86;
+            case "dgvshow":
+                return 87;
+            case "dgsnap":
+                return 88;
+            case "dgmargin":
+                return 89;
+            case "ltrdoc":
+            case "rtldoc":
+                return 90;
             default:
                 return 100;
         }
