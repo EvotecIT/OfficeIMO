@@ -225,7 +225,10 @@ internal static partial class RtfHtmlWriter {
                     builder.Append("<br>");
                     break;
                 case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page:
-                    builder.Append("<br style=\"page-break-before:always;break-before:page;\">");
+                    AppendBreak(builder, rtfBreak.Kind);
+                    break;
+                case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Column:
+                    AppendBreak(builder, rtfBreak.Kind);
                     break;
                 case RtfField field:
                     AppendInlines(builder, field.Result.Inlines, options, document);

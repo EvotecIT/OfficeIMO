@@ -84,7 +84,7 @@ internal static partial class RtfHtmlReader {
                     _bold++;
                     break;
                 case "br":
-                    EnsureParagraph().AddLineBreak();
+                    AddBreak(token);
                     break;
                 case "strong":
                 case "b":

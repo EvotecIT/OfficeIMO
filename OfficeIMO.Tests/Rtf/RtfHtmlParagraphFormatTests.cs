@@ -102,4 +102,52 @@ public class RtfHtmlParagraphFormatTests {
         Assert.Equal(RtfTextDirection.LeftToRight, roundTrip.Paragraphs[0].Direction);
         Assert.Null(roundTrip.Paragraphs[1].Runs.Single(run => run.Text == "Default").Direction);
     }
+
+    [Fact]
+    public void Html_ToRtfDocument_Parses_Inline_Page_And_Column_Breaks() {
+        const string html = "<p>Before<br data-officeimo-rtf-break=\"page\">After<br data-officeimo-rtf-break=\"column\">Column<br style=\"page-break-before:always\">Styled</p>";
+
+        RtfDocument document = html.ToRtfDocumentFromHtml();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+        Assert.Collection(paragraph.Inlines,
+            inline => Assert.Equal("Before", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("After", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.Column, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("Column", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("Styled", Assert.IsType<RtfRun>(inline).Text));
+
+        string rtf = document.ToRtf();
+        Assert.Contains(@"\page", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"\column", rtf, StringComparison.Ordinal);
+
+        RtfParagraph roundTripParagraph = Assert.Single(RtfDocument.Read(rtf).Document.Paragraphs);
+        Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Page });
+        Assert.Contains(roundTripParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Column });
+    }
+
+    [Fact]
+    public void RtfDocument_ToHtml_Renders_Inline_Page_And_Column_Break_Metadata() {
+        RtfDocument document = RtfDocument.Create();
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddText("Before");
+        paragraph.AddPageBreak();
+        paragraph.AddText("After");
+        paragraph.AddColumnBreak();
+        paragraph.AddText("Column");
+
+        string html = document.ToHtml();
+
+        Assert.Equal("<p>Before<br data-officeimo-rtf-break=\"page\" style=\"page-break-before:always;break-before:page;\">After<br data-officeimo-rtf-break=\"column\" style=\"break-before:column;\">Column</p>", html);
+
+        RtfParagraph roundTripParagraph = Assert.Single(html.ToRtfDocumentFromHtml().Paragraphs);
+        Assert.Collection(roundTripParagraph.Inlines,
+            inline => Assert.Equal("Before", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.Page, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("After", Assert.IsType<RtfRun>(inline).Text),
+            inline => Assert.Equal(RtfBreakKind.Column, Assert.IsType<RtfBreak>(inline).Kind),
+            inline => Assert.Equal("Column", Assert.IsType<RtfRun>(inline).Text));
+    }
 }

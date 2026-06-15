@@ -342,7 +342,7 @@ public class RtfHtmlConverterTests {
             NewLine = "\n"
         });
 
-        Assert.Equal("<p style=\"page-break-before:always;break-before:page;\">Before</p>\n<p>After<br style=\"page-break-before:always;break-before:page;\"></p>", html);
+        Assert.Equal("<p style=\"page-break-before:always;break-before:page;\">Before</p>\n<p>After<br data-officeimo-rtf-break=\"page\" style=\"page-break-before:always;break-before:page;\"></p>", html);
     }
 
     [Fact]
