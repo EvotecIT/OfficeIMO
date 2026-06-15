@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Xml.Linq;
 using Xunit;
 
@@ -128,6 +129,28 @@ public sealed class PackageDependencyGuardrailTests {
                 Assert.DoesNotContain(projectReferences, value => value.Contains(retiredPackageId, StringComparison.OrdinalIgnoreCase));
             }
         }
+
+        var projectBuildPath = GetRepositoryPath("Build/project.build.json");
+        Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
+
+        var projectBuildText = File.ReadAllText(projectBuildPath);
+        foreach (var retiredPackageId in retiredPackageIds) {
+            Assert.DoesNotContain(retiredPackageId, projectBuildText, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public void RtfPackages_AreIncludedInProjectBuildVersionMap() {
+        var projectBuildPath = GetRepositoryPath("Build/project.build.json");
+        Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
+
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(projectBuildPath));
+        JsonElement expectedVersionMap = document.RootElement.GetProperty("ExpectedVersionMap");
+
+        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Rtf").GetString());
+        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Word.Rtf").GetString());
+        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Rtf.Pdf").GetString());
+        Assert.Equal("0.0.X", expectedVersionMap.GetProperty("OfficeIMO.Reader.Rtf").GetString());
     }
 
     [Theory]
