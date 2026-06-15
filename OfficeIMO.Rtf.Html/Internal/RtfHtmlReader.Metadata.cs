@@ -138,6 +138,12 @@ internal static partial class RtfHtmlReader {
                 case "officeimo-rtf-header-footer":
                     ReadHeaderFooter(token, content);
                     break;
+                case "officeimo-rtf-colors":
+                    ApplyColorTable(RtfHtmlMetadataCodec.Decode(content));
+                    break;
+                case "officeimo-rtf-document-layout":
+                    ApplyDocumentLayout(RtfHtmlMetadataCodec.Decode(content));
+                    break;
             }
         }
 

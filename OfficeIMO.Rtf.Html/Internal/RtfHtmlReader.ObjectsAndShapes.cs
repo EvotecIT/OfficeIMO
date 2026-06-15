@@ -138,6 +138,7 @@ internal static partial class RtfHtmlReader {
             if (IsBlockCarrier(token)) {
                 RtfObject blockObject = _document.AddObject(rtfObject.Kind, rtfObject.Data);
                 CopyObject(rtfObject, blockObject);
+                AddSectionBlock(blockObject);
                 return;
             }
 
@@ -149,6 +150,7 @@ internal static partial class RtfHtmlReader {
             if (IsBlockCarrier(token)) {
                 RtfShape blockShape = _document.AddShape();
                 CopyShape(shape, blockShape);
+                AddSectionBlock(blockShape);
                 return;
             }
 

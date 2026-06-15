@@ -11,9 +11,26 @@ internal static partial class RtfHtmlWriter {
             AppendDocumentStart(builder, document, options, newline);
         }
 
+        if (document.Sections.Count > 0) {
+            AppendSections(builder, document, options, newline);
+        } else {
+            AppendBlocks(builder, document.Blocks, options, document, newline);
+        }
+
+        if (!options.FragmentOnly) {
+            builder.Append(newline);
+            builder.Append("</body>");
+            builder.Append(newline);
+            builder.Append("</html>");
+        }
+
+        return builder.ToString();
+    }
+
+    private static void AppendBlocks(StringBuilder builder, IReadOnlyList<IRtfBlock> blocks, RtfHtmlSaveOptions options, RtfDocument document, string newline) {
         RtfListKind openList = RtfListKind.None;
-        for (int i = 0; i < document.Blocks.Count; i++) {
-            IRtfBlock block = document.Blocks[i];
+        for (int i = 0; i < blocks.Count; i++) {
+            IRtfBlock block = blocks[i];
             if (block is RtfParagraph paragraph && paragraph.ListKind != RtfListKind.None) {
                 if (openList != paragraph.ListKind) {
                     CloseList(builder, openList);
@@ -28,21 +45,12 @@ internal static partial class RtfHtmlWriter {
                 AppendBlock(builder, block, options, document);
             }
 
-            if (i + 1 < document.Blocks.Count) {
+            if (i + 1 < blocks.Count) {
                 builder.Append(newline);
             }
         }
 
         CloseList(builder, openList);
-
-        if (!options.FragmentOnly) {
-            builder.Append(newline);
-            builder.Append("</body>");
-            builder.Append(newline);
-            builder.Append("</html>");
-        }
-
-        return builder.ToString();
     }
 
     private static void AppendDocumentStart(StringBuilder builder, RtfDocument document, RtfHtmlSaveOptions options, string newline) {
@@ -69,6 +77,7 @@ internal static partial class RtfHtmlWriter {
         }
 
         AppendHeaderFooterMetadata(builder, document, options, newline);
+        AppendDocumentLayoutMetadata(builder, document, newline);
         builder.Append(newline);
         builder.Append("</head>");
         builder.Append(newline);

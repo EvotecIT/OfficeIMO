@@ -54,6 +54,8 @@ internal static partial class RtfHtmlReader {
         private int _headDepth;
         private int _titleDepth;
         private StringBuilder? _titleText;
+        private RtfSection? _currentSection;
+        private int _sectionElementDepth;
 
         internal ReadContext(RtfDocument document, RtfHtmlReadOptions options) {
             _document = document;
@@ -64,6 +66,12 @@ internal static partial class RtfHtmlReader {
             if (TryReadDocumentMetadata(token)) {
                 return;
             }
+
+            if (TryStartSection(token)) {
+                return;
+            }
+
+            EnterSectionElement();
 
             if (TryReadNote(token)) {
                 return;
@@ -189,6 +197,10 @@ internal static partial class RtfHtmlReader {
                 return;
             }
 
+            if (TryEndSection(name)) {
+                return;
+            }
+
             switch (name) {
                 case "p":
                 case "div":
@@ -283,6 +295,7 @@ internal static partial class RtfHtmlReader {
             PopStyleScope(name);
             PopRevisionScope(name);
             ExitFieldElement();
+            ExitSectionElement();
         }
 
         internal void AppendText(string text) {
@@ -360,6 +373,10 @@ internal static partial class RtfHtmlReader {
             }
 
             _paragraph = _cell == null ? _document.AddParagraph() : _cell.AddParagraph();
+            if (_cell == null) {
+                AddSectionBlock(_paragraph);
+            }
+
             if (_cellTextAlignment.HasValue) {
                 _paragraph.Alignment = _cellTextAlignment.Value;
             }

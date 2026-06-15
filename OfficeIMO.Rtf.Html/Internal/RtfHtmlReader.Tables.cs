@@ -6,6 +6,7 @@ internal static partial class RtfHtmlReader {
     private sealed partial class ReadContext {
         private void StartTable() {
             _table = _document.AddTable(0, 1);
+            AddSectionBlock(_table);
             _row = null;
             _cell = null;
             _rowSpans.Clear();
